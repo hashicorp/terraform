@@ -48,7 +48,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/hcl v1.0.0
-	github.com/hashicorp/hcl/v2 v2.17.1-0.20230825193039-a9f8d65cae3c
+	github.com/hashicorp/hcl/v2 v2.18.0
 	github.com/hashicorp/jsonapi v0.0.0-20210826224640-ee7dae0fb22d
 	github.com/hashicorp/terraform-registry-address v0.2.0
 	github.com/hashicorp/terraform-svchost v0.1.1
@@ -81,7 +81,7 @@ require (
 	github.com/tombuildsstuff/giovanni v0.15.1
 	github.com/xanzy/ssh-agent v0.3.1
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
-	github.com/zclconf/go-cty v1.13.3
+	github.com/zclconf/go-cty v1.14.0
 	github.com/zclconf/go-cty-debug v0.0.0-20191215020915-b22d67c1ba0b
 	github.com/zclconf/go-cty-yaml v1.0.3
 	go.opentelemetry.io/contrib/exporters/autoexport v0.0.0-20230703072336-9a582bd098a2
@@ -96,14 +96,14 @@ require (
 	golang.org/x/sys v0.11.0
 	golang.org/x/term v0.11.0
 	golang.org/x/text v0.12.0
-	golang.org/x/tools v0.12.1-0.20230815132531-74c255bcf846
+	golang.org/x/tools v0.12.1-0.20230825192346-2191a27a6dc5
 	golang.org/x/tools/cmd/cover v0.1.0-deprecated
 	google.golang.org/api v0.114.0
 	google.golang.org/genproto v0.0.0-20230530153820-e85fd2cbaebc
 	google.golang.org/grpc v1.56.1
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
 	google.golang.org/protobuf v1.31.0
-	honnef.co/go/tools v0.4.2
+	honnef.co/go/tools v0.5.0-0.dev.0.20230826160118-ad5ca31ff221
 	k8s.io/api v0.25.5
 	k8s.io/apimachinery v0.25.5
 	k8s.io/client-go v0.25.5
@@ -135,7 +135,7 @@ require (
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/antchfx/xmlquery v1.3.5 // indirect
 	github.com/antchfx/xpath v1.1.10 // indirect
-	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
+	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect
@@ -271,4 +271,4 @@ require (
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
 
-go 1.20
+go 1.21.0

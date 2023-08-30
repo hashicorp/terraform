@@ -1,6 +1,8 @@
 ## 1.6.0 (Unreleased)
 
 UPGRADE NOTES:
+* On macOS, Terraform now requires macOS 10.15 Catalina or later; support for previous versions has been discontinued.
+* On Windows, Terraform now at least Windows 10 or Windows Server 2016; support for previous versions has been discontinued.
 * The S3 backend has a number of significant changes to its configuration format in this release, intended to match with recent changes in the `hashicorp/aws` provider:
     * Configuration settings related to assuming IAM roles now belong to a nested block `assume_role`. The top-level arguments `role_arn`, `session_name`, `external_id`, `assume_role_duration_seconds`, `assume_role_policy_arns`, `assume_role_tags`, and `assume_role_transitive_tag_keys` are all now deprecated in favor of the nested equivalents. ([#30495](https://github.com/hashicorp/terraform/issues/30495))
     * Configuration settings related to overriding the locations of AWS service endpoints used by the provider now belong to a nested block `endpoints`. The top-level arguments `dynamodb_endpoint`, `iam_endpoint`, `endpoint` (fir S3), and `sts_endpoint` are now deprecated in favor of the nested equivalents. ([#30492](https://github.com/hashicorp/terraform/issues/30492))
