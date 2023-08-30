@@ -30,7 +30,7 @@ The following options apply to the Terraform `test` command:
 
 * `-test-directory=<relative directory>` - Overrides the directory that Terraform looks into for test files. Note that Terraform always loads testing files within the main configuration directory. The default testing directory is `tests`.
 
-* `-verbose` Prints out the state for each `command=apply` `run` block after execution, or the plan for each `command=plan` `run` block.
+* `-verbose` - Prints out the plan or state for each `run` block within a test file, based on the `command` attribute of each `run` block.
 
 ## State Management
 

@@ -522,6 +522,6 @@ Within Terraform test files, you can specify variable values within
 `variables` blocks, either nested within `run` blocks or defined directly within
 the file.
 
-Variables defined here take precedence over all other mechanisms, with variables
-defined within `run` blocks taking precedence over those defined within the
-file.
+Variables defined in this way take precedence over all other mechanisms during
+test execution, with variables defined within `run` blocks taking precedence
+over those defined within the file.

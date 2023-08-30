@@ -57,4 +57,4 @@ Validations are executed during Terraform plan and apply operations, and the Ter
 
 Module authors should note that validations are executed and exposed to module users, so if they fail, ensure the failure messages are understandable and actionable.
 
-In contrast, tests are only executed when requested and can be used to simulate specific behaviours within the configuration. Therefore, tests should be used to assert the correctness of any logical operations or behaviour within your configuration. For example, any conditional resources created based on an input can be verified as part of a test by setting the input that controls the conditional resource to true.
+In contrast, Terraform only executes tests when you run `terraform test`. Use tests to assert the correctness of any logical operations or specific behavior within your configuration. For example, you can test that Terraform creates conditional resources based on an input by setting the input controlling those resources to a certain value then verifying the resources Terraform creates.
