@@ -120,6 +120,25 @@ func validateStringMatches(re *regexp.Regexp, description string) stringValidato
 	}
 }
 
+func validateStringInSlice(sl []string) stringValidator {
+	return func(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+		match := false
+		for _, s := range sl {
+			if val == s {
+				match = true
+			}
+		}
+		if !match {
+			*diags = diags.Append(attributeErrDiag(
+				"Invalid Value",
+				fmt.Sprintf("Value must be one of [%s]", strings.Join(sl, ", ")),
+				path,
+			))
+		}
+
+	}
+}
+
 // validateStringRetryMode ensures the provided value in a valid AWS retry mode
 func validateStringRetryMode(val string, path cty.Path, diags *tfdiags.Diagnostics) {
 	_, err := aws.ParseRetryMode(val)

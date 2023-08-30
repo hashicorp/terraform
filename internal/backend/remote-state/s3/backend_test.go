@@ -534,11 +534,67 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 			},
 			expectedEndpoint: "ec2.test",
 		},
+		"config IPv4 mode": {
+			config: map[string]any{
+				"ec2_metadata_service_endpoint":      "ec2.test",
+				"ec2_metadata_service_endpoint_mode": "IPv4",
+			},
+			expectedEndpoint: "ec2.test",
+		},
+		"config IPv6 mode": {
+			config: map[string]any{
+				"ec2_metadata_service_endpoint":      "ec2.test",
+				"ec2_metadata_service_endpoint_mode": "IPv6",
+			},
+			expectedEndpoint: "ec2.test",
+		},
+		"config invalid mode": {
+			config: map[string]any{
+				"ec2_metadata_service_endpoint":      "ec2.test",
+				"ec2_metadata_service_endpoint_mode": "invalid",
+			},
+			expectedEndpoint: "ec2.test",
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					"Value must be one of [IPv4, IPv6]",
+					cty.GetAttrPath("ec2_metadata_service_endpoint_mode"),
+				),
+			},
+		},
 		"envvar": {
 			vars: map[string]string{
 				"AWS_EC2_METADATA_SERVICE_ENDPOINT": "ec2.test",
 			},
 			expectedEndpoint: "ec2.test",
+		},
+		"envvar IPv4 mode": {
+			vars: map[string]string{
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT":      "ec2.test",
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE": "IPv4",
+			},
+			expectedEndpoint: "ec2.test",
+		},
+		"envvar IPv6 mode": {
+			vars: map[string]string{
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT":      "ec2.test",
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE": "IPv6",
+			},
+			expectedEndpoint: "ec2.test",
+		},
+		"envvar invalid mode": {
+			vars: map[string]string{
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT":      "ec2.test",
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE": "invalid",
+			},
+			expectedEndpoint: "ec2.test",
+			expectedDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"unknown EC2 IMDS endpoint mode, must be either IPv6 or IPv4",
+					"",
+				),
+			},
 		},
 		"deprecated envvar": {
 			vars: map[string]string{

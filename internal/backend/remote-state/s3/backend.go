@@ -512,6 +512,16 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		retryModeValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
+	attrPath = cty.GetAttrPath("ec2_metadata_service_endpoint_mode")
+	if val := obj.GetAttr("ec2_metadata_service_endpoint_mode"); !val.IsNull() {
+		endpointModeValidators := validateString{
+			Validators: []stringValidator{
+				validateStringInSlice(awsbase.EC2MetadataEndpointMode_Values()),
+			},
+		}
+		endpointModeValidators.ValidateAttr(val, attrPath, &diags)
+	}
+
 	return obj, diags
 }
 
