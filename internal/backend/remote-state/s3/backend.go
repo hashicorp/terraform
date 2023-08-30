@@ -502,6 +502,16 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		diags = diags.Append(deprecatedAttrDiag(attrPath, cty.GetAttrPath("use_path_style")))
 	}
 
+	attrPath = cty.GetAttrPath("retry_mode")
+	if val := obj.GetAttr("retry_mode"); !val.IsNull() {
+		retryModeValidators := validateString{
+			Validators: []stringValidator{
+				validateStringRetryMode,
+			},
+		}
+		retryModeValidators.ValidateAttr(val, attrPath, &diags)
+	}
+
 	return obj, diags
 }
 

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -116,6 +117,18 @@ func validateStringMatches(re *regexp.Regexp, description string) stringValidato
 				path,
 			))
 		}
+	}
+}
+
+// validateStringRetryMode ensures the provided value in a valid AWS retry mode
+func validateStringRetryMode(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+	_, err := aws.ParseRetryMode(val)
+	if err != nil {
+		*diags = diags.Append(attributeErrDiag(
+			"Invalid Value",
+			err.Error(),
+			path,
+		))
 	}
 }
 
