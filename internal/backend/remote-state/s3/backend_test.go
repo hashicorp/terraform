@@ -516,6 +516,138 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 	}
 }
 
+func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
+	testACC(t)
+
+	cases := map[string]struct {
+		config           map[string]any
+		vars             map[string]string
+		expectedEndpoint string
+		expectedDiags    tfdiags.Diagnostics
+	}{
+		"none": {
+			expectedEndpoint: "",
+		},
+		"config": {
+			config: map[string]any{
+				"ec2_metadata_service_endpoint": "ec2.test",
+			},
+			expectedEndpoint: "ec2.test",
+		},
+		"config IPv4 mode": {
+			config: map[string]any{
+				"ec2_metadata_service_endpoint":      "ec2.test",
+				"ec2_metadata_service_endpoint_mode": "IPv4",
+			},
+			expectedEndpoint: "ec2.test",
+		},
+		"config IPv6 mode": {
+			config: map[string]any{
+				"ec2_metadata_service_endpoint":      "ec2.test",
+				"ec2_metadata_service_endpoint_mode": "IPv6",
+			},
+			expectedEndpoint: "ec2.test",
+		},
+		"config invalid mode": {
+			config: map[string]any{
+				"ec2_metadata_service_endpoint":      "ec2.test",
+				"ec2_metadata_service_endpoint_mode": "invalid",
+			},
+			expectedEndpoint: "ec2.test",
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					"Value must be one of [IPv4, IPv6]",
+					cty.GetAttrPath("ec2_metadata_service_endpoint_mode"),
+				),
+			},
+		},
+		"envvar": {
+			vars: map[string]string{
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT": "ec2.test",
+			},
+			expectedEndpoint: "ec2.test",
+		},
+		"envvar IPv4 mode": {
+			vars: map[string]string{
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT":      "ec2.test",
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE": "IPv4",
+			},
+			expectedEndpoint: "ec2.test",
+		},
+		"envvar IPv6 mode": {
+			vars: map[string]string{
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT":      "ec2.test",
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE": "IPv6",
+			},
+			expectedEndpoint: "ec2.test",
+		},
+		"envvar invalid mode": {
+			vars: map[string]string{
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT":      "ec2.test",
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE": "invalid",
+			},
+			expectedEndpoint: "ec2.test",
+			expectedDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"unknown EC2 IMDS endpoint mode, must be either IPv6 or IPv4",
+					"",
+				),
+			},
+		},
+		"deprecated envvar": {
+			vars: map[string]string{
+				"AWS_METADATA_URL": "ec2.test",
+			},
+			expectedEndpoint: "ec2.test",
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedEnvVarDiag("AWS_METADATA_URL", "AWS_EC2_METADATA_SERVICE_ENDPOINT"),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			config := map[string]interface{}{
+				"region": "us-west-1",
+				"bucket": "tf-test",
+				"key":    "state",
+			}
+
+			if tc.vars != nil {
+				for k, v := range tc.vars {
+					os.Setenv(k, v)
+				}
+				t.Cleanup(func() {
+					for k := range tc.vars {
+						os.Unsetenv(k)
+					}
+				})
+			}
+
+			if tc.config != nil {
+				for k, v := range tc.config {
+					config[k] = v
+				}
+			}
+
+			_, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+			// raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+			// b := raw.(*Backend)
+
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+
+			if !diags.HasErrors() {
+				// TODO: Convert to AWS SDK v2 equivalent
+				// checkClientEndpoint(t, b.s3Client.Config, tc.expectedEndpoint)
+			}
+		})
+	}
+}
+
 func TestBackendConfig_AssumeRole(t *testing.T) {
 	testACC(t)
 

@@ -8,6 +8,7 @@ UPGRADE NOTES:
     * Configuration settings related to overriding the locations of AWS service endpoints used by the provider now belong to a nested block `endpoints`. The top-level arguments `dynamodb_endpoint`, `iam_endpoint`, `endpoint` (fir S3), and `sts_endpoint` are now deprecated in favor of the nested equivalents. ([#30492](https://github.com/hashicorp/terraform/issues/30492))
     * The backend now uses the following environment variables for overriding the default locations of AWS service endpoints used by the provider: `AWS_ENDPOINT_URL_DYNAMODB`, `AWS_ENDPOINT_URL_IAM`, `AWS_ENDPOINT_URL_S3`, and `AWS_ENDPOINT_URL_STS`. The old non-standard names for these environment variables are now deprecated: `AWS_DYNAMODB_ENDPOINT`, `AWS_IAM_ENDPOINT`, `AWS_S3_ENDPOINT`, and `AWS_STS_ENDPOINT`. ([#30479](https://github.com/hashicorp/terraform/issues/30479))
     * The singular `shared_credentials_file` argument is deprecated in favor of the plural `shared_credentials_files`.
+    * The `force_path_style` argument is deprecated in favor of `use_path_style` for consistency with the AWS SDK. ([#30491](https://github.com/hashicorp/terraform/issues/30491))
 
 NEW FEATURES:
 * `terraform test`: The `terraform test` command is now generally available. This comes with a significant change to how tests are written and executed, based on feedback from the experimental phase.
@@ -29,6 +30,11 @@ ENHANCEMENTS:
     * Now honors the standard AWS environment variables for credential and configuration files: `AWS_CONFIG_FILE` and `AWS_SHARED_CREDENTIALS_FILE`. ([#30493](https://github.com/hashicorp/terraform/issues/30493))
     * `shared_config_files` and `shared_credentials_files` arguments for specifying credential and configuration files as part of the backend configuration. ([#30493](https://github.com/hashicorp/terraform/issues/30493))
     * Internally the backend now uses AWS SDK for Go v2, which should address various other missing behaviors that are handled by the SDK rather than by Terraform itself. ([#30443](https://github.com/hashicorp/terraform/issues/30443))
+    * `custom_ca_bundle` argument and support for the corresponding AWS environment variable, `AWS_CA_BUNDLE`, for providing custom root and intermediate certificates. ([#33689](https://github.com/hashicorp/terraform/issues/33689))
+    * `ec2_metadata_service_endpoint` and `ec2_metadata_service_endpoint_mode` arguments and support for the corresponding AWS environment variables, `AWS_EC2_METADATA_SERVICE_ENDPOINT` and `AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE` for setting the EC2 metadata service (IMDS) endpoint. The environment variable `AWS_METADATA_URL` is also supported for compatibility with the AWS provider, but is deprecated. ([#30444](https://github.com/hashicorp/terraform/issues/30444))
+    * `http_proxy`, `insecure`, `use_fips_endpoint`, and `use_dualstack_endpoint` arguments and support for the corresponding environment variables, `HTTP_PROXY` and `HTTPS_PROXY`, which enable custom HTTP proxy configurations and the resolution of AWS endpoints with extended capabilities. ([#30496](https://github.com/hashicorp/terraform/issues/30496))
+    * `sts_region` argument to use an alternative region for STS operations. ([#33693](https://github.com/hashicorp/terraform/issues/33693))
+    * `retry_mode` argument and support for the corresponding `AWS_RETRY_MODE` environment variable to configure how retries are attempted. ([#33692](https://github.com/hashicorp/terraform/issues/33692))
 * backend/cos: Support custom HTTP(S) endpoint and root domain for the API client. [#33656]
 
 BUG FIXES:

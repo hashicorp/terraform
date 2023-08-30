@@ -72,6 +72,16 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Description: "A custom endpoint for the DynamoDB API",
 				Deprecated:  true,
 			},
+			"ec2_metadata_service_endpoint": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Address of the EC2 metadata service (IMDS) endpoint to use.",
+			},
+			"ec2_metadata_service_endpoint_mode": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Mode to use in communicating with the metadata service.",
+			},
 			"endpoint": {
 				Type:        cty.String,
 				Optional:    true,
@@ -117,6 +127,11 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Description: "A custom endpoint for the STS API",
 				Deprecated:  true,
 			},
+			"sts_region": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "AWS region for STS.",
+			},
 			"encrypt": {
 				Type:        cty.Bool,
 				Optional:    true,
@@ -151,6 +166,11 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "AWS profile name",
+			},
+			"retry_mode": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Specifies how retries are attempted.",
 			},
 			"shared_config_files": {
 				Type:        cty.Set(cty.String),
@@ -257,7 +277,14 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 			"force_path_style": {
 				Type:        cty.Bool,
 				Optional:    true,
-				Description: "Force s3 to use path style api.",
+				Description: "Enable path-style S3 URLs.",
+				Deprecated:  true,
+			},
+
+			"use_path_style": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Enable path-style S3 URLs.",
 			},
 
 			"max_retries": {
@@ -284,6 +311,33 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.Bool,
 				Optional:    true,
 				Description: "Use the legacy authentication workflow, preferring environment variables over backend configuration.",
+			},
+
+			"custom_ca_bundle": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "File containing custom root and intermediate certificates.",
+			},
+
+			"http_proxy": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Address of an HTTP proxy to use when accessing the AWS API.",
+			},
+			"insecure": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Whether to explicitly allow the backend to perform insecure SSL requests.",
+			},
+			"use_fips_endpoint": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Force the backend to resolve endpoints with FIPS capability.",
+			},
+			"use_dualstack_endpoint": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Force the backend to resolve endpoints with DualStack capability.",
 			},
 		},
 	}
@@ -438,6 +492,36 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		}
 	}
 
+	validateAttributesConflict(
+		cty.GetAttrPath("force_path_style"),
+		cty.GetAttrPath("use_path_style"),
+	)(obj, cty.Path{}, &diags)
+
+	attrPath = cty.GetAttrPath("force_path_style")
+	if val := obj.GetAttr("force_path_style"); !val.IsNull() {
+		diags = diags.Append(deprecatedAttrDiag(attrPath, cty.GetAttrPath("use_path_style")))
+	}
+
+	attrPath = cty.GetAttrPath("retry_mode")
+	if val := obj.GetAttr("retry_mode"); !val.IsNull() {
+		retryModeValidators := validateString{
+			Validators: []stringValidator{
+				validateStringRetryMode,
+			},
+		}
+		retryModeValidators.ValidateAttr(val, attrPath, &diags)
+	}
+
+	attrPath = cty.GetAttrPath("ec2_metadata_service_endpoint_mode")
+	if val := obj.GetAttr("ec2_metadata_service_endpoint_mode"); !val.IsNull() {
+		endpointModeValidators := validateString{
+			Validators: []stringValidator{
+				validateStringInSlice(awsbase.EC2MetadataEndpointMode_Values()),
+			},
+		}
+		endpointModeValidators.ValidateAttr(val, attrPath, &diags)
+	}
+
 	return obj, diags
 }
 
@@ -562,6 +646,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		"AWS_IAM_ENDPOINT":      "AWS_ENDPOINT_URL_IAM",
 		"AWS_S3_ENDPOINT":       "AWS_ENDPOINT_URL_S3",
 		"AWS_STS_ENDPOINT":      "AWS_ENDPOINT_URL_STS",
+		"AWS_METADATA_URL":      "AWS_EC2_METADATA_SERVICE_ENDPOINT",
 	} {
 		if val := os.Getenv(envvar); val != "" {
 			diags = diags.Append(deprecatedEnvVarDiag(envvar, replacement))
@@ -601,6 +686,21 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		}
 	}
 
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("ec2_metadata_service_endpoint")),
+		newEnvvarRetriever("AWS_EC2_METADATA_SERVICE_ENDPOINT"),
+		newEnvvarRetriever("AWS_METADATA_URL"),
+	); ok {
+		cfg.EC2MetadataServiceEndpoint = v
+	}
+
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("ec2_metadata_service_endpoint_mode")),
+		newEnvvarRetriever("AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE"),
+	); ok {
+		cfg.EC2MetadataServiceEndpointMode = v
+	}
+
 	if val, ok := stringAttrOk(obj, "shared_credentials_file"); ok {
 		cfg.SharedCredentialsFiles = []string{
 			val,
@@ -611,6 +711,13 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 	if val, ok := stringSetAttrDefaultEnvVarOk(obj, "shared_config_files", "AWS_SHARED_CONFIG_FILE"); ok {
 		cfg.SharedConfigFiles = val
+	}
+
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("custom_ca_bundle")),
+		newEnvvarRetriever("AWS_CA_BUNDLE"),
+	); ok {
+		cfg.CustomCABundle = v
 	}
 
 	if v, ok := retrieveArgument(&diags,
@@ -629,6 +736,10 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		newEnvvarRetriever("AWS_STS_ENDPOINT"),
 	); ok {
 		cfg.StsEndpoint = v
+	}
+
+	if v, ok := retrieveArgument(&diags, newAttributeRetriever(obj, cty.GetAttrPath("sts_region"))); ok {
+		cfg.StsRegion = v
 	}
 
 	if assumeRole := obj.GetAttr("assume_role"); !assumeRole.IsNull() {
@@ -709,6 +820,30 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		cfg.AssumeRoleWithWebIdentity = ar
 	}
 
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("http_proxy")),
+		newEnvvarRetriever("HTTP_PROXY"),
+		newEnvvarRetriever("HTTPS_PROXY"),
+	); ok {
+		cfg.HTTPProxy = v
+	}
+	if val, ok := boolAttrOk(obj, "insecure"); ok {
+		cfg.Insecure = val
+	}
+	if val, ok := boolAttrDefaultEnvVarOk(obj, "use_fips_endpoint", "AWS_USE_FIPS_ENDPOINT"); ok {
+		cfg.UseFIPSEndpoint = val
+	}
+	if val, ok := boolAttrDefaultEnvVarOk(obj, "use_dualstack_endpoint", "AWS_USE_DUALSTACK_ENDPOINT"); ok {
+		cfg.UseDualStackEndpoint = val
+	}
+
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("retry_mode")),
+		newEnvvarRetriever("AWS_RETRY_MODE"),
+	); ok {
+		cfg.RetryMode = aws.RetryMode(v)
+	}
+
 	_ /* ctx */, awsConfig, cfgDiags := awsbase.GetAwsConfig(ctx, cfg)
 	for _, diag := range cfgDiags {
 		var severity tfdiags.Severity
@@ -749,7 +884,10 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		); ok {
 			opts.EndpointResolver = s3.EndpointResolverFromURL(v) //nolint:staticcheck // The replacement is not documented yet (2023/08/03)
 		}
-		if v, ok := boolAttrOk(obj, "force_path_style"); ok {
+		if v, ok := boolAttrOk(obj, "force_path_style"); ok { // deprecated
+			opts.UsePathStyle = v
+		}
+		if v, ok := boolAttrOk(obj, "use_path_style"); ok {
 			opts.UsePathStyle = v
 		}
 	})
@@ -934,6 +1072,22 @@ func boolAttr(obj cty.Value, name string) bool {
 
 func boolAttrOk(obj cty.Value, name string) (bool, bool) {
 	if val := obj.GetAttr(name); val.IsNull() {
+		return false, false
+	} else {
+		return val.True(), true
+	}
+}
+
+// boolAttrDefaultEnvVarOk checks for a configured bool argument or a non-empty
+// value in any of the provided environment variables. If any of the environment
+// variables are non-empty, to boolean is considered true.
+func boolAttrDefaultEnvVarOk(obj cty.Value, name string, envvars ...string) (bool, bool) {
+	if val := obj.GetAttr(name); val.IsNull() {
+		for _, envvar := range envvars {
+			if v := os.Getenv(envvar); v != "" {
+				return true, true
+			}
+		}
 		return false, false
 	} else {
 		return val.True(), true
