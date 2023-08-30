@@ -151,7 +151,7 @@ func TestModuleInstaller_invalidModuleName(t *testing.T) {
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
 	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
-	_, diags := inst.InstallModules(context.Background(), dir, false, false, hooks)
+	_, diags := inst.InstallModules(context.Background(), dir, false, hooks)
 
 	if !diags.HasErrors() {
 		t.Fatal("expected error")
