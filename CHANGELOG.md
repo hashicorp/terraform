@@ -1,5 +1,9 @@
 ## 1.5.7 (Unreleased)
 
+BUG FIXES:
+
+* `terraform init`: Terraform will no longer allow downloading remote modules to invalid paths. [#33745]
+
 ## 1.5.6 (August 23, 2023)
 
 BUG FIXES:
