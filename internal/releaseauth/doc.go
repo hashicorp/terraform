@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package releaseauth helps authenticates archives downloaded from a service
 // like releases.hashicorp.com by providing some simple authentication tools:
 //
