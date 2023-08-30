@@ -79,7 +79,7 @@ func (p *GRPCProvider) GetProviderSchema() (resp providers.GetProviderSchemaResp
 	defer p.mu.Unlock()
 
 	// check the global cache if we can
-	if !p.Addr.IsZero() && resp.ServerCapabilities.GetProviderSchemaOptional {
+	if !p.Addr.IsZero() {
 		if resp, ok := providers.SchemaCache.Get(p.Addr); ok {
 			return resp
 		}
@@ -141,7 +141,7 @@ func (p *GRPCProvider) GetProviderSchema() (resp providers.GetProviderSchemaResp
 	}
 
 	// set the global cache if we can
-	if !p.Addr.IsZero() {
+	if !p.Addr.IsZero() && resp.ServerCapabilities.GetProviderSchemaOptional {
 		providers.SchemaCache.Set(p.Addr, resp)
 	}
 
