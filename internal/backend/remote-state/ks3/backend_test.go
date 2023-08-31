@@ -376,6 +376,11 @@ func TestDeadLockRelease(t *testing.T) {
 func setupBackend(t *testing.T, bucket, prefix, key string, encrypt bool, roles ...*Role) backend.Backend {
 	t.Helper()
 
+	skip := os.Getenv(ENV_ACCESS_KEY) == ""
+	if skip {
+		t.Skip("This test require setting KSYUN_ACCESS_KEY and KSYUN_SECRET_KEY environment variables")
+	}
+
 	if os.Getenv(ENV_REGION) == "" {
 		os.Setenv(ENV_REGION, "cn-beijing-6")
 	}
@@ -417,6 +422,11 @@ func setupBackend(t *testing.T, bucket, prefix, key string, encrypt bool, roles 
 
 func setupBackendWithLockDuration(t *testing.T, bucket, prefix, key string, encrypt bool, ld string, roles ...*Role) backend.Backend {
 	t.Helper()
+
+	skip := os.Getenv(ENV_ACCESS_KEY) == ""
+	if skip {
+		t.Skip("This test require setting KSYUN_ACCESS_KEY and KSYUN_SECRET_KEY environment variables")
+	}
 
 	if os.Getenv(ENV_REGION) == "" {
 		os.Setenv(ENV_REGION, "cn-beijing-6")

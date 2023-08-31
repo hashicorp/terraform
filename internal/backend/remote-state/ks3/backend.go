@@ -226,7 +226,7 @@ func New() backend.Backend {
 			"lock_duration": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Default:      "1h",
+				Default:      "-1",
 				ValidateFunc: validateLockDurations,
 				Description:  "Sets the lock's duration. Generally speaking, the lock will be destroyed after the Terraform operations. Unfortunately, the lock is leaved because of the Terraform process is terminated. So, `lock_duration` field is provided that canned set it in order to deal with **the dead lock**. **Warning:** if `lock_duration` value is insufficient for your operation, the remote state file may be not your expectation, because of the operation race probably caused. Valid Value: `0`: ignore the existed lock, `-1`: unlimited, `number[mh]`: number, natural number, is time length; `m` is minutes; `h` is hours",
 			},
