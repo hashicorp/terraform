@@ -1,4 +1,4 @@
-## 1.6.0 (Unreleased)
+## 1.6.0 (August 31, 2023)
 
 UPGRADE NOTES:
 * On macOS, Terraform now requires macOS 10.15 Catalina or later; support for previous versions has been discontinued.
@@ -35,13 +35,13 @@ ENHANCEMENTS:
     * `http_proxy`, `insecure`, `use_fips_endpoint`, and `use_dualstack_endpoint` arguments and support for the corresponding environment variables, `HTTP_PROXY` and `HTTPS_PROXY`, which enable custom HTTP proxy configurations and the resolution of AWS endpoints with extended capabilities. ([#30496](https://github.com/hashicorp/terraform/issues/30496))
     * `sts_region` argument to use an alternative region for STS operations. ([#33693](https://github.com/hashicorp/terraform/issues/33693))
     * `retry_mode` argument and support for the corresponding `AWS_RETRY_MODE` environment variable to configure how retries are attempted. ([#33692](https://github.com/hashicorp/terraform/issues/33692))
-* backend/cos: Support custom HTTP(S) endpoint and root domain for the API client. [#33656]
+* backend/cos: Support custom HTTP(S) endpoint and root domain for the API client. ([#33656](https://github.com/hashicorp/terraform/issues/33656))
 
 BUG FIXES:
 * core: Transitive dependencies were lost during apply when the referenced resource expanded into zero instances. ([#33403](https://github.com/hashicorp/terraform/issues/33403))
 * cli: Terraform will no longer override SSH settings in local git configuration when installing modules. ([#33592](https://github.com/hashicorp/terraform/issues/33592))
 * `terraform` built-in provider: The upstream dependency that Terraform uses for service discovery of Terraform-native services such as Terraform Cloud/Enterprise state storage was previously not concurrency-safe, but Terraform was treating it as if it was in situations like when a configuration has multiple `terraform_remote_state` blocks all using the "remote" backend. Terraform is now using a newer version of that library which updates its internal caches in a concurrency-safe way. ([#33364](https://github.com/hashicorp/terraform/issues/33364))
-* `terraform init`: Terraform will no longer allow downloading remote modules to invalid paths. [#33745]
+* `terraform init`: Terraform will no longer allow downloading remote modules to invalid paths. ([#33745](https://github.com/hashicorp/terraform/issues/33745))
 
 ## Previous Releases
 
