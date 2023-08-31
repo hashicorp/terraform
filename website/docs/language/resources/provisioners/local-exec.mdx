@@ -40,7 +40,10 @@ The following arguments are supported:
 * `command` - (Required) This is the command to execute. It can be provided
   as a relative path to the current working directory or as an absolute path.
   It is evaluated in a shell, and can use environment variables or Terraform
-  variables.
+  variables. Note that direct use of Terraform variables within a command
+  should be avoided, as doing so can lead to [shell injection](https://en.wikipedia.org/wiki/Code_injection#Shell_injection)
+  vulnerabilities. Instead, one should pass Terraform variables to a command
+  through the `environment` parameter whenever possible.
 
 * `working_dir` - (Optional) If provided, specifies the working directory where
   `command` will be executed. It can be provided as a relative path to the
