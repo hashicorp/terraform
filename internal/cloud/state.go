@@ -81,6 +81,20 @@ of authorization and therefore this error can usually be fixed by upgrading the
 remote state version.
 `))
 
+const errUploadedStateNotFinalized = `State was uploaded to Terraform Cloud but not acknowledged by the platform, possibly due to an unexpected outage. State may be recovered either from the state-versions API or from the file system dump.
+
+The Terraform Cloud workspace will remain locked to allow for recovery. If running "terraform state push" to recover, add the "-lock=false" flag to instruct terraform not to first lock the workspace.
+
+After pushing the recovered state to Terraform Cloud, the workspace should then be unlocked:
+    terraform force-unlock %q`
+
+const backoffFinalizedMin = 1000
+const backoffFinalizedMax = 5000
+
+// StateFinalizedTimeout is the timeout duration for a given state upload to be acknowledged
+// as finalized by the Terraform Cloud API. See the associated error message above for details.
+var StateFinalizedTimeout = 5 * time.Minute
+
 var _ statemgr.Full = (*State)(nil)
 var _ statemgr.Migrator = (*State)(nil)
 var _ local.IntermediateStateConditionalPersister = (*State)(nil)
@@ -227,7 +241,7 @@ func (s *State) PersistState(schemas *terraform.Schemas) error {
 	err = s.uploadState(s.lineage, s.serial, s.forcePush, buf.Bytes(), jsonState, jsonStateOutputs)
 	if err != nil {
 		s.stateUploadErr = true
-		return fmt.Errorf("error uploading state: %w", err)
+		return err
 	}
 	// After we've successfully persisted, what we just wrote is our new
 	// reference state until someone calls RefreshState again.
@@ -283,7 +297,11 @@ func (s *State) uploadStateFallback(ctx context.Context, lineage string, serial 
 
 	// Create the new state.
 	_, err := s.tfeClient.StateVersions.Create(ctx, s.workspace.ID, options)
-	return err
+	if err != nil {
+		s.stateUploadErr = true
+		return err
+	}
+	return nil
 }
 
 func (s *State) uploadState(lineage string, serial uint64, isForcePush bool, state, jsonState, jsonStateOutputs []byte) error {
@@ -314,14 +332,52 @@ func (s *State) uploadState(lineage string, serial uint64, isForcePush bool, sta
 	ctx = tfe.ContextWithResponseHeaderHook(ctx, s.readSnapshotIntervalHeader)
 
 	// Create the new state.
-	_, err := s.tfeClient.StateVersions.Upload(ctx, s.workspace.ID, options)
+	pendingSV, err := s.tfeClient.StateVersions.Upload(ctx, s.workspace.ID, options)
 	if errors.Is(err, tfe.ErrStateVersionUploadNotSupported) {
 		// Create the new state with content included in the request (Terraform Enterprise v202306-1 and below)
 		log.Println("[INFO] Detected that state version upload is not supported. Retrying using compatibility state upload.")
 		return s.uploadStateFallback(ctx, lineage, serial, isForcePush, state, jsonState, jsonStateOutputs)
 	}
 
-	return err
+	return s.awaitStateVersionFinalized(ctx, pendingSV)
+}
+
+func (s *State) awaitStateVersionFinalized(ctx context.Context, pendingSV *tfe.StateVersion) error {
+	deadline := time.Now().Add(StateFinalizedTimeout)
+	log.Printf("[TRACE] Polling state version %q status with a deadline of %s", pendingSV.ID, deadline.Format(time.Stamp))
+
+	ctx, cancel := context.WithDeadline(ctx, deadline)
+	defer cancel()
+
+	finalizedBeforeTimeout := make(chan bool)
+
+	// Poll using a backoff timer or detect context deadline
+	go func() {
+		for i := 0; ; i++ {
+			select {
+			case <-ctx.Done():
+				finalizedBeforeTimeout <- false
+				return
+			case <-time.After(backoff(backoffFinalizedMin, backoffFinalizedMax, i)):
+				checkSV, err := s.tfeClient.StateVersions.Read(ctx, pendingSV.ID)
+				if err != nil {
+					log.Printf("[DEBUG] Failed to check status of state version %q: %s", pendingSV.ID, err)
+					continue
+				}
+				log.Printf("[DEBUG] Checking for state-version %q finalized status, got %q", pendingSV.ID, pendingSV.Status)
+				if checkSV.Status == tfe.StateVersionFinalized {
+					finalizedBeforeTimeout <- true
+					return
+				}
+			}
+		}
+	}()
+
+	if !<-finalizedBeforeTimeout {
+		return fmt.Errorf(errUploadedStateNotFinalized, fmt.Sprintf("%s/%s", s.organization, s.workspace.Name))
+	}
+
+	return nil
 }
 
 // Lock calls the Client's Lock method if it's implemented.

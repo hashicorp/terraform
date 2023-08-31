@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
+	"strings"
 	"testing"
 	"time"
 
@@ -140,7 +141,7 @@ func TestState(t *testing.T) {
 	}
 }
 
-func TestCloudLocks(t *testing.T) {
+func TestState_CloudLocks(t *testing.T) {
 	back, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
@@ -203,7 +204,7 @@ func TestCloudLocks(t *testing.T) {
 	}
 }
 
-func TestDelete_SafeDeleteNotSupported(t *testing.T) {
+func TestState_Delete_SafeDeleteNotSupported(t *testing.T) {
 	state := testCloudState(t)
 	workspaceId := state.workspace.ID
 	state.workspace.Permissions.CanForceDelete = nil
@@ -220,7 +221,7 @@ func TestDelete_SafeDeleteNotSupported(t *testing.T) {
 	}
 }
 
-func TestDelete_ForceDelete(t *testing.T) {
+func TestState_Delete_ForceDelete(t *testing.T) {
 	state := testCloudState(t)
 	workspaceId := state.workspace.ID
 	state.workspace.Permissions.CanForceDelete = tfe.Bool(true)
@@ -235,7 +236,7 @@ func TestDelete_ForceDelete(t *testing.T) {
 	}
 }
 
-func TestDelete_SafeDelete(t *testing.T) {
+func TestState_Delete_SafeDelete(t *testing.T) {
 	state := testCloudState(t)
 	workspaceId := state.workspace.ID
 	state.workspace.Permissions.CanForceDelete = tfe.Bool(false)
@@ -278,6 +279,63 @@ func TestState_PersistState(t *testing.T) {
 		}
 	})
 
+	t.Run("Cloud never finalizes state", func(t *testing.T) {
+		cloudState := testCloudState(t)
+
+		previousTimeout := StateFinalizedTimeout
+		StateFinalizedTimeout = 3 * time.Second
+		defer func() {
+			StateFinalizedTimeout = previousTimeout
+		}()
+
+		for _, testCase := range []struct {
+			expectedErrorOutput string
+			status              tfe.StateVersionStatus
+		}{
+			{
+				expectedErrorOutput: "",
+				status:              tfe.StateVersionFinalized,
+			},
+			{
+				expectedErrorOutput: "State was uploaded to Terraform Cloud but not acknowledged by the platform",
+				status:              tfe.StateVersionPending,
+			},
+		} {
+			server := testServerWithSnapshotsEnabled(t, false, testCase.status)
+			defer server.Close()
+
+			cfg := &tfe.Config{
+				Address:  server.URL,
+				BasePath: "api",
+				Token:    "placeholder",
+			}
+			client, err := tfe.NewClient(cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			cloudState.tfeClient = client
+
+			err = cloudState.RefreshState()
+			if err != nil {
+				t.Fatal(err)
+			}
+			cloudState.WriteState(states.BuildState(func(s *states.SyncState) {
+				s.SetOutputValue(
+					addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("bar"), false,
+				)
+			}))
+
+			err = cloudState.PersistState(nil)
+			if testCase.expectedErrorOutput == "" && err != nil {
+				t.Fatalf("unexpected error: %q", err)
+			}
+			if testCase.expectedErrorOutput != "" && (err == nil || !strings.Contains(err.Error(), testCase.expectedErrorOutput)) {
+				t.Errorf("expected error %q but got %q", testCase.expectedErrorOutput, err)
+			}
+		}
+	})
+
 	t.Run("Snapshot Interval Backpressure Header", func(t *testing.T) {
 		// The "Create a State Version" API is allowed to return a special
 		// HTTP response header X-Terraform-Snapshot-Interval, in which case
@@ -287,11 +345,11 @@ func TestState_PersistState(t *testing.T) {
 		cloudState := testCloudState(t)
 
 		if cloudState.stateSnapshotInterval != 0 {
-			t.Error("state manager already has a nonzero snapshot interval")
+			t.Fatal("state manager already has a nonzero snapshot interval")
 		}
 
 		if cloudState.enableIntermediateSnapshots {
-			t.Error("expected state manager to have disabled snapshots")
+			t.Fatal("expected state manager to have disabled snapshots")
 		}
 
 		// For this test we'll use a real client talking to a fake server,
@@ -313,9 +371,9 @@ func TestState_PersistState(t *testing.T) {
 				snapshotsEnabled: false,
 			},
 		} {
-			server := testServerWithSnapshotsEnabled(t, testCase.snapshotsEnabled)
-
+			server := testServerWithSnapshotsEnabled(t, testCase.snapshotsEnabled, tfe.StateVersionFinalized)
 			defer server.Close()
+
 			cfg := &tfe.Config{
 				Address:  server.URL,
 				BasePath: "api",

@@ -1380,6 +1380,7 @@ func (m *MockStateVersions) Create(ctx context.Context, workspaceID string, opti
 		DownloadURL: url,
 		UploadURL:   fmt.Sprintf("/_archivist/upload/%s", id),
 		Serial:      *options.Serial,
+		Status:      tfe.StateVersionFinalized,
 	}
 
 	state, err := base64.StdEncoding.DecodeString(*options.State)

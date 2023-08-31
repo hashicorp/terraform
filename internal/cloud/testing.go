@@ -397,7 +397,7 @@ func testServerWithHandlers(handlers map[string]func(http.ResponseWriter, *http.
 	return httptest.NewServer(mux)
 }
 
-func testServerWithSnapshotsEnabled(t *testing.T, enabled bool) *httptest.Server {
+func testServerWithSnapshotsEnabled(t *testing.T, enabled bool, status tfe.StateVersionStatus) *httptest.Server {
 	var serverURL string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Log(r.Method, r.URL.String())
@@ -429,6 +429,7 @@ func testServerWithSnapshotsEnabled(t *testing.T, enabled bool) *httptest.Server
 				"attributes": map[string]any{
 					"hosted-state-download-url": serverURL + "/state-json",
 					"hosted-state-upload-url":   serverURL + "/state-json",
+					"status":                    status,
 				},
 			},
 		}
