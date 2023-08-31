@@ -515,3 +515,13 @@ precedence over earlier ones:
 values behave the same way as other variables: the last value found overrides
 the previous values. This is a change from previous versions of Terraform, which
 would _merge_ map values instead of overriding them.
+
+#### Variable precedence within Terraform tests
+
+Within Terraform test files, you can specify variable values within
+`variables` blocks, either nested within `run` blocks or defined directly within
+the file.
+
+Variables defined in this way take precedence over all other mechanisms during
+test execution, with variables defined within `run` blocks taking precedence
+over those defined within the file.

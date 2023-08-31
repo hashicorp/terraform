@@ -1,56 +1,134 @@
 ---
-page_title: Upgrading to Terraform v1.5
-description: Upgrading to Terraform v1.5
+page_title: Upgrading to Terraform v1.6
+description: Upgrading to Terraform v1.6
 ---
 
-# Upgrading to Terraform v1.5
+# Upgrading to Terraform v1.6
 
 -> **Tip:** Use the version selector to view the upgrade guides for older Terraform versions.
 
-Terraform v1.5 is a minor release in the stable Terraform v1.0 series.
+Terraform v1.6 is a minor release in the stable Terraform v1.0 series.
 
-Terraform v1.5 honors the
+Terraform v1.6 honors the
 [Terraform v1.0 Compatibility Promises](https://developer.hashicorp.com/terraform/language/v1-compatibility-promises),
 but there are some behavior changes outside of those promises that may affect a
 small number of users. Specifically, the following updates may require
 additional upgrade steps:
-* [End of support for older macOS releases](#end-of-support-for-older-macos-releases)
-* [Linux DNS resolver changes](#linux-dns-resolver-changes)
+* [End of experimental period for `terraform test`](#terraform-test)
 
-See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.5/CHANGELOG.md)
+See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.6/CHANGELOG.md)
 for more details. If you encounter any problems during upgrading which are not
 covered this guide, please start a new topic in
 [the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core)
 to discuss it.
 
-## End of support for older macOS releases
+## Terraform Test
 
-Terraform v1.5 will be the last release supported on macOS 10.13 High Sierra
-and macOS 10.14 Mojave, both of which are no longer maintained by Apple.
+The previous experimental `terraform test` command has been deprecated and replaced with a fully supported and finalized `terraform test` command.
 
-Terraform v1.5 itself supports these older macOS versions, but we strongly
-recommend upgrading during the v1.5 release period so that you'll be ready to
-use Terraform v1.6 once it is released.
+There are substantial differences between the previous experimental approach and the finalized approach:
 
-## Linux DNS resolver changes
+- The builtin test provider, `terraform.io/builtin/test`, has been removed and a dedicated syntax introduced for testing files.
+- A new `.tftest.hcl` file extension has been introduced for testing files, allowing a change into the directory structure and test file layout.
+- Test assertions and conditions execute with extended scope and access to the configuration under test.
 
-Terraform on Linux uses a built-in DNS resolver rather than using the DNS
-resolver from the platform's C library, because this allows Terraform to run
-on systems with many different C libraries.
+The major differences are discussed here, for more information consult the [CLI](/terraform/cli/test) and [Language](/terraform/language/tests) documentation.
 
-In Terraform v1.5, the DNS resolver will now notice when you have set the
-`trust-ad` option in your `/etc/resolve.conf` file, and will respond by setting
-the "authentic data" option in outgoing DNS requests to better match the
-behavior of the GNU libc DNS resolver.
+### Directory structure
 
-Terraform does not pay any attention to the corresponding option in responses,
-but some DNSSEC-aware recursive resolvers return different responses when the
-request option isn't set. This should therefore avoid some potential situations
-where a DNS request from Terraform might get a different response than a
-similar request from other software on your system.
+Previously, test files would be placed within their own subdirectories underneath the `tests` directory from the configuration directory. The following example contains three test files using the experimental framework:
 
-We don't expect this behavior change to be significant for most Terraform users.
+```
+main.tf
+outputs.tf
+providers.tf
+variables.tf
+tests/
+  defaults/
+    test_defaults.tf
+  maximums/
+    test_maximums.tf
+  minimums/
+    test_minimums.tf
+```
 
-Note that this change affects only DNS requests made by Terraform CLI itself,
-and not requests made by providers. Provider plugins are separate programs
-which handle DNS resolution themselves and so may have different behavior.
+With the new directory structure, tests are defined using the new `.tftest.hcl` file extension and do not need to be embedded within subdirectories. To help with organization, test files can, optionally, be embedded within a test directory. The name for this test directory defaults to `tests`, but can be overridden with the `-test-directory` flag.
+
+The following examples are both valid directory structures for test files in the updated framework:
+
+```
+main.tf
+outputs.tf
+providers.tf
+variables.tf
+defaults.tftest.hcl
+maximums.tftest.hcl
+minimums.tftest.hcl
+```
+
+```
+main.tf
+outputs.tf
+providers.tf
+variables.tf
+tests/
+  defaults.tftest.hcl
+  maximums.tftest.hcl
+  minimums.tftest.hcl
+```
+
+### Test structure and assertions
+
+Previously, a test file would contain a module call and a collection of resources from the builtin `test` provider:
+
+```hcl
+# tests/defaults/test_defaults.tf
+
+terraform{
+  required_providers {
+    test = {
+      source = "terraform.io/builtin/test"
+    }
+  }
+}
+
+module "main" {
+  source = "../.."
+}
+
+resource "test_assertions" "api_url" {
+  component = "api_url"
+
+  equal "scheme" {
+    description = "default scheme is https"
+    got         = module.main.scheme
+    want        = "https"
+  }
+  check "port_number" {
+    description = "default port number is 8080"
+    condition   = can(regex(":8080$", module.main.authority))
+  }
+}
+```
+
+With the new framework each test file is made up of a series of `run` blocks. Each `run` block represents a single `terraform plan` or a `terraform apply` operation executed against the main configuration. Assertions from within these `run` blocks can access outputs, variables, resources, and local values from the main configuration directly.
+
+```hcl
+# tests/defaults.tftest.hcl
+
+run "test_defaults" {
+  assert {
+    condition     = output.scheme == "https"
+    error_message = "default scheme should be https"
+  }
+
+  assert {
+    condition     = can(regex(":8080", output.authority))
+    error_message = "default port number should be 8080"
+  }
+}
+```
+
+The above examples demonstrates the differences in layout, scope and access between the two approaches. In the experimental framework, access is granted as if the configuration was being called like a normal module call. In the released framework, assertions execute as if they are custom conditions defined within the main configuration directly.
+
+The `run` block also applies or plans the main configuration by default, there is no need for the specific module call seen in the experimental framework.
