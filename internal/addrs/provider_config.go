@@ -53,6 +53,7 @@ type LocalProviderConfig struct {
 }
 
 var _ ProviderConfig = LocalProviderConfig{}
+var _ UniqueKeyer = LocalProviderConfig{}
 
 // NewDefaultLocalProviderConfig returns the address of the default (un-aliased)
 // configuration for the provider with the given local type name.
@@ -87,6 +88,14 @@ func (pc LocalProviderConfig) StringCompact() string {
 	return pc.LocalName
 }
 
+// UniqueKey implements UniqueKeyer.
+func (pc LocalProviderConfig) UniqueKey() UniqueKey {
+	// LocalProviderConfig acts as its own unique key.
+	return pc
+}
+
+func (pc LocalProviderConfig) uniqueKeySigil() {}
+
 // AbsProviderConfig is the absolute address of a provider configuration
 // within a particular module instance.
 type AbsProviderConfig struct {
@@ -96,6 +105,7 @@ type AbsProviderConfig struct {
 }
 
 var _ ProviderConfig = AbsProviderConfig{}
+var _ UniqueKeyer = AbsProviderConfig{}
 
 // ParseAbsProviderConfig parses the given traversal as an absolute provider
 // configuration address. The following are examples of traversals that can be
@@ -411,3 +421,13 @@ func (pc AbsProviderConfig) String() string {
 
 	return strings.Join(parts, ".")
 }
+
+// UniqueKey implements UniqueKeyer.
+func (pc AbsProviderConfig) UniqueKey() UniqueKey {
+	return absProviderConfigKey(pc.String())
+}
+
+type absProviderConfigKey string
+
+// uniqueKeySigil implements UniqueKey.
+func (absProviderConfigKey) uniqueKeySigil() {}
