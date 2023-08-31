@@ -9,9 +9,7 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"log"
 
 	tfe "github.com/hashicorp/go-tfe"
 
@@ -63,31 +61,6 @@ func (r *remoteClient) Get() (*remote.Payload, error) {
 	}, nil
 }
 
-func (r *remoteClient) uploadStateFallback(ctx context.Context, stateFile *statefile.File, state []byte, jsonStateOutputs []byte) error {
-	options := tfe.StateVersionCreateOptions{
-		Lineage:          tfe.String(stateFile.Lineage),
-		Serial:           tfe.Int64(int64(stateFile.Serial)),
-		MD5:              tfe.String(fmt.Sprintf("%x", md5.Sum(state))),
-		Force:            tfe.Bool(r.forcePush),
-		State:            tfe.String(base64.StdEncoding.EncodeToString(state)),
-		JSONStateOutputs: tfe.String(base64.StdEncoding.EncodeToString(jsonStateOutputs)),
-	}
-
-	// If we have a run ID, make sure to add it to the options
-	// so the state will be properly associated with the run.
-	if r.runID != "" {
-		options.Run = &tfe.Run{ID: r.runID}
-	}
-
-	// Create the new state.
-	_, err := r.client.StateVersions.Create(ctx, r.workspace.ID, options)
-	if err != nil {
-		r.stateUploadErr = true
-		return fmt.Errorf("error uploading state in compatibility mode: %v", err)
-	}
-	return err
-}
-
 // Put the remote state.
 func (r *remoteClient) Put(state []byte) error {
 	ctx := context.Background()
@@ -95,27 +68,25 @@ func (r *remoteClient) Put(state []byte) error {
 	// Read the raw state into a Terraform state.
 	stateFile, err := statefile.Read(bytes.NewReader(state))
 	if err != nil {
-		return fmt.Errorf("error reading state: %s", err)
+		return fmt.Errorf("Error reading state: %s", err)
 	}
 
 	ov, err := jsonstate.MarshalOutputs(stateFile.State.RootModule().OutputValues)
 	if err != nil {
-		return fmt.Errorf("error reading output values: %s", err)
+		return fmt.Errorf("Error reading output values: %s", err)
 	}
 	o, err := json.Marshal(ov)
 	if err != nil {
-		return fmt.Errorf("error converting output values to json: %s", err)
+		return fmt.Errorf("Error converting output values to json: %s", err)
 	}
 
-	options := tfe.StateVersionUploadOptions{
-		StateVersionCreateOptions: tfe.StateVersionCreateOptions{
-			Lineage:          tfe.String(stateFile.Lineage),
-			Serial:           tfe.Int64(int64(stateFile.Serial)),
-			MD5:              tfe.String(fmt.Sprintf("%x", md5.Sum(state))),
-			Force:            tfe.Bool(r.forcePush),
-			JSONStateOutputs: tfe.String(base64.StdEncoding.EncodeToString(o)),
-		},
-		RawState: state,
+	options := tfe.StateVersionCreateOptions{
+		Lineage:          tfe.String(stateFile.Lineage),
+		Serial:           tfe.Int64(int64(stateFile.Serial)),
+		MD5:              tfe.String(fmt.Sprintf("%x", md5.Sum(state))),
+		State:            tfe.String(base64.StdEncoding.EncodeToString(state)),
+		Force:            tfe.Bool(r.forcePush),
+		JSONStateOutputs: tfe.String(base64.StdEncoding.EncodeToString(o)),
 	}
 
 	// If we have a run ID, make sure to add it to the options
@@ -125,16 +96,10 @@ func (r *remoteClient) Put(state []byte) error {
 	}
 
 	// Create the new state.
-	// Create the new state.
-	_, err = r.client.StateVersions.Upload(ctx, r.workspace.ID, options)
-	if errors.Is(err, tfe.ErrStateVersionUploadNotSupported) {
-		// Create the new state with content included in the request (Terraform Enterprise v202306-1 and below)
-		log.Println("[INFO] Detected that state version upload is not supported. Retrying using compatibility state upload.")
-		return r.uploadStateFallback(ctx, stateFile, state, o)
-	}
+	_, err = r.client.StateVersions.Create(ctx, r.workspace.ID, options)
 	if err != nil {
 		r.stateUploadErr = true
-		return fmt.Errorf("error uploading state: %v", err)
+		return fmt.Errorf("Error uploading state: %v", err)
 	}
 
 	return nil
@@ -144,7 +109,7 @@ func (r *remoteClient) Put(state []byte) error {
 func (r *remoteClient) Delete() error {
 	err := r.client.Workspaces.Delete(context.Background(), r.organization, r.workspace.Name)
 	if err != nil && err != tfe.ErrResourceNotFound {
-		return fmt.Errorf("error deleting workspace %s: %v", r.workspace.Name, err)
+		return fmt.Errorf("Error deleting workspace %s: %v", r.workspace.Name, err)
 	}
 
 	return nil
