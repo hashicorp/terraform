@@ -220,6 +220,16 @@ func (s *StackConfig) Provider(ctx context.Context, addr stackaddrs.ProviderConf
 	return ret
 }
 
+// ProviderLocalName returns the local name used for the given provider
+// in this particular stack configuration, based on the declarations in
+// the required_providers configuration block.
+//
+// If the second return value is false then there is no local name declared
+// for the given provider, and so the first return value is invalid.
+func (s *StackConfig) ProviderLocalName(ctx context.Context, addr addrs.Provider) (string, bool) {
+	return s.config.Stack.RequiredProviders.LocalNameForProvider(addr)
+}
+
 func (s *StackConfig) ResultType(ctx context.Context) cty.Type {
 	os := s.OutputValues(ctx)
 	atys := make(map[string]cty.Type, len(os))

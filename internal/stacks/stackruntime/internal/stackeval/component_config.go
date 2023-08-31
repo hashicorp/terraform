@@ -165,6 +165,30 @@ func (c *ComponentConfig) InputsType(ctx context.Context) (cty.Type, *typeexpr.D
 	return retTy, defs
 }
 
+// RequiredProviderInstances returns a description of all of the provider
+// instance slots ("provider configurations" in main Terraform language
+// terminology) that are either explicitly declared or implied by the
+// root module of the component's module tree.
+//
+// The component configuration must include a "providers" argument that
+// binds each of these slots to a real provider instance in the stack
+// configuration, by referring to dynamic values of the appropriate
+// provider instance reference type.
+//
+// In the returned map the keys describe provider configurations from
+// the perspective of an object inside the root module, and so the LocalName
+// field values are an implementation detail that must not be exposed into
+// the calling stack and are included here only so that we can potentially
+// return error messages referring to declarations inside the module.
+//
+// If any modules in the component's root module tree are invalid then this
+// result could under-promise or over-promise depending on the kind of
+// invalidity.
+func (c *ComponentConfig) RequiredProviderInstances(ctx context.Context) addrs.Set[addrs.RootProviderConfig] {
+	moduleTree := c.ModuleTree(ctx)
+	return moduleTree.Root.EffectiveRequiredProviderConfigs()
+}
+
 // ExprReferenceValue implements Referenceable.
 func (c *ComponentConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
 	// Currently we don't say anything at all about component results during

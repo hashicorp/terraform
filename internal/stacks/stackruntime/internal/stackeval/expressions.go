@@ -65,6 +65,12 @@ func EvalContextForExpr(ctx context.Context, expr hcl.Expression, phase EvalPhas
 // EvalContextForBody produces an HCL expression context for decoding the
 // given [hcl.Body] into a value using the given [hcldec.Spec].
 func EvalContextForBody(ctx context.Context, body hcl.Body, spec hcldec.Spec, phase EvalPhase, scope ExpressionScope) (*hcl.EvalContext, tfdiags.Diagnostics) {
+	if body == nil {
+		panic("EvalContextForBody with nil body")
+	}
+	if spec == nil {
+		panic("EvalContextForBody with nil spec")
+	}
 	return evalContextForTraversals(ctx, hcldec.Variables(body, spec), phase, scope)
 }
 
@@ -92,7 +98,7 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 	localVals := make(map[string]cty.Value)
 	componentVals := make(map[string]cty.Value)
 	stackVals := make(map[string]cty.Value)
-	// TODO: Also providerVals
+	providerVals := make(map[string]map[string]cty.Value)
 
 	for addr, obj := range refs {
 		val := obj.ExprReferenceValue(ctx, phase)
@@ -106,12 +112,19 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 		case stackaddrs.StackCall:
 			stackVals[addr.Name] = val
 		case stackaddrs.ProviderConfigRef:
-			// TODO: Implement
-			panic(fmt.Sprintf("don't know how to place %T in expression scope", addr))
+			if _, exists := providerVals[addr.ProviderLocalName]; !exists {
+				providerVals[addr.ProviderLocalName] = make(map[string]cty.Value)
+			}
+			providerVals[addr.ProviderLocalName][addr.Name] = val
 		default:
 			// The above should cover all possible referenceable address types.
 			panic(fmt.Sprintf("don't know how to place %T in expression scope", addr))
 		}
+	}
+
+	providerValVals := make(map[string]cty.Value, len(providerVals))
+	for k, v := range providerVals {
+		providerValVals[k] = cty.ObjectVal(v)
 	}
 
 	// HACK: The top-level lang package bundles together the problem
@@ -134,7 +147,7 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 			"local":     cty.ObjectVal(localVals),
 			"component": cty.ObjectVal(componentVals),
 			"stack":     cty.ObjectVal(stackVals),
-			// TODO: "provider": cty.ObjectVal(providerVals),
+			"provider":  cty.ObjectVal(providerValVals),
 		},
 		Functions: fakeScope.Functions(),
 	}

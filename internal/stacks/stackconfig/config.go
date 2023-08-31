@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -33,6 +34,10 @@ type Config struct {
 	// This is also the source bundle that any Terraform modules used by
 	// components should be loaded from.
 	Sources *sourcebundle.Bundle
+
+	// ProviderRefTypes tracks the cty capsule type that represents a
+	// reference for each provider type mentioned in the configuration.
+	ProviderRefTypes map[addrs.Provider]cty.Type
 }
 
 // ConfigNode represents a node in a tree of stacks that are to be planned and
@@ -76,14 +81,12 @@ func LoadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 		Sources: sources,
 	}
 
-	// Before we return we need to walk the tree and resolve all of the
-	// input variable and output value type constraints. This needs to happen
-	// late in the process so that we can recognize provider local names in
-	// the type constraints, and use consistent type objects for the same
-	// provider across all nodes in the tree.
-	diags = diags.Append(
-		decodeTypeConstraints(ret),
-	)
+	// Before we return we need to walk the tree and find all of the mentions
+	// of provider types and make sure we have a singleton cty.Type for each
+	// one representing a reference to a configuration of each type.
+	providerRefTypes, moreDiags := collectProviderRefCapsuleTypes(ret)
+	ret.ProviderRefTypes = providerRefTypes
+	diags = diags.Append(moreDiags)
 
 	return ret, diags
 }
@@ -222,12 +225,62 @@ func resolveFinalSourceAddr(base sourceaddrs.FinalSource, rel sourceaddrs.Source
 	}
 }
 
+// collectProviderRefCapsuleTypes searches the entire configuration tree for
+// any mentions of provider types and instantiates the singleton cty capsule
+// type representing configurations for each one, returning a mapping from
+// provider source address to type.
+//
+// This operation involves some further analysis of some configuration elements
+// which can potentially produce additional diagnostics.
+func collectProviderRefCapsuleTypes(config *Config) (map[addrs.Provider]cty.Type, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ret := make(map[addrs.Provider]cty.Type)
+
+	// Our main source for provider references is required_providers blocks
+	// in each of the individual stack configurations. This should be
+	// exhaustive for a valid configuration because we require that all
+	// provider requirements be declared before use elsewhere.
+	collectProviderRefCapsuleTypesSingle(config.Root, ret)
+
+	// Type constraints in input variables and output values can include
+	// provider reference types. This makes sure we'll have capsule types
+	// for each one and also, as a side-effect, updates the input variable
+	// and output value objects to refer to those type constraints for
+	// use in later evaluation. (In practice this should not discover any
+	// new provider types in a valid configuration, but populating extra
+	// fields on the InputVariable and OutputValue objects is an important
+	// side-effect.)
+	diags = diags.Append(
+		decodeTypeConstraints(config, ret),
+	)
+
+	return ret, diags
+}
+
+func collectProviderRefCapsuleTypesSingle(node *ConfigNode, types map[addrs.Provider]cty.Type) {
+	reqs := node.Stack.RequiredProviders
+	if reqs == nil {
+		return
+	}
+	for _, req := range reqs.Requirements {
+		pTy := req.Provider
+		if _, ok := types[pTy]; ok {
+			continue
+		}
+		types[pTy] = stackconfigtypes.ProviderConfigType(pTy)
+	}
+
+	for _, child := range node.Children {
+		collectProviderRefCapsuleTypesSingle(child, types)
+	}
+}
+
 // decodeTypeConstraints handles the just-in-time postprocessing we do before
 // returning from [LoadConfigDir], making sure that the type constraints
 // on input variables and output values throughout the configuration are
 // valid and consistent.
-func decodeTypeConstraints(config *Config) tfdiags.Diagnostics {
-	return decodeTypeConstraintsSingle(config.Root, make(map[addrs.Provider]cty.Type))
+func decodeTypeConstraints(config *Config, types map[addrs.Provider]cty.Type) tfdiags.Diagnostics {
+	return decodeTypeConstraintsSingle(config.Root, types)
 }
 
 func decodeTypeConstraintsSingle(node *ConfigNode, types map[addrs.Provider]cty.Type) tfdiags.Diagnostics {

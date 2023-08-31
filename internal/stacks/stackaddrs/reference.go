@@ -50,6 +50,12 @@ func ParseReference(traversal hcl.Traversal) (Reference, hcl.Traversal, tfdiags.
 		ret.SourceRange = tfdiags.SourceRangeFromHCL(rng)
 		return ret, remain, diags
 
+	case "provider":
+		target, rng, remain, diags := parseProviderRef(traversal)
+		ret.Target = target
+		ret.SourceRange = tfdiags.SourceRangeFromHCL(rng)
+		return ret, remain, diags
+
 	default:
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -86,4 +92,42 @@ func parseSingleAttrRef(traversal hcl.Traversal) (string, hcl.Range, hcl.Travers
 		Subject:  traversal[1].SourceRange().Ptr(),
 	})
 	return "", hcl.Range{}, nil, diags
+}
+
+func parseProviderRef(traversal hcl.Traversal) (ProviderConfigRef, hcl.Range, hcl.Traversal, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	if len(traversal) < 3 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid reference",
+			Detail:   "The \"provider\" symbol must be followed by two attribute access operations, selecting a provider type and a provider configuration name.",
+			Subject:  traversal.SourceRange().Ptr(),
+		})
+		return ProviderConfigRef{}, hcl.Range{}, nil, diags
+	}
+	if typeTrav, ok := traversal[1].(hcl.TraverseAttr); ok {
+		if nameTrav, ok := traversal[2].(hcl.TraverseAttr); ok {
+			ret := ProviderConfigRef{
+				ProviderLocalName: typeTrav.Name,
+				Name:              nameTrav.Name,
+			}
+			return ret, traversal.SourceRange(), traversal[3:], diags
+		} else {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   "The \"provider\" object's attributes do not support this operation.",
+				Subject:  traversal[1].SourceRange().Ptr(),
+			})
+		}
+	} else {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid reference",
+			Detail:   "The \"provider\" object does not support this operation.",
+			Subject:  traversal[1].SourceRange().Ptr(),
+		})
+	}
+	return ProviderConfigRef{}, hcl.Range{}, nil, diags
 }

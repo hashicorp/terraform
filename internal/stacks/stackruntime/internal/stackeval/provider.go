@@ -271,9 +271,12 @@ func (p *Provider) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.
 		if insts == nil {
 			return cty.UnknownVal(refType)
 		}
-		return cty.CapsuleVal(refType, &stackaddrs.ProviderConfigInstance{
-			ProviderConfig: p.Addr().Item,
-			Key:            addrs.NoKey,
+		return cty.CapsuleVal(refType, &stackaddrs.AbsProviderConfigInstance{
+			Stack: p.Addr().Stack,
+			Item: stackaddrs.ProviderConfigInstance{
+				ProviderConfig: p.Addr().Item,
+				Key:            addrs.NoKey,
+			},
 		})
 	}
 }

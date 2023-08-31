@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
+	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -27,6 +28,11 @@ func TestPlanWithSingleResource(t *testing.T) {
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
 	req := PlanRequest{
 		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewBuiltInProvider("terraform"): func() (providers.Interface, error) {
+				return terraformProvider.NewProvider(), nil
+			},
+		},
 	}
 	resp := PlanResponse{
 		PlannedChanges: changesCh,

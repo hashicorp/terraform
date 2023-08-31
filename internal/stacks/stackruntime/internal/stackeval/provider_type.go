@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type ProviderType struct {
@@ -32,6 +33,13 @@ func newProviderType(main *Main, addr addrs.Provider) *ProviderType {
 
 func (pt *ProviderType) Addr() addrs.Provider {
 	return pt.addr
+}
+
+// ProviderRefType returns the cty capsule type that represents references to
+// providers of this type when passed through expressions.
+func (pt *ProviderType) ProviderRefType() cty.Type {
+	allTypes := pt.main.ProviderRefTypes()
+	return allTypes[pt.Addr()]
 }
 
 // UnconfiguredClient returns the client for the singleton unconfigured

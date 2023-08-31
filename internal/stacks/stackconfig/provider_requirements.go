@@ -87,6 +87,7 @@ func decodeProviderRequirementsBlock(block *hcl.Block) (*ProviderRequirements, t
 			declAttrs[name] = pair
 		}
 
+		var sourceAddrStr, versionConstraintsStr string
 		sourceAddrPair := declAttrs["source"]
 		versionConstraintsPair := declAttrs["version"]
 		delete(declAttrs, "source")
@@ -99,40 +100,13 @@ func decodeProviderRequirementsBlock(block *hcl.Block) (*ProviderRequirements, t
 				Detail:   "All required_providers entries must include the attribute \"source\", giving the qualified provider source address to use.",
 				Subject:  attr.Expr.StartRange().Ptr(),
 			})
-		}
-		if versionConstraintsPair == nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Missing required attribute",
-				Detail:   "All required_providers entries must include the attribute \"version\", specifying the provider versions that this stack is compatible with.",
-				Subject:  attr.Expr.StartRange().Ptr(),
-			})
-		}
-		if sourceAddrPair == nil || versionConstraintsPair == nil {
 			continue
 		}
-		for name, pair := range declAttrs {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid provider requirement attribute",
-				Detail:   fmt.Sprintf("An attribute named %q is not expected here.", name),
-				Subject:  pair.Key.Range().Ptr(),
-			})
-			continue
-		}
-
-		var sourceAddrStr, versionConstraintsStr string
 		hclDiags = gohcl.DecodeExpression(sourceAddrPair.Value, nil, &sourceAddrStr)
 		diags = diags.Append(hclDiags)
 		if diags.HasErrors() {
 			continue
 		}
-		hclDiags = gohcl.DecodeExpression(versionConstraintsPair.Value, nil, &versionConstraintsStr)
-		diags = diags.Append(hclDiags)
-		if diags.HasErrors() {
-			continue
-		}
-
 		providerAddr, moreDiags := addrs.ParseProviderSourceString(sourceAddrStr)
 		// Ugh: ParseProviderSourceString returns sourceless diagnostics,
 		// so we need to postprocess the diagnostics to add source locations
@@ -148,15 +122,53 @@ func decodeProviderRequirementsBlock(block *hcl.Block) (*ProviderRequirements, t
 		if moreDiags.HasErrors() {
 			continue
 		}
-		versionConstraints, err := constraints.ParseRubyStyleMulti(versionConstraintsStr)
-		if err != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid version constraint",
-				Detail:   fmt.Sprintf("Cannot use %q as a version constraint: %s.", versionConstraintsStr, err),
-				Subject:  sourceAddrPair.Value.Range().Ptr(),
-			})
-			continue
+
+		var versionConstraints constraints.IntersectionSpec
+		if !providerAddr.IsBuiltIn() {
+			if versionConstraintsPair == nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Missing required attribute",
+					Detail:   "Each required_providers entry for an installable provider must include the attribute \"version\", specifying the provider versions that this stack is compatible with.",
+					Subject:  attr.Expr.StartRange().Ptr(),
+				})
+				continue
+			}
+			for name, pair := range declAttrs {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid provider requirement attribute",
+					Detail:   fmt.Sprintf("An attribute named %q is not expected here.", name),
+					Subject:  pair.Key.Range().Ptr(),
+				})
+				continue
+			}
+			hclDiags = gohcl.DecodeExpression(versionConstraintsPair.Value, nil, &versionConstraintsStr)
+			diags = diags.Append(hclDiags)
+			if diags.HasErrors() {
+				continue
+			}
+			var err error
+			versionConstraints, err = constraints.ParseRubyStyleMulti(versionConstraintsStr)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid version constraint",
+					Detail:   fmt.Sprintf("Cannot use %q as a version constraint: %s.", versionConstraintsStr, err),
+					Subject:  sourceAddrPair.Value.Range().Ptr(),
+				})
+				continue
+			}
+		} else {
+			if versionConstraintsPair != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unsupported attribute",
+					Detail:   fmt.Sprintf("The provider %q is built in to Terraform, so does not support version constraints.", providerAddr.ForDisplay()),
+					Subject:  attr.Expr.StartRange().Ptr(),
+				})
+				continue
+			}
 		}
 
 		if existingName, exists := reverseMap[providerAddr]; exists {

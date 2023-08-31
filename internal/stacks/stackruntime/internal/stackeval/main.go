@@ -246,6 +246,10 @@ func (m *Main) ProviderType(ctx context.Context, addr addrs.Provider) *ProviderT
 	return m.providerTypes[addr]
 }
 
+func (m *Main) ProviderRefTypes() map[addrs.Provider]cty.Type {
+	return m.config.ProviderRefTypes
+}
+
 // ProviderInstance returns the provider instance with the given address,
 // or nil if there is no such provider instance.
 //

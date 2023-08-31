@@ -93,10 +93,16 @@ func (p *ProviderInstance) CheckProviderArgs(ctx context.Context, phase EvalPhas
 				return cty.DynamicVal, diags
 			}
 
-			configVal, moreDiags := EvalBody(ctx, decl.Config, spec, phase, p)
-			diags = diags.Append(moreDiags)
-			if moreDiags.HasErrors() {
-				return cty.UnknownVal(hcldec.ImpliedType(spec)), diags
+			var configVal cty.Value
+			var moreDiags tfdiags.Diagnostics
+			if decl.Config != nil {
+				configVal, moreDiags = EvalBody(ctx, decl.Config, spec, phase, p)
+				diags = diags.Append(moreDiags)
+				if moreDiags.HasErrors() {
+					return cty.UnknownVal(hcldec.ImpliedType(spec)), diags
+				}
+			} else {
+				configVal = cty.EmptyObjectVal
 			}
 
 			unconfClient, err := providerType.UnconfiguredClient(ctx)
@@ -205,6 +211,17 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 				}
 				return diags
 			})
+
+			// TODO: Some providers will malfunction if the caller doesn't
+			// fetch their schema at least once before use. That's not something
+			// the provider protocol promises but it's an implementation
+			// detail that a certain generation of providers relied on
+			// nonetheless. We'll probably need to check whether the provider
+			// supports the "I don't need you to fetch my schema" capability
+			// and, if not, do a redundant re-fetch of the schema in here
+			// somewhere. Refer to the corresponding behavior in the
+			// "terraform" package for non-Stacks usage and try to mimick
+			// what it does in as lightweight a way as possible.
 
 			resp := client.ConfigureProvider(providers.ConfigureProviderRequest{
 				TerraformVersion: version.SemVer.String(),
