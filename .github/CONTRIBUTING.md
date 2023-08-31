@@ -30,7 +30,7 @@ To record a bug report, enhancement proposal, or give any other product feedback
 
 ## Contributing Fixes
 
-It can be tempting to want to dive into an open source project and help _build the thing_ you believe you're missing. It's a wonderful and helpful intention. However, Terraform is a complex tool. Many seemingly simple changes can have serious effects on other areas of the code and it can take some time to become familiar with the effects of even basic changes. The Terraform team is not immune to unintended and sometimes undesirable changes. We do take our work seriously, and appreciate the globally diverse community that relies on Terraform for workflows of all sizes and criticality. 
+It can be tempting to want to dive into a community project and help _build the thing_ you believe you're missing. It's a wonderful and helpful intention. However, Terraform is a complex tool. Many seemingly simple changes can have serious effects on other areas of the code and it can take some time to become familiar with the effects of even basic changes. The Terraform team is not immune to unintended and sometimes undesirable changes. We do take our work seriously, and appreciate the globally diverse community that relies on Terraform for workflows of all sizes and criticality. 
 
 As a result of Terraform's complexity and high bar for stability, the most straightforward way to start helping with the Terraform project is to pick an existing bug and [get to work](#terraform-clicore-development-environment). 
 
@@ -82,7 +82,7 @@ Please see the [CODEOWNERS](https://github.com/hashicorp/terraform/blob/main/COD
 
 #### Maintainers
 
-Maintainers are key contributors to our Open Source project. They contribute their time and expertise and we ask that the community take extra special care to be mindful of this when interacting with them.
+Maintainers are key contributors to our community project. They contribute their time and expertise and we ask that the community take extra special care to be mindful of this when interacting with them.
 
 For code that has a listed maintainer or maintainers in our [CODEOWNERS](https://github.com/hashicorp/terraform/blob/main/CODEOWNERS) file, the Terraform team will highlight them for participation in PRs which relate to the area of code they maintain. The expectation is that a maintainer will review the code and work with the PR contributor before the code is merged by the Terraform team.
 
@@ -128,7 +128,7 @@ Terraform providers are not maintained in this repository; you can find relevant
 repository and relevant issue tracker for each provider within the
 [Terraform Registry index](https://registry.terraform.io/browse/providers).
 
-This repository also does not include the source code for some other parts of the Terraform product including Terraform Cloud, Terraform Enterprise, and the Terraform Registry. Those components are not open source, though if you have feedback about them (including bug reports) please do feel free to [open a GitHub issue on this repository](https://github.com/hashicorp/terraform/issues/new/choose).
+This repository also does not include the source code for some other parts of the Terraform product including Terraform Cloud, Terraform Enterprise, and the Terraform Registry. The source for those components is not publicly available. If you have feedback about these products, including bug reports, please email [tf-cloud@hashicorp.support](mailto:tf-cloud@hashicorp.support) or [open a support request](https://support.hashicorp.com/hc/en-us/requests/new).
 
 ---
 
@@ -136,7 +136,7 @@ If you wish to work on the Terraform CLI source code, you'll first need to insta
 
 At this time the Terraform development environment is targeting only Linux and Mac OS X systems. While Terraform itself is compatible with Windows, unfortunately the unit test suite currently contains Unix-specific assumptions around maximum path lengths, path separators, etc.
 
-Refer to the file [`.go-version`](https://github.com/hashicorp/terraform/blob/main/.go-version) to see which version of Go Terraform is currently built with. Other versions will often work, but if you run into any build or testing problems please try with the specific Go version indicated. You can optionally simplify the installation of multiple specific versions of Go on your system by installing [`goenv`](https://github.com/syndbg/goenv), which reads `.go-version` and automatically selects the correct Go version.
+Refer to the file [`.go-version`](https://github.com/hashicorp/terraform/blob/main/.go-version) to see which version of Go Terraform is currently built with. As of Go 1.21, the `go` command (e.g. in `go build`) will automatically install the version of the Go toolchain corresponding to the version specified in `go.mod`, if it is newer than the version you have installed. The version in `go.mod` is considered the _minimum_ compatible Go version for Terraform, while the version in `.go-version` is what the production binary is actually built with.
 
 Use Git to clone this repository into a location of your choice. Terraform is using [Go Modules](https://blog.golang.org/using-go-modules), and so you should *not* clone it inside your `GOPATH`.
 

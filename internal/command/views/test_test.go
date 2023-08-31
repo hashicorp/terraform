@@ -2607,28 +2607,8 @@ func TestTestJSON_Run(t *testing.T) {
 					"@testfile": "main.tftest.hcl",
 					"@testrun":  "run_block",
 					"test_plan": map[string]interface{}{
-						"configuration": map[string]interface{}{
-							"root_module": map[string]interface{}{},
-						},
-						"errored": false,
-						"planned_values": map[string]interface{}{
-							"root_module": map[string]interface{}{
-								"resources": []interface{}{
-									map[string]interface{}{
-										"address":          "test_resource.creating",
-										"mode":             "managed",
-										"name":             "creating",
-										"provider_name":    "registry.terraform.io/hashicorp/test",
-										"schema_version":   0.0,
-										"sensitive_values": map[string]interface{}{},
-										"type":             "test_resource",
-										"values": map[string]interface{}{
-											"value": "foobar",
-										},
-									},
-								},
-							},
-						},
+						"plan_format_version":     "1.2",
+						"provider_format_version": "1.0",
 						"resource_changes": []interface{}{
 							map[string]interface{}{
 								"address": "test_resource.creating",
@@ -2646,6 +2626,27 @@ func TestTestJSON_Run(t *testing.T) {
 								"name":          "creating",
 								"provider_name": "registry.terraform.io/hashicorp/test",
 								"type":          "test_resource",
+							},
+						},
+						"provider_schemas": map[string]interface{}{
+							"registry.terraform.io/hashicorp/test": map[string]interface{}{
+								"provider": map[string]interface{}{
+									"version": 0.0,
+								},
+								"resource_schemas": map[string]interface{}{
+									"test_resource": map[string]interface{}{
+										"block": map[string]interface{}{
+											"attributes": map[string]interface{}{
+												"value": map[string]interface{}{
+													"description_kind": "plain",
+													"type":             "string",
+												},
+											},
+											"description_kind": "plain",
+										},
+										"version": 0.0,
+									},
+								},
 							},
 						},
 					},
@@ -2731,20 +2732,41 @@ func TestTestJSON_Run(t *testing.T) {
 					"@testfile": "main.tftest.hcl",
 					"@testrun":  "run_block",
 					"test_state": map[string]interface{}{
-						"values": map[string]interface{}{
-							"root_module": map[string]interface{}{
-								"resources": []interface{}{
-									map[string]interface{}{
-										"address":          "test_resource.creating",
-										"mode":             "managed",
-										"name":             "creating",
-										"provider_name":    "registry.terraform.io/hashicorp/test",
-										"schema_version":   0.0,
-										"sensitive_values": map[string]interface{}{},
-										"type":             "test_resource",
-										"values": map[string]interface{}{
-											"value": "foobar",
+						"state_format_version":    "1.0",
+						"provider_format_version": "1.0",
+						"root": map[string]interface{}{
+							"resources": []interface{}{
+								map[string]interface{}{
+									"address":          "test_resource.creating",
+									"mode":             "managed",
+									"name":             "creating",
+									"provider_name":    "registry.terraform.io/hashicorp/test",
+									"schema_version":   0.0,
+									"sensitive_values": map[string]interface{}{},
+									"type":             "test_resource",
+									"values": map[string]interface{}{
+										"value": "foobar",
+									},
+								},
+							},
+						},
+						"provider_schemas": map[string]interface{}{
+							"registry.terraform.io/hashicorp/test": map[string]interface{}{
+								"provider": map[string]interface{}{
+									"version": 0.0,
+								},
+								"resource_schemas": map[string]interface{}{
+									"test_resource": map[string]interface{}{
+										"block": map[string]interface{}{
+											"attributes": map[string]interface{}{
+												"value": map[string]interface{}{
+													"description_kind": "plain",
+													"type":             "string",
+												},
+											},
+											"description_kind": "plain",
 										},
+										"version": 0.0,
 									},
 								},
 							},

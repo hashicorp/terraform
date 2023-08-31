@@ -29,18 +29,18 @@ const (
 	DataResourceMode    = "data"
 )
 
-// State is the top-level representation of the json format of a terraform
+// state is the top-level representation of the json format of a terraform
 // state.
-type State struct {
+type state struct {
 	FormatVersion    string          `json:"format_version,omitempty"`
 	TerraformVersion string          `json:"terraform_version,omitempty"`
-	Values           *StateValues    `json:"values,omitempty"`
+	Values           *stateValues    `json:"values,omitempty"`
 	Checks           json.RawMessage `json:"checks,omitempty"`
 }
 
-// StateValues is the common representation of resolved values for both the prior
+// stateValues is the common representation of resolved values for both the prior
 // state (which is always complete) and the planned new state.
-type StateValues struct {
+type stateValues struct {
 	Outputs    map[string]Output `json:"outputs,omitempty"`
 	RootModule Module            `json:"root_module,omitempty"`
 }
@@ -135,8 +135,8 @@ func marshalAttributeValues(value cty.Value) AttributeValues {
 }
 
 // newState() returns a minimally-initialized state
-func newState() *State {
-	return &State{
+func newState() *state {
+	return &state{
 		FormatVersion: FormatVersion,
 	}
 }
@@ -162,46 +162,34 @@ func MarshalForRenderer(sf *statefile.File, schemas *terraform.Schemas) (Module,
 	return root, outputs, err
 }
 
-// MarshalForLog returns the origin JSON compatible state, read for a logging
-// package to marshal further.
-func MarshalForLog(sf *statefile.File, schemas *terraform.Schemas) (*State, error) {
+// Marshal returns the json encoding of a terraform state.
+func Marshal(sf *statefile.File, schemas *terraform.Schemas) ([]byte, error) {
 	output := newState()
 
 	if sf == nil || sf.State.Empty() {
-		return output, nil
+		ret, err := json.Marshal(output)
+		return ret, err
 	}
 
 	if sf.TerraformVersion != nil {
 		output.TerraformVersion = sf.TerraformVersion.String()
 	}
-
 	// output.StateValues
 	err := output.marshalStateValues(sf.State, schemas)
 	if err != nil {
 		return nil, err
 	}
-
 	// output.Checks
 	if sf.State.CheckResults != nil && sf.State.CheckResults.ConfigResults.Len() > 0 {
 		output.Checks = jsonchecks.MarshalCheckStates(sf.State.CheckResults)
-	}
-
-	return output, nil
-}
-
-// Marshal returns the json encoding of a terraform state.
-func Marshal(sf *statefile.File, schemas *terraform.Schemas) ([]byte, error) {
-	output, err := MarshalForLog(sf, schemas)
-	if err != nil {
-		return nil, err
 	}
 
 	ret, err := json.Marshal(output)
 	return ret, err
 }
 
-func (jsonstate *State) marshalStateValues(s *states.State, schemas *terraform.Schemas) error {
-	var sv StateValues
+func (jsonstate *state) marshalStateValues(s *states.State, schemas *terraform.Schemas) error {
+	var sv stateValues
 	var err error
 
 	// only marshal the root module outputs
