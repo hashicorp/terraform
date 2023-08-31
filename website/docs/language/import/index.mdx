@@ -43,7 +43,9 @@ If you do not set the `provider` argument, Terraform attempts to import from the
 
 ### Import ID
 
-The import block requires you to provide the `id` argument with a literal string of your resource's import ID. Terraform needs this import ID to locate the resource you want to import.
+The import block's `id` argument can be a literal string of your resource's import ID, or an expression that evaluates to a string. Terraform needs this import ID to locate the resource you want to import.
+
+The import ID must be known at plan time for planning to succeed. If the value of `id` is only known after apply, `terraform plan` will fail with an error.
 
 The identifier you use for a resource's import ID is resource-specific. You can find the required ID in the [provider documentation](https://registry.terraform.io/browse/providers) for the resource you wish to import.
 
@@ -102,6 +104,15 @@ import {
 }
 ```
 
+The below example shows how to use the value of a variable as the import ID.
+
+```hcl
+import {
+  to = aws_instance.example
+  id = var.instance_id
+}
+```
+
 The below example shows how to import a resource that includes [`count`](/terraform/language/meta-arguments/count).
 
 ```hcl
@@ -110,7 +121,6 @@ import {
   id = "i-abcd1234"
 }
 ```
-
 
 The below example shows how to import a resource that includes [`for_each`](/terraform/language/meta-arguments/for_each).
 ```hcl
