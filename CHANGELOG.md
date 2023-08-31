@@ -1,5 +1,9 @@
 ## 1.7.0 (Unreleased)
 
+BUG FIXES:
+
+* Ignore potential remote terraform version mismatch when running force-unlock ([#28853](https://github.com/hashicorp/terraform/issues/28853))
+
 ## Previous Releases
 
 For information on prior major and minor releases, see their changelogs:
