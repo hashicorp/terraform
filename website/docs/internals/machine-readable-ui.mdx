@@ -732,7 +732,11 @@ After the test operation has completed all test files, `terraform test` emits a 
 
 ## Test Plan
 
-In `-verbose` mode, `terraform test` emits a `test_plan` message for all `run` blocks that executed a plan operation. The `test_plan` message content matches the format of the `terraform show -json <planfile>` command [output](/terraform/internals/json-format#plan-representation).
+In `-verbose` mode, `terraform test` emits a `test_plan` message for all `run` blocks that executed a plan operation. The `test_plan` message contains a subset of the attributes from the `terraform show -json <planfile>` command [output](/terraform/internals/json-format#plan-representation) and the `terraform providers schema -json` command [output](/terraform/cli/commands/providers/schema#providers-schema-representation).
+
+The message contains the following fields representing the plan: `plan_format_version`, `output_changes`, `resource_changes`, `resource_drift` and `relevant_attributes`. These match the respective fields in the [JSON Plan Representation](/terraform/internals/json-format#plan-representation).
+
+The message contains the following fields representing the provider schemas: `provider_format_version` and `provider_schemas`. These match the respective fields in the [JSON Providers Schema Representation](/terraform/cli/commands/providers/schema#providers-schema-representation).
 
 ### Example
 
@@ -745,31 +749,7 @@ In `-verbose` mode, `terraform test` emits a `test_plan` message for all `run` b
   "@testrun": "successful_validation",
   "@timestamp": "2023-08-09T17:10:06.211942+02:00",
   "test_plan": {
-    "format_version": "1.2",
-    "terraform_version": "1.6.0",
-    "variables": {
-      "input": {
-        "value": "D208E38B-9F69-4A18-8839-D34869021AC4"
-      }
-    },
-    "planned_values": {
-      "root_module": {
-        "resources": [
-          {
-            "address": "aws_instance.primary",
-            "mode": "managed",
-            "type": "aws_instance",
-            "name": "primary",
-            "provider_name": "registry.terraform.io/hashicorp/aws",
-            "schema_version": 0,
-            "values": {
-              "ami": "D208E38B-9F69-4A18-8839-D34869021AC4"
-            },
-            "sensitive_values": {}
-          }
-        ]
-      }
-    },
+    "plan_format_version": "1.2",
     "resource_changes": [
       {
         "address": "aws_instance.primary",
@@ -783,7 +763,7 @@ In `-verbose` mode, `terraform test` emits a `test_plan` message for all `run` b
           ],
           "before": null,
           "after": {
-              "ami": "D208E38B-9F69-4A18-8839-D34869021AC4"
+            "ami": "af84f887-e3eb-9e52-5f8b-8a2803734fd0"
           },
           "after_unknown": {},
           "before_sensitive": false,
@@ -791,40 +771,29 @@ In `-verbose` mode, `terraform test` emits a `test_plan` message for all `run` b
         }
       }
     ],
-    "configuration": {
-      "provider_config": {
-        "aws": {
-          "name": "aws",
-          "full_name": "registry.terraform.io/hashicorp/aws"
-        }
-      },
-      "root_module": {
-        "resources": [
-          {
-            "address": "aws_instance.primary",
-            "mode": "managed",
-            "type": "aws_instance",
-            "name": "primary",
-            "provider_config_key": "aws",
-            "expressions": {
-              "ami": {
-                "references": [
-                  "var.input"
-                ]
-              }
-            },
-            "schema_version": 0
-          }
-        ],
-        "variables": {
-          "input": {
-            "default": null
+    "provider_format_version": "1.0",
+    "provider_schemas": {
+      "registry.terraform.io/hashicorp/aws": {
+        "provider": {
+          "version": 0
+        },
+        "resource_schemas": {
+          "aws_instance": {
+            "version": 0,
+            "block": {
+              "attributes": {
+                "ami": {
+                  "type": "string",
+                  "description_kind": "plain",
+                  "required": true
+                }
+              },
+              "description_kind": "plain"
+            }
           }
         }
       }
-    },
-    "timestamp": "2023-08-09T15:10:05Z",
-    "errored": false
+    }
   },
   "type": "test_plan"
 }
@@ -832,7 +801,11 @@ In `-verbose` mode, `terraform test` emits a `test_plan` message for all `run` b
 
 ## Test State
 
-In `-verbose` mode, `terraform test` emits a `test_state` message for all `run` blocks that executed an apply operation. The `test_state` message content matches the format of the `terraform show -json` command [output](/terraform/internals/json-format#state-representation).
+In `-verbose` mode, `terraform test` emits a `test_state` message for all `run` blocks that executed an apply operation. The `test_state` message contains a subset of the `terraform show -json` command [output](/terraform/internals/json-format#state-representation) and the `terraform providers schema -json` command [output](/terraform/cli/commands/providers/schema#providers-schema-representation).
+
+The message contains the following fields representing the state: `state_format_version`, `root_module`, and `outputs`. These match the respective fields in the [JSON Values Representation](/terraform/internals/json-format#values-representation) that are embedded in complete JSON state representation.
+
+The message contains the following fields representing the provider schemas: `provider_format_version` and `provider_schemas`. These match the respective fields in the [JSON Providers Schema Representation](/terraform/cli/commands/providers/schema#providers-schema-representation).
 
 ### Example
 
@@ -845,24 +818,44 @@ In `-verbose` mode, `terraform test` emits a `test_state` message for all `run` 
   "@testrun": "successful_validation",
   "@timestamp": "2023-08-09T17:18:21.173008+02:00",
   "test_state": {
-    "format_version": "1.0",
-    "terraform_version": "1.6.0",
-    "values": {
-      "root_module": {
-        "resources": [
-          {
-            "address": "aws_instance.primary",
-            "mode": "managed",
-            "type": "aws_instance",
-            "name": "primary",
-            "provider_name": "registry.terraform.io/hashicorp/aws",
-            "schema_version": 0,
-            "values": {
-              "ami": "af84f887-e3eb-9e52-5f8b-8a2803734fd0"
-            },
-            "sensitive_values": {}
+    "state_format_version": "1.0",
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_instance.primary",
+          "mode": "managed",
+          "type": "aws_instance",
+          "name": "primary",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "schema_version": 0,
+          "values": {
+            "ami": "af84f887-e3eb-9e52-5f8b-8a2803734fd0"
+          },
+          "sensitive_values": {}
+        }
+      ]
+    },
+    "provider_format_version": "1.0",
+    "provider_schemas": {
+      "registry.terraform.io/hashicorp/aws": {
+        "provider": {
+          "version": 0
+        },
+        "resource_schemas": {
+          "aws_instance": {
+            "version": 0,
+            "block": {
+              "attributes": {
+                "ami": {
+                  "type": "string",
+                  "description_kind": "plain",
+                  "required": true
+                }
+              },
+              "description_kind": "plain"
+            }
           }
-        ]
+        }
       }
     }
   },
