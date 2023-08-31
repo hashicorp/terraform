@@ -17,8 +17,8 @@ import (
 
 type State struct {
 	StateFormatVersion string                      `json:"state_format_version"`
-	RootModule         jsonstate.Module            `json:"root,omitempty"`
-	RootModuleOutputs  map[string]jsonstate.Output `json:"root_module_outputs,omitempty"`
+	RootModule         jsonstate.Module            `json:"root_module,omitempty"`
+	RootModuleOutputs  map[string]jsonstate.Output `json:"outputs,omitempty"`
 
 	ProviderFormatVersion string                            `json:"provider_format_version"`
 	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas,omitempty"`

@@ -2734,7 +2734,7 @@ func TestTestJSON_Run(t *testing.T) {
 					"test_state": map[string]interface{}{
 						"state_format_version":    "1.0",
 						"provider_format_version": "1.0",
-						"root": map[string]interface{}{
+						"root_module": map[string]interface{}{
 							"resources": []interface{}{
 								map[string]interface{}{
 									"address":          "test_resource.creating",
