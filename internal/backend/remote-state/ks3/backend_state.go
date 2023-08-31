@@ -5,7 +5,9 @@ import (
 	"log"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states"
@@ -150,16 +152,21 @@ func (b *Backend) client(name string) (*remoteClient, error) {
 	if err != nil {
 		return nil, err
 	}
+	ld, err := lockDurationParse(b.lockDuration)
+	if err != nil {
+		return nil, err
+	}
 	return &remoteClient{
-		ks3Context: b.ks3Context,
-		ks3Client:  b.ks3Client,
-		tagClient:  b.tagClient,
-		bucketName: b.bucket,
-		bucket:     bucketClass,
-		stateFile:  b.stateFile(name),
-		lockFile:   b.lockFile(name),
-		encrypt:    b.encrypt,
-		acl:        b.acl,
+		ks3Context:   b.ks3Context,
+		ks3Client:    b.ks3Client,
+		tagClient:    b.tagClient,
+		bucketName:   b.bucket,
+		bucket:       bucketClass,
+		stateFile:    b.stateFile(name),
+		lockFile:     b.lockFile(name),
+		encrypt:      b.encrypt,
+		acl:          b.acl,
+		lockDuration: ld,
 	}, nil
 }
 
@@ -184,6 +191,35 @@ func (b *Backend) stateFile(name string) string {
 // lockFile returns lock file path by name
 func (b *Backend) lockFile(name string) string {
 	return b.stateFile(name) + lockFileSuffix
+}
+
+func lockDurationParse(d string) (time.Duration, error) {
+	switch d {
+	case "0":
+		return 0, nil
+	case "-1":
+		return 9999 * time.Hour, nil
+	default:
+		suffix := d[len(d)-1:]
+		switch suffix {
+		case "h":
+			length := d[:len(d)-1]
+			t, err := strconv.Atoi(length)
+			if err != nil {
+				return -1, err
+			}
+			return time.Duration(t) * time.Hour, nil
+		case "m":
+			length := d[:len(d)-1]
+			t, err := strconv.Atoi(length)
+			if err != nil {
+				return -1, err
+			}
+			return time.Duration(t) * time.Minute, nil
+		}
+	}
+
+	return 0, fmt.Errorf("lock time parse unexpected error")
 }
 
 // unlockErrMsg is error msg for unlock failed

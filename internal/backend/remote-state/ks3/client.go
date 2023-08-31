@@ -18,16 +18,19 @@ import (
 	"github.com/wilac-pv/ksyun-ks3-go-sdk/ks3"
 )
 
+var emptyTime = time.Time{}
+
 type remoteClient struct {
 	ks3Context context.Context
 
 	ks3Client *ks3.Client
 	tagClient *tagv2.Tagv2
 
-	bucketName string
-	bucket     *ks3.Bucket
-	stateFile  string
-	lockFile   string
+	bucketName   string
+	bucket       *ks3.Bucket
+	stateFile    string
+	lockFile     string
+	lockDuration time.Duration
 
 	encrypt bool
 	acl     string
@@ -36,7 +39,7 @@ type remoteClient struct {
 const (
 	KsyunLockTagKey = "ksyun-terraform-lock"
 
-	TagExists = "TagAlreadyExistsLimitExceeded"
+	TagExistsErr = "TagAlreadyExistsLimitExceeded"
 )
 
 func (c *remoteClient) Put(data []byte) error {
@@ -80,9 +83,15 @@ func (c *remoteClient) Lock(lockInfo *statemgr.LockInfo) (string, error) {
 	}
 	defer c.ks3Unlock(lockInfo)
 
-	exist, _, _, err := c.getObject(c.lockFile)
+	exist, existData, _, err := c.getObject(c.lockFile)
 	if exist {
-		return "", c.lockError(fmt.Errorf("lock file %s exists", c.lockFile))
+		existLock := &statemgr.LockInfo{}
+		if parseErr := json.Unmarshal(existData, existLock); parseErr != nil {
+			return "", c.lockError(fmt.Errorf("unmarshal exist lock file error, %s", parseErr))
+		}
+		if !isKs3lockBeyondTime(existLock.Created, c.lockDuration) {
+			return "", c.lockError(fmt.Errorf("lock file %s exists", c.lockFile))
+		}
 	}
 
 	lockInfo.Path = c.lockFile
@@ -127,10 +136,24 @@ func (c *remoteClient) Unlock(check string) error {
 
 func (c *remoteClient) ks3Lock(tfLock *statemgr.LockInfo) error {
 	ks3LockValue := c.ks3LockValueStr(tfLock)
-	err := c.CreateTag(KsyunLockTagKey, ks3LockValue)
+
+	tagExist, createTime, err := c.CheckTag(KsyunLockTagKey, ks3LockValue)
+	if err != nil {
+		return fmt.Errorf("an error caused by check ks3lock: %s", err)
+	}
+
+	// if ks3lock was existed and beyond c.lockDuration, delete the old ks3lock
+	if tagExist && isKs3lockBeyondTime(createTime, c.lockDuration) {
+		err := c.DeleteTag(KsyunLockTagKey, ks3LockValue)
+		if err != nil {
+			return fmt.Errorf("fail to clean the old ks3lock, %s -> %s, ks3lock create time: %s, err: %s", KsyunLockTagKey, ks3LockValue, createTime.String(), err)
+		}
+	}
+
+	err = c.CreateTag(KsyunLockTagKey, ks3LockValue)
 	if err != nil {
 		if kscErr, ok := err.(awserr.Error); ok {
-			if kscErr.Code() == TagExists {
+			if kscErr.Code() == TagExistsErr {
 				return fmt.Errorf("ks3Lock is exist, %s -> %s, %s", KsyunLockTagKey, ks3LockValue, err)
 			}
 			return err
@@ -145,7 +168,7 @@ func (c *remoteClient) ks3Unlock(tfLock *statemgr.LockInfo) error {
 
 	var err error
 	for i := 0; i < 30; i++ {
-		tagExists, err := c.CheckTag(ks3LockKey, ks3LockValue)
+		tagExists, _, err := c.CheckTag(ks3LockKey, ks3LockValue)
 
 		if err != nil {
 			return err
@@ -190,7 +213,7 @@ func (c *remoteClient) lockInfo() (*statemgr.LockInfo, error) {
 		return nil, err
 	}
 
-	if len(data) < 1 || !exist {
+	if !exist {
 		return nil, fmt.Errorf("lock file %s not exists", c.lockFile)
 	}
 
@@ -216,14 +239,14 @@ func (c *remoteClient) CreateTag(key, value string) error {
 
 }
 
-func (c *remoteClient) CheckTag(key, value string) (exists bool, err error) {
+func (c *remoteClient) CheckTag(key, value string) (exists bool, createTime time.Time, err error) {
 	req := map[string]interface{}{}
-
+	createTime = emptyTime
 	req["Key"] = key
 	req["Value"] = value
 	resp, err := c.tagClient.ListTags(&req)
 	if err != nil {
-		return exists, err
+		return exists, createTime, err
 	}
 	tagsIf, ok := (*resp)["Tags"]
 	if !ok {
@@ -234,7 +257,15 @@ func (c *remoteClient) CheckTag(key, value string) (exists bool, err error) {
 		tag := tags[0].(map[string]interface{})
 		tagKey := tag["Key"].(string)
 		tagValue := tag["Value"].(string)
+		createTimeStr := tag["CreateTime"].(string)
+		formatTime, parseErr := time.Parse(time.DateTime, createTimeStr)
+		if parseErr != nil {
+			err = parseErr
+			return
+		}
+		createTime = formatTime
 		exists = key == tagKey && value == tagValue
+
 	}
 	return
 
@@ -370,4 +401,17 @@ func (c *remoteClient) deleteBucket(emptyBucket bool) error {
 func (c *remoteClient) ks3LockValueStr(lockInfo *statemgr.LockInfo) string {
 	ret := strings.Join([]string{c.bucketName, c.lockFile}, ":")
 	return ret
+}
+
+func isKs3lockBeyondTime(cTime time.Time, between time.Duration) bool {
+	if cTime == emptyTime {
+		return false
+	}
+
+	now := time.Now()
+
+	if now.Sub(cTime).Abs() > between {
+		return true
+	}
+	return false
 }

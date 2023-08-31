@@ -78,6 +78,9 @@ type Backend struct {
 	key                string
 	encrypt            bool
 	acl                string
+
+	// lockDuration indicates the lifetime of lock
+	lockDuration string
 }
 
 // New creates a new backend for KSYUN cos remote state.
@@ -220,6 +223,13 @@ func New() backend.Backend {
 				Default:     3,
 				Description: "The maximum number of times an AWS API request is retried on retryable failure.",
 			},
+			"lock_duration": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "1h",
+				ValidateFunc: validateLockDurations,
+				Description:  "Sets the lock's duration. Generally speaking, the lock will be destroyed after the Terraform operations. Unfortunately, the lock is leaved because of the Terraform process is terminated. So, `lock_duration` field is provided that canned set it in order to deal with **the dead lock**. **Warning:** if `lock_duration` value is insufficient for your operation, the remote state file may be not your expectation, because of the operation race probably caused. Valid Value: `0`: ignore the existed lock, `-1`: unlimited, `number[mh]`: number, natural number, is time length; `m` is minutes; `h` is hours",
+			},
 		},
 	}
 
@@ -242,6 +252,33 @@ func validateIntegerInRange(min, max int64) schema.SchemaValidateFunc {
 		}
 		return
 	}
+}
+
+func validateLockDurations(i interface{}, k string) (warnings []string, errors []error) {
+	v, ok := i.(string)
+	if !ok {
+		errors = append(errors, fmt.Errorf("expected type of %s to be string", k))
+		return
+	}
+	switch v {
+	case "-1":
+	case "0":
+	default:
+		suffix := v[len(v)-1:]
+		switch suffix {
+		case "h", "m":
+			length := v[:len(v)-1]
+			_, err := strconv.Atoi(length)
+			if err != nil {
+				errors = append(errors, fmt.Errorf("lock_duration valid value: number[mh], e.g. 1h, err:%s", err))
+				return
+			}
+		default:
+			errors = append(errors, fmt.Errorf("lock_duration valid value: number[mh], e.g. 1h"))
+			return
+		}
+	}
+	return
 }
 
 func stringInSlice(valid []string, ignoreCase bool) schema.SchemaValidateFunc {
@@ -278,6 +315,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.key = data.Get("key").(string)
 	b.encrypt = data.Get("encrypt").(bool)
 	b.acl = data.Get("acl").(string)
+	b.lockDuration = data.Get("lock_duration").(string)
 
 	var (
 		err error
