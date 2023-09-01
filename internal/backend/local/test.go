@@ -1345,7 +1345,33 @@ func (runner *TestFileRunner) ctx(run *moduletest.Run, file *moduletest.File, av
 						},
 					})
 
-					if value.Sensitive {
+					if value == nil {
+						// Then this output returned null when the configuration
+						// executed. For now, we'll just skip this output.
+						//
+						// There are several things we could try to do, like
+						// figure out the type based on the variable that it
+						// is referencing and wrap it up as cty.Val(...) or we
+						// could not try and work anything out and return it as
+						// a cty.NilVal.
+						//
+						// Both of these mean the error would be raised later
+						// as non-optional variables would say they don't have
+						// a value. By just ignoring it here, we get an error
+						// quicker that says this output doesn't exist. I think
+						// that would prompt users to go look at the output and
+						// realise it might be returning null and make the
+						// connection. With the other approaches they'd look at
+						// their variable definitions and think they are
+						// assigning it a value since we would be telling them
+						// the output does exist.
+						//
+						// Let's do the simple thing now, and see what the
+						// future holds.
+						continue
+					}
+
+					if value.Sensitive || output.Sensitive {
 						outputs[output.Name] = value.Value.Mark(marks.Sensitive)
 						continue
 					}
