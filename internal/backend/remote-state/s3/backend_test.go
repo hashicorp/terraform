@@ -1062,6 +1062,23 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				),
 			},
 		},
+
+		"allowed forbidden account ids conflict": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket":                cty.StringVal("test"),
+				"key":                   cty.StringVal("test"),
+				"region":                cty.StringVal("us-west-2"),
+				"allowed_account_ids":   cty.SetVal([]cty.Value{cty.StringVal("012345678901")}),
+				"forbidden_account_ids": cty.SetVal([]cty.Value{cty.StringVal("012345678901")}),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Attribute Combination",
+					`Only one of allowed_account_ids, forbidden_account_ids can be set.`,
+					cty.Path{},
+				),
+			},
+		},
 	}
 
 	for name, tc := range cases {
