@@ -165,6 +165,10 @@ func TestTest(t *testing.T) {
 			args:     []string{"-var=number_input=0", "-var=string_input=Hello, world!", "-var=list_input=[\"Hello\",\"world\"]"},
 			code:     0,
 		},
+		"null-outputs": {
+			expected: "2 passed, 0 failed.",
+			code:     0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
