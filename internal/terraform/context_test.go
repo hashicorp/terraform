@@ -16,6 +16,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -247,6 +248,52 @@ resource "implicit_thing" "b" {
 			)
 			assertDiagnosticsMatch(t, gotDiags, wantDiags)
 		})
+	}
+}
+
+func TestContext_preloadedProviderSchemas(t *testing.T) {
+	var provider *MockProvider
+	{
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(fmt.Errorf("mustn't really call GetProviderSchema"))
+		provider = &MockProvider{
+			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+				Diagnostics: diags,
+			},
+		}
+	}
+
+	tfCore, err := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewBuiltInProvider("blep"): func() (providers.Interface, error) {
+				return provider, nil
+			},
+		},
+		PreloadedProviderSchemas: map[addrs.Provider]providers.ProviderSchema{
+			addrs.NewBuiltInProvider("blep"): providers.ProviderSchema{},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {
+				required_providers {
+					blep = {
+						source = "terraform.io/builtin/blep"
+					}
+				}
+			}
+			provider "blep" {}
+		`,
+	})
+	_, diags := tfCore.Schemas(cfg, states.NewState())
+	assertNoDiagnostics(t, diags)
+
+	if provider.GetProviderSchemaCalled {
+		t.Error("called GetProviderSchema even though a preloaded schema was provided")
 	}
 }
 
