@@ -981,13 +981,21 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 	}
 
 	output := d.Evaluator.State.OutputValue(addr.Absolute(d.ModulePath))
-
-	val := output.Value
-	if val == cty.NilVal {
-		// Not evaluated yet?
-		val = cty.DynamicVal
+	if output == nil {
+		// Then the output itself returned null, so we'll package that up and
+		// pass it on.
+		output = &states.OutputValue{
+			Addr:      addr.Absolute(d.ModulePath),
+			Value:     cty.NilVal,
+			Sensitive: config.Sensitive,
+		}
+	} else if output.Value == cty.NilVal {
+		// Then we did get a value but Terraform itself thought it was NilVal
+		// so we treat this as if the value isn't yet known.
+		output.Value = cty.DynamicVal
 	}
 
+	val := output.Value
 	if output.Sensitive {
 		val = val.Mark(marks.Sensitive)
 	}
