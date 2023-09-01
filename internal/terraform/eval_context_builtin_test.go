@@ -66,7 +66,7 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 	ctx.ProviderCache = make(map[string]providers.Interface)
 	ctx.Plugins = newContextPlugins(map[addrs.Provider]providers.Factory{
 		addrs.NewDefaultProvider("test"): providers.FactoryFixed(testP),
-	}, nil)
+	}, nil, nil)
 
 	providerAddrDefault := addrs.AbsProviderConfig{
 		Module:   addrs.RootModule,
