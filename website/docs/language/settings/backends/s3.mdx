@@ -153,9 +153,11 @@ The following configuration is required:
 The following configuration is optional:
 
 * `access_key` - (Optional) AWS access key. If configured, must also configure `secret_key`. This can also be sourced from the `AWS_ACCESS_KEY_ID` environment variable, AWS shared credentials file (e.g. `~/.aws/credentials`), or AWS shared configuration file (e.g. `~/.aws/config`).
+* `allowed_account_ids` - (Optional) List of allowed AWS account IDs to prevent potential destruction of a live environment. Conflicts with `forbidden_account_ids`.
 * `custom_ca_bundle` - (Optional) File containing custom root and intermediate certificates. Can also be set using the `AWS_CA_BUNDLE` environment variable. Setting ca_bundle in the shared config file is not supported.
 * `ec2_metadata_service_endpoint` - (Optional) Address of the EC2 metadata service (IMDS) endpoint to use. Can also be set with the `AWS_EC2_METADATA_SERVICE_ENDPOINT` environment variable.
 * `ec2_metadata_service_endpoint_mode` - (Optional) Mode to use in communicating with the metadata service. Valid values are `IPv4` and `IPv6`. Can also be set with the `AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE` environment variable.
+* `forbidden_account_ids` - (Optional) List of forbidden AWS account IDs to prevent potential destruction of a live environment. Conflicts with `allowed_account_ids`.
 * `http_proxy` - (Optional) Address of an HTTP proxy to use when accessing the AWS API. Can also be set using the `HTTP_PROXY` or `HTTPS_PROXY` environment variables.
 * `iam_endpoint` - (Optional, **Deprecated**) Custom endpoint for the AWS Identity and Access Management (IAM) API.
   Use `endpoints.iam` instead.

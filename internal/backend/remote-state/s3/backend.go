@@ -18,7 +18,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	awsbase "github.com/hashicorp/aws-sdk-go-base/v2"
-	basediag "github.com/hashicorp/aws-sdk-go-base/v2/diag"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -65,6 +64,11 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "AWS region of the S3 Bucket and DynamoDB Table (if used).",
+			},
+			"allowed_account_ids": {
+				Type:        cty.Set(cty.String),
+				Optional:    true,
+				Description: "List of allowed AWS account IDs.",
 			},
 			"dynamodb_endpoint": {
 				Type:        cty.String,
@@ -114,6 +118,11 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 						},
 					},
 				},
+			},
+			"forbidden_account_ids": {
+				Type:        cty.Set(cty.String),
+				Optional:    true,
+				Description: "List of forbidden AWS account IDs.",
 			},
 			"iam_endpoint": {
 				Type:        cty.String,
@@ -522,6 +531,11 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		endpointModeValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
+	validateAttributesConflict(
+		cty.GetAttrPath("allowed_account_ids"),
+		cty.GetAttrPath("forbidden_account_ids"),
+	)(obj, cty.Path{}, &diags)
+
 	return obj, diags
 }
 
@@ -844,25 +858,43 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		cfg.RetryMode = aws.RetryMode(v)
 	}
 
+	if val, ok := stringSetAttrOk(obj, "allowed_account_ids"); ok {
+		cfg.AllowedAccountIds = val
+	}
+	if val, ok := stringSetAttrOk(obj, "forbidden_account_ids"); ok {
+		cfg.ForbiddenAccountIds = val
+	}
+
 	_ /* ctx */, awsConfig, cfgDiags := awsbase.GetAwsConfig(ctx, cfg)
-	for _, diag := range cfgDiags {
-		var severity tfdiags.Severity
-		switch diag.Severity() {
-		case basediag.SeverityError:
-			severity = tfdiags.Error
-		case basediag.SeverityWarning:
-			severity = tfdiags.Warning
-		}
+	for _, d := range cfgDiags {
 		diags = diags.Append(tfdiags.Sourceless(
-			severity,
-			diag.Summary(),
-			diag.Detail(),
+			baseSeverityToTerraformSeverity(d.Severity()),
+			d.Summary(),
+			d.Detail(),
 		))
 	}
 	if diags.HasErrors() {
 		return diags
 	}
 	b.awsConfig = awsConfig
+
+	accountID, _, awsDiags := awsbase.GetAwsAccountIDAndPartition(ctx, awsConfig, cfg)
+	for _, d := range awsDiags {
+		diags = append(diags, tfdiags.Sourceless(
+			baseSeverityToTerraformSeverity(d.Severity()),
+			fmt.Sprintf("Retrieving AWS account details: %s", d.Summary()),
+			d.Detail(),
+		))
+	}
+
+	err := cfg.VerifyAccountIDAllowed(accountID)
+	if err != nil {
+		diags = append(diags, tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid account ID",
+			err.Error(),
+		))
+	}
 
 	b.dynClient = dynamodb.NewFromConfig(awsConfig, func(opts *dynamodb.Options) {
 		if v, ok := retrieveArgument(&diags,
