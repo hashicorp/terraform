@@ -885,7 +885,8 @@ func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Pro
 
 // EffectiveRequiredProviderConfigs returns a set of all of the provider
 // configurations this config's direct module expects to have passed in
-// (explicitly or implicitly) by its caller.
+// (explicitly or implicitly) by its caller. This method only makes sense
+// to call on the object representing the root module.
 //
 // This includes both provider configurations declared explicitly using
 // configuration_aliases in the required_providers block _and_ configurations
@@ -906,7 +907,7 @@ func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Pro
 //
 // This function assumes that the configuration is valid. It may produce under-
 // or over-constrained results if called on an invalid configuration.
-func (c *Config) EffectiveRequiredProviderConfigs() addrs.Set[addrs.AbsProviderConfig] {
+func (c *Config) EffectiveRequiredProviderConfigs() addrs.Set[addrs.RootProviderConfig] {
 	// The Terraform language has accumulated so many different ways to imply
 	// the need for a provider configuration that answering this is quite a
 	// complicated process that ends up potentially needing to visit the
@@ -914,22 +915,25 @@ func (c *Config) EffectiveRequiredProviderConfigs() addrs.Set[addrs.AbsProviderC
 	// about the current node's requirements. In the happy explicit case we
 	// can avoid any recursion, but that case is rare in practice.
 
+	if c == nil {
+		return nil
+	}
+
 	// We'll start by visiting all of the "provider" blocks in the module and
 	// figuring out which provider configuration address they each declare. Any
 	// configuration addresses we find here cannot be "required" provider
 	// configs because the module instantiates them itself.
-	selfConfigured := addrs.MakeSet[addrs.AbsProviderConfig]()
+	selfConfigured := addrs.MakeSet[addrs.RootProviderConfig]()
 	for _, pc := range c.Module.ProviderConfigs {
 		localAddr := pc.Addr()
 		sourceAddr := c.Module.ProviderForLocalConfig(localAddr)
-		selfConfigured.Add(addrs.AbsProviderConfig{
-			Module:   c.Path,
+		selfConfigured.Add(addrs.RootProviderConfig{
 			Provider: sourceAddr,
 			Alias:    localAddr.Alias,
 		})
 	}
-	ret := addrs.MakeSet[addrs.AbsProviderConfig]()
-	maybeAddAbs := func(addr addrs.AbsProviderConfig) {
+	ret := addrs.MakeSet[addrs.RootProviderConfig]()
+	maybeAdd := func(addr addrs.RootProviderConfig) {
 		if !selfConfigured.Has(addr) {
 			ret.Add(addr)
 		}
@@ -939,16 +943,17 @@ func (c *Config) EffectiveRequiredProviderConfigs() addrs.Set[addrs.AbsProviderC
 		// in the _current_ module c.Module. It will produce incorrect results
 		// if used for addresses from any child module.
 		sourceAddr := c.Module.ProviderForLocalConfig(addr)
-		maybeAddAbs(addrs.AbsProviderConfig{
-			Module:   c.Path,
+		maybeAdd(addrs.RootProviderConfig{
 			Provider: sourceAddr,
 			Alias:    addr.Alias,
 		})
 	}
 
-	for _, req := range c.Module.ProviderRequirements.RequiredProviders {
-		for _, addr := range req.Aliases {
-			maybeAddLocal(addr)
+	if c.Module.ProviderRequirements != nil {
+		for _, req := range c.Module.ProviderRequirements.RequiredProviders {
+			for _, addr := range req.Aliases {
+				maybeAddLocal(addr)
+			}
 		}
 	}
 	for _, rc := range c.Module.ManagedResources {
@@ -958,10 +963,16 @@ func (c *Config) EffectiveRequiredProviderConfigs() addrs.Set[addrs.AbsProviderC
 		maybeAddLocal(rc.ProviderConfigAddr())
 	}
 	for _, ic := range c.Module.Import {
-		maybeAddLocal(addrs.LocalProviderConfig{
-			LocalName: ic.ProviderConfigRef.Name,
-			Alias:     ic.ProviderConfigRef.Alias,
-		})
+		if ic.ProviderConfigRef != nil {
+			maybeAddLocal(addrs.LocalProviderConfig{
+				LocalName: ic.ProviderConfigRef.Name,
+				Alias:     ic.ProviderConfigRef.Alias,
+			})
+		} else {
+			maybeAdd(addrs.RootProviderConfig{
+				Provider: ic.Provider,
+			})
+		}
 	}
 	for _, mc := range c.Module.ModuleCalls {
 		for _, pp := range mc.Providers {
@@ -984,8 +995,7 @@ func (c *Config) EffectiveRequiredProviderConfigs() addrs.Set[addrs.AbsProviderC
 				}
 				// We must reinterpret the child address to appear as
 				// if written in its parent (our current module).
-				maybeAddAbs(addrs.AbsProviderConfig{
-					Module:   c.Path,
+				maybeAdd(addrs.RootProviderConfig{
 					Provider: childReq.Provider,
 				})
 			}

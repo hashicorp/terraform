@@ -2433,7 +2433,7 @@ resource "test_object" "foo" {
 		t.Fatalf("expected no errors, but got %s", diags)
 	}
 
-	state, diags := ctx.Apply(plan, m)
+	state, diags := ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("expected no errors, but got %s", diags)
 	}
