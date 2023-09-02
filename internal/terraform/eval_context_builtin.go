@@ -61,6 +61,13 @@ type BuiltinEvalContext struct {
 	// available for use during a graph walk.
 	Plugins *contextPlugins
 
+	// ExternalProviderConfigs are pre-configured provider instances passed
+	// in by the caller, for situations like Stack components where the
+	// root module isn't designed to be planned and applied in isolation and
+	// instead expects to recieve certain provider configurations from the
+	// stack configuration.
+	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+
 	Hooks                 []Hook
 	InputValue            UIInput
 	ProviderCache         map[string]providers.Interface
@@ -133,6 +140,21 @@ func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig, config
 	defer ctx.ProviderLock.Unlock()
 
 	key := addr.String()
+
+	if addr.Module.IsRoot() {
+		rootAddr := addrs.RootProviderConfig{
+			Provider: addr.Provider,
+			Alias:    addr.Alias,
+		}
+		if external, isExternal := ctx.ExternalProviderConfigs[rootAddr]; isExternal {
+			// External providers should always be pre-configured by the
+			// external caller, and so we'll wrap them in a type that
+			// makes operations like ConfigureProvider and Close be no-op.
+			wrapped := externalProviderWrapper{external}
+			ctx.ProviderCache[key] = wrapped
+			return wrapped, nil
+		}
+	}
 
 	p, err := ctx.Plugins.NewProviderInstance(addr.Provider)
 	if err != nil {

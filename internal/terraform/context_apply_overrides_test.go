@@ -591,7 +591,7 @@ output "id" {
 				t.Fatal(diags.Err())
 			}
 
-			state, diags := ctx.Apply(plan, cfg)
+			state, diags := ctx.Apply(plan, cfg, nil)
 			if diags.HasErrors() {
 				t.Fatal(diags.Err())
 			}
@@ -622,7 +622,7 @@ output "id" {
 				t.Fatal(diags.Err())
 			}
 
-			_, diags = ctx.Apply(destroyPlan, cfg)
+			_, diags = ctx.Apply(destroyPlan, cfg, nil)
 			if diags.HasErrors() {
 				t.Fatal(diags.Err())
 			}

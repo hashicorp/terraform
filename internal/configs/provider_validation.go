@@ -282,13 +282,20 @@ func validateProviderConfigsForTests(cfg *Config) (diags hcl.Diagnostics) {
 // however will generate an error if a suitable provider configuration is not
 // passed in through the module call.
 //
-// The call argument is the ModuleCall for the provided Config cfg. The
+// The parentCall argument is the ModuleCall for the provided Config cfg. The
 // noProviderConfigRange argument is passed down the call stack, indicating
 // that the module call, or a parent module call, has used a feature (at the
 // specified source location) that precludes providers from being configured at
 // all within the module.
+//
+// Set parentCall to nil when analyzing the root module. In that case the
+// given configuration is allowed to require passed-in provider configurations
+// without that being an error at this layer, although Terraform Core itself
+// will raise an error if asked to plan such a configuration without the caller
+// passing in suitable pre-configured providers to use.
 func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConfigRange *hcl.Range) (diags hcl.Diagnostics) {
 	mod := cfg.Module
+	analyzingRootModule := (parentCall == nil)
 
 	for name, child := range cfg.Children {
 		mc := mod.ModuleCalls[name]
@@ -566,25 +573,30 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 	}
 
 	// A declared alias requires either a matching configuration within the
-	// module, or one must be passed in.
-	for name, providerAddr := range configAliases {
-		_, confOk := configured[name]
-		_, passedOk := passedIn[name]
+	// module, or one must be passed in, unless we're analyzing the root
+	// module. For the root module it's up to Terraform Core to check if
+	// it's being given the required provider configurations as part of the
+	// options when creating a plan.
+	if !analyzingRootModule {
+		for name, providerAddr := range configAliases {
+			_, confOk := configured[name]
+			_, passedOk := passedIn[name]
 
-		if confOk || passedOk {
-			continue
+			if confOk || passedOk {
+				continue
+			}
+
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing required provider configuration",
+				Detail: fmt.Sprintf(
+					"The child module requires an additional configuration for provider %s, with the local name %q.\n\nRefer to the module's documentation to understand the intended purpose of this additional provider configuration, and then add an entry for %s in the \"providers\" meta-argument in the module block to choose which provider configuration the module should use for that purpose.",
+					providerAddr.Provider.ForDisplay(), name,
+					name,
+				),
+				Subject: &parentCall.DeclRange,
+			})
 		}
-
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Missing required provider configuration",
-			Detail: fmt.Sprintf(
-				"The child module requires an additional configuration for provider %s, with the local name %q.\n\nRefer to the module's documentation to understand the intended purpose of this additional provider configuration, and then add an entry for %s in the \"providers\" meta-argument in the module block to choose which provider configuration the module should use for that purpose.",
-				providerAddr.Provider.ForDisplay(), name,
-				name,
-			),
-			Subject: &parentCall.DeclRange,
-		})
 	}
 
 	// You cannot pass in a provider that cannot be used
