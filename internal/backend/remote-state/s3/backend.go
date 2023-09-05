@@ -795,7 +795,10 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	if assumeRoleWithWebIdentity := obj.GetAttr("assume_role_with_web_identity"); !assumeRoleWithWebIdentity.IsNull() {
 		ar := &awsbase.AssumeRoleWithWebIdentity{}
-		if val, ok := stringAttrOk(assumeRoleWithWebIdentity, "role_arn"); ok {
+		if val, ok := retrieveArgument(&diags,
+			newAttributeRetriever(assumeRoleWithWebIdentity, cty.GetAttrPath("role_arn")),
+			newEnvvarRetriever("AWS_ROLE_ARN"),
+		); ok {
 			ar.RoleARN = val
 		}
 		if val, ok := stringAttrOk(assumeRoleWithWebIdentity, "duration"); ok {
@@ -808,13 +811,32 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		if val, ok := stringSetAttrOk(assumeRoleWithWebIdentity, "policy_arns"); ok {
 			ar.PolicyARNs = val
 		}
-		if val, ok := stringAttrOk(assumeRoleWithWebIdentity, "session_name"); ok {
+		if val, ok := retrieveArgument(&diags,
+			newAttributeRetriever(assumeRoleWithWebIdentity, cty.GetAttrPath("session_name")),
+			newEnvvarRetriever("AWS_ROLE_SESSION_NAME"),
+		); ok {
 			ar.SessionName = val
 		}
 		if val, ok := stringAttrOk(assumeRoleWithWebIdentity, "web_identity_token"); ok {
 			ar.WebIdentityToken = val
 		}
-		if val, ok := stringAttrOk(assumeRoleWithWebIdentity, "web_identity_token_file"); ok {
+		if val, ok := retrieveArgument(&diags,
+			newAttributeRetriever(assumeRoleWithWebIdentity, cty.GetAttrPath("web_identity_token_file")),
+			newEnvvarRetriever("AWS_WEB_IDENTITY_TOKEN_FILE"),
+		); ok {
+			ar.WebIdentityTokenFile = val
+		}
+		cfg.AssumeRoleWithWebIdentity = ar
+	} else if os.Getenv("AWS_ROLE_ARN") != "" && os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE") != "" {
+		// Web identity role assumption with only environment variables
+		ar := &awsbase.AssumeRoleWithWebIdentity{}
+		if val, ok := retrieveArgument(&diags, newEnvvarRetriever("AWS_ROLE_ARN")); ok {
+			ar.RoleARN = val
+		}
+		if val, ok := retrieveArgument(&diags, newEnvvarRetriever("AWS_ROLE_SESSION_NAME")); ok {
+			ar.SessionName = val
+		}
+		if val, ok := retrieveArgument(&diags, newEnvvarRetriever("AWS_WEB_IDENTITY_TOKEN_FILE")); ok {
 			ar.WebIdentityTokenFile = val
 		}
 		cfg.AssumeRoleWithWebIdentity = ar
