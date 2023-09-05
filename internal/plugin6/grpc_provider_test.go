@@ -11,6 +11,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -99,6 +100,9 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 				},
 			},
 		},
+		ServerCapabilities: &proto.ServerCapabilities{
+			GetProviderSchemaOptional: true,
+		},
 	}
 }
 
@@ -108,6 +112,27 @@ func TestGRPCProvider_GetSchema(t *testing.T) {
 	}
 
 	resp := p.GetProviderSchema()
+	checkDiags(t, resp.Diagnostics)
+}
+
+// ensure that the global schema cache is used when the provider supports
+// GetProviderSchemaOptional
+func TestGRPCProvider_GetSchema_globalCache(t *testing.T) {
+	p := &GRPCProvider{
+		Addr:   addrs.ImpliedProviderForUnqualifiedType("test"),
+		client: mockProviderClient(t),
+	}
+
+	// first call primes the cache
+	resp := p.GetProviderSchema()
+
+	// create a new provider instance which does not expect a GetProviderSchemaCall
+	p = &GRPCProvider{
+		Addr:   addrs.ImpliedProviderForUnqualifiedType("test"),
+		client: mockproto.NewMockProviderClient(gomock.NewController(t)),
+	}
+
+	resp = p.GetProviderSchema()
 	checkDiags(t, resp.Diagnostics)
 }
 
