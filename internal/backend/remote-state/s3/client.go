@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	dynamodbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -203,7 +204,8 @@ func (c *RemoteClient) Put(data []byte) error {
 
 	log.Info("Uploading remote state")
 
-	_, err := c.s3Client.PutObject(ctx, i)
+	uploader := manager.NewUploader(c.s3Client)
+	_, err := uploader.Upload(ctx, i)
 	if err != nil {
 		return fmt.Errorf("failed to upload state: %s", err)
 	}
@@ -213,7 +215,6 @@ func (c *RemoteClient) Put(data []byte) error {
 		// if this errors out, we unfortunately have to error out altogether,
 		// since the next Get will inevitably fail.
 		return fmt.Errorf("failed to store state MD5: %s", err)
-
 	}
 
 	return nil
@@ -229,8 +230,8 @@ func (c *RemoteClient) Delete() error {
 	log.Info("Deleting remote state")
 
 	_, err := c.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-		Bucket: &c.bucketName,
-		Key:    &c.path,
+		Bucket: aws.String(c.bucketName),
+		Key:    aws.String(c.path),
 	})
 
 	if err != nil {
