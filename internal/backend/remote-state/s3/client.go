@@ -175,14 +175,12 @@ func (c *RemoteClient) Put(data []byte) error {
 	ctx = baselogging.RegisterLogger(ctx, baselog)
 
 	contentType := "application/json"
-	contentLength := int64(len(data))
 
 	i := &s3.PutObjectInput{
-		ContentType:   aws.String(contentType),
-		ContentLength: contentLength,
-		Body:          bytes.NewReader(data),
-		Bucket:        aws.String(c.bucketName),
-		Key:           aws.String(c.path),
+		ContentType: aws.String(contentType),
+		Body:        bytes.NewReader(data),
+		Bucket:      aws.String(c.bucketName),
+		Key:         aws.String(c.path),
 	}
 
 	if c.serverSideEncryption {
