@@ -2,7 +2,8 @@
 
 BUG FIXES:
 
-* `terraform init`: Terraform will no longer allow downloading remote modules to invalid paths. [#33745]
+* `terraform init`: Terraform will no longer allow downloading remote modules to invalid paths. ([#33745](https://github.com/hashicorp/terraform/issues/33745))
+* `terraform_remote_state`: prevent future possible incompatibility with states which include unknown `check` block result kinds. ([#33818](https://github.com/hashicorp/terraform/issues/33818))
 
 ## 1.5.6 (August 23, 2023)
 
