@@ -522,6 +522,10 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 			endpointValidators.ValidateAttr(val, attrPath, &diags)
 		}
 	}
+	if val := obj.GetAttr("ec2_metadata_service_endpoint"); !val.IsNull() {
+		attrPath := cty.GetAttrPath("ec2_metadata_service_endpoint")
+		endpointValidators.ValidateAttr(val, attrPath, &diags)
+	}
 
 	validateAttributesConflict(
 		cty.GetAttrPath("force_path_style"),

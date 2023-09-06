@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	dynamodbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -664,6 +665,8 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 	testACC(t)
 
+	ctx := context.TODO()
+
 	cases := map[string]struct {
 		config           map[string]any
 		vars             map[string]string
@@ -671,34 +674,45 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 		expectedDiags    tfdiags.Diagnostics
 	}{
 		"none": {
-			expectedEndpoint: "",
+			expectedEndpoint: "http://169.254.169.254/latest/meta-data",
 		},
-		"config": {
+		"config URL": {
+			config: map[string]any{
+				"ec2_metadata_service_endpoint": "https://ec2.test",
+			},
+			expectedEndpoint: "https://ec2.test/latest/meta-data",
+		},
+		"config hostname": {
 			config: map[string]any{
 				"ec2_metadata_service_endpoint": "ec2.test",
 			},
-			expectedEndpoint: "ec2.test",
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`The value must be a valid URL containing at least a scheme and hostname. Had "ec2.test"`,
+					cty.GetAttrPath("ec2_metadata_service_endpoint"),
+				),
+			},
 		},
 		"config IPv4 mode": {
 			config: map[string]any{
-				"ec2_metadata_service_endpoint":      "ec2.test",
+				"ec2_metadata_service_endpoint":      "https://ec2.test",
 				"ec2_metadata_service_endpoint_mode": "IPv4",
 			},
-			expectedEndpoint: "ec2.test",
+			expectedEndpoint: "https://ec2.test/latest/meta-data",
 		},
 		"config IPv6 mode": {
 			config: map[string]any{
-				"ec2_metadata_service_endpoint":      "ec2.test",
+				"ec2_metadata_service_endpoint":      "https://ec2.test",
 				"ec2_metadata_service_endpoint_mode": "IPv6",
 			},
-			expectedEndpoint: "ec2.test",
+			expectedEndpoint: "https://ec2.test/latest/meta-data",
 		},
 		"config invalid mode": {
 			config: map[string]any{
-				"ec2_metadata_service_endpoint":      "ec2.test",
+				"ec2_metadata_service_endpoint":      "https://ec2.test",
 				"ec2_metadata_service_endpoint_mode": "invalid",
 			},
-			expectedEndpoint: "ec2.test",
 			expectedDiags: tfdiags.Diagnostics{
 				attributeErrDiag(
 					"Invalid Value",
@@ -709,30 +723,30 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 		},
 		"envvar": {
 			vars: map[string]string{
-				"AWS_EC2_METADATA_SERVICE_ENDPOINT": "ec2.test",
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT": "https://ec2.test",
 			},
-			expectedEndpoint: "ec2.test",
+			expectedEndpoint: "https://ec2.test/latest/meta-data",
 		},
 		"envvar IPv4 mode": {
 			vars: map[string]string{
-				"AWS_EC2_METADATA_SERVICE_ENDPOINT":      "ec2.test",
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT":      "https://ec2.test",
 				"AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE": "IPv4",
 			},
-			expectedEndpoint: "ec2.test",
+			expectedEndpoint: "https://ec2.test/latest/meta-data",
 		},
 		"envvar IPv6 mode": {
 			vars: map[string]string{
-				"AWS_EC2_METADATA_SERVICE_ENDPOINT":      "ec2.test",
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT":      "https://ec2.test",
 				"AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE": "IPv6",
 			},
-			expectedEndpoint: "ec2.test",
+			expectedEndpoint: "https://ec2.test/latest/meta-data",
 		},
 		"envvar invalid mode": {
 			vars: map[string]string{
-				"AWS_EC2_METADATA_SERVICE_ENDPOINT":      "ec2.test",
+				"AWS_EC2_METADATA_SERVICE_ENDPOINT":      "https://ec2.test",
 				"AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE": "invalid",
 			},
-			expectedEndpoint: "ec2.test",
+			// expectedEndpoint: "ec2.test",
 			expectedDiags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
@@ -743,9 +757,9 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 		},
 		"deprecated envvar": {
 			vars: map[string]string{
-				"AWS_METADATA_URL": "ec2.test",
+				"AWS_METADATA_URL": "https://ec2.test",
 			},
-			expectedEndpoint: "ec2.test",
+			expectedEndpoint: "https://ec2.test/latest/meta-data",
 			expectedDiags: tfdiags.Diagnostics{
 				deprecatedEnvVarDiag("AWS_METADATA_URL", "AWS_EC2_METADATA_SERVICE_ENDPOINT"),
 			},
@@ -777,17 +791,33 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 				}
 			}
 
-			_, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
-			// raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
-			// b := raw.(*Backend)
+			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+			b := raw.(*Backend)
 
 			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
 			if !diags.HasErrors() {
-				// TODO: Convert to AWS SDK v2 equivalent
-				// checkClientEndpoint(t, b.s3Client.Config, tc.expectedEndpoint)
+				var imdsEndpoint string
+				imdsClient := imds.NewFromConfig(b.awsConfig)
+				_, err := imdsClient.GetMetadata(ctx, &imds.GetMetadataInput{},
+					func(opts *imds.Options) {
+						opts.APIOptions = append(opts.APIOptions,
+							addRetrieveEndpointURLMiddleware(t, &imdsEndpoint),
+							addCancelRequestMiddleware(),
+						)
+					},
+				)
+				if err == nil {
+					t.Fatal("Expected an error, got none")
+				} else if !errors.Is(err, errCancelOperation) {
+					t.Fatalf("Unexpected error: %s", err)
+				}
+
+				if imdsEndpoint != tc.expectedEndpoint {
+					t.Errorf("expected endpoint %q, got %q", tc.expectedEndpoint, imdsEndpoint)
+				}
 			}
 		})
 	}
