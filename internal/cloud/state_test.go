@@ -360,113 +360,66 @@ func TestState_PersistState(t *testing.T) {
 func TestState_ShouldPersistIntermediateState(t *testing.T) {
 	cloudState := testCloudState(t)
 
-	// We'll specify a normal interval and a server-supplied interval that
-	// have enough time between them that we can be confident that the
-	// fake timestamps we'll pass into ShouldPersistIntermediateState are
-	// either too soon for normal, long enough for normal but not for server,
-	// or too long for server.
-	shortServerInterval := 5 * time.Second
-	normalInterval := 60 * time.Second
-	longServerInterval := 120 * time.Second
-	beforeNormalInterval := 20 * time.Second
-	betweenInterval := 90 * time.Second
-	afterLongServerInterval := 200 * time.Second
-
-	// Before making any requests the state manager should just respect the
-	// normal interval, because it hasn't yet heard a request from the server.
-	{
-		should := cloudState.ShouldPersistIntermediateState(&local.IntermediateStatePersistInfo{
-			RequestedPersistInterval: normalInterval,
-			LastPersist:              time.Now().Add(-beforeNormalInterval),
-		})
-		if should {
-			t.Errorf("indicated that should persist before normal interval")
-		}
-	}
-	{
-		should := cloudState.ShouldPersistIntermediateState(&local.IntermediateStatePersistInfo{
-			RequestedPersistInterval: normalInterval,
-			LastPersist:              time.Now().Add(-betweenInterval),
-		})
-		if !should {
-			t.Errorf("indicated that should not persist after normal interval")
-		}
-	}
-
-	// After making a request to the "Create a State Version" operation, the
-	// server might return a header that causes us to set this field:
-	cloudState.stateSnapshotInterval = shortServerInterval
-
-	// The short server interval is shorter than the normal interval, so the
-	// normal interval takes priority here.
-	{
-		should := cloudState.ShouldPersistIntermediateState(&local.IntermediateStatePersistInfo{
-			RequestedPersistInterval: normalInterval,
-			LastPersist:              time.Now().Add(-beforeNormalInterval),
-		})
-		if should {
-			t.Errorf("indicated that should persist before normal interval")
-		}
-	}
-	{
-		should := cloudState.ShouldPersistIntermediateState(&local.IntermediateStatePersistInfo{
-			RequestedPersistInterval: normalInterval,
-			LastPersist:              time.Now().Add(-betweenInterval),
-		})
-		if !should {
-			t.Errorf("indicated that should not persist after normal interval")
-		}
+	testCases := []struct {
+		Enabled     bool
+		LastPersist time.Time
+		Interval    time.Duration
+		Expected    bool
+		Force       bool
+		Description string
+	}{
+		{
+			Interval:    20 * time.Second,
+			Enabled:     true,
+			Expected:    true,
+			Description: "Not persisted yet",
+		},
+		{
+			Interval:    20 * time.Second,
+			Enabled:     false,
+			Expected:    false,
+			Description: "Intermediate snapshots not enabled",
+		},
+		{
+			Interval:    20 * time.Second,
+			Enabled:     false,
+			Force:       true,
+			Expected:    true,
+			Description: "Force persist",
+		},
+		{
+			Interval:    20 * time.Second,
+			LastPersist: time.Now().Add(-15 * time.Second),
+			Enabled:     true,
+			Expected:    false,
+			Description: "Last persisted 15s ago",
+		},
+		{
+			Interval:    20 * time.Second,
+			LastPersist: time.Now().Add(-25 * time.Second),
+			Enabled:     true,
+			Expected:    true,
+			Description: "Last persisted 25s ago",
+		},
+		{
+			Interval:    5 * time.Second,
+			LastPersist: time.Now().Add(-15 * time.Second),
+			Enabled:     true,
+			Expected:    true,
+			Description: "Last persisted 15s ago, but interval is 5s",
+		},
 	}
 
-	// The server might instead request a longer interval.
-	cloudState.stateSnapshotInterval = longServerInterval
-	{
-		should := cloudState.ShouldPersistIntermediateState(&local.IntermediateStatePersistInfo{
-			RequestedPersistInterval: normalInterval,
-			LastPersist:              time.Now().Add(-beforeNormalInterval),
-		})
-		if should {
-			t.Errorf("indicated that should persist before server interval")
-		}
-	}
-	{
-		should := cloudState.ShouldPersistIntermediateState(&local.IntermediateStatePersistInfo{
-			RequestedPersistInterval: normalInterval,
-			LastPersist:              time.Now().Add(-betweenInterval),
-		})
-		if should {
-			t.Errorf("indicated that should persist before server interval")
-		}
-	}
-	{
-		should := cloudState.ShouldPersistIntermediateState(&local.IntermediateStatePersistInfo{
-			RequestedPersistInterval: normalInterval,
-			LastPersist:              time.Now().Add(-afterLongServerInterval),
-		})
-		if !should {
-			t.Errorf("indicated that should not persist after server interval")
-		}
-	}
+	for _, testCase := range testCases {
+		cloudState.enableIntermediateSnapshots = testCase.Enabled
+		cloudState.stateSnapshotInterval = testCase.Interval
 
-	// The "force" mode should always win, regardless of how much time has passed.
-	{
-		should := cloudState.ShouldPersistIntermediateState(&local.IntermediateStatePersistInfo{
-			RequestedPersistInterval: normalInterval,
-			LastPersist:              time.Now().Add(-beforeNormalInterval),
-			ForcePersist:             true,
+		actual := cloudState.ShouldPersistIntermediateState(&local.IntermediateStatePersistInfo{
+			LastPersist:  testCase.LastPersist,
+			ForcePersist: testCase.Force,
 		})
-		if !should {
-			t.Errorf("ignored ForcePersist")
-		}
-	}
-	{
-		should := cloudState.ShouldPersistIntermediateState(&local.IntermediateStatePersistInfo{
-			RequestedPersistInterval: normalInterval,
-			LastPersist:              time.Now().Add(-betweenInterval),
-			ForcePersist:             true,
-		})
-		if !should {
-			t.Errorf("ignored ForcePersist")
+		if actual != testCase.Expected {
+			t.Errorf("%s: expected %v but got %v", testCase.Description, testCase.Expected, actual)
 		}
 	}
 }
