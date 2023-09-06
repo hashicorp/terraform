@@ -159,7 +159,7 @@ func (c *RemoteClient) Put(data []byte) error {
 
 	contentType := "application/json"
 
-	i := &s3.PutObjectInput{
+	input := &s3.PutObjectInput{
 		ContentType: aws.String(contentType),
 		Body:        bytes.NewReader(data),
 		Bucket:      aws.String(c.bucketName),
@@ -168,25 +168,25 @@ func (c *RemoteClient) Put(data []byte) error {
 
 	if c.serverSideEncryption {
 		if c.kmsKeyID != "" {
-			i.SSEKMSKeyId = aws.String(c.kmsKeyID)
-			i.ServerSideEncryption = s3types.ServerSideEncryptionAwsKms
+			input.SSEKMSKeyId = aws.String(c.kmsKeyID)
+			input.ServerSideEncryption = s3types.ServerSideEncryptionAwsKms
 		} else if c.customerEncryptionKey != nil {
-			i.SSECustomerKey = aws.String(base64.StdEncoding.EncodeToString(c.customerEncryptionKey))
-			i.SSECustomerAlgorithm = aws.String(string(s3EncryptionAlgorithm))
-			i.SSECustomerKeyMD5 = aws.String(c.getSSECustomerKeyMD5())
+			input.SSECustomerKey = aws.String(base64.StdEncoding.EncodeToString(c.customerEncryptionKey))
+			input.SSECustomerAlgorithm = aws.String(string(s3EncryptionAlgorithm))
+			input.SSECustomerKeyMD5 = aws.String(c.getSSECustomerKeyMD5())
 		} else {
-			i.ServerSideEncryption = s3EncryptionAlgorithm
+			input.ServerSideEncryption = s3EncryptionAlgorithm
 		}
 	}
 
 	if c.acl != "" {
-		i.ACL = s3types.ObjectCannedACL(c.acl)
+		input.ACL = s3types.ObjectCannedACL(c.acl)
 	}
 
-	log.Printf("[DEBUG] Uploading remote state to S3: %#v", i)
+	log.Printf("[DEBUG] Uploading remote state to S3: %#v", input)
 
 	uploader := manager.NewUploader(c.s3Client)
-	_, err := uploader.Upload(ctx, i)
+	_, err := uploader.Upload(ctx, input)
 	if err != nil {
 		return fmt.Errorf("failed to upload state: %s", err)
 	}
