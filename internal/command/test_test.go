@@ -21,11 +21,12 @@ import (
 
 func TestTest(t *testing.T) {
 	tcs := map[string]struct {
-		override string
-		args     []string
-		expected string
-		code     int
-		skip     bool
+		override              string
+		args                  []string
+		expected              string
+		expectedResourceCount int
+		code                  int
+		skip                  bool
 	}{
 		"simple_pass": {
 			expected: "1 passed, 0 failed.",
@@ -169,6 +170,11 @@ func TestTest(t *testing.T) {
 			expected: "2 passed, 0 failed.",
 			code:     0,
 		},
+		"destroy_fail": {
+			expected:              "1 passed, 0 failed.",
+			code:                  1,
+			expectedResourceCount: 1,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -226,8 +232,8 @@ func TestTest(t *testing.T) {
 				t.Errorf("output didn't contain expected string:\n\n%s", output.All())
 			}
 
-			if provider.ResourceCount() > 0 {
-				t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+			if provider.ResourceCount() != tc.expectedResourceCount {
+				t.Errorf("should have left %d resources on completion but left %v", tc.expectedResourceCount, provider.ResourceString())
 			}
 		})
 	}
@@ -542,16 +548,18 @@ Terraform will perform the following actions:
 
   # test_resource.foo will be created
   + resource "test_resource" "foo" {
-      + id    = "constant_value"
-      + value = "bar"
+      + destroy_fail = (known after apply)
+      + id           = "constant_value"
+      + value        = "bar"
     }
 
 Plan: 1 to add, 0 to change, 0 to destroy.
   run "validate_test_resource"... pass
 # test_resource.foo:
 resource "test_resource" "foo" {
-    id    = "constant_value"
-    value = "bar"
+    destroy_fail = false
+    id           = "constant_value"
+    value        = "bar"
 }
 
 Success! 2 passed, 0 failed.
@@ -826,14 +834,16 @@ func TestTest_StatePropagation(t *testing.T) {
   run "initial_apply_example"... pass
 # test_resource.module_resource:
 resource "test_resource" "module_resource" {
-    id    = "df6h8as9"
-    value = "start"
+    destroy_fail = false
+    id           = "df6h8as9"
+    value        = "start"
 }
   run "initial_apply"... pass
 # test_resource.resource:
 resource "test_resource" "resource" {
-    id    = "598318e0"
-    value = "start"
+    destroy_fail = false
+    id           = "598318e0"
+    value        = "start"
 }
   run "plan_second_example"... pass
 
@@ -845,8 +855,9 @@ Terraform will perform the following actions:
 
   # test_resource.second_module_resource will be created
   + resource "test_resource" "second_module_resource" {
-      + id    = "b6a1d8cb"
-      + value = "start"
+      + destroy_fail = (known after apply)
+      + id           = "b6a1d8cb"
+      + value        = "start"
     }
 
 Plan: 1 to add, 0 to change, 0 to destroy.
@@ -860,8 +871,9 @@ Terraform will perform the following actions:
 
   # test_resource.resource will be updated in-place
   ~ resource "test_resource" "resource" {
-        id    = "598318e0"
-      ~ value = "start" -> "update"
+        id           = "598318e0"
+      ~ value        = "start" -> "update"
+        # (1 unchanged attribute hidden)
     }
 
 Plan: 0 to add, 1 to change, 0 to destroy.
@@ -875,8 +887,9 @@ Terraform will perform the following actions:
 
   # test_resource.module_resource will be updated in-place
   ~ resource "test_resource" "module_resource" {
-        id    = "df6h8as9"
-      ~ value = "start" -> "update"
+        id           = "df6h8as9"
+      ~ value        = "start" -> "update"
+        # (1 unchanged attribute hidden)
     }
 
 Plan: 0 to add, 1 to change, 0 to destroy.
