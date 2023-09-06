@@ -6,6 +6,7 @@ package s3
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -19,6 +20,8 @@ import (
 	dynamodbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go/middleware"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/aws-sdk-go-base/v2/mockdata"
 	"github.com/hashicorp/aws-sdk-go-base/v2/servicemocks"
@@ -62,8 +65,10 @@ func TestBackendConfig_original(t *testing.T) {
 
 	ctx := context.TODO()
 
+	region := "us-west-1"
+
 	config := map[string]interface{}{
-		"region":         "us-west-1",
+		"region":         region,
 		"bucket":         "tf-test",
 		"key":            "state",
 		"encrypt":        true,
@@ -72,7 +77,7 @@ func TestBackendConfig_original(t *testing.T) {
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
 
-	if b.awsConfig.Region != "us-west-1" {
+	if b.awsConfig.Region != region {
 		t.Fatalf("Incorrect region was populated")
 	}
 	if b.awsConfig.RetryMaxAttempts != 5 {
@@ -85,10 +90,6 @@ func TestBackendConfig_original(t *testing.T) {
 		t.Fatalf("Incorrect keyName was populated")
 	}
 
-	// checkClientEndpoint(t, b.s3Client.Config, "")
-
-	// checkClientEndpoint(t, b.dynClient.Config, "")
-
 	credentials, err := b.awsConfig.Credentials.Retrieve(ctx)
 	if err != nil {
 		t.Fatalf("Error when requesting credentials")
@@ -99,13 +100,49 @@ func TestBackendConfig_original(t *testing.T) {
 	if credentials.SecretAccessKey == "" {
 		t.Fatalf("No Secret Access Key was populated")
 	}
-}
 
-// func checkClientEndpoint(t *testing.T, config aws.Config, expected string) {
-// 	if a := aws.StringValue(config.Endpoint); a != expected {
-// 		t.Errorf("expected endpoint %q, got %q", expected, a)
-// 	}
-// }
+	// Check S3 Endpoint
+	expectedS3Endpoint := defaultServiceEndpoint("s3", region)
+	var s3Endpoint string
+	_, err = b.s3Client.ListBuckets(ctx, &s3.ListBucketsInput{},
+		func(opts *s3.Options) {
+			opts.APIOptions = append(opts.APIOptions,
+				addRetrieveEndpointURLMiddleware(t, &s3Endpoint),
+				addCancelRequestMiddleware(),
+			)
+		},
+	)
+	if err == nil {
+		t.Fatal("Checking S3 Endpoint: Expected an error, got none")
+	} else if !errors.Is(err, errCancelOperation) {
+		t.Fatalf("Checking S3 Endpoint: Unexpected error: %s", err)
+	}
+
+	if s3Endpoint != expectedS3Endpoint {
+		t.Errorf("Checking S3 Endpoint: expected endpoint %q, got %q", expectedS3Endpoint, s3Endpoint)
+	}
+
+	// Check DynamoDB Endpoint
+	expectedDynamoDBEndpoint := defaultServiceEndpoint("dynamodb", region)
+	var dynamoDBEndpoint string
+	_, err = b.dynClient.ListTables(ctx, &dynamodb.ListTablesInput{},
+		func(opts *dynamodb.Options) {
+			opts.APIOptions = append(opts.APIOptions,
+				addRetrieveEndpointURLMiddleware(t, &dynamoDBEndpoint),
+				addCancelRequestMiddleware(),
+			)
+		},
+	)
+	if err == nil {
+		t.Fatal("Checking DynamoDB Endpoint: Expected an error, got none")
+	} else if !errors.Is(err, errCancelOperation) {
+		t.Fatalf("Checking DynamoDB Endpoint: Unexpected error: %s", err)
+	}
+
+	if dynamoDBEndpoint != expectedDynamoDBEndpoint {
+		t.Errorf("Checking DynamoDB Endpoint: expected endpoint %q, got %q", expectedDynamoDBEndpoint, dynamoDBEndpoint)
+	}
+}
 
 func TestBackendConfig_InvalidRegion(t *testing.T) {
 	testACC(t)
@@ -205,15 +242,12 @@ func TestBackendConfig_RegionEnvVar(t *testing.T) {
 	}
 }
 
-// TODO: Convert to AWS SDK v2 equivalent
-// func checkClientEndpoint(t *testing.T, config aws.Config, expected string) {
-// 	if a := aws.ToString(config.Endpoint); a != expected {
-// 		t.Errorf("expected endpoint %q, got %q", expected, a)
-// 	}
-// }
-
 func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 	testACC(t)
+
+	ctx := context.TODO()
+
+	region := "us-west-1"
 
 	cases := map[string]struct {
 		config           map[string]any
@@ -222,33 +256,59 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 		expectedDiags    tfdiags.Diagnostics
 	}{
 		"none": {
-			expectedEndpoint: "",
+			expectedEndpoint: defaultServiceEndpoint("dynamodb", region),
 		},
-		"config": {
+		"config URL": {
+			config: map[string]any{
+				"endpoints": map[string]any{
+					"dynamodb": "https://dynamo.test",
+				},
+			},
+			expectedEndpoint: "https://dynamo.test/",
+		},
+		"config hostname": {
 			config: map[string]any{
 				"endpoints": map[string]any{
 					"dynamodb": "dynamo.test",
 				},
 			},
-			expectedEndpoint: "dynamo.test",
-		},
-		"deprecated config": {
-			config: map[string]any{
-				"dynamodb_endpoint": "dynamo.test",
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`The value must be a valid URL containing at least a scheme and hostname. Had "dynamo.test"`,
+					cty.GetAttrPath("endpoints").GetAttr("dynamodb"),
+				),
 			},
-			expectedEndpoint: "dynamo.test",
+		},
+		"deprecated config URL": {
+			config: map[string]any{
+				"dynamodb_endpoint": "https://dynamo.test",
+			},
+			expectedEndpoint: "https://dynamo.test/",
 			expectedDiags: tfdiags.Diagnostics{
 				deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
 			},
 		},
-		"config conflict": {
+		"deprecated config hostname": {
 			config: map[string]any{
 				"dynamodb_endpoint": "dynamo.test",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+				attributeErrDiag(
+					"Invalid Value",
+					`The value must be a valid URL containing at least a scheme and hostname. Had "dynamo.test"`,
+					cty.GetAttrPath("dynamodb_endpoint"),
+				),
+			},
+		},
+		"config conflict": {
+			config: map[string]any{
+				"dynamodb_endpoint": "https://dynamo.test",
 				"endpoints": map[string]any{
-					"dynamodb": "dynamo.test",
+					"dynamodb": "https://dynamo.test",
 				},
 			},
-			expectedEndpoint: "s3.test",
 			expectedDiags: tfdiags.Diagnostics{
 				deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
 				wholeBodyErrDiag(
@@ -261,15 +321,15 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 		},
 		"envvar": {
 			vars: map[string]string{
-				"AWS_ENDPOINT_URL_DYNAMODB": "dynamo.test",
+				"AWS_ENDPOINT_URL_DYNAMODB": "https://dynamo.test",
 			},
-			expectedEndpoint: "dynamo.test",
+			expectedEndpoint: "https://dynamo.test/",
 		},
 		"deprecated envvar": {
 			vars: map[string]string{
-				"AWS_DYNAMODB_ENDPOINT": "dynamo.test",
+				"AWS_DYNAMODB_ENDPOINT": "https://dynamo.test",
 			},
-			expectedEndpoint: "dynamo.test",
+			expectedEndpoint: "https://dynamo.test/",
 			expectedDiags: tfdiags.Diagnostics{
 				deprecatedEnvVarDiag("AWS_DYNAMODB_ENDPOINT", "AWS_ENDPOINT_URL_DYNAMODB"),
 			},
@@ -279,7 +339,7 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			config := map[string]interface{}{
-				"region": "us-west-1",
+				"region": region,
 				"bucket": "tf-test",
 				"key":    "state",
 			}
@@ -301,18 +361,32 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 				}
 			}
 
-			_, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
-			// raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
-			// b := raw.(*Backend)
+			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+			b := raw.(*Backend)
 
 			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
 			if !diags.HasErrors() {
-				// TODO: Convert to AWS SDK v2 equivalent
-				// pass b.awsConfig.EndpointResolver into helper func, calling .Resolve() method?
-				// checkClientEndpoint(t, b.dynClient.options, tc.expectedEndpoint)
+				var dynamoDBEndpoint string
+				_, err := b.dynClient.ListTables(ctx, &dynamodb.ListTablesInput{},
+					func(opts *dynamodb.Options) {
+						opts.APIOptions = append(opts.APIOptions,
+							addRetrieveEndpointURLMiddleware(t, &dynamoDBEndpoint),
+							addCancelRequestMiddleware(),
+						)
+					},
+				)
+				if err == nil {
+					t.Fatal("Expected an error, got none")
+				} else if !errors.Is(err, errCancelOperation) {
+					t.Fatalf("Unexpected error: %s", err)
+				}
+
+				if dynamoDBEndpoint != tc.expectedEndpoint {
+					t.Errorf("expected endpoint %q, got %q", tc.expectedEndpoint, dynamoDBEndpoint)
+				}
 			}
 		})
 	}
@@ -329,26 +403,53 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 		expectedDiags tfdiags.Diagnostics
 	}{
 		"none": {},
-		"config": {
+		"config URL": {
+			config: map[string]any{
+				"endpoints": map[string]any{
+					"iam": "https://iam.test",
+				},
+			},
+		},
+		"config hostname": {
 			config: map[string]any{
 				"endpoints": map[string]any{
 					"iam": "iam.test",
 				},
 			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`The value must be a valid URL containing at least a scheme and hostname. Had "iam.test"`,
+					cty.GetAttrPath("endpoints").GetAttr("iam"),
+				),
+			},
 		},
-		"deprecated config": {
+		"deprecated config URL": {
 			config: map[string]any{
-				"iam_endpoint": "iam.test",
+				"iam_endpoint": "https://iam.test",
 			},
 			expectedDiags: tfdiags.Diagnostics{
 				deprecatedAttrDiag(cty.GetAttrPath("iam_endpoint"), cty.GetAttrPath("endpoints").GetAttr("iam")),
 			},
 		},
-		"config conflict": {
+		"deprecated config hostname": {
 			config: map[string]any{
 				"iam_endpoint": "iam.test",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedAttrDiag(cty.GetAttrPath("iam_endpoint"), cty.GetAttrPath("endpoints").GetAttr("iam")),
+				attributeErrDiag(
+					"Invalid Value",
+					`The value must be a valid URL containing at least a scheme and hostname. Had "iam.test"`,
+					cty.GetAttrPath("iam_endpoint"),
+				),
+			},
+		},
+		"config conflict": {
+			config: map[string]any{
+				"iam_endpoint": "https://iam.test",
 				"endpoints": map[string]any{
-					"iam": "iam.test",
+					"iam": "https://iam.test",
 				},
 			},
 			expectedDiags: tfdiags.Diagnostics{
@@ -363,12 +464,12 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 		},
 		"envvar": {
 			vars: map[string]string{
-				"AWS_ENDPOINT_URL_IAM": "iam.test",
+				"AWS_ENDPOINT_URL_IAM": "https://iam.test",
 			},
 		},
 		"deprecated envvar": {
 			vars: map[string]string{
-				"AWS_IAM_ENDPOINT": "iam.test",
+				"AWS_IAM_ENDPOINT": "https://iam.test",
 			},
 			expectedDiags: tfdiags.Diagnostics{
 				deprecatedEnvVarDiag("AWS_IAM_ENDPOINT", "AWS_ENDPOINT_URL_IAM"),
@@ -413,6 +514,10 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 func TestBackendConfig_S3Endpoint(t *testing.T) {
 	testACC(t)
 
+	ctx := context.TODO()
+
+	region := "us-west-1"
+
 	cases := map[string]struct {
 		config           map[string]any
 		vars             map[string]string
@@ -420,33 +525,59 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 		expectedDiags    tfdiags.Diagnostics
 	}{
 		"none": {
-			expectedEndpoint: "",
+			expectedEndpoint: defaultServiceEndpoint("s3", region),
 		},
-		"config": {
+		"config URL": {
+			config: map[string]any{
+				"endpoints": map[string]any{
+					"s3": "https://s3.test",
+				},
+			},
+			expectedEndpoint: "https://s3.test/",
+		},
+		"config hostname": {
 			config: map[string]any{
 				"endpoints": map[string]any{
 					"s3": "s3.test",
 				},
 			},
-			expectedEndpoint: "s3.test",
-		},
-		"deprecated config": {
-			config: map[string]any{
-				"endpoint": "s3.test",
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`The value must be a valid URL containing at least a scheme and hostname. Had "s3.test"`,
+					cty.GetAttrPath("endpoints").GetAttr("s3"),
+				),
 			},
-			expectedEndpoint: "s3.test",
+		},
+		"deprecated config URL": {
+			config: map[string]any{
+				"endpoint": "https://s3.test",
+			},
+			expectedEndpoint: "https://s3.test/",
 			expectedDiags: tfdiags.Diagnostics{
 				deprecatedAttrDiag(cty.GetAttrPath("endpoint"), cty.GetAttrPath("endpoints").GetAttr("s3")),
 			},
 		},
-		"config conflict": {
+		"deprecated config hostname": {
 			config: map[string]any{
 				"endpoint": "s3.test",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedAttrDiag(cty.GetAttrPath("endpoint"), cty.GetAttrPath("endpoints").GetAttr("s3")),
+				attributeErrDiag(
+					"Invalid Value",
+					`The value must be a valid URL containing at least a scheme and hostname. Had "s3.test"`,
+					cty.GetAttrPath("endpoint"),
+				),
+			},
+		},
+		"config conflict": {
+			config: map[string]any{
+				"endpoint": "https://s3.test",
 				"endpoints": map[string]any{
-					"s3": "s3.test",
+					"s3": "https://s3.test",
 				},
 			},
-			expectedEndpoint: "s3.test",
 			expectedDiags: tfdiags.Diagnostics{
 				deprecatedAttrDiag(cty.GetAttrPath("endpoint"), cty.GetAttrPath("endpoints").GetAttr("s3")),
 				wholeBodyErrDiag(
@@ -459,15 +590,15 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 		},
 		"envvar": {
 			vars: map[string]string{
-				"AWS_ENDPOINT_URL_S3": "s3.test",
+				"AWS_ENDPOINT_URL_S3": "https://s3.test",
 			},
-			expectedEndpoint: "s3.test",
+			expectedEndpoint: "https://s3.test/",
 		},
 		"deprecated envvar": {
 			vars: map[string]string{
-				"AWS_S3_ENDPOINT": "s3.test",
+				"AWS_S3_ENDPOINT": "https://s3.test",
 			},
-			expectedEndpoint: "s3.test",
+			expectedEndpoint: "https://s3.test/",
 			expectedDiags: tfdiags.Diagnostics{
 				deprecatedEnvVarDiag("AWS_S3_ENDPOINT", "AWS_ENDPOINT_URL_S3"),
 			},
@@ -477,7 +608,7 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			config := map[string]interface{}{
-				"region": "us-west-1",
+				"region": region,
 				"bucket": "tf-test",
 				"key":    "state",
 			}
@@ -499,18 +630,32 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 				}
 			}
 
-			_, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
-			// raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
-			// b := raw.(*Backend)
+			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+			b := raw.(*Backend)
 
 			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 
 			if !diags.HasErrors() {
-				// TODO: Convert to AWS SDK v2 equivalent
-				// pass b.awsConfig.EndpointResolver into helper func, calling .Resolve() method?
-				// checkClientEndpoint(t, b.s3Client.Config, tc.expectedEndpoint)
+				var s3Endpoint string
+				_, err := b.s3Client.ListBuckets(ctx, &s3.ListBucketsInput{},
+					func(opts *s3.Options) {
+						opts.APIOptions = append(opts.APIOptions,
+							addRetrieveEndpointURLMiddleware(t, &s3Endpoint),
+							addCancelRequestMiddleware(),
+						)
+					},
+				)
+				if err == nil {
+					t.Fatal("Expected an error, got none")
+				} else if !errors.Is(err, errCancelOperation) {
+					t.Fatalf("Unexpected error: %s", err)
+				}
+
+				if s3Endpoint != tc.expectedEndpoint {
+					t.Errorf("expected endpoint %q, got %q", tc.expectedEndpoint, s3Endpoint)
+				}
 			}
 		})
 	}
@@ -2079,4 +2224,67 @@ func testBackendConfigDiags(t *testing.T, b backend.Backend, c hcl.Body) (backen
 	confDiags := b.Configure(obj)
 
 	return b, diags.Append(confDiags)
+}
+
+func addRetrieveEndpointURLMiddleware(t *testing.T, endpoint *string) func(*middleware.Stack) error {
+	return func(stack *middleware.Stack) error {
+		return stack.Finalize.Add(
+			retrieveEndpointURLMiddleware(t, endpoint),
+			middleware.After,
+		)
+	}
+}
+
+func retrieveEndpointURLMiddleware(t *testing.T, endpoint *string) middleware.FinalizeMiddleware {
+	return middleware.FinalizeMiddlewareFunc(
+		"Test: Retrieve Endpoint",
+		func(ctx context.Context, in middleware.FinalizeInput, next middleware.FinalizeHandler) (middleware.FinalizeOutput, middleware.Metadata, error) {
+			t.Helper()
+
+			request, ok := in.Request.(*smithyhttp.Request)
+			if !ok {
+				t.Fatalf("Expected *github.com/aws/smithy-go/transport/http.Request, got %s", fullTypeName(in.Request))
+			}
+
+			*endpoint = request.URL.String()
+
+			return next.HandleFinalize(ctx, in)
+		})
+}
+
+func defaultServiceEndpoint(service, region string) string {
+	return fmt.Sprintf("https://%s.%s.amazonaws.com/", service, region)
+}
+
+var errCancelOperation = fmt.Errorf("Test: Cancelling request")
+
+func addCancelRequestMiddleware() func(*middleware.Stack) error {
+	return func(stack *middleware.Stack) error {
+		return stack.Finalize.Add(
+			cancelRequestMiddleware(),
+			middleware.After,
+		)
+	}
+}
+
+// cancelRequestMiddleware creates a Smithy middleware that intercepts the request before sending and cancels it
+func cancelRequestMiddleware() middleware.FinalizeMiddleware {
+	return middleware.FinalizeMiddlewareFunc(
+		"Test: Cancel Requests",
+		func(_ context.Context, in middleware.FinalizeInput, next middleware.FinalizeHandler) (middleware.FinalizeOutput, middleware.Metadata, error) {
+			return middleware.FinalizeOutput{}, middleware.Metadata{}, errCancelOperation
+		})
+}
+
+func fullTypeName(i interface{}) string {
+	return fullValueTypeName(reflect.ValueOf(i))
+}
+
+func fullValueTypeName(v reflect.Value) string {
+	if v.Kind() == reflect.Ptr {
+		return "*" + fullValueTypeName(reflect.Indirect(v))
+	}
+
+	requestType := v.Type()
+	return fmt.Sprintf("%s.%s", requestType.PkgPath(), requestType.Name())
 }
