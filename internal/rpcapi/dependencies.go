@@ -2,12 +2,15 @@ package rpcapi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
+	"os/exec"
 	"path/filepath"
 	"sort"
 
 	"github.com/apparentlymart/go-versions/versions"
+	plugin "github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -18,6 +21,9 @@ import (
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/logging"
+	tfplugin "github.com/hashicorp/terraform/internal/plugin"
+	tfplugin6 "github.com/hashicorp/terraform/internal/plugin6"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
@@ -618,4 +624,105 @@ func init() {
 			return terraformProvider.NewProvider()
 		},
 	}
+}
+
+// providerFactoriesForLocks builds a map of factory functions for all of the
+// providers selected by the given locks and also all of the built-in providers.
+//
+// Non-builtin providers are assumed to be plugins available in the given
+// plugin cache directory. pluginsDir can be nil if and only if the given
+// locks is empty of provider selections, in which case the result contains
+// only the built-in providers.
+//
+// If any of the selected providers are not available as plugins in the cache
+// directory, returns an error describing a problem with at least one of
+// of them.
+func providerFactoriesForLocks(locks *depsfile.Locks, pluginsDir *providercache.Dir) (map[addrs.Provider]providers.Factory, error) {
+	var err error
+	ret := make(map[addrs.Provider]providers.Factory)
+	for name, infallibleFactory := range builtinProviders {
+		infallibleFactory := infallibleFactory // each iteration must have its own symbol
+		ret[addrs.NewBuiltInProvider(name)] = func() (providers.Interface, error) {
+			return infallibleFactory(), nil
+		}
+	}
+	selectedProviders := locks.AllProviders()
+	if pluginsDir == nil {
+		if len(selectedProviders) != 0 {
+			return nil, fmt.Errorf("only built-in providers are available without a plugin cache directory")
+		}
+		return ret, nil // just the built-in providers then
+	}
+
+	for addr, lock := range selectedProviders {
+		addr := addr
+		lock := lock
+
+		selectedVersion := lock.Version()
+		cached := pluginsDir.ProviderVersion(addr, selectedVersion)
+		if cached == nil {
+			err = errors.Join(err, fmt.Errorf("plugin cache directory does not contain %s v%s", addr, selectedVersion))
+			continue
+		}
+
+		// The cached package must match at least one of the locked
+		// package checksums.
+		matchesChecksums, checksumErr := cached.MatchesAnyHash(lock.PreferredHashes())
+		if checksumErr != nil {
+			err = errors.Join(err, fmt.Errorf("failed to calculate checksum for cached %s v%s: %w", addr, selectedVersion, checksumErr))
+			continue
+		}
+		if !matchesChecksums {
+			err = errors.Join(err, fmt.Errorf("cached package for %s v%s does not match any of the locked checksums", addr, selectedVersion))
+			continue
+		}
+
+		exeFilename, exeErr := cached.ExecutableFile()
+		if exeErr != nil {
+			err = errors.Join(err, fmt.Errorf("unusuable cached package for %s v%s: %w", addr, selectedVersion, exeErr))
+			continue
+		}
+
+		ret[addr] = func() (providers.Interface, error) {
+			config := &plugin.ClientConfig{
+				HandshakeConfig:  tfplugin.Handshake,
+				Logger:           logging.NewProviderLogger(""),
+				AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+				Managed:          true,
+				Cmd:              exec.Command(exeFilename),
+				AutoMTLS:         true,
+				VersionedPlugins: tfplugin.VersionedPlugins,
+				SyncStdout:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stdout", addr)),
+				SyncStderr:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stderr", addr)),
+			}
+
+			client := plugin.NewClient(config)
+			rpcClient, err := client.Client()
+			if err != nil {
+				return nil, err
+			}
+
+			raw, err := rpcClient.Dispense(tfplugin.ProviderPluginName)
+			if err != nil {
+				return nil, err
+			}
+
+			protoVer := client.NegotiatedVersion()
+			switch protoVer {
+			case 5:
+				p := raw.(*tfplugin.GRPCProvider)
+				p.PluginClient = client
+				p.Addr = addr
+				return p, nil
+			case 6:
+				p := raw.(*tfplugin6.GRPCProvider)
+				p.PluginClient = client
+				p.Addr = addr
+				return p, nil
+			default:
+				panic("unsupported protocol version")
+			}
+		}
+	}
+	return ret, err
 }

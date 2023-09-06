@@ -12,7 +12,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
@@ -145,6 +147,40 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 	if cfg == nil {
 		return status.Error(codes.InvalidArgument, "the given stack configuration handle is invalid")
 	}
+	depsHnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
+	var deps *depsfile.Locks
+	if !depsHnd.IsNil() {
+		deps = s.handles.DependencyLocks(depsHnd)
+		if deps == nil {
+			return status.Error(codes.InvalidArgument, "the given dependency locks handle is invalid")
+		}
+	} else {
+		deps = depsfile.NewLocks()
+	}
+	providerCacheHnd := handle[*providercache.Dir](req.ProviderCacheHandle)
+	var providerCache *providercache.Dir
+	if !providerCacheHnd.IsNil() {
+		providerCache = s.handles.ProviderPluginCache(providerCacheHnd)
+		if providerCache == nil {
+			return status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
+		}
+	} else {
+		// NOTE: providerCache can be nil if no handle was provided, in which
+		// case the call can only use built-in providers. All code below
+		// must avoid panicking when providerCache is nil, but is allowed to
+		// return an InvalidArgument error in that case.
+	}
+
+	inputValues, err := externalInputValuesFromProto(req.InputValues)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "invalid input values: %s", err)
+	}
+
+	// (providerFactoriesForLocks explicitly supports a nil providerCache)
+	providerFactories, err := providerFactoriesForLocks(deps, providerCache)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+	}
 
 	// We'll hook some internal events in the planning process both to generate
 	// tracing information if we're in an OpenTelemetry-aware context and
@@ -173,7 +209,9 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
 	rtReq := stackruntime.PlanRequest{
-		Config: cfg,
+		Config:            cfg,
+		ProviderFactories: providerFactories,
+		InputValues:       inputValues,
 	}
 	rtResp := stackruntime.PlanResponse{
 		PlannedChanges: changesCh,

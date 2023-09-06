@@ -467,8 +467,10 @@ message PlanStackChanges {
         PlanMode plan_mode = 1;
         int64 stack_config_handle = 2;
         map<string, google.protobuf.Any> previous_state = 3;
-        // TODO: Various other planning options and dependencies such as a
-        // provider cache handle.
+        int64 dependency_locks_handle = 4;
+        int64 provider_cache_handle = 5;
+        map<string, DynamicValueWithSource> input_values = 6;
+        // TODO: Various other planning options
     }
     message Event {
         oneof event {
@@ -488,10 +490,18 @@ message DynamicValue {
     repeated AttributePath sensitive = 2; // Paths to any sensitive-marked values.
 }
 
-// Represents a change of some object from one  dynamic value to another.
+// Represents a change of some object from one dynamic value to another.
 message DynamicValueChange {
     DynamicValue old = 1;
     DynamicValue new = 2;
+}
+
+// Represents a DynamicValue accompanied by a source location where it was
+// presumably defined, for values that originated in configuration files for
+// situations such as returning error messages.
+message DynamicValueWithSource {
+    DynamicValue value = 1;
+    SourceRange source_range = 2;
 }
 
 message AttributePath {
