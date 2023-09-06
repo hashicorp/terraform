@@ -103,7 +103,7 @@ func TestBackendConfig_original(t *testing.T) {
 	}
 
 	// Check S3 Endpoint
-	expectedS3Endpoint := defaultServiceEndpoint("s3", region)
+	expectedS3Endpoint := defaultEndpointS3(region)
 	var s3Endpoint string
 	_, err = b.s3Client.ListBuckets(ctx, &s3.ListBucketsInput{},
 		func(opts *s3.Options) {
@@ -124,7 +124,7 @@ func TestBackendConfig_original(t *testing.T) {
 	}
 
 	// Check DynamoDB Endpoint
-	expectedDynamoDBEndpoint := defaultServiceEndpoint("dynamodb", region)
+	expectedDynamoDBEndpoint := defaultEndpointDynamo(region)
 	var dynamoDBEndpoint string
 	_, err = b.dynClient.ListTables(ctx, &dynamodb.ListTablesInput{},
 		func(opts *dynamodb.Options) {
@@ -257,7 +257,7 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 		expectedDiags    tfdiags.Diagnostics
 	}{
 		"none": {
-			expectedEndpoint: defaultServiceEndpoint("dynamodb", region),
+			expectedEndpoint: defaultEndpointDynamo(region),
 		},
 		"config URL": {
 			config: map[string]any{
@@ -526,7 +526,7 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 		expectedDiags    tfdiags.Diagnostics
 	}{
 		"none": {
-			expectedEndpoint: defaultServiceEndpoint("s3", region),
+			expectedEndpoint: defaultEndpointS3(region),
 		},
 		"config URL": {
 			config: map[string]any{
@@ -2282,10 +2282,6 @@ func retrieveEndpointURLMiddleware(t *testing.T, endpoint *string) middleware.Fi
 		})
 }
 
-func defaultServiceEndpoint(service, region string) string {
-	return fmt.Sprintf("https://%s.%s.amazonaws.com/", service, region)
-}
-
 var errCancelOperation = fmt.Errorf("Test: Cancelling request")
 
 func addCancelRequestMiddleware() func(*middleware.Stack) error {
@@ -2317,4 +2313,38 @@ func fullValueTypeName(v reflect.Value) string {
 
 	requestType := v.Type()
 	return fmt.Sprintf("%s.%s", requestType.PkgPath(), requestType.Name())
+}
+
+func defaultEndpointDynamo(region string) string {
+	r := dynamodb.NewDefaultEndpointResolverV2()
+
+	ep, err := r.ResolveEndpoint(context.TODO(), dynamodb.EndpointParameters{
+		Region: aws.String(region),
+	})
+	if err != nil {
+		return err.Error()
+	}
+
+	if ep.URI.Path == "" {
+		ep.URI.Path = "/"
+	}
+
+	return ep.URI.String()
+}
+
+func defaultEndpointS3(region string) string {
+	r := s3.NewDefaultEndpointResolverV2()
+
+	ep, err := r.ResolveEndpoint(context.TODO(), s3.EndpointParameters{
+		Region: aws.String(region),
+	})
+	if err != nil {
+		return err.Error()
+	}
+
+	if ep.URI.Path == "" {
+		ep.URI.Path = "/"
+	}
+
+	return ep.URI.String()
 }
