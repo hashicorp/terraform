@@ -770,6 +770,7 @@ func (runner *TestFileRunner) wait(ctx *terraform.Context, runningCtx context.Co
 }
 
 func (runner *TestFileRunner) cleanup(file *moduletest.File) {
+	var diags tfdiags.Diagnostics
 
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
 
@@ -782,7 +783,6 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 	// First, we'll clean up the main state.
 	main := runner.RelevantStates[MainStateIdentifier]
 
-	var diags tfdiags.Diagnostics
 	updated := main.State
 	if main.Run == nil {
 		if !main.State.Empty() {
@@ -800,6 +800,12 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 		}
 
 		reset()
+	}
+
+	if !updated.Empty() {
+		// Then we failed to adequately clean up the state, so mark success
+		// as false.
+		file.Status = moduletest.Error
 	}
 	runner.Suite.View.DestroySummary(diags, main.Run, file, updated)
 
@@ -831,6 +837,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 
 			var diags tfdiags.Diagnostics
 			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name)))
+			file.Status = moduletest.Error
 			runner.Suite.View.DestroySummary(diags, nil, file, state.State)
 			continue
 		}
@@ -867,10 +874,18 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 			updated, destroyDiags = runner.destroy(state.Run.Config.ConfigUnderTest, state.State, state.Run, file)
 			diags = diags.Append(destroyDiags)
 		}
+
+		if !updated.Empty() {
+			// Then we failed to adequately clean up the state, so mark success
+			// as false.
+			file.Status = moduletest.Error
+		}
 		runner.Suite.View.DestroySummary(diags, state.Run, file, updated)
 
 		reset()
 	}
+
+	return
 }
 
 // buildInputVariablesForTest creates a terraform.InputValues mapping for
