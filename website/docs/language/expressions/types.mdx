@@ -21,14 +21,14 @@ The Terraform language uses the following types for its values:
   numbers like `15` and fractional values like `6.283185`.
 * `bool`: a boolean value, either `true` or `false`. `bool` values can be used in conditional
   logic.
-* `list`: a sequence of values, like `["us-west-1a", "us-west-1c"]`. Identify elements in a list with consecutive whole numbers, starting with zero.
+* `list` (or `tuple`): a sequence of values, like `["us-west-1a", "us-west-1c"]`. Identify elements in a list with consecutive whole numbers, starting with zero.
 * `set`: a collection of unique values that do not have any secondary identifiers or ordering.
-* `map`: a group of values identified by named labels, like
+* `map` (or `object`): a group of values identified by named labels, like
   `{name = "Mabel", age = 52}`.
 
-Strings, numbers, and bools are sometimes called _primitive types._ Lists and sets are forms
-of tuples. Maps are a form of objects. Tuples and objects are sometimes called _complex types,_ 
-_structural types,_ or _collection types._ See
+Strings, numbers, and bools are sometimes called _primitive types._
+Lists/tuples and maps/objects are sometimes called _complex types,_ _structural
+types,_ or _collection types._ See
 [Type Constraints](/terraform/language/expressions/type-constraints) for a more detailed
 description of complex types.
 
