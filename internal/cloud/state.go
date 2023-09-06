@@ -34,6 +34,11 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
+const (
+	// HeaderSnapshotInterval is the header key that controls the snapshot interval
+	HeaderSnapshotInterval = "x-terraform-snapshot-interval"
+)
+
 // State implements the State interfaces in the state package to handle
 // reading and writing the remote state to TFC. This State on its own does no
 // local caching so every persist will go to the remote storage and local
@@ -247,7 +252,9 @@ func (s *State) ShouldPersistIntermediateState(info *local.IntermediateStatePers
 		return true
 	}
 
-	if !s.enableIntermediateSnapshots && info.RequestedPersistInterval == time.Duration(0) {
+	// This value is controlled by a x-terraform-snapshot-interval header intercepted during
+	// state-versions API responses
+	if !s.enableIntermediateSnapshots {
 		return false
 	}
 
@@ -545,7 +552,7 @@ func clamp(val, min, max int64) int64 {
 }
 
 func (s *State) readSnapshotIntervalHeader(status int, header http.Header) {
-	intervalStr := header.Get("x-terraform-snapshot-interval")
+	intervalStr := header.Get(HeaderSnapshotInterval)
 
 	if intervalSecs, err := strconv.ParseInt(intervalStr, 10, 64); err == nil {
 		// More than an hour is an unreasonable delay, so we'll just
