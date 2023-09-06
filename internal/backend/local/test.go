@@ -884,8 +884,6 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 
 		reset()
 	}
-
-	return
 }
 
 // buildInputVariablesForTest creates a terraform.InputValues mapping for
