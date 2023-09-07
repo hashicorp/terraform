@@ -119,21 +119,44 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 }
 
 func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
-	input := &s3.GetObjectInput{
+	headInput := &s3.HeadObjectInput{
 		Bucket: aws.String(c.bucketName),
 		Key:    aws.String(c.path),
 	}
-
 	if c.serverSideEncryption && c.customerEncryptionKey != nil {
-		input.SSECustomerKey = aws.String(base64.StdEncoding.EncodeToString(c.customerEncryptionKey))
-		input.SSECustomerAlgorithm = aws.String(s3EncryptionAlgorithm)
-		input.SSECustomerKeyMD5 = aws.String(c.getSSECustomerKeyMD5())
+		headInput.SSECustomerKey = aws.String(base64.StdEncoding.EncodeToString(c.customerEncryptionKey))
+		headInput.SSECustomerAlgorithm = aws.String(s3EncryptionAlgorithm)
+		headInput.SSECustomerKeyMD5 = aws.String(c.getSSECustomerKeyMD5())
+	}
+
+	headOut, err := c.s3Client.HeadObject(ctx, headInput)
+	if err != nil {
+		switch {
+		case IsA[*s3types.NoSuchBucket](err):
+			return nil, fmt.Errorf(errS3NoSuchBucket, err)
+		case IsA[*s3types.NotFound](err):
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	// Pre-allocate the full buffer to avoid re-allocations and GC
+	buf := make([]byte, int(headOut.ContentLength))
+	w := manager.NewWriteAtBuffer(buf)
+
+	downloadInput := &s3.GetObjectInput{
+		Bucket: aws.String(c.bucketName),
+		Key:    aws.String(c.path),
+	}
+	if c.serverSideEncryption && c.customerEncryptionKey != nil {
+		downloadInput.SSECustomerKey = aws.String(base64.StdEncoding.EncodeToString(c.customerEncryptionKey))
+		downloadInput.SSECustomerAlgorithm = aws.String(s3EncryptionAlgorithm)
+		downloadInput.SSECustomerKeyMD5 = aws.String(c.getSSECustomerKeyMD5())
 	}
 
 	downloader := manager.NewDownloader(c.s3Client)
-	w := manager.NewWriteAtBuffer(nil)
 
-	_, err := downloader.Download(ctx, w, input)
+	_, err = downloader.Download(ctx, w, downloadInput)
 	if err != nil {
 		switch {
 		case IsA[*s3types.NoSuchBucket](err):
