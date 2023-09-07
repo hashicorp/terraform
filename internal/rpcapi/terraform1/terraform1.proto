@@ -476,6 +476,11 @@ message PlanStackChanges {
         oneof event {
             PlannedChange planned_change = 1;
             Diagnostic diagnostic = 2;
+            ComponentInstanceStatus component_instance_status = 3;
+            ResourceInstanceStatus resource_instance_status = 4;
+            ResourceInstancePlannedChange resource_instance_planned_change = 5;
+            ProvisionerStatus provisioner_status = 6;
+            ProvisionerOutput provisioner_output = 7;
             // TODO
         }
     }
@@ -517,6 +522,17 @@ message AttributePath {
         }
     }
     repeated Step steps = 1;
+}
+
+// Represents the address of a specific component instance within a stack.
+message ComponentInstanceInStackAddr {
+    // The address of the static component that this is an instance of.
+    string component_addr = 1;
+    // The address of the instance that's being announced. For
+    // multi-instance components this could have any combination of
+    // instance keys on the component itself or instance keys on any
+    // of the containing embedded stacks.
+    string component_instance_addr = 2;
 }
 
 // Represents the address of a specific resource instance inside a specific
@@ -611,18 +627,12 @@ message PlannedChange {
     // once Terraform has resolved arguments such as "for_each" that
     // might make the set of instances dynamic.
     message ComponentInstance {
-        // The address of the static component that this is an instance of.
-        string component_addr = 1;
-        // The address of the instance that's being announced. For
-        // multi-instance components this could have any combination of
-        // instance keys on the component itself or instance keys on any
-        // of the containing embedded stacks.
-        string component_instance_addr = 2;
+        ComponentInstanceInStackAddr addr = 1;
         // The changes to the existence of this instance relative to the
         // prior state. This only considers the component instance directly,
         // and doesn't take into account what actions are planned for any
         // resource instances inside.
-        repeated ChangeType actions = 3;
+        repeated ChangeType actions = 2;
     }
     message ResourceInstance {
         ResourceInstanceInStackAddr addr = 1;
@@ -737,4 +747,82 @@ message Schema {
             MARKDOWN = 1;
         }
     }
+}
+
+// ComponentInstanceStatus describes the current status of a component instance
+// undergoing a plan or apply operation.
+message ComponentInstanceStatus {
+  ComponentInstanceInStackAddr addr = 1;
+  Status status = 2;
+
+  enum Status {
+    INVALID = 0;
+    PENDING = 1;
+    PLANNING = 2;
+    PLANNED = 3;
+    APPLYING = 4;
+    APPLIED = 5;
+    ERRORED = 6;
+  }
+}
+
+// ComponentInstanceStatus describes the current status of a resource instance
+// undergoing a plan or apply operation.
+message ResourceInstanceStatus {
+  ResourceInstanceInStackAddr addr = 1;
+  Status status = 2;
+
+  enum Status {
+    INVALID = 0;
+    PENDING = 1;
+    REFRESHING = 2;
+    REFRESHED = 3;
+    PLANNING = 4;
+    PLANNED = 5;
+    APPLYING = 6;
+    APPLIED = 7;
+    ERRORED = 8;
+  }
+}
+
+// ResourceInstancePlannedChange describes summary information about a planned
+// change for a resource instance. This does not include the full object change,
+// which is described in PlannedChange.ResourceChange. The information in this
+// message is intended for the event stream and need not include the instance's
+// full object values.
+message ResourceInstancePlannedChange {
+  ResourceInstanceInStackAddr addr = 1;
+  repeated ChangeType actions = 2;
+  Moved moved = 3;
+  Imported imported = 4;
+
+  message Moved {
+      ResourceInstanceInStackAddr prev_addr = 1;
+  }
+  message Imported {
+      string import_id = 1;
+  }
+}
+
+// ProvisionerStatus represents the progress of a given provisioner during its
+// resource instance's apply operation.
+message ProvisionerStatus {
+  ResourceInstanceInStackAddr addr = 1;
+  string name = 2;
+  ProvisionerStatus status = 3;
+
+  enum Status {
+    INVALID = 0;
+    PROVISIONING = 1;
+    PROVISIONED = 2;
+    ERRORED = 3;
+  }
+}
+
+// ProvisionerOutput represents recorded output data emitted by a provisioner
+// during a resource instance's apply operation.
+message ProvisionerOutput {
+  ResourceInstanceInStackAddr addr = 1;
+  string name = 2;
+  string output = 3;
 }
