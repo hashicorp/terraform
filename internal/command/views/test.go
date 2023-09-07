@@ -134,9 +134,9 @@ func (t *TestHuman) Conclusion(suite *moduletest.Suite) {
 func (t *TestHuman) File(file *moduletest.File, progress moduletest.Progress) {
 	switch progress {
 	case moduletest.Starting:
-		t.view.streams.Printf("%s... in progress\n", file.Name)
+		t.view.streams.Printf(t.view.colorize.Color("%s... [light_gray]in progress[reset]\n"), file.Name)
 	case moduletest.TearDown:
-		t.view.streams.Printf("%s... tearing down\n", file.Name)
+		t.view.streams.Printf(t.view.colorize.Color("%s... [light_gray]tearing down[reset]\n"), file.Name)
 	case moduletest.Complete:
 		t.view.streams.Printf("%s... %s\n", file.Name, colorizeTestStatus(file.Status, t.view.colorize))
 		t.Diagnostics(nil, file, file.Diagnostics)
