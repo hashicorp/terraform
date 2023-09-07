@@ -12,11 +12,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	dynamodbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -106,22 +106,44 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 }
 
 func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
-	var output *s3.GetObjectOutput
-	var err error
-
-	input := &s3.GetObjectInput{
-		Bucket: &c.bucketName,
-		Key:    &c.path,
+	headInput := &s3.HeadObjectInput{
+		Bucket: aws.String(c.bucketName),
+		Key:    aws.String(c.path),
 	}
-
 	if c.serverSideEncryption && c.customerEncryptionKey != nil {
-		input.SSECustomerKey = aws.String(base64.StdEncoding.EncodeToString(c.customerEncryptionKey))
-		input.SSECustomerAlgorithm = aws.String(s3EncryptionAlgorithm)
-		input.SSECustomerKeyMD5 = aws.String(c.getSSECustomerKeyMD5())
+		headInput.SSECustomerKey = aws.String(base64.StdEncoding.EncodeToString(c.customerEncryptionKey))
+		headInput.SSECustomerAlgorithm = aws.String(s3EncryptionAlgorithm)
+		headInput.SSECustomerKeyMD5 = aws.String(c.getSSECustomerKeyMD5())
 	}
 
-	output, err = c.s3Client.GetObject(ctx, input)
+	headOut, err := c.s3Client.HeadObject(ctx, headInput)
+	if err != nil {
+		switch {
+		case IsA[*s3types.NoSuchBucket](err):
+			return nil, fmt.Errorf(errS3NoSuchBucket, err)
+		case IsA[*s3types.NotFound](err):
+			return nil, nil
+		}
+		return nil, err
+	}
 
+	// Pre-allocate the full buffer to avoid re-allocations and GC
+	buf := make([]byte, int(headOut.ContentLength))
+	w := manager.NewWriteAtBuffer(buf)
+
+	downloadInput := &s3.GetObjectInput{
+		Bucket: aws.String(c.bucketName),
+		Key:    aws.String(c.path),
+	}
+	if c.serverSideEncryption && c.customerEncryptionKey != nil {
+		downloadInput.SSECustomerKey = aws.String(base64.StdEncoding.EncodeToString(c.customerEncryptionKey))
+		downloadInput.SSECustomerAlgorithm = aws.String(s3EncryptionAlgorithm)
+		downloadInput.SSECustomerKeyMD5 = aws.String(c.getSSECustomerKeyMD5())
+	}
+
+	downloader := manager.NewDownloader(c.s3Client)
+
+	_, err = downloader.Download(ctx, w, downloadInput)
 	if err != nil {
 		switch {
 		case IsA[*s3types.NoSuchBucket](err):
@@ -132,16 +154,9 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 		return nil, err
 	}
 
-	defer output.Body.Close()
-
-	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, output.Body); err != nil {
-		return nil, fmt.Errorf("Failed to read remote state: %s", err)
-	}
-
-	sum := md5.Sum(buf.Bytes())
+	sum := md5.Sum(w.Bytes())
 	payload := &remote.Payload{
-		Data: buf.Bytes(),
+		Data: w.Bytes(),
 		MD5:  sum[:],
 	}
 
@@ -157,36 +172,35 @@ func (c *RemoteClient) Put(data []byte) error {
 	ctx := context.TODO()
 
 	contentType := "application/json"
-	contentLength := int64(len(data))
 
-	i := &s3.PutObjectInput{
-		ContentType:   aws.String(contentType),
-		ContentLength: contentLength,
-		Body:          bytes.NewReader(data),
-		Bucket:        aws.String(c.bucketName),
-		Key:           aws.String(c.path),
+	input := &s3.PutObjectInput{
+		ContentType: aws.String(contentType),
+		Body:        bytes.NewReader(data),
+		Bucket:      aws.String(c.bucketName),
+		Key:         aws.String(c.path),
 	}
 
 	if c.serverSideEncryption {
 		if c.kmsKeyID != "" {
-			i.SSEKMSKeyId = aws.String(c.kmsKeyID)
-			i.ServerSideEncryption = s3types.ServerSideEncryptionAwsKms
+			input.SSEKMSKeyId = aws.String(c.kmsKeyID)
+			input.ServerSideEncryption = s3types.ServerSideEncryptionAwsKms
 		} else if c.customerEncryptionKey != nil {
-			i.SSECustomerKey = aws.String(base64.StdEncoding.EncodeToString(c.customerEncryptionKey))
-			i.SSECustomerAlgorithm = aws.String(string(s3EncryptionAlgorithm))
-			i.SSECustomerKeyMD5 = aws.String(c.getSSECustomerKeyMD5())
+			input.SSECustomerKey = aws.String(base64.StdEncoding.EncodeToString(c.customerEncryptionKey))
+			input.SSECustomerAlgorithm = aws.String(string(s3EncryptionAlgorithm))
+			input.SSECustomerKeyMD5 = aws.String(c.getSSECustomerKeyMD5())
 		} else {
-			i.ServerSideEncryption = s3EncryptionAlgorithm
+			input.ServerSideEncryption = s3EncryptionAlgorithm
 		}
 	}
 
 	if c.acl != "" {
-		i.ACL = s3types.ObjectCannedACL(c.acl)
+		input.ACL = s3types.ObjectCannedACL(c.acl)
 	}
 
-	log.Printf("[DEBUG] Uploading remote state to S3: %#v", i)
+	log.Printf("[DEBUG] Uploading remote state to S3: %#v", input)
 
-	_, err := c.s3Client.PutObject(ctx, i)
+	uploader := manager.NewUploader(c.s3Client)
+	_, err := uploader.Upload(ctx, input)
 	if err != nil {
 		return fmt.Errorf("failed to upload state: %s", err)
 	}
@@ -196,7 +210,6 @@ func (c *RemoteClient) Put(data []byte) error {
 		// if this errors out, we unfortunately have to error out altogether,
 		// since the next Get will inevitably fail.
 		return fmt.Errorf("failed to store state MD5: %s", err)
-
 	}
 
 	return nil
@@ -206,8 +219,8 @@ func (c *RemoteClient) Delete() error {
 	ctx := context.TODO()
 
 	_, err := c.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-		Bucket: &c.bucketName,
-		Key:    &c.path,
+		Bucket: aws.String(c.bucketName),
+		Key:    aws.String(c.path),
 	})
 
 	if err != nil {
