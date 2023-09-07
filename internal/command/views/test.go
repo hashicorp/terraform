@@ -227,6 +227,11 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File) {
 			// do nothing
 		case tfdiags.Warning:
 			warnings = true
+		}
+
+		if warnings {
+			// We only care about checking if we printed any warnings in the
+			// previous output.
 			break
 		}
 	}
