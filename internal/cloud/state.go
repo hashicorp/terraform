@@ -552,6 +552,13 @@ func clamp(val, min, max int64) int64 {
 }
 
 func (s *State) readSnapshotIntervalHeader(status int, header http.Header) {
+	// Only proceed if this came from tfe.v2 API
+	contentType := header.Get("Content-Type")
+	if !strings.Contains(contentType, tfe.ContentTypeJSONAPI) {
+		log.Printf("[TRACE] Skipping intermediate state interval because Content-Type was %q", contentType)
+		return
+	}
+
 	intervalStr := header.Get(HeaderSnapshotInterval)
 
 	if intervalSecs, err := strconv.ParseInt(intervalStr, 10, 64); err == nil {
@@ -568,6 +575,7 @@ func (s *State) readSnapshotIntervalHeader(status int, header http.Header) {
 	}
 
 	// We will only enable snapshots for intervals greater than zero
+	log.Printf("[TRACE] Intermediate state interval is set by header to %v", s.stateSnapshotInterval)
 	s.enableIntermediateSnapshots = s.stateSnapshotInterval > 0
 }
 
