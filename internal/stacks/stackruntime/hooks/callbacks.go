@@ -61,3 +61,11 @@ type MoreFunc[Msg any] func(context.Context, any, Msg) any
 // should always return nil, because there is no way to mutate the context
 // with a new tracking value after the fact.
 type ContextAttachFunc func(parent context.Context, tracking any) context.Context
+
+// SingleFunc is the signature of a callback for a hook which operates in
+// isolation, and has no related or enclosed events.
+//
+// The given context is guaranteed to preserve the values from whichever
+// context was passed to the top-level [stackruntime.Plan] or
+// [stackruntime.Apply] call.
+type SingleFunc[Msg any] func(context.Context, Msg)

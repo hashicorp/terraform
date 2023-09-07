@@ -92,9 +92,11 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				},
 				Description: &terraform1.PlannedChange_ComponentInstancePlanned{
 					ComponentInstancePlanned: &terraform1.PlannedChange_ComponentInstance{
-						ComponentAddr:         "component.foo",
-						ComponentInstanceAddr: "component.foo",
-						Actions:               []terraform1.ChangeType{terraform1.ChangeType_CREATE},
+						Addr: &terraform1.ComponentInstanceInStackAddr{
+							ComponentAddr:         "component.foo",
+							ComponentInstanceAddr: "component.foo",
+						},
+						Actions: []terraform1.ChangeType{terraform1.ChangeType_CREATE},
 					},
 				},
 			},
@@ -118,8 +120,10 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				},
 				Description: &terraform1.PlannedChange_ComponentInstancePlanned{
 					ComponentInstancePlanned: &terraform1.PlannedChange_ComponentInstance{
-						ComponentAddr:         "component.foo",
-						ComponentInstanceAddr: `component.foo["bar"]`,
+						Addr: &terraform1.ComponentInstanceInStackAddr{
+							ComponentAddr:         "component.foo",
+							ComponentInstanceAddr: `component.foo["bar"]`,
+						},
 					},
 				},
 			},
@@ -142,9 +146,11 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				},
 				Description: &terraform1.PlannedChange_ComponentInstancePlanned{
 					ComponentInstancePlanned: &terraform1.PlannedChange_ComponentInstance{
-						ComponentAddr:         "stack.a.component.foo",
-						ComponentInstanceAddr: `stack.a["boop"].component.foo`,
-						Actions:               []terraform1.ChangeType{terraform1.ChangeType_DELETE},
+						Addr: &terraform1.ComponentInstanceInStackAddr{
+							ComponentAddr:         "stack.a.component.foo",
+							ComponentInstanceAddr: `stack.a["boop"].component.foo`,
+						},
+						Actions: []terraform1.ChangeType{terraform1.ChangeType_DELETE},
 					},
 				},
 			},

@@ -73,9 +73,11 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 		Raw: []*anypb.Any{&raw},
 		Description: &terraform1.PlannedChange_ComponentInstancePlanned{
 			ComponentInstancePlanned: &terraform1.PlannedChange_ComponentInstance{
-				ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(pc.Addr).String(),
-				ComponentInstanceAddr: pc.Addr.String(),
-				Actions:               protoChangeTypes,
+				Addr: &terraform1.ComponentInstanceInStackAddr{
+					ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(pc.Addr).String(),
+					ComponentInstanceAddr: pc.Addr.String(),
+				},
+				Actions: protoChangeTypes,
 			},
 		},
 	}, nil

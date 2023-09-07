@@ -16,9 +16,11 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -324,6 +326,99 @@ func stackPlanHooks(evts terraform1.Stacks_PlanStackChangesServer, mainStackSour
 		EndPlan: func(ctx context.Context, span any, s struct{}) any {
 			span.(trace.Span).End()
 			return nil
+		},
+
+		// For each component instance, we emit a series of events to the
+		// client, reporting the status of the plan operation. We also create a
+		// nested tracing span for the component instance.
+		PendingComponentInstancePlan: func(ctx context.Context, ci stackaddrs.AbsComponentInstance) {
+			evts.Send(evtComponentInstanceStatus(ci, hooks.ComponentInstancePending))
+		},
+		BeginComponentInstancePlan: func(ctx context.Context, ci stackaddrs.AbsComponentInstance) any {
+			evts.Send(evtComponentInstanceStatus(ci, hooks.ComponentInstancePlanning))
+			_, span := tracer.Start(ctx, "planning", trace.WithAttributes(
+				attribute.String("component_instance", ci.String()),
+			))
+			return span
+		},
+		EndComponentInstancePlan: func(ctx context.Context, span any, ci stackaddrs.AbsComponentInstance) any {
+			evts.Send(evtComponentInstanceStatus(ci, hooks.ComponentInstancePlanned))
+			span.(trace.Span).End()
+			return nil
+		},
+		ErrorComponentInstancePlan: func(ctx context.Context, span any, ci stackaddrs.AbsComponentInstance) any {
+			evts.Send(evtComponentInstanceStatus(ci, hooks.ComponentInstanceErrored))
+			span.(trace.Span).End()
+			return nil
+		},
+
+		// When Terraform core reports a resource instance plan status, we
+		// forward it to the events client.
+		ReportResourceInstanceStatus: func(ctx context.Context, span any, rihd *hooks.ResourceInstanceStatusHookData) any {
+			evts.Send(&terraform1.PlanStackChanges_Event{
+				Event: &terraform1.PlanStackChanges_Event_ResourceInstanceStatus{
+					ResourceInstanceStatus: &terraform1.ResourceInstanceStatus{
+						Addr: &terraform1.ResourceInstanceInStackAddr{
+							ComponentInstanceAddr: rihd.Addr.Component.String(),
+							ResourceInstanceAddr:  rihd.Addr.Item.String(),
+						},
+						Status: rihd.Status.ForProtobuf(),
+					},
+				},
+			})
+			return span
+		},
+
+		// Upon completion of a component instance plan, we emit a planned
+		// change sumary event to the client for each resource instance.
+		ReportResourceInstancePlanned: func(ctx context.Context, span any, ric *hooks.ResourceInstanceChange) any {
+			actions, err := terraform1.ChangeTypesForPlanAction(ric.Change.Action)
+			if err != nil {
+				// TODO: what do we do?
+				return span
+			}
+
+			moved := &terraform1.ResourceInstancePlannedChange_Moved{}
+			if !ric.Change.PrevRunAddr.Equal(ric.Change.Addr) {
+				moved.PrevAddr = &terraform1.ResourceInstanceInStackAddr{
+					ComponentInstanceAddr: ric.Addr.Component.String(),
+					ResourceInstanceAddr:  ric.Change.PrevRunAddr.String(),
+				}
+			}
+
+			imported := &terraform1.ResourceInstancePlannedChange_Imported{}
+			if ric.Change.Importing != nil {
+				imported.ImportId = ric.Change.Importing.ID
+			}
+
+			evts.Send(&terraform1.PlanStackChanges_Event{
+				Event: &terraform1.PlanStackChanges_Event_ResourceInstancePlannedChange{
+					ResourceInstancePlannedChange: &terraform1.ResourceInstancePlannedChange{
+						Addr: &terraform1.ResourceInstanceInStackAddr{
+							ComponentInstanceAddr: ric.Addr.Component.String(),
+							ResourceInstanceAddr:  ric.Addr.Item.String(),
+						},
+						Actions:  actions,
+						Moved:    moved,
+						Imported: imported,
+					},
+				},
+			})
+			return span
+		},
+	}
+}
+
+func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks.ComponentInstanceStatus) *terraform1.PlanStackChanges_Event {
+	return &terraform1.PlanStackChanges_Event{
+		Event: &terraform1.PlanStackChanges_Event_ComponentInstanceStatus{
+			ComponentInstanceStatus: &terraform1.ComponentInstanceStatus{
+				Addr: &terraform1.ComponentInstanceInStackAddr{
+					ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(ci).String(),
+					ComponentInstanceAddr: ci.String(),
+				},
+				Status: status.ForProtobuf(),
+			},
 		},
 	}
 }

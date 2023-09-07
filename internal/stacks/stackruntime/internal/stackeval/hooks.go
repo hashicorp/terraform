@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 )
 
@@ -29,6 +30,69 @@ type Hooks struct {
 	// EndPlan does not provide any additional data, because all relevant
 	// information is provided by other means.
 	EndPlan hooks.MoreFunc[struct{}]
+
+	// PendingComponentInstancePlan is called at the start of the plan
+	// operation, before evaluating the component instance's inputs and
+	// providers.
+	PendingComponentInstancePlan hooks.SingleFunc[stackaddrs.AbsComponentInstance]
+
+	// BeginComponentInstancePlan is called when the component instance's
+	// inputs and providers are ready and planning begins, and can be used to
+	// establish a nested tracing context wrapping the plan operation.
+	BeginComponentInstancePlan hooks.BeginFunc[stackaddrs.AbsComponentInstance]
+
+	// EndComponentInstancePlan is called when the component instance plan
+	// started at [Hooks.BeginComponentInstancePlan] completes successfully. If
+	// a context is established by [Hooks.BeginComponentInstancePlan] then this
+	// hook should end it.
+	EndComponentInstancePlan hooks.MoreFunc[stackaddrs.AbsComponentInstance]
+
+	// ErrorComponentInstancePlan is similar to [Hooks.EndComponentInstancePlan], but
+	// is called when the plan operation failed.
+	ErrorComponentInstancePlan hooks.MoreFunc[stackaddrs.AbsComponentInstance]
+
+	// PendingComponentInstanceApply is called at the start of the apply
+	// operation.
+	PendingComponentInstanceApply hooks.SingleFunc[stackaddrs.AbsComponentInstance]
+
+	// BeginComponentInstanceApply is called when the component instance starts
+	// applying the plan, and can be used to establish a nested tracing context
+	// wrapping the apply operation.
+	BeginComponentInstanceApply hooks.BeginFunc[stackaddrs.AbsComponentInstance]
+
+	// EndComponentInstanceApply is called when the component instance plan
+	// started at [Hooks.BeginComponentInstanceApply] completes successfully. If
+	// a context is established by [Hooks.BeginComponentInstanceApply] then
+	// this hook should end it.
+	EndComponentInstanceApply hooks.MoreFunc[stackaddrs.AbsComponentInstance]
+
+	// ErrorComponentInstanceApply is similar to [Hooks.EndComponentInstanceApply], but
+	// is called when the apply operation failed.
+	ErrorComponentInstanceApply hooks.MoreFunc[stackaddrs.AbsComponentInstance]
+
+	// ReportResourceInstanceStatus is called when a resource instance's status
+	// changes during a plan or apply operation. It should be called inside a
+	// tracing context established by [Hooks.BeginComponentInstancePlan] or
+	// [Hooks.BeginComponentInstanceApply].
+	ReportResourceInstanceStatus hooks.MoreFunc[*hooks.ResourceInstanceStatusHookData]
+
+	// ReportResourceInstanceProvisionerStatus is called when a provisioner for
+	// a resource instance begins or ends. It should be called inside a tracing
+	// context established by [Hooks.BeginComponentInstancePlan] or
+	// [Hooks.BeginComponentInstanceApply].
+	ReportResourceInstanceProvisionerStatus hooks.MoreFunc[*hooks.ResourceInstanceProvisionerHookData]
+
+	// ReportResourceInstanceDrift is called after a component instance's plan
+	// determines that a resource instance has experienced changes outside of
+	// Terraform. It should be called inside a tracing context established by
+	// [Hooks.BeginComponentInstancePlan].
+	ReportResourceInstanceDrift hooks.MoreFunc[*hooks.ResourceInstanceChange]
+
+	// ReportResourceInstanceDrift is called after a component instance's plan
+	// results in proposed changes for a resource instance. It should be called
+	// inside a tracing context established by
+	// [Hooks.BeginComponentInstancePlan].
+	ReportResourceInstancePlanned hooks.MoreFunc[*hooks.ResourceInstanceChange]
 
 	// ContextAttach is an optional callback for wrapping a non-nil value
 	// returned by a [hooks.BeginFunc] into a [context.Context] to be passed
@@ -113,6 +177,13 @@ func hookMore[Msg any](ctx context.Context, seq *hookSeq, cb hooks.MoreFunc[Msg]
 	seq.mu.Lock()
 	seq.tracking = runHookMore(ctx, cb, seq.tracking, msg)
 	seq.mu.Unlock()
+}
+
+// hookSingle calls an isolated [hooks.SingleFunc] callback, if it is non-nil.
+func hookSingle[Msg any](ctx context.Context, cb hooks.SingleFunc[Msg], msg Msg) {
+	if cb != nil {
+		cb(ctx, msg)
+	}
 }
 
 // runHookBegin is a lower-level helper that just directly runs a given

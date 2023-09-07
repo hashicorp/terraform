@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -364,6 +365,11 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 		ctx, &c.moduleTreePlan, c.main,
 		func(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
+
+			addr := c.Addr()
+			h := hooksFromContext(ctx)
+			seq, ctx := hookBegin(ctx, h.BeginComponentInstancePlan, h.ContextAttach, addr)
+
 			decl := c.call.Declaration(ctx)
 
 			// This is our main bridge from the stacks language into the main Terraform
@@ -408,6 +414,14 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			}
 
 			tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
+				Hooks: []terraform.Hook{
+					&componentInstanceTerraformHook{
+						ctx:   ctx,
+						seq:   seq,
+						hooks: hooksFromContext(ctx),
+						addr:  c.Addr(),
+					},
+				},
 				PreloadedProviderSchemas: providerSchemas,
 			})
 			if err != nil {
@@ -480,6 +494,34 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				ExternalProviders: providerInsts,
 			})
 			diags = diags.Append(moreDiags)
+
+			if plan != nil {
+				for _, rsrcChange := range plan.DriftedResources {
+					hookMore(ctx, seq, h.ReportResourceInstanceDrift, &hooks.ResourceInstanceChange{
+						Addr: stackaddrs.AbsResourceInstance{
+							Component: addr,
+							Item:      rsrcChange.Addr,
+						},
+						Change: rsrcChange,
+					})
+				}
+				for _, rsrcChange := range plan.Changes.Resources {
+					hookMore(ctx, seq, h.ReportResourceInstancePlanned, &hooks.ResourceInstanceChange{
+						Addr: stackaddrs.AbsResourceInstance{
+							Component: addr,
+							Item:      rsrcChange.Addr,
+						},
+						Change: rsrcChange,
+					})
+				}
+			}
+
+			if diags.HasErrors() {
+				hookMore(ctx, seq, h.ErrorComponentInstancePlan, addr)
+			} else {
+				hookMore(ctx, seq, h.EndComponentInstancePlan, addr)
+			}
+
 			return plan, diags
 		},
 	)
@@ -530,6 +572,8 @@ func (c *ComponentInstance) ResolveExpressionReference(ctx context.Context, ref 
 func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	var changes []stackplan.PlannedChange
 	var diags tfdiags.Diagnostics
+
+	hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstancePlan, c.Addr())
 
 	// We must always at least announce that the component instance exists,
 	// and that must come before any resource instance changes referring to it.
