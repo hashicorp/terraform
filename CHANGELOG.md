@@ -35,6 +35,7 @@ ENHANCEMENTS:
     * `http_proxy`, `insecure`, `use_fips_endpoint`, and `use_dualstack_endpoint` arguments and support for the corresponding environment variables, `HTTP_PROXY` and `HTTPS_PROXY`, which enable custom HTTP proxy configurations and the resolution of AWS endpoints with extended capabilities. ([#30496](https://github.com/hashicorp/terraform/issues/30496))
     * `sts_region` argument to use an alternative region for STS operations. ([#33693](https://github.com/hashicorp/terraform/issues/33693))
     * `retry_mode` argument and support for the corresponding `AWS_RETRY_MODE` environment variable to configure how retries are attempted. ([#33692](https://github.com/hashicorp/terraform/issues/33692))
+    * `allowed_account_ids` and `forbidden_account_ids` arguments to prevent unintended modifications to specified environments. ([#33688](https://github.com/hashicorp/terraform/issues/33688))
 * backend/cos: Support custom HTTP(S) endpoint and root domain for the API client. ([#33656](https://github.com/hashicorp/terraform/issues/33656))
 
 BUG FIXES:
