@@ -1,5 +1,9 @@
 ## 1.5.8 (Unreleased)
 
+BUG FIXES:
+
+* cloud: state snapshots could not be disabled when header x-terraform-snapshot-interval is absent ([#33820](https://github.com/hashicorp/terraform/pull/33820))
+
 ## 1.5.7 (September 7, 2023)
 
 BUG FIXES:
