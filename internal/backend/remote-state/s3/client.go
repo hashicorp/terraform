@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"time"
 
@@ -120,12 +119,9 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 }
 
 func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
-	var output *s3.GetObjectOutput
-	var err error
-
 	input := &s3.GetObjectInput{
-		Bucket: &c.bucketName,
-		Key:    &c.path,
+		Bucket: aws.String(c.bucketName),
+		Key:    aws.String(c.path),
 	}
 
 	if c.serverSideEncryption && c.customerEncryptionKey != nil {
@@ -134,8 +130,10 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 		input.SSECustomerKeyMD5 = aws.String(c.getSSECustomerKeyMD5())
 	}
 
-	output, err = c.s3Client.GetObject(ctx, input)
+	downloader := manager.NewDownloader(c.s3Client)
+	w := manager.NewWriteAtBuffer(nil)
 
+	_, err := downloader.Download(ctx, w, input)
 	if err != nil {
 		switch {
 		case IsA[*s3types.NoSuchBucket](err):
@@ -146,16 +144,9 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 		return nil, err
 	}
 
-	defer output.Body.Close()
-
-	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, output.Body); err != nil {
-		return nil, fmt.Errorf("Failed to read remote state: %s", err)
-	}
-
-	sum := md5.Sum(buf.Bytes())
+	sum := md5.Sum(w.Bytes())
 	payload := &remote.Payload{
-		Data: buf.Bytes(),
+		Data: w.Bytes(),
 		MD5:  sum[:],
 	}
 
