@@ -1693,6 +1693,7 @@ func TestBackendConfig_Authentication_AssumeRoleWithWebIdentity(t *testing.T) {
 			ExpectedCredentialsValue: mockdata.MockStsAssumeRoleWithWebIdentityCredentials,
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				servicemocks.MockStsAssumeRoleWithWebIdentityValidEndpoint,
+				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
 		},
 
@@ -1707,6 +1708,7 @@ func TestBackendConfig_Authentication_AssumeRoleWithWebIdentity(t *testing.T) {
 			ExpectedCredentialsValue: mockdata.MockStsAssumeRoleWithWebIdentityCredentials,
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				servicemocks.MockStsAssumeRoleWithWebIdentityValidEndpoint,
+				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
 		},
 
@@ -1722,6 +1724,7 @@ func TestBackendConfig_Authentication_AssumeRoleWithWebIdentity(t *testing.T) {
 			ExpectedCredentialsValue: mockdata.MockStsAssumeRoleWithWebIdentityCredentials,
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				servicemocks.MockStsAssumeRoleWithWebIdentityValidEndpoint,
+				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
 		},
 
@@ -1735,6 +1738,7 @@ func TestBackendConfig_Authentication_AssumeRoleWithWebIdentity(t *testing.T) {
 			ExpectedCredentialsValue:        mockdata.MockStsAssumeRoleWithWebIdentityCredentials,
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				servicemocks.MockStsAssumeRoleWithWebIdentityValidEndpoint,
+				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
 		},
 
@@ -1749,6 +1753,7 @@ role_session_name = %[2]s
 			ExpectedCredentialsValue:   mockdata.MockStsAssumeRoleWithWebIdentityCredentials,
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				servicemocks.MockStsAssumeRoleWithWebIdentityValidEndpoint,
+				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
 		},
 
@@ -1768,6 +1773,7 @@ role_session_name = %[2]s
 			ExpectedCredentialsValue: mockdata.MockStsAssumeRoleWithWebIdentityCredentials,
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				servicemocks.MockStsAssumeRoleWithWebIdentityValidEndpoint,
+				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
 		},
 
@@ -1782,6 +1788,7 @@ role_session_name = %[2]s
 		// 	ExpectedCredentialsValue:        mockdata.MockStsAssumeRoleWithWebIdentityCredentials,
 		// 	MockStsEndpoints: []*servicemocks.MockEndpoint{
 		// 		servicemocks.MockStsAssumeRoleWithWebIdentityValidEndpoint,
+		//      servicemocks.MockStsGetCallerIdentityValidEndpoint,
 		// 	},
 		// },
 
@@ -1801,6 +1808,7 @@ web_identity_token_file = no-such-file
 			ExpectedCredentialsValue: mockdata.MockStsAssumeRoleWithWebIdentityCredentials,
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				servicemocks.MockStsAssumeRoleWithWebIdentityValidEndpoint,
+				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
 		},
 
@@ -1821,6 +1829,7 @@ web_identity_token_file = no-such-file
 			ExpectedCredentialsValue: mockdata.MockStsAssumeRoleWithWebIdentityCredentials,
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				servicemocks.MockStsAssumeRoleWithWebIdentityValidEndpoint,
+				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
 		},
 
@@ -1836,6 +1845,7 @@ web_identity_token_file = no-such-file
 			ExpectedCredentialsValue: mockdata.MockStsAssumeRoleWithWebIdentityCredentials,
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				servicemocks.MockStsAssumeRoleWithWebIdentityValidWithOptions(map[string]string{"DurationSeconds": "3600"}),
+				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
 		},
 
@@ -1851,6 +1861,7 @@ web_identity_token_file = no-such-file
 			ExpectedCredentialsValue: mockdata.MockStsAssumeRoleWithWebIdentityCredentials,
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				servicemocks.MockStsAssumeRoleWithWebIdentityValidWithOptions(map[string]string{"Policy": "{}"}),
+				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
 		},
 
@@ -2181,6 +2192,15 @@ region = us-west-2
 					servicemocks.Ec2metadata_instanceIdentityEndpoint(tc.IMDSRegion),
 				))
 				defer closeEc2Metadata()
+			}
+
+			ts := servicemocks.MockAwsApiServer("STS", []*servicemocks.MockEndpoint{
+				servicemocks.MockStsGetCallerIdentityValidEndpoint,
+			})
+			defer ts.Close()
+
+			tc.config["endpoints"] = map[string]any{
+				"sts": ts.URL,
 			}
 
 			if tc.SharedConfigurationFile != "" {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	basediag "github.com/hashicorp/aws-sdk-go-base/v2/diag"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -38,4 +39,16 @@ func diagnosticsString(diags tfdiags.Diagnostics) string {
 		}
 	}
 	return buffer.String()
+}
+
+func baseSeverityToTerraformSeverity(s basediag.Severity) tfdiags.Severity {
+	switch s {
+	case basediag.SeverityWarning:
+		return tfdiags.Warning
+	case basediag.SeverityError:
+		return tfdiags.Error
+	default:
+		var zero tfdiags.Severity
+		return zero
+	}
 }
