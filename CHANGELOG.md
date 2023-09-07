@@ -1,4 +1,4 @@
-## 1.5.7 (Unreleased)
+## 1.5.7 (September 7, 2023)
 
 BUG FIXES:
 
