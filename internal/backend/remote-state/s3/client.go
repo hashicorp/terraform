@@ -133,11 +133,11 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 	if err != nil {
 		switch {
 		case IsA[*s3types.NoSuchBucket](err):
-			return nil, fmt.Errorf(errS3NoSuchBucket, err)
+			return nil, fmt.Errorf(errS3NoSuchBucket, c.bucketName, err)
 		case IsA[*s3types.NotFound](err):
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("Unable to access object %q in S3 bucket %q: %w", c.path, c.bucketName, err)
 	}
 
 	// Pre-allocate the full buffer to avoid re-allocations and GC
@@ -160,11 +160,11 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 	if err != nil {
 		switch {
 		case IsA[*s3types.NoSuchBucket](err):
-			return nil, fmt.Errorf(errS3NoSuchBucket, err)
+			return nil, fmt.Errorf(errS3NoSuchBucket, c.bucketName, err)
 		case IsA[*s3types.NoSuchKey](err):
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("Unable to access object %q in S3 bucket %q: %w", c.path, c.bucketName, err)
 	}
 
 	sum := md5.Sum(w.Bytes())
@@ -381,7 +381,7 @@ func (c *RemoteClient) getMD5(ctx context.Context) ([]byte, error) {
 
 	resp, err := c.dynClient.GetItem(ctx, getParams)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Unable to retrieve item from DynamoDB table %q: %w", c.ddbTable, err)
 	}
 
 	var val string
@@ -443,7 +443,7 @@ func (c *RemoteClient) deleteMD5(ctx context.Context) error {
 		TableName: aws.String(c.ddbTable),
 	}
 	if _, err := c.dynClient.DeleteItem(ctx, params); err != nil {
-		return err
+		return fmt.Errorf("Unable to delete item from DynamoDB table %q: %w", c.ddbTable, err)
 	}
 	return nil
 }
@@ -462,7 +462,7 @@ func (c *RemoteClient) getLockInfo(ctx context.Context) (*statemgr.LockInfo, err
 
 	resp, err := c.dynClient.GetItem(ctx, getParams)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Unable to retrieve item from DynamoDB table %q: %w", c.ddbTable, err)
 	}
 
 	var infoData string
@@ -508,7 +508,7 @@ to manually verify the remote state and update the Digest value stored in the
 DynamoDB table to the following value: %x
 `
 
-const errS3NoSuchBucket = `S3 bucket does not exist.
+const errS3NoSuchBucket = `S3 bucket %q does not exist.
 
 The referenced S3 bucket must have been previously created. If the S3 bucket
 was created within the last minute, please wait for a minute or two and try
