@@ -11,7 +11,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -20,10 +19,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	awsbase "github.com/hashicorp/aws-sdk-go-base/v2"
 	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
@@ -608,6 +605,7 @@ func formatDeprecations(attrs map[string]string) string {
 func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	ctx := context.TODO()
 	log := logger()
+	log = logWithOperation(log, operationBackendConfigure)
 
 	var diags tfdiags.Diagnostics
 	if obj.IsNull() {
@@ -1648,8 +1646,3 @@ func deprecatedEnvVarDiag(envvar, replacement string) tfdiags.Diagnostic {
 		fmt.Sprintf(`The environment variable "%s" is deprecated. Use environment variable "%s" instead.`, envvar, replacement),
 	)
 }
-
-var logger = sync.OnceValue(func() hclog.Logger {
-	l := logging.HCLogger()
-	return l.Named("backend-s3")
-})

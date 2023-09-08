@@ -1,7 +1,10 @@
 package s3
 
 import (
+	"sync"
+
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
@@ -18,6 +21,41 @@ const (
 	logKeyBackendLockVersion   = "tf_backend.lock.version"
 	logKeyBackendLockPath      = "tf_backend.lock.path"
 )
+
+const (
+	logKeyBackendOperation = "tf_backend.operation"
+)
+
+const (
+	operationBackendConfigSchema    = "ConfigSchema"
+	operationBackendPrepareConfig   = "PrepareConfig"
+	operationBackendConfigure       = "Configure"
+	operationBackendStateMgr        = "StateMgr"
+	operationBackendDeleteWorkspace = "DeleteWorkspace"
+	operationBackendWorkspaces      = "Workspaces"
+)
+
+const (
+	operationClientGet    = "Get"
+	operationClientPut    = "Put"
+	operationClientDelete = "Delete"
+)
+
+const (
+	operationLockerLock   = "Lock"
+	operationLockerUnlock = "Unlock"
+)
+
+var logger = sync.OnceValue(func() hclog.Logger {
+	l := logging.HCLogger()
+	return l.Named("backend-s3")
+})
+
+func logWithOperation(in hclog.Logger, operation string) hclog.Logger {
+	return in.With(
+		logKeyBackendOperation, operation,
+	)
+}
 
 func logWithLockInfo(in hclog.Logger, info *statemgr.LockInfo) hclog.Logger {
 	return in.With(

@@ -63,7 +63,8 @@ var testChecksumHook func()
 
 func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 	ctx := context.TODO()
-	log := c.logger()
+	log := c.logger(operationClientGet)
+
 	ctx, baselog := baselogging.NewHcLogger(ctx, log)
 	ctx = baselogging.RegisterLogger(ctx, baselog)
 
@@ -167,7 +168,7 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 
 func (c *RemoteClient) Put(data []byte) error {
 	ctx := context.TODO()
-	log := c.logger()
+	log := c.logger(operationClientPut)
 
 	ctx, baselog := baselogging.NewHcLogger(ctx, log)
 	ctx = baselogging.RegisterLogger(ctx, baselog)
@@ -220,7 +221,7 @@ func (c *RemoteClient) Put(data []byte) error {
 
 func (c *RemoteClient) Delete() error {
 	ctx := context.TODO()
-	log := c.logger()
+	log := c.logger(operationClientDelete)
 
 	ctx, baselog := baselogging.NewHcLogger(ctx, log)
 	ctx = baselogging.RegisterLogger(ctx, baselog)
@@ -247,7 +248,7 @@ func (c *RemoteClient) Delete() error {
 
 func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	ctx := context.TODO()
-	log := c.logger()
+	log := c.logger(operationLockerLock)
 
 	if c.ddbTable == "" {
 		return "", nil
@@ -302,7 +303,7 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 
 func (c *RemoteClient) Unlock(id string) error {
 	ctx := context.TODO()
-	log := c.logger()
+	log := c.logger(operationLockerUnlock)
 
 	log = logWithLockID(log, id)
 
@@ -476,12 +477,13 @@ func (c *RemoteClient) getSSECustomerKeyMD5() string {
 	return base64.StdEncoding.EncodeToString(b[:])
 }
 
-// logger returns the S3 backend logger configured with the client's bucket and path
-func (c *RemoteClient) logger() hclog.Logger {
-	return logger().With(
+// logger returns the S3 backend logger configured with the client's bucket and path and the operation
+func (c *RemoteClient) logger(operation string) hclog.Logger {
+	log := logger().With(
 		logKeyBucket, c.bucketName,
 		logKeyPath, c.path,
 	)
+	return logWithOperation(log, operation)
 }
 
 const errBadChecksumFmt = `state data in S3 does not have the expected content.
