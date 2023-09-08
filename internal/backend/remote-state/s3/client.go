@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
+	"github.com/hashicorp/go-hclog"
 	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/internal/states/remote"
@@ -62,11 +63,7 @@ var testChecksumHook func()
 
 func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 	ctx := context.TODO()
-	log := logger()
-	log = log.With(
-		"tf_backend_s3.bucket", c.bucketName,
-		"tf_backend_s3.path", c.path,
-	)
+	log := c.logger()
 	ctx, baselog := baselogging.NewHcLogger(ctx, log)
 	ctx = baselogging.RegisterLogger(ctx, baselog)
 
@@ -170,11 +167,7 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 
 func (c *RemoteClient) Put(data []byte) error {
 	ctx := context.TODO()
-	log := logger()
-	log = log.With(
-		"tf_backend_s3.bucket", c.bucketName,
-		"tf_backend_s3.path", c.path,
-	)
+	log := c.logger()
 	ctx, baselog := baselogging.NewHcLogger(ctx, log)
 	ctx = baselogging.RegisterLogger(ctx, baselog)
 
@@ -226,11 +219,7 @@ func (c *RemoteClient) Put(data []byte) error {
 
 func (c *RemoteClient) Delete() error {
 	ctx := context.TODO()
-	log := logger()
-	log = log.With(
-		"tf_backend_s3.bucket", c.bucketName,
-		"tf_backend_s3.path", c.path,
-	)
+	log := c.logger()
 	ctx, baselog := baselogging.NewHcLogger(ctx, log)
 	ctx = baselogging.RegisterLogger(ctx, baselog)
 
@@ -466,6 +455,14 @@ func (c *RemoteClient) lockPath() string {
 func (c *RemoteClient) getSSECustomerKeyMD5() string {
 	b := md5.Sum(c.customerEncryptionKey)
 	return base64.StdEncoding.EncodeToString(b[:])
+}
+
+// logger returns the S3 backend logger configured with the client's bucket and path
+func (c *RemoteClient) logger() hclog.Logger {
+	return logger().With(
+		"tf_backend_s3.bucket", c.bucketName,
+		"tf_backend_s3.path", c.path,
+	)
 }
 
 const errBadChecksumFmt = `state data in S3 does not have the expected content.
