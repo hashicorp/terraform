@@ -124,7 +124,7 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 		case IsA[*s3types.NotFound](err):
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("Unable to access object %q in S3 bucket %q: %w", c.path, c.bucketName, err)
 	}
 
 	// Pre-allocate the full buffer to avoid re-allocations and GC
@@ -151,7 +151,7 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 		case IsA[*s3types.NoSuchKey](err):
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("Unable to access object %q in S3 bucket %q: %w", c.path, c.bucketName, err)
 	}
 
 	sum := md5.Sum(w.Bytes())
