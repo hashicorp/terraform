@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	awsbase "github.com/hashicorp/aws-sdk-go-base/v2"
 	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -962,6 +963,24 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 			opts.UsePathStyle = v
 		}
 	})
+
+	_, err = b.s3Client.HeadBucket(ctx, &s3.HeadBucketInput{
+		Bucket: aws.String(b.bucketName),
+	})
+	if err != nil {
+		switch {
+		case IsA[*s3types.NoSuchBucket](err):
+			diags = append(diags, noSuchBucketDiag(b.bucketName, err))
+		case IsA[*s3types.NotFound](err):
+			diags = append(diags, noSuchBucketDiag(b.bucketName, err))
+		default:
+			diags = append(diags, tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unable to access S3 bucket",
+				fmt.Sprintf("The S3 bucket %q could not be accessed: %s", b.bucketName, err),
+			))
+		}
+	}
 
 	return diags
 }

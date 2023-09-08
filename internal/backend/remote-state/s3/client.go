@@ -27,6 +27,7 @@ import (
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const (
@@ -133,7 +134,7 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 	if err != nil {
 		switch {
 		case IsA[*s3types.NoSuchBucket](err):
-			return nil, fmt.Errorf(errS3NoSuchBucket, c.bucketName, err)
+			return nil, noSuchBucketErr(c.bucketName, err)
 		case IsA[*s3types.NotFound](err):
 			return nil, nil
 		}
@@ -160,7 +161,7 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 	if err != nil {
 		switch {
 		case IsA[*s3types.NoSuchBucket](err):
-			return nil, fmt.Errorf(errS3NoSuchBucket, c.bucketName, err)
+			return nil, noSuchBucketErr(c.bucketName, err)
 		case IsA[*s3types.NoSuchKey](err):
 			return nil, nil
 		}
@@ -508,9 +509,24 @@ to manually verify the remote state and update the Digest value stored in the
 DynamoDB table to the following value: %x
 `
 
-const errS3NoSuchBucket = `S3 bucket %q does not exist.
+func noSuchBucketErr(name string, err error) error {
+	return fmt.Errorf(
+		noSuchBucketSummary+"\n\n"+noSuchBucketDetail,
+		name, err,
+	)
+}
 
-The referenced S3 bucket must have been previously created. If the S3 bucket
+func noSuchBucketDiag(name string, err error) tfdiags.Diagnostic {
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		noSuchBucketSummary,
+		fmt.Sprintf(noSuchBucketDetail, name, err),
+	)
+}
+
+const noSuchBucketSummary = "S3 bucket not found"
+
+const noSuchBucketDetail = `The S3 bucket %q must have been previously created. If the S3 bucket
 was created within the last minute, please wait for a minute or two and try
 again.
 
