@@ -412,31 +412,47 @@ func TestTestHuman_Conclusion(t *testing.T) {
 func TestTestHuman_File(t *testing.T) {
 	tcs := map[string]struct {
 		File     *moduletest.File
+		Progress moduletest.Progress
 		Expected string
 	}{
 		"pass": {
 			File:     &moduletest.File{Name: "main.tf", Status: moduletest.Pass},
+			Progress: moduletest.Complete,
 			Expected: "main.tf... pass\n",
 		},
 
 		"pending": {
 			File:     &moduletest.File{Name: "main.tf", Status: moduletest.Pending},
+			Progress: moduletest.Complete,
 			Expected: "main.tf... pending\n",
 		},
 
 		"skip": {
 			File:     &moduletest.File{Name: "main.tf", Status: moduletest.Skip},
+			Progress: moduletest.Complete,
 			Expected: "main.tf... skip\n",
 		},
 
 		"fail": {
 			File:     &moduletest.File{Name: "main.tf", Status: moduletest.Fail},
+			Progress: moduletest.Complete,
 			Expected: "main.tf... fail\n",
 		},
 
 		"error": {
 			File:     &moduletest.File{Name: "main.tf", Status: moduletest.Error},
+			Progress: moduletest.Complete,
 			Expected: "main.tf... fail\n",
+		},
+		"starting": {
+			File:     &moduletest.File{Name: "main.tftest.hcl", Status: moduletest.Pending},
+			Progress: moduletest.Starting,
+			Expected: "main.tftest.hcl... in progress\n",
+		},
+		"tear_down": {
+			File:     &moduletest.File{Name: "main.tftest.hcl", Status: moduletest.Pending},
+			Progress: moduletest.TearDown,
+			Expected: "main.tftest.hcl... tearing down\n",
 		},
 	}
 	for name, tc := range tcs {
@@ -445,7 +461,7 @@ func TestTestHuman_File(t *testing.T) {
 			streams, done := terminal.StreamsForTesting(t)
 			view := NewTest(arguments.ViewHuman, NewView(streams))
 
-			view.File(tc.File)
+			view.File(tc.File, tc.Progress)
 
 			actual := done(t).Stdout()
 			expected := tc.Expected
@@ -478,6 +494,7 @@ func TestTestHuman_Run(t *testing.T) {
 Warning: a warning occurred
 
 some warning happened during this test
+
 `,
 		},
 
@@ -627,6 +644,7 @@ Terraform will perform the following actions:
     }
 
 Plan: 1 to add, 0 to change, 0 to destroy.
+
 `,
 		},
 		"verbose_apply": {
@@ -685,10 +703,12 @@ Plan: 1 to add, 0 to change, 0 to destroy.
 				},
 			},
 			StdOut: `  run "run_block"... pass
+
 # test_resource.creating:
 resource "test_resource" "creating" {
     value = "foobar"
 }
+
 `,
 		},
 	}
@@ -2181,11 +2201,13 @@ func TestTestJSON_DestroySummary(t *testing.T) {
 
 func TestTestJSON_File(t *testing.T) {
 	tcs := map[string]struct {
-		file *moduletest.File
-		want []map[string]interface{}
+		file     *moduletest.File
+		progress moduletest.Progress
+		want     []map[string]interface{}
 	}{
 		"pass": {
-			file: &moduletest.File{Name: "main.tf", Status: moduletest.Pass},
+			file:     &moduletest.File{Name: "main.tf", Status: moduletest.Pass},
+			progress: moduletest.Complete,
 			want: []map[string]interface{}{
 				{
 					"@level":    "info",
@@ -2193,8 +2215,9 @@ func TestTestJSON_File(t *testing.T) {
 					"@module":   "terraform.ui",
 					"@testfile": "main.tf",
 					"test_file": map[string]interface{}{
-						"path":   "main.tf",
-						"status": "pass",
+						"path":     "main.tf",
+						"progress": "complete",
+						"status":   "pass",
 					},
 					"type": "test_file",
 				},
@@ -2202,7 +2225,8 @@ func TestTestJSON_File(t *testing.T) {
 		},
 
 		"pending": {
-			file: &moduletest.File{Name: "main.tf", Status: moduletest.Pending},
+			file:     &moduletest.File{Name: "main.tf", Status: moduletest.Pending},
+			progress: moduletest.Complete,
 			want: []map[string]interface{}{
 				{
 					"@level":    "info",
@@ -2210,8 +2234,9 @@ func TestTestJSON_File(t *testing.T) {
 					"@module":   "terraform.ui",
 					"@testfile": "main.tf",
 					"test_file": map[string]interface{}{
-						"path":   "main.tf",
-						"status": "pending",
+						"path":     "main.tf",
+						"progress": "complete",
+						"status":   "pending",
 					},
 					"type": "test_file",
 				},
@@ -2219,7 +2244,8 @@ func TestTestJSON_File(t *testing.T) {
 		},
 
 		"skip": {
-			file: &moduletest.File{Name: "main.tf", Status: moduletest.Skip},
+			file:     &moduletest.File{Name: "main.tf", Status: moduletest.Skip},
+			progress: moduletest.Complete,
 			want: []map[string]interface{}{
 				{
 					"@level":    "info",
@@ -2227,8 +2253,9 @@ func TestTestJSON_File(t *testing.T) {
 					"@module":   "terraform.ui",
 					"@testfile": "main.tf",
 					"test_file": map[string]interface{}{
-						"path":   "main.tf",
-						"status": "skip",
+						"path":     "main.tf",
+						"progress": "complete",
+						"status":   "skip",
 					},
 					"type": "test_file",
 				},
@@ -2236,7 +2263,8 @@ func TestTestJSON_File(t *testing.T) {
 		},
 
 		"fail": {
-			file: &moduletest.File{Name: "main.tf", Status: moduletest.Fail},
+			file:     &moduletest.File{Name: "main.tf", Status: moduletest.Fail},
+			progress: moduletest.Complete,
 			want: []map[string]interface{}{
 				{
 					"@level":    "info",
@@ -2244,8 +2272,9 @@ func TestTestJSON_File(t *testing.T) {
 					"@module":   "terraform.ui",
 					"@testfile": "main.tf",
 					"test_file": map[string]interface{}{
-						"path":   "main.tf",
-						"status": "fail",
+						"path":     "main.tf",
+						"progress": "complete",
+						"status":   "fail",
 					},
 					"type": "test_file",
 				},
@@ -2253,7 +2282,8 @@ func TestTestJSON_File(t *testing.T) {
 		},
 
 		"error": {
-			file: &moduletest.File{Name: "main.tf", Status: moduletest.Error},
+			file:     &moduletest.File{Name: "main.tf", Status: moduletest.Error},
+			progress: moduletest.Complete,
 			want: []map[string]interface{}{
 				{
 					"@level":    "info",
@@ -2261,8 +2291,45 @@ func TestTestJSON_File(t *testing.T) {
 					"@module":   "terraform.ui",
 					"@testfile": "main.tf",
 					"test_file": map[string]interface{}{
-						"path":   "main.tf",
-						"status": "error",
+						"path":     "main.tf",
+						"progress": "complete",
+						"status":   "error",
+					},
+					"type": "test_file",
+				},
+			},
+		},
+
+		"starting": {
+			file:     &moduletest.File{Name: "main.tftest.hcl", Status: moduletest.Pending},
+			progress: moduletest.Starting,
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "main.tftest.hcl... in progress",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest.hcl",
+					"test_file": map[string]interface{}{
+						"path":     "main.tftest.hcl",
+						"progress": "starting",
+					},
+					"type": "test_file",
+				},
+			},
+		},
+
+		"tear_down": {
+			file:     &moduletest.File{Name: "main.tftest.hcl", Status: moduletest.Pending},
+			progress: moduletest.TearDown,
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "main.tftest.hcl... tearing down",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest.hcl",
+					"test_file": map[string]interface{}{
+						"path":     "main.tftest.hcl",
+						"progress": "teardown",
 					},
 					"type": "test_file",
 				},
@@ -2274,7 +2341,7 @@ func TestTestJSON_File(t *testing.T) {
 			streams, done := terminal.StreamsForTesting(t)
 			view := NewTest(arguments.ViewJSON, NewView(streams))
 
-			view.File(tc.file)
+			view.File(tc.file, tc.progress)
 			testJSONViewOutputEquals(t, done(t).All(), tc.want)
 		})
 	}
