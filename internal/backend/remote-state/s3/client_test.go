@@ -23,7 +23,7 @@ func TestRemoteClient_impl(t *testing.T) {
 	var _ remote.ClientLocker = new(RemoteClient)
 }
 
-func TestRemoteClient(t *testing.T) {
+func TestRemoteClientBasic(t *testing.T) {
 	testACC(t)
 
 	ctx := context.TODO()
