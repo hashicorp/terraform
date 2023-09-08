@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
@@ -23,14 +24,17 @@ const (
 )
 
 const (
-	logKeyBackendOperation = "tf_backend.operation"
+	logKeyBackendOperation       = "tf_backend.operation"
+	logKeyBackendRequestId       = "tf_backend.req_id" // Using "req_id" to match pattern for provider logging
+	logKeyBackendWorkspace       = "tf_backend.workspace"
+	logKeyBackendWorkspacePrefix = "tf_backend.workspace-prefix"
 )
 
 const (
-	operationBackendConfigSchema    = "ConfigSchema"
-	operationBackendPrepareConfig   = "PrepareConfig"
-	operationBackendConfigure       = "Configure"
-	operationBackendStateMgr        = "StateMgr"
+	// operationBackendConfigSchema    = "ConfigSchema"
+	// operationBackendPrepareConfig   = "PrepareConfig"
+	operationBackendConfigure = "Configure"
+	// operationBackendStateMgr        = "StateMgr"
 	operationBackendDeleteWorkspace = "DeleteWorkspace"
 	operationBackendWorkspaces      = "Workspaces"
 )
