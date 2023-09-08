@@ -21,6 +21,8 @@ import (
 	dynamodbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
+	"github.com/hashicorp/go-hclog"
 	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/internal/states/remote"
@@ -61,6 +63,12 @@ var testChecksumHook func()
 
 func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 	ctx := context.TODO()
+	log := c.logger(operationClientGet)
+
+	ctx, baselog := baselogging.NewHcLogger(ctx, log)
+	ctx = baselogging.RegisterLogger(ctx, baselog)
+
+	log.Info("Downloading remote state")
 
 	deadline := time.Now().Add(consistencyRetryTimeout)
 
@@ -82,9 +90,14 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 
 		// verify that this state is what we expect
 		if expected, err := c.getMD5(ctx); err != nil {
-			log.Printf("[WARN] failed to fetch state md5: %s", err)
+			log.Warn("failed to fetch state MD5",
+				"error", err,
+			)
 		} else if len(expected) > 0 && !bytes.Equal(expected, digest) {
-			log.Printf("[WARN] state md5 mismatch: expected '%x', got '%x'", expected, digest)
+			log.Warn("state MD5 mismatch",
+				"expected", expected,
+				"actual", digest,
+			)
 
 			if testChecksumHook != nil {
 				testChecksumHook()
@@ -92,7 +105,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 
 			if time.Now().Before(deadline) {
 				time.Sleep(consistencyRetryPollInterval)
-				log.Println("[INFO] retrying S3 RemoteClient.Get...")
+				log.Info("retrying S3 RemoteClient.Get")
 				continue
 			}
 
@@ -155,6 +168,10 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 
 func (c *RemoteClient) Put(data []byte) error {
 	ctx := context.TODO()
+	log := c.logger(operationClientPut)
+
+	ctx, baselog := baselogging.NewHcLogger(ctx, log)
+	ctx = baselogging.RegisterLogger(ctx, baselog)
 
 	contentType := "application/json"
 	contentLength := int64(len(data))
@@ -184,7 +201,7 @@ func (c *RemoteClient) Put(data []byte) error {
 		i.ACL = s3types.ObjectCannedACL(c.acl)
 	}
 
-	log.Printf("[DEBUG] Uploading remote state to S3: %#v", i)
+	log.Info("Uploading remote state")
 
 	_, err := c.s3Client.PutObject(ctx, i)
 	if err != nil {
@@ -204,6 +221,12 @@ func (c *RemoteClient) Put(data []byte) error {
 
 func (c *RemoteClient) Delete() error {
 	ctx := context.TODO()
+	log := c.logger(operationClientDelete)
+
+	ctx, baselog := baselogging.NewHcLogger(ctx, log)
+	ctx = baselogging.RegisterLogger(ctx, baselog)
+
+	log.Info("Deleting remote state")
 
 	_, err := c.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: &c.bucketName,
@@ -215,7 +238,9 @@ func (c *RemoteClient) Delete() error {
 	}
 
 	if err := c.deleteMD5(ctx); err != nil {
-		log.Printf("error deleting state md5: %s", err)
+		log.Error("deleting state MD5",
+			"error", err,
+		)
 	}
 
 	return nil
@@ -223,6 +248,7 @@ func (c *RemoteClient) Delete() error {
 
 func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	ctx := context.TODO()
+	log := c.logger(operationLockerLock)
 
 	if c.ddbTable == "" {
 		return "", nil
@@ -238,6 +264,12 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 
 		info.ID = lockID
 	}
+
+	log = logWithLockInfo(log, info)
+	ctx, baselog := baselogging.NewHcLogger(ctx, log)
+	ctx = baselogging.RegisterLogger(ctx, baselog)
+
+	log.Info("Locking remote state")
 
 	putParams := &dynamodb.PutItemInput{
 		Item: map[string]dynamodbtypes.AttributeValue{
@@ -267,6 +299,55 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	}
 
 	return info.ID, nil
+}
+
+func (c *RemoteClient) Unlock(id string) error {
+	ctx := context.TODO()
+	log := c.logger(operationLockerUnlock)
+
+	log = logWithLockID(log, id)
+
+	ctx, baselog := baselogging.NewHcLogger(ctx, log)
+	ctx = baselogging.RegisterLogger(ctx, baselog)
+
+	if c.ddbTable == "" {
+		return nil
+	}
+
+	lockErr := &statemgr.LockError{}
+
+	log.Info("Unlocking remote state")
+
+	// TODO: store the path and lock ID in separate fields, and have proper
+	// projection expression only delete the lock if both match, rather than
+	// checking the ID from the info field first.
+	lockInfo, err := c.getLockInfo(ctx)
+	if err != nil {
+		lockErr.Err = fmt.Errorf("failed to retrieve lock info for lock ID %q: %s", id, err)
+		return lockErr
+	}
+	lockErr.Info = lockInfo
+
+	if lockInfo.ID != id {
+		lockErr.Err = fmt.Errorf("lock ID %q does not match existing lock (%q)", id, lockInfo.ID)
+		return lockErr
+	}
+
+	params := &dynamodb.DeleteItemInput{
+		Key: map[string]dynamodbtypes.AttributeValue{
+			"LockID": &dynamodbtypes.AttributeValueMemberS{
+				Value: c.lockPath(),
+			},
+		},
+		TableName: aws.String(c.ddbTable),
+	}
+	_, err = c.dynClient.DeleteItem(ctx, params)
+
+	if err != nil {
+		lockErr.Err = err
+		return lockErr
+	}
+	return nil
 }
 
 func (c *RemoteClient) getMD5(ctx context.Context) ([]byte, error) {
@@ -387,47 +468,6 @@ func (c *RemoteClient) getLockInfo(ctx context.Context) (*statemgr.LockInfo, err
 	return lockInfo, nil
 }
 
-func (c *RemoteClient) Unlock(id string) error {
-	ctx := context.TODO()
-
-	if c.ddbTable == "" {
-		return nil
-	}
-
-	lockErr := &statemgr.LockError{}
-
-	// TODO: store the path and lock ID in separate fields, and have proper
-	// projection expression only delete the lock if both match, rather than
-	// checking the ID from the info field first.
-	lockInfo, err := c.getLockInfo(ctx)
-	if err != nil {
-		lockErr.Err = fmt.Errorf("failed to retrieve lock info: %s", err)
-		return lockErr
-	}
-	lockErr.Info = lockInfo
-
-	if lockInfo.ID != id {
-		lockErr.Err = fmt.Errorf("lock id %q does not match existing lock", id)
-		return lockErr
-	}
-
-	params := &dynamodb.DeleteItemInput{
-		Key: map[string]dynamodbtypes.AttributeValue{
-			"LockID": &dynamodbtypes.AttributeValueMemberS{
-				Value: c.lockPath(),
-			},
-		},
-		TableName: aws.String(c.ddbTable),
-	}
-	_, err = c.dynClient.DeleteItem(ctx, params)
-
-	if err != nil {
-		lockErr.Err = err
-		return lockErr
-	}
-	return nil
-}
-
 func (c *RemoteClient) lockPath() string {
 	return fmt.Sprintf("%s/%s", c.bucketName, c.path)
 }
@@ -435,6 +475,15 @@ func (c *RemoteClient) lockPath() string {
 func (c *RemoteClient) getSSECustomerKeyMD5() string {
 	b := md5.Sum(c.customerEncryptionKey)
 	return base64.StdEncoding.EncodeToString(b[:])
+}
+
+// logger returns the S3 backend logger configured with the client's bucket and path and the operation
+func (c *RemoteClient) logger(operation string) hclog.Logger {
+	log := logger().With(
+		logKeyBucket, c.bucketName,
+		logKeyPath, c.path,
+	)
+	return logWithOperation(log, operation)
 }
 
 const errBadChecksumFmt = `state data in S3 does not have the expected content.

@@ -1328,7 +1328,7 @@ func TestBackendConfig_PrepareConfigWithEnvVars(t *testing.T) {
 	}
 }
 
-func TestBackend(t *testing.T) {
+func TestBackendBasic(t *testing.T) {
 	testACC(t)
 
 	ctx := context.TODO()
