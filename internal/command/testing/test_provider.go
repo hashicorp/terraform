@@ -36,6 +36,7 @@ var (
 						"id":              {Type: cty.String, Optional: true, Computed: true},
 						"value":           {Type: cty.String, Optional: true},
 						"interrupt_count": {Type: cty.Number, Optional: true},
+						"destroy_fail":    {Type: cty.Bool, Optional: true, Computed: true},
 					},
 				},
 			},
@@ -47,6 +48,7 @@ var (
 						"id":              {Type: cty.String, Required: true},
 						"value":           {Type: cty.String, Computed: true},
 						"interrupt_count": {Type: cty.Number, Computed: true},
+						"destroy_fail":    {Type: cty.Bool, Computed: true},
 					},
 				},
 			},
@@ -193,6 +195,12 @@ func (provider *TestProvider) PlanResourceChange(request providers.PlanResourceC
 		resource = cty.ObjectVal(vals)
 	}
 
+	if destryFail := resource.GetAttr("destroy_fail"); !destryFail.IsKnown() || destryFail.IsNull() {
+		vals := resource.AsValueMap()
+		vals["destroy_fail"] = cty.UnknownVal(cty.Bool)
+		resource = cty.ObjectVal(vals)
+	}
+
 	return providers.PlanResourceChangeResponse{
 		PlannedState: resource,
 	}
@@ -201,6 +209,15 @@ func (provider *TestProvider) PlanResourceChange(request providers.PlanResourceC
 func (provider *TestProvider) ApplyResourceChange(request providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 	if request.PlannedState.IsNull() {
 		// Then this is a delete operation.
+
+		if destroyFail := request.PriorState.GetAttr("destroy_fail"); destroyFail.IsKnown() && destroyFail.True() {
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to destroy resource", "destroy_fail is set to true"))
+			return providers.ApplyResourceChangeResponse{
+				Diagnostics: diags,
+			}
+		}
+
 		provider.Store.Delete(provider.GetResourceKey(request.PriorState.GetAttr("id").AsString()))
 		return providers.ApplyResourceChangeResponse{
 			NewState: request.PlannedState,
@@ -222,8 +239,7 @@ func (provider *TestProvider) ApplyResourceChange(request providers.ApplyResourc
 		resource = cty.ObjectVal(vals)
 	}
 
-	interrupts := resource.GetAttr("interrupt_count")
-	if !interrupts.IsNull() && interrupts.IsKnown() && provider.Interrupt != nil {
+	if interrupts := resource.GetAttr("interrupt_count"); !interrupts.IsNull() && interrupts.IsKnown() && provider.Interrupt != nil {
 		count, _ := interrupts.AsBigFloat().Int64()
 		for ix := 0; ix < int(count); ix++ {
 			provider.Interrupt <- struct{}{}
@@ -233,6 +249,12 @@ func (provider *TestProvider) ApplyResourceChange(request providers.ApplyResourc
 		// Terraform before the provider finishes. This is an attempt to ensure
 		// the output of any tests that rely on this behaviour is deterministic.
 		time.Sleep(time.Second)
+	}
+
+	if destroyFail := resource.GetAttr("destroy_fail"); !destroyFail.IsKnown() {
+		vals := resource.AsValueMap()
+		vals["destroy_fail"] = cty.False
+		resource = cty.ObjectVal(vals)
 	}
 
 	provider.Store.Put(provider.GetResourceKey(id.AsString()), resource)
