@@ -437,7 +437,7 @@ func testServerWithSnapshotsEnabled(t *testing.T, enabled bool) *httptest.Server
 			t.Fatal(err)
 		}
 
-		w.Header().Set("content-type", "application/json")
+		w.Header().Set("content-type", tfe.ContentTypeJSONAPI)
 		w.Header().Set("content-length", strconv.FormatInt(int64(len(fakeBodyRaw)), 10))
 
 		switch r.Method {
