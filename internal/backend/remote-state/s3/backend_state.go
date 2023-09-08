@@ -60,7 +60,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 			if IsA[*s3types.NoSuchBucket](err) {
 				return nil, fmt.Errorf(errS3NoSuchBucket, b.bucketName, err)
 			}
-			return nil, err
+			return nil, fmt.Errorf("Unable to list objects in S3 bucket %q: %w", b.bucketName, err)
 		}
 
 		for _, obj := range page.Contents {
