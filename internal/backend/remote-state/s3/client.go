@@ -120,7 +120,7 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 	if err != nil {
 		switch {
 		case IsA[*s3types.NoSuchBucket](err):
-			return nil, fmt.Errorf(errS3NoSuchBucket, err)
+			return nil, fmt.Errorf(errS3NoSuchBucket, c.bucketName, err)
 		case IsA[*s3types.NotFound](err):
 			return nil, nil
 		}
@@ -147,7 +147,7 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 	if err != nil {
 		switch {
 		case IsA[*s3types.NoSuchBucket](err):
-			return nil, fmt.Errorf(errS3NoSuchBucket, err)
+			return nil, fmt.Errorf(errS3NoSuchBucket, c.bucketName, err)
 		case IsA[*s3types.NoSuchKey](err):
 			return nil, nil
 		}
@@ -459,7 +459,7 @@ to manually verify the remote state and update the Digest value stored in the
 DynamoDB table to the following value: %x
 `
 
-const errS3NoSuchBucket = `S3 bucket does not exist.
+const errS3NoSuchBucket = `S3 bucket %q does not exist.
 
 The referenced S3 bucket must have been previously created. If the S3 bucket
 was created within the last minute, please wait for a minute or two and try

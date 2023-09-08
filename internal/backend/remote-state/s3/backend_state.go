@@ -45,7 +45,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 		page, err := pages.NextPage(ctx)
 		if err != nil {
 			if IsA[*s3types.NoSuchBucket](err) {
-				return nil, fmt.Errorf(errS3NoSuchBucket, err)
+				return nil, fmt.Errorf(errS3NoSuchBucket, b.bucketName, err)
 			}
 			return nil, err
 		}
