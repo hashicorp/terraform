@@ -21,6 +21,7 @@ import (
 	dynamodbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
 	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/internal/states/remote"
@@ -61,6 +62,15 @@ var testChecksumHook func()
 
 func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 	ctx := context.TODO()
+	log := logger()
+	log = log.With(
+		"tf_backend_s3.bucket", c.bucketName,
+		"tf_backend_s3.path", c.path,
+	)
+	ctx, baselog := baselogging.NewHcLogger(ctx, log)
+	ctx = baselogging.RegisterLogger(ctx, baselog)
+
+	log.Info("Downloading remote state")
 
 	deadline := time.Now().Add(consistencyRetryTimeout)
 
@@ -82,9 +92,14 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 
 		// verify that this state is what we expect
 		if expected, err := c.getMD5(ctx); err != nil {
-			log.Printf("[WARN] failed to fetch state md5: %s", err)
+			log.Warn("failed to fetch state MD5",
+				"error", err,
+			)
 		} else if len(expected) > 0 && !bytes.Equal(expected, digest) {
-			log.Printf("[WARN] state md5 mismatch: expected '%x', got '%x'", expected, digest)
+			log.Warn("state MD5 mismatch",
+				"expected", expected,
+				"actual", digest,
+			)
 
 			if testChecksumHook != nil {
 				testChecksumHook()
@@ -92,7 +107,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 
 			if time.Now().Before(deadline) {
 				time.Sleep(consistencyRetryPollInterval)
-				log.Println("[INFO] retrying S3 RemoteClient.Get...")
+				log.Info("retrying S3 RemoteClient.Get")
 				continue
 			}
 
@@ -155,6 +170,13 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 
 func (c *RemoteClient) Put(data []byte) error {
 	ctx := context.TODO()
+	log := logger()
+	log = log.With(
+		"tf_backend_s3.bucket", c.bucketName,
+		"tf_backend_s3.path", c.path,
+	)
+	ctx, baselog := baselogging.NewHcLogger(ctx, log)
+	ctx = baselogging.RegisterLogger(ctx, baselog)
 
 	contentType := "application/json"
 	contentLength := int64(len(data))
@@ -184,7 +206,7 @@ func (c *RemoteClient) Put(data []byte) error {
 		i.ACL = s3types.ObjectCannedACL(c.acl)
 	}
 
-	log.Printf("[DEBUG] Uploading remote state to S3: %#v", i)
+	log.Info("Uploading remote state")
 
 	_, err := c.s3Client.PutObject(ctx, i)
 	if err != nil {
@@ -204,6 +226,13 @@ func (c *RemoteClient) Put(data []byte) error {
 
 func (c *RemoteClient) Delete() error {
 	ctx := context.TODO()
+	log := logger()
+	log = log.With(
+		"tf_backend_s3.bucket", c.bucketName,
+		"tf_backend_s3.path", c.path,
+	)
+	ctx, baselog := baselogging.NewHcLogger(ctx, log)
+	ctx = baselogging.RegisterLogger(ctx, baselog)
 
 	_, err := c.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: &c.bucketName,
@@ -215,7 +244,9 @@ func (c *RemoteClient) Delete() error {
 	}
 
 	if err := c.deleteMD5(ctx); err != nil {
-		log.Printf("error deleting state md5: %s", err)
+		log.Error("deleting state MD5",
+			"error", err,
+		)
 	}
 
 	return nil

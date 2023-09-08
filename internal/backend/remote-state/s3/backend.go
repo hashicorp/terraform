@@ -607,6 +607,7 @@ func formatDeprecations(attrs map[string]string) string {
 // via PrepareConfig.
 func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	ctx := context.TODO()
+	log := logger()
 
 	var diags tfdiags.Diagnostics
 	if obj.IsNull() {
@@ -632,6 +633,12 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	b.bucketName = stringAttr(obj, "bucket")
 	b.keyName = stringAttr(obj, "key")
+
+	log = log.With(
+		"tf_backend_s3.bucket", b.bucketName,
+		"tf_backend_s3.path", b.path,
+	)
+
 	b.acl = stringAttr(obj, "acl")
 	b.workspaceKeyPrefix = stringAttrDefault(obj, "workspace_key_prefix", "env:")
 	b.serverSideEncryption = boolAttr(obj, "encrypt")
@@ -697,8 +704,6 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 			diags = diags.Append(deprecatedEnvVarDiag(envvar, replacement))
 		}
 	}
-
-	log := logger()
 
 	ctx, baselog := baselogging.NewHcLogger(ctx, log)
 
