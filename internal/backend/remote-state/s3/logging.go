@@ -56,9 +56,16 @@ var logger = sync.OnceValue(func() hclog.Logger {
 })
 
 func logWithOperation(in hclog.Logger, operation string) hclog.Logger {
-	return in.With(
+	log := in.With(
 		logKeyBackendOperation, operation,
 	)
+	if id, err := uuid.GenerateUUID(); err == nil {
+		log = log.With(
+			logKeyBackendRequestId, id,
+		)
+
+	}
+	return log
 }
 
 func logWithLockInfo(in hclog.Logger, info *statemgr.LockInfo) hclog.Logger {
