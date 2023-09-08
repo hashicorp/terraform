@@ -476,8 +476,10 @@ func TestTest_CatchesErrorsBeforeDestroy(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expectedOut := `main.tftest.hcl... fail
+	expectedOut := `main.tftest.hcl... in progress
   run "test"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
 
 Failure! 0 passed, 1 failed.
 `
@@ -531,7 +533,7 @@ func TestTest_Verbose(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expected := `main.tftest.hcl... pass
+	expected := `main.tftest.hcl... in progress
   run "validate_test_resource"... pass
 
 Terraform used the selected providers to generate the following execution
@@ -547,12 +549,17 @@ Terraform will perform the following actions:
     }
 
 Plan: 1 to add, 0 to change, 0 to destroy.
+
   run "validate_test_resource"... pass
+
 # test_resource.foo:
 resource "test_resource" "foo" {
     id    = "constant_value"
     value = "bar"
 }
+
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
 
 Success! 2 passed, 0 failed.
 `
@@ -574,8 +581,10 @@ func TestTest_ValidatesBeforeExecution(t *testing.T) {
 		expectedErr string
 	}{
 		"invalid": {
-			expectedOut: `main.tftest.hcl... fail
+			expectedOut: `main.tftest.hcl... in progress
   run "invalid"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
 
 Failure! 0 passed, 1 failed.
 `,
@@ -591,9 +600,11 @@ managed resources and data sources.
 `,
 		},
 		"invalid-module": {
-			expectedOut: `main.tftest.hcl... fail
+			expectedOut: `main.tftest.hcl... in progress
   run "invalid"... fail
   run "test"... skip
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
 
 Failure! 0 passed, 1 failed, 1 skipped.
 `,
@@ -608,8 +619,10 @@ variable can be declared with a variable "not_real" {} block.
 `,
 		},
 		"missing-provider": {
-			expectedOut: `main.tftest.hcl... fail
+			expectedOut: `main.tftest.hcl... in progress
   run "passes_validation"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
 
 Failure! 0 passed, 1 failed.
 `,
@@ -625,8 +638,10 @@ can remove the provider configuration again.
 `,
 		},
 		"missing-provider-in-run-block": {
-			expectedOut: `main.tftest.hcl... fail
+			expectedOut: `main.tftest.hcl... in progress
   run "passes_validation"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
 
 Failure! 0 passed, 1 failed.
 `,
@@ -642,9 +657,11 @@ can remove the provider configuration again.
 `,
 		},
 		"missing-provider-in-test-module": {
-			expectedOut: `main.tftest.hcl... fail
+			expectedOut: `main.tftest.hcl... in progress
   run "passes_validation_primary"... pass
   run "passes_validation_secondary"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
 
 Failure! 1 passed, 1 failed.
 `,
@@ -822,19 +839,23 @@ func TestTest_StatePropagation(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expected := `main.tftest.hcl... pass
+	expected := `main.tftest.hcl... in progress
   run "initial_apply_example"... pass
+
 # test_resource.module_resource:
 resource "test_resource" "module_resource" {
     id    = "df6h8as9"
     value = "start"
 }
+
   run "initial_apply"... pass
+
 # test_resource.resource:
 resource "test_resource" "resource" {
     id    = "598318e0"
     value = "start"
 }
+
   run "plan_second_example"... pass
 
 Terraform used the selected providers to generate the following execution
@@ -850,6 +871,7 @@ Terraform will perform the following actions:
     }
 
 Plan: 1 to add, 0 to change, 0 to destroy.
+
   run "plan_update"... pass
 
 Terraform used the selected providers to generate the following execution
@@ -865,6 +887,7 @@ Terraform will perform the following actions:
     }
 
 Plan: 0 to add, 1 to change, 0 to destroy.
+
   run "plan_update_example"... pass
 
 Terraform used the selected providers to generate the following execution
@@ -880,6 +903,9 @@ Terraform will perform the following actions:
     }
 
 Plan: 0 to add, 1 to change, 0 to destroy.
+
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
 
 Success! 5 passed, 0 failed.
 `
@@ -938,9 +964,11 @@ func TestTest_OnlyExternalModules(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expected := `main.tftest.hcl... pass
+	expected := `main.tftest.hcl... in progress
   run "first"... pass
   run "second"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
 
 Success! 2 passed, 0 failed.
 `
@@ -978,7 +1006,7 @@ func TestTest_PartialUpdates(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expected := `main.tftest.hcl... pass
+	expected := `main.tftest.hcl... in progress
   run "first"... pass
 
 Warning: Resource targeting is in effect
@@ -1003,7 +1031,10 @@ Note that the -target option is not suitable for routine use, and is provided
 only for exceptional situations such as recovering from errors or mistakes,
 or when Terraform specifically suggests to use it as part of an error
 message.
+
   run "second"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
 
 Success! 2 passed, 0 failed.
 `
@@ -1041,7 +1072,7 @@ func TestTest_BadReferences(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expectedOut := `main.tftest.hcl... fail
+	expectedOut := `main.tftest.hcl... in progress
   run "setup"... pass
   run "test"... fail
 
@@ -1052,7 +1083,10 @@ Warning: Value for undeclared variable
 
 The module under test does not declare a variable named "input_three", but it
 is declared in run block "test".
+
   run "finalise"... skip
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
 
 Failure! 1 passed, 1 failed, 1 skipped.
 `

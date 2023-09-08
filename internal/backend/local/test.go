@@ -108,8 +108,11 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			PriorStates: make(map[string]*terraform.TestContext),
 		}
 
+		runner.View.File(file, moduletest.Starting)
 		fileRunner.Test(file)
+		runner.View.File(file, moduletest.TearDown)
 		fileRunner.cleanup(file)
+		runner.View.File(file, moduletest.Complete)
 		suite.Status = suite.Status.Merge(file.Status)
 	}
 
@@ -235,16 +238,18 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 
 		if runner.Suite.Stopped {
 			// Then the test was requested to be stopped, so we just mark each
-			// following test as skipped and move on.
+			// following test as skipped, print the status, and move on.
 			run.Status = moduletest.Skip
+			runner.Suite.View.Run(run, file)
 			continue
 		}
 
 		if file.Status == moduletest.Error {
 			// If the overall test file has errored, we don't keep trying to
 			// execute tests. Instead, we mark all remaining run blocks as
-			// skipped.
+			// skipped, print the status, and move on.
 			run.Status = moduletest.Skip
+			runner.Suite.View.Run(run, file)
 			continue
 		}
 
@@ -289,12 +294,8 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 			runner.RelevantStates[key].Run = run
 		}
 
-		file.Status = file.Status.Merge(run.Status)
-	}
-
-	runner.Suite.View.File(file)
-	for _, run := range file.Runs {
 		runner.Suite.View.Run(run, file)
+		file.Status = file.Status.Merge(run.Status)
 	}
 }
 
