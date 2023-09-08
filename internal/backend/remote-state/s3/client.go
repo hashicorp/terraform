@@ -168,6 +168,7 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 func (c *RemoteClient) Put(data []byte) error {
 	ctx := context.TODO()
 	log := c.logger()
+
 	ctx, baselog := baselogging.NewHcLogger(ctx, log)
 	ctx = baselogging.RegisterLogger(ctx, baselog)
 
@@ -220,8 +221,11 @@ func (c *RemoteClient) Put(data []byte) error {
 func (c *RemoteClient) Delete() error {
 	ctx := context.TODO()
 	log := c.logger()
+
 	ctx, baselog := baselogging.NewHcLogger(ctx, log)
 	ctx = baselogging.RegisterLogger(ctx, baselog)
+
+	log.Info("Deleting remote state")
 
 	_, err := c.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: &c.bucketName,
@@ -243,6 +247,7 @@ func (c *RemoteClient) Delete() error {
 
 func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	ctx := context.TODO()
+	log := c.logger()
 
 	if c.ddbTable == "" {
 		return "", nil
@@ -258,6 +263,12 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 
 		info.ID = lockID
 	}
+
+	log = logWithLockInfo(log, info)
+	ctx, baselog := baselogging.NewHcLogger(ctx, log)
+	ctx = baselogging.RegisterLogger(ctx, baselog)
+
+	log.Info("Locking remote state")
 
 	putParams := &dynamodb.PutItemInput{
 		Item: map[string]dynamodbtypes.AttributeValue{
@@ -287,6 +298,55 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	}
 
 	return info.ID, nil
+}
+
+func (c *RemoteClient) Unlock(id string) error {
+	ctx := context.TODO()
+	log := c.logger()
+
+	log = logWithLockID(log, id)
+
+	ctx, baselog := baselogging.NewHcLogger(ctx, log)
+	ctx = baselogging.RegisterLogger(ctx, baselog)
+
+	if c.ddbTable == "" {
+		return nil
+	}
+
+	lockErr := &statemgr.LockError{}
+
+	log.Info("Unlocking remote state")
+
+	// TODO: store the path and lock ID in separate fields, and have proper
+	// projection expression only delete the lock if both match, rather than
+	// checking the ID from the info field first.
+	lockInfo, err := c.getLockInfo(ctx)
+	if err != nil {
+		lockErr.Err = fmt.Errorf("failed to retrieve lock info for lock ID %q: %s", id, err)
+		return lockErr
+	}
+	lockErr.Info = lockInfo
+
+	if lockInfo.ID != id {
+		lockErr.Err = fmt.Errorf("lock ID %q does not match existing lock (%q)", id, lockInfo.ID)
+		return lockErr
+	}
+
+	params := &dynamodb.DeleteItemInput{
+		Key: map[string]dynamodbtypes.AttributeValue{
+			"LockID": &dynamodbtypes.AttributeValueMemberS{
+				Value: c.lockPath(),
+			},
+		},
+		TableName: aws.String(c.ddbTable),
+	}
+	_, err = c.dynClient.DeleteItem(ctx, params)
+
+	if err != nil {
+		lockErr.Err = err
+		return lockErr
+	}
+	return nil
 }
 
 func (c *RemoteClient) getMD5(ctx context.Context) ([]byte, error) {
@@ -407,47 +467,6 @@ func (c *RemoteClient) getLockInfo(ctx context.Context) (*statemgr.LockInfo, err
 	return lockInfo, nil
 }
 
-func (c *RemoteClient) Unlock(id string) error {
-	ctx := context.TODO()
-
-	if c.ddbTable == "" {
-		return nil
-	}
-
-	lockErr := &statemgr.LockError{}
-
-	// TODO: store the path and lock ID in separate fields, and have proper
-	// projection expression only delete the lock if both match, rather than
-	// checking the ID from the info field first.
-	lockInfo, err := c.getLockInfo(ctx)
-	if err != nil {
-		lockErr.Err = fmt.Errorf("failed to retrieve lock info: %s", err)
-		return lockErr
-	}
-	lockErr.Info = lockInfo
-
-	if lockInfo.ID != id {
-		lockErr.Err = fmt.Errorf("lock id %q does not match existing lock", id)
-		return lockErr
-	}
-
-	params := &dynamodb.DeleteItemInput{
-		Key: map[string]dynamodbtypes.AttributeValue{
-			"LockID": &dynamodbtypes.AttributeValueMemberS{
-				Value: c.lockPath(),
-			},
-		},
-		TableName: aws.String(c.ddbTable),
-	}
-	_, err = c.dynClient.DeleteItem(ctx, params)
-
-	if err != nil {
-		lockErr.Err = err
-		return lockErr
-	}
-	return nil
-}
-
 func (c *RemoteClient) lockPath() string {
 	return fmt.Sprintf("%s/%s", c.bucketName, c.path)
 }
@@ -460,8 +479,8 @@ func (c *RemoteClient) getSSECustomerKeyMD5() string {
 // logger returns the S3 backend logger configured with the client's bucket and path
 func (c *RemoteClient) logger() hclog.Logger {
 	return logger().With(
-		"tf_backend_s3.bucket", c.bucketName,
-		"tf_backend_s3.path", c.path,
+		logKeyBucket, c.bucketName,
+		logKeyPath, c.path,
 	)
 }
 
