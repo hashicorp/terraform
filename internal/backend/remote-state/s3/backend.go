@@ -11,7 +11,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -20,10 +19,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	awsbase "github.com/hashicorp/aws-sdk-go-base/v2"
 	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
-	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
@@ -607,6 +604,8 @@ func formatDeprecations(attrs map[string]string) string {
 // via PrepareConfig.
 func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	ctx := context.TODO()
+	log := logger()
+	log = logWithOperation(log, operationBackendConfigure)
 
 	var diags tfdiags.Diagnostics
 	if obj.IsNull() {
@@ -632,6 +631,12 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	b.bucketName = stringAttr(obj, "bucket")
 	b.keyName = stringAttr(obj, "key")
+
+	log = log.With(
+		logKeyBucket, b.bucketName,
+		logKeyPath, b.keyName,
+	)
+
 	b.acl = stringAttr(obj, "acl")
 	b.workspaceKeyPrefix = stringAttrDefault(obj, "workspace_key_prefix", "env:")
 	b.serverSideEncryption = boolAttr(obj, "encrypt")
@@ -697,8 +702,6 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 			diags = diags.Append(deprecatedEnvVarDiag(envvar, replacement))
 		}
 	}
-
-	log := logger()
 
 	ctx, baselog := baselogging.NewHcLogger(ctx, log)
 
@@ -1643,8 +1646,3 @@ func deprecatedEnvVarDiag(envvar, replacement string) tfdiags.Diagnostic {
 		fmt.Sprintf(`The environment variable "%s" is deprecated. Use environment variable "%s" instead.`, envvar, replacement),
 	)
 }
-
-var logger = sync.OnceValue(func() hclog.Logger {
-	l := logging.HCLogger()
-	return l.Named("backend-s3")
-})
