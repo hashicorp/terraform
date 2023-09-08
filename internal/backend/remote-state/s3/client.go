@@ -381,7 +381,7 @@ func (c *RemoteClient) getMD5(ctx context.Context) ([]byte, error) {
 
 	resp, err := c.dynClient.GetItem(ctx, getParams)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Unable to retrieve item from DynamoDB table %q: %w", c.ddbTable, err)
 	}
 
 	var val string
@@ -443,7 +443,7 @@ func (c *RemoteClient) deleteMD5(ctx context.Context) error {
 		TableName: aws.String(c.ddbTable),
 	}
 	if _, err := c.dynClient.DeleteItem(ctx, params); err != nil {
-		return err
+		return fmt.Errorf("Unable to delete item from DynamoDB table %q: %w", c.ddbTable, err)
 	}
 	return nil
 }
@@ -462,7 +462,7 @@ func (c *RemoteClient) getLockInfo(ctx context.Context) (*statemgr.LockInfo, err
 
 	resp, err := c.dynClient.GetItem(ctx, getParams)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Unable to retrieve item from DynamoDB table %q: %w", c.ddbTable, err)
 	}
 
 	var infoData string
