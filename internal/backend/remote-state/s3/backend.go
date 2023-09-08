@@ -635,8 +635,8 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.keyName = stringAttr(obj, "key")
 
 	log = log.With(
-		"tf_backend_s3.bucket", b.bucketName,
-		"tf_backend_s3.path", b.path,
+		logKeyBucket, b.bucketName,
+		logKeyPath, b.keyName,
 	)
 
 	b.acl = stringAttr(obj, "acl")
