@@ -72,6 +72,24 @@ func (c cliCommand) Run(args []string) int {
 	})
 	if err != nil {
 		if err == ErrNotPluginClient {
+			// TODO:
+			//
+			// The following message says that this interface is for Terraform
+			// Cloud only because we're using Terraform Cloud's integration
+			// with it to try to prove out the API/protocol design. By focusing
+			// only on Terraform Cloud as a client first, we can accommodate
+			// any necessary breaking changes by ensuring that Terraform Cloud's
+			// client is updated before releasing an updated RPC API server
+			// implementation.
+			//
+			// However, in the long run this should ideally become a documented
+			// public interface with compatibility guarantees, at which point
+			// we should change this error message only to express that this
+			// is a machine-oriented integration API rather than something for
+			// end-users to use directly. For example, the RPC server is likely
+			// to make a better integration point for tools like the
+			// Terraform Language Server in future too, assuming it grows to
+			// include language analysis features.
 			fmt.Fprintf(
 				os.Stderr,
 				`
