@@ -200,6 +200,8 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 		Providers: make(map[string]*Provider),
 	}
 
+	runBlockNames := make(map[string]hcl.Range)
+
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "run":
@@ -208,6 +210,18 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 			if !runDiags.HasErrors() {
 				tf.Runs = append(tf.Runs, run)
 			}
+
+			if rng, exists := runBlockNames[run.Name]; exists {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate \"run\" block names",
+					Detail:   fmt.Sprintf("This test file already has a run named %s block defined at %s.", run.Name, rng),
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue
+			}
+			runBlockNames[run.Name] = run.DeclRange
+
 		case "variables":
 			if tf.Variables != nil {
 				diags = append(diags, &hcl.Diagnostic{

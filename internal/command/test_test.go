@@ -557,7 +557,7 @@ Terraform will perform the following actions:
 
 Plan: 1 to add, 0 to change, 0 to destroy.
 
-  run "validate_test_resource"... pass
+  run "apply_test_resource"... pass
 
 # test_resource.foo:
 resource "test_resource" "foo" {
