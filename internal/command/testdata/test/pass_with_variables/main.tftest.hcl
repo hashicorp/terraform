@@ -9,7 +9,7 @@ run "validate_test_resource" {
   }
 }
 
-run "validate_test_resource" {
+run "apply_test_resource" {
   variables {
     input = "zap"
   }
