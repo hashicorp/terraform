@@ -108,8 +108,11 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			PriorStates: make(map[string]*terraform.TestContext),
 		}
 
+		runner.View.File(file, moduletest.Starting)
 		fileRunner.Test(file)
+		runner.View.File(file, moduletest.TearDown)
 		fileRunner.cleanup(file)
+		runner.View.File(file, moduletest.Complete)
 		suite.Status = suite.Status.Merge(file.Status)
 	}
 
@@ -235,16 +238,18 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 
 		if runner.Suite.Stopped {
 			// Then the test was requested to be stopped, so we just mark each
-			// following test as skipped and move on.
+			// following test as skipped, print the status, and move on.
 			run.Status = moduletest.Skip
+			runner.Suite.View.Run(run, file)
 			continue
 		}
 
 		if file.Status == moduletest.Error {
 			// If the overall test file has errored, we don't keep trying to
 			// execute tests. Instead, we mark all remaining run blocks as
-			// skipped.
+			// skipped, print the status, and move on.
 			run.Status = moduletest.Skip
+			runner.Suite.View.Run(run, file)
 			continue
 		}
 
@@ -289,12 +294,8 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 			runner.RelevantStates[key].Run = run
 		}
 
-		file.Status = file.Status.Merge(run.Status)
-	}
-
-	runner.Suite.View.File(file)
-	for _, run := range file.Runs {
 		runner.Suite.View.Run(run, file)
+		file.Status = file.Status.Merge(run.Status)
 	}
 }
 
@@ -769,6 +770,7 @@ func (runner *TestFileRunner) wait(ctx *terraform.Context, runningCtx context.Co
 }
 
 func (runner *TestFileRunner) cleanup(file *moduletest.File) {
+	var diags tfdiags.Diagnostics
 
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
 
@@ -781,7 +783,6 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 	// First, we'll clean up the main state.
 	main := runner.RelevantStates[MainStateIdentifier]
 
-	var diags tfdiags.Diagnostics
 	updated := main.State
 	if main.Run == nil {
 		if !main.State.Empty() {
@@ -799,6 +800,12 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 		}
 
 		reset()
+	}
+
+	if !updated.Empty() {
+		// Then we failed to adequately clean up the state, so mark success
+		// as false.
+		file.Status = moduletest.Error
 	}
 	runner.Suite.View.DestroySummary(diags, main.Run, file, updated)
 
@@ -830,6 +837,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 
 			var diags tfdiags.Diagnostics
 			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name)))
+			file.Status = moduletest.Error
 			runner.Suite.View.DestroySummary(diags, nil, file, state.State)
 			continue
 		}
@@ -865,6 +873,12 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 			var destroyDiags tfdiags.Diagnostics
 			updated, destroyDiags = runner.destroy(state.Run.Config.ConfigUnderTest, state.State, state.Run, file)
 			diags = diags.Append(destroyDiags)
+		}
+
+		if !updated.Empty() {
+			// Then we failed to adequately clean up the state, so mark success
+			// as false.
+			file.Status = moduletest.Error
 		}
 		runner.Suite.View.DestroySummary(diags, state.Run, file, updated)
 

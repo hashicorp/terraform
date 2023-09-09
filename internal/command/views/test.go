@@ -39,7 +39,7 @@ type Test interface {
 	Conclusion(suite *moduletest.Suite)
 
 	// File prints out the summary for an entire test file.
-	File(file *moduletest.File)
+	File(file *moduletest.File, progress moduletest.Progress)
 
 	// Run prints out the summary for a single test run block.
 	Run(run *moduletest.Run, file *moduletest.File)
@@ -131,9 +131,18 @@ func (t *TestHuman) Conclusion(suite *moduletest.Suite) {
 	}
 }
 
-func (t *TestHuman) File(file *moduletest.File) {
-	t.view.streams.Printf("%s... %s\n", file.Name, colorizeTestStatus(file.Status, t.view.colorize))
-	t.Diagnostics(nil, file, file.Diagnostics)
+func (t *TestHuman) File(file *moduletest.File, progress moduletest.Progress) {
+	switch progress {
+	case moduletest.Starting:
+		t.view.streams.Printf(t.view.colorize.Color("%s... [light_gray]in progress[reset]\n"), file.Name)
+	case moduletest.TearDown:
+		t.view.streams.Printf(t.view.colorize.Color("%s... [light_gray]tearing down[reset]\n"), file.Name)
+	case moduletest.Complete:
+		t.view.streams.Printf("%s... %s\n", file.Name, colorizeTestStatus(file.Status, t.view.colorize))
+		t.Diagnostics(nil, file, file.Diagnostics)
+	default:
+		panic("unrecognized test progress: " + progress.String())
+	}
 }
 
 func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File) {
@@ -171,7 +180,9 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File) {
 					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
 				}
 
+				t.view.streams.Println() // Separate the state from any previous statements.
 				renderer.RenderHumanState(state)
+				t.view.streams.Println() // Separate the state from any future statements.
 			}
 		} else {
 			// We'll print the plan.
@@ -201,12 +212,35 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File) {
 				}
 
 				renderer.RenderHumanPlan(plan, run.Verbose.Plan.UIMode, opts...)
+				t.view.streams.Println() // Separate the plan from any future statements.
 			}
 		}
 	}
 
 	// Finally we'll print out a summary of the diagnostics from the run.
 	t.Diagnostics(run, file, run.Diagnostics)
+
+	var warnings bool
+	for _, diag := range run.Diagnostics {
+		switch diag.Severity() {
+		case tfdiags.Error:
+			// do nothing
+		case tfdiags.Warning:
+			warnings = true
+		}
+
+		if warnings {
+			// We only care about checking if we printed any warnings in the
+			// previous output.
+			break
+		}
+	}
+
+	if warnings {
+		// warnings are printed to stdout, so we'll put a new line into stdout
+		// to separate any future statements info statements.
+		t.view.streams.Println()
+	}
 }
 
 func (t *TestHuman) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State) {
@@ -386,13 +420,40 @@ func (t *TestJSON) Conclusion(suite *moduletest.Suite) {
 		json.MessageTestSummary, summary)
 }
 
-func (t *TestJSON) File(file *moduletest.File) {
-	t.view.log.Info(
-		fmt.Sprintf("%s... %s", file.Name, testStatus(file.Status)),
-		"type", json.MessageTestFile,
-		json.MessageTestFile, json.TestFileStatus{file.Name, json.ToTestStatus(file.Status)},
-		"@testfile", file.Name)
-	t.Diagnostics(nil, file, file.Diagnostics)
+func (t *TestJSON) File(file *moduletest.File, progress moduletest.Progress) {
+	switch progress {
+	case moduletest.Starting:
+		t.view.log.Info(
+			fmt.Sprintf("%s... in progress", file.Name),
+			"type", json.MessageTestFile,
+			json.MessageTestFile, json.TestFileStatus{
+				Path:     file.Name,
+				Progress: json.ToTestProgress(moduletest.Starting),
+			},
+			"@testfile", file.Name)
+	case moduletest.TearDown:
+		t.view.log.Info(
+			fmt.Sprintf("%s... tearing down", file.Name),
+			"type", json.MessageTestFile,
+			json.MessageTestFile, json.TestFileStatus{
+				Path:     file.Name,
+				Progress: json.ToTestProgress(moduletest.TearDown),
+			},
+			"@testfile", file.Name)
+	case moduletest.Complete:
+		t.view.log.Info(
+			fmt.Sprintf("%s... %s", file.Name, testStatus(file.Status)),
+			"type", json.MessageTestFile,
+			json.MessageTestFile, json.TestFileStatus{
+				Path:     file.Name,
+				Progress: json.ToTestProgress(moduletest.Complete),
+				Status:   json.ToTestStatus(file.Status),
+			},
+			"@testfile", file.Name)
+		t.Diagnostics(nil, file, file.Diagnostics)
+	default:
+		panic("unrecognized test progress: " + progress.String())
+	}
 }
 
 func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File) {

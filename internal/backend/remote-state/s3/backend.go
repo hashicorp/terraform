@@ -18,12 +18,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	awsbase "github.com/hashicorp/aws-sdk-go-base/v2"
+	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
+	"golang.org/x/exp/maps"
 )
 
 func New() backend.Backend {
@@ -501,6 +503,31 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		}
 	}
 
+	endpointValidators := validateString{
+		Validators: []stringValidator{
+			validateStringURL,
+		},
+	}
+	if val := obj.GetAttr("endpoints"); !val.IsNull() {
+		attrPath := cty.GetAttrPath("endpoints")
+		for _, k := range []string{"dynamodb", "iam", "s3", "sts"} {
+			if v := val.GetAttr(k); !v.IsNull() {
+				attrPath := attrPath.GetAttr(k)
+				endpointValidators.ValidateAttr(v, attrPath, &diags)
+			}
+		}
+	}
+	for _, k := range maps.Keys(endpointFields) {
+		if val := obj.GetAttr(k); !val.IsNull() {
+			attrPath := cty.GetAttrPath(k)
+			endpointValidators.ValidateAttr(val, attrPath, &diags)
+		}
+	}
+	if val := obj.GetAttr("ec2_metadata_service_endpoint"); !val.IsNull() {
+		attrPath := cty.GetAttrPath("ec2_metadata_service_endpoint")
+		endpointValidators.ValidateAttr(val, attrPath, &diags)
+	}
+
 	validateAttributesConflict(
 		cty.GetAttrPath("force_path_style"),
 		cty.GetAttrPath("use_path_style"),
@@ -577,6 +604,8 @@ func formatDeprecations(attrs map[string]string) string {
 // via PrepareConfig.
 func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	ctx := context.TODO()
+	log := logger()
+	log = logWithOperation(log, operationBackendConfigure)
 
 	var diags tfdiags.Diagnostics
 	if obj.IsNull() {
@@ -602,6 +631,12 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	b.bucketName = stringAttr(obj, "bucket")
 	b.keyName = stringAttr(obj, "key")
+
+	log = log.With(
+		logKeyBucket, b.bucketName,
+		logKeyPath, b.keyName,
+	)
+
 	b.acl = stringAttr(obj, "acl")
 	b.workspaceKeyPrefix = stringAttrDefault(obj, "workspace_key_prefix", "env:")
 	b.serverSideEncryption = boolAttr(obj, "encrypt")
@@ -655,23 +690,27 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		}
 	}
 
-	for envvar, replacement := range map[string]string{
+	endpointEnvvars := map[string]string{
 		"AWS_DYNAMODB_ENDPOINT": "AWS_ENDPOINT_URL_DYNAMODB",
 		"AWS_IAM_ENDPOINT":      "AWS_ENDPOINT_URL_IAM",
 		"AWS_S3_ENDPOINT":       "AWS_ENDPOINT_URL_S3",
 		"AWS_STS_ENDPOINT":      "AWS_ENDPOINT_URL_STS",
 		"AWS_METADATA_URL":      "AWS_EC2_METADATA_SERVICE_ENDPOINT",
-	} {
+	}
+	for envvar, replacement := range endpointEnvvars {
 		if val := os.Getenv(envvar); val != "" {
 			diags = diags.Append(deprecatedEnvVarDiag(envvar, replacement))
 		}
 	}
+
+	ctx, baselog := baselogging.NewHcLogger(ctx, log)
 
 	cfg := &awsbase.Config{
 		AccessKey:              stringAttr(obj, "access_key"),
 		APNInfo:                stdUserAgentProducts(),
 		CallerDocumentationURL: "https://www.terraform.io/docs/language/settings/backends/s3.html",
 		CallerName:             "S3 Backend",
+		Logger:                 baselog,
 		MaxRetries:             intAttrDefault(obj, "max_retries", 5),
 		Profile:                stringAttr(obj, "profile"),
 		Region:                 stringAttr(obj, "region"),

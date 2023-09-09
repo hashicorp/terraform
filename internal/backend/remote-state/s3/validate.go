@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -253,6 +254,26 @@ The string content was valid JSON, your policy document may have been double-enc
 func validateStringKMSKey(val string, path cty.Path, diags *tfdiags.Diagnostics) {
 	ds := validateKMSKey(path, val)
 	*diags = diags.Append(ds)
+}
+
+func validateStringURL(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+	u, err := url.Parse(val)
+	if err != nil {
+		*diags = diags.Append(attributeErrDiag(
+			"Invalid Value",
+			fmt.Sprintf("The value %q cannot be parsed as a URL: %s", val, err),
+			path,
+		))
+		return
+	}
+	if u.Scheme == "" || u.Host == "" {
+		*diags = diags.Append(attributeErrDiag(
+			"Invalid Value",
+			fmt.Sprintf("The value must be a valid URL containing at least a scheme and hostname. Had %q", val),
+			path,
+		))
+		return
+	}
 }
 
 // Using a val of `cty.ValueSet` would be better here, but we can't get an ElementIterator from a ValueSet

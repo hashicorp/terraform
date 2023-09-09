@@ -155,11 +155,14 @@ The following configuration is optional:
 * `access_key` - (Optional) AWS access key. If configured, must also configure `secret_key`. This can also be sourced from the `AWS_ACCESS_KEY_ID` environment variable, AWS shared credentials file (e.g. `~/.aws/credentials`), or AWS shared configuration file (e.g. `~/.aws/config`).
 * `allowed_account_ids` - (Optional) List of allowed AWS account IDs to prevent potential destruction of a live environment. Conflicts with `forbidden_account_ids`.
 * `custom_ca_bundle` - (Optional) File containing custom root and intermediate certificates. Can also be set using the `AWS_CA_BUNDLE` environment variable. Setting ca_bundle in the shared config file is not supported.
-* `ec2_metadata_service_endpoint` - (Optional) Address of the EC2 metadata service (IMDS) endpoint to use. Can also be set with the `AWS_EC2_METADATA_SERVICE_ENDPOINT` environment variable.
-* `ec2_metadata_service_endpoint_mode` - (Optional) Mode to use in communicating with the metadata service. Valid values are `IPv4` and `IPv6`. Can also be set with the `AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE` environment variable.
+* `ec2_metadata_service_endpoint` - (Optional) Custom endpoint URL for the EC2 Instance Metadata Service (IMDS) API.
+  Can also be set with the `AWS_EC2_METADATA_SERVICE_ENDPOINT` environment variable.
+* `ec2_metadata_service_endpoint_mode` - (Optional) Mode to use in communicating with the metadata service.
+  Valid values are `IPv4` and `IPv6`.
+  Can also be set with the `AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE` environment variable.
 * `forbidden_account_ids` - (Optional) List of forbidden AWS account IDs to prevent potential destruction of a live environment. Conflicts with `allowed_account_ids`.
 * `http_proxy` - (Optional) Address of an HTTP proxy to use when accessing the AWS API. Can also be set using the `HTTP_PROXY` or `HTTPS_PROXY` environment variables.
-* `iam_endpoint` - (Optional, **Deprecated**) Custom endpoint for the AWS Identity and Access Management (IAM) API.
+* `iam_endpoint` - (Optional, **Deprecated**) Custom endpoint URL for the AWS Identity and Access Management (IAM) API.
   Use `endpoints.iam` instead.
 * `insecure` - (Optional) Whether to explicitly allow the backend to perform "insecure" SSL requests. If omitted, the default value is `false`.
 * `max_retries` - (Optional) The maximum number of times an AWS API request is retried on retryable failure. Defaults to 5.
@@ -172,7 +175,7 @@ The following configuration is optional:
 * `skip_credentials_validation` - (Optional) Skip credentials validation via the STS API.
 * `skip_region_validation` - (Optional) Skip validation of provided region name.
 * `skip_metadata_api_check` - (Optional) Skip usage of EC2 Metadata API.
-* `sts_endpoint` - (Optional, **Deprecated**) Custom endpoint for the AWS Security Token Service (STS) API.
+* `sts_endpoint` - (Optional, **Deprecated**) Custom endpoint URL for the AWS Security Token Service (STS) API.
   Use `endpoints.sts` instead.
 * `sts_region` - (Optional) AWS region for STS. If unset, AWS will use the same region for STS as other non-STS operations.
 * `token` - (Optional) Multi-Factor Authentication (MFA) token. This can also be sourced from the `AWS_SESSION_TOKEN` environment variable.
@@ -184,13 +187,13 @@ The following configuration is optional:
 
 The optional argument `endpoints` contains the following arguments:
 
-* `dynamodb` - (Optional) Custom endpoint for the AWS DynamoDB API.
+* `dynamodb` - (Optional) Custom endpoint URL for the AWS DynamoDB API.
   This can also be sourced from the environment variable `AWS_ENDPOINT_URL_DYNAMODB` or the deprecated environment variable `AWS_DYNAMODB_ENDPOINT`.
-* `iam` - (Optional) Custom endpoint for the AWS IAM API.
+* `iam` - (Optional) Custom endpoint URL for the AWS IAM API.
   This can also be sourced from the environment variable `AWS_ENDPOINT_URL_IAM` or the deprecated environment variable `AWS_IAM_ENDPOINT`.
-* `s3` - (Optional) Custom endpoint for the AWS S3 API.
+* `s3` - (Optional) Custom endpoint URL for the AWS S3 API.
   This can also be sourced from the environment variable `AWS_ENDPOINT_URL_S3` or the deprecated environment variable `AWS_S3_ENDPOINT`.
-* `sts` - (Optional) Custom endpoint for the AWS STS API.
+* `sts` - (Optional) Custom endpoint URL for the AWS STS API.
   This can also be sourced from the environment variable `AWS_ENDPOINT_URL_STS` or the deprecated environment variable `AWS_STS_ENDPOINT`.
 
 #### Assume Role Configuration
@@ -291,7 +294,7 @@ The following configuration is optional:
 
 * `acl` - (Optional) [Canned ACL](https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html#canned-acl) to be applied to the state file.
 * `encrypt` - (Optional) Enable [server side encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html) of the state file.
-* `endpoint` - (Optional, **Deprecated**) Custom endpoint for the AWS S3 API.
+* `endpoint` - (Optional, **Deprecated**) Custom endpoint URL for the AWS S3 API.
   Use `endpoints.s3` instead.
 * `force_path_style` - (Optional, **Deprecated**) Enable path-style S3 URLs (`https://<HOST>/<BUCKET>` instead of `https://<BUCKET>.<HOST>`).
 * `kms_key_id` - (Optional) Amazon Resource Name (ARN) of a Key Management Service (KMS) Key to use for encrypting the state. Note that if this value is specified, Terraform will need `kms:Encrypt`, `kms:Decrypt` and `kms:GenerateDataKey` permissions on this KMS key.
@@ -303,7 +306,7 @@ The following configuration is optional:
 
 The following configuration is optional:
 
-* `dynamodb_endpoint` - (Optional, **Deprecated**) Custom endpoint for the AWS DynamoDB API.
+* `dynamodb_endpoint` - (Optional, **Deprecated**) Custom endpoint URL for the AWS DynamoDB API.
   Use `endpoints.dynamodb` instead.
 * `dynamodb_table` - (Optional) Name of DynamoDB Table to use for state locking and consistency. The table must have a partition key named `LockID` with type of `String`. If not configured, state locking will be disabled.
 
