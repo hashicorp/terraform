@@ -2025,7 +2025,7 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			schema := assumeRoleFullSchema()
+			schema := assumeRoleSchema.Attributes
 			vals := make(map[string]cty.Value, len(schema))
 			for name, attrSchema := range schema {
 				if val, ok := tc.config[name]; ok {
@@ -2036,7 +2036,7 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 			}
 			config := cty.ObjectVal(vals)
 
-			diags := prepareAssumeRoleConfig(config, path)
+			diags := validateNestedAttribute(assumeRoleSchema, config, path)
 
 			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
