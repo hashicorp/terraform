@@ -175,6 +175,10 @@ func TestTest(t *testing.T) {
 			code:                  1,
 			expectedResourceCount: 1,
 		},
+		"default_optional_values": {
+			expected: "4 passed, 0 failed.",
+			code:     0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
