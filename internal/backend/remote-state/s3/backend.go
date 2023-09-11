@@ -94,33 +94,9 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Description: "A custom endpoint for the S3 API",
 				Deprecated:  true,
 			},
-			"endpoints": {
-				NestedType: &configschema.Object{
-					Nesting: configschema.NestingSingle,
-					Attributes: map[string]*configschema.Attribute{
-						"dynamodb": {
-							Type:        cty.String,
-							Optional:    true,
-							Description: "A custom endpoint for the DynamoDB API",
-						},
-						"iam": {
-							Type:        cty.String,
-							Optional:    true,
-							Description: "A custom endpoint for the IAM API",
-						},
-						"s3": {
-							Type:        cty.String,
-							Optional:    true,
-							Description: "A custom endpoint for the S3 API",
-						},
-						"sts": {
-							Type:        cty.String,
-							Optional:    true,
-							Description: "A custom endpoint for the STS API",
-						},
-					},
-				},
-			},
+
+			"endpoints": endpointsSchema.SchemaAttribute(),
+
 			"forbidden_account_ids": {
 				Type:        cty.Set(cty.String),
 				Optional:    true,
@@ -587,6 +563,62 @@ var assumeRoleWithWebIdentitySchema = singleNestedAttribute{
 	},
 }
 
+var endpointsSchema = singleNestedAttribute{
+	Attributes: map[string]schemaAttribute{
+		"dynamodb": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the DynamoDB API",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringURL,
+				},
+			},
+		},
+
+		"iam": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the IAM API",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringURL,
+				},
+			},
+		},
+
+		"s3": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the S3 API",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringURL,
+				},
+			},
+		},
+
+		"sts": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the STS API",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringURL,
+				},
+			},
+		},
+	},
+}
+
 // PrepareConfig checks the validity of the values in the given
 // configuration, and inserts any missing defaults, assuming that its
 // structure has already been validated per the schema returned by
@@ -736,19 +768,14 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		}
 	}
 
+	if val := obj.GetAttr("endpoints"); !val.IsNull() {
+		diags = diags.Append(validateNestedAttribute(endpointsSchema, val, cty.GetAttrPath("endpoints")))
+	}
+
 	endpointValidators := validateString{
 		Validators: []stringValidator{
 			validateStringURL,
 		},
-	}
-	if val := obj.GetAttr("endpoints"); !val.IsNull() {
-		attrPath := cty.GetAttrPath("endpoints")
-		for _, k := range []string{"dynamodb", "iam", "s3", "sts"} {
-			if v := val.GetAttr(k); !v.IsNull() {
-				attrPath := attrPath.GetAttr(k)
-				endpointValidators.ValidateAttr(v, attrPath, &diags)
-			}
-		}
 	}
 	for _, k := range maps.Keys(endpointFields) {
 		if val := obj.GetAttr(k); !val.IsNull() {
