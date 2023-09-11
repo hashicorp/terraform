@@ -989,10 +989,10 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 			Value:     cty.NilVal,
 			Sensitive: config.Sensitive,
 		}
-	} else if output.Value == cty.NilVal {
+	} else if output.Value == cty.NilVal || output.Value.IsNull() {
 		// Then we did get a value but Terraform itself thought it was NilVal
 		// so we treat this as if the value isn't yet known.
-		output.Value = cty.DynamicVal
+		output.Value = cty.UnknownVal(cty.DynamicPseudoType)
 	}
 
 	val := output.Value
