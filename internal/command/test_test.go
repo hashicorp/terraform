@@ -1145,3 +1145,119 @@ the current run block.
 		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
 	}
 }
+
+func TestTest_ExpectedFailuresDuringPlanning(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "expected_failures_during_planning")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	if code == 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	expectedOut := `check.tftest.hcl... in progress
+  run "check_passes"... pass
+check.tftest.hcl... tearing down
+check.tftest.hcl... pass
+input.tftest.hcl... in progress
+  run "input_failure"... fail
+
+Warning: Expected failure while planning
+
+A custom condition within var.input failed during the planning stage and
+prevented the requested apply operation. While this was an expected failure,
+the apply operation could not be executed and so the overall test case will
+be marked as a failure and the original diagnostic included in the test
+report.
+
+input.tftest.hcl... tearing down
+input.tftest.hcl... fail
+output.tftest.hcl... in progress
+  run "output_failure"... fail
+
+Warning: Expected failure while planning
+
+  on output.tftest.hcl line 13, in run "output_failure":
+  13:     output.output,
+
+A custom condition within output.output failed during the planning stage and
+prevented the requested apply operation. While this was an expected failure,
+the apply operation could not be executed and so the overall test case will
+be marked as a failure and the original diagnostic included in the test
+report.
+
+output.tftest.hcl... tearing down
+output.tftest.hcl... fail
+resource.tftest.hcl... in progress
+  run "resource_failure"... fail
+
+Warning: Expected failure while planning
+
+A custom condition within test_resource.resource failed during the planning
+stage and prevented the requested apply operation. While this was an expected
+failure, the apply operation could not be executed and so the overall test
+case will be marked as a failure and the original diagnostic included in the
+test report.
+
+resource.tftest.hcl... tearing down
+resource.tftest.hcl... fail
+
+Failure! 1 passed, 3 failed.
+`
+	actualOut := output.Stdout()
+	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+	}
+
+	expectedErr := `
+Error: Invalid value for variable
+
+  on main.tf line 2:
+   2: variable "input" {
+    ├────────────────
+    │ var.input is "bcd"
+
+input must contain the character 'a'
+
+This was checked by the validation rule at main.tf:5,3-13.
+
+Error: Module output value precondition failed
+
+  on main.tf line 33, in output "output":
+  33:     condition = strcontains(test_resource.resource.value, "d")
+    ├────────────────
+    │ test_resource.resource.value is "abc"
+
+input must contain the character 'd'
+
+Error: Resource postcondition failed
+
+  on main.tf line 16, in resource "test_resource" "resource":
+  16:       condition = strcontains(self.value, "b")
+    ├────────────────
+    │ self.value is "acd"
+
+input must contain the character 'b'
+`
+	actualErr := output.Stderr()
+	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}

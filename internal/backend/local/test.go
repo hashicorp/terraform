@@ -406,6 +406,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 	// Otherwise any error during the planning prevents our apply from
 	// continuing which is an error.
+	planDiags = run.ExplainExpectedFailures(planDiags)
 	run.Diagnostics = run.Diagnostics.Append(planDiags)
 	if planDiags.HasErrors() {
 		run.Status = moduletest.Error
