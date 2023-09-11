@@ -53,6 +53,10 @@ var DescriptionList = map[string]descriptionEntry{
 		Description:      "`base64gzip` compresses a string with gzip and then encodes the result in Base64 encoding.",
 		ParamDescription: []string{""},
 	},
+	"gunzipbase64": {
+		Description:      "`gunzipbase64` decodes a Base64 encoded string and uncompresses the result with gzip.",
+		ParamDescription: []string{""},
+	},
 	"base64sha256": {
 		Description:      "`base64sha256` computes the SHA256 hash of a given string and encodes it with Base64. This is not equivalent to `base64encode(sha256(\"test\"))` since `sha256()` returns hexadecimal representation.",
 		ParamDescription: []string{""},
