@@ -108,6 +108,122 @@ func (run *Run) GetReferences() ([]*addrs.Reference, tfdiags.Diagnostics) {
 	return references, diagnostics
 }
 
+// ExplainExpectedFailures is similar to ValidateExpectedFailures except it
+// looks for any diagnostics produced by custom conditions and are included in
+// the expected failures and adds an additional explanation that clarifies the
+// expected failures are being ignored this time round.
+//
+// Generally, this function is used during an `apply` operation to explain that
+// an expected failure during the planning stage will still result in the
+// overall test failing as the plan failed and we couldn't even execute the
+// apply stage.
+func (run *Run) ExplainExpectedFailures(originals tfdiags.Diagnostics) tfdiags.Diagnostics {
+
+	// We're going to capture all the checkable objects that are referenced
+	// from the expected failures.
+	expectedFailures := addrs.MakeMap[addrs.Referenceable, bool]()
+	sourceRanges := addrs.MakeMap[addrs.Referenceable, tfdiags.SourceRange]()
+
+	for _, traversal := range run.Config.ExpectFailures {
+		// Ignore the diagnostics returned from the reference parsing, these
+		// references will have been checked earlier in the process by the
+		// validate stage so we don't need to do that again here.
+		reference, _ := addrs.ParseRefFromTestingScope(traversal)
+		expectedFailures.Put(reference.Subject, false)
+		sourceRanges.Put(reference.Subject, reference.SourceRange)
+	}
+
+	var diags tfdiags.Diagnostics
+	for _, diag := range originals {
+		if diag.Severity() == tfdiags.Warning {
+			// Then it's fine, the test will carry on without us doing anything.
+			diags = diags.Append(diag)
+			continue
+		}
+
+		if rule, ok := addrs.DiagnosticOriginatesFromCheckRule(diag); ok {
+
+			var rng *hcl.Range
+			expected := false
+			switch rule.Container.CheckableKind() {
+			case addrs.CheckableOutputValue:
+				addr := rule.Container.(addrs.AbsOutputValue)
+				if !addr.Module.IsRoot() {
+					// failures can only be expected against checkable objects
+					// in the root module. This diagnostic will be added into
+					// returned set below.
+					break
+				}
+				if expectedFailures.Has(addr.OutputValue) {
+					expected = true
+					rng = sourceRanges.Get(addr.OutputValue).ToHCL().Ptr()
+				}
+
+			case addrs.CheckableInputVariable:
+				addr := rule.Container.(addrs.AbsInputVariableInstance)
+				if !addr.Module.IsRoot() {
+					// failures can only be expected against checkable objects
+					// in the root module. This diagnostic will be added into
+					// returned set below.
+					break
+				}
+				if expectedFailures.Has(addr.Variable) {
+					expected = true
+				}
+
+			case addrs.CheckableResource:
+				addr := rule.Container.(addrs.AbsResourceInstance)
+				if !addr.Module.IsRoot() {
+					// failures can only be expected against checkable objects
+					// in the root module. This diagnostic will be added into
+					// returned set below.
+					break
+				}
+				if expectedFailures.Has(addr.Resource) {
+					expected = true
+				}
+
+				if expectedFailures.Has(addr.Resource.Resource) {
+					expected = true
+				}
+
+			case addrs.CheckableCheck:
+				// Check blocks only produce warnings so this branch shouldn't
+				// ever be triggered anyway.
+			default:
+				panic("unrecognized CheckableKind: " + rule.Container.CheckableKind().String())
+			}
+
+			if expected {
+				// Then this diagnostic was produced by a custom condition that
+				// was expected to fail. But, it happened at the wrong time (eg.
+				// we're trying to run an apply operation and this condition
+				// failed during the plan so the overall test operation still
+				// fails).
+				//
+				// We'll add a warning diagnostic explaining why the overall
+				// test is still failing even though the error was expected, and
+				// then add the original error into our diagnostics directly
+				// after.
+
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Expected failure while planning",
+					Detail:   fmt.Sprintf("A custom condition within %s failed during the planning stage and prevented the requested apply operation. While this was an expected failure, the apply operation could not be executed and so the overall test case will be marked as a failure and the original diagnostic included in the test report.", rule.Container.String()),
+					Subject:  rng,
+				})
+				diags = diags.Append(diag)
+				continue
+			}
+		}
+
+		// Otherwise, there is nothing special about this diagnostic so just
+		// carry it through.
+		diags = diags.Append(diag)
+	}
+	return diags
+}
+
 // ValidateExpectedFailures steps through the provided diagnostics (which should
 // be the result of a plan or an apply operation), and does 3 things:
 //  1. Removes diagnostics that match the expected failures from the config.
