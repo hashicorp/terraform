@@ -300,7 +300,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		}
 
 		// Evaluate the for_each expression here so we can expose the diagnostics
-		forEachDiags := validateForEach(ctx, n.Config.ForEach)
+		forEachDiags := newForEachEvaluator(n.Config.ForEach, ctx).ValidateResourceValue()
 		diags = diags.Append(forEachDiags)
 	}
 
@@ -554,18 +554,7 @@ func validateCount(ctx EvalContext, expr hcl.Expression) (diags tfdiags.Diagnost
 }
 
 func validateForEach(ctx EvalContext, expr hcl.Expression) (diags tfdiags.Diagnostics) {
-	val, forEachDiags := evaluateForEachExpressionValue(expr, ctx, true)
-	// If the value isn't known then that's the best we can do for now, but
-	// we'll check more thoroughly during the plan walk
-	if !val.IsKnown() {
-		return diags
-	}
-
-	if forEachDiags.HasErrors() {
-		diags = diags.Append(forEachDiags)
-	}
-
-	return diags
+	return newForEachEvaluator(expr, ctx).ValidateResourceValue()
 }
 
 func validateDependsOn(ctx EvalContext, dependsOn []hcl.Traversal) (diags tfdiags.Diagnostics) {
