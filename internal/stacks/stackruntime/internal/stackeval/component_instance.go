@@ -388,9 +388,23 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				}
 				schema, err := pTy.Schema(ctx)
 				if err != nil {
+					// FIXME: it's not technically our job to report a schema
+					// fetch failure, but currently there is no single other
+					// place that definitely does it, so we'll do it here at
+					// the risk of some redundant errors if we end up using
+					// the same provider multiple times.
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Provider initialization error",
+						Detail:   fmt.Sprintf("Failed to fetch the provider schema for %s: %s.", sourceAddr, err),
+						Subject:  decl.DeclRange.ToHCL().Ptr(),
+					})
 					continue // not our job to report a schema fetch failure
 				}
 				providerSchemas[sourceAddr] = schema
+			}
+			if diags.HasErrors() {
+				return nil, diags
 			}
 
 			tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
