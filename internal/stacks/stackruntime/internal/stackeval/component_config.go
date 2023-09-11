@@ -186,6 +186,12 @@ func (c *ComponentConfig) InputsType(ctx context.Context) (cty.Type, *typeexpr.D
 // invalidity.
 func (c *ComponentConfig) RequiredProviderInstances(ctx context.Context) addrs.Set[addrs.RootProviderConfig] {
 	moduleTree := c.ModuleTree(ctx)
+	if moduleTree == nil || moduleTree.Root == nil {
+		// If we get here then we presumably failed to load the module, and
+		// so we'll just unwind quickly so a different return path can return
+		// the error diagnostics.
+		return nil
+	}
 	return moduleTree.Root.EffectiveRequiredProviderConfigs()
 }
 
