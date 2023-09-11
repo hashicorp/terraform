@@ -4,6 +4,7 @@
 package command
 
 import (
+	"fmt"
 	"path"
 	"strings"
 	"testing"
@@ -1144,4 +1145,164 @@ the current run block.
 	if provider.ResourceCount() > 0 {
 		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
 	}
+}
+
+func TestTest_UnknownAndNulls(t *testing.T) {
+
+	tcs := map[string]struct {
+		code   int
+		stdout string
+		stderr string
+	}{
+		"null_value_in_assert": {
+			code: 1,
+			stdout: `main.tftest.hcl... in progress
+  run "first"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 0 passed, 1 failed.
+`,
+			stderr: `
+Error: Test assertion failed
+
+  on main.tftest.hcl line 8, in run "first":
+   8:     condition     = test_resource.resource.value == output.null_output
+    ├────────────────
+    │ output.null_output is null
+    │ test_resource.resource.value is "bar"
+
+this is always going to fail
+`,
+		},
+		"null_value_in_vars": {
+			code: 1,
+			stdout: `fail.tftest.hcl... in progress
+  run "first"... pass
+  run "second"... fail
+fail.tftest.hcl... tearing down
+fail.tftest.hcl... fail
+pass.tftest.hcl... in progress
+  run "first"... pass
+  run "second"... pass
+pass.tftest.hcl... tearing down
+pass.tftest.hcl... pass
+
+Failure! 3 passed, 1 failed.
+`,
+			stderr: `
+Error: Required variable not set
+
+  on fail.tftest.hcl line 11, in run "second":
+  11:     interesting_input = run.first.null_output
+
+The given value is not suitable for var.interesting_input defined at
+main.tf:7,1-29: required variable may not be set to null.
+`,
+		},
+		"unknown_value_in_assert": {
+			code: 1,
+			stdout: `main.tftest.hcl... in progress
+  run "one"... pass
+  run "two"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 1 passed, 1 failed.
+`,
+			stderr: fmt.Sprintf(`
+Error: Unknown condition value
+
+  on main.tftest.hcl line 8, in run "two":
+   8:     condition = output.destroy_fail == run.one.destroy_fail
+    ├────────────────
+    │ output.destroy_fail is false
+
+Condition expression could not be evaluated at this time. This means you have
+executed a %s block with %s and one of the values your
+condition depended on is not known until after the plan has been applied.
+Either remove this value from your condition, or execute an %s command
+from this %s block.
+`, "`run`", "`command = plan`", "`apply`", "`run`"),
+		},
+		"unknown_value_in_vars": {
+			code: 1,
+			stdout: `main.tftest.hcl... in progress
+  run "one"... pass
+  run "two"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 1 passed, 1 failed.
+`,
+			stderr: `
+Error: Reference to unknown value
+
+  on main.tftest.hcl line 8, in run "two":
+   8:     destroy_fail = run.one.destroy_fail
+
+The value for run.one.destroy_fail is unknown. Run block "one" is executing a
+"plan" operation, and the specified output value is only known after apply.
+`,
+		},
+		"nested_unknown_values": {
+			code: 1,
+			stdout: `main.tftest.hcl... in progress
+  run "first"... pass
+  run "second"... pass
+  run "third"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 2 passed, 1 failed.
+`,
+			stderr: `
+Error: Reference to unknown value
+
+  on main.tftest.hcl line 31, in run "third":
+  31:     input = run.second
+
+The value for run.second is unknown. Run block "second" is executing a "plan"
+operation, and the specified output value is only known after apply.
+`,
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("test", name)), td)
+			defer testChdir(t, td)()
+
+			provider := testing_command.NewProvider(nil)
+			view, done := testView(t)
+
+			c := &TestCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(provider.Provider),
+					View:             view,
+				},
+			}
+
+			code := c.Run([]string{"-no-color"})
+			output := done(t)
+
+			if code != tc.code {
+				t.Errorf("expected return code %d but got %d", tc.code, code)
+			}
+
+			expectedOut := tc.stdout
+			actualOut := output.Stdout()
+			if diff := cmp.Diff(expectedOut, actualOut); len(diff) > 0 {
+				t.Errorf("unexpected output\n\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+			}
+
+			expectedErr := tc.stderr
+			actualErr := output.Stderr()
+			if diff := cmp.Diff(expectedErr, actualErr); len(diff) > 0 {
+				t.Errorf("unexpected output\n\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
+			}
+		})
+	}
+
 }
