@@ -144,7 +144,7 @@ The following checks run when a PR is opened:
 
 - Contributor License Agreement (CLA): If this is your first contribution to Terraform you will be asked to sign the CLA.
 - Tests: tests include unit tests and acceptance tests, and all tests must pass before a PR can be merged.
-- Vercel: this is an internal tool that does not run correct for external contributors. We are aware of this and work around it for external contributions. 
+- Vercel: this is an internal tool that does not run correctly for external contributors. We are aware of this and work around it for external contributions. 
 
 ----
 
