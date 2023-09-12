@@ -121,6 +121,18 @@ func validateStringMatches(re *regexp.Regexp, description string) stringValidato
 	}
 }
 
+func validateStringDoesNotContain(s string) stringValidator {
+	return func(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+		if strings.Contains(val, s) {
+			*diags = diags.Append(attributeErrDiag(
+				"Invalid Value",
+				fmt.Sprintf(`Value must not contain "%s"`, s),
+				path,
+			))
+		}
+	}
+}
+
 func validateStringInSlice(sl []string) stringValidator {
 	return func(val string, path cty.Path, diags *tfdiags.Diagnostics) {
 		match := false
