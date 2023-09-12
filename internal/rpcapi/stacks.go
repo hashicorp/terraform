@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
@@ -143,6 +144,8 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode) *terraform1.FindSt
 
 func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request, evts terraform1.Stacks_PlanStackChangesServer) error {
 	ctx := evts.Context()
+	syncEvts := &syncPlanStackChangesServer{evts: evts}
+	evts = nil // Prevent accidental unsynchronized usage of this server
 
 	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
 	cfg := s.handles.StackConfig(cfgHnd)
@@ -187,7 +190,7 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 	// We'll hook some internal events in the planning process both to generate
 	// tracing information if we're in an OpenTelemetry-aware context and
 	// to propagate a subset of the events to our client.
-	hooks := stackPlanHooks(evts, cfg.Root.Stack.SourceAddr)
+	hooks := stackPlanHooks(syncEvts, cfg.Root.Stack.SourceAddr)
 	ctx = stackruntime.ContextWithHooks(ctx, hooks)
 
 	var planMode plans.Mode
@@ -229,7 +232,7 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 		diags := tfdiags.Diagnostics{diag}
 		protoDiags := diagnosticsToProto(diags)
 		for _, protoDiag := range protoDiags {
-			evts.Send(&terraform1.PlanStackChanges_Event{
+			syncEvts.Send(&terraform1.PlanStackChanges_Event{
 				Event: &terraform1.PlanStackChanges_Event_Diagnostic{
 					Diagnostic: protoDiag,
 				},
@@ -278,7 +281,7 @@ Events:
 				continue
 			}
 
-			evts.Send(&terraform1.PlanStackChanges_Event{
+			syncEvts.Send(&terraform1.PlanStackChanges_Event{
 				Event: &terraform1.PlanStackChanges_Event_PlannedChange{
 					PlannedChange: protoChange,
 				},
@@ -300,7 +303,7 @@ Events:
 	return nil
 }
 
-func stackPlanHooks(evts terraform1.Stacks_PlanStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
+func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
 	return &stackruntime.Hooks{
 		// For any BeginFunc-shaped hook that returns an OpenTelemetry tracing
 		// span, we'll wrap it in a context so that the runtime's downstream
@@ -421,4 +424,21 @@ func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks
 			},
 		},
 	}
+}
+
+// syncPlanStackChangesServer is a wrapper around the gprc.ServerStream
+// instance used for planning events. This is required because the underlying
+// grpc server is not concurrency safe on send.
+//
+// TODO: consider making this generic over multiple grpc server types.
+type syncPlanStackChangesServer struct {
+	evts terraform1.Stacks_PlanStackChangesServer
+	mu   sync.Mutex
+}
+
+func (s *syncPlanStackChangesServer) Send(evt *terraform1.PlanStackChanges_Event) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.evts.Send(evt)
 }
