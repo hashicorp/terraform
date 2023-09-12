@@ -109,7 +109,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 				continue
 			}
 
-			return nil, fmt.Errorf(errBadChecksumFmt, c.bucketName, c.path, expected, digest, digest)
+			return nil, newBadChecksumError(c.bucketName, c.path, digest, expected)
 		}
 
 		break
@@ -499,18 +499,54 @@ func (c *RemoteClient) logger(operation string) hclog.Logger {
 	return logWithOperation(log, operation)
 }
 
-const errBadChecksumFmt = `state data in S3 does not have the expected content.
+var _ error = badChecksumError{}
 
-I tried to get the state data in bucket: %s at path: %s, but its MD5 checksum
-didn't line up with what I have stored in DynamoDB. The checksum I have stored
-is %x, but I calculated a checksum of %x for the state currently stored in S3.
+type badChecksumError struct {
+	bucket, key      string
+	digest, expected []byte
+}
+
+func newBadChecksumError(bucket, key string, digest, expected []byte) badChecksumError {
+	return badChecksumError{
+		bucket:   bucket,
+		key:      key,
+		digest:   digest,
+		expected: expected,
+	}
+}
+
+func (err badChecksumError) Error() string {
+	return fmt.Sprintf(`state data in S3 does not have the expected content.
+
+The checksum calculated for the state stored in S3 does not match the checksum
+stored in DynamoDB.
+
+Bucket: %[1]s
+Key:    %[2]s
+Calculated checksum: %[3]x
+Stored checksum:     %[4]x
 
 This may be caused by unusually long delays in S3 processing a previous state
-update. Please wait for a minute or two and try again. If this problem
-persists, and neither S3 nor DynamoDB are experiencing an outage, you may need
-to manually verify the remote state and update the Digest value stored in the
-DynamoDB table to the following value: %x
-`
+update. Please wait for a minute or two and try again.
+
+%[5]s
+`, err.bucket, err.key, err.digest, err.expected, err.resolutionMsg())
+}
+
+func (err badChecksumError) resolutionMsg() string {
+	if len(err.digest) > 0 {
+		return fmt.Sprintf(
+			`If this problem persists, and neither S3 nor DynamoDB are experiencing an
+outage, you may need to manually verify the remote state and update the Digest
+value stored in the DynamoDB table to the following value: %x`,
+			err.expected,
+		)
+	} else {
+		return `If this problem persists, and neither S3 nor DynamoDB are experiencing an
+outage, you may need to manually verify the remote state and remove the Digest
+value stored in the DynamoDB table`
+	}
+}
 
 const errS3NoSuchBucket = `S3 bucket %q does not exist.
 
