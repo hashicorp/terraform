@@ -32,9 +32,6 @@ type JSONLog struct {
 	Hook       map[string]interface{} `json:"hook"`
 
 	// Special fields for test messages.
-	//
-	// Most of these are included conditionally, so they only appear in the
-	// few
 
 	TestRun  string `json:"@testrun,omitempty"`
 	TestFile string `json:"@testfile,omitempty"`

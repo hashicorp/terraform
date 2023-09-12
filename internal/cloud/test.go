@@ -263,7 +263,6 @@ func (runner *TestSuiteRunner) client(addr tfaddr.Module, id tfe.RegistryModuleI
 			return nil, nil, diags
 		}
 
-		// TODO: Possibly allow users to specify the token in the configuration.
 		token, err := cliConfigToken(addr.Package.Host, runner.Services)
 		if err != nil {
 			diags = diags.Append(tfdiags.AttributeValue(
@@ -332,25 +331,6 @@ func (runner *TestSuiteRunner) client(addr tfaddr.Module, id tfe.RegistryModuleI
 			cty.Path{cty.GetAttrStep{Name: "source"}}))
 		return client, nil, diags
 	}
-
-	// TODO: Validate if we can do this before the full release.
-	// We know that before a certain version of TFE the test endpoints don't
-	// exist, so we can check for that upfront. As of August 2023, we don't know
-	// what version of TFE will contain the testing endpoints.
-
-	/* TODO: Enable this when we're ready.
-	currentAPIVersion, parseErr := version.NewVersion(client.RemoteAPIVersion())
-	desiredAPIVersion, _ := version.NewVersion("2.7")
-
-	if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
-		log.Printf("[TRACE] API version check failed; want: >= %s, got: %s", desiredAPIVersion.Original(), currentAPIVersion)
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Unsupported Terraform Enterprise version",
-			"The `terraform test` command is not supported with this version of Terraform Enterprise."))
-		return client, module, diags
-	}
-	*/
 
 	// Enable retries for server errors.
 	client.RetryServerErrors(true)
