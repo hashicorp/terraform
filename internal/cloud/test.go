@@ -120,11 +120,11 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 
 	addr, err := tfaddr.ParseModuleSource(runner.Source)
 	if err != nil {
-		if err, ok := err.(*tfaddr.ParserError); ok {
+		if parserError, ok := err.(*tfaddr.ParserError); ok {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
-				err.Summary,
-				err.Detail,
+				parserError.Summary,
+				parserError.Detail,
 				cty.Path{cty.GetAttrStep{Name: "source"}}))
 		} else {
 			diags = diags.Append(err)
@@ -390,11 +390,10 @@ func (runner *TestSuiteRunner) waitForRun(client *tfe.Client, original *tfe.Test
 		// too long to finish. We don't need to handle that here.
 
 		for ; ; i++ {
-			select {
-			case <-time.After(backoff(backoffMin, backoffMax, i)):
-				// Timer up, show status
-			}
+			// Wait for the backoff.
+			time.Sleep(backoff(backoffMin, backoffMax, i))
 
+			// Check if we're done.
 			if completed(i) {
 				return
 			}
