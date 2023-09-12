@@ -420,10 +420,9 @@ func TestTest_Cancel(t *testing.T) {
 	}()
 
 	stop() // immediately cancel
-	select {
-	case <-doneContext.Done():
-		// Finished!
-	}
+
+	// Wait for finish!
+	<-doneContext.Done()
 
 	if len(diags) > 0 {
 		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
@@ -540,10 +539,9 @@ func TestTest_ForceCancel(t *testing.T) {
 	}()
 
 	cancel() // immediately cancel
-	select {
-	case <-doneContext.Done():
-		// Finished!
-	}
+
+	// Wait for finish!
+	<-doneContext.Done()
 
 	if len(diags) > 0 {
 		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
