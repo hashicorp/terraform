@@ -50,7 +50,7 @@ Terraform also provides diagnostics explaining why it could now automatically cl
 
 You can execute tests remotely on Terraform Cloud using the `-cloud-run` option.
 
-The argument accepts a private registry module source as specified in the [Terraform Registry Module Sources](/terraform/language/modules/sources#terraform-registry) documentation. This will associate the test run with the given private module within the Terraform Cloud UI.
+The `-cloud-run` option accepts a [private registry module source](/terraform/language/modules/sources#terraform-registry). This option associates the test run with your specified private module within the Terraform Cloud user interface.
 
 You must provide a module from a _private_ registry, not the public Terraform registry.
 
