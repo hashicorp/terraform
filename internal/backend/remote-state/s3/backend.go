@@ -386,6 +386,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 			Validators: []stringValidator{
 				validateStringNotEmpty,
 				validateStringS3Path,
+				validateStringDoesNotContain("//"),
 			},
 		}
 		keyValidators.ValidateAttr(val, attrPath, &diags)

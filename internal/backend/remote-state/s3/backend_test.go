@@ -1137,6 +1137,20 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				),
 			},
 		},
+		"key with double slash": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket": cty.StringVal("test"),
+				"key":    cty.StringVal("test/with/double//slash"),
+				"region": cty.StringVal("us-west-2"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`Value must not contain "//"`,
+					cty.GetAttrPath("key"),
+				),
+			},
+		},
 
 		"null region": {
 			config: cty.ObjectVal(map[string]cty.Value{
