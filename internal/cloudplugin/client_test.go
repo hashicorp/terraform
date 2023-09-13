@@ -41,7 +41,7 @@ func TestCloudPluginClient_DownloadFile(t *testing.T) {
 
 	t.Run("200 response", func(t *testing.T) {
 		buffer := bytes.Buffer{}
-		err := client.DownloadFile("/archives/terraform-cloudplugin/terraform-cloudplugin_0.1.0_SHA256SUMS", &buffer)
+		err := client.DownloadFile("/archives/terraform-cloudplugin_0.1.0_SHA256SUMS", &buffer)
 		if err != nil {
 			t.Fatal("expected no error")
 		}
@@ -83,12 +83,8 @@ func TestCloudPluginClient_FetchManifest(t *testing.T) {
 			t.Fatal("expected manifest")
 		}
 
-		if manifest.lastModified != testManifestLastModified {
-			t.Errorf("expected lastModified %q, got %q", manifest.lastModified, testManifestLastModified)
-		}
-
-		if expected := "0.1.0"; manifest.ProductVersion != expected {
-			t.Errorf("expected ProductVersion %q, got %q", expected, manifest.ProductVersion)
+		if expected := "0.1.0"; manifest.Version != expected {
+			t.Errorf("expected ProductVersion %q, got %q", expected, manifest.Version)
 		}
 	})
 
@@ -122,5 +118,62 @@ func TestCloudPluginClient_NotSupportedByTerraformCloud(t *testing.T) {
 	_, err = client.FetchManifest(time.Time{})
 	if !errors.Is(err, ErrCloudPluginNotSupported) {
 		t.Errorf("Expected ErrCloudPluginNotSupported, got %v", err)
+	}
+}
+
+func TestRelease_PrimarySHASumsSignatureURL(t *testing.T) {
+	example := Release{
+		URLSHASumsSignatures: []string{
+			"https://releases.hashicorp.com/terraform-cloudplugin/0.1.0-prototype/terraform-cloudplugin_0.1.0-prototype_SHA256SUMS.sig",
+			"https://releases.hashicorp.com/terraform-cloudplugin/0.1.0-prototype/terraform-cloudplugin_0.1.0-prototype_SHA256SUMS/72D7468F.sig", // Not quite right
+			"https://releases.hashicorp.com/terraform-cloudplugin/0.1.0-prototype/terraform-cloudplugin_0.1.0-prototype_SHA256SUMS.72D7468F.sig",
+		},
+	}
+
+	url, err := example.PrimarySHASumsSignatureURL()
+	if err != nil {
+		t.Fatalf("Expected no error, got %s", err)
+	}
+
+	if url != example.URLSHASumsSignatures[2] {
+		t.Errorf("Expected URL %q, but got %q", example.URLSHASumsSignatures[2], url)
+	}
+}
+
+func TestRelease_PrimarySHASumsSignatureURL_lowercase_should_match(t *testing.T) {
+	example := Release{
+		URLSHASumsSignatures: []string{
+			"https://releases.hashicorp.com/terraform-cloudplugin/0.1.0-prototype/terraform-cloudplugin_0.1.0-prototype_SHA256SUMS.sig",
+			"https://releases.hashicorp.com/terraform-cloudplugin/0.1.0-prototype/terraform-cloudplugin_0.1.0-prototype_SHA256SUMS.72d7468f.sig",
+		},
+	}
+
+	url, err := example.PrimarySHASumsSignatureURL()
+	if err != nil {
+		t.Fatalf("Expected no error, got %s", err)
+	}
+
+	// Not expected but technically fine since these are hex values
+	if url != example.URLSHASumsSignatures[1] {
+		t.Errorf("Expected URL %q, but got %q", example.URLSHASumsSignatures[1], url)
+	}
+}
+
+func TestRelease_PrimarySHASumsSignatureURL_no_known_keys(t *testing.T) {
+	example := Release{
+		URLSHASumsSignatures: []string{
+			"https://releases.hashicorp.com/terraform-cloudplugin/0.1.0-prototype/terraform-cloudplugin_0.1.0-prototype_SHA256SUMS.sig",
+			"https://releases.hashicorp.com/terraform-cloudplugin/0.1.0-prototype/terraform-cloudplugin_0.1.0-prototype_SHA256SUMS.ABCDEF012.sig",
+		},
+	}
+
+	url, err := example.PrimarySHASumsSignatureURL()
+	if err != nil {
+		t.Fatalf("Expected no error, got %s", err)
+	}
+
+	// Returns key with no ID
+	if url != example.URLSHASumsSignatures[0] {
+		t.Errorf("Expected URL %q, but got %q", example.URLSHASumsSignatures[0], url)
 	}
 }
