@@ -13,8 +13,11 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
+	"github.com/aws/smithy-go/middleware"
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 
 	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
@@ -57,17 +60,10 @@ func (b *Backend) Workspaces() ([]string, error) {
 
 	pages := s3.NewListObjectsV2Paginator(b.s3Client, params)
 	for pages.HasMorePages() {
-		page, err := pages.NextPage(ctx)
+		page, err := pages.NextPage(ctx, s3.WithAPIOptions(addS3WrongRegionErrorMiddleware))
 		if err != nil {
 			if IsA[*s3types.NoSuchBucket](err) {
 				return nil, fmt.Errorf(errS3NoSuchBucket, b.bucketName, err)
-			}
-			if respErr, ok := As[*smithyhttp.ResponseError](err); ok && respErr.HTTPStatusCode() == http.StatusMovedPermanently {
-				if resp := respErr.HTTPResponse(); resp != nil {
-					if bucketRegion := resp.Header.Get("X-Amz-Bucket-Region"); bucketRegion != "" {
-						err = newBucketRegionError(b.awsConfig.Region, bucketRegion)
-					}
-				}
 			}
 			return nil, fmt.Errorf("Unable to list objects in S3 bucket %q: %w", b.bucketName, err)
 		}
@@ -82,6 +78,44 @@ func (b *Backend) Workspaces() ([]string, error) {
 
 	sort.Strings(wss[1:])
 	return wss, nil
+}
+
+func addS3WrongRegionErrorMiddleware(stack *middleware.Stack) error {
+	return stack.Deserialize.Insert(
+		&s3WrongRegionErrorMiddleware{},
+		"ResponseErrorWrapper",
+		middleware.After,
+	)
+}
+
+var _ middleware.DeserializeMiddleware = &s3WrongRegionErrorMiddleware{}
+
+type s3WrongRegionErrorMiddleware struct{}
+
+func (m *s3WrongRegionErrorMiddleware) ID() string {
+	return "tf_S3WrongRegionErrorMiddleware"
+}
+
+func (m *s3WrongRegionErrorMiddleware) HandleDeserialize(ctx context.Context, in middleware.DeserializeInput, next middleware.DeserializeHandler) (
+	out middleware.DeserializeOutput, metadata middleware.Metadata, err error,
+) {
+	out, metadata, err = next.HandleDeserialize(ctx, in)
+	if err == nil || !IsA[*smithy.GenericAPIError](err) {
+		return out, metadata, err
+	}
+
+	resp, ok := out.RawResponse.(*smithyhttp.Response)
+	if !ok || resp.StatusCode != http.StatusMovedPermanently {
+		return out, metadata, err
+	}
+
+	reqRegion := awsmiddleware.GetRegion(ctx)
+
+	bucketRegion := resp.Header.Get("X-Amz-Bucket-Region")
+
+	err = newBucketRegionError(reqRegion, bucketRegion)
+
+	return out, metadata, err
 }
 
 func (b *Backend) keyEnv(key string) string {
