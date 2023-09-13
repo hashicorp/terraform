@@ -1869,18 +1869,17 @@ web_identity_token_file = no-such-file
 			config: map[string]any{
 				"assume_role_with_web_identity": map[string]any{},
 			},
-			ExpectedCredentialsValue: mockdata.MockStsAssumeRoleWithWebIdentityCredentials,
 			ValidateDiags: ExpectDiagsEqual(tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Missing Required Value",
+					`Exactly one of web_identity_token, web_identity_token_file must be set.`,
+					cty.GetAttrPath("assume_role_with_web_identity"),
+				),
 				attributeErrDiag(
 					"Missing Required Value",
 					`The attribute "assume_role_with_web_identity.role_arn" is required by the backend.`+"\n\n"+
 						"Refer to the backend documentation for additional information which attributes are required.",
 					cty.GetAttrPath("assume_role_with_web_identity").GetAttr("role_arn"),
-				),
-				attributeErrDiag(
-					"Missing Required Value",
-					`Exactly one of web_identity_token, web_identity_token_file must be set.`,
-					cty.GetAttrPath("assume_role_with_web_identity"),
 				),
 			}),
 		},
@@ -1891,11 +1890,28 @@ web_identity_token_file = no-such-file
 					"role_arn": servicemocks.MockStsAssumeRoleWithWebIdentityArn,
 				},
 			},
-			ExpectedCredentialsValue: mockdata.MockStsAssumeRoleWithWebIdentityCredentials,
 			ValidateDiags: ExpectDiagsEqual(tfdiags.Diagnostics{
 				attributeErrDiag(
 					"Missing Required Value",
 					`Exactly one of web_identity_token, web_identity_token_file must be set.`,
+					cty.GetAttrPath("assume_role_with_web_identity"),
+				),
+			}),
+		},
+
+		"invalid token config conflict": {
+			config: map[string]any{
+				"assume_role_with_web_identity": map[string]any{
+					"role_arn":           servicemocks.MockStsAssumeRoleWithWebIdentityArn,
+					"session_name":       servicemocks.MockStsAssumeRoleWithWebIdentitySessionName,
+					"web_identity_token": servicemocks.MockWebIdentityToken,
+				},
+			},
+			SetConfig: true,
+			ValidateDiags: ExpectDiagsEqual(tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Attribute Combination",
+					`Only one of web_identity_token, web_identity_token_file can be set.`,
 					cty.GetAttrPath("assume_role_with_web_identity"),
 				),
 			}),
