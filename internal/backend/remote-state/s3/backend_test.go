@@ -1982,7 +1982,8 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 			}
 			config := cty.ObjectVal(vals)
 
-			diags := validateNestedAttribute(assumeRoleSchema, config, path)
+			var diags tfdiags.Diagnostics
+			validateNestedAttribute(assumeRoleSchema, config, path, &diags)
 
 			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
