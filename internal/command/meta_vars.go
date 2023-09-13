@@ -64,7 +64,8 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 	// Next up we have some implicit files that are loaded automatically
 	// if they are present. There's the original terraform.tfvars
 	// (DefaultVarsFilename) along with the later-added search for all files
-	// ending in .auto.tfvars.
+	// ending in .auto.tfvars, .auto.tfvars.json, .auto.<workspace>.tfvars and
+	// .auto.<workspace>.tfvars.json.
 	if _, err := os.Stat(DefaultVarsFilename); err == nil {
 		moreDiags := m.addVarsFromFile(DefaultVarsFilename, terraform.ValueFromAutoFile, ret)
 		diags = diags.Append(moreDiags)
@@ -75,13 +76,39 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 		diags = diags.Append(moreDiags)
 	}
 	if infos, err := ioutil.ReadDir("."); err == nil {
+		var commonAutoVarFiles []string
+		var workspaceAutoVarFiles []string
+
+		commonSuffixes := []string{".auto.tfvars", ".auto.tfvars.json"}
+
+		var workspaceSuffixes []string
+		workspace, err := m.Workspace()
+		if err == nil {
+			workspaceSuffixes = append(
+				workspaceSuffixes,
+				fmt.Sprintf(".auto.%s.tfvars", workspace),
+				fmt.Sprintf(".auto.%s.tfvars.json", workspace),
+			)
+		}
+
 		// "infos" is already sorted by name, so we just need to filter it here.
 		for _, info := range infos {
 			name := info.Name()
-			if !isAutoVarFile(name) {
-				continue
+			if hasSuffix(name, commonSuffixes) {
+				commonAutoVarFiles = append(commonAutoVarFiles, name)
+			} else if hasSuffix(name, workspaceSuffixes) {
+				workspaceAutoVarFiles = append(workspaceAutoVarFiles, name)
 			}
-			moreDiags := m.addVarsFromFile(name, terraform.ValueFromAutoFile, ret)
+		}
+
+		// loading common files first and then workspace specific files.
+		for _, f := range commonAutoVarFiles {
+			moreDiags := m.addVarsFromFile(f, terraform.ValueFromAutoFile, ret)
+			diags = diags.Append(moreDiags)
+		}
+
+		for _, f := range workspaceAutoVarFiles {
+			moreDiags := m.addVarsFromFile(f, terraform.ValueFromAutoFile, ret)
 			diags = diags.Append(moreDiags)
 		}
 	}
@@ -132,6 +159,15 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 	}
 
 	return ret, diags
+}
+
+func hasSuffix(filename string, suffixes []string) bool {
+	for _, s := range suffixes {
+		if strings.HasSuffix(filename, s) {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSourceType, to map[string]backend.UnparsedVariableValue) tfdiags.Diagnostics {

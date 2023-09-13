@@ -1,0 +1,2 @@
+from_auto_workspace_tfvars="foobar"
+from_auto_workspace_overridden="cban"
