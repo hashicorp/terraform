@@ -1,4 +1,4 @@
-## 1.3.10 (Unreleased)
+## 1.3.10 (September 13, 2023)
 
 BUG FIXES:
 
