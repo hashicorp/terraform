@@ -37,7 +37,7 @@ func TestRemoteClientBasic(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName)
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
 	state, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
@@ -70,7 +70,7 @@ func TestRemoteClientLocks(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
 	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 
@@ -111,7 +111,7 @@ func TestForceUnlock(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
 	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 
@@ -182,7 +182,7 @@ func TestRemoteClient_clientMD5(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName)
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 	createDynamoDBTable(ctx, t, b.dynClient, bucketName)
 	defer deleteDynamoDBTable(ctx, t, b.dynClient, bucketName)
 
@@ -232,7 +232,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
 	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 
