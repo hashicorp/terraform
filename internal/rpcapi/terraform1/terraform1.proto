@@ -548,6 +548,12 @@ message ResourceInstanceInStackAddr {
     string resource_instance_addr = 2;
 }
 
+enum ResourceMode {
+    UNKNOWN = 0;
+    MANAGED = 1;
+    DATA = 2;
+}
+
 // A source address in the same form as it would appear in a Terraform
 // configuration: a source string combined with an optional version constraint
 // string, where the latter is valid only for registry module addresses.
@@ -640,6 +646,9 @@ message PlannedChange {
         DynamicValueChange values = 3;
         Moved moved = 4;
         Imported imported = 5;
+        ResourceMode resource_mode = 6;
+        string resource_type = 7;
+        string provider_addr = 8;
         // TODO: Everything else we need for feature-parity with the
         // existing JSON plan export format.
 

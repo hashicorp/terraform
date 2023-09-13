@@ -8,6 +8,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
@@ -124,6 +125,10 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 					ComponentInstanceAddr: pc.ComponentInstanceAddr.String(),
 					ResourceInstanceAddr:  pc.ChangeSrc.Addr.String(),
 				},
+				ResourceMode: resourceModeForProto(pc.ChangeSrc.Addr.Resource.Resource.Mode),
+				ResourceType: pc.ChangeSrc.Addr.Resource.Resource.Type,
+				ProviderAddr: pc.ChangeSrc.ProviderAddr.Provider.String(),
+
 				Actions: protoChangeTypes,
 				Values: &terraform1.DynamicValueChange{
 					Old: terraform1.NewDynamicValue(pc.ChangeSrc.Before, pc.ChangeSrc.BeforeValMarks),
@@ -284,4 +289,17 @@ func (pc *PlannedChangeApplyable) PlannedChangeProto() (*terraform1.PlannedChang
 			PlanApplyable: pc.Applyable,
 		},
 	}, nil
+}
+
+func resourceModeForProto(mode addrs.ResourceMode) terraform1.ResourceMode {
+	switch mode {
+	case addrs.ManagedResourceMode:
+		return terraform1.ResourceMode_MANAGED
+	case addrs.DataResourceMode:
+		return terraform1.ResourceMode_DATA
+	default:
+		// Should not get here, because the above should be exhaustive for
+		// all addrs.ResourceMode variants.
+		return terraform1.ResourceMode_UNKNOWN
+	}
 }

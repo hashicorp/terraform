@@ -205,7 +205,10 @@ func TestPlannedChangeAsProto(t *testing.T) {
 							ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
 							ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
 						},
-						Actions: []terraform1.ChangeType{terraform1.ChangeType_CREATE},
+						ResourceMode: terraform1.ResourceMode_MANAGED,
+						ResourceType: "thingy",
+						ProviderAddr: "example.com/thingers/thingy",
+						Actions:      []terraform1.ChangeType{terraform1.ChangeType_CREATE},
 						Values: &terraform1.DynamicValueChange{
 							Old: &terraform1.DynamicValue{
 								Msgpack: []byte{'\xc0'}, // null
