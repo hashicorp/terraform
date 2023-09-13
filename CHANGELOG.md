@@ -1,5 +1,9 @@
 ## 1.3.10 (Unreleased)
 
+BUG FIXES:
+
+* `terraform_remote_state`: fix incompatibility with states produced by Terraform 1.5 or later which include `check` block results. ([#33813](https://github.com/hashicorp/terraform/pull/33813))
+
 ## 1.3.9 (February 15, 2023)
 
 BUG FIXES:
