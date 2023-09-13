@@ -706,7 +706,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	}
 
 	if val := obj.GetAttr("assume_role"); !val.IsNull() {
-		diags = diags.Append(validateNestedAttribute(assumeRoleSchema, val, cty.GetAttrPath("assume_role")))
+		validateNestedAttribute(assumeRoleSchema, val, cty.GetAttrPath("assume_role"), &diags)
 
 		if defined := findDeprecatedFields(obj, assumeRoleDeprecatedFields); len(defined) != 0 {
 			diags = diags.Append(tfdiags.WholeContainingBody(
@@ -727,7 +727,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	}
 
 	if val := obj.GetAttr("assume_role_with_web_identity"); !val.IsNull() {
-		diags = diags.Append(validateNestedAttribute(assumeRoleWithWebIdentitySchema, val, cty.GetAttrPath("assume_role_with_web_identity")))
+		validateNestedAttribute(assumeRoleWithWebIdentitySchema, val, cty.GetAttrPath("assume_role_with_web_identity"), &diags)
 	}
 
 	validateAttributesConflict(
@@ -770,7 +770,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	}
 
 	if val := obj.GetAttr("endpoints"); !val.IsNull() {
-		diags = diags.Append(validateNestedAttribute(endpointsSchema, val, cty.GetAttrPath("endpoints")))
+		validateNestedAttribute(endpointsSchema, val, cty.GetAttrPath("endpoints"), &diags)
 	}
 
 	endpointValidators := validateString{
@@ -1457,27 +1457,25 @@ The "kms_key_id" is used for encryption with KMS-Managed Keys (SSE-KMS)
 while "AWS_SSE_CUSTOMER_KEY" is used for encryption with customer-managed keys (SSE-C).
 Please choose one or the other.`
 
-// TODO: make diags a parameter
-func validateNestedAttribute(objSchema schemaAttribute, obj cty.Value, objPath cty.Path) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
+func validateNestedAttribute(objSchema schemaAttribute, obj cty.Value, objPath cty.Path, diags *tfdiags.Diagnostics) {
 	if obj.IsNull() {
-		return diags
+		return
 	}
 
 	na, ok := objSchema.(singleNestedAttribute)
 	if !ok {
-		return diags
+		return
 	}
 
 	validator := objSchema.Validator()
-	validator.ValidateAttr(obj, objPath, &diags)
+	validator.ValidateAttr(obj, objPath, diags)
 
 	for name, attrSchema := range na.Attributes {
 		attrPath := objPath.GetAttr(name)
 		attrVal := obj.GetAttr(name)
 
 		if a, e := attrVal.Type(), attrSchema.SchemaAttribute().Type; a != e {
-			diags = diags.Append(attributeErrDiag(
+			*diags = diags.Append(attributeErrDiag(
 				"Internal Error",
 				fmt.Sprintf(`Expected type to be %s, got: %s`, e.FriendlyName(), a.FriendlyName()),
 				attrPath,
@@ -1487,16 +1485,14 @@ func validateNestedAttribute(objSchema schemaAttribute, obj cty.Value, objPath c
 
 		if attrVal.IsNull() {
 			if attrSchema.SchemaAttribute().Required {
-				diags = diags.Append(requiredAttributeErrDiag(attrPath))
+				*diags = diags.Append(requiredAttributeErrDiag(attrPath))
 			}
 			continue
 		}
 
 		validator := attrSchema.Validator()
-		validator.ValidateAttr(attrVal, attrPath, &diags)
+		validator.ValidateAttr(attrVal, attrPath, diags)
 	}
-
-	return diags
 }
 
 func requiredAttributeErrDiag(path cty.Path) tfdiags.Diagnostic {
