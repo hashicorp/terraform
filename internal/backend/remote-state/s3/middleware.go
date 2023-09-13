@@ -13,6 +13,8 @@ import (
 	smithyhttp "github.com/aws/smithy-go/transport/http"
 )
 
+// This will not be needed once https://github.com/aws/aws-sdk-go-v2/issues/2282
+// is addressed
 func addS3WrongRegionErrorMiddleware(stack *middleware.Stack) error {
 	return stack.Deserialize.Insert(
 		&s3WrongRegionErrorMiddleware{},
