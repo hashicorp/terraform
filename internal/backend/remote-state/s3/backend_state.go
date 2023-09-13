@@ -7,18 +7,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"path"
 	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	awsmiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/aws/smithy-go"
-	"github.com/aws/smithy-go/middleware"
-	smithyhttp "github.com/aws/smithy-go/transport/http"
 
 	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -78,44 +73,6 @@ func (b *Backend) Workspaces() ([]string, error) {
 
 	sort.Strings(wss[1:])
 	return wss, nil
-}
-
-func addS3WrongRegionErrorMiddleware(stack *middleware.Stack) error {
-	return stack.Deserialize.Insert(
-		&s3WrongRegionErrorMiddleware{},
-		"ResponseErrorWrapper",
-		middleware.After,
-	)
-}
-
-var _ middleware.DeserializeMiddleware = &s3WrongRegionErrorMiddleware{}
-
-type s3WrongRegionErrorMiddleware struct{}
-
-func (m *s3WrongRegionErrorMiddleware) ID() string {
-	return "tf_S3WrongRegionErrorMiddleware"
-}
-
-func (m *s3WrongRegionErrorMiddleware) HandleDeserialize(ctx context.Context, in middleware.DeserializeInput, next middleware.DeserializeHandler) (
-	out middleware.DeserializeOutput, metadata middleware.Metadata, err error,
-) {
-	out, metadata, err = next.HandleDeserialize(ctx, in)
-	if err == nil || !IsA[*smithy.GenericAPIError](err) {
-		return out, metadata, err
-	}
-
-	resp, ok := out.RawResponse.(*smithyhttp.Response)
-	if !ok || resp.StatusCode != http.StatusMovedPermanently {
-		return out, metadata, err
-	}
-
-	reqRegion := awsmiddleware.GetRegion(ctx)
-
-	bucketRegion := resp.Header.Get("X-Amz-Bucket-Region")
-
-	err = newBucketRegionError(reqRegion, bucketRegion)
-
-	return out, metadata, err
 }
 
 func (b *Backend) keyEnv(key string) string {
