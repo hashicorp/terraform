@@ -55,7 +55,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 
 	pages := s3.NewListObjectsV2Paginator(b.s3Client, params)
 	for pages.HasMorePages() {
-		page, err := pages.NextPage(ctx, s3.WithAPIOptions(addS3WrongRegionErrorMiddleware))
+		page, err := pages.NextPage(ctx)
 		if err != nil {
 			if IsA[*s3types.NoSuchBucket](err) {
 				return nil, fmt.Errorf(errS3NoSuchBucket, b.bucketName, err)
