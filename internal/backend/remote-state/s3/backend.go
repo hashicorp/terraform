@@ -417,15 +417,22 @@ var assumeRoleSchema = singleNestedAttribute{
 			},
 		},
 
-		// NOT SUPPORTED by `aws-sdk-go-base/v1`
-		// "source_identity": stringAttribute{
-		// 	configschema.Attribute{
-		// 		Type:         cty.String,
-		// 		Optional:     true,
-		// 		Description:  "Source identity specified by the principal assuming the role.",
-		// 		ValidateFunc: validAssumeRoleSourceIdentity,
-		// 	},
-		// },
+		"source_identity": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Source identity specified by the principal assuming the role.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringLenBetween(2, 64),
+					validateStringMatches(
+						regexp.MustCompile(`^[\w+=,.@\-]*$`),
+						`Value can only contain letters, numbers, or the following characters: =,.@-`,
+					),
+				},
+			},
+		},
 
 		"tags": mapAttribute{
 			configschema.Attribute{
@@ -1076,6 +1083,9 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		}
 		if val, ok := stringAttrOk(assumeRole, "session_name"); ok {
 			ar.SessionName = val
+		}
+		if val, ok := stringAttrOk(assumeRole, "source_identity"); ok {
+			ar.SourceIdentity = val
 		}
 		if val, ok := stringMapAttrOk(assumeRole, "tags"); ok {
 			ar.Tags = val
