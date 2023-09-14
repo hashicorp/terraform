@@ -1076,12 +1076,18 @@ func (runner *TestFileRunner) prepareInputVariablesForAssertions(config *configs
 				return variable, diags
 			}
 
+			given := variable.Value
+
 			// Normally, variable values would be converted during the Terraform
 			// graph processing. But, `terraform test` assertions are not
 			// executed during the graph but after. This means the variables we
 			// create for use in the assertions must be converted here.
 
-			converted, err := convert.Convert(variable.Value, config.Type)
+			if config.TypeDefaults != nil && !given.IsNull() {
+				given = config.TypeDefaults.Apply(given)
+			}
+
+			converted, err := convert.Convert(given, config.ConstraintType)
 			if err != nil {
 				var subject *hcl.Range
 				if reference != nil {
