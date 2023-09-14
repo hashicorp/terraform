@@ -1307,7 +1307,7 @@ func (runner *TestFileRunner) ctx(run *moduletest.Run, file *moduletest.File, av
 					// resolve all the references. We'll raise an error at that
 					// point if the user actually attempts to reference a value
 					// that is unknown.
-					value = cty.UnknownVal(cty.DynamicPseudoType)
+					value = cty.DynamicVal
 				default:
 					value = output.Value
 				}
