@@ -523,8 +523,7 @@ to only a single state object within an S3 bucket is shown below:
 }
 ```
 
-The example backend configuration below documents the corresponding `bucket`
-and `key` arguments:
+The example backend configuration below documents the corresponding `bucket` and `key` arguments:
 
 ```hcl
 terraform {
@@ -538,40 +537,37 @@ terraform {
 
 Refer to the [AWS documentation on S3 access control](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-access-control.html) for more details.
 
-It is also possible to apply fine-grained access control to the DynamoDB
-table used for locking. When Terraform puts the state lock in place during `terraform plan`, it stores the full state file as a document and sets the s3 object key as the partition key for the document. After the state lock is released, Terraform places a digest of the updated state file in DynamoDB. The key is similar to the one for the original state file, but is suffixed with `-md5`.
-
-The example below shows a simple IAM policy that allows the backend operations role to perform these operations:
+DynamoDB does not assign a separate resource ARN to each key in a table, but you can write more precise policies for a DynamoDB table [using an IAM `Condition` element](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/specifying-conditions.html).
+For example, you can use the `dynamodb:LeadingKeys` condition key to match on the partition key values that the S3 backend will use:
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
-      {
-        "Effect" : "Allow",
-        "Action" : [
-          "dynamodb:DeleteItem",
-          "dynamodb:GetItem",
-          "dynamodb:PutItem",
-          "dynamodb:Query",
-          "dynamodb:UpdateItem"
-        ],
-        "Resource" : ["arn:aws:dynamodb:*:*:table/myorg-state-lock-table"],
-        "Condition" : {
-          "ForAllValues:StringEquals" : {
-            "dynamodb:LeadingKeys" : [
-              "myorg-terraform-states/myapp/production/tfstate", // during a state lock the full state file is stored with this key
-              "myorg-terraform-states/myapp/production/tfstate-md5" // after the lock is released a hash of the statefile's contents are stored with this key
-            ]
-          }
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:DeleteItem",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem"
+      ],
+      "Resource": "arn:aws:dynamodb:us-east-1:12341234:table/TableName",
+      "Condition": {
+        "ForAllValues:StringEquals": {
+          "dynamodb:LeadingKeys": [
+            "TableName/myapp/production/tfstate",
+            "TableName/myapp/production/tfstate-md5"
+          ]
         }
       }
+    }
   ]
 }
 ```
 
-The example backend configuration below documents the corresponding `dynamodb_table`
-argument:
+Note that DynamoDB ARNs are regional and account-specific, unlike S3 bucket ARNs, so you must also specify the correct region and AWS account ID for your DynamoDB table in the `Resource` element.
+
+The example backend configuration below documents the corresponding arguments:
 
 ```hcl
 terraform {
@@ -579,7 +575,7 @@ terraform {
     bucket         = "myorg-terraform-states"
     key            = "myapp/production/tfstate"
     region         = "us-east-1"
-    dynamodb_table = "myorg-state-lock-table"
+    dynamodb_table = "TableName
   }
 }
 ```

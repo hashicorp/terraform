@@ -26,16 +26,11 @@ func TestAll(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	checksums, err := ParseChecksums(sums)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	sigAuth := NewSignatureAuthentication(signature, sums)
 	sigAuth.PublicKey = string(publicKey)
 
 	all := AllAuthenticators(
-		NewMatchingChecksumsAuthentication(actualChecksum, "sample_0.1.0_darwin_amd64.zip", checksums),
 		NewChecksumAuthentication(actualChecksum, "testdata/sample_release/sample_0.1.0_darwin_amd64.zip"),
 		sigAuth,
 	)

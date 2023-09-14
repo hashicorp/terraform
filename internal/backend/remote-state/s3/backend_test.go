@@ -1137,6 +1137,20 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				),
 			},
 		},
+		"key with double slash": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket": cty.StringVal("test"),
+				"key":    cty.StringVal("test/with/double//slash"),
+				"region": cty.StringVal("us-west-2"),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`Value must not contain "//"`,
+					cty.GetAttrPath("key"),
+				),
+			},
+		},
 
 		"null region": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -1344,7 +1358,7 @@ func TestBackendBasic(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName)
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
 	backend.TestBackendStates(t, b)
 }
@@ -1374,7 +1388,7 @@ func TestBackendLocked(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
 	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 
@@ -1574,7 +1588,7 @@ func TestBackendSSECustomerKey(t *testing.T) {
 
 			if !diags.HasErrors() {
 				createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
-				defer deleteS3Bucket(ctx, t, b.s3Client, bucketName)
+				defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
 				backend.TestBackendStates(t, b)
 			}
@@ -1598,7 +1612,7 @@ func TestBackendExtraPaths(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName)
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
 	// put multiple states in old env paths.
 	s1 := states.NewState()
@@ -1739,7 +1753,7 @@ func TestBackendPrefixInWorkspace(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName)
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
 	// get a state that contains the prefix as a substring
 	sMgr, err := b.StateMgr("env-1")
@@ -1752,6 +1766,46 @@ func TestBackendPrefixInWorkspace(t *testing.T) {
 
 	if err := checkStateList(b, []string{"default", "env-1"}); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestBackendWrongRegion(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "testState"
+
+	bucketRegion := "us-west-1"
+	backendRegion := "us-east-1"
+	if backendRegion == bucketRegion {
+		t.Fatalf("bucket region and backend region must not be the same")
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":  bucketName,
+		"key":     keyName,
+		"encrypt": true,
+		"region":  backendRegion,
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b.s3Client, bucketName, bucketRegion)
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, bucketRegion)
+
+	if _, err := b.StateMgr(backend.DefaultStateName); err == nil {
+		t.Fatal("expected error, got none")
+	} else {
+		if regionErr, ok := As[bucketRegionError](err); ok {
+			if a, e := regionErr.bucketRegion, bucketRegion; a != e {
+				t.Errorf("expected bucket region %q, got %q", e, a)
+			}
+			if a, e := regionErr.requestRegion, backendRegion; a != e {
+				t.Errorf("expected request region %q, got %q", e, a)
+			}
+		} else {
+			t.Fatalf("expected bucket region error, got: %v", err)
+		}
 	}
 }
 
@@ -1771,7 +1825,7 @@ func TestKeyEnv(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b0.s3Client, bucket0Name, b0.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b0.s3Client, bucket0Name)
+	defer deleteS3Bucket(ctx, t, b0.s3Client, bucket0Name, b0.awsConfig.Region)
 
 	bucket1Name := fmt.Sprintf("terraform-remote-s3-test-%x-1", time.Now().Unix())
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -1782,7 +1836,7 @@ func TestKeyEnv(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b1.s3Client, bucket1Name, b1.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b1.s3Client, bucket1Name)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucket1Name, b1.awsConfig.Region)
 
 	bucket2Name := fmt.Sprintf("terraform-remote-s3-test-%x-2", time.Now().Unix())
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -1792,7 +1846,7 @@ func TestKeyEnv(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b2.s3Client, bucket2Name, b2.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b2.s3Client, bucket2Name)
+	defer deleteS3Bucket(ctx, t, b2.s3Client, bucket2Name, b2.awsConfig.Region)
 
 	if err := testGetWorkspaceForKey(b0, "some/paths/tfstate", ""); err != nil {
 		t.Fatal(err)
@@ -1971,7 +2025,7 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			schema := assumeRoleFullSchema()
+			schema := assumeRoleSchema.Attributes
 			vals := make(map[string]cty.Value, len(schema))
 			for name, attrSchema := range schema {
 				if val, ok := tc.config[name]; ok {
@@ -1982,7 +2036,8 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 			}
 			config := cty.ObjectVal(vals)
 
-			diags := prepareAssumeRoleConfig(config, path)
+			var diags tfdiags.Diagnostics
+			validateNestedAttribute(assumeRoleSchema, config, path, &diags)
 
 			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
@@ -2011,6 +2066,8 @@ func checkStateList(b backend.Backend, expected []string) error {
 }
 
 func createS3Bucket(ctx context.Context, t *testing.T, s3Client *s3.Client, bucketName, region string) {
+	t.Helper()
+
 	createBucketReq := &s3.CreateBucketInput{
 		Bucket: &bucketName,
 	}
@@ -2023,31 +2080,39 @@ func createS3Bucket(ctx context.Context, t *testing.T, s3Client *s3.Client, buck
 	// Be clear about what we're doing in case the user needs to clean
 	// this up later.
 	t.Logf("creating S3 bucket %s in %s", bucketName, region)
-	_, err := s3Client.CreateBucket(ctx, createBucketReq)
+	_, err := s3Client.CreateBucket(ctx, createBucketReq, s3WithRegion(region))
 	if err != nil {
 		t.Fatal("failed to create test S3 bucket:", err)
 	}
 }
 
-func deleteS3Bucket(ctx context.Context, t *testing.T, s3Client *s3.Client, bucketName string) {
+func deleteS3Bucket(ctx context.Context, t *testing.T, s3Client *s3.Client, bucketName, region string) {
+	t.Helper()
+
 	warning := "WARNING: Failed to delete the test S3 bucket. It may have been left in your AWS account and may incur storage charges. (error was %s)"
 
 	// first we have to get rid of the env objects, or we can't delete the bucket
-	resp, err := s3Client.ListObjects(ctx, &s3.ListObjectsInput{Bucket: &bucketName})
+	resp, err := s3Client.ListObjects(ctx, &s3.ListObjectsInput{Bucket: &bucketName}, s3WithRegion(region))
 	if err != nil {
 		t.Logf(warning, err)
 		return
 	}
 	for _, obj := range resp.Contents {
-		if _, err := s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{Bucket: &bucketName, Key: obj.Key}); err != nil {
+		if _, err := s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{Bucket: &bucketName, Key: obj.Key}, s3WithRegion(region)); err != nil {
 			// this will need cleanup no matter what, so just warn and exit
 			t.Logf(warning, err)
 			return
 		}
 	}
 
-	if _, err := s3Client.DeleteBucket(ctx, &s3.DeleteBucketInput{Bucket: &bucketName}); err != nil {
+	if _, err := s3Client.DeleteBucket(ctx, &s3.DeleteBucketInput{Bucket: &bucketName}, s3WithRegion(region)); err != nil {
 		t.Logf(warning, err)
+	}
+}
+
+func s3WithRegion(region string) func(o *s3.Options) {
+	return func(o *s3.Options) {
+		o.Region = region
 	}
 }
 

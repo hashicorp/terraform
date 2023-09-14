@@ -94,33 +94,9 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Description: "A custom endpoint for the S3 API",
 				Deprecated:  true,
 			},
-			"endpoints": {
-				NestedType: &configschema.Object{
-					Nesting: configschema.NestingSingle,
-					Attributes: map[string]*configschema.Attribute{
-						"dynamodb": {
-							Type:        cty.String,
-							Optional:    true,
-							Description: "A custom endpoint for the DynamoDB API",
-						},
-						"iam": {
-							Type:        cty.String,
-							Optional:    true,
-							Description: "A custom endpoint for the IAM API",
-						},
-						"s3": {
-							Type:        cty.String,
-							Optional:    true,
-							Description: "A custom endpoint for the S3 API",
-						},
-						"sts": {
-							Type:        cty.String,
-							Optional:    true,
-							Description: "A custom endpoint for the STS API",
-						},
-					},
-				},
-			},
+
+			"endpoints": endpointsSchema.SchemaAttribute(),
+
 			"forbidden_account_ids": {
 				Type:        cty.Set(cty.String),
 				Optional:    true,
@@ -304,19 +280,9 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Description: "The maximum number of times an AWS API request is retried on retryable failure.",
 			},
 
-			"assume_role": {
-				NestedType: &configschema.Object{
-					Nesting:    configschema.NestingSingle,
-					Attributes: assumeRoleFullSchema().SchemaAttributes(),
-				},
-			},
+			"assume_role": assumeRoleSchema.SchemaAttribute(),
 
-			"assume_role_with_web_identity": {
-				NestedType: &configschema.Object{
-					Nesting:    configschema.NestingSingle,
-					Attributes: assumeRoleWithWebIdentityFullSchema().SchemaAttributes(),
-				},
-			},
+			"assume_role_with_web_identity": assumeRoleWithWebIdentitySchema.SchemaAttribute(),
 
 			"use_legacy_workflow": {
 				Type:        cty.Bool,
@@ -354,6 +320,305 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 	}
 }
 
+var assumeRoleSchema = singleNestedAttribute{
+	Attributes: map[string]schemaAttribute{
+		"role_arn": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Required:    true,
+				Description: "The role to be assumed.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateARN(
+						validateIAMRoleARN,
+					),
+				},
+			},
+		},
+
+		"duration": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The duration, between 15 minutes and 12 hours, of the role session. Valid time units are ns, us (or µs), ms, s, h, or m.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateDuration(
+						validateDurationBetween(15*time.Minute, 12*time.Hour),
+					),
+				},
+			},
+		},
+
+		"external_id": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The external ID to use when assuming the role",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringLenBetween(2, 1224),
+					validateStringMatches(
+						regexp.MustCompile(`^[\w+=,.@:\/\-]*$`),
+						`Value can only contain letters, numbers, or the following characters: =,.@/-`,
+					),
+				},
+			},
+		},
+
+		"policy": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringNotEmpty,
+					validateIAMPolicyDocument,
+				},
+			},
+		},
+
+		"policy_arns": setAttribute{
+			configschema.Attribute{
+				Type:        cty.Set(cty.String),
+				Optional:    true,
+				Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
+			},
+			validateSet{
+				Validators: []setValidator{
+					validateSetStringElements(
+						validateARN(
+							validateIAMPolicyARN,
+						),
+					),
+				},
+			},
+		},
+
+		"session_name": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The session name to use when assuming the role.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringLenBetween(2, 64),
+					validateStringMatches(
+						regexp.MustCompile(`^[\w+=,.@\-]*$`),
+						`Value can only contain letters, numbers, or the following characters: =,.@-`,
+					),
+				},
+			},
+		},
+
+		// NOT SUPPORTED by `aws-sdk-go-base/v1`
+		// "source_identity": stringAttribute{
+		// 	configschema.Attribute{
+		// 		Type:         cty.String,
+		// 		Optional:     true,
+		// 		Description:  "Source identity specified by the principal assuming the role.",
+		// 		ValidateFunc: validAssumeRoleSourceIdentity,
+		// 	},
+		// },
+
+		"tags": mapAttribute{
+			configschema.Attribute{
+				Type:        cty.Map(cty.String),
+				Optional:    true,
+				Description: "Assume role session tags.",
+			},
+			validateMap{},
+		},
+
+		"transitive_tag_keys": setAttribute{
+			configschema.Attribute{
+				Type:        cty.Set(cty.String),
+				Optional:    true,
+				Description: "Assume role session tag keys to pass to any subsequent sessions.",
+			},
+			validateSet{},
+		},
+	},
+}
+
+var assumeRoleWithWebIdentitySchema = singleNestedAttribute{
+	Attributes: map[string]schemaAttribute{
+		"role_arn": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Required:    true,
+				Description: "The role to be assumed.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateARN(
+						validateIAMRoleARN,
+					),
+				},
+			},
+		},
+
+		"duration": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The duration, between 15 minutes and 12 hours, of the role session. Valid time units are ns, us (or µs), ms, s, h, or m.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateDuration(
+						validateDurationBetween(15*time.Minute, 12*time.Hour),
+					),
+				},
+			},
+		},
+
+		"policy": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringNotEmpty,
+					validateIAMPolicyDocument,
+				},
+			},
+		},
+
+		"policy_arns": setAttribute{
+			configschema.Attribute{
+				Type:        cty.Set(cty.String),
+				Optional:    true,
+				Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
+			},
+			validateSet{
+				Validators: []setValidator{
+					validateSetStringElements(
+						validateARN(
+							validateIAMPolicyARN,
+						),
+					),
+				},
+			},
+		},
+
+		"session_name": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The session name to use when assuming the role.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringLenBetween(2, 64),
+					validateStringMatches(
+						regexp.MustCompile(`^[\w+=,.@\-]*$`),
+						`Value can only contain letters, numbers, or the following characters: =,.@-`,
+					),
+				},
+			},
+		},
+
+		"web_identity_token": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Value of a web identity token from an OpenID Connect (OIDC) or OAuth provider.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringLenBetween(4, 20000),
+				},
+			},
+		},
+
+		"web_identity_token_file": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "File containing a web identity token from an OpenID Connect (OIDC) or OAuth provider.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringLenBetween(4, 20000),
+				},
+			},
+		},
+	},
+	validateObject: validateObject{
+		Validators: []objectValidator{
+			validateExactlyOneOfAttributes(
+				cty.GetAttrPath("web_identity_token"),
+				cty.GetAttrPath("web_identity_token_file"),
+			),
+		},
+	},
+}
+
+var endpointsSchema = singleNestedAttribute{
+	Attributes: map[string]schemaAttribute{
+		"dynamodb": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the DynamoDB API",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringURL,
+				},
+			},
+		},
+
+		"iam": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the IAM API",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringURL,
+				},
+			},
+		},
+
+		"s3": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the S3 API",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringURL,
+				},
+			},
+		},
+
+		"sts": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the STS API",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringURL,
+				},
+			},
+		},
+	},
+}
+
 // PrepareConfig checks the validity of the values in the given
 // configuration, and inserts any missing defaults, assuming that its
 // structure has already been validated per the schema returned by
@@ -386,6 +651,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 			Validators: []stringValidator{
 				validateStringNotEmpty,
 				validateStringS3Path,
+				validateStringDoesNotContain("//"),
 			},
 		}
 		keyValidators.ValidateAttr(val, attrPath, &diags)
@@ -440,7 +706,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	}
 
 	if val := obj.GetAttr("assume_role"); !val.IsNull() {
-		diags = diags.Append(prepareAssumeRoleConfig(val, cty.GetAttrPath("assume_role")))
+		validateNestedAttribute(assumeRoleSchema, val, cty.GetAttrPath("assume_role"), &diags)
 
 		if defined := findDeprecatedFields(obj, assumeRoleDeprecatedFields); len(defined) != 0 {
 			diags = diags.Append(tfdiags.WholeContainingBody(
@@ -461,7 +727,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	}
 
 	if val := obj.GetAttr("assume_role_with_web_identity"); !val.IsNull() {
-		diags = diags.Append(prepareAssumeRoleWithWebIdentityConfig(val, cty.GetAttrPath("assume_role_with_web_identity")))
+		validateNestedAttribute(assumeRoleWithWebIdentitySchema, val, cty.GetAttrPath("assume_role_with_web_identity"), &diags)
 	}
 
 	validateAttributesConflict(
@@ -503,19 +769,14 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		}
 	}
 
+	if val := obj.GetAttr("endpoints"); !val.IsNull() {
+		validateNestedAttribute(endpointsSchema, val, cty.GetAttrPath("endpoints"), &diags)
+	}
+
 	endpointValidators := validateString{
 		Validators: []stringValidator{
 			validateStringURL,
 		},
-	}
-	if val := obj.GetAttr("endpoints"); !val.IsNull() {
-		attrPath := cty.GetAttrPath("endpoints")
-		for _, k := range []string{"dynamodb", "iam", "s3", "sts"} {
-			if v := val.GetAttr(k); !v.IsNull() {
-				attrPath := attrPath.GetAttr(k)
-				endpointValidators.ValidateAttr(v, attrPath, &diags)
-			}
-		}
 	}
 	for _, k := range maps.Keys(endpointFields) {
 		if val := obj.GetAttr(k); !val.IsNull() {
@@ -1196,18 +1457,25 @@ The "kms_key_id" is used for encryption with KMS-Managed Keys (SSE-KMS)
 while "AWS_SSE_CUSTOMER_KEY" is used for encryption with customer-managed keys (SSE-C).
 Please choose one or the other.`
 
-func prepareAssumeRoleConfig(obj cty.Value, objPath cty.Path) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
+func validateNestedAttribute(objSchema schemaAttribute, obj cty.Value, objPath cty.Path, diags *tfdiags.Diagnostics) {
 	if obj.IsNull() {
-		return diags
+		return
 	}
 
-	for name, attrSchema := range assumeRoleFullSchema() {
+	na, ok := objSchema.(singleNestedAttribute)
+	if !ok {
+		return
+	}
+
+	validator := objSchema.Validator()
+	validator.ValidateAttr(obj, objPath, diags)
+
+	for name, attrSchema := range na.Attributes {
 		attrPath := objPath.GetAttr(name)
 		attrVal := obj.GetAttr(name)
 
 		if a, e := attrVal.Type(), attrSchema.SchemaAttribute().Type; a != e {
-			diags = diags.Append(attributeErrDiag(
+			*diags = diags.Append(attributeErrDiag(
 				"Internal Error",
 				fmt.Sprintf(`Expected type to be %s, got: %s`, e.FriendlyName(), a.FriendlyName()),
 				attrPath,
@@ -1217,53 +1485,14 @@ func prepareAssumeRoleConfig(obj cty.Value, objPath cty.Path) tfdiags.Diagnostic
 
 		if attrVal.IsNull() {
 			if attrSchema.SchemaAttribute().Required {
-				diags = diags.Append(requiredAttributeErrDiag(attrPath))
+				*diags = diags.Append(requiredAttributeErrDiag(attrPath))
 			}
 			continue
 		}
 
 		validator := attrSchema.Validator()
-		validator.ValidateAttr(attrVal, attrPath, &diags)
+		validator.ValidateAttr(attrVal, attrPath, diags)
 	}
-
-	return diags
-}
-func prepareAssumeRoleWithWebIdentityConfig(obj cty.Value, objPath cty.Path) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	if obj.IsNull() {
-		return diags
-	}
-
-	for name, attrSchema := range assumeRoleWithWebIdentityFullSchema() {
-		attrPath := objPath.GetAttr(name)
-		attrVal := obj.GetAttr(name)
-
-		if a, e := attrVal.Type(), attrSchema.SchemaAttribute().Type; a != e {
-			diags = diags.Append(attributeErrDiag(
-				"Internal Error",
-				fmt.Sprintf(`Expected type to be %s, got: %s`, e.FriendlyName(), a.FriendlyName()),
-				attrPath,
-			))
-			continue
-		}
-
-		if attrVal.IsNull() {
-			if attrSchema.SchemaAttribute().Required {
-				diags = diags.Append(requiredAttributeErrDiag(attrPath))
-			}
-			continue
-		}
-
-		validator := attrSchema.Validator()
-		validator.ValidateAttr(attrVal, attrPath, &diags)
-	}
-
-	validateExactlyOneOfAttributes(
-		cty.GetAttrPath("web_identity_token"),
-		cty.GetAttrPath("web_identity_token_file"),
-	)(obj, objPath, &diags)
-
-	return diags
 }
 
 func requiredAttributeErrDiag(path cty.Path) tfdiags.Diagnostic {
@@ -1343,10 +1572,22 @@ func (v validateSet) ValidateAttr(val cty.Value, attrPath cty.Path, diags *tfdia
 	}
 }
 
+type validateObject struct {
+	Validators []objectValidator
+}
+
+func (v validateObject) ValidateAttr(val cty.Value, attrPath cty.Path, diags *tfdiags.Diagnostics) {
+	for _, validator := range v.Validators {
+		validator(val, attrPath, diags)
+	}
+}
+
 type schemaAttribute interface {
 	SchemaAttribute() *configschema.Attribute
 	Validator() validateSchema
 }
+
+var _ schemaAttribute = stringAttribute{}
 
 type stringAttribute struct {
 	configschema.Attribute
@@ -1361,6 +1602,8 @@ func (a stringAttribute) Validator() validateSchema {
 	return a.validateString
 }
 
+var _ schemaAttribute = setAttribute{}
+
 type setAttribute struct {
 	configschema.Attribute
 	validateSet
@@ -1373,6 +1616,8 @@ func (a setAttribute) SchemaAttribute() *configschema.Attribute {
 func (a setAttribute) Validator() validateSchema {
 	return a.validateSet
 }
+
+var _ schemaAttribute = mapAttribute{}
 
 type mapAttribute struct {
 	configschema.Attribute
@@ -1397,239 +1642,24 @@ func (s objectSchema) SchemaAttributes() map[string]*configschema.Attribute {
 	return m
 }
 
-func assumeRoleFullSchema() objectSchema {
-	return map[string]schemaAttribute{
-		"role_arn": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Required:    true,
-				Description: "The role to be assumed.",
-			},
-			validateString{
-				Validators: []stringValidator{
-					validateARN(
-						validateIAMRoleARN,
-					),
-				},
-			},
-		},
+var _ schemaAttribute = singleNestedAttribute{}
 
-		"duration": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Optional:    true,
-				Description: "The duration, between 15 minutes and 12 hours, of the role session. Valid time units are ns, us (or µs), ms, s, h, or m.",
-			},
-			validateString{
-				Validators: []stringValidator{
-					validateDuration(
-						validateDurationBetween(15*time.Minute, 12*time.Hour),
-					),
-				},
-			},
-		},
+type singleNestedAttribute struct {
+	Attributes objectSchema
+	validateObject
+}
 
-		"external_id": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Optional:    true,
-				Description: "The external ID to use when assuming the role",
-			},
-			validateString{
-				Validators: []stringValidator{
-					validateStringLenBetween(2, 1224),
-					validateStringMatches(
-						regexp.MustCompile(`^[\w+=,.@:\/\-]*$`),
-						`Value can only contain letters, numbers, or the following characters: =,.@/-`,
-					),
-				},
-			},
-		},
-
-		"policy": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Optional:    true,
-				Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
-			},
-			validateString{
-				Validators: []stringValidator{
-					validateStringNotEmpty,
-					validateIAMPolicyDocument,
-				},
-			},
-		},
-
-		"policy_arns": setAttribute{
-			configschema.Attribute{
-				Type:        cty.Set(cty.String),
-				Optional:    true,
-				Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
-			},
-			validateSet{
-				Validators: []setValidator{
-					validateSetStringElements(
-						validateARN(
-							validateIAMPolicyARN,
-						),
-					),
-				},
-			},
-		},
-
-		"session_name": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Optional:    true,
-				Description: "The session name to use when assuming the role.",
-			},
-			validateString{
-				Validators: []stringValidator{
-					validateStringLenBetween(2, 64),
-					validateStringMatches(
-						regexp.MustCompile(`^[\w+=,.@\-]*$`),
-						`Value can only contain letters, numbers, or the following characters: =,.@-`,
-					),
-				},
-			},
-		},
-
-		// NOT SUPPORTED by `aws-sdk-go-base/v1`
-		// "source_identity": stringAttribute{
-		// 	configschema.Attribute{
-		// 		Type:         cty.String,
-		// 		Optional:     true,
-		// 		Description:  "Source identity specified by the principal assuming the role.",
-		// 		ValidateFunc: validAssumeRoleSourceIdentity,
-		// 	},
-		// },
-
-		"tags": mapAttribute{
-			configschema.Attribute{
-				Type:        cty.Map(cty.String),
-				Optional:    true,
-				Description: "Assume role session tags.",
-			},
-			validateMap{},
-		},
-
-		"transitive_tag_keys": setAttribute{
-			configschema.Attribute{
-				Type:        cty.Set(cty.String),
-				Optional:    true,
-				Description: "Assume role session tag keys to pass to any subsequent sessions.",
-			},
-			validateSet{},
+func (a singleNestedAttribute) SchemaAttribute() *configschema.Attribute {
+	return &configschema.Attribute{
+		NestedType: &configschema.Object{
+			Nesting:    configschema.NestingSingle,
+			Attributes: a.Attributes.SchemaAttributes(),
 		},
 	}
 }
 
-func assumeRoleWithWebIdentityFullSchema() objectSchema {
-	return map[string]schemaAttribute{
-		"role_arn": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Required:    true,
-				Description: "The role to be assumed.",
-			},
-			validateString{
-				Validators: []stringValidator{
-					validateARN(
-						validateIAMRoleARN,
-					),
-				},
-			},
-		},
-
-		"duration": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Optional:    true,
-				Description: "The duration, between 15 minutes and 12 hours, of the role session. Valid time units are ns, us (or µs), ms, s, h, or m.",
-			},
-			validateString{
-				Validators: []stringValidator{
-					validateDuration(
-						validateDurationBetween(15*time.Minute, 12*time.Hour),
-					),
-				},
-			},
-		},
-
-		"policy": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Optional:    true,
-				Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
-			},
-			validateString{
-				Validators: []stringValidator{
-					validateStringNotEmpty,
-					validateIAMPolicyDocument,
-				},
-			},
-		},
-
-		"policy_arns": setAttribute{
-			configschema.Attribute{
-				Type:        cty.Set(cty.String),
-				Optional:    true,
-				Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
-			},
-			validateSet{
-				Validators: []setValidator{
-					validateSetStringElements(
-						validateARN(
-							validateIAMPolicyARN,
-						),
-					),
-				},
-			},
-		},
-
-		"session_name": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Optional:    true,
-				Description: "The session name to use when assuming the role.",
-			},
-			validateString{
-				Validators: []stringValidator{
-					validateStringLenBetween(2, 64),
-					validateStringMatches(
-						regexp.MustCompile(`^[\w+=,.@\-]*$`),
-						`Value can only contain letters, numbers, or the following characters: =,.@-`,
-					),
-				},
-			},
-		},
-
-		"web_identity_token": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Optional:    true,
-				Description: "Value of a web identity token from an OpenID Connect (OIDC) or OAuth provider.",
-			},
-			validateString{
-				Validators: []stringValidator{
-					validateStringLenBetween(4, 20000),
-				},
-			},
-		},
-
-		"web_identity_token_file": stringAttribute{
-			configschema.Attribute{
-				Type:        cty.String,
-				Optional:    true,
-				Description: "File containing a web identity token from an OpenID Connect (OIDC) or OAuth provider.",
-			},
-			validateString{
-				Validators: []stringValidator{
-					validateStringLenBetween(4, 20000),
-				},
-			},
-		},
-	}
+func (a singleNestedAttribute) Validator() validateSchema {
+	return a.validateObject
 }
 
 func deprecatedAttrDiag(attr, replacement cty.Path) tfdiags.Diagnostic {
