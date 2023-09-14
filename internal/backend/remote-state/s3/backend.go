@@ -407,13 +407,7 @@ var assumeRoleSchema = singleNestedAttribute{
 				Description: "The session name to use when assuming the role.",
 			},
 			validateString{
-				Validators: []stringValidator{
-					validateStringLenBetween(2, 64),
-					validateStringMatches(
-						regexp.MustCompile(`^[\w+=,.@\-]*$`),
-						`Value can only contain letters, numbers, or the following characters: =,.@-`,
-					),
-				},
+				Validators: assumeRoleNameValidator,
 			},
 		},
 
@@ -424,13 +418,7 @@ var assumeRoleSchema = singleNestedAttribute{
 				Description: "Source identity specified by the principal assuming the role.",
 			},
 			validateString{
-				Validators: []stringValidator{
-					validateStringLenBetween(2, 64),
-					validateStringMatches(
-						regexp.MustCompile(`^[\w+=,.@\-]*$`),
-						`Value can only contain letters, numbers, or the following characters: =,.@-`,
-					),
-				},
+				Validators: assumeRoleNameValidator,
 			},
 		},
 
@@ -524,13 +512,7 @@ var assumeRoleWithWebIdentitySchema = singleNestedAttribute{
 				Description: "The session name to use when assuming the role.",
 			},
 			validateString{
-				Validators: []stringValidator{
-					validateStringLenBetween(2, 64),
-					validateStringMatches(
-						regexp.MustCompile(`^[\w+=,.@\-]*$`),
-						`Value can only contain letters, numbers, or the following characters: =,.@-`,
-					),
-				},
+				Validators: assumeRoleNameValidator,
 			},
 		},
 

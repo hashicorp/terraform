@@ -476,3 +476,11 @@ func wholeBodyErrDiag(summary, detail string) tfdiags.Diagnostic {
 func wholeBodyWarningDiag(summary, detail string) tfdiags.Diagnostic {
 	return tfdiags.WholeContainingBody(tfdiags.Warning, summary, detail)
 }
+
+var assumeRoleNameValidator = []stringValidator{
+	validateStringLenBetween(2, 64),
+	validateStringMatches(
+		regexp.MustCompile(`^[\w+=,.@\-]*$`),
+		`Value can only contain letters, numbers, or the following characters: =,.@-`,
+	),
+}
