@@ -751,3 +751,46 @@ func TestValidateStringURL(t *testing.T) {
 	}
 
 }
+
+func Test_validateStringDoesNotContain(t *testing.T) {
+	t.Parallel()
+
+	path := cty.GetAttrPath("field")
+
+	testcases := map[string]struct {
+		val      string
+		s        string
+		expected tfdiags.Diagnostics
+	}{
+		"valid": {
+			val: "foo",
+			s:   "bar",
+		},
+
+		"invalid": {
+			val: "foobarbaz",
+			s:   "bar",
+			expected: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`Value must not contain "bar"`,
+					path,
+				),
+			},
+		},
+	}
+
+	for name, testcase := range testcases {
+		testcase := testcase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var diags tfdiags.Diagnostics
+			validateStringDoesNotContain(testcase.s)(testcase.val, path, &diags)
+
+			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+		})
+	}
+}

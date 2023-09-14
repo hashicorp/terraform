@@ -50,6 +50,11 @@ type TestFatalInterrupt struct {
 	Planned []string                        `json:"planned,omitempty"`
 }
 
+type TestStatusUpdate struct {
+	Status   string  `json:"status"`
+	Duration float64 `json:"duration"`
+}
+
 func ToTestStatus(status moduletest.Status) TestStatus {
 	return TestStatus(strings.ToLower(status.String()))
 }
