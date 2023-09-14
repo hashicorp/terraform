@@ -50,6 +50,14 @@ type nodeExpandPlannableResource struct {
 	// legacyImportMode is set if the graph is being constructed following an
 	// invocation of the legacy "terraform import" CLI command.
 	legacyImportMode bool
+
+	// these are a record of all the addresses used in expansion so they can be
+	// validated as a complete set. While the type is guaranteed to be
+	// addrs.AbsResourceInstance for all these, we use addrs.Checkable because
+	// the expandedInstnaces need to be passed to the check state to register
+	// the instances for checks.
+	expandedImports   addrs.Set[addrs.Checkable]
+	expandedInstances addrs.Set[addrs.Checkable]
 }
 
 var (
@@ -162,15 +170,18 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	// so that we can inform the checks subsystem of which instances it should
 	// be expecting check results for, below.
 	var diags tfdiags.Diagnostics
-	instAddrs := addrs.MakeSet[addrs.Checkable]()
+	n.expandedImports = addrs.MakeSet[addrs.Checkable]()
+	n.expandedInstances = addrs.MakeSet[addrs.Checkable]()
 	for _, module := range moduleInstances {
 		resAddr := n.Addr.Resource.Absolute(module)
-		err := n.expandResourceInstances(ctx, resAddr, &g, instAddrs)
+		err := n.expandResourceInstances(ctx, resAddr, &g)
 		diags = diags.Append(err)
 	}
 	if diags.HasErrors() {
 		return nil, diags.ErrWithWarnings()
 	}
+
+	diags = diags.Append(n.validateExpandedImportTargets())
 
 	// If this is a resource that participates in custom condition checks
 	// (i.e. it has preconditions or postconditions) then the check state
@@ -178,12 +189,27 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	// treat them as unknown status if we encounter an error before actually
 	// visiting the checks.
 	if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.NodeAbstractResource.Addr) {
-		checkState.ReportCheckableObjects(n.NodeAbstractResource.Addr, instAddrs)
+		checkState.ReportCheckableObjects(n.NodeAbstractResource.Addr, n.expandedInstances)
 	}
 
 	addRootNodeToGraph(&g)
 
 	return &g, diags.ErrWithWarnings()
+}
+
+// validateExpandedImportTargets checks that all expanded imports correspond to
+// a configured instance.
+func (n *nodeExpandPlannableResource) validateExpandedImportTargets() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	for _, addr := range n.expandedImports {
+		if !n.expandedInstances.Has(addr) {
+			// FIXME
+			diags = diags.Append(fmt.Errorf("MISSING CONFIG FOR %s", addr))
+		}
+	}
+
+	return diags
 }
 
 // expandResourceInstances calculates the dynamic expansion for the resource
@@ -192,13 +218,13 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 // It has several side-effects:
 //   - Adds a node to Graph g for each leaf resource instance it discovers, whether present or orphaned.
 //   - Registers the expansion of the resource in the "expander" object embedded inside EvalContext ctx.
-//   - Adds each present (non-orphaned) resource instance address to instAddrs (guaranteed to always be addrs.AbsResourceInstance, despite being declared as addrs.Checkable).
+//   - Adds each present (non-orphaned) resource instance address to checkableAddrs (guaranteed to always be addrs.AbsResourceInstance, despite being declared as addrs.Checkable).
 //
 // After calling this for each of the module instances the resource appears
 // within, the caller must register the final superset instAddrs with the
 // checks subsystem so that it knows the fully expanded set of checkable
 // object instances for this resource instance.
-func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalContext, resAddr addrs.AbsResource, g *Graph, instAddrs addrs.Set[addrs.Checkable]) error {
+func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalContext, resAddr addrs.AbsResource, g *Graph) error {
 	var diags tfdiags.Diagnostics
 
 	// The rest of our work here needs to know which module instance it's
@@ -282,10 +308,7 @@ func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalCont
 		// If this resource is participating in the "checks" mechanism then our
 		// caller will need to know all of our expanded instance addresses as
 		// checkable object instances.
-		// (NOTE: instAddrs probably already has other instance addresses in it
-		// from earlier calls to this function with different resource addresses,
-		// because its purpose is to aggregate them all together into a single set.)
-		instAddrs.Add(addr)
+		n.expandedInstances.Add(addr)
 	}
 
 	// Our graph builder mechanism expects to always be constructing new
@@ -304,9 +327,14 @@ func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalCont
 }
 
 // Import blocks are expanded in conjunction with their associated resource block.
-func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr addrs.AbsResource) (addrs.Map[addrs.AbsResourceInstance, string], tfdiags.Diagnostics) {
+func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr addrs.AbsResource, instanceAddrs []addrs.AbsResourceInstance) (addrs.Map[addrs.AbsResourceInstance, string], tfdiags.Diagnostics) {
+	// Imports maps the target address to an import ID.
 	imports := addrs.MakeMap[addrs.AbsResourceInstance, string]()
 	var diags tfdiags.Diagnostics
+
+	// Import blocks are only valid within the root module, and must be
+	// evaluated within that context
+	ctx = ctx.WithPath(addrs.RootModuleInstance)
 
 	for _, imp := range n.importTargets {
 		if imp.Config == nil {
@@ -328,6 +356,8 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 			traversal, _ := hcl.AbsTraversalForExpr(imp.Config.To)
 			to, _ := addrs.ParseAbsResourceInstance(traversal)
 			imports.Put(to, importID)
+			n.expandedImports.Add(to)
+			continue
 		}
 
 		forEachData, forEachDiags := newForEachEvaluator(imp.Config.ForEach, ctx).ImportValues()
@@ -337,28 +367,20 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 		}
 
 		for _, keyData := range forEachData {
+			res, evalDiags := evalImportToExpression(imp.Config.To, keyData)
+			diags = diags.Append(evalDiags)
+			if diags.HasErrors() {
+				return imports, diags
+			}
+
 			importID, evalDiags := evaluateImportIdExpression(imp.ID, ctx, keyData)
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
 				return imports, diags
 			}
 
-			// FIXME: evalReplaceTriggeredByExpr works within a module scope
-			ref, evalDiags := evalReplaceTriggeredByExpr(imp.Config.To, keyData)
-			diags = diags.Append(evalDiags)
-			if diags.HasErrors() {
-				return imports, diags
-			}
-			// The reference is either a resource or resource instance
-			switch sub := ref.Subject.(type) {
-			case addrs.Resource:
-				imports.Put(sub.Absolute(ctx.Path()).Instance(addrs.NoKey), importID)
-			case addrs.ResourceInstance:
-				imports.Put(sub.Absolute(ctx.Path()), importID)
-			default:
-				// FIXME:
-				panic(fmt.Sprintf("invalid import address: %#v", sub))
-			}
+			imports.Put(res, importID)
+			n.expandedImports.Add(res)
 		}
 	}
 
@@ -371,7 +393,7 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 
 	// Now that the resources are all expanded, we can expand the imports for
 	// this resource.
-	imports, importDiags := n.expandResourceImports(ctx, addr)
+	imports, importDiags := n.expandResourceImports(ctx, addr, instanceAddrs)
 	diags = diags.Append(importDiags)
 
 	// Our graph transformers require access to the full state, so we'll

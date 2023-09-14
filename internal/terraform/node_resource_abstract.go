@@ -206,17 +206,20 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		}
 	}
 
-<<<<<<< HEAD
 	return result
 }
 
 func (n *NodeAbstractResource) ImportReferences() []*addrs.Reference {
 	var result []*addrs.Reference
-=======
-	// TODO: for_each
->>>>>>> 2aac20391a (STASH)
 	for _, importTarget := range n.importTargets {
-		refs, _ := lang.ReferencesInExpr(addrs.ParseRef, importTarget.ID)
+		// legacy import won't have any config
+		if importTarget.Config == nil {
+			continue
+		}
+
+		refs, _ := lang.ReferencesInExpr(addrs.ParseRef, importTarget.Config.ID)
+		result = append(result, refs...)
+		refs, _ = lang.ReferencesInExpr(addrs.ParseRef, importTarget.Config.ForEach)
 		result = append(result, refs...)
 	}
 	return result

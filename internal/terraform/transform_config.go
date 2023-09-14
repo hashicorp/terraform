@@ -185,6 +185,7 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config, ge
 	//
 	// TODO: We could actually catch and process these kind of problems earlier,
 	//   this is something that could be done during the Validate process.
+	// FIXME: WE need to check for import for_each as well here
 	for _, i := range importTargets {
 		// we already parsed this loading the config, so don't bother with diagnostics again
 		// FIXME: legacy?

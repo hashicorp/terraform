@@ -163,6 +163,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	importId := n.importTarget.idString
 
 	if importing && n.Config == nil && len(n.generateConfigPath) == 0 {
+		// FIXME: move this up to the expansion point where we have the import config to reference
+		//
 		// Then the user wrote an import target to a target that didn't exist.
 		if n.Addr.Module.IsRoot() {
 			diags = diags.Append(&hcl.Diagnostic{
