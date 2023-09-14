@@ -297,8 +297,9 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 
 	for _, ref := range rn.References() {
 		subject := ref.Subject
+		refPath := vertexReferencePath(v)
 
-		key := m.referenceMapKey(v, subject)
+		key := m.referenceMapKey(refPath, subject)
 		if _, exists := m[key]; !exists {
 			// If what we were looking for was a ResourceInstance then we
 			// might be in a resource-oriented graph rather than an
@@ -317,7 +318,7 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 				log.Printf("[INFO] ReferenceTransformer: reference not found: %q", subject)
 				continue
 			}
-			key = m.referenceMapKey(v, subject)
+			key = m.referenceMapKey(refPath, subject)
 		}
 		vertices := m[key]
 		for _, rv := range vertices {
@@ -352,7 +353,7 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Ve
 	for _, ref := range refs {
 		subject := ref.Subject
 
-		key := m.referenceMapKey(depender, subject)
+		key := m.referenceMapKey(vertexReferencePath(depender), subject)
 		vertices, ok := m[key]
 		if !ok {
 			// the ReferenceMap generates all possible keys, so any warning
@@ -521,8 +522,7 @@ func vertexReferencePath(v dag.Vertex) addrs.Module {
 //
 // Only GraphNodeModulePath implementations can be referrers, so this method will
 // panic if the given vertex does not implement that interface.
-func (m *ReferenceMap) referenceMapKey(referrer dag.Vertex, addr addrs.Referenceable) string {
-	path := vertexReferencePath(referrer)
+func (m *ReferenceMap) referenceMapKey(path addrs.Module, addr addrs.Referenceable) string {
 	return m.mapKey(path, addr)
 }
 
