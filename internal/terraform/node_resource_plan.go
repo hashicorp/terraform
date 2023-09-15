@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -381,6 +382,15 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 
 			imports.Put(res, importID)
 			n.expandedImports.Add(res)
+		}
+	}
+
+	// filter out any import which already exist in state
+	state := ctx.State()
+	for _, el := range imports.Elements() {
+		if state.ResourceInstance(el.Key) != nil {
+			log.Printf("[DEBUG] import address %s already in state", el.Key)
+			imports.Remove(el.Key)
 		}
 	}
 

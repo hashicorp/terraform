@@ -4356,7 +4356,7 @@ import {
 			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
 		}
 		if instPlan.Importing != nil {
-			t.Errorf("expected non-import change, got import change %+v", instPlan.Importing)
+			t.Errorf("expected non-import change, got import change %#v", instPlan.Importing)
 		}
 	})
 }
