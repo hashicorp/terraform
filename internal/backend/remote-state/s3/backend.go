@@ -1207,22 +1207,23 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		}
 	})
 
-	b.s3Client = s3.NewFromConfig(awsConfig, func(opts *s3.Options) {
-		if v, ok := retrieveArgument(&diags,
-			newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("s3")),
-			newAttributeRetriever(obj, cty.GetAttrPath("endpoint")),
-			newEnvvarRetriever("AWS_ENDPOINT_URL_S3"),
-			newEnvvarRetriever("AWS_S3_ENDPOINT"),
-		); ok {
-			opts.EndpointResolver = s3.EndpointResolverFromURL(v) //nolint:staticcheck // The replacement is not documented yet (2023/08/03)
-		}
-		if v, ok := boolAttrOk(obj, "force_path_style"); ok { // deprecated
-			opts.UsePathStyle = v
-		}
-		if v, ok := boolAttrOk(obj, "use_path_style"); ok {
-			opts.UsePathStyle = v
-		}
-	})
+	b.s3Client = s3.NewFromConfig(awsConfig, s3.WithAPIOptions(addS3WrongRegionErrorMiddleware),
+		func(opts *s3.Options) {
+			if v, ok := retrieveArgument(&diags,
+				newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("s3")),
+				newAttributeRetriever(obj, cty.GetAttrPath("endpoint")),
+				newEnvvarRetriever("AWS_ENDPOINT_URL_S3"),
+				newEnvvarRetriever("AWS_S3_ENDPOINT"),
+			); ok {
+				opts.EndpointResolver = s3.EndpointResolverFromURL(v) //nolint:staticcheck // The replacement is not documented yet (2023/08/03)
+			}
+			if v, ok := boolAttrOk(obj, "force_path_style"); ok { // deprecated
+				opts.UsePathStyle = v
+			}
+			if v, ok := boolAttrOk(obj, "use_path_style"); ok {
+				opts.UsePathStyle = v
+			}
+		})
 
 	return diags
 }
