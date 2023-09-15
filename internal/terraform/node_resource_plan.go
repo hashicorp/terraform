@@ -346,7 +346,7 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 		}
 
 		if imp.Config.ForEach == nil {
-			importID, evalDiags := evaluateImportIdExpression(imp.ID, ctx, EvalDataForNoInstanceKey)
+			importID, evalDiags := evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey)
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
 				return imports, diags
@@ -373,7 +373,7 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 				return imports, diags
 			}
 
-			importID, evalDiags := evaluateImportIdExpression(imp.ID, ctx, keyData)
+			importID, evalDiags := evaluateImportIdExpression(imp.Config.ID, ctx, keyData)
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
 				return imports, diags

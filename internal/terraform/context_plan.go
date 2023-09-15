@@ -561,7 +561,6 @@ func (c *Context) findImportTargets(config *configs.Config, priorState *states.S
 		// TODO: partial filtering here
 		//if priorState.ResourceInstance(ic.To) == nil {
 		importTargets = append(importTargets, &ImportTarget{
-			ID:     ic.ID,
 			Config: ic,
 		})
 		//}

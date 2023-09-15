@@ -509,7 +509,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			"Import returned null resource",
 			fmt.Sprintf("While attempting to import with ID %s, the provider"+
 				"returned an instance with no state.",
-				n.importTarget.ID,
+				n.importTarget.idString,
 			),
 		))
 	}

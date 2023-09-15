@@ -6,7 +6,6 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/states"
@@ -34,9 +33,7 @@ type ImportTarget struct {
 	// when using the import command.
 	LegacyAddr addrs.AbsResourceInstance
 
-	// ID is the ID of the resource to import. This is resource-specific.
-	// TODO: the expression is evaluated from Config.
-	ID       hcl.Expression
+	// isString stores the evaluated ID from the Config for the import process.
 	idString string
 }
 

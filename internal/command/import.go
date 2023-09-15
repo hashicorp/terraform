@@ -240,7 +240,9 @@ func (c *ImportCommand) Run(args []string) int {
 
 				// In the import block, the ID can be an arbitrary hcl.Expression,
 				// but here it's always interpreted as a literal string.
-				ID: hcl.StaticExpr(cty.StringVal(args[1]), configs.SynthBody("import", nil).MissingItemRange()),
+				Config: &configs.Import{
+					ID: hcl.StaticExpr(cty.StringVal(args[1]), configs.SynthBody("import", nil).MissingItemRange()),
+				},
 			},
 		},
 
