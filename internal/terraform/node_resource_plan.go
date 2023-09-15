@@ -205,7 +205,6 @@ func (n *nodeExpandPlannableResource) validateExpandedImportTargets() tfdiags.Di
 
 	for _, addr := range n.expandedImports {
 		if !n.expandedInstances.Has(addr) {
-			// FIXME
 			diags = diags.Append(fmt.Errorf("MISSING CONFIG FOR %s", addr))
 		}
 	}
@@ -417,14 +416,12 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 
 		// If we're in legacy import mode (the import CLI command), we only need
 		// to return the import node, not a plannable resource node.
-		if n.legacyImportMode {
-			for _, importTarget := range n.importTargets {
-				if importTarget.LegacyAddr.Equal(a.Addr) {
-					return &graphNodeImportState{
-						Addr:             importTarget.LegacyAddr,
-						ID:               importTarget.idString,
-						ResolvedProvider: n.ResolvedProvider,
-					}
+		for _, importTarget := range n.importTargets {
+			if importTarget.LegacyAddr.Equal(a.Addr) {
+				return &graphNodeImportState{
+					Addr:             importTarget.LegacyAddr,
+					ID:               importTarget.idString,
+					ResolvedProvider: n.ResolvedProvider,
 				}
 			}
 		}

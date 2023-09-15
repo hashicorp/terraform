@@ -30,9 +30,8 @@ type ImportTarget struct {
 	// if the import did not originate in config.
 	Config *configs.Import
 
-	// Addr is the address for the resource instance that the new object should
-	// be imported into.
-	// TODO: remove
+	// LegacyAddr is the import address set from the command line arguments
+	// when using the import command.
 	LegacyAddr addrs.AbsResourceInstance
 
 	// ID is the ID of the resource to import. This is resource-specific.
