@@ -949,6 +949,10 @@
                 "href": "/language/settings/backends/cos"
               },
               {
+                "title": "ks3",
+                "href": "/language/settings/backends/ks3"
+              },
+              {
                 "title": "gcs",
                 "href": "/language/settings/backends/gcs"
               },
@@ -998,6 +1002,11 @@
             "title": "cos",
             "hidden": true,
             "path": "settings/backends/cos"
+          },
+          {
+            "title": "ks3",
+            "hidden": true,
+            "path": "settings/backends/ks3"
           },
           {
             "title": "gcs",

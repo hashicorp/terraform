@@ -1,0 +1,108 @@
+---
+page_title: 'Backend Type: ks3'
+description: >-
+Terraform can store the state remotely, making it easier to version and work
+with in a team.
+---
+
+# KS3
+
+Stores the state as an object in a configurable prefix in a given bucket on [KingsoftCloud Standard Storage Service (KS3) ](https://en.ksyun.com/nv/product/KS3.html) (KS3).
+
+This backend supports [state locking](/terraform/language/state/locking). Storing your state in a KS3 bucket requires the following permissions:
+
+- `CreateTag`, `DeleteTag`, and `DescribeTags` on the tag key `ksyun-terraform-lock`
+- `Put`, `Get`, and `Delete` files for the specified bucket's prefix
+
+## Example Configuration
+
+```hcl
+terraform {
+  backend "ks3" {
+    bucket                      = "tf-backend"
+    key                         = "terraform.tfstate"
+    region                      = "cn-beijing-6"
+    endpoint                    = "ks3-cn-beijing.ksyuncs.com"
+    workspace_key_prefix         = "backend-dev/test"
+  }
+}
+```
+
+This assumes we have a [KS3 Bucket](https://registry.terraform.io/providers/kingsoftcloud/ksyun/latest/docs/resources/ks3_bucket) created named `tf-backend`,
+Terraform state will be written into the file `terraform/state/terraform.tfstate`.
+
+## Data Source Configuration
+
+To make use of the KS3 remote state in another configuration, use the [`terraform_remote_state` data source](/terraform/language/state/remote-state-data).
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "ks3"
+
+  config = {
+    region               = "cn-beijing-6"
+    bucket               = "tf-backend"
+    workspace_key_prefix = "backend-dev/test"
+    endpoint             = "ks3-cn-beijing.ksyuncs.com"
+    key                  = "terraform.tfstate"
+  }
+}
+
+```
+
+## Configuration Variables
+
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+
+The following configuration options or environment variables are supported:
+
+- `access_key` - (Optional) This is the Ksyun public key. It supports environment variables `KSYUN_ACCESS_KEY`.
+- `secret_key` - (Optional) Secret key of Kingsoft Cloud. It supports environment variables `KSYUN_SECRET_KEY`.
+- `endpoint` - (Optional) A custom endpoint for the KS3 API , It can be sourced from the `KSYUN_KS3_ENDPOINT` environment variable. the details of relationship of endpoint and region see [Endpoint and Region](https://docs.ksyun.com/documents/6761).
+- `region` - (Optional) The region of the KS3 bucket. It supports environment variables `KSYUN_REGION`.
+- `bucket` - (Required) The name of the KS3 bucket. You shall manually create it first.
+- `workspace_key_prefix` - (Optional) The directory for saving the state file in bucket.
+- `key` - (Optional) The path for saving the state file in bucket. Defaults to `terraform.tfstate`.
+- `encrypt` - (Optional) Whether to enable server side encryption of the state file. If it is true, KS3 will use 'AES256' encryption algorithm to encrypt state file.
+- `acl` - (Optional) Object ACL to be applied to the state file, allows `private` and `public-read`. Defaults to `private`.
+- `max_retries` - (Optional) The maximum number of times an AWS API request is retried on retryable failure.
+- `lock_duration` - (Optional) Sets the lock's duration. Generally speaking, the lock will be destroyed after the Terraform operations. Unfortunately, the lock is leaved because of the Terraform process is terminated. So, `lock_duration` field is provided that canned set it in order to deal with **the dead lock**. **Warning:** if `lock_duration` value is insufficient for your operation, the remote state file may be not your expectation, because of the operation race probably caused. Valid Value: `0`: ignore the existed lock, `-1`: unlimited, `number[mh]`: number, natural number, is time length; `m` is minutes; `h` is hours.
+
+
+### Assume Role
+If provided with an assume role, Terraform will attempt to assume this role using the supplied credentials.
+
+The following arguments on the top level are deprecated:
+
+* `assume_role_duration_seconds` - (Optional) Number of seconds to restrict the assume role session duration.
+* `assume_role_policy` - (Optional) IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.
+* `assume_role_policy_arns` - (Optional) Set of Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.
+* `assume_role_tags` - (Optional) Map of assume role session tags.
+* `assume_role_transitive_tag_keys` - (Optional) Set of assume role session tag keys to pass to any subsequent sessions.
+* `role_krn` - (Optional) KingsoftCloud Resource Name (KRN) of the IAM Role to assume.
+* `session_name` - (Optional) The session name to use when assuming the role. If you ready to assume a role, must set `session_name`. It can be sourced from the `ENV_ASSUME_ROLE_SESSION_NAME` environment variable.
+Usage:
+
+```hcl
+terraform {
+  required_providers {
+    ksyun = {
+      source = "kingsoftcloud/ksyun"
+    }
+  }
+
+  # 用ks3作为远程state存储
+  backend "ks3" {
+    bucket               = "tf-backend"
+    key                  = "terraform.tfstate"
+    region               = "cn-beijing-6"
+    endpoint             = "ks3-cn-beijing.ksyuncs.com"
+    workspace_key_prefix = "backend-dev/test"
+    # access_key                  = ""
+    # secret_key                  = ""
+    role_krn = "krn:ksc:iam::user_id:role/tf-backend-role"
+    session_name = "bakcend-test-assume-role"
+    assume_role_duration_seconds = 3600
+  }
+}
+```

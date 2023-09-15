@@ -21,6 +21,7 @@ func TestInit_backend(t *testing.T) {
 		{"azurerm", "*azure.Backend"},
 		{"consul", "*consul.Backend"},
 		{"cos", "*cos.Backend"},
+		{"ks3", "*ks3.Backend"},
 		{"gcs", "*gcs.Backend"},
 		{"inmem", "*inmem.Backend"},
 		{"pg", "*pg.Backend"},
