@@ -24,15 +24,19 @@ func (p *corePlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, 
 }
 
 func (p *corePlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
-	// We initially only register the setup server, because the registration
-	// of other services can vary depending on the capabilities negotiated
-	// during handshake.
-	setup := newSetupServer(p.handshakeFunc(s))
-	terraform1.RegisterSetupServer(s, setup)
+	registerGRPCServices(s)
 	return nil
 }
 
-func (p *corePlugin) handshakeFunc(s *grpc.Server) func(context.Context, *terraform1.ClientCapabilities) (*terraform1.ServerCapabilities, error) {
+func registerGRPCServices(s *grpc.Server) {
+	// We initially only register the setup server, because the registration
+	// of other services can vary depending on the capabilities negotiated
+	// during handshake.
+	setup := newSetupServer(serverHandshake(s))
+	terraform1.RegisterSetupServer(s, setup)
+}
+
+func serverHandshake(s *grpc.Server) func(context.Context, *terraform1.ClientCapabilities) (*terraform1.ServerCapabilities, error) {
 	dependencies := dynrpcserver.NewDependenciesStub()
 	terraform1.RegisterDependenciesServer(s, dependencies)
 	stacks := dynrpcserver.NewStacksStub()
