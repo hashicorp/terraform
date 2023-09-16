@@ -421,16 +421,18 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	m.Moved = append(m.Moved, file.Moved...)
 
 	for _, i := range file.Import {
+		iTo, iToOK := parseImportToStatic(i.To)
 		for _, mi := range m.Import {
-			// FIXME: this doesn't allow multiple blocks for individual instances
-			if i.ToResource.Equal(mi.ToResource) {
+			// Try to detect duplicate import targets. We need to see if the to
+			// address can be parsed statically.
+			miTo, miToOK := parseImportToStatic(mi.To)
+			if iToOK && miToOK && iTo.Equal(miTo) {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Duplicate import configuration for %q", i.To),
-					Detail:   fmt.Sprintf("An import block for the resource %q was already declared at %s. A resource can have only one import block.", i.To, mi.DeclRange),
-					Subject:  &i.DeclRange,
+					Summary:  fmt.Sprintf("Duplicate import configuration for %q", i.ToResource),
+					Detail:   fmt.Sprintf("An import block for the resource %q was already declared at %s. A resource can have only one import block.", i.ToResource, mi.DeclRange),
+					Subject:  i.To.Range().Ptr(),
 				})
-				continue
 			}
 		}
 

@@ -150,3 +150,16 @@ func exprToResourceTraversal(expr hcl.Expression) (hcl.Traversal, hcl.Diagnostic
 
 	return trav, diags
 }
+
+// parseImportToStatic attempts to parse the To address of an import block
+// statically to get the resource address. This returns false when the address
+// cannot be parsed, which is usually a result of dynamic index expressions
+// using for_each.
+func parseImportToStatic(expr hcl.Expression) (addrs.AbsResourceInstance, bool) {
+	var toDiags tfdiags.Diagnostics
+	traversal, hd := hcl.AbsTraversalForExpr(expr)
+	toDiags = toDiags.Append(hd)
+	to, td := addrs.ParseAbsResourceInstance(traversal)
+	toDiags = toDiags.Append(td)
+	return to, !toDiags.HasErrors()
+}
