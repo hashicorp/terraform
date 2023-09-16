@@ -205,7 +205,12 @@ func (n *nodeExpandPlannableResource) validateExpandedImportTargets() tfdiags.Di
 
 	for _, addr := range n.expandedImports {
 		if !n.expandedInstances.Has(addr) {
-			diags = diags.Append(fmt.Errorf("MISSING CONFIG FOR %s", addr))
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Configuration for import target does not exist",
+				fmt.Sprintf("The configuration for the given import %s does not exist. All target instances must have an associated configuration to be imported.", addr),
+			))
+			return diags
 		}
 	}
 
@@ -332,16 +337,18 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 	imports := addrs.MakeMap[addrs.AbsResourceInstance, string]()
 	var diags tfdiags.Diagnostics
 
+	if len(n.importTargets) == 0 {
+		return imports, diags
+	}
+
 	// Import blocks are only valid within the root module, and must be
 	// evaluated within that context
 	ctx = ctx.WithPath(addrs.RootModuleInstance)
 
 	for _, imp := range n.importTargets {
 		if imp.Config == nil {
-			continue
-		}
-
-		if !imp.Config.ToResource.Equal(addr.Config()) {
+			// legacy import tests may have no configuration
+			log.Printf("[WARN] no configuration for import target %#v", imp)
 			continue
 		}
 
@@ -357,6 +364,8 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 			to, _ := addrs.ParseAbsResourceInstance(traversal)
 			imports.Put(to, importID)
 			n.expandedImports.Add(to)
+
+			log.Printf("[TRACE] expandResourceImports: found single import target %s", to)
 			continue
 		}
 
@@ -381,6 +390,7 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 
 			imports.Put(res, importID)
 			n.expandedImports.Add(res)
+			log.Printf("[TRACE] expandResourceImports: expanded import target %s", res)
 		}
 	}
 
@@ -388,7 +398,7 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 	state := ctx.State()
 	for _, el := range imports.Elements() {
 		if state.ResourceInstance(el.Key) != nil {
-			log.Printf("[DEBUG] import address %s already in state", el.Key)
+			log.Printf("[DEBUG] expandResourceImports: skipping import address %s already in state", el.Key)
 			imports.Remove(el.Key)
 		}
 	}

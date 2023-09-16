@@ -162,31 +162,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	importing := n.importTarget.idString != ""
 	importId := n.importTarget.idString
 
-	if importing && n.Config == nil && len(n.generateConfigPath) == 0 {
-		// FIXME: move this up to the expansion point where we have the import config to reference
-		//
-		// Then the user wrote an import target to a target that didn't exist.
-		if n.Addr.Module.IsRoot() {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Import block target does not exist",
-				Detail:   "The target for the given import block does not exist. If you wish to automatically generate config for this resource, use the -generate-config-out option within terraform plan. Otherwise, make sure the target resource exists within your configuration. For example:\n\n  terraform plan -generate-config-out=generated.tf",
-				Subject:  n.importTarget.Config.DeclRange.Ptr(),
-			})
-		} else {
-			// You can't generate config for a resource that is inside a
-			// module, so we will present a different error message for
-			// this case.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Import block target does not exist",
-				Detail:   "The target for the given import block does not exist. The specified target is within a module, and must be defined as a resource within that module before anything can be imported.",
-				Subject:  n.importTarget.Config.DeclRange.Ptr(),
-			})
-		}
-		return diags
-	}
-
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
 	if importing {

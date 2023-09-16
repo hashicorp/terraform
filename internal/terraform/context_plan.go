@@ -529,27 +529,8 @@ func (c *Context) postPlanValidateMoves(config *configs.Config, stmts []refactor
 // relaxed.
 func (c *Context) postPlanValidateImports(config *configs.Config, importTargets []*ImportTarget, allInst instances.Set) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+	// TODO: Validation happens earlier. Remove this later if it is not needed.
 
-	// FIXME
-	//for _, it := range importTargets {
-	//    // We only care about import target addresses that have a key.
-	//    // If the address does not have a key, we don't need it to be in config
-	//    // because are able to generate config.
-	//    if it.Addr.Resource.Key == nil {
-	//        continue
-	//    }
-
-	//    if !allInst.HasResourceInstance(it.Addr) {
-	//        diags = diags.Append(tfdiags.Sourceless(
-	//            tfdiags.Error,
-	//            "Cannot import to non-existent resource address",
-	//            fmt.Sprintf(
-	//                "Importing to resource address %s is not possible, because that address does not exist in configuration. Please ensure that the resource key is correct, or remove this import block.",
-	//                it.Addr,
-	//            ),
-	//        ))
-	//    }
-	//}
 	return diags
 }
 
