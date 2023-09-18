@@ -55,6 +55,10 @@ func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData in
 		})
 	}
 
+	// Import data may have marks, which we can discard because the id is only
+	// sent to the provider.
+	importIdVal, _ = importIdVal.Unmark()
+
 	var importId string
 	err := gocty.FromCtyValue(importIdVal, &importId)
 	if err != nil {

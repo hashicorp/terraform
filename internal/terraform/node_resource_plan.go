@@ -10,10 +10,8 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // nodeExpandPlannableResource represents an addrs.ConfigResource and implements
@@ -332,20 +330,13 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 			imports.Put(to, importID)
 		}
 
-		// FIXME: This won't work for lists like a dynamic block, but we still
-		// want the same errors because the values must be known for import.
-		forEach, forEachDiags := evaluateForEachExpression(imp.Config.ForEach, ctx)
+		forEachData, forEachDiags := newForEachEvaluator(imp.Config.ForEach, ctx).ImportValues()
 		diags = diags.Append(forEachDiags)
 		if forEachDiags.HasErrors() {
 			return imports, diags
 		}
 
-		for k, v := range forEach {
-			keyData := instances.RepetitionData{
-				EachKey:   cty.StringVal(k),
-				EachValue: v,
-			}
-
+		for _, keyData := range forEachData {
 			importID, evalDiags := evaluateImportIdExpression(imp.ID, ctx, keyData)
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
