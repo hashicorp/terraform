@@ -182,9 +182,23 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 
 	for _, i := range importTargets {
 		if path.IsRoot() {
-			if t.generateConfigPathForImportTargets != "" {
+			// If we have a single instance import target in the root module, we
+			// can suggest config generation.
+			// We do need to make sure there are no dynamic expressions here
+			// and we can parse this at all.
+			var toDiags tfdiags.Diagnostics
+			traversal, hd := hcl.AbsTraversalForExpr(i.Config.To)
+			toDiags = toDiags.Append(hd)
+			to, td := addrs.ParseAbsResourceInstance(traversal)
+			toDiags = toDiags.Append(td)
+			canGenerate := !toDiags.HasErrors() && to.Resource.Key == addrs.NoKey
+
+			if t.generateConfigPathForImportTargets != "" && canGenerate {
 				log.Printf("[DEBUG] ConfigTransformer: adding config generation node for %s", i.Config.ToResource)
 
+				// TODO: if config generation is ever supported for for_each
+				// resources, this will add multiple nodes for the same
+				// resource
 				abstract := &NodeAbstractResource{
 					Addr:               i.Config.ToResource,
 					importTargets:      []*ImportTarget{i},
@@ -198,16 +212,7 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 				g.Add(node)
 				continue
 			}
-			// If we have a single instance import target in the root module, we
-			// can suggest config generation.
-			// We do need to make sure there are no dynamic expressions here
-			// and we can parse this at all.
-			var toDiags tfdiags.Diagnostics
-			traversal, hd := hcl.AbsTraversalForExpr(i.Config.To)
-			toDiags = toDiags.Append(hd)
-			to, td := addrs.ParseAbsResourceInstance(traversal)
-			toDiags = toDiags.Append(td)
-			if !toDiags.HasErrors() && to.Resource.Key == addrs.NoKey {
+			if canGenerate {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Configuration for import target does not exist",
