@@ -524,27 +524,14 @@ func (c *Context) postPlanValidateMoves(config *configs.Config, stmts []refactor
 	return refactoring.ValidateMoves(stmts, config, allInsts)
 }
 
-// All import target addresses with a key must already exist in config.
-// When we are able to generate config for expanded resources, this rule can be
-// relaxed.
-func (c *Context) postPlanValidateImports(config *configs.Config, importTargets []*ImportTarget, allInst instances.Set) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	// TODO: Validation happens earlier. Remove this later if it is not needed.
-
-	return diags
-}
-
 // findImportTargets builds a list of import targets by taking the import blocks
 // in the config and filtering out any that target a resource already in state.
 func (c *Context) findImportTargets(config *configs.Config, priorState *states.State) []*ImportTarget {
 	var importTargets []*ImportTarget
 	for _, ic := range config.Module.Import {
-		// TODO: partial filtering here
-		//if priorState.ResourceInstance(ic.To) == nil {
 		importTargets = append(importTargets, &ImportTarget{
 			Config: ic,
 		})
-		//}
 	}
 	return importTargets
 }
@@ -588,11 +575,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	diags = diags.Append(walkDiags)
 
 	allInsts := walker.InstanceExpander.AllInstances()
-
-	importValidateDiags := c.postPlanValidateImports(config, opts.ImportTargets, allInsts)
-	if importValidateDiags.HasErrors() {
-		return nil, importValidateDiags
-	}
 
 	moveValidateDiags := c.postPlanValidateMoves(config, moveStmts, allInsts)
 	if moveValidateDiags.HasErrors() {
