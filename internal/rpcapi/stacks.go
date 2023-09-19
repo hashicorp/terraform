@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sync"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
@@ -144,7 +143,7 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode) *terraform1.FindSt
 
 func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request, evts terraform1.Stacks_PlanStackChangesServer) error {
 	ctx := evts.Context()
-	syncEvts := &syncPlanStackChangesServer{evts: evts}
+	syncEvts := newSyncStreamingRPCSender(evts)
 	evts = nil // Prevent accidental unsynchronized usage of this server
 
 	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
@@ -426,19 +425,14 @@ func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks
 	}
 }
 
-// syncPlanStackChangesServer is a wrapper around the gprc.ServerStream
-// instance used for planning events. This is required because the underlying
-// grpc server is not concurrency safe on send.
-//
-// TODO: consider making this generic over multiple grpc server types.
-type syncPlanStackChangesServer struct {
-	evts terraform1.Stacks_PlanStackChangesServer
-	mu   sync.Mutex
-}
+// syncPlanStackChangesServer is a wrapper around a
+// terraform1.Stacks_PlanStackChangesServer implementation that makes the
+// Send method concurrency-safe by holding a mutex throughout the underlying
+// call.
+type syncPlanStackChangesServer = syncStreamingRPCSender[terraform1.Stacks_PlanStackChangesServer, *terraform1.PlanStackChanges_Event]
 
-func (s *syncPlanStackChangesServer) Send(evt *terraform1.PlanStackChanges_Event) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	return s.evts.Send(evt)
-}
+// syncApplyStackChangesServer is a wrapper around a
+// terraform1.Stacks_ApplyStackChangesServer implementation that makes the
+// Send method concurrency-safe by holding a mutex throughout the underlying
+// call.
+type syncApplyStackChangesServer = syncStreamingRPCSender[terraform1.Stacks_ApplyStackChangesServer, *terraform1.ApplyStackChanges_Event]
