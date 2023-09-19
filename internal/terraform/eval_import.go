@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
@@ -14,6 +15,10 @@ import (
 
 func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext) (string, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	// import blocks only exist in the root module, and must be evaluated in
+	// that context.
+	ctx = ctx.WithPath(addrs.RootModuleInstance)
 
 	if expr == nil {
 		return "", diags.Append(&hcl.Diagnostic{
