@@ -404,6 +404,9 @@ service Stacks {
     // current state with the desired state, at least in part.
     rpc PlanStackChanges(PlanStackChanges.Request)
         returns (stream PlanStackChanges.Event);
+    // Execute the changes proposed by an earlier call to PlanStackChanges.
+    rpc ApplyStackChanges(ApplyStackChanges.Request)
+        returns (stream ApplyStackChanges.Event);
 }
 
 message OpenStackConfiguration {
@@ -482,6 +485,42 @@ message PlanStackChanges {
             ProvisionerStatus provisioner_status = 6;
             ProvisionerOutput provisioner_output = 7;
             // TODO
+        }
+    }
+}
+
+message ApplyStackChanges {
+    message Request {
+        // This must refer to exactly the same configuration that was
+        // passed to PlanStackChanges when creating this plan, or the
+        // results will be unpredictable.
+        int64 stack_config_handle = 1;
+        // This must be exactly the same as the previous_state that
+        // was passed to PlanStackChanges when creating this plan.
+        map<string, google.protobuf.Any> previous_state = 2;
+        // The caller should send all of the keys present in the previous
+        // apply's description map. Terraform Core will use this for
+        // situations such as updating existing descriptions to newer
+        // formats even if no change is being made to the corresponding
+        // real objects.
+        repeated string known_description_keys = 3;
+        // This must include all of the "raw" values emitted through
+        // PlannedChange events during the PlanStackChanges operation
+        // that created this plan, concatenated together in the same
+        // order they were written to the PlanStackChanges event stream.
+        repeated google.protobuf.Any planned_changes = 4;
+        // This must be equivalent to the argument of the same name
+        // passed to PlanStackChanges when creating this plan.
+        int64 dependency_locks_handle = 5;
+        // This must be equivalent to the argument of the same name
+        // passed to PlanStackChanges when creating this plan.
+        int64 provider_cache_handle = 6;
+    }
+    message Event {
+        oneof event {
+            AppliedChange applied_change = 1;
+            Diagnostic diagnostic = 2;
+            // TODO: progress events intended for updating the UI
         }
     }
 }
@@ -666,6 +705,94 @@ message PlannedChange {
         string name = 1;
         repeated ChangeType actions = 2;
         DynamicValueChange values = 3;
+    }
+}
+
+// Describes a change made during a Stacks.ApplyStackChanges call.
+//
+// All of the events of this type taken together represent a sort of "patch"
+// modifying the two data structures that the caller must maintain: the
+// raw state map, and the description map. Callers must apply these changes
+// in the order of the emission of the messages and then retain the entirety
+// of both data structures to populate fields in the next PlanStackChanges call.
+message AppliedChange {
+    // Terraform Core's internal representation of the change, presented as
+    // a sequence of modifications to the raw state data structure.
+    //
+    // For each element, in order:
+    //   - If both key and value are set and the key matches an element
+    //     already in the raw state map, the new value replaces the existing one.
+    //   - If both key and value are set but the key does not match an
+    //     element in the raw state map, this represents inserting a new element
+    //     into the map.
+    //   - If key is set and value is not, this represents removing any existing
+    //     element from the raw state map which has the given key, or a no-op
+    //     if no such element exists.
+    //   - No other situation is legal.
+    //
+    // This sequence can potentially be zero-length if a particular event only
+    // has a external-facing "description" component and no raw equivalent. In
+    // that case the raw state map is unmodified.
+    repeated RawChange raw = 1;
+
+    // Caller-facing description of this change, to use for presenting
+    // information to end-users in the UI and for other subsystems such as
+    // billing.
+    //
+    // Callers are expected to maintain a map of description objects that
+    // gets updated piecemeal by messages in this field. Callers must treat
+    // the keys as entirely opaque and thus treat the resulting data structure
+    // as if it were an unsorted set of ChangeDescription objects; the keys
+    // exist only to allow patching the data structure over time.
+    //
+    // For each element, in order:
+    //   - If both key and description are set and the key matches an element
+    //     from the previous apply's description map, the new value replaces
+    //     the existing one.
+    //   - If both key and value are set but the key does not match an
+    //     element in the previous apply's description map, this represents
+    //     inserting a new element into the map.
+    //   - If key is set and description is not, this represents removing any
+    //     existing element from the previous apply's description map which has
+    //     the given key, or a no-op if no such element exists.
+    //   - If a description field is set that the caller doesn't understand,
+    //     the caller should still write it to the updated description map
+    //     but ignore it in further processing.
+    //   - No other situation is legal.
+    //
+    // Callers MUST preserve the verbatim description message in the
+    // description map, even if it contains fields that are not present in
+    // the caller's current protobuf stubs. In other words, callers must use
+    // a protocol buffers implementation that is able to preserve unknown
+    // fields and store them so that future versions of the caller might
+    // use an updated set of stubs to interact with the previously-stored
+    // description.
+    //
+    // DO NOT attempt to use this to surgically filter particular raw state
+    // updates from a larger plan. Although external descriptions often match
+    // with the raw representations in field "raw", that is not guaranteed and
+    // Terraform Core assumes that it will always be provided with the full
+    // raw state map during the next plan step.
+    repeated ChangeDescription descriptions = 2;
+
+    message RawChange {
+        string key = 1;
+        google.protobuf.Any value = 2;
+    }
+    message ChangeDescription {
+        string key = 1;
+        oneof description {
+            ResourceInstance resource_instance = 2;
+            OutputValue output_value = 3;
+        }
+    }
+    message ResourceInstance {
+        ResourceInstanceInStackAddr addr = 1;
+        DynamicValue new_value = 2;
+    }
+    message OutputValue {
+        string name = 1;
+        DynamicValue new_value = 2;
     }
 }
 

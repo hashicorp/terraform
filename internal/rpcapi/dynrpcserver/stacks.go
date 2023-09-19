@@ -18,6 +18,14 @@ func NewStacksStub() *Stacks {
 	return &Stacks{}
 }
 
+func (s *Stacks) ApplyStackChanges(a0 *tf1.ApplyStackChanges_Request, a1 tf1.Stacks_ApplyStackChangesServer) error {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return err
+	}
+	return impl.ApplyStackChanges(a0, a1)
+}
+
 func (s *Stacks) CloseStackConfiguration(a0 context.Context, a1 *tf1.CloseStackConfiguration_Request) (*tf1.CloseStackConfiguration_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
