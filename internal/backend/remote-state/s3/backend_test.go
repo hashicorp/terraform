@@ -2046,6 +2046,93 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 	}
 }
 
+// TestBackend_CoerceValue verifies a cty.Object can be coerced into
+// an s3 backend Block
+//
+// This serves as a smoke test for use of the terraform_remote_state
+// data source with the s3 backend, replicating the the process that
+// data source uses. The returned value is ignored as the object is
+// large (representing the entire s3 backend schema) and the focus of
+// this test is early detection of coercion failures.
+func TestBackend_CoerceValue(t *testing.T) {
+	testCases := map[string]struct {
+		Input   cty.Value
+		WantErr string
+	}{
+		"basic": {
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"bucket": cty.StringVal("test"),
+				"key":    cty.StringVal("test"),
+			}),
+		},
+		"missing bucket": {
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"key": cty.StringVal("test"),
+			}),
+			WantErr: `attribute "bucket" is required`,
+		},
+		"missing key": {
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"bucket": cty.StringVal("test"),
+			}),
+			WantErr: `attribute "key" is required`,
+		},
+		"assume_role": {
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"bucket": cty.StringVal("test"),
+				"key":    cty.StringVal("test"),
+				"assume_role": cty.ObjectVal(map[string]cty.Value{
+					"role_arn": cty.StringVal("test"),
+				}),
+			}),
+		},
+		"assume_role missing role_arn": {
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"bucket":      cty.StringVal("test"),
+				"key":         cty.StringVal("test"),
+				"assume_role": cty.ObjectVal(map[string]cty.Value{}),
+			}),
+			WantErr: `.assume_role: attribute "role_arn" is required`,
+		},
+		"assume_role_with_web_identity": {
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"bucket": cty.StringVal("test"),
+				"key":    cty.StringVal("test"),
+				"assume_role_with_web_identity": cty.ObjectVal(map[string]cty.Value{
+					"role_arn": cty.StringVal("test"),
+				}),
+			}),
+		},
+		"assume_role_with_web_identity missing role_arn": {
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"bucket":                        cty.StringVal("test"),
+				"key":                           cty.StringVal("test"),
+				"assume_role_with_web_identity": cty.ObjectVal(map[string]cty.Value{}),
+			}),
+			WantErr: `.assume_role_with_web_identity: attribute "role_arn" is required`,
+		},
+	}
+
+	for name, test := range testCases {
+		t.Run(name, func(t *testing.T) {
+			b := Backend{}
+			// Skip checking the returned cty.Value as this object will be large.
+			_, gotErrObj := b.ConfigSchema().CoerceValue(test.Input)
+
+			if gotErrObj == nil {
+				if test.WantErr != "" {
+					t.Fatalf("coersion succeeded; want error: %q", test.WantErr)
+				}
+			} else {
+				gotErr := tfdiags.FormatError(gotErrObj)
+				if gotErr != test.WantErr {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", gotErr, test.WantErr)
+				}
+			}
+		})
+	}
+}
+
 func testGetWorkspaceForKey(b *Backend, key string, expected string) error {
 	if actual := b.keyEnv(key); actual != expected {
 		return fmt.Errorf("incorrect workspace for key[%q]. Expected[%q]: Actual[%q]", key, expected, actual)
