@@ -9,3 +9,13 @@ import {
 
 resource "aws_instance" "foo" {
 }
+
+module "test" {
+  source = "./mod"
+}
+
+import {
+  to = module.test.aws_instance.foo
+  id = var.the_id
+}
+
