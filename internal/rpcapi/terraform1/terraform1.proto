@@ -785,6 +785,10 @@ message AppliedChange {
             ResourceInstance resource_instance = 2;
             OutputValue output_value = 3;
         }
+        // Field number 20000 is reserved as a field number that will
+        // always be unknown to any client, to allow clients to test
+        // whether they correctly preserve unexpected fields.
+        reserved 20000;
     }
     message ResourceInstance {
         ResourceInstanceInStackAddr addr = 1;
