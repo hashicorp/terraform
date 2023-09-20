@@ -64,7 +64,8 @@ type mainPlanning struct {
 }
 
 type mainApplying struct {
-	opts ApplyOpts
+	opts    ApplyOpts
+	results *ChangeExecResults
 }
 
 func NewForValidating(config *stackconfig.Config, opts ValidateOpts) *Main {
@@ -85,6 +86,17 @@ func NewForPlanning(config *stackconfig.Config, opts PlanOpts) *Main {
 	return &Main{
 		config: config,
 		planning: &mainPlanning{
+			opts: opts,
+		},
+		providerFactories: opts.ProviderFactories,
+		providerTypes:     make(map[addrs.Provider]*ProviderType),
+	}
+}
+
+func NewForApplying(config *stackconfig.Config, execResults *ChangeExecResults, opts ApplyOpts) *Main {
+	return &Main{
+		config: config,
+		applying: &mainApplying{
 			opts: opts,
 		},
 		providerFactories: opts.ProviderFactories,
@@ -113,10 +125,10 @@ func (m *Main) Planning() bool {
 // If this returns false then applying methods may panic or return strange
 // results.
 func (m *Main) Applying() bool {
-	return m.applying != nil && m.Planning()
+	return m.applying != nil
 }
 
-// PlanningMode returns the planning options to use during the planning phase,
+// PlanningOpts returns the planning options to use during the planning phase,
 // or panics if this [Main] was not instantiated for planning.
 //
 // Do not modify anything reachable through the returned pointer.
@@ -125,6 +137,16 @@ func (m *Main) PlanningOpts() *PlanOpts {
 		panic("stacks language runtime is not instantiated for planning")
 	}
 	return &m.planning.opts
+}
+
+// ApplyChangeResults returns the object that tracks the results of the actual
+// changes being made during the apply phase, or panics if this [Main] is not
+// instantiated for applying.
+func (m *Main) ApplyChangeResults() *ChangeExecResults {
+	if !m.Applying() {
+		panic("stacks language runtime is not instantiated for applying")
+	}
+	return m.applying.results
 }
 
 // SourceBundle returns the source code bundle that the stack configuration

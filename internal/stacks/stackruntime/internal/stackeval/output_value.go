@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -144,19 +145,28 @@ func (v *OutputValue) CheckResultValue(ctx context.Context, phase EvalPhase) (ct
 	))
 }
 
-// PlanChanges implements Plannable as a plan-time validation of the variable's
-// declaration and of the caller's definition of the variable.
-func (v *OutputValue) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+func (v *OutputValue) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// FIXME: We should really check the type during the validation phase
 	// in OutputValueConfig, rather than the planning phase in OutputValue.
 	_, _, moreDiags := v.CheckResultType(ctx)
 	diags = diags.Append(moreDiags)
-	_, moreDiags = v.CheckResultValue(ctx, PlanPhase)
+	_, moreDiags = v.CheckResultValue(ctx, phase)
 	diags = diags.Append(moreDiags)
 
-	return nil, diags
+	return diags
+}
+
+// PlanChanges implements Plannable as a plan-time validation of the variable's
+// declaration and of the caller's definition of the variable.
+func (v *OutputValue) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+	return nil, v.checkValid(ctx, PlanPhase)
+}
+
+// CheckApply implements ApplyChecker.
+func (v *OutputValue) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
+	return nil, v.checkValid(ctx, ApplyPhase)
 }
 
 func (v *OutputValue) tracingName() string {

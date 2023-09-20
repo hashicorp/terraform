@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -502,6 +503,13 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 		})
 	}
 	return changes, nil
+}
+
+// CheckApply implements ApplyChecker.
+func (s *Stack) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
+	// TODO: We should emit an AppliedChange for each output value,
+	// reporting its final value.
+	return nil, nil
 }
 
 func (s *Stack) tracingName() string {

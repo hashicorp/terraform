@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -278,6 +279,21 @@ func (c *StackCall) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty
 	return c.ResultValue(ctx, phase)
 }
 
+func (c *StackCall) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	_, moreDiags := c.CheckForEachValue(ctx, phase)
+	diags = diags.Append(moreDiags)
+	_, moreDiags = c.CheckInstances(ctx, phase)
+	diags = diags.Append(moreDiags)
+
+	// All of the other arguments in a stack call get evaluated separately
+	// for each instance of the call, so [StackCallInstance] must deal
+	// with those.
+
+	return diags
+}
+
 // PlanChanges implements Plannable to perform "plan-time validation" of the
 // stack call.
 //
@@ -289,18 +305,12 @@ func (c *StackCall) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange,
 	// can potentially generate diagnostics if the call configuration is
 	// invalid. This is therefore more a "plan-time validation" than actually
 	// planning.
-	var diags tfdiags.Diagnostics
+	return nil, c.checkValid(ctx, PlanPhase)
+}
 
-	_, moreDiags := c.CheckForEachValue(ctx, PlanPhase)
-	diags = diags.Append(moreDiags)
-	_, moreDiags = c.CheckInstances(ctx, PlanPhase)
-	diags = diags.Append(moreDiags)
-
-	// All of the other arguments in a stack call get evaluated separately
-	// for each instance of the call, so [StackCallInstance.PlanChanges]
-	// must deal with those.
-
-	return nil, diags
+// CheckApply implements ApplyChecker.
+func (c *StackCall) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
+	return nil, c.checkValid(ctx, ApplyPhase)
 }
 
 func (c *StackCall) tracingName() string {

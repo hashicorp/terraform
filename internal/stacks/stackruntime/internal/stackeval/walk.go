@@ -20,8 +20,7 @@ import (
 // to share, with everything else dealt with using -- as much as possible --
 // "normal code".
 type walkState struct {
-	wg    sync.WaitGroup
-	diags syncDiagnostics
+	wg sync.WaitGroup
 
 	// handleDiags is called for each call to [walkState.AddDiags], with
 	// a set of diagnostics produced from that call's arguments.
@@ -126,3 +125,15 @@ func (ws *walkState) AddDiags(new ...any) {
 }
 
 type walkTaskContextKey struct{}
+
+// walkWithOutput combines a [walkState] with some other object that allows
+// emitting output events to a caller, so that walk codepaths can conveniently
+// pass these both together as a single argument.
+type walkWithOutput[Output any] struct {
+	state *walkState
+	out   Output
+}
+
+func (w *walkWithOutput[Output]) AsyncTask(ctx context.Context, impl func(ctx context.Context)) {
+	w.state.AsyncTask(ctx, impl)
+}

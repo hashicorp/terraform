@@ -166,6 +166,16 @@ func (r *ChangeExecResults) ComponentInstanceResult(ctx context.Context, addr st
 	return valWithDiags.Result, valWithDiags.Diagnostics, err
 }
 
+// AwaitCompletion blocks until all of the scheduled changes have completed.
+func (r *ChangeExecResults) AwaitCompletion(ctx context.Context) {
+	// We don't have any single signal that everything is complete here,
+	// but it's sufficient for us to just visit each of our saved promise
+	// getters in turn and read from them.
+	for _, elem := range r.componentInstances.Elems() {
+		elem.V(ctx) // intentionally discards result; we only care that it's complete
+	}
+}
+
 type ErrChangeExecUnregistered struct {
 	Addr fmt.Stringer
 }

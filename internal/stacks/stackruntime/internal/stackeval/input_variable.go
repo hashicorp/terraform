@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -152,15 +153,24 @@ func (v *InputVariable) ExprReferenceValue(ctx context.Context, phase EvalPhase)
 	return v.Value(ctx, phase)
 }
 
-// PlanChanges implements Plannable as a plan-time validation of the variable's
-// declaration and of the caller's definition of the variable.
-func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+func (v *InputVariable) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	_, moreDiags := v.CheckValue(ctx, PlanPhase)
 	diags = diags.Append(moreDiags)
 
-	return nil, diags
+	return diags
+}
+
+// PlanChanges implements Plannable as a plan-time validation of the variable's
+// declaration and of the caller's definition of the variable.
+func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+	return nil, v.checkValid(ctx, PlanPhase)
+}
+
+// CheckApply implements ApplyChecker.
+func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
+	return nil, v.checkValid(ctx, ApplyPhase)
 }
 
 func (v *InputVariable) tracingName() string {

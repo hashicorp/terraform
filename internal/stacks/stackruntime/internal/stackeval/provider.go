@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -281,8 +282,7 @@ func (p *Provider) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.
 	}
 }
 
-// PlanChanges implements Plannable.
-func (p *Provider) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+func (p *Provider) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	_, moreDiags := p.CheckForEachValue(ctx, PlanPhase)
@@ -292,7 +292,17 @@ func (p *Provider) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, 
 	// Everything else is instance-specific and so the plan walk driver must
 	// call p.Instances and ask each instance to plan itself.
 
-	return nil, diags
+	return diags
+}
+
+// PlanChanges implements Plannable.
+func (p *Provider) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+	return nil, p.checkValid(ctx, PlanPhase)
+}
+
+// CheckApply implements ApplyChecker.
+func (p *Provider) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
+	return nil, p.checkValid(ctx, ApplyPhase)
 }
 
 // tracingName implements Plannable.

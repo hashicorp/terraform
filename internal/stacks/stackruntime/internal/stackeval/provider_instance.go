@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
@@ -257,20 +258,29 @@ func (p *ProviderInstance) ResolveExpressionReference(ctx context.Context, ref s
 	return stack.resolveExpressionReference(ctx, ref, nil, p.repetition)
 }
 
-// PlanChanges implements Plannable.
-func (p *ProviderInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+func (p *ProviderInstance) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	_, moreDiags := p.CheckProviderArgs(ctx, PlanPhase)
+	_, moreDiags := p.CheckProviderArgs(ctx, phase)
 	diags = diags.Append(moreDiags)
 
 	// NOTE: CheckClient starts and configures the provider as a side-effect.
 	// If this is a plugin-based provider then the plugin process will stay
-	// running for the remainder of the planning phase.
-	_, moreDiags = p.CheckClient(ctx, PlanPhase)
+	// running for the remainder of the specified evaluation phase.
+	_, moreDiags = p.CheckClient(ctx, phase)
 	diags = diags.Append(moreDiags)
 
-	return nil, diags
+	return diags
+}
+
+// PlanChanges implements Plannable.
+func (p *ProviderInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+	return nil, p.checkValid(ctx, PlanPhase)
+}
+
+// CheckApply implements ApplyChecker.
+func (p *ProviderInstance) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
+	return nil, p.checkValid(ctx, ApplyPhase)
 }
 
 // tracingName implements Plannable.

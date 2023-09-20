@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -157,6 +158,15 @@ func (c *StackCallInstance) ResolveExpressionReference(ctx context.Context, ref 
 	return stack.resolveExpressionReference(ctx, ref, nil, c.repetition)
 }
 
+func (c *StackCallInstance) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	_, moreDiags := c.CheckInputVariableValues(ctx, PlanPhase)
+	diags = diags.Append(moreDiags)
+
+	return diags
+}
+
 // PlanChanges implements Plannable by performing plan-time validation of
 // all of the per-instance arguments in the stack call configuration.
 //
@@ -166,12 +176,13 @@ func (c *StackCallInstance) ResolveExpressionReference(ctx context.Context, ref 
 func (c *StackCallInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	// This is really just a "plan-time validation" behavior, since stack
 	// calls never contribute directly to the planned changes.
-	var diags tfdiags.Diagnostics
+	return nil, c.checkValid(ctx, PlanPhase)
+}
 
-	_, moreDiags := c.CheckInputVariableValues(ctx, PlanPhase)
-	diags = diags.Append(moreDiags)
-
-	return nil, diags
+// CheckApply implements ApplyChecker by confirming that the input variable
+// values are still valid after resolving any upstream changes.
+func (c *StackCallInstance) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
+	return nil, c.checkValid(ctx, ApplyPhase)
 }
 
 // tracingName implements Plannable.

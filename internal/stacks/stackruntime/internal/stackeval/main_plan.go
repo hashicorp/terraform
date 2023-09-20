@@ -122,14 +122,7 @@ type PlanOutput struct {
 // planWalk just bundles a [walkState] and a [PlanOutput] together so we can
 // concisely pass them both as a single argument between the all the plan walk
 // driver functions below.
-type planWalk struct {
-	state *walkState
-	out   *PlanOutput
-}
-
-func (w *planWalk) AsyncTask(ctx context.Context, impl func(ctx context.Context)) {
-	w.state.AsyncTask(ctx, impl)
-}
+type planWalk = walkWithOutput[*PlanOutput]
 
 func (m *Main) walkPlanChanges(ctx context.Context, walk *planWalk, stack *Stack) {
 	// We'll get the expansion of any child stack calls going first, so that

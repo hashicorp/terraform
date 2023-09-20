@@ -17,6 +17,8 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -527,14 +529,54 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 	)
 }
 
+// ApplyModuleTreePlan applies a plan returned by a previous call to
+// [ComponentInstance.CheckModuleTreePlan].
+//
+// Applying a plan often has significant externally-visible side-effects, and
+// so this method should be called only once for a given plan. In practice
+// we currently ensure that is true by calling it only from the package-level
+// [ApplyPlan] function, which arranges for this function to be called
+// concurrently with the same method on other component instances and with
+// a whole-tree walk to gather up results and diagnostics.
+func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans.Plan) (*states.State, tfdiags.Diagnostics) {
+	panic("unimplemented")
+}
+
+// ApplyResultState returns the new state resulting from applying a plan for
+// this object using [ApplyModuleTreePlan], or nil if the apply failed and
+// so there is no new state to return.
+func (c *ComponentInstance) ApplyResultState(ctx context.Context) *states.State {
+	ret, _ := c.CheckApplyResultState(ctx)
+	return ret
+}
+
+// CheckApplyResultState returns the new state resulting from applying a plan for
+// this object using [ApplyModuleTreePlan] and diagnostics describing any
+// problems encountered when applying it.
+func (c *ComponentInstance) CheckApplyResultState(ctx context.Context) (*states.State, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	changes := c.main.ApplyChangeResults()
+	newState, moreDiags, err := changes.ComponentInstanceResult(ctx, c.Addr())
+	diags = diags.Append(moreDiags)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Component instance apply not scheduled",
+			fmt.Sprintf("Terraform needs the result from applying changes to %s, but that apply was apparently not scheduled to run. This is a bug in Terraform.", c.Addr()),
+		))
+	}
+	return newState, diags
+}
+
 func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
 	switch phase {
 	case PlanPhase:
 		plan := c.ModuleTreePlan(ctx)
 		if plan == nil {
 			// Planning seems to have failed so we cannot decide a result value yet.
-			// FIXME: Should use an unknown value of a specific object type
-			// constraint derived from the root module's output values.
+			// We can't do any better than DynamicVal here because in the
+			// modules language output values don't have statically-declared
+			// result types.
 			return cty.DynamicVal
 		}
 
@@ -552,10 +594,30 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 		}
 		return cty.ObjectVal(attrs)
 
+	case ApplyPhase:
+		newState := c.ApplyResultState(ctx)
+		if newState == nil {
+			// Applying seems to have failed so we cannot provide a result
+			// value, and so we'll return a placeholder to help our caller
+			// unwind gracefully with its own placeholder result.
+			// We can't do any better than DynamicVal here because in the
+			// modules language output values don't have statically-declared
+			// result types.
+			return cty.DynamicVal
+		}
+
+		// During the apply phase we use the root module output values from
+		// the new state to construct our value.
+		outputVals := newState.RootModule().OutputValues
+		attrs := make(map[string]cty.Value, len(outputVals))
+		for _, ov := range outputVals {
+			name := ov.Addr.OutputValue.Name
+			attrs[name] = ov.Value
+		}
+		return cty.ObjectVal(attrs)
+
 	default:
 		// We can't produce a concrete value for any other phase.
-		// FIXME: Should use an unknown value of a specific object type
-		// constraint derived from the root module's output values.
 		return cty.DynamicVal
 	}
 }
@@ -608,6 +670,27 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 			})
 		}
 	}
+
+	return changes, diags
+}
+
+// CheckApply implements ApplyChecker.
+func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
+	var changes []stackstate.AppliedChange
+	var diags tfdiags.Diagnostics
+
+	// FIXME: We need to report AppliedChange objects for the component
+	// instance itself and each of the affected resource instances inside it.
+	// For now we're only reporting diagnostics as an initial stub.
+
+	_, moreDiags := c.CheckInputVariableValues(ctx, ApplyPhase)
+	diags = diags.Append(moreDiags)
+
+	_, moreDiags = c.CheckProviders(ctx, ApplyPhase)
+	diags = diags.Append(moreDiags)
+
+	_, moreDiags = c.CheckApplyResultState(ctx)
+	diags = diags.Append(moreDiags)
 
 	return changes, diags
 }
