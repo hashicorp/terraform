@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"path"
 	"sort"
 	"strings"
@@ -15,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
-	smithyhttp "github.com/aws/smithy-go/transport/http"
 
 	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -61,13 +59,6 @@ func (b *Backend) Workspaces() ([]string, error) {
 		if err != nil {
 			if IsA[*s3types.NoSuchBucket](err) {
 				return nil, fmt.Errorf(errS3NoSuchBucket, b.bucketName, err)
-			}
-			if respErr, ok := As[*smithyhttp.ResponseError](err); ok && respErr.HTTPStatusCode() == http.StatusMovedPermanently {
-				if resp := respErr.HTTPResponse(); resp != nil {
-					if bucketRegion := resp.Header.Get("X-Amz-Bucket-Region"); bucketRegion != "" {
-						err = newBucketRegionError(b.awsConfig.Region, bucketRegion)
-					}
-				}
 			}
 			return nil, fmt.Errorf("Unable to list objects in S3 bucket %q: %w", b.bucketName, err)
 		}
