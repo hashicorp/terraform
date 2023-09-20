@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
@@ -45,21 +47,33 @@ func TestChangeExec(t *testing.T) {
 			},
 		},
 	}
+	valueAddr := addrs.OutputValue{Name: "v"}.Absolute(addrs.RootModuleInstance)
+
 	_, err := promising.MainTask(ctx, func(ctx context.Context) (FakeMain, error) {
 		changeResults, begin := ChangeExec(ctx, func(ctx context.Context, reg *ChangeExecRegistry[FakeMain]) {
 			t.Logf("begin setup phase")
-			reg.RegisterComponentInstanceChange(ctx, instAAddr, func(ctx context.Context, main FakeMain) (cty.Value, tfdiags.Diagnostics) {
+			reg.RegisterComponentInstanceChange(ctx, instAAddr, func(ctx context.Context, main FakeMain) (*states.State, tfdiags.Diagnostics) {
 				t.Logf("producing result for A")
-				return cty.StringVal("a"), nil
+				return states.BuildState(func(ss *states.SyncState) {
+					ss.SetOutputValue(valueAddr, cty.StringVal("a"), false)
+				}), nil
 			})
-			reg.RegisterComponentInstanceChange(ctx, instBAddr, func(ctx context.Context, main FakeMain) (cty.Value, tfdiags.Diagnostics) {
+			reg.RegisterComponentInstanceChange(ctx, instBAddr, func(ctx context.Context, main FakeMain) (*states.State, tfdiags.Diagnostics) {
 				t.Logf("B is waiting for A")
-				aVal, _, err := main.results.ComponentInstanceResult(ctx, instAAddr)
+				aState, _, err := main.results.ComponentInstanceResult(ctx, instAAddr)
 				if err != nil {
-					return cty.DynamicVal, nil
+					return nil, nil
 				}
 				t.Logf("producing result for B")
-				return cty.TupleVal([]cty.Value{aVal, cty.StringVal("b")}), nil
+				aOutputVal := aState.OutputValue(valueAddr)
+				if aOutputVal == nil {
+					return nil, nil
+				}
+				return states.BuildState(func(ss *states.SyncState) {
+					ss.SetOutputValue(
+						valueAddr, cty.TupleVal([]cty.Value{aOutputVal.Value, cty.StringVal("b")}), false,
+					)
+				}), nil
 			})
 			t.Logf("end setup phase")
 		})
@@ -78,24 +92,24 @@ func TestChangeExec(t *testing.T) {
 		// the "B" task depends on the result from the "A" task.
 		var wg sync.WaitGroup
 		wg.Add(3)
-		var gotAVal, gotBVal, gotCVal cty.Value
+		var gotAState, gotBState, gotCState *states.State
 		var errA, errB, errC error
 		promising.AsyncTask(ctx, promising.NoPromises, func(ctx context.Context, _ promising.PromiseContainer) {
 			t.Logf("requesting result C")
-			gotCVal, _, errC = main.results.ComponentInstanceResult(ctx, instCAddr)
-			t.Logf("C is %#v", gotCVal)
+			gotCState, _, errC = main.results.ComponentInstanceResult(ctx, instCAddr)
+			t.Logf("got result C")
 			wg.Done()
 		})
 		promising.AsyncTask(ctx, promising.NoPromises, func(ctx context.Context, _ promising.PromiseContainer) {
 			t.Logf("requesting result B")
-			gotBVal, _, errB = main.results.ComponentInstanceResult(ctx, instBAddr)
-			t.Logf("B is %#v", gotBVal)
+			gotBState, _, errB = main.results.ComponentInstanceResult(ctx, instBAddr)
+			t.Logf("got result B")
 			wg.Done()
 		})
 		promising.AsyncTask(ctx, promising.NoPromises, func(ctx context.Context, _ promising.PromiseContainer) {
 			t.Logf("requesting result A")
-			gotAVal, _, errA = main.results.ComponentInstanceResult(ctx, instAAddr)
-			t.Logf("A is %#v", gotAVal)
+			gotAState, _, errA = main.results.ComponentInstanceResult(ctx, instAAddr)
+			t.Logf("got result A")
 			wg.Done()
 		})
 		wg.Wait()
@@ -109,18 +123,37 @@ func TestChangeExec(t *testing.T) {
 		if diff := cmp.Diff(ErrChangeExecUnregistered{instCAddr}, errC); diff != "" {
 			t.Errorf("wrong error for C\n%s", diff)
 		}
+		if errA != nil || errB != nil {
+			t.FailNow()
+		}
+		if gotAState == nil {
+			t.Fatal("A state is nil")
+		}
+		if gotBState == nil {
+			t.Fatal("B state is nil")
+		}
+		if gotCState != nil {
+			t.Fatal("C state isn't nil, but should have been")
+		}
 
+		gotAOutputVal := gotAState.OutputValue(valueAddr)
+		if gotAOutputVal == nil {
+			t.Fatal("A state has no value")
+		}
+		gotBOutputVal := gotBState.OutputValue(valueAddr)
+		if gotBOutputVal == nil {
+			t.Fatal("B state has no value")
+		}
+
+		gotAVal := gotAOutputVal.Value
 		wantAVal := cty.StringVal("a")
+		gotBVal := gotBOutputVal.Value
 		wantBVal := cty.TupleVal([]cty.Value{wantAVal, cty.StringVal("b")})
-		wantCVal := cty.DynamicVal
 		if diff := cmp.Diff(wantAVal, gotAVal, ctydebug.CmpOptions); diff != "" {
 			t.Errorf("wrong result for A\n%s", diff)
 		}
 		if diff := cmp.Diff(wantBVal, gotBVal, ctydebug.CmpOptions); diff != "" {
 			t.Errorf("wrong result for B\n%s", diff)
-		}
-		if diff := cmp.Diff(wantCVal, gotCVal, ctydebug.CmpOptions); diff != "" {
-			t.Errorf("wrong result for C\n%s", diff)
 		}
 
 		return main, nil
