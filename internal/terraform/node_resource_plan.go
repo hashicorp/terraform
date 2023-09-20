@@ -359,6 +359,14 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 				return imports, diags
 			}
 
+			// if we have a legacy addr, it was supplied on the commandline so
+			// there is nothing to expand
+			if !imp.LegacyAddr.Equal(addrs.AbsResourceInstance{}) {
+				imports.Put(imp.LegacyAddr, importID)
+				n.expandedImports.Add(imp.LegacyAddr)
+				return imports, diags
+			}
+
 			// we already parsed this loading the config, so don't bother with diagnostics again
 			traversal, _ := hcl.AbsTraversalForExpr(imp.Config.To)
 			to, _ := addrs.ParseAbsResourceInstance(traversal)
@@ -430,7 +438,7 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 			if importTarget.LegacyAddr.Equal(a.Addr) {
 				return &graphNodeImportState{
 					Addr:             importTarget.LegacyAddr,
-					ID:               importTarget.idString,
+					ID:               imports.Get(importTarget.LegacyAddr),
 					ResolvedProvider: n.ResolvedProvider,
 				}
 			}
