@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -64,7 +65,7 @@ func ChangeExec[Main any](
 		results: ChangeExecResults{
 			componentInstances: collections.NewMap[
 				stackaddrs.AbsComponentInstance,
-				func(ctx context.Context) (cty.Value, error),
+				func(ctx context.Context) (withDiagnostics[cty.Value], error),
 			](),
 		},
 	}
@@ -103,9 +104,9 @@ type ChangeExecRegistry[Main any] struct {
 func (r *ChangeExecRegistry[Main]) RegisterComponentInstanceChange(
 	ctx context.Context,
 	addr stackaddrs.AbsComponentInstance,
-	run func(ctx context.Context, main Main) cty.Value,
+	run func(ctx context.Context, main Main) (cty.Value, tfdiags.Diagnostics),
 ) {
-	resultProvider, waitResult := promising.NewPromise[cty.Value](ctx)
+	resultProvider, waitResult := promising.NewPromise[withDiagnostics[cty.Value]](ctx)
 	r.mu.Lock()
 	if r.results.componentInstances.HasKey(addr) {
 		// This is always a bug in the caller.
@@ -116,7 +117,7 @@ func (r *ChangeExecRegistry[Main]) RegisterComponentInstanceChange(
 
 	// The asynchronous execution task is responsible for resolving waitResult
 	// through resultProvider.
-	promising.AsyncTask(ctx, resultProvider, func(ctx context.Context, resultProvider promising.PromiseResolver[cty.Value]) {
+	promising.AsyncTask(ctx, resultProvider, func(ctx context.Context, resultProvider promising.PromiseResolver[withDiagnostics[cty.Value]]) {
 		// We'll hold here until the ChangeExec caller signals that it's
 		// time to begin, by providing a Main object to the begin-execution
 		// callback that ChangeExec returned.
@@ -125,15 +126,18 @@ func (r *ChangeExecRegistry[Main]) RegisterComponentInstanceChange(
 			// If we get here then that suggests that there was a self-reference
 			// error or other promise-related inconsistency, so we'll just
 			// bail out with a placeholder value and the error.
-			resultProvider.Resolve(ctx, cty.DynamicVal, err)
+			resultProvider.Resolve(ctx, withDiagnostics[cty.Value]{Result: cty.DynamicVal}, err)
 			return
 		}
 
 		// Now the registered task can begin running, with access to the Main
 		// object that is presumably by now configured to retrieve apply-phase
 		// results from our corresponding [ChangeExecResults] object.
-		result := run(ctx, main)
-		resultProvider.Resolve(ctx, result, nil)
+		v, diags := run(ctx, main)
+		resultProvider.Resolve(ctx, withDiagnostics[cty.Value]{
+			Result:      v,
+			Diagnostics: diags,
+		}, nil)
 	})
 }
 
@@ -147,18 +151,19 @@ func (r *ChangeExecRegistry[Main]) RegisterComponentInstanceChange(
 type ChangeExecResults struct {
 	componentInstances collections.Map[
 		stackaddrs.AbsComponentInstance,
-		func(context.Context) (cty.Value, error),
+		func(context.Context) (withDiagnostics[cty.Value], error),
 	]
 }
 
-func (r *ChangeExecResults) ComponentInstanceResult(ctx context.Context, addr stackaddrs.AbsComponentInstance) (cty.Value, error) {
+func (r *ChangeExecResults) ComponentInstanceResult(ctx context.Context, addr stackaddrs.AbsComponentInstance) (cty.Value, tfdiags.Diagnostics, error) {
 	getter, ok := r.componentInstances.GetOk(addr)
 	if !ok {
-		return cty.DynamicVal, ErrChangeExecUnregistered{addr}
+		return cty.DynamicVal, nil, ErrChangeExecUnregistered{addr}
 	}
 	// This call will block until the corresponding execution function has
 	// completed and resolved this promise.
-	return getter(ctx)
+	valWithDiags, err := getter(ctx)
+	return valWithDiags.Result, valWithDiags.Diagnostics, err
 }
 
 type ErrChangeExecUnregistered struct {

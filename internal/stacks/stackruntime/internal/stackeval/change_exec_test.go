@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -47,18 +48,18 @@ func TestChangeExec(t *testing.T) {
 	_, err := promising.MainTask(ctx, func(ctx context.Context) (FakeMain, error) {
 		changeResults, begin := ChangeExec(ctx, func(ctx context.Context, reg *ChangeExecRegistry[FakeMain]) {
 			t.Logf("begin setup phase")
-			reg.RegisterComponentInstanceChange(ctx, instAAddr, func(ctx context.Context, main FakeMain) cty.Value {
+			reg.RegisterComponentInstanceChange(ctx, instAAddr, func(ctx context.Context, main FakeMain) (cty.Value, tfdiags.Diagnostics) {
 				t.Logf("producing result for A")
-				return cty.StringVal("a")
+				return cty.StringVal("a"), nil
 			})
-			reg.RegisterComponentInstanceChange(ctx, instBAddr, func(ctx context.Context, main FakeMain) cty.Value {
+			reg.RegisterComponentInstanceChange(ctx, instBAddr, func(ctx context.Context, main FakeMain) (cty.Value, tfdiags.Diagnostics) {
 				t.Logf("B is waiting for A")
-				aVal, err := main.results.ComponentInstanceResult(ctx, instAAddr)
+				aVal, _, err := main.results.ComponentInstanceResult(ctx, instAAddr)
 				if err != nil {
-					return cty.DynamicVal
+					return cty.DynamicVal, nil
 				}
 				t.Logf("producing result for B")
-				return cty.TupleVal([]cty.Value{aVal, cty.StringVal("b")})
+				return cty.TupleVal([]cty.Value{aVal, cty.StringVal("b")}), nil
 			})
 			t.Logf("end setup phase")
 		})
@@ -81,19 +82,19 @@ func TestChangeExec(t *testing.T) {
 		var errA, errB, errC error
 		promising.AsyncTask(ctx, promising.NoPromises, func(ctx context.Context, _ promising.PromiseContainer) {
 			t.Logf("requesting result C")
-			gotCVal, errC = main.results.ComponentInstanceResult(ctx, instCAddr)
+			gotCVal, _, errC = main.results.ComponentInstanceResult(ctx, instCAddr)
 			t.Logf("C is %#v", gotCVal)
 			wg.Done()
 		})
 		promising.AsyncTask(ctx, promising.NoPromises, func(ctx context.Context, _ promising.PromiseContainer) {
 			t.Logf("requesting result B")
-			gotBVal, errB = main.results.ComponentInstanceResult(ctx, instBAddr)
+			gotBVal, _, errB = main.results.ComponentInstanceResult(ctx, instBAddr)
 			t.Logf("B is %#v", gotBVal)
 			wg.Done()
 		})
 		promising.AsyncTask(ctx, promising.NoPromises, func(ctx context.Context, _ promising.PromiseContainer) {
 			t.Logf("requesting result A")
-			gotAVal, errA = main.results.ComponentInstanceResult(ctx, instAAddr)
+			gotAVal, _, errA = main.results.ComponentInstanceResult(ctx, instAAddr)
 			t.Logf("A is %#v", gotAVal)
 			wg.Done()
 		})
