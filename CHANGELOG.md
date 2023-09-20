@@ -43,6 +43,8 @@ BUG FIXES:
 * cli: Terraform will no longer override SSH settings in local git configuration when installing modules. ([#33592](https://github.com/hashicorp/terraform/issues/33592))
 * `terraform` built-in provider: The upstream dependency that Terraform uses for service discovery of Terraform-native services such as Terraform Cloud/Enterprise state storage was previously not concurrency-safe, but Terraform was treating it as if it was in situations like when a configuration has multiple `terraform_remote_state` blocks all using the "remote" backend. Terraform is now using a newer version of that library which updates its internal caches in a concurrency-safe way. ([#33364](https://github.com/hashicorp/terraform/issues/33364))
 * `terraform init`: Terraform will no longer allow downloading remote modules to invalid paths. ([#33745](https://github.com/hashicorp/terraform/issues/33745))
+* Ignore potential remote terraform version mismatch when running force-unlock ([#28853](https://github.com/hashicorp/terraform/issues/28853))
+* cloud: Fixed a bug that would prevent nested symlinks from being dereferenced into the config sent to Terraform Cloud ([#31895](https://github.com/hashicorp/terraform/issues/31895))
 * cloud: state snapshots could not be disabled when header x-terraform-snapshot-interval is absent ([#33820](https://github.com/hashicorp/terraform/pull/33820))
 
 ## Previous Releases
