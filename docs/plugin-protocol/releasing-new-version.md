@@ -15,9 +15,9 @@ protocol file, and modify it accordingly.
 
 ## New terraform-plugin-go Package
 
-The
+The link provided here: 
 [hashicorp/terraform-plugin-go](https://github.com/hashicorp/terraform-plugin-go)
-repository serves as the foundation for Terraform's plugin ecosystem. It needs
+is the repository serves as the foundation for Terraform's plugin ecosystem. It needs
 to know about the new major protocol version. Either open an issue in that repo
 to have the Plugin SDK team add the new package, or if you would like to
 contribute it yourself, open a PR. It is recommended that you copy the package
