@@ -4,6 +4,7 @@
 package command
 
 import (
+	"fmt"
 	"path"
 	"strings"
 	"testing"
@@ -21,11 +22,12 @@ import (
 
 func TestTest(t *testing.T) {
 	tcs := map[string]struct {
-		override string
-		args     []string
-		expected string
-		code     int
-		skip     bool
+		override              string
+		args                  []string
+		expected              string
+		expectedResourceCount int
+		code                  int
+		skip                  bool
 	}{
 		"simple_pass": {
 			expected: "1 passed, 0 failed.",
@@ -165,6 +167,19 @@ func TestTest(t *testing.T) {
 			args:     []string{"-var=number_input=0", "-var=string_input=Hello, world!", "-var=list_input=[\"Hello\",\"world\"]"},
 			code:     0,
 		},
+		"null-outputs": {
+			expected: "2 passed, 0 failed.",
+			code:     0,
+		},
+		"destroy_fail": {
+			expected:              "1 passed, 0 failed.",
+			code:                  1,
+			expectedResourceCount: 1,
+		},
+		"default_optional_values": {
+			expected: "4 passed, 0 failed.",
+			code:     0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -222,8 +237,8 @@ func TestTest(t *testing.T) {
 				t.Errorf("output didn't contain expected string:\n\n%s", output.All())
 			}
 
-			if provider.ResourceCount() > 0 {
-				t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+			if provider.ResourceCount() != tc.expectedResourceCount {
+				t.Errorf("should have left %d resources on completion but left %v", tc.expectedResourceCount, provider.ResourceString())
 			}
 		})
 	}
@@ -472,8 +487,10 @@ func TestTest_CatchesErrorsBeforeDestroy(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expectedOut := `main.tftest.hcl... fail
+	expectedOut := `main.tftest.hcl... in progress
   run "test"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
 
 Failure! 0 passed, 1 failed.
 `
@@ -527,7 +544,7 @@ func TestTest_Verbose(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expected := `main.tftest.hcl... pass
+	expected := `main.tftest.hcl... in progress
   run "validate_test_resource"... pass
 
 Terraform used the selected providers to generate the following execution
@@ -538,17 +555,24 @@ Terraform will perform the following actions:
 
   # test_resource.foo will be created
   + resource "test_resource" "foo" {
-      + id    = "constant_value"
-      + value = "bar"
+      + destroy_fail = (known after apply)
+      + id           = "constant_value"
+      + value        = "bar"
     }
 
 Plan: 1 to add, 0 to change, 0 to destroy.
-  run "validate_test_resource"... pass
+
+  run "apply_test_resource"... pass
+
 # test_resource.foo:
 resource "test_resource" "foo" {
-    id    = "constant_value"
-    value = "bar"
+    destroy_fail = false
+    id           = "constant_value"
+    value        = "bar"
 }
+
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
 
 Success! 2 passed, 0 failed.
 `
@@ -570,8 +594,10 @@ func TestTest_ValidatesBeforeExecution(t *testing.T) {
 		expectedErr string
 	}{
 		"invalid": {
-			expectedOut: `main.tftest.hcl... fail
+			expectedOut: `main.tftest.hcl... in progress
   run "invalid"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
 
 Failure! 0 passed, 1 failed.
 `,
@@ -587,9 +613,11 @@ managed resources and data sources.
 `,
 		},
 		"invalid-module": {
-			expectedOut: `main.tftest.hcl... fail
+			expectedOut: `main.tftest.hcl... in progress
   run "invalid"... fail
   run "test"... skip
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
 
 Failure! 0 passed, 1 failed, 1 skipped.
 `,
@@ -604,8 +632,10 @@ variable can be declared with a variable "not_real" {} block.
 `,
 		},
 		"missing-provider": {
-			expectedOut: `main.tftest.hcl... fail
+			expectedOut: `main.tftest.hcl... in progress
   run "passes_validation"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
 
 Failure! 0 passed, 1 failed.
 `,
@@ -621,8 +651,10 @@ can remove the provider configuration again.
 `,
 		},
 		"missing-provider-in-run-block": {
-			expectedOut: `main.tftest.hcl... fail
+			expectedOut: `main.tftest.hcl... in progress
   run "passes_validation"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
 
 Failure! 0 passed, 1 failed.
 `,
@@ -638,9 +670,11 @@ can remove the provider configuration again.
 `,
 		},
 		"missing-provider-in-test-module": {
-			expectedOut: `main.tftest.hcl... fail
+			expectedOut: `main.tftest.hcl... in progress
   run "passes_validation_primary"... pass
   run "passes_validation_secondary"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
 
 Failure! 1 passed, 1 failed.
 `,
@@ -818,19 +852,25 @@ func TestTest_StatePropagation(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expected := `main.tftest.hcl... pass
+	expected := `main.tftest.hcl... in progress
   run "initial_apply_example"... pass
+
 # test_resource.module_resource:
 resource "test_resource" "module_resource" {
-    id    = "df6h8as9"
-    value = "start"
+    destroy_fail = false
+    id           = "df6h8as9"
+    value        = "start"
 }
+
   run "initial_apply"... pass
+
 # test_resource.resource:
 resource "test_resource" "resource" {
-    id    = "598318e0"
-    value = "start"
+    destroy_fail = false
+    id           = "598318e0"
+    value        = "start"
 }
+
   run "plan_second_example"... pass
 
 Terraform used the selected providers to generate the following execution
@@ -841,11 +881,13 @@ Terraform will perform the following actions:
 
   # test_resource.second_module_resource will be created
   + resource "test_resource" "second_module_resource" {
-      + id    = "b6a1d8cb"
-      + value = "start"
+      + destroy_fail = (known after apply)
+      + id           = "b6a1d8cb"
+      + value        = "start"
     }
 
 Plan: 1 to add, 0 to change, 0 to destroy.
+
   run "plan_update"... pass
 
 Terraform used the selected providers to generate the following execution
@@ -856,11 +898,13 @@ Terraform will perform the following actions:
 
   # test_resource.resource will be updated in-place
   ~ resource "test_resource" "resource" {
-        id    = "598318e0"
-      ~ value = "start" -> "update"
+        id           = "598318e0"
+      ~ value        = "start" -> "update"
+        # (1 unchanged attribute hidden)
     }
 
 Plan: 0 to add, 1 to change, 0 to destroy.
+
   run "plan_update_example"... pass
 
 Terraform used the selected providers to generate the following execution
@@ -871,11 +915,15 @@ Terraform will perform the following actions:
 
   # test_resource.module_resource will be updated in-place
   ~ resource "test_resource" "module_resource" {
-        id    = "df6h8as9"
-      ~ value = "start" -> "update"
+        id           = "df6h8as9"
+      ~ value        = "start" -> "update"
+        # (1 unchanged attribute hidden)
     }
 
 Plan: 0 to add, 1 to change, 0 to destroy.
+
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
 
 Success! 5 passed, 0 failed.
 `
@@ -934,9 +982,11 @@ func TestTest_OnlyExternalModules(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expected := `main.tftest.hcl... pass
+	expected := `main.tftest.hcl... in progress
   run "first"... pass
   run "second"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
 
 Success! 2 passed, 0 failed.
 `
@@ -974,7 +1024,7 @@ func TestTest_PartialUpdates(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expected := `main.tftest.hcl... pass
+	expected := `main.tftest.hcl... in progress
   run "first"... pass
 
 Warning: Resource targeting is in effect
@@ -999,7 +1049,10 @@ Note that the -target option is not suitable for routine use, and is provided
 only for exceptional situations such as recovering from errors or mistakes,
 or when Terraform specifically suggests to use it as part of an error
 message.
+
   run "second"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
 
 Success! 2 passed, 0 failed.
 `
@@ -1037,7 +1090,7 @@ func TestTest_BadReferences(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expectedOut := `main.tftest.hcl... fail
+	expectedOut := `main.tftest.hcl... in progress
   run "setup"... pass
   run "test"... fail
 
@@ -1048,7 +1101,10 @@ Warning: Value for undeclared variable
 
 The module under test does not declare a variable named "input_three", but it
 is declared in run block "test".
+
   run "finalise"... skip
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
 
 Failure! 1 passed, 1 failed, 1 skipped.
 `
@@ -1093,4 +1149,280 @@ the current run block.
 	if provider.ResourceCount() > 0 {
 		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
 	}
+}
+
+func TestTest_ExpectedFailuresDuringPlanning(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "expected_failures_during_planning")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	if code == 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	expectedOut := `check.tftest.hcl... in progress
+  run "check_passes"... pass
+check.tftest.hcl... tearing down
+check.tftest.hcl... pass
+input.tftest.hcl... in progress
+  run "input_failure"... fail
+
+Warning: Expected failure while planning
+
+A custom condition within var.input failed during the planning stage and
+prevented the requested apply operation. While this was an expected failure,
+the apply operation could not be executed and so the overall test case will
+be marked as a failure and the original diagnostic included in the test
+report.
+
+input.tftest.hcl... tearing down
+input.tftest.hcl... fail
+output.tftest.hcl... in progress
+  run "output_failure"... fail
+
+Warning: Expected failure while planning
+
+  on output.tftest.hcl line 13, in run "output_failure":
+  13:     output.output,
+
+A custom condition within output.output failed during the planning stage and
+prevented the requested apply operation. While this was an expected failure,
+the apply operation could not be executed and so the overall test case will
+be marked as a failure and the original diagnostic included in the test
+report.
+
+output.tftest.hcl... tearing down
+output.tftest.hcl... fail
+resource.tftest.hcl... in progress
+  run "resource_failure"... fail
+
+Warning: Expected failure while planning
+
+A custom condition within test_resource.resource failed during the planning
+stage and prevented the requested apply operation. While this was an expected
+failure, the apply operation could not be executed and so the overall test
+case will be marked as a failure and the original diagnostic included in the
+test report.
+
+resource.tftest.hcl... tearing down
+resource.tftest.hcl... fail
+
+Failure! 1 passed, 3 failed.
+`
+	actualOut := output.Stdout()
+	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+	}
+
+	expectedErr := `
+Error: Invalid value for variable
+
+  on main.tf line 2:
+   2: variable "input" {
+    ├────────────────
+    │ var.input is "bcd"
+
+input must contain the character 'a'
+
+This was checked by the validation rule at main.tf:5,3-13.
+
+Error: Module output value precondition failed
+
+  on main.tf line 33, in output "output":
+  33:     condition = strcontains(test_resource.resource.value, "d")
+    ├────────────────
+    │ test_resource.resource.value is "abc"
+
+input must contain the character 'd'
+
+Error: Resource postcondition failed
+
+  on main.tf line 16, in resource "test_resource" "resource":
+  16:       condition = strcontains(self.value, "b")
+    ├────────────────
+    │ self.value is "acd"
+
+input must contain the character 'b'
+`
+	actualErr := output.Stderr()
+	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_UnknownAndNulls(t *testing.T) {
+
+	tcs := map[string]struct {
+		code   int
+		stdout string
+		stderr string
+	}{
+		"null_value_in_assert": {
+			code: 1,
+			stdout: `main.tftest.hcl... in progress
+  run "first"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 0 passed, 1 failed.
+`,
+			stderr: `
+Error: Test assertion failed
+
+  on main.tftest.hcl line 8, in run "first":
+   8:     condition     = test_resource.resource.value == output.null_output
+    ├────────────────
+    │ output.null_output is null
+    │ test_resource.resource.value is "bar"
+
+this is always going to fail
+`,
+		},
+		"null_value_in_vars": {
+			code: 1,
+			stdout: `fail.tftest.hcl... in progress
+  run "first"... pass
+  run "second"... fail
+fail.tftest.hcl... tearing down
+fail.tftest.hcl... fail
+pass.tftest.hcl... in progress
+  run "first"... pass
+  run "second"... pass
+pass.tftest.hcl... tearing down
+pass.tftest.hcl... pass
+
+Failure! 3 passed, 1 failed.
+`,
+			stderr: `
+Error: Required variable not set
+
+  on fail.tftest.hcl line 11, in run "second":
+  11:     interesting_input = run.first.null_output
+
+The given value is not suitable for var.interesting_input defined at
+main.tf:7,1-29: required variable may not be set to null.
+`,
+		},
+		"unknown_value_in_assert": {
+			code: 1,
+			stdout: `main.tftest.hcl... in progress
+  run "one"... pass
+  run "two"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 1 passed, 1 failed.
+`,
+			stderr: fmt.Sprintf(`
+Error: Unknown condition value
+
+  on main.tftest.hcl line 8, in run "two":
+   8:     condition = output.destroy_fail == run.one.destroy_fail
+    ├────────────────
+    │ output.destroy_fail is false
+
+Condition expression could not be evaluated at this time. This means you have
+executed a %s block with %s and one of the values your
+condition depended on is not known until after the plan has been applied.
+Either remove this value from your condition, or execute an %s command
+from this %s block.
+`, "`run`", "`command = plan`", "`apply`", "`run`"),
+		},
+		"unknown_value_in_vars": {
+			code: 1,
+			stdout: `main.tftest.hcl... in progress
+  run "one"... pass
+  run "two"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 1 passed, 1 failed.
+`,
+			stderr: `
+Error: Reference to unknown value
+
+  on main.tftest.hcl line 8, in run "two":
+   8:     destroy_fail = run.one.destroy_fail
+
+The value for run.one.destroy_fail is unknown. Run block "one" is executing a
+"plan" operation, and the specified output value is only known after apply.
+`,
+		},
+		"nested_unknown_values": {
+			code: 1,
+			stdout: `main.tftest.hcl... in progress
+  run "first"... pass
+  run "second"... pass
+  run "third"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 2 passed, 1 failed.
+`,
+			stderr: `
+Error: Reference to unknown value
+
+  on main.tftest.hcl line 31, in run "third":
+  31:     input = run.second
+
+The value for run.second is unknown. Run block "second" is executing a "plan"
+operation, and the specified output value is only known after apply.
+`,
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("test", name)), td)
+			defer testChdir(t, td)()
+
+			provider := testing_command.NewProvider(nil)
+			view, done := testView(t)
+
+			c := &TestCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(provider.Provider),
+					View:             view,
+				},
+			}
+
+			code := c.Run([]string{"-no-color"})
+			output := done(t)
+
+			if code != tc.code {
+				t.Errorf("expected return code %d but got %d", tc.code, code)
+			}
+
+			expectedOut := tc.stdout
+			actualOut := output.Stdout()
+			if diff := cmp.Diff(expectedOut, actualOut); len(diff) > 0 {
+				t.Errorf("unexpected output\n\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+			}
+
+			expectedErr := tc.stderr
+			actualErr := output.Stderr()
+			if diff := cmp.Diff(expectedErr, actualErr); len(diff) > 0 {
+				t.Errorf("unexpected output\n\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
+			}
+		})
+	}
+
 }

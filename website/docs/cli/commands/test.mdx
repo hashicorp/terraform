@@ -24,6 +24,8 @@ Terraform then executes a series of Terraform plan or apply commands according t
 
 The following options apply to the Terraform `test` command:
 
+* `-cloud-run=<module source>` - This test run executes remotely on Terraform Cloud within the specified Terraform [private registry](/terraform/language/modules/sources#terraform-registry) module.
+
 * `-filter=testfile` - Limits the `terraform test` operation to the specified test files.
 
 * `-json` - Displays machine-readable JSON output for your testing results.
@@ -43,3 +45,13 @@ The Terraform `test` command creates _real_ infrastructure. Once Terraform fully
 You should monitor the output of the test command closely to ensure Terraform removes the infrastructure it created or perform manual cleanup if not. We recommend creating dedicated testing accounts within the target providers that you can routinely and safely purge to ensure any accidental and costly resources aren't left behind.
 
 Terraform also provides diagnostics explaining why it could now automatically clean up. You should resolve these diagnostics to ensure that future clean-up operations are successful.
+
+## Terraform Cloud execution
+
+You can execute tests remotely on Terraform Cloud using the `-cloud-run` option.
+
+The `-cloud-run` option accepts a [private registry module source](/terraform/language/modules/sources#terraform-registry). This option associates the test run with your specified private module within the Terraform Cloud user interface.
+
+You must provide a module from a _private_ registry, not the public Terraform registry.
+
+You must execute [`terraform login`](/terraform/cli/commands/login) before using this option, and ensure that your `hostname` argument matches the private registry hostname of your target module.

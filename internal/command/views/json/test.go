@@ -13,9 +13,12 @@ type TestSuiteAbstract map[string][]string
 
 type TestStatus string
 
+type TestProgress string
+
 type TestFileStatus struct {
-	Path   string     `json:"path"`
-	Status TestStatus `json:"status"`
+	Path     string       `json:"path"`
+	Progress TestProgress `json:"progress"`
+	Status   TestStatus   `json:"status,omitempty"`
 }
 
 type TestRunStatus struct {
@@ -47,6 +50,15 @@ type TestFatalInterrupt struct {
 	Planned []string                        `json:"planned,omitempty"`
 }
 
+type TestStatusUpdate struct {
+	Status   string  `json:"status"`
+	Duration float64 `json:"duration"`
+}
+
 func ToTestStatus(status moduletest.Status) TestStatus {
 	return TestStatus(strings.ToLower(status.String()))
+}
+
+func ToTestProgress(progress moduletest.Progress) TestProgress {
+	return TestProgress(strings.ToLower(progress.String()))
 }

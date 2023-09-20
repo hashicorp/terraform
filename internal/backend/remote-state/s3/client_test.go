@@ -8,7 +8,6 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
-	"strings"
 	"testing"
 	"time"
 
@@ -23,7 +22,7 @@ func TestRemoteClient_impl(t *testing.T) {
 	var _ remote.ClientLocker = new(RemoteClient)
 }
 
-func TestRemoteClient(t *testing.T) {
+func TestRemoteClientBasic(t *testing.T) {
 	testACC(t)
 
 	ctx := context.TODO()
@@ -38,7 +37,7 @@ func TestRemoteClient(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName)
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 
 	state, err := b.StateMgr(backend.DefaultStateName)
 	if err != nil {
@@ -71,7 +70,7 @@ func TestRemoteClientLocks(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
 	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 
@@ -112,7 +111,7 @@ func TestForceUnlock(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
 	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 
@@ -183,7 +182,7 @@ func TestRemoteClient_clientMD5(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName)
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
 	createDynamoDBTable(ctx, t, b.dynClient, bucketName)
 	defer deleteDynamoDBTable(ctx, t, b.dynClient, bucketName)
 
@@ -233,7 +232,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
-	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
 	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
 
@@ -300,8 +299,10 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 
 	// fetching an empty state through client1 should now error out due to a
 	// mismatched checksum.
-	if _, err := client1.Get(); !strings.HasPrefix(err.Error(), errBadChecksumFmt[:80]) {
+	if _, err := client1.Get(); !IsA[badChecksumError](err) {
 		t.Fatalf("expected state checksum error: got %s", err)
+	} else if bse, ok := As[badChecksumError](err); ok && len(bse.digest) != 0 {
+		t.Fatalf("expected empty checksum, got %x", bse.digest)
 	}
 
 	// put the old state in place of the new, without updating the checksum
@@ -311,7 +312,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 
 	// fetching the wrong state through client1 should now error out due to a
 	// mismatched checksum.
-	if _, err := client1.Get(); !strings.HasPrefix(err.Error(), errBadChecksumFmt[:80]) {
+	if _, err := client1.Get(); !IsA[badChecksumError](err) {
 		t.Fatalf("expected state checksum error: got %s", err)
 	}
 
