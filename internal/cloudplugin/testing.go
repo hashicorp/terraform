@@ -9,42 +9,25 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path"
 	"testing"
 	"time"
 )
 
 var testManifest = `{
-	"builds": [
-		{
-			"arch": "amd64",
-			"os": "darwin",
-			"url": "/archives/terraform-cloudplugin_0.1.0_darwin_amd64.zip"
-		}
-	],
-	"is_prerelease": true,
-	"license_class": "ent",
-	"name": "terraform-cloudplugin",
-	"status": {
-		"state": "supported",
-		"timestamp_updated": "2023-07-31T15:18:20.243Z"
-	},
-	"timestamp_created": "2023-07-31T15:18:20.243Z",
-	"timestamp_updated": "2023-07-31T15:18:20.243Z",
-	"url_changelog": "https://github.com/hashicorp/terraform-cloudplugin/blob/main/CHANGELOG.md",
-	"url_license": "https://github.com/hashicorp/terraform-cloudplugin/blob/main/LICENSE",
-	"url_project_website": "https://www.terraform.io/",
-	"url_shasums": "/archives/terraform-cloudplugin_0.1.0_SHA256SUMS",
-	"url_shasums_signatures": [
-		"/archives/terraform-cloudplugin_0.1.0_SHA256SUMS.sig",
-		"/archives/terraform-cloudplugin_0.1.0_SHA256SUMS.72D7468F.sig"
-	],
-	"url_source_repository": "https://github.com/hashicorp/terraform-cloudplugin",
-	"version": "0.1.0"
+  "plugin_version": "0.1.0",
+  "archives": {
+    "darwin_amd64": {
+      "url": "/archives/terraform-cloudplugin/terraform-cloudplugin_0.1.0_darwin_amd64.zip",
+      "sha256sum": "22db2f0c70b50cff42afd4878fea9f6848a63f1b6532bd8b64b899f574acb35d"
+    }
+  },
+  "sha256sums_url": "/archives/terraform-cloudplugin/terraform-cloudplugin_0.1.0_SHA256SUMS",
+  "sha256sums_signature_url": "/archives/terraform-cloudplugin/terraform-cloudplugin_0.1.0_SHA256SUMS.sig"
 }`
 
 var (
-	// This is the same as timestamp_updated above
-	testManifestLastModified, _ = time.Parse(time.RFC3339, "2023-07-31T15:18:20Z")
+	testManifestLastModified = time.Date(2023, time.August, 1, 0, 0, 0, 0, time.UTC)
 )
 
 type testHTTPHandler struct {
@@ -57,7 +40,7 @@ func (h *testHTTPHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch r.URL.Path {
-	case "/api/cloudplugin/v1/manifest.json":
+	case "/api/cloudplugin/v1/manifest":
 		ifModifiedSince, _ := time.Parse(http.TimeFormat, r.Header.Get("If-Modified-Since"))
 		w.Header().Set("Last-Modified", testManifestLastModified.Format(http.TimeFormat))
 
@@ -67,7 +50,8 @@ func (h *testHTTPHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(testManifest))
 		}
 	default:
-		fileToSend, err := os.Open(fmt.Sprintf("testdata/%s", r.URL.Path))
+		baseName := path.Base(r.URL.Path)
+		fileToSend, err := os.Open(fmt.Sprintf("testdata/archives/%s", baseName))
 		if err == nil {
 			io.Copy(w, fileToSend)
 			return

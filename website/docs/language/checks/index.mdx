@@ -97,7 +97,7 @@ Preconditions are unique amongst the custom conditions in that they execute _bef
 
 You can often use postconditions interchangeably with check blocks to validate resources and data sources.
 
-For example, you can [rewrite the above `check` block example](#syntax) to use a postcondition instead. The below code uses a `postcondition` block to validate that the Terraform website returns the expected status code of `200`.
+For example, you can [rewrite the above `check` block example](#checks-syntax) to use a postcondition instead. The below code uses a `postcondition` block to validate that the Terraform website returns the expected status code of `200`.
 
 ```hcl
 data "http" "terraform_io" {
