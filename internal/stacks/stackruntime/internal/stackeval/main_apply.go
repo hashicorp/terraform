@@ -17,17 +17,28 @@ import (
 // ApplyPlan internally instantiates a [Main] configured to apply the given
 // raw plan, and then visits all of the relevant objects to collect up any
 // diagnostics they emit while evaluating in terms of the change results.
-func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb.Any, opts ApplyOpts, outp ApplyOutput) error {
+//
+// If the error result is non-nil then that means the apply process didn't
+// even begin, because the given arguments were invalid. If the arguments
+// are valid enough to start the apply process then the error will always
+// be nil and any problems along the way will be reported as diagnostics
+// through the [ApplyOutput] object.
+//
+// Returns the [Main] object that was used to track state during the process.
+// Callers must call [Main.DoCleanup] on that object once they've finished
+// with it to avoid leaking non-memory resources such as goroutines and
+// provider plugin processes.
+func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb.Any, opts ApplyOpts, outp ApplyOutput) (*Main, error) {
 	plan, err := stackplan.LoadFromProto(rawPlan)
 	if err != nil {
-		return fmt.Errorf("invalid raw plan: %w", err)
+		return nil, fmt.Errorf("invalid raw plan: %w", err)
 	}
 	if !plan.Applyable {
 		// We should not get here because a caller should not ask us to try
 		// to apply a plan that wasn't marked as applyable, but we'll check
 		// it anyway just to be robust in case there's a bug further up
 		// the call stack.
-		return fmt.Errorf("plan is not applyable")
+		return nil, fmt.Errorf("plan is not applyable")
 	}
 
 	// We'll register all of the changes we intend to make up front, so we
@@ -152,7 +163,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 		outp.AnnounceDiagnostics(ctx, diags)
 	}
 
-	return nil
+	return main, nil
 }
 
 type ApplyOutput struct {
