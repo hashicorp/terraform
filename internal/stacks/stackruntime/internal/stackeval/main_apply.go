@@ -40,6 +40,9 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 			reg.RegisterComponentInstanceChange(
 				ctx, addr,
 				func(ctx context.Context, main *Main) (*states.State, tfdiags.Diagnostics) {
+					ctx, span := tracer.Start(ctx, addr.String()+" apply")
+					defer span.End()
+
 					stack := main.Stack(ctx, addr.Stack, ApplyPhase)
 					component := stack.Component(ctx, addr.Item.Component)
 					insts := component.Instances(ctx, ApplyPhase)
@@ -91,6 +94,9 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 	// each object to check itself (producing diagnostics) and announce any
 	// changes that were applied to it.
 	diags, err := promising.MainTask(ctx, func(ctx context.Context) (tfdiags.Diagnostics, error) {
+		ctx, span := tracer.Start(ctx, "apply-time checks")
+		defer span.End()
+
 		var seenSelfDepDiag atomic.Bool
 		ws, complete := newWalkStateCustomDiags(
 			func(diags tfdiags.Diagnostics) {
@@ -118,12 +124,12 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 			out:   &outp,
 		}
 
-		// walkCheckAppliedChanges, and all of the downstream functions it calls,
-		// must take care to ensure that there's always at least one
-		// planWalk-tracked async task running until the entire process is
-		// complete. If one task launches another then the child task call
-		// must come before the caller's implementation function returns.
-		main.walkCheckAppliedChanges(ctx, walk, main.MainStack(ctx))
+		walkDynamicObjects(
+			ctx, walk, main,
+			func(ctx context.Context, walk *walkWithOutput[*ApplyOutput], obj DynamicEvaler) {
+				main.walkApplyCheckObjectChanges(ctx, walk, obj)
+			},
+		)
 
 		// Note: in practice this "complete" cannot actually return any
 		// diagnostics because our custom walkstate hooks above just announce
@@ -178,80 +184,6 @@ type ApplyOutput struct {
 // driver functions below.
 type applyWalk = walkWithOutput[*ApplyOutput]
 
-func (m *Main) walkCheckAppliedChanges(ctx context.Context, walk *applyWalk, stack *Stack) {
-	// We'll get the expansion of any child stack calls going first, so that
-	// we can explore downstream stacks concurrently with this one. Each
-	// stack call can represent zero or more child stacks that we'll analyze
-	// by recursive calls to this function.
-	for _, call := range stack.EmbeddedStackCalls(ctx) {
-		call := call // separate symbol per loop iteration
-
-		m.walkApplyCheckObjectChanges(ctx, walk, call)
-
-		// We need to perform the whole expansion in an overall async task
-		// because it involves evaluating for_each expressions, and one
-		// stack call's for_each might depend on the results of another.
-		walk.AsyncTask(ctx, func(ctx context.Context) {
-			insts := call.Instances(ctx, PlanPhase)
-			for _, inst := range insts {
-				m.walkApplyCheckObjectChanges(ctx, walk, inst)
-
-				childStack := inst.CalledStack(ctx)
-				m.walkCheckAppliedChanges(ctx, walk, childStack)
-			}
-		})
-	}
-
-	// We also need to visit and check all of the other declarations in
-	// the current stack.
-
-	for _, component := range stack.Components(ctx) {
-		component := component // separate symbol per loop iteration
-
-		m.walkApplyCheckObjectChanges(ctx, walk, component)
-
-		// We need to perform the instance expansion in an overall async task
-		// because it involves potentially evaluating a for_each expression.
-		// and that might depend on data from elsewhere in the same stack.
-		walk.AsyncTask(ctx, func(ctx context.Context) {
-			insts := component.Instances(ctx, PlanPhase)
-			for _, inst := range insts {
-				// This is the means by which we learn of any diagnostics from
-				// applying the component's plan and report that we've applied
-				// the changes; this indirectly consumes the results from
-				// the change actions scheduled earlier in [ApplyPlan].
-				m.walkApplyCheckObjectChanges(ctx, walk, inst)
-			}
-		})
-	}
-	for _, provider := range stack.Providers(ctx) {
-		provider := provider // separate symbol per loop iteration
-
-		m.walkApplyCheckObjectChanges(ctx, walk, provider)
-
-		// We need to perform the instance expansion in an overall async
-		// task because it involves potentially evaluating a for_each expression,
-		// and that might depend on data from elsewhere in the same stack.
-		walk.AsyncTask(ctx, func(ctx context.Context) {
-			insts := provider.Instances(ctx, PlanPhase)
-			for _, inst := range insts {
-				m.walkApplyCheckObjectChanges(ctx, walk, inst)
-			}
-		})
-	}
-	for _, variable := range stack.InputVariables(ctx) {
-		m.walkApplyCheckObjectChanges(ctx, walk, variable)
-	}
-	// TODO: Local values
-	for _, output := range stack.OutputValues(ctx) {
-		m.walkApplyCheckObjectChanges(ctx, walk, output)
-	}
-
-	// Finally we'll also check the stack itself, to deal with any problems
-	// with the stack as a whole rather than individual declarations inside.
-	m.walkApplyCheckObjectChanges(ctx, walk, stack)
-}
-
 // walkApplyCheckObjectChanges deals with the leaf objects that can directly
 // contribute changes and/or diagnostics to the apply result, which should each
 // implement [ApplyChecker].
@@ -262,6 +194,9 @@ func (m *Main) walkCheckAppliedChanges(ctx context.Context, walk *applyWalk, sta
 // deals with changes.)
 func (m *Main) walkApplyCheckObjectChanges(ctx context.Context, walk *applyWalk, obj ApplyChecker) {
 	walk.AsyncTask(ctx, func(ctx context.Context) {
+		ctx, span := tracer.Start(ctx, obj.tracingName()+" apply-time checks")
+		defer span.End()
+
 		changes, diags := obj.CheckApply(ctx)
 		for _, change := range changes {
 			walk.out.AnnounceAppliedChange(ctx, change)

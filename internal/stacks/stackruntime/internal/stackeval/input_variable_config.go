@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -131,7 +132,7 @@ func (v *InputVariableConfig) ExprReferenceValue(ctx context.Context, phase Eval
 		// Our apparent value is the value assigned in the definition object
 		// in the parent call.
 		call := v.StackCallConfig(ctx)
-		val := call.InputVariableValues(ctx)[v.Addr().Item]
+		val := call.InputVariableValues(ctx, phase)[v.Addr().Item]
 		if val == cty.NilVal {
 			val = cty.UnknownVal(v.TypeConstraint())
 		}
@@ -139,12 +140,21 @@ func (v *InputVariableConfig) ExprReferenceValue(ctx context.Context, phase Eval
 	}
 }
 
-// Validate implements Validatable
-func (v *InputVariableConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
+func (v *InputVariableConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	_, moreDiags := v.ValidateDefaultValue(ctx)
 	diags = diags.Append(moreDiags)
 	return diags
+}
+
+// Validate implements Validatable
+func (v *InputVariableConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
+	return v.checkValid(ctx, ValidatePhase)
+}
+
+// PlanChanges implements Plannable.
+func (v *InputVariableConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+	return nil, v.checkValid(ctx, PlanPhase)
 }
 
 // reportNamedPromises implements namedPromiseReporter.

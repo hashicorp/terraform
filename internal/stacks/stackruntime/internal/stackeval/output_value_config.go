@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -20,7 +21,7 @@ type OutputValueConfig struct {
 
 	main *Main
 
-	validatedValue promising.Once[withDiagnostics[cty.Value]]
+	validatedValue perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
 }
 
 var _ Validatable = (*OutputValueConfig)(nil)
@@ -62,8 +63,8 @@ func (ov *OutputValueConfig) StackConfig(ctx context.Context) *StackConfig {
 // If this output value is itself invalid then the result may be a
 // compatibly-typed unknown placeholder value that's suitable for partial
 // downstream validation.
-func (ov *OutputValueConfig) Value(ctx context.Context) cty.Value {
-	v, _ := ov.ValidateValue(ctx)
+func (ov *OutputValueConfig) Value(ctx context.Context, phase EvalPhase) cty.Value {
+	v, _ := ov.ValidateValue(ctx, phase)
 	return v
 }
 
@@ -80,9 +81,9 @@ func (ov *OutputValueConfig) ValueTypeConstraint(ctx context.Context) cty.Type {
 // If the returned diagnostics has errors then the returned value might be
 // just an approximation of the result, such as an unknown value with the
 // declared type constraint.
-func (ov *OutputValueConfig) ValidateValue(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+func (ov *OutputValueConfig) ValidateValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
-		ctx, &ov.validatedValue, ov.main,
+		ctx, ov.validatedValue.For(phase), ov.main,
 		ov.validateValueInner,
 	))
 }
@@ -120,15 +121,31 @@ func (ov *OutputValueConfig) validateValueInner(ctx context.Context) (cty.Value,
 	return v, diags
 }
 
-// Validate implements Validatable.
-func (ov *OutputValueConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
+func (ov *OutputValueConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	_, moreDiags := ov.ValidateValue(ctx)
+	_, moreDiags := ov.ValidateValue(ctx, phase)
 	diags = diags.Append(moreDiags)
 	return diags
 }
 
+// Validate implements Validatable.
+func (ov *OutputValueConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
+	return ov.checkValid(ctx, ValidatePhase)
+}
+
+// PlanChanges implements Plannable.
+func (ov *OutputValueConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+	return nil, ov.checkValid(ctx, PlanPhase)
+}
+
 // reportNamedPromises implements namedPromiseReporter.
 func (ov *OutputValueConfig) reportNamedPromises(report func(id promising.PromiseID, name string)) {
-	report(ov.validatedValue.PromiseID(), ov.addr.String()+" value")
+	// We'll report all of our value promises with the same name, since
+	// promises from different eval phases should not interact with one
+	// another and so mentioning the phase will typically just make any
+	// error messages more confusing.
+	valueName := ov.addr.String() + " value"
+	ov.validatedValue.Each(func(ep EvalPhase, once *promising.Once[withDiagnostics[cty.Value]]) {
+		report(once.PromiseID(), valueName)
+	})
 }

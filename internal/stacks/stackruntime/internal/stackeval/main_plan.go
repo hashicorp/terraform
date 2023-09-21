@@ -45,38 +45,71 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 		// resolution to achieve the correct evaluation order.
 
 		var seenSelfDepDiag atomic.Bool
-		ws, complete := newWalkStateCustomDiags(
-			func(diags tfdiags.Diagnostics) {
-				for _, diag := range diags {
-					if diagIsPromiseSelfReference(diag) {
-						// We'll discard all but the first promise-self-reference
-						// diagnostic we see; these tend to get duplicated
-						// because they emerge from all codepaths participating
-						// in the self-reference at once.
-						if !seenSelfDepDiag.CompareAndSwap(false, true) {
-							continue
-						}
-					}
-					outp.AnnounceDiagnostics(ctx, tfdiags.Diagnostics{diag})
+		var seenAnyErrors atomic.Bool
+		reportDiags := func(diags tfdiags.Diagnostics) {
+			for _, diag := range diags {
+				if diag.Severity() == tfdiags.Error {
+					seenAnyErrors.Store(true)
 				}
-			},
-			func() tfdiags.Diagnostics {
-				// We emit all diagnostics immediately as they arrive, so
-				// we never have any accumulated diagnostics to emit at the end.
-				return nil
-			},
-		)
+				if diagIsPromiseSelfReference(diag) {
+					// We'll discard all but the first promise-self-reference
+					// diagnostic we see; these tend to get duplicated
+					// because they emerge from all codepaths participating
+					// in the self-reference at once.
+					if !seenSelfDepDiag.CompareAndSwap(false, true) {
+						continue
+					}
+				}
+				outp.AnnounceDiagnostics(ctx, tfdiags.Diagnostics{diag})
+			}
+		}
+		noopComplete := func() tfdiags.Diagnostics {
+			// We emit all diagnostics immediately as they arrive, so
+			// we never have any accumulated diagnostics to emit at the end.
+			return nil
+		}
+
+		// First we walk the static objects to give them a chance to check
+		// whether they are configured appropriately for planning. This
+		// allows us to report static problems only once for an entire
+		// configuration object, rather than redundantly reporting for every
+		// instance of the object.
+		ws, complete := newWalkStateCustomDiags(reportDiags, noopComplete)
 		walk := &planWalk{
 			state: ws,
 			out:   &outp,
 		}
+		walkStaticObjects(
+			ctx, walk, m,
+			func(ctx context.Context, walk *walkWithOutput[*PlanOutput], obj StaticEvaler) {
+				m.walkPlanObjectChanges(ctx, walk, obj)
+			},
+		)
+		// Note: in practice this "complete" cannot actually return any
+		// diagnostics because our custom walkstate hooks above just announce
+		// the diagnostics immediately. But "complete" still serves the purpose
+		// of blocking until all of the async jobs are complete.
+		diags := complete()
+		if seenAnyErrors.Load() {
+			// If we already found static errors then we'll halt here to have
+			// the user correct those first.
+			return diags, nil
+		}
 
-		// walkPlanStackChanges, and all of the downstream functions it calls,
-		// must take care to ensure that there's always at least one
-		// planWalk-tracked async task running until the entire process is
-		// complete. If one task launches another then the child task call
-		// must come before the caller's implementation function returns.
-		m.walkPlanChanges(ctx, walk, m.MainStack(ctx))
+		// If the static walk completed then we'll now perform a dynamic walk
+		// which is where we'll actually produce the plan and where we'll
+		// learn about any dynamic errors which affect only specific instances
+		// of objects.
+		// We'll use a fresh walkState here because we already completed
+		// the previous one after the static walk.
+		ws, complete = newWalkStateCustomDiags(reportDiags, noopComplete)
+		walk.state = ws
+		walkDynamicObjects(
+			ctx, walk, m,
+			func(ctx context.Context, walk *planWalk, obj DynamicEvaler) {
+				m.walkPlanObjectChanges(ctx, walk, obj)
+			},
+		)
 
 		// Note: in practice this "complete" cannot actually return any
 		// diagnostics because our custom walkstate hooks above just announce
@@ -124,121 +157,17 @@ type PlanOutput struct {
 // driver functions below.
 type planWalk = walkWithOutput[*PlanOutput]
 
-func (m *Main) walkPlanChanges(ctx context.Context, walk *planWalk, stack *Stack) {
-	// We'll get the expansion of any child stack calls going first, so that
-	// we can explore downstream stacks concurrently with this one. Each
-	// stack call can represent zero or more child stacks that we'll analyze
-	// by recursive calls to this function.
-	for _, obj := range stack.EmbeddedStackCalls(ctx) {
-		// This must be a local variable inside the loop and _not_ a
-		// loop iterator variable because otherwise the function below
-		// will capture the same variable on every iteration, rather
-		// than a separate value each time.
-		call := obj
-		obj = nil // DO NOT use obj in the rest of this loop
-
-		m.walkPlanValidateConfig(ctx, walk, call.Config(ctx))
-
-		// We need to perform the whole expansion in an overall async task
-		// because it involves evaluating for_each expressions, and one
-		// stack call's for_each might depend on the results of another.
-		walk.AsyncTask(ctx, func(ctx context.Context) {
-			insts := call.Instances(ctx, PlanPhase)
-			for _, inst := range insts {
-				// We'll visit both the call instance itself and the stack
-				// instance it implies concurrently because output values
-				// inside one stack can contribute to the per-instance
-				// arguments of another stack.
-				m.walkPlanObjectChanges(ctx, walk, inst)
-
-				childStack := inst.CalledStack(ctx)
-				m.walkPlanChanges(ctx, walk, childStack)
-			}
-		})
-	}
-
-	// We also need to plan all of the other declarations in the current stack.
-
-	for _, obj := range stack.Components(ctx) {
-		// This must be a local variable inside the loop and _not_ a
-		// loop iterator variable because otherwise the function below
-		// will capture the same variable on every iteration, rather
-		// than a separate value each time.
-		component := obj
-		obj = nil // DO NOT use obj in the rest of this loop
-
-		m.walkPlanValidateConfig(ctx, walk, component.Config(ctx))
-		m.walkPlanObjectChanges(ctx, walk, component)
-
-		// We need to perform the instance expansion in an overall async task
-		// because it involves potentially evaluating a for_each expression.
-		// and that might depend on data from elsewhere in the same stack.
-		walk.AsyncTask(ctx, func(ctx context.Context) {
-			insts := component.Instances(ctx, PlanPhase)
-			for _, inst := range insts {
-				m.walkPlanObjectChanges(ctx, walk, inst)
-			}
-		})
-	}
-
-	for _, obj := range stack.Providers(ctx) {
-		obj := obj // to avoid sharing obj across all iterations
-		m.walkPlanValidateConfig(ctx, walk, obj.Config(ctx))
-		m.walkPlanObjectChanges(ctx, walk, obj)
-
-		// We need to perform the instance expansion in an overall async
-		// task because it involves potentially evaluating a for_each expression,
-		// and that might depend on data from elsewhere in the same stack.
-		walk.AsyncTask(ctx, func(ctx context.Context) {
-			insts := obj.Instances(ctx, PlanPhase)
-			for _, inst := range insts {
-				m.walkPlanObjectChanges(ctx, walk, inst)
-			}
-		})
-	}
-
-	for _, obj := range stack.InputVariables(ctx) {
-		m.walkPlanValidateConfig(ctx, walk, obj.Config(ctx))
-		m.walkPlanObjectChanges(ctx, walk, obj)
-	}
-
-	for _, obj := range stack.OutputValues(ctx) {
-		m.walkPlanValidateConfig(ctx, walk, obj.Config(ctx))
-		m.walkPlanObjectChanges(ctx, walk, obj)
-	}
-
-	// We'll also finally plan the stack itself, which will deal with anything
-	// that relates to the stack as a whole rather than to the objects declared
-	// inside.
-	m.walkPlanObjectChanges(ctx, walk, stack)
-}
-
 // walkPlanObjectChanges deals with the leaf objects that can directly
 // contribute changes to the plan, which should each implement [Plannable].
 func (m *Main) walkPlanObjectChanges(ctx context.Context, walk *planWalk, obj Plannable) {
 	walk.AsyncTask(ctx, func(ctx context.Context) {
+		ctx, span := tracer.Start(ctx, obj.tracingName()+" planning")
+		defer span.End()
+
 		changes, diags := obj.PlanChanges(ctx)
 		for _, change := range changes {
 			walk.out.AnnouncePlannedChange(ctx, change)
 		}
-		if len(diags) != 0 {
-			walk.out.AnnounceDiagnostics(ctx, diags)
-		}
-	})
-}
-
-// walkPlanValidateConfig adapts the Validatable API to work in the planning
-// phase, so that we can reuse the config-level validation logic to detect
-// and report errors during planning.
-//
-// FIXME: The way we're currently calling this above is a bit wonky because
-// we'll be re-validating the same objects multiple times for each instance
-// of an embedded stack. Should probably treat the validation pass as a
-// separate walk to be done first -- before planning -- so we can have it
-// walk the configuration tree instead of the instance tree.
-func (m *Main) walkPlanValidateConfig(ctx context.Context, walk *planWalk, obj Validatable) {
-	walk.AsyncTask(ctx, func(ctx context.Context) {
-		diags := obj.Validate(ctx)
 		if len(diags) != 0 {
 			walk.out.AnnounceDiagnostics(ctx, diags)
 		}

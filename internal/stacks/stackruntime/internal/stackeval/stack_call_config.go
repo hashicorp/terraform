@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -22,9 +23,9 @@ type StackCallConfig struct {
 
 	main *Main
 
-	forEachValue        promising.Once[withDiagnostics[cty.Value]]
-	inputVariableValues promising.Once[withDiagnostics[map[stackaddrs.InputVariable]cty.Value]]
-	resultValue         promising.Once[withDiagnostics[cty.Value]]
+	forEachValue        perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
+	inputVariableValues perEvalPhase[promising.Once[withDiagnostics[map[stackaddrs.InputVariable]cty.Value]]]
+	resultValue         perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
 }
 
 var _ Validatable = (*StackCallConfig)(nil)
@@ -95,9 +96,9 @@ func (s *StackCallConfig) ResultType(ctx context.Context) cty.Type {
 // If the for_each expression is invalid in some way then the returned
 // diagnostics will contain errors and the returned value will be a placeholder
 // unknown value.
-func (s *StackCallConfig) ValidateForEachValue(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+func (s *StackCallConfig) ValidateForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
-		ctx, &s.forEachValue, s.main,
+		ctx, s.forEachValue.For(phase), s.main,
 		s.validateForEachValueInner,
 	))
 }
@@ -127,9 +128,9 @@ func (s *StackCallConfig) validateForEachValueInner(ctx context.Context) (cty.Va
 // If the returned diagnostics contains errors then the returned values may
 // be incomplete, but should at least be of the types specified in the
 // variable declarations.
-func (s *StackCallConfig) ValidateInputVariableValues(ctx context.Context) (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {
+func (s *StackCallConfig) ValidateInputVariableValues(ctx context.Context, phase EvalPhase) (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
-		ctx, &s.inputVariableValues, s.main,
+		ctx, s.inputVariableValues.For(phase), s.main,
 		s.validateInputVariableValuesInner,
 	)
 }
@@ -231,8 +232,8 @@ func (s *StackCallConfig) validateInputVariableValuesInner(ctx context.Context) 
 // the validate phase, rather than for direct validation of this object. If you
 // are intending to report problems directly to the user, use
 // [StackCallConfig.ValidateInputVariableValues] instead.
-func (s *StackCallConfig) InputVariableValues(ctx context.Context) map[stackaddrs.InputVariable]cty.Value {
-	ret, _ := s.ValidateInputVariableValues(ctx)
+func (s *StackCallConfig) InputVariableValues(ctx context.Context, phase EvalPhase) map[stackaddrs.InputVariable]cty.Value {
+	ret, _ := s.ValidateInputVariableValues(ctx, phase)
 	return ret
 }
 
@@ -245,8 +246,8 @@ func (s *StackCallConfig) InputVariableValues(ctx context.Context) map[stackaddr
 //
 // The result is a good value to use for resolving "stack.foo" references
 // in expressions elsewhere while running in validation mode.
-func (s *StackCallConfig) ResultValue(ctx context.Context) cty.Value {
-	v, _ := s.ValidateResultValue(ctx)
+func (s *StackCallConfig) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
+	v, _ := s.ValidateResultValue(ctx, phase)
 	return v
 }
 
@@ -260,41 +261,39 @@ func (s *StackCallConfig) ResultValue(ctx context.Context) cty.Value {
 // is always an unknown value with a suitable type constraint, allowing
 // downstream references to detect type-related errors but not value-related
 // errors.
-func (s *StackCallConfig) ValidateResultValue(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+func (s *StackCallConfig) ValidateResultValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
-		ctx, &s.resultValue, s.main,
-		s.validateResultValueInner,
+		ctx, s.resultValue.For(phase), s.main,
+		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+			var diags tfdiags.Diagnostics
+
+			// Our result is really just all of the output values of all of our
+			// instances aggregated together into a single data structure, but
+			// we do need to do this a little differently depending on what
+			// kind of repetition (if any) this stack call is using.
+			switch {
+			case s.config.ForEach != nil:
+				// The call uses for_each, and so we can't actually build a known
+				// result just yet because we don't know yet how many instances
+				// there will be and what their keys will be. We'll just construct
+				// an unknown value of a suitable type instead.
+				return cty.UnknownVal(s.ResultType(ctx)), diags
+			default:
+				// No repetition at all, then. In this case we _can_ attempt to
+				// construct at least a partial result, because we already know
+				// there will be exactly one instance and can assume that
+				// the output value implementation will provide a suitable
+				// approximation of the final value.
+				calleeStack := s.CalleeConfig(ctx)
+				calleeOutputs := calleeStack.OutputValues(ctx)
+				attrs := make(map[string]cty.Value, len(calleeOutputs))
+				for addr, ov := range calleeOutputs {
+					attrs[addr.Name] = ov.Value(ctx, phase)
+				}
+				return cty.ObjectVal(attrs), diags
+			}
+		},
 	))
-}
-
-func (s *StackCallConfig) validateResultValueInner(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	// Our result is really just all of the output values of all of our
-	// instances aggregated together into a single data structure, but
-	// we do need to do this a little differently depending on what
-	// kind of repetition (if any) this stack call is using.
-	switch {
-	case s.config.ForEach != nil:
-		// The call uses for_each, and so we can't actually build a known
-		// result just yet because we don't know yet how many instances
-		// there will be and what their keys will be. We'll just construct
-		// an unknown value of a suitable type instead.
-		return cty.UnknownVal(s.ResultType(ctx)), diags
-	default:
-		// No repetition at all, then. In this case we _can_ attempt to
-		// construct at least a partial result, because we already know
-		// there will be exactly one instance and can assume that
-		// the output value implementation will provide a suitable
-		// approximation of the final value.
-		calleeStack := s.CalleeConfig(ctx)
-		calleeOutputs := calleeStack.OutputValues(ctx)
-		attrs := make(map[string]cty.Value, len(calleeOutputs))
-		for addr, ov := range calleeOutputs {
-			attrs[addr.Name] = ov.Value(ctx)
-		}
-		return cty.ObjectVal(attrs), diags
-	}
 }
 
 // ResolveExpressionReference implements ExpressionScope for evaluating
@@ -323,26 +322,48 @@ func (s *StackCallConfig) ResolveExpressionReference(ctx context.Context, ref st
 		resolveExpressionReference(ctx, ref, instances.RepetitionData{}, nil)
 }
 
-// Validate implements Validatable
-func (s *StackCallConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
+func (s *StackCallConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	_, moreDiags := s.ValidateForEachValue(ctx)
+	_, moreDiags := s.ValidateForEachValue(ctx, phase)
 	diags = diags.Append(moreDiags)
-	_, moreDiags = s.ValidateInputVariableValues(ctx)
+	_, moreDiags = s.ValidateInputVariableValues(ctx, phase)
 	diags = diags.Append(moreDiags)
-	_, moreDiags = s.ValidateResultValue(ctx)
+	_, moreDiags = s.ValidateResultValue(ctx, phase)
 	diags = diags.Append(moreDiags)
 	return diags
 }
 
+// Validate implements Validatable
+func (s *StackCallConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
+	return s.checkValid(ctx, ValidatePhase)
+}
+
+// PlanChanges implements Plannable.
+func (s *StackCallConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+	return nil, s.checkValid(ctx, PlanPhase)
+}
+
 // ExprReferenceValue implements Referenceable.
 func (s *StackCallConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
-	return s.ResultValue(ctx)
+	return s.ResultValue(ctx, phase)
 }
 
 // reportNamedPromises implements namedPromiseReporter.
 func (s *StackCallConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
-	cb(s.forEachValue.PromiseID(), s.Addr().String()+" for_each")
-	cb(s.inputVariableValues.PromiseID(), s.Addr().String()+" inputs")
-	cb(s.resultValue.PromiseID(), s.Addr().String()+" collected outputs")
+	// We'll report the same names for each promise in a given category
+	// because promises from different phases should not typically interact
+	// with one another and so mentioning phase here will typically just
+	// make error messages more confusing.
+	forEachName := s.Addr().String() + " for_each"
+	s.forEachValue.Each(func(ep EvalPhase, once *promising.Once[withDiagnostics[cty.Value]]) {
+		cb(once.PromiseID(), forEachName)
+	})
+	inputsName := s.Addr().String() + " inputs"
+	s.inputVariableValues.Each(func(ep EvalPhase, once *promising.Once[withDiagnostics[map[stackaddrs.InputVariable]cty.Value]]) {
+		cb(once.PromiseID(), inputsName)
+	})
+	resultName := s.Addr().String() + " collected outputs"
+	s.resultValue.Each(func(ep EvalPhase, once *promising.Once[withDiagnostics[cty.Value]]) {
+		cb(once.PromiseID(), resultName)
+	})
 }

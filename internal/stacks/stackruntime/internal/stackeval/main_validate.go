@@ -26,36 +26,26 @@ func (m *Main) ValidateAll(ctx context.Context) tfdiags.Diagnostics {
 		// resolution to achieve the correct evaluation order.
 		ws, complete := newWalkState()
 
-		// walkValidateStackConfig, and all of the downstream functions it calls,
-		// must begin all of their asynchronous tasks before returning, so that
-		// the complete() call below knows the full set of asynchronous tasks
-		// that it's waiting for.
-		m.walkValidateStackConfig(ctx, ws, m.MainStackConfig(ctx))
+		// Our generic static walker is built to support the more advanced
+		// needs of the plan walk which produces streaming results through
+		// an "output" object. We don't need that here so we'll just stub
+		// it out as a zero-length type.
+		walk := &walkWithOutput[struct{}]{
+			out:   struct{}{},
+			state: ws,
+		}
+
+		walkStaticObjects(
+			ctx, walk, m,
+			func(ctx context.Context, walk *walkWithOutput[struct{}], obj StaticEvaler) {
+				m.walkValidateObject(ctx, walk.state, obj)
+			},
+		)
 
 		return complete(), nil
 	})
 	diags = diags.Append(diagnosticsForPromisingTaskError(err, m))
 	return finalDiagnosticsFromEval(diags)
-}
-
-func (m *Main) walkValidateStackConfig(ctx context.Context, ws *walkState, cfg *StackConfig) {
-	for _, obj := range cfg.InputVariables(ctx) {
-		m.walkValidateObject(ctx, ws, obj)
-	}
-
-	for _, obj := range cfg.OutputValues(ctx) {
-		m.walkValidateObject(ctx, ws, obj)
-	}
-
-	// TODO: All of the other validatable object types
-
-	for _, obj := range cfg.StackCalls(ctx) {
-		m.walkValidateObject(ctx, ws, obj)
-	}
-
-	for _, childCfg := range cfg.ChildConfigs(ctx) {
-		m.walkValidateStackConfig(ctx, ws, childCfg)
-	}
 }
 
 // walkValidateObject arranges for any given [Validatable] object to be
@@ -69,11 +59,11 @@ func (m *Main) walkValidateStackConfig(ctx context.Context, ws *walkState, cfg *
 func (m *Main) walkValidateObject(ctx context.Context, ws *walkState, obj Validatable) {
 	ws.AsyncTask(ctx, func(ctx context.Context) {
 		ctx, span := tracer.Start(ctx, obj.tracingName()+" validation")
+		defer span.End()
 		diags := obj.Validate(ctx)
 		ws.AddDiags(diags)
 		if diags.HasErrors() {
 			span.SetStatus(codes.Error, "validation returned errors")
 		}
-		defer span.End()
 	})
 }

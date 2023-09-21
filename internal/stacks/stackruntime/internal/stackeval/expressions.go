@@ -289,3 +289,16 @@ func (pep *perEvalPhase[T]) For(phase EvalPhase) *T {
 	pep.mu.Unlock()
 	return ret
 }
+
+// Each calls the given reporting callback for all of the values the
+// receiver is currently tracking.
+//
+// Each blocks calls to the For method throughout its execution, so callback
+// functions must not interact with the receiver to avoid a deadlock.
+func (pep *perEvalPhase[T]) Each(report func(EvalPhase, *T)) {
+	pep.mu.Lock()
+	for phase, val := range pep.vals {
+		report(phase, val)
+	}
+	pep.mu.Unlock()
+}
