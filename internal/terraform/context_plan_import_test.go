@@ -993,3 +993,198 @@ import {
 		t.Errorf("got:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
 	}
 }
+
+func TestContext2Plan_importForEach(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  things = {
+    first = "first_id"
+    second = "second_id"
+  }
+}
+
+resource "test_object" "a" {
+  for_each = local.things
+  test_string = "foo"
+}
+
+import {
+  for_each = local.things
+  to = test_object.a[each.key]
+  id = each.value
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	firstAddr := mustResourceInstanceAddr(`test_object.a["first"]`)
+	secondAddr := mustResourceInstanceAddr(`test_object.a["second"]`)
+
+	for _, instPlan := range plan.Changes.Resources {
+		switch {
+		case instPlan.Addr.Equal(firstAddr):
+			if instPlan.Importing.ID != "first_id" {
+				t.Errorf("expected import ID of \"first_id\", got %q", instPlan.Importing.ID)
+			}
+		case instPlan.Addr.Equal(secondAddr):
+			if instPlan.Importing.ID != "second_id" {
+				t.Errorf("expected import ID of \"second_id\", got %q", instPlan.Importing.ID)
+			}
+		default:
+			t.Errorf("unexpected change for %s", instPlan.Addr)
+		}
+
+		if got, want := instPlan.Action, plans.NoOp; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+	}
+}
+
+func TestContext2Plan_importForEachmodule(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  things = {
+    brown = "brown_id"
+    blue = "blue_id"
+  }
+}
+
+module "sub" {
+  for_each = local.things
+  source = "./sub"
+  things = local.things
+}
+
+import {
+  for_each = [
+	{
+      mod = "brown"
+      res = "brown"
+      id = "brown_brown_id"
+	},
+    {
+      mod = "brown"
+      res = "blue"
+      id = "brown_blue_id"
+    },
+    {
+      mod = "blue"
+      res = "brown"
+      id = "blue_brown_id"
+    },
+    {
+      mod = "blue"
+      res = "blue"
+      id = "blue_blue_id"
+    },
+  ]
+  to = module.sub[each.value.mod].test_object.a[each.value.res]
+  id = each.value.id
+}
+`,
+
+		"./sub/main.tf": `
+variable things {
+  type = map(string)
+}
+
+resource "test_object" "a" {
+  for_each = var.things
+  test_string = "foo"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	brownBlueAddr := mustResourceInstanceAddr(`module.sub["brown"].test_object.a["brown"]`)
+	brownBrownAddr := mustResourceInstanceAddr(`module.sub["brown"].test_object.a["blue"]`)
+	blueBlueAddr := mustResourceInstanceAddr(`module.sub["blue"].test_object.a["brown"]`)
+	blueBrownAddr := mustResourceInstanceAddr(`module.sub["blue"].test_object.a["blue"]`)
+
+	for _, instPlan := range plan.Changes.Resources {
+		switch {
+		case instPlan.Addr.Equal(brownBlueAddr):
+			if instPlan.Importing.ID != "brown_brown_id" {
+				t.Errorf("expected import ID of \"brown_brown_id\", got %q", instPlan.Importing.ID)
+			}
+		case instPlan.Addr.Equal(brownBrownAddr):
+			if instPlan.Importing.ID != "brown_blue_id" {
+				t.Errorf("expected import ID of \"brown_blue_id\", got %q", instPlan.Importing.ID)
+			}
+		case instPlan.Addr.Equal(blueBlueAddr):
+			if instPlan.Importing.ID != "blue_brown_id" {
+				t.Errorf("expected import ID of \"blue_brown_id\", got %q", instPlan.Importing.ID)
+			}
+		case instPlan.Addr.Equal(blueBrownAddr):
+			if instPlan.Importing.ID != "blue_blue_id" {
+				t.Errorf("expected import ID of \"blue_blue_id\", got %q", instPlan.Importing.ID)
+			}
+		default:
+			t.Errorf("unexpected change for %s", instPlan.Addr)
+		}
+
+		if got, want := instPlan.Action, plans.NoOp; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+	}
+}
