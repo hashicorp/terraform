@@ -33,8 +33,10 @@ type ImportTarget struct {
 	// when using the import command.
 	LegacyAddr addrs.AbsResourceInstance
 
-	// isString stores the evaluated ID from the Config for the import process.
-	idString string
+	// IDString stores the evaluated ID from the Config for the import process.
+	// This is also used by the legacy import command to directly set the ID
+	// given from the CLI.
+	IDString string
 }
 
 // Import takes already-created external resources and brings them

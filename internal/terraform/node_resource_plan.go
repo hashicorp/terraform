@@ -48,10 +48,6 @@ type nodeExpandPlannableResource struct {
 	// union of multiple groups of dependencies.
 	dependencies []addrs.ConfigResource
 
-	// legacyImportMode is set if the graph is being constructed following an
-	// invocation of the legacy "terraform import" CLI command.
-	legacyImportMode bool
-
 	// these are a record of all the addresses used in expansion so they can be
 	// validated as a complete set. While the type is guaranteed to be
 	// addrs.AbsResourceInstance for all these, we use addrs.Checkable because
@@ -347,6 +343,14 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 
 	for _, imp := range n.importTargets {
 		if imp.Config == nil {
+			// if we have a legacy addr, it was supplied on the commandline so
+			// there is nothing to expand
+			if !imp.LegacyAddr.Equal(addrs.AbsResourceInstance{}) {
+				imports.Put(imp.LegacyAddr, imp.IDString)
+				n.expandedImports.Add(imp.LegacyAddr)
+				return imports, diags
+			}
+
 			// legacy import tests may have no configuration
 			log.Printf("[WARN] no configuration for import target %#v", imp)
 			continue
@@ -359,17 +363,14 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 				return imports, diags
 			}
 
-			// if we have a legacy addr, it was supplied on the commandline so
-			// there is nothing to expand
-			if !imp.LegacyAddr.Equal(addrs.AbsResourceInstance{}) {
-				imports.Put(imp.LegacyAddr, importID)
-				n.expandedImports.Add(imp.LegacyAddr)
+			traversal, hds := hcl.AbsTraversalForExpr(imp.Config.To)
+			diags = diags.Append(hds)
+			to, tds := addrs.ParseAbsResourceInstance(traversal)
+			diags = diags.Append(tds)
+			if diags.HasErrors() {
 				return imports, diags
 			}
 
-			// we already parsed this loading the config, so don't bother with diagnostics again
-			traversal, _ := hcl.AbsTraversalForExpr(imp.Config.To)
-			to, _ := addrs.ParseAbsResourceInstance(traversal)
 			imports.Put(to, importID)
 			n.expandedImports.Add(to)
 
@@ -470,7 +471,7 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 		importID, ok := imports.GetOk(a.Addr)
 		if ok {
 			m.importTarget = ImportTarget{
-				idString: importID,
+				IDString: importID,
 			}
 		}
 

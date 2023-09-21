@@ -43,7 +43,7 @@ func TestContextImport_basic(t *testing.T) {
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				idString: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -94,7 +94,7 @@ resource "aws_instance" "foo" {
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.IntKey(0),
 				),
-				idString: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -155,7 +155,7 @@ func TestContextImport_collision(t *testing.T) {
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				idString: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -199,7 +199,7 @@ func TestContextImport_missingType(t *testing.T) {
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				idString: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -250,7 +250,7 @@ func TestContextImport_moduleProvider(t *testing.T) {
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				idString: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -302,10 +302,10 @@ func TestContextImport_providerModule(t *testing.T) {
 	_, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
-				LegacyAddr: addrs.RootModuleInstance.Child("child", addrs.NoKey).ResourceInstance(
+				LegacyAddr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				idString: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -361,7 +361,7 @@ func TestContextImport_providerConfig(t *testing.T) {
 						LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 							addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 						),
-						idString: "bar",
+						IDString: "bar",
 					},
 				},
 				SetVariables: InputValues{
@@ -421,7 +421,7 @@ func TestContextImport_providerConfigResources(t *testing.T) {
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				idString: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -492,7 +492,7 @@ data "aws_data_source" "bar" {
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				idString: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -543,7 +543,7 @@ func TestContextImport_refreshNil(t *testing.T) {
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				idString: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -584,7 +584,7 @@ func TestContextImport_module(t *testing.T) {
 				LegacyAddr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				idString: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -625,7 +625,7 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 				LegacyAddr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).Child("nested", addrs.NoKey).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				idString: "baz",
+				IDString: "baz",
 			},
 		},
 	})
@@ -666,7 +666,7 @@ func TestContextImport_moduleDiff(t *testing.T) {
 				LegacyAddr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				idString: "baz",
+				IDString: "baz",
 			},
 		},
 	})
@@ -734,7 +734,7 @@ func TestContextImport_multiState(t *testing.T) {
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				idString: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -808,7 +808,7 @@ func TestContextImport_multiStateSame(t *testing.T) {
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				idString: "bar",
+				IDString: "bar",
 			},
 		},
 	})
@@ -902,7 +902,7 @@ resource "test_resource" "unused" {
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "test_resource", "test", addrs.NoKey,
 				),
-				idString: "test",
+				IDString: "test",
 			},
 		},
 	})
@@ -972,7 +972,7 @@ resource "test_resource" "test" {
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "test_resource", "test", addrs.NoKey,
 				),
-				idString: "test",
+				IDString: "test",
 			},
 		},
 	})
@@ -1017,7 +1017,7 @@ func TestContextImport_33572(t *testing.T) {
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				idString: "bar",
+				IDString: "bar",
 			},
 		},
 	})

@@ -159,8 +159,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	importing := n.importTarget.idString != ""
-	importId := n.importTarget.idString
+	importing := n.importTarget.IDString != ""
+	importId := n.importTarget.IDString
 
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
@@ -484,7 +484,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			"Import returned null resource",
 			fmt.Sprintf("While attempting to import with ID %s, the provider"+
 				"returned an instance with no state.",
-				n.importTarget.idString,
+				n.importTarget.IDString,
 			),
 		))
 	}
