@@ -357,6 +357,76 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 	return ret, diags
 }
 
+func (c *ComponentInstance) neededProviderSchemas(ctx context.Context) (map[addrs.Provider]providers.ProviderSchema, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	decl := c.call.Declaration(ctx)
+	moduleTree := c.call.Config(ctx).ModuleTree(ctx)
+	if moduleTree == nil {
+		// The configuration is presumably invalid, but it's not our
+		// responsibility to report errors in the configuration.
+		// We'll just return nothing and let a different codepath detect
+		// and report this error.
+		return nil, diags
+	}
+
+	providerSchemas := make(map[addrs.Provider]providers.ProviderSchema)
+	for _, sourceAddr := range moduleTree.ProviderTypes() {
+		pTy := c.main.ProviderType(ctx, sourceAddr)
+		if pTy == nil {
+			continue // not our job to report a missing provider type
+		}
+		schema, err := pTy.Schema(ctx)
+		if err != nil {
+			// FIXME: it's not technically our job to report a schema
+			// fetch failure, but currently there is no single other
+			// place that definitely does it, so we'll do it here at
+			// the risk of some redundant errors if we end up using
+			// the same provider multiple times.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Provider initialization error",
+				Detail:   fmt.Sprintf("Failed to fetch the provider schema for %s: %s.", sourceAddr, err),
+				Subject:  decl.DeclRange.ToHCL().Ptr(),
+			})
+			continue
+		}
+		providerSchemas[sourceAddr] = schema
+	}
+	return providerSchemas, diags
+}
+
+func (c *ComponentInstance) neededProviderClients(ctx context.Context, phase EvalPhase) (clients map[addrs.RootProviderConfig]providers.Interface, valid bool) {
+	providerInstAddrs, valid := c.Providers(ctx, phase)
+	if !valid {
+		return nil, false
+	}
+	providerInsts := make(map[addrs.RootProviderConfig]providers.Interface)
+	for calleeAddr, callerAddr := range providerInstAddrs {
+		providerInstStack := c.main.Stack(ctx, callerAddr.Stack, phase)
+		if providerInstStack == nil {
+			continue
+		}
+		provider := providerInstStack.Provider(ctx, callerAddr.Item.ProviderConfig)
+		if provider == nil {
+			continue
+		}
+		insts := provider.Instances(ctx, phase)
+		if insts == nil {
+			// If we get here then we don't yet know which instances
+			// this provider has, so we'll be optimistic that it'll
+			// show up in a later phase.
+			continue
+		}
+		inst, exists := insts[callerAddr.Item.Key]
+		if !exists {
+			continue
+		}
+		providerInsts[calleeAddr] = inst.Client(ctx, phase)
+	}
+	return providerInsts, true
+}
+
 func (c *ComponentInstance) ModuleTreePlan(ctx context.Context) *plans.Plan {
 	ret, _ := c.CheckModuleTreePlan(ctx)
 	return ret
@@ -388,30 +458,9 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				return nil, diags
 			}
 
-			providerSchemas := make(map[addrs.Provider]providers.ProviderSchema)
-			for _, sourceAddr := range moduleTree.ProviderTypes() {
-				pTy := c.main.ProviderType(ctx, sourceAddr)
-				if pTy == nil {
-					continue // not our job to report a missing provider type
-				}
-				schema, err := pTy.Schema(ctx)
-				if err != nil {
-					// FIXME: it's not technically our job to report a schema
-					// fetch failure, but currently there is no single other
-					// place that definitely does it, so we'll do it here at
-					// the risk of some redundant errors if we end up using
-					// the same provider multiple times.
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Provider initialization error",
-						Detail:   fmt.Sprintf("Failed to fetch the provider schema for %s: %s.", sourceAddr, err),
-						Subject:  decl.DeclRange.ToHCL().Ptr(),
-					})
-					continue // not our job to report a schema fetch failure
-				}
-				providerSchemas[sourceAddr] = schema
-			}
-			if diags.HasErrors() {
+			providerSchemas, moreDiags := c.neededProviderSchemas(ctx)
+			diags = diags.Append(moreDiags)
+			if moreDiags.HasErrors() {
 				return nil, diags
 			}
 
@@ -449,7 +498,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				return nil, diags
 			}
 
-			providerInstAddrs, valid := c.Providers(ctx, PlanPhase)
+			providerClients, valid := c.neededProviderClients(ctx, PlanPhase)
 			if !valid {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -458,29 +507,6 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					Subject:  decl.DeclRange.ToHCL().Ptr(),
 				})
 				return nil, diags
-			}
-			providerInsts := make(map[addrs.RootProviderConfig]providers.Interface)
-			for calleeAddr, callerAddr := range providerInstAddrs {
-				providerInstStack := c.main.Stack(ctx, callerAddr.Stack, PlanPhase)
-				if providerInstStack == nil {
-					continue
-				}
-				provider := providerInstStack.Provider(ctx, callerAddr.Item.ProviderConfig)
-				if provider == nil {
-					continue
-				}
-				insts := provider.Instances(ctx, PlanPhase)
-				if insts == nil {
-					// If we get here then we don't yet know which instances
-					// this provider has, so we'll be optimistic that it'll
-					// show up in a later phase.
-					continue
-				}
-				inst, exists := insts[callerAddr.Item.Key]
-				if !exists {
-					continue
-				}
-				providerInsts[calleeAddr] = inst.Client(ctx, PlanPhase)
 			}
 
 			// TODO: Should pass in the previous run state once we have a
@@ -493,7 +519,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			plan, moreDiags := tfCtx.Plan(moduleTree, nil, &terraform.PlanOpts{
 				Mode:              stackPlanOpts.PlanningMode,
 				SetVariables:      inputValues,
-				ExternalProviders: providerInsts,
+				ExternalProviders: providerClients,
 			})
 			diags = diags.Append(moreDiags)
 
@@ -539,7 +565,104 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 // concurrently with the same method on other component instances and with
 // a whole-tree walk to gather up results and diagnostics.
 func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans.Plan) (*states.State, tfdiags.Diagnostics) {
-	panic("unimplemented")
+	var diags tfdiags.Diagnostics
+
+	// NOTE WELL: This function MUST either successfully apply the component
+	// instance's plan or return at least one error diagnostic explaining why
+	// it cannot.
+	//
+	// It's okay to return a nil state if also returning at least one error,
+	// but a non-error return MUST provide a non-nil state.
+	//
+	// If the underlying modules runtime raises errors when asked to apply the
+	// plan, then this function should pass all of those errors through to its
+	// own diagnostics while still returning the presumably-partially-updated
+	// result state.
+
+	addr := c.Addr()
+	decl := c.call.Declaration(ctx)
+
+	// TODO: Emit a "begin component instance apply" hook event
+
+	moduleTree := c.call.Config(ctx).ModuleTree(ctx)
+	if moduleTree == nil {
+		// We should not get here because if the configuration was statically
+		// invalid then we should've detected that during the plan phase.
+		// We'll emit a diagnostic about it just to make sure we're explicit
+		// that the plan didn't get applied, but if anyone sees this error
+		// it suggests a bug in whatever calling system sent us the plan
+		// and configuration -- it's sent us the wrong configuration, perhaps --
+		// and so we cannot know exactly what to blame with only the information
+		// we have here.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Component configuration is invalid during apply",
+			fmt.Sprintf(
+				"Despite apparently successfully creating a plan earlier, %s seems to have an invalid configuration during the apply phase. This should not be possible, and suggests a bug in whatever subsystem is managing the plan and apply workflow.",
+				addr.String(),
+			),
+		))
+		return nil, diags
+	}
+
+	providerSchemas, moreDiags := c.neededProviderSchemas(ctx)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
+	}
+
+	tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
+		Hooks: []terraform.Hook{
+			// TODO: Pass the hook sequence started by the "begin component
+			// instance apply" hook event, once there is one.
+			/*&componentInstanceTerraformHook{
+				ctx:   ctx,
+				seq:   seq,
+				hooks: hooksFromContext(ctx),
+				addr:  c.Addr(),
+			},*/
+		},
+		PreloadedProviderSchemas: providerSchemas,
+	})
+	if err != nil {
+		// Should not get here because we should always pass a valid
+		// ContextOpts above.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to instantiate Terraform modules runtime",
+			fmt.Sprintf("Could not load the main Terraform language runtime: %s.\n\nThis is a bug in Terraform; please report it!", err),
+		))
+		return nil, diags
+	}
+
+	providerClients, valid := c.neededProviderClients(ctx, PlanPhase)
+	if !valid {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Cannot apply component plan",
+			Detail:   fmt.Sprintf("Cannot apply the plan for %s because the configured provider configuration assignments are invalid.", c.Addr()),
+			Subject:  decl.DeclRange.ToHCL().Ptr(),
+		})
+		return nil, diags
+	}
+
+	newState, moreDiags := tfCtx.Apply(plan, moduleTree, &terraform.ApplyOpts{
+		ExternalProviders: providerClients,
+	})
+	diags = diags.Append(moreDiags)
+
+	if newState != nil {
+		// TODO: Emit resource-instance-level "applied" events for all
+		// resource instances mentioned in the state.
+	}
+
+	if diags.HasErrors() {
+		// TODO: Emit a "component instance apply errored" hook event
+	} else {
+		// TODO: Emit a "component instance apply complete" hook event
+	}
+
+	return newState, diags
 }
 
 // ApplyResultState returns the new state resulting from applying a plan for
