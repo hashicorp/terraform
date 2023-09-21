@@ -77,17 +77,18 @@ run "valid_string_concat" {
 
 Each `run` block has the following fields and blocks:
 
-- An optional `command` attribute, which is either `apply` or `plan` and defaults to `apply`.
-- An optional `plan_options` block, which contains:
-  - An optional `mode` attribute, which is either `normal` or `refresh-only` and defaults to `normal`.
-  - An optional boolean `refresh` attribute, which defaults to `true`.
-  - An optional `replace` attribute, which contains a list of resource addresses referencing resources within the configuration under test.
-  - An optional `target` attribute, which contains a list of resource addresses referencing resources within the configuration under test.
-- An optional [`variables`](#variables) block.
-- An optional [`module`](#modules) block.
-- An optional [`providers`](#providers) attribute.
-- Optional [`assert`](#assertions) blocks.
-- An optional [`expect_failures`](#expecting-failures) attribute.
+| Field or Block Name       | Description                                                                                                              | Default Value |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------- |
+| `command`                 | An optional attribute, which is either `apply` or `plan`.                                                                | `apply`       |
+| `plan_options.mode`       | An optional attribute, which is either `normal` or `refresh-only`.                                                       | `normal`      |
+| `plan_options.refresh`    | An optional boolean attribute.                                                                                           | `true`        |
+| `plan_options.replace`    | An optional attribute containing a list of resource addresses referencing resources within the configuration under test. |               |
+| `plan_options.target`     | An optional attribute containing a list of resource addresses referencing resources within the configuration under test. |               |
+| [`variables`](#variables) | An optional `variables` block.                                                                                           |               |
+| [`module`](#modules)      | An optional `module` block.                                                                                              |               |
+| [`providers`](#providers) | An optional `providers` attribute.                                                                                       |               |
+| [`assert`](#assertions)   | Optional `assert` blocks.                                                                                                |               |
+| `expect_failures`         | An optional attribute.                                                                                                   |               |
 
 The `command` attribute and `plan_options` block tell Terraform which command and options to execute for each run block. The default operation, if you do not specify a `command` attribute or the `plan_options` block, is a normal Terraform apply operation.
 
@@ -545,7 +546,7 @@ The following example uses comments to explain where the state files for each `r
 run "setup" {
 
   # This run block references an alternate module and is the first run block
-  # to reference this particular alternate module. Therefore, Terraform creates 
+  # to reference this particular alternate module. Therefore, Terraform creates
   # and populates a new empty state file for this run block.
 
   module {
@@ -583,7 +584,7 @@ run "update_setup" {
   variables {
     # In practice, we'd likely make some changes to the module compared to the
     # first run block here. Otherwise, there would be no point recalling the
-    # module. 
+    # module.
   }
 }
 
@@ -622,7 +623,7 @@ At the conclusion of a test file, Terraform attempts to destroy every resource i
 Terraform destroys resources in the following order, and this order is _important_ because it affects the structure of your testing files:
 
 1. Resources in the main state file. Do not create resources in alternate modules that depend on resources from your main configuration.
-    - Data sources can refer to objects in your main configuration, because Terraform does not have to destroy data sources.
+   - Data sources can refer to objects in your main configuration, because Terraform does not have to destroy data sources.
 2. Resources created by alternate modules in reverse `run` block order.
 
 From our [example](#modules-state), any resources created in the "verify" `run` block would be destroyed before resources created in the "setup" `run` block. Note, that in our example this doesn't particularly matter as our "verify" `run` block only loads a data source and creates no resources.
@@ -631,7 +632,7 @@ If you use a single setup module as an alternate module, and it executes first, 
 
 ## Expecting failures
 
-By default, if any [Custom Conditions](/terraform/language/expressions/custom-conditions), including `check` block assertions, fail during the execution of a Terraform test file then the overall command reports the test as a failure. 
+By default, if any [Custom Conditions](/terraform/language/expressions/custom-conditions), including `check` block assertions, fail during the execution of a Terraform test file then the overall command reports the test as a failure.
 
 However, it is a common testing paradigm to want to test failure cases. Terraform supports the `expect_failures` attribute for this use case.
 
@@ -686,7 +687,7 @@ run "one" {
 }
 ```
 
->> **Note**: Terraform only expects failures in the operation specified by the `command` attribute of the `run` block.
+> **Note**: Terraform only expects failures in the operation specified by the `command` attribute of the `run` block.
 
 Be careful when using `expect_failures` in `run` blocks with `command = apply`. A `run` block with `command = apply` that expects a custom condition failure will fail overall if that custom condition fails during the plan.
 
@@ -694,7 +695,7 @@ This is logically consistent, as the `run` block is expecting to be able to run 
 
 There are instances when Terraform does not execute a custom condition during the planning stage, because that condition is relying on computed attributes that are only available after Terraform creates the referenced resource. In these cases, you could use an `expect_failures` block alongside a `command = apply` attribute and value. However, in most cases we recommend only using `expect_failures` alongside `command = plan` operations.
 
->> **Note**: Expected failures only apply to user-defined custom conditions.
+> **Note**: Expected failures only apply to user-defined custom conditions.
 
 Other kinds of failure _besides_ the specified expected failures in the checkable object still result in the overall test failing. For example, a variable that expects a boolean value as input fails the surrounding test if Terraform provides the wrong kind of value, even if that variable is included in an `expect_failures` attribute.
 
