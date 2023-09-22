@@ -31,6 +31,22 @@ type Hooks struct {
 	// information is provided by other means.
 	EndPlan hooks.MoreFunc[struct{}]
 
+	// BeginApply is called at the very start of a stack apply operation,
+	// encompassing that entire operation to allow establishing a top-level
+	// tracing context for that operation.
+	//
+	// BeginApply does not provide any additional data, because no work has
+	// happened yet.
+	BeginApply hooks.BeginFunc[struct{}]
+
+	// EndApply marks the end of the overall apply process started at
+	// [Hooks.BeginApply]. If [Hooks.BeginApply] opened a tracing span then
+	// this EndApply should end it.
+	//
+	// EndApply does not provide any additional data, because all relevant
+	// information is provided by other means.
+	EndApply hooks.MoreFunc[struct{}]
+
 	// PendingComponentInstancePlan is called at the start of the plan
 	// operation, before evaluating the component instance's inputs and
 	// providers.

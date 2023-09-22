@@ -41,6 +41,16 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 		return nil, fmt.Errorf("plan is not applyable")
 	}
 
+	// --------------------------------------------------------------------
+	// NO ERROR RETURNS AFTER THIS POINT!
+	// From here on we're actually executing the operation, so any problems
+	// must be reported as diagnostics through outp.
+	// --------------------------------------------------------------------
+
+	hooks := hooksFromContext(ctx)
+	hs, ctx := hookBegin(ctx, hooks.BeginApply, hooks.ContextAttach, struct{}{})
+	defer hookMore(ctx, hs, hooks.EndApply, struct{}{})
+
 	// We'll register all of the changes we intend to make up front, so we
 	// can error rather than deadlock if something goes wrong and causes
 	// us to try to depend on a result that isn't coming.

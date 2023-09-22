@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -302,6 +303,145 @@ Events:
 	return nil
 }
 
+func (s *stacksServer) ApplyStackChanges(req *terraform1.ApplyStackChanges_Request, evts terraform1.Stacks_ApplyStackChangesServer) error {
+	ctx := evts.Context()
+	syncEvts := newSyncStreamingRPCSender(evts)
+	evts = nil // Prevent accidental unsynchronized usage of this server
+
+	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
+	cfg := s.handles.StackConfig(cfgHnd)
+	if cfg == nil {
+		return status.Error(codes.InvalidArgument, "the given stack configuration handle is invalid")
+	}
+	depsHnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
+	var deps *depsfile.Locks
+	if !depsHnd.IsNil() {
+		deps = s.handles.DependencyLocks(depsHnd)
+		if deps == nil {
+			return status.Error(codes.InvalidArgument, "the given dependency locks handle is invalid")
+		}
+	} else {
+		deps = depsfile.NewLocks()
+	}
+	providerCacheHnd := handle[*providercache.Dir](req.ProviderCacheHandle)
+	var providerCache *providercache.Dir
+	if !providerCacheHnd.IsNil() {
+		providerCache = s.handles.ProviderPluginCache(providerCacheHnd)
+		if providerCache == nil {
+			return status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
+		}
+	} else {
+		// NOTE: providerCache can be nil if no handle was provided, in which
+		// case the call can only use built-in providers. All code below
+		// must avoid panicking when providerCache is nil, but is allowed to
+		// return an InvalidArgument error in that case.
+	}
+	// (providerFactoriesForLocks explicitly supports a nil providerCache)
+	providerFactories, err := providerFactoriesForLocks(deps, providerCache)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+	}
+
+	// We'll hook some internal events in the planning process both to generate
+	// tracing information if we're in an OpenTelemetry-aware context and
+	// to propagate a subset of the events to our client.
+	hooks := stackApplyHooks(syncEvts, cfg.Root.Stack.SourceAddr)
+	ctx = stackruntime.ContextWithHooks(ctx, hooks)
+
+	changesCh := make(chan stackstate.AppliedChange, 8)
+	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	rtReq := stackruntime.ApplyRequest{
+		Config:            cfg,
+		ProviderFactories: providerFactories,
+	}
+	rtResp := stackruntime.ApplyResponse{
+		AppliedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	// The actual apply operation runs in the background, and emits events
+	// to us via the channels in rtResp before finally closing changesCh
+	// to signal that the process is complete.
+	go stackruntime.Apply(ctx, &rtReq, &rtResp)
+
+	emitDiag := func(diag tfdiags.Diagnostic) {
+		diags := tfdiags.Diagnostics{diag}
+		protoDiags := diagnosticsToProto(diags)
+		for _, protoDiag := range protoDiags {
+			syncEvts.Send(&terraform1.ApplyStackChanges_Event{
+				Event: &terraform1.ApplyStackChanges_Event_Diagnostic{
+					Diagnostic: protoDiag,
+				},
+			})
+		}
+	}
+
+	// There is no strong ordering between the planned changes and the
+	// diagnostics, so we need to be prepared for them to arrive in any
+	// order. However, stackruntime.Apply does guarantee that it will
+	// close changesCh only after it's finished writing to and closing
+	// everything else, and so we can assume that once changesCh is
+	// closed we only need to worry about whatever's left in the
+	// diagsCh buffer.
+Events:
+	for {
+		select {
+
+		case change, ok := <-changesCh:
+			if !ok {
+				if diagsCh != nil {
+					// Async work is done! We do still need to consume the rest
+					// of diagsCh before we stop, though, because there might
+					// be some extras in the channel's buffer that we didn't
+					// get to yet.
+					for diag := range diagsCh {
+						emitDiag(diag)
+					}
+				}
+				break Events
+			}
+
+			protoChange, err := change.AppliedChangeProto()
+			if err != nil {
+				// Should not get here: it always indicates a bug in
+				// AppliedChangeProto or in the code which constructed
+				// the change over in package stackeval.
+				// If we get here then it's likely that something will be
+				// left stale in the final stack state, so we should really
+				// avoid ever getting here.
+				emitDiag(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Incorrectly-constructed apply result",
+					fmt.Sprintf(
+						"Failed to serialize a %T value for recording in the updated state: %s.\n\nThis is a bug in Terraform; please report it!",
+						protoChange, err,
+					),
+				))
+				continue
+			}
+
+			syncEvts.Send(&terraform1.ApplyStackChanges_Event{
+				Event: &terraform1.ApplyStackChanges_Event_AppliedChange{
+					AppliedChange: protoChange,
+				},
+			})
+
+		case diag, ok := <-diagsCh:
+			if !ok {
+				// The diagnostics channel has closed, so we'll just stop
+				// trying to read from it and wait for changesCh to close,
+				// which will be our final signal that everything is done.
+				diagsCh = nil
+				continue
+			}
+			emitDiag(diag)
+
+		}
+	}
+
+	return nil
+}
+
 func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
 	return &stackruntime.Hooks{
 		// For any BeginFunc-shaped hook that returns an OpenTelemetry tracing
@@ -408,6 +548,38 @@ func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddr
 			})
 			return span
 		},
+	}
+}
+
+func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
+	return &stackruntime.Hooks{
+		// For any BeginFunc-shaped hook that returns an OpenTelemetry tracing
+		// span, we'll wrap it in a context so that the runtime's downstream
+		// operations will appear as children of it.
+		ContextAttach: func(parent context.Context, tracking any) context.Context {
+			span, ok := tracking.(trace.Span)
+			if !ok {
+				return parent
+			}
+			return trace.ContextWithSpan(parent, span)
+		},
+
+		// For the overall apply operation we don't emit any events to the client,
+		// since it already knows it has asked us to apply, but we do establish
+		// a root tracing span for all of the downstream planning operations to
+		// attach themselves to.
+		BeginApply: func(ctx context.Context, s struct{}) any {
+			_, span := tracer.Start(ctx, "applying", trace.WithAttributes(
+				attribute.String("main_stack_source", mainStackSource.String()),
+			))
+			return span
+		},
+		EndApply: func(ctx context.Context, span any, s struct{}) any {
+			span.(trace.Span).End()
+			return nil
+		},
+
+		// TODO: Various other event types
 	}
 }
 
