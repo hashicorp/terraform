@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terminal"
@@ -212,15 +213,56 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		return moduletest.Error, diags
 	}
 
-	var waitDiags tfdiags.Diagnostics
-	run, waitDiags = runner.waitForRun(client, run, id)
-	diags = diags.Append(waitDiags)
-	if waitDiags.HasErrors() {
-		return moduletest.Error, diags
-	}
+	runningCtx, done := context.WithCancel(context.Background())
 
-	logDiags := runner.renderLogs(client, run, id)
-	diags = diags.Append(logDiags)
+	go func() {
+		defer logging.PanicHandler()
+		defer done()
+
+		// Let's wait for the test run to start separately, so we can provide
+		// some nice updates while we wait.
+
+		completed := false
+		started := time.Now()
+		updated := started
+		for i := 0; !completed; i++ {
+			run, err := client.TestRuns.Read(context.Background(), id, run.ID)
+			if err != nil {
+				diags = diags.Append(generalError("Failed to retrieve test run", err))
+				return // exit early
+			}
+
+			if run.Status != tfe.TestRunQueued {
+				// We block as long as the test run is still queued.
+				completed = true
+				continue // We can render the logs now.
+			}
+
+			current := time.Now()
+			if i == 0 || current.Sub(updated).Seconds() > 30 {
+				updated = current
+
+				// TODO: Provide better updates based on queue status etc.
+				// We could look through the queue to find out exactly where the
+				// test run is and give a count down. Other stuff like that.
+				// For now, we'll just print a simple status updated.
+
+				runner.View.TFCStatusUpdate(run.Status, current.Sub(started))
+			}
+		}
+
+		// The test run has actually started now, so let's render the logs.
+
+		logDiags := runner.renderLogs(client, run, id)
+		diags = diags.Append(logDiags)
+	}()
+
+	// We're doing a couple of things in the wait function. Firstly, waiting
+	// for the test run to actually finish. Secondly, listening for interrupt
+	// signals and forwarding them onto TFC.
+	waitDiags := runner.wait(runningCtx, client, run, id)
+	diags = diags.Append(waitDiags)
+
 	if diags.HasErrors() {
 		return moduletest.Error, diags
 	}
@@ -342,42 +384,10 @@ func (runner *TestSuiteRunner) client(addr tfaddr.Module, id tfe.RegistryModuleI
 	return client, module, diags
 }
 
-func (runner *TestSuiteRunner) waitForRun(client *tfe.Client, original *tfe.TestRun, moduleId tfe.RegistryModuleID) (*tfe.TestRun, tfdiags.Diagnostics) {
+func (runner *TestSuiteRunner) wait(ctx context.Context, client *tfe.Client, run *tfe.TestRun, moduleId tfe.RegistryModuleID) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	run := original
-	started := time.Now()
-	updated := started
-
-	completed := func(i int) bool {
-		var err error
-
-		if run, err = client.TestRuns.Read(context.Background(), moduleId, run.ID); err != nil {
-			diags = diags.Append(generalError("Failed to retrieve test run", err))
-			return true
-		}
-
-		if run.Status != tfe.TestRunQueued {
-			// We block as long as the test run is still queued.
-			return true
-		}
-
-		current := time.Now()
-		if i == 0 || current.Sub(updated).Seconds() > 30 {
-			updated = current
-
-			// TODO: Provide better updates based on queue status etc.
-			// We could look through the queue to find out exactly where the
-			// test run is and give a count down. Other stuff like that.
-			// For now, we'll just print a simple status updated.
-
-			runner.View.TFCStatusUpdate(run.Status, current.Sub(started))
-		}
-
-		return false
-	}
-
-	handleCancelled := func(i int) {
+	handleCancelled := func() {
 		if err := client.TestRuns.ForceCancel(context.Background(), moduleId, run.ID); err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -386,25 +396,14 @@ func (runner *TestSuiteRunner) waitForRun(client *tfe.Client, original *tfe.Test
 			return
 		}
 
-		// Otherwise, we'll still wait for the operation to finish as we want to
-		// render the logs later.
-		//
-		// At this point Terraform will just kill itself if the operation takes
-		// too long to finish. We don't need to handle that here.
-
-		for ; ; i++ {
-			// Wait for the backoff.
-			time.Sleep(backoff(backoffMin, backoffMax, i))
-
-			// Check if we're done.
-			if completed(i) {
-				return
-			}
-		}
-
+		// At this point we've requested a force cancel, and we know that
+		// Terraform locally is just going to quit after some amount of time so
+		// we'll just wait for that to happen or for TFC to finish, whichever
+		// happens first.
+		<-ctx.Done()
 	}
 
-	handleStopped := func(i int) {
+	handleStopped := func() {
 		if err := client.TestRuns.Cancel(context.Background(), moduleId, run.ID); err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -413,40 +412,27 @@ func (runner *TestSuiteRunner) waitForRun(client *tfe.Client, original *tfe.Test
 			return
 		}
 
-		// We've requested a cancel, we'll just happily wait for the remote
-		// operation to trigger everything and shut down nicely.
-
-		for ; ; i++ {
-			select {
-			case <-runner.CancelledCtx.Done():
-				handleCancelled(i)
-				return
-			case <-time.After(backoff(backoffMin, backoffMax, i)):
-				// Timer up, show status
-			}
-
-			if completed(i) {
-				return
-			}
-		}
-	}
-
-	for i := 0; ; i++ {
+		// We've request a cancel, we're happy to just wait for TFC to cancel
+		// the run appropriately.
 		select {
-		case <-runner.StoppedCtx.Done():
-			handleStopped(i)
-			return run, diags
 		case <-runner.CancelledCtx.Done():
-			handleCancelled(i)
-			return run, diags
-		case <-time.After(backoff(backoffMin, backoffMax, i)):
-			// Timer up, show status
-		}
-
-		if completed(i) {
-			return run, diags
+			// We got more pushy, let's force cancel.
+			handleCancelled()
+		case <-ctx.Done():
+			// It finished normally after we request the cancel. Do nothing.
 		}
 	}
+
+	select {
+	case <-runner.StoppedCtx.Done():
+		handleStopped()
+	case <-runner.CancelledCtx.Done():
+		handleCancelled()
+	case <-ctx.Done():
+		// The remote run finished normally! Do nothing.
+	}
+
+	return diags
 }
 
 func (runner *TestSuiteRunner) renderLogs(client *tfe.Client, run *tfe.TestRun, moduleId tfe.RegistryModuleID) tfdiags.Diagnostics {
