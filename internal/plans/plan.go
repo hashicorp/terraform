@@ -116,7 +116,7 @@ type Plan struct {
 	Timestamp time.Time
 }
 
-// CanApply returns true if and only if the recieving plan includes content
+// CanApply returns true if and only if the receiving plan includes content
 // that would make sense to apply. If it returns false, the plan operation
 // should indicate that there's nothing to do and Terraform should exit
 // without prompting the user to confirm the changes.

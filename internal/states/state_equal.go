@@ -23,7 +23,7 @@ func (s *State) Equal(other *State) bool {
 }
 
 // ManagedResourcesEqual returns true if all of the managed resources tracked
-// in the reciever are functionally equivalent to the same tracked in the
+// in the receiver are functionally equivalent to the same tracked in the
 // other given state.
 //
 // This is a more constrained version of Equal that disregards other

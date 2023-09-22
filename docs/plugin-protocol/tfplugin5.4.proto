@@ -8,7 +8,7 @@
 // use protoc to generate stubs for your target language.
 //
 // This file will not be updated. Any minor versions of protocol 5 to follow
-// should copy this file and modify the copy while maintaing backwards
+// should copy this file and modify the copy while maintaining backwards
 // compatibility. Breaking changes, if any are required, will come
 // in a subsequent major version with its own separate proto definition.
 //

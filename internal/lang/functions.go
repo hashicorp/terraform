@@ -191,7 +191,7 @@ func (s *Scope) Functions() map[string]function.Function {
 }
 
 // experimentalFunction checks whether the given experiment is enabled for
-// the recieving scope. If so, it will return the given function verbatim.
+// the receiving scope. If so, it will return the given function verbatim.
 // If not, it will return a placeholder function that just returns an
 // error explaining that the function requires the experiment to be enabled.
 //

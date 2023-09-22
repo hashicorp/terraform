@@ -323,7 +323,7 @@ func ParseLegacyAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, t
 }
 
 // ProviderConfigDefault returns the address of the default provider config of
-// the given type inside the recieving module instance.
+// the given type inside the receiving module instance.
 func (m ModuleInstance) ProviderConfigDefault(provider Provider) AbsProviderConfig {
 	return AbsProviderConfig{
 		Module:   m.Module(),
@@ -332,7 +332,7 @@ func (m ModuleInstance) ProviderConfigDefault(provider Provider) AbsProviderConf
 }
 
 // ProviderConfigAliased returns the address of an aliased provider config of
-// the given type and alias inside the recieving module instance.
+// the given type and alias inside the receiving module instance.
 func (m ModuleInstance) ProviderConfigAliased(provider Provider, alias string) AbsProviderConfig {
 	return AbsProviderConfig{
 		Module:   m.Module(),
