@@ -1685,6 +1685,7 @@ func (m *MockTestRuns) Read(ctx context.Context, moduleID tfe.RegistryModuleID, 
 			tr.Status = tfe.TestRunRunning
 		case tfe.TestRunRunning:
 			tr.Status = tfe.TestRunFinished
+			tr.TestStatus = tfe.TestPass
 		}
 
 		return tr, nil
@@ -1707,7 +1708,6 @@ func (m *MockTestRuns) Create(ctx context.Context, options tfe.TestRunCreateOpti
 		ID:         id,
 		LogReadURL: url,
 		Status:     tfe.TestRunQueued,
-		TestStatus: tfe.TestPass, // Default the test runs we create to passing.
 
 		ConfigurationVersion: options.ConfigurationVersion,
 		RegistryModule:       options.RegistryModule,
@@ -1753,6 +1753,7 @@ func (m *MockTestRuns) Logs(ctx context.Context, moduleID tfe.RegistryModuleID, 
 			// Update the status so that on the next call it thinks it's
 			// finished.
 			tr.Status = tfe.TestRunFinished
+			tr.TestStatus = tfe.TestPass
 			return false, nil
 
 		case tfe.TestRunFinished, tfe.TestRunCanceled:
