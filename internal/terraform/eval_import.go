@@ -90,14 +90,18 @@ func evalImportToExpression(expr hcl.Expression, keyData instances.RepetitionDat
 		return res, targetDiags
 	}
 
-	// FIXME: check that these are the only types that can be returned
 	switch sub := target.Subject.(type) {
 	case addrs.AbsResource:
 		res = sub.Instance(addrs.NoKey)
 	case addrs.AbsResourceInstance:
 		res = sub
 	default:
-		panic(fmt.Sprintf("%#v\n", sub))
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid import 'to' expression",
+			Detail:   fmt.Sprintf("The import block 'to' argument %s does not resolve to a single resource instance.", sub),
+			Subject:  expr.Range().Ptr(),
+		})
 	}
 
 	return res, diags
@@ -182,7 +186,7 @@ func parseImportToKeyExpression(expr hcl.Expression, keyData instances.Repetitio
 	if val.HasMark(marks.Sensitive) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Invalid index expressions",
+			Summary:  "Invalid index expression",
 			Detail:   "Import address index expression cannot be sensitive.",
 			Subject:  expr.Range().Ptr(),
 		})
