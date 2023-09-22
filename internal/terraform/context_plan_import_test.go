@@ -1119,9 +1119,13 @@ variable things {
   type = map(string)
 }
 
+locals {
+  static_id = "foo"
+}
+
 resource "test_object" "a" {
   for_each = var.things
-  test_string = "foo"
+  test_string = local.static_id
 }
 `,
 	})
