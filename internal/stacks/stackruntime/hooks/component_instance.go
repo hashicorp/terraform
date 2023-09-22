@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
 
 // ComponentInstanceStatus is a UI-focused description of the overall status
@@ -40,4 +41,22 @@ func (s ComponentInstanceStatus) ForProtobuf() terraform1.ComponentInstanceStatu
 	default:
 		return terraform1.ComponentInstanceStatus_INVALID
 	}
+}
+
+// ComponentInstanceChange is the argument type for hook callbacks which
+// signal a set of planned or applied changes for a component instance.
+type ComponentInstanceChange struct {
+	Addr   stackaddrs.AbsComponentInstance
+	Add    int
+	Change int
+	Import int
+	Remove int
+}
+
+// Total sums all of the change counts as a forwards-compatibility measure. If
+// we later add a new change type, older clients will still be able to detect
+// that the component instance has some unknown changes, rather than falsely
+// stating that there are no changes at all.
+func (cic ComponentInstanceChange) Total() int {
+	return cic.Add + cic.Change + cic.Import + cic.Remove
 }

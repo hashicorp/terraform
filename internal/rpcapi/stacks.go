@@ -471,6 +471,24 @@ func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddr
 			return nil
 		},
 
+		// After expanding a component, we emit an event to the client to
+		// list all of the resulting instances. In the common case of an
+		// unexpanded component, this will be a single address.
+		ComponentExpanded: func(ctx context.Context, ce *hooks.ComponentInstances) {
+			ias := make([]string, 0, len(ce.InstanceAddrs))
+			for _, ia := range ce.InstanceAddrs {
+				ias = append(ias, ia.String())
+			}
+			evts.Send(&terraform1.PlanStackChanges_Event{
+				Event: &terraform1.PlanStackChanges_Event_ComponentInstances{
+					ComponentInstances: &terraform1.ComponentInstances{
+						ComponentAddr: ce.ComponentAddr.String(),
+						InstanceAddrs: ias,
+					},
+				},
+			})
+		},
+
 		// For each component instance, we emit a series of events to the
 		// client, reporting the status of the plan operation. We also create a
 		// nested tracing span for the component instance.
@@ -544,6 +562,27 @@ func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddr
 						Actions:  actions,
 						Moved:    moved,
 						Imported: imported,
+					},
+				},
+			})
+			return span
+		},
+
+		// We also report a roll-up of planned resource action counts after each
+		// component instance plan completes.
+		ReportComponentInstancePlanned: func(ctx context.Context, span any, cic *hooks.ComponentInstanceChange) any {
+			evts.Send(&terraform1.PlanStackChanges_Event{
+				Event: &terraform1.PlanStackChanges_Event_ComponentInstanceChanges{
+					ComponentInstanceChanges: &terraform1.ComponentInstanceChanges{
+						Addr: &terraform1.ComponentInstanceInStackAddr{
+							ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(cic.Addr).String(),
+							ComponentInstanceAddr: cic.Addr.String(),
+						},
+						Total:  int32(cic.Total()),
+						Add:    int32(cic.Add),
+						Change: int32(cic.Change),
+						Import: int32(cic.Import),
+						Remove: int32(cic.Remove),
 					},
 				},
 			})

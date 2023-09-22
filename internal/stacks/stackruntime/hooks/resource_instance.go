@@ -96,9 +96,9 @@ type ResourceInstanceProvisionerHookData struct {
 	Output *string
 }
 
-// ResourceInstanceChangeSrc is the argument type for hook callbacks which
-// signal a detected or planned change for a resource instance resulting from a
-// plan operation.
+// ResourceInstanceChange is the argument type for hook callbacks which signal
+// a detected or planned change for a resource instance resulting from a plan
+// operation.
 type ResourceInstanceChange struct {
 	Addr   stackaddrs.AbsResourceInstance
 	Change *plans.ResourceInstanceChangeSrc

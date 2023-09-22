@@ -523,6 +523,9 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			})
 			diags = diags.Append(moreDiags)
 
+			cic := &hooks.ComponentInstanceChange{
+				Addr: addr,
+			}
 			if plan != nil {
 				for _, rsrcChange := range plan.DriftedResources {
 					hookMore(ctx, seq, h.ReportResourceInstanceDrift, &hooks.ResourceInstanceChange{
@@ -534,6 +537,22 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					})
 				}
 				for _, rsrcChange := range plan.Changes.Resources {
+					if rsrcChange.Importing != nil {
+						cic.Import++
+					}
+
+					switch rsrcChange.Action {
+					case plans.Create:
+						cic.Add++
+					case plans.Delete:
+						cic.Remove++
+					case plans.Update:
+						cic.Change++
+					case plans.CreateThenDelete, plans.DeleteThenCreate:
+						cic.Add++
+						cic.Remove++
+					}
+
 					hookMore(ctx, seq, h.ReportResourceInstancePlanned, &hooks.ResourceInstanceChange{
 						Addr: stackaddrs.AbsResourceInstance{
 							Component: addr,
@@ -542,6 +561,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 						Change: rsrcChange,
 					})
 				}
+				hookMore(ctx, seq, h.ReportComponentInstancePlanned, cic)
 			}
 
 			if diags.HasErrors() {

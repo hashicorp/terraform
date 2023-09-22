@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -166,21 +167,23 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 			var diags tfdiags.Diagnostics
 			forEachVal := c.ForEachValue(ctx, phase)
 
+			var ret map[addrs.InstanceKey]*ComponentInstance
+
 			switch {
 			case forEachVal == cty.NilVal:
 				// No for_each expression at all, then. We have exactly one instance
 				// without an instance key and with no repetition data.
-				return map[addrs.InstanceKey]*ComponentInstance{
+				ret = map[addrs.InstanceKey]*ComponentInstance{
 					addrs.NoKey: newComponentInstance(c, addrs.NoKey, instances.RepetitionData{
 						// no repetition symbols available in this case
 					}),
-				}, diags
+				}
 
 			case !forEachVal.IsKnown():
 				// The for_each expression is too invalid for us to be able to
 				// know which instances exist. A totally nil map (as opposed to a
 				// non-nil map of length zero) signals that situation.
-				return nil, diags
+				ret = nil
 
 			default:
 				// Otherwise we should be able to assume the value is valid per the
@@ -197,7 +200,7 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 				switch {
 				case ty.IsObjectType() || ty.IsMapType():
 					elems := forEachVal.AsValueMap()
-					ret := make(map[addrs.InstanceKey]*ComponentInstance, len(elems))
+					ret = make(map[addrs.InstanceKey]*ComponentInstance, len(elems))
 					for k, v := range elems {
 						ik := addrs.StringKey(k)
 						ret[ik] = newComponentInstance(c, ik, instances.RepetitionData{
@@ -205,7 +208,6 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 							EachValue: v,
 						})
 					}
-					return ret, diags
 
 				case ty.IsSetType():
 					// ForEachValue should have already guaranteed us a set of strings,
@@ -216,7 +218,7 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 					}
 
 					elems := forEachVal.AsValueSlice()
-					ret := make(map[addrs.InstanceKey]*ComponentInstance, len(elems))
+					ret = make(map[addrs.InstanceKey]*ComponentInstance, len(elems))
 					for _, sv := range elems {
 						k := addrs.StringKey(sv.AsString())
 						ret[k] = newComponentInstance(c, k, instances.RepetitionData{
@@ -224,12 +226,24 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 							EachValue: sv,
 						})
 					}
-					return ret, diags
 
 				default:
 					panic(fmt.Sprintf("ForEachValue returned invalid result %#v", forEachVal))
 				}
 			}
+
+			addrs := make([]stackaddrs.AbsComponentInstance, 0, len(ret))
+			for _, ci := range ret {
+				addrs = append(addrs, ci.Addr())
+			}
+
+			h := hooksFromContext(ctx)
+			hookSingle(ctx, h.ComponentExpanded, &hooks.ComponentInstances{
+				ComponentAddr: c.Addr(),
+				InstanceAddrs: addrs,
+			})
+
+			return ret, diags
 		},
 	)
 }

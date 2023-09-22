@@ -47,6 +47,10 @@ type Hooks struct {
 	// information is provided by other means.
 	EndApply hooks.MoreFunc[struct{}]
 
+	// ComponentExpanded is called when a plan operation evaluates the
+	// expansion argument for a component, resulting in zero or more instances.
+	ComponentExpanded hooks.SingleFunc[*hooks.ComponentInstances]
+
 	// PendingComponentInstancePlan is called at the start of the plan
 	// operation, before evaluating the component instance's inputs and
 	// providers.
@@ -94,8 +98,7 @@ type Hooks struct {
 
 	// ReportResourceInstanceProvisionerStatus is called when a provisioner for
 	// a resource instance begins or ends. It should be called inside a tracing
-	// context established by [Hooks.BeginComponentInstancePlan] or
-	// [Hooks.BeginComponentInstanceApply].
+	// context established by [Hooks.BeginComponentInstanceApply].
 	ReportResourceInstanceProvisionerStatus hooks.MoreFunc[*hooks.ResourceInstanceProvisionerHookData]
 
 	// ReportResourceInstanceDrift is called after a component instance's plan
@@ -104,11 +107,21 @@ type Hooks struct {
 	// [Hooks.BeginComponentInstancePlan].
 	ReportResourceInstanceDrift hooks.MoreFunc[*hooks.ResourceInstanceChange]
 
-	// ReportResourceInstanceDrift is called after a component instance's plan
-	// results in proposed changes for a resource instance. It should be called
-	// inside a tracing context established by
+	// ReportResourceInstancePlanned is called after a component instance's
+	// plan results in proposed changes for a resource instance. It should be
+	// called inside a tracing context established by
 	// [Hooks.BeginComponentInstancePlan].
 	ReportResourceInstancePlanned hooks.MoreFunc[*hooks.ResourceInstanceChange]
+
+	// ReportComponentInstancePlanned is called after a component instance
+	// is planned. It should be called inside a tracing context established by
+	// [Hooks.BeginComponentInstancePlan].
+	ReportComponentInstancePlanned hooks.MoreFunc[*hooks.ComponentInstanceChange]
+
+	// ReportComponentInstanceApplied is called after a component instance
+	// plan is applied. It should be called inside a tracing context
+	// established by [Hooks.BeginComponentInstanceApply].
+	ReportComponentInstanceApplied hooks.MoreFunc[*hooks.ComponentInstanceChange]
 
 	// ContextAttach is an optional callback for wrapping a non-nil value
 	// returned by a [hooks.BeginFunc] into a [context.Context] to be passed

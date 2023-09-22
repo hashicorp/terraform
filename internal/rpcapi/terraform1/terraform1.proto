@@ -484,6 +484,8 @@ message PlanStackChanges {
             ResourceInstancePlannedChange resource_instance_planned_change = 5;
             ProvisionerStatus provisioner_status = 6;
             ProvisionerOutput provisioner_output = 7;
+            ComponentInstanceChanges component_instance_changes = 8;
+            ComponentInstances component_instances = 9;
             // TODO
         }
     }
@@ -965,4 +967,22 @@ message ProvisionerOutput {
   ResourceInstanceInStackAddr addr = 1;
   string name = 2;
   string output = 3;
+}
+
+// ComponentInstanceChanges represents a roll-up of change counts for a
+// component instance plan or apply operation.
+message ComponentInstanceChanges {
+  ComponentInstanceInStackAddr addr = 1;
+  int32 total = 2;
+  int32 add = 3;
+  int32 change = 4;
+  int32 import = 5;
+  int32 remove = 6;
+}
+
+// ComponentInstances represents the result of expanding a component into zero
+// or more instances.
+message ComponentInstances {
+  string component_addr = 1;
+  repeated string instance_addrs = 2;
 }
