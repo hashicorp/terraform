@@ -2001,8 +2001,12 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 			},
 		},
 
-		// NOT SUPPORTED by `aws-sdk-go-base/v1`
-		// "source_identity"
+		"source_identity": {
+			config: map[string]cty.Value{
+				"role_arn":        cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"source_identity": cty.StringVal("source-identity"),
+			},
+		},
 
 		"with tags": {
 			config: map[string]cty.Value{
