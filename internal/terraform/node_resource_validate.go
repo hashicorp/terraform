@@ -553,10 +553,6 @@ func validateCount(ctx EvalContext, expr hcl.Expression) (diags tfdiags.Diagnost
 	return diags
 }
 
-func validateForEach(ctx EvalContext, expr hcl.Expression) (diags tfdiags.Diagnostics) {
-	return newForEachEvaluator(expr, ctx).ValidateResourceValue()
-}
-
 func validateDependsOn(ctx EvalContext, dependsOn []hcl.Traversal) (diags tfdiags.Diagnostics) {
 	for _, traversal := range dependsOn {
 		ref, refDiags := addrs.ParseRef(traversal)
