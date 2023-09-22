@@ -64,7 +64,7 @@ func setup() func() {
 }
 
 func canAccessNetwork() bool {
-	// We re-use the flag normally used for acceptance tests since that's
+	// We reuse the flag normally used for acceptance tests since that's
 	// established as a way to opt-in to reaching out to real systems that
 	// may suffer transient errors.
 	return os.Getenv("TF_ACC") != ""

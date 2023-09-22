@@ -86,7 +86,7 @@ func (d *Dir) LinkFromOtherCache(entry *CachedProvider, allowedHashes []getprovi
 	// incorporate any changes we make here.
 	d.metaCache = nil
 
-	// We re-use the process of installing from a local directory here, because
+	// We reuse the process of installing from a local directory here, because
 	// the two operations are fundamentally the same: symlink if possible,
 	// deep-copy otherwise.
 	meta := getproviders.PackageMeta{

@@ -31,7 +31,7 @@ const (
 // See https://cloud.google.com/storage/docs/using-encryption-keys#generating_your_own_encryption_key
 const encryptionKey = "yRyCOikXi1ZDNE0xN3yiFsJjg7LGimoLrGFcLZgQoVk="
 
-// KMS key ring name and key name are hardcoded here and re-used because key rings (and keys) cannot be deleted
+// KMS key ring name and key name are hardcoded here and reused because key rings (and keys) cannot be deleted
 // Test code asserts their presence and creates them if they're absent. They're not deleted at the end of tests.
 // See: https://cloud.google.com/kms/docs/faq#cannot_delete
 const (

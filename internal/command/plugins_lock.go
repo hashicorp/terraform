@@ -24,7 +24,7 @@ func (pf *pluginSHA256LockFile) Read() map[string][]byte {
 	// constraints at all.
 	//
 	// We don't surface any specific errors here because we want it to all
-	// roll up into our more-user-friendly error that appears when plugin
+	// roll up into our moreuser-friendly error that appears when plugin
 	// constraint verification fails during context creation.
 	digests := make(map[string][]byte)
 

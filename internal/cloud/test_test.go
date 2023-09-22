@@ -283,7 +283,7 @@ state, without changing any real infrastructure.
 │    7: data "null_data_source" "values" {
 │
 │ The null_data_source was historically used to construct intermediate values
-│ to re-use elsewhere in configuration, the same can now be achieved using
+│ to reuse elsewhere in configuration, the same can now be achieved using
 │ locals
 ╵
 ╷
@@ -294,7 +294,7 @@ state, without changing any real infrastructure.
 │    7: data "null_data_source" "values" {
 │
 │ The null_data_source was historically used to construct intermediate values
-│ to re-use elsewhere in configuration, the same can now be achieved using
+│ to reuse elsewhere in configuration, the same can now be achieved using
 │ locals
 ╵
   overrides... pass
@@ -323,7 +323,7 @@ input = "Hello, universe!"
 │    7: data "null_data_source" "values" {
 │
 │ The null_data_source was historically used to construct intermediate values
-│ to re-use elsewhere in configuration, the same can now be achieved using
+│ to reuse elsewhere in configuration, the same can now be achieved using
 │ locals
 ╵
 ╷
@@ -334,7 +334,7 @@ input = "Hello, universe!"
 │    7: data "null_data_source" "values" {
 │
 │ The null_data_source was historically used to construct intermediate values
-│ to re-use elsewhere in configuration, the same can now be achieved using
+│ to reuse elsewhere in configuration, the same can now be achieved using
 │ locals
 ╵
 main.tftest.hcl... tearing down

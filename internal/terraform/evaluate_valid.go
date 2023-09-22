@@ -98,7 +98,7 @@ func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self
 		// This one is a funny one because we will take the output name referenced
 		// and use it to fake up a "remaining" that would make sense for the
 		// module call itself, rather than for the specific output, and then
-		// we can just re-use our static module call validation logic.
+		// we can just reuse our static module call validation logic.
 		remain := make(hcl.Traversal, len(ref.Remaining)+1)
 		copy(remain[1:], ref.Remaining)
 		remain[0] = hcl.TraverseAttr{

@@ -164,7 +164,7 @@ func writeConfigSnapshot(snap *configload.Snapshot, z *zip.Writer) error {
 	}
 	sort.Strings(keys)
 
-	// We'll re-use this fileheader for each Create we do below.
+	// We'll reuse this fileheader for each Create we do below.
 
 	for _, k := range keys {
 		snapMod := snap.Modules[k]

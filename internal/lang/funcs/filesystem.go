@@ -84,7 +84,7 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 	}
 
 	loadTmpl := func(fn string, marks cty.ValueMarks) (hcl.Expression, error) {
-		// We re-use File here to ensure the same filename interpretation
+		// We reuse File here to ensure the same filename interpretation
 		// as it does, along with its other safety checks.
 		tmplVal, err := File(baseDir, cty.StringVal(fn).WithMarks(marks))
 		if err != nil {

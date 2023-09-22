@@ -40,13 +40,13 @@ Most commonly, modules use:
 To define a module, create a new directory for it and place one or more `.tf`
 files inside just as you would do for a root module. Terraform can load modules
 either from local relative paths or from remote repositories; if a module will
-be re-used by lots of configurations you may wish to place it in its own
+be reused by lots of configurations you may wish to place it in its own
 version control repository.
 
 Modules can also call other modules using a `module` block, but we recommend
 keeping the module tree relatively flat and using [module composition](/terraform/language/modules/develop/composition)
 as an alternative to a deeply-nested tree of modules, because this makes
-the individual modules easier to re-use in different combinations.
+the individual modules easier to reuse in different combinations.
 
 ## When to write a module
 

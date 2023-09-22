@@ -216,7 +216,7 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 			}
 
 			// We'll reassemble this back into a single string just so we can
-			// easily re-use our existing parser and its normalization rules.
+			// easily reuse our existing parser and its normalization rules.
 			platformStr := infoParts[1] + "_" + infoParts[2]
 			platform, err := ParsePlatform(platformStr)
 			if err != nil {
