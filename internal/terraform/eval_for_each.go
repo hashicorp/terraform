@@ -266,6 +266,12 @@ func (ev *forEachEvaluator) validateResource(forEachVal cty.Value) tfdiags.Diagn
 		})
 		return diags
 
+	case forEachVal.Type() == cty.DynamicPseudoType:
+		// We may not have any type information if this is during validation,
+		// so we need to return early. During plan this can't happen because we
+		// validate for unknowns first.
+		return diags
+
 	case !(ty.IsMapType() || ty.IsSetType() || ty.IsObjectType()):
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity:    hcl.DiagError,
