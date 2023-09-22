@@ -1188,3 +1188,92 @@ resource "test_object" "a" {
 		}
 	}
 }
+
+func TestContext2Plan_importForEachPartial(t *testing.T) {
+	// one of the imported instances already exists in the state, which should
+	// result in a non-import, NoOp change
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  things = {
+    first = "first_id"
+    second = "second_id"
+  }
+}
+
+resource "test_object" "a" {
+  for_each = local.things
+  test_string = "foo"
+}
+
+import {
+  for_each = local.things
+  to = test_object.a[each.key]
+  id = each.value
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr(`test_object.a["first"]`).Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	firstAddr := mustResourceInstanceAddr(`test_object.a["first"]`)
+	secondAddr := mustResourceInstanceAddr(`test_object.a["second"]`)
+
+	for _, instPlan := range plan.Changes.Resources {
+		switch {
+		case instPlan.Addr.Equal(firstAddr):
+			if instPlan.Importing != nil {
+				t.Errorf("expected no import for %s, got %#v", firstAddr, instPlan.Importing)
+			}
+		case instPlan.Addr.Equal(secondAddr):
+			if instPlan.Importing.ID != "second_id" {
+				t.Errorf("expected import ID of \"second_id\", got %q", instPlan.Importing.ID)
+			}
+		default:
+			t.Errorf("unexpected change for %s", instPlan.Addr)
+		}
+
+		if got, want := instPlan.Action, plans.NoOp; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+	}
+}
