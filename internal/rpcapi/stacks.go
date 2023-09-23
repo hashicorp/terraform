@@ -353,6 +353,7 @@ func (s *stacksServer) ApplyStackChanges(req *terraform1.ApplyStackChanges_Reque
 	rtReq := stackruntime.ApplyRequest{
 		Config:            cfg,
 		ProviderFactories: providerFactories,
+		RawPlan:           req.PlannedChanges,
 	}
 	rtResp := stackruntime.ApplyResponse{
 		AppliedChanges: changesCh,
