@@ -93,7 +93,7 @@ func ParseAbsComponentInstance(traversal hcl.Traversal) (AbsComponentInstance, t
 	// component name, optionally followed by an instance key, and nothing
 	// else.
 	const diagSummary = "Invalid component instance address"
-	if len(remain) < 2 && len(remain) > 3 {
+	if len(remain) < 2 || len(remain) > 3 {
 		rng := remain.SourceRange()
 		// if "remain" is empty then the source range would be zero length,
 		// and so we'll use the original traversal instead.

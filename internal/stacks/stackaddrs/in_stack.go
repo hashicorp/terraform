@@ -121,18 +121,19 @@ func parseInStackInstancePrefix(traversal hcl.Traversal) (StackInstance, hcl.Tra
 	const errSummary = "Invalid stack instance address"
 	var diags tfdiags.Diagnostics
 	var stackInst StackInstance
+Steps:
 	for len(traversal) > 0 {
 		switch step := traversal[0].(type) {
 		case hcl.TraverseRoot:
 			if step.Name != "stack" {
-				break
+				break Steps
 			}
 		case hcl.TraverseAttr:
 			if step.Name != "stack" {
-				break
+				break Steps
 			}
 		default:
-			break
+			break Steps
 		}
 
 		// If we get here then we know that we're expecting a valid
