@@ -32,7 +32,7 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 		switch msg := msg.(type) {
 
 		case *tfstackdata1.PlanHeader:
-			wantVersion := version.String()
+			wantVersion := version.SemVer.String()
 			gotVersion := msg.TerraformVersion
 			if gotVersion != wantVersion {
 				return nil, fmt.Errorf("plan was created by Terraform %s, but this is Terraform %s", gotVersion, wantVersion)
