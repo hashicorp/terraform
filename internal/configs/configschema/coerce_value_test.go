@@ -446,6 +446,20 @@ func TestCoerceValue(t *testing.T) {
 			}),
 			``,
 		},
+		"omitted attribute requirements": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"foo": {
+						Type: cty.String,
+					},
+				},
+			},
+			cty.EmptyObjectVal,
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.UnknownVal(cty.String),
+			}),
+			`attribute "foo" has none of required, optional, or computed set`,
+		},
 		"dynamic value attributes": {
 			&Block{
 				BlockTypes: map[string]*NestedBlock{

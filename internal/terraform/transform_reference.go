@@ -42,6 +42,15 @@ type GraphNodeReferencer interface {
 	References() []*addrs.Reference
 }
 
+// GraphNodeReferencer must be implemented by nodes that import resources.
+type GraphNodeImportReferencer interface {
+	GraphNodeReferencer
+
+	// ImportReferences returns a list of references made by this node's
+	// associated import block.
+	ImportReferences() []*addrs.Reference
+}
+
 type GraphNodeAttachDependencies interface {
 	GraphNodeConfigResource
 	AttachDependencies([]addrs.ConfigResource)
@@ -288,37 +297,23 @@ type ReferenceMap map[string][]dag.Vertex
 // References returns the set of vertices that the given vertex refers to,
 // and any referenced addresses that do not have corresponding vertices.
 func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
-	rn, ok := v.(GraphNodeReferencer)
-	if !ok {
-		return nil
+	var matches []dag.Vertex
+	var referenceKeys []string
+
+	if rn, ok := v.(GraphNodeReferencer); ok {
+		for _, ref := range rn.References() {
+			referenceKeys = append(referenceKeys, m.referenceMapKey(vertexReferencePath(v), ref.Subject))
+		}
 	}
 
-	var matches []dag.Vertex
-
-	for _, ref := range rn.References() {
-		subject := ref.Subject
-
-		key := m.referenceMapKey(v, subject)
-		if _, exists := m[key]; !exists {
-			// If what we were looking for was a ResourceInstance then we
-			// might be in a resource-oriented graph rather than an
-			// instance-oriented graph, and so we'll see if we have the
-			// resource itself instead.
-			switch ri := subject.(type) {
-			case addrs.ResourceInstance:
-				subject = ri.ContainingResource()
-			case addrs.ResourceInstancePhase:
-				subject = ri.ContainingResource()
-			case addrs.ModuleCallInstanceOutput:
-				subject = ri.ModuleCallOutput()
-			case addrs.ModuleCallInstance:
-				subject = ri.Call
-			default:
-				log.Printf("[INFO] ReferenceTransformer: reference not found: %q", subject)
-				continue
-			}
-			key = m.referenceMapKey(v, subject)
+	if rn, ok := v.(GraphNodeImportReferencer); ok {
+		for _, ref := range rn.ImportReferences() {
+			// import block references are always in the root module scope
+			referenceKeys = append(referenceKeys, m.referenceMapKey(addrs.RootModule, ref.Subject))
 		}
+	}
+
+	for _, key := range referenceKeys {
 		vertices := m[key]
 		for _, rv := range vertices {
 			// don't include self-references
@@ -328,7 +323,6 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 			matches = append(matches, rv)
 		}
 	}
-
 	return matches
 }
 
@@ -352,7 +346,7 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Ve
 	for _, ref := range refs {
 		subject := ref.Subject
 
-		key := m.referenceMapKey(depender, subject)
+		key := m.referenceMapKey(vertexReferencePath(depender), subject)
 		vertices, ok := m[key]
 		if !ok {
 			// the ReferenceMap generates all possible keys, so any warning
@@ -521,9 +515,30 @@ func vertexReferencePath(v dag.Vertex) addrs.Module {
 //
 // Only GraphNodeModulePath implementations can be referrers, so this method will
 // panic if the given vertex does not implement that interface.
-func (m *ReferenceMap) referenceMapKey(referrer dag.Vertex, addr addrs.Referenceable) string {
-	path := vertexReferencePath(referrer)
-	return m.mapKey(path, addr)
+func (m ReferenceMap) referenceMapKey(path addrs.Module, addr addrs.Referenceable) string {
+	key := m.mapKey(path, addr)
+	if _, exists := m[key]; !exists {
+		// If what we were looking for was a ResourceInstance then we
+		// might be in a resource-oriented graph rather than an
+		// instance-oriented graph, and so we'll see if we have the
+		// resource itself instead.
+		switch ri := addr.(type) {
+		case addrs.ResourceInstance:
+			addr = ri.ContainingResource()
+		case addrs.ResourceInstancePhase:
+			addr = ri.ContainingResource()
+		case addrs.ModuleCallInstanceOutput:
+			addr = ri.ModuleCallOutput()
+		case addrs.ModuleCallInstance:
+			addr = ri.Call
+		default:
+			return key
+		}
+		// if we matched any of the resource node types above, generate a new
+		// key
+		key = m.mapKey(path, addr)
+	}
+	return key
 }
 
 // NewReferenceMap is used to create a new reference map for the
