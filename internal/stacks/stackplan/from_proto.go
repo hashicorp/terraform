@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -14,7 +15,9 @@ import (
 )
 
 func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
-	ret := &Plan{}
+	ret := &Plan{
+		Components: collections.NewMap[stackaddrs.AbsComponentInstance, *Component](),
+	}
 
 	foundHeader := false
 	for i, rawMsg := range msgs {
