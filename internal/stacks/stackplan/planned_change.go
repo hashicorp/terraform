@@ -2,6 +2,7 @@ package stackplan
 
 import (
 	"fmt"
+	"time"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/zclconf/go-cty/cty"
@@ -48,6 +49,12 @@ type PlannedChangeComponentInstance struct {
 	// not consider the resource instances inside, whose change actions
 	// are tracked in their own [PlannedChange] objects.
 	Action plans.Action
+
+	// PlanTimestamp is the timestamp that would be returned from the
+	// "plantimestamp" function in modules inside this component. We
+	// must preserve this in the raw plan data to ensure that we can
+	// return the same timestamp again during the apply phase.
+	PlanTimestamp time.Time
 }
 
 var _ PlannedChange = (*PlannedChangeComponentInstance)(nil)
@@ -57,6 +64,7 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 	var raw anypb.Any
 	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanComponentInstance{
 		ComponentInstanceAddr: pc.Addr.String(),
+		PlanTimestamp:         pc.PlanTimestamp.Format(time.RFC3339),
 		// We don't track the action as part of the raw data because we
 		// don't actually need it to apply the change; it's only included
 		// for external consumption, such as rendering changes in the UI.

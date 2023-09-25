@@ -780,17 +780,6 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 
 	hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstancePlan, c.Addr())
 
-	// We must always at least announce that the component instance exists,
-	// and that must come before any resource instance changes referring to it.
-	changes = append(changes, &stackplan.PlannedChangeComponentInstance{
-		Addr: c.Addr(),
-
-		// FIXME: Once we actually have a prior state this should vary
-		// depending on whether the same component instance existed in
-		// the prior state.
-		Action: plans.Create,
-	})
-
 	_, moreDiags := c.CheckInputVariableValues(ctx, PlanPhase)
 	diags = diags.Append(moreDiags)
 
@@ -800,6 +789,21 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 	corePlan, moreDiags := c.CheckModuleTreePlan(ctx)
 	diags = diags.Append(moreDiags)
 	if corePlan != nil {
+		// We must always at least announce that the component instance exists,
+		// and that must come before any resource instance changes referring to it.
+		changes = append(changes, &stackplan.PlannedChangeComponentInstance{
+			Addr: c.Addr(),
+
+			// FIXME: Once we actually have a prior state this should vary
+			// depending on whether the same component instance existed in
+			// the prior state.
+			Action: plans.Create,
+
+			// We must remember the plan timestamp so that the plantimestamp
+			// function can return a consistent result during a later apply phase.
+			PlanTimestamp: corePlan.Timestamp,
+		})
+
 		for _, rsrcChange := range corePlan.DriftedResources {
 			changes = append(changes, &stackplan.PlannedChangeResourceInstanceOutside{
 				ComponentInstanceAddr: c.Addr(),
