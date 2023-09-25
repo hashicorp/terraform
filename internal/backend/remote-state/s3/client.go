@@ -193,11 +193,11 @@ func (c *RemoteClient) Put(data []byte) error {
 	sum := md5.Sum(data)
 
 	input := &s3.PutObjectInput{
-		ContentType: aws.String(contentType),
-		Body:        bytes.NewReader(data),
-		Bucket:      aws.String(c.bucketName),
-		Key:         aws.String(c.path),
-		ContentMD5:  aws.String(base64.StdEncoding.EncodeToString(sum[:])),
+		ContentType:       aws.String(contentType),
+		Body:              bytes.NewReader(data),
+		Bucket:            aws.String(c.bucketName),
+		Key:               aws.String(c.path),
+		ChecksumAlgorithm: s3types.ChecksumAlgorithmSha256,
 	}
 
 	if c.serverSideEncryption {
