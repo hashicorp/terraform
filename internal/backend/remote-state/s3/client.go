@@ -190,11 +190,14 @@ func (c *RemoteClient) Put(data []byte) error {
 
 	contentType := "application/json"
 
+	sum := md5.Sum(data)
+
 	input := &s3.PutObjectInput{
 		ContentType: aws.String(contentType),
 		Body:        bytes.NewReader(data),
 		Bucket:      aws.String(c.bucketName),
 		Key:         aws.String(c.path),
+		ContentMD5:  aws.String(base64.StdEncoding.EncodeToString(sum[:])),
 	}
 
 	if c.serverSideEncryption {
@@ -222,7 +225,6 @@ func (c *RemoteClient) Put(data []byte) error {
 		return fmt.Errorf("failed to upload state: %s", err)
 	}
 
-	sum := md5.Sum(data)
 	if err := c.putMD5(ctx, sum[:]); err != nil {
 		// if this errors out, we unfortunately have to error out altogether,
 		// since the next Get will inevitably fail.
