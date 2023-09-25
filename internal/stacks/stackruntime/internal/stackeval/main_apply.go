@@ -51,70 +51,70 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 	hs, ctx := hookBegin(ctx, hooks.BeginApply, hooks.ContextAttach, struct{}{})
 	defer hookMore(ctx, hs, hooks.EndApply, struct{}{})
 
-	// We'll register all of the changes we intend to make up front, so we
-	// can error rather than deadlock if something goes wrong and causes
-	// us to try to depend on a result that isn't coming.
-	results, begin := ChangeExec(ctx, func(ctx context.Context, reg *ChangeExecRegistry[*Main]) {
-		for _, elem := range plan.Components.Elems() {
-			addr := elem.K
-			componentInstPlan := elem.V
-			reg.RegisterComponentInstanceChange(
-				ctx, addr,
-				func(ctx context.Context, main *Main) (*states.State, tfdiags.Diagnostics) {
-					ctx, span := tracer.Start(ctx, addr.String()+" apply")
-					defer span.End()
+	withDiags, err := promising.MainTask(ctx, func(ctx context.Context) (withDiagnostics[*Main], error) {
+		// We'll register all of the changes we intend to make up front, so we
+		// can error rather than deadlock if something goes wrong and causes
+		// us to try to depend on a result that isn't coming.
+		results, begin := ChangeExec(ctx, func(ctx context.Context, reg *ChangeExecRegistry[*Main]) {
+			for _, elem := range plan.Components.Elems() {
+				addr := elem.K
+				componentInstPlan := elem.V
+				reg.RegisterComponentInstanceChange(
+					ctx, addr,
+					func(ctx context.Context, main *Main) (*states.State, tfdiags.Diagnostics) {
+						ctx, span := tracer.Start(ctx, addr.String()+" apply")
+						defer span.End()
 
-					stack := main.Stack(ctx, addr.Stack, ApplyPhase)
-					component := stack.Component(ctx, addr.Item.Component)
-					insts := component.Instances(ctx, ApplyPhase)
-					inst, ok := insts[addr.Item.Key]
-					if !ok {
-						// If we managed to plan a change for this instance
-						// during the plan phase but yet it doesn't exist
-						// during the apply phase then that suggests that
-						// something upstream has failed in a strange way
-						// during apply and so this component's for_each or
-						// count argument can't be properly evaluated anymore.
-						// This is an unlikely case but we'll tolerate it by
-						// returning a placeholder value and expect the cause
-						// to be reported by some object when we do the apply
-						// checking walk below.
-						return nil, nil
-					}
+						stack := main.Stack(ctx, addr.Stack, ApplyPhase)
+						component := stack.Component(ctx, addr.Item.Component)
+						insts := component.Instances(ctx, ApplyPhase)
+						inst, ok := insts[addr.Item.Key]
+						if !ok {
+							// If we managed to plan a change for this instance
+							// during the plan phase but yet it doesn't exist
+							// during the apply phase then that suggests that
+							// something upstream has failed in a strange way
+							// during apply and so this component's for_each or
+							// count argument can't be properly evaluated anymore.
+							// This is an unlikely case but we'll tolerate it by
+							// returning a placeholder value and expect the cause
+							// to be reported by some object when we do the apply
+							// checking walk below.
+							return nil, nil
+						}
 
-					// TODO: We should also turn the prior state into the form
-					// the modules runtime expects and pass that in here,
-					// instead of an empty prior state.
-					modulesRuntimePlan, err := componentInstPlan.ForModulesRuntime(states.NewState())
-					if err != nil {
-						// Suggests that the state is inconsistent with the
-						// plan, which is a bug in whatever provided us with
-						// those two artifacts, but we don't know who that
-						// caller is (it probably came from a client of the
-						// Core RPC API) so we don't include our typical
-						// "This is a bug in Terraform" language here.
-						var diags tfdiags.Diagnostics
-						diags = diags.Append(tfdiags.Sourceless(
-							tfdiags.Error,
-							"Inconsistent component instance plan",
-							fmt.Sprintf("The plan for %s is inconsistent with its prior state: %s.", addr, err),
-						))
-						return nil, diags
-					}
+						// TODO: We should also turn the prior state into the form
+						// the modules runtime expects and pass that in here,
+						// instead of an empty prior state.
+						modulesRuntimePlan, err := componentInstPlan.ForModulesRuntime(states.NewState())
+						if err != nil {
+							// Suggests that the state is inconsistent with the
+							// plan, which is a bug in whatever provided us with
+							// those two artifacts, but we don't know who that
+							// caller is (it probably came from a client of the
+							// Core RPC API) so we don't include our typical
+							// "This is a bug in Terraform" language here.
+							var diags tfdiags.Diagnostics
+							diags = diags.Append(tfdiags.Sourceless(
+								tfdiags.Error,
+								"Inconsistent component instance plan",
+								fmt.Sprintf("The plan for %s is inconsistent with its prior state: %s.", addr, err),
+							))
+							return nil, diags
+						}
 
-					return inst.ApplyModuleTreePlan(ctx, modulesRuntimePlan)
-				},
-			)
-		}
-	})
+						return inst.ApplyModuleTreePlan(ctx, modulesRuntimePlan)
+					},
+				)
+			}
+		})
 
-	main := NewForApplying(config, results, opts)
-	begin(ctx, main) // the change tasks registered above become runnable
+		main := NewForApplying(config, results, opts)
+		begin(ctx, main) // the change tasks registered above become runnable
 
-	// With the planned changes now in progress, we'll visit everything and
-	// each object to check itself (producing diagnostics) and announce any
-	// changes that were applied to it.
-	diags, err := promising.MainTask(ctx, func(ctx context.Context) (tfdiags.Diagnostics, error) {
+		// With the planned changes now in progress, we'll visit everything and
+		// each object to check itself (producing diagnostics) and announce any
+		// changes that were applied to it.
 		ctx, span := tracer.Start(ctx, "apply-time checks")
 		defer span.End()
 
@@ -166,8 +166,13 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 		// everything it's supervising is complete.
 		results.AwaitCompletion(ctx)
 
-		return diags, nil
+		return withDiagnostics[*Main]{
+			Result:      main,
+			Diagnostics: diags,
+		}, nil
 	})
+	diags := withDiags.Diagnostics
+	main := withDiags.Result
 	diags = diags.Append(diagnosticsForPromisingTaskError(err, main))
 	if len(diags) > 0 {
 		outp.AnnounceDiagnostics(ctx, diags)
