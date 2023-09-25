@@ -156,7 +156,7 @@ func (v *InputVariable) ExprReferenceValue(ctx context.Context, phase EvalPhase)
 func (v *InputVariable) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	_, moreDiags := v.CheckValue(ctx, PlanPhase)
+	_, moreDiags := v.CheckValue(ctx, phase)
 	diags = diags.Append(moreDiags)
 
 	return diags

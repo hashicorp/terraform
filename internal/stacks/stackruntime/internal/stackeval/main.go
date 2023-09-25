@@ -319,8 +319,13 @@ func (m *Main) RootVariableValue(ctx context.Context, addr stackaddrs.InputVaria
 			}
 		}
 		return ret
+
+	// TODO: Also ApplyPhase, which should return values that were recorded
+	// in the plan.
+
 	default:
 		// Root input variable values are not available in any other phase.
+
 		return ExternalInputValue{
 			Value: cty.DynamicVal, // placeholder value
 		}
