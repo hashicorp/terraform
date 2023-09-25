@@ -6,8 +6,10 @@ package configs
 import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	hcljson "github.com/hashicorp/hcl/v2/json"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type Import struct {
@@ -42,9 +44,15 @@ func decodeImportBlock(block *hcl.Block) (*Import, hcl.Diagnostics) {
 	}
 
 	if attr, exists := content.Attributes["to"]; exists {
-		imp.To = attr.Expr
+		toExpr, jsDiags := unwrapJSONRefExpr(attr.Expr)
+		diags = diags.Extend(jsDiags)
+		if diags.HasErrors() {
+			return imp, diags
+		}
 
-		addr, toDiags := parseConfigResourceFromExpression(attr.Expr)
+		imp.To = toExpr
+
+		addr, toDiags := parseConfigResourceFromExpression(imp.To)
 		diags = diags.Extend(toDiags.ToHCL())
 		imp.ToResource = addr
 	}
@@ -110,6 +118,41 @@ func parseConfigResourceFromExpression(expr hcl.Expression) (addrs.ConfigResourc
 	return addr.ConfigResource(), diags
 }
 
+// unwrapJSONRefExpr takes a string expression from a JSON configuration,
+// and re-evaluates the string as HCL. If the expression is not JSON, the
+// original expression is returned directly.
+func unwrapJSONRefExpr(expr hcl.Expression) (hcl.Expression, hcl.Diagnostics) {
+	if !hcljson.IsJSONExpression(expr) {
+		return expr, nil
+	}
+
+	// We can abuse the hcl json api and rely on the fact that calling
+	// Value on a json expression with no EvalContext will return the
+	// raw string. We can then parse that as normal hcl syntax, and
+	// continue with the decoding.
+	v, diags := expr.Value(nil)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// the JSON representation can only be a string
+	if v.Type() != cty.String {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid reference expression",
+			Detail:   "A single reference string is required.",
+			Subject:  expr.Range().Ptr(),
+		})
+
+		return nil, diags
+	}
+
+	rng := expr.Range()
+	expr, ds := hclsyntax.ParseExpression([]byte(v.AsString()), rng.Filename, rng.Start)
+	diags = diags.Extend(ds)
+	return expr, diags
+}
+
 // exprToResourceTraversal is used to parse the import block's to expression,
 // which must be a resource instance, but may contain limited variables with
 // index expressions. Since we only need the ConfigResource to connect the
@@ -156,6 +199,12 @@ func exprToResourceTraversal(expr hcl.Expression) (hcl.Traversal, hcl.Diagnostic
 // cannot be parsed, which is usually a result of dynamic index expressions
 // using for_each.
 func parseImportToStatic(expr hcl.Expression) (addrs.AbsResourceInstance, bool) {
+	// we may have a nil expression in some error cases, which we can just
+	// false to avoid the parsing
+	if expr == nil {
+		return addrs.AbsResourceInstance{}, false
+	}
+
 	var toDiags tfdiags.Diagnostics
 	traversal, hd := hcl.AbsTraversalForExpr(expr)
 	toDiags = toDiags.Append(hd)

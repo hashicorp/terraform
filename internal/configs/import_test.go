@@ -205,6 +205,10 @@ func TestImportBlock_decode(t *testing.T) {
 				t.Fatal("expected error")
 			}
 
+			if diags.HasErrors() {
+				return
+			}
+
 			if !got.ToResource.Equal(test.want.ToResource) {
 				t.Errorf("expected resource %q got %q", test.want.ToResource, got.ToResource)
 			}

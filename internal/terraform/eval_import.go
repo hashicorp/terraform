@@ -176,7 +176,7 @@ func parseImportToKeyExpression(expr hcl.Expression, keyData instances.Repetitio
 		// give the user a slightly more helpful error
 		for i := range diags {
 			if diags[i].Summary == "Unknown variable" {
-				diags[i].Detail += " Only \"each.key\" and \"each.value\" can be used in import address index expressions."
+				diags[i].Detail += "Only \"each.key\" and \"each.value\" can be used in import address index expressions."
 			}
 		}
 
