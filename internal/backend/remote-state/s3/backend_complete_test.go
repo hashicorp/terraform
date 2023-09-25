@@ -1081,23 +1081,6 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			),
 		},
 
-		// NOT SUPPORTED: AssumeRoleSourceIdentity
-		// WAS: "config AssumeRoleSourceIdentity"
-		// "with source identity": {
-		// 	config: map[string]any{
-		// 		"access_key":                  servicemocks.MockStaticAccessKey,
-		// 		"secret_key":                  servicemocks.MockStaticSecretKey,
-		// 		"role_arn":                    servicemocks.MockStsAssumeRoleArn,
-		// 		"session_name":                servicemocks.MockStsAssumeRoleSessionName,
-		// 		"assume_role_source_identity": servicemocks.MockStsAssumeRoleSourceIdentity,
-		// 	},
-		// 	ExpectedCredentialsValue: mockdata.MockStsAssumeRoleCredentials,
-		// 	MockStsEndpoints: []*servicemocks.MockEndpoint{
-		// 		servicemocks.MockStsAssumeRoleValidEndpointWithOptions(map[string]string{"SourceIdentity": servicemocks.MockStsAssumeRoleSourceIdentity}),
-		// 		servicemocks.MockStsGetCallerIdentityValidEndpoint,
-		// 	},
-		// },
-
 		// WAS: "assume role error"
 		"error": {
 			config: map[string]any{
@@ -1524,24 +1507,23 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			},
 		},
 
-		// NOT SUPPORTED: AssumeRoleSourceIdentity
 		// WAS: "config AssumeRoleSourceIdentity"
-		// "with source identity": {
-		// 	config: map[string]any{
-		// 		"access_key": servicemocks.MockStaticAccessKey,
-		// 		"secret_key": servicemocks.MockStaticSecretKey,
-		// 		"assume_role": map[string]any{
-		// 			"role_arn":        servicemocks.MockStsAssumeRoleArn,
-		// 			"session_name":    servicemocks.MockStsAssumeRoleSessionName,
-		// 			"source_identity": servicemocks.MockStsAssumeRoleSourceIdentity,
-		// 		},
-		// 	},
-		// 	ExpectedCredentialsValue: mockdata.MockStsAssumeRoleCredentials,
-		// 	MockStsEndpoints: []*servicemocks.MockEndpoint{
-		// 		servicemocks.MockStsAssumeRoleValidEndpointWithOptions(map[string]string{"SourceIdentity": servicemocks.MockStsAssumeRoleSourceIdentity}),
-		// 		servicemocks.MockStsGetCallerIdentityValidEndpoint,
-		// 	},
-		// },
+		"with source identity": {
+			config: map[string]any{
+				"access_key": servicemocks.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+				"assume_role": map[string]any{
+					"role_arn":        servicemocks.MockStsAssumeRoleArn,
+					"session_name":    servicemocks.MockStsAssumeRoleSessionName,
+					"source_identity": servicemocks.MockStsAssumeRoleSourceIdentity,
+				},
+			},
+			ExpectedCredentialsValue: mockdata.MockStsAssumeRoleCredentials,
+			MockStsEndpoints: []*servicemocks.MockEndpoint{
+				servicemocks.MockStsAssumeRoleValidEndpointWithOptions(map[string]string{"SourceIdentity": servicemocks.MockStsAssumeRoleSourceIdentity}),
+				servicemocks.MockStsGetCallerIdentityValidEndpoint,
+			},
+		},
 
 		// WAS: "assume role error"
 		"error": {

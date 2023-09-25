@@ -274,6 +274,18 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		return moduletest.Error, diags
 	}
 
+	if run.Status != tfe.TestRunFinished {
+		// The only reason we'd get here without the run being finished properly
+		// is because the run errored outside the scope of the tests, or because
+		// the run was cancelled. Either way, we can just mark it has having
+		// errored for the purpose of our return code.
+		return moduletest.Error, diags
+	}
+
+	// Otherwise the run has finished successfully, and we can look at the
+	// actual status of the test instead of the run to figure out what status we
+	// should return.
+
 	switch run.TestStatus {
 	case tfe.TestError:
 		return moduletest.Error, diags
