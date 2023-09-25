@@ -1638,16 +1638,22 @@ type MockTestRuns struct {
 	TestRuns map[string]*tfe.TestRun
 	modules  map[string][]*tfe.TestRun
 	logs     map[string]string
+
+	// delayedCancel allows a mock test run to cancel an operation instead of
+	// completing an operation. It's used
+	delayedCancel context.CancelFunc
+	cancelled     bool
 }
 
 var _ tfe.TestRuns = (*MockTestRuns)(nil)
 
 func newMockTestRuns(client *MockClient) *MockTestRuns {
 	return &MockTestRuns{
-		client:   client,
-		TestRuns: make(map[string]*tfe.TestRun),
-		modules:  make(map[string][]*tfe.TestRun),
-		logs:     make(map[string]string),
+		client:    client,
+		TestRuns:  make(map[string]*tfe.TestRun),
+		modules:   make(map[string][]*tfe.TestRun),
+		logs:      make(map[string]string),
+		cancelled: false,
 	}
 }
 
@@ -1679,13 +1685,11 @@ func (m *MockTestRuns) Read(ctx context.Context, moduleID tfe.RegistryModuleID, 
 
 	if tr, exists := m.TestRuns[testRunID]; exists {
 
-		// This just simulates some natural progression
+		// This just simulates some natural progression, the first time a
+		// test run is read it'll progress from queued to running.
 		switch tr.Status {
 		case tfe.TestRunQueued:
 			tr.Status = tfe.TestRunRunning
-		case tfe.TestRunRunning:
-			tr.Status = tfe.TestRunFinished
-			tr.TestStatus = tfe.TestPass
 		}
 
 		return tr, nil
@@ -1750,11 +1754,25 @@ func (m *MockTestRuns) Logs(ctx context.Context, moduleID tfe.RegistryModuleID, 
 
 		switch tr.Status {
 		case tfe.TestRunRunning:
-			// Update the status so that on the next call it thinks it's
-			// finished.
-			tr.Status = tfe.TestRunFinished
-			tr.TestStatus = tfe.TestPass
-			return false, nil
+
+			// The first time the done function is called we'll progress from
+			// running into finished. We may instead cancel this if the
+			// delayedCancel trigger is set.
+
+			if m.delayedCancel != nil {
+				if !m.cancelled {
+					// Make sure we only trigger the cancel once.
+					m.delayedCancel()
+					m.cancelled = true
+				}
+				return false, nil
+			} else {
+				// Update the status so that on the next call it thinks it's
+				// finished.
+				tr.Status = tfe.TestRunFinished
+				tr.TestStatus = tfe.TestPass
+				return false, nil
+			}
 
 		case tfe.TestRunFinished, tfe.TestRunCanceled:
 			// We're done.
