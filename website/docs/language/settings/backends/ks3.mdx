@@ -11,7 +11,7 @@ Stores the state as an object in a configurable prefix in a given bucket on [Kin
 
 This backend supports [state locking](/terraform/language/state/locking). Storing your state in a KS3 bucket requires the following permissions:
 
-- `CreateTag`, `DeleteTag`, and `DescribeTags` on the tag key `ksyun-terraform-lock`
+- `CreateTag`, `DeleteTag`, and `ListTags` on the tag key `ksyun-terraform-lock`
 - `Put`, `Get`, and `Delete` files for the specified bucket's prefix
 
 ## Example Configuration
@@ -91,7 +91,7 @@ terraform {
     }
   }
 
-  # 用ks3作为远程state存储
+  # store state file into ks3
   backend "ks3" {
     bucket               = "tf-backend"
     key                  = "terraform.tfstate"
@@ -101,7 +101,7 @@ terraform {
     # access_key                  = ""
     # secret_key                  = ""
     role_krn = "krn:ksc:iam::user_id:role/tf-backend-role"
-    session_name = "bakcend-test-assume-role"
+    session_name = "backend-test-assume-role"
     assume_role_duration_seconds = 3600
   }
 }
