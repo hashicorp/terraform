@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	hcljson "github.com/hashicorp/hcl/v2/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -539,34 +538,25 @@ func decodeDataBlock(block *hcl.Block, override, nested bool) (*Resource, hcl.Di
 // replace_triggered_by expressions, ensuring they only contains references to
 // a single resource, and the only extra variables are count.index or each.key.
 func decodeReplaceTriggeredBy(expr hcl.Expression) ([]hcl.Expression, hcl.Diagnostics) {
-	// Since we are manually parsing the replace_triggered_by argument, we
-	// need to specially handle json configs, in which case the values will
-	// be json strings rather than hcl. To simplify parsing however we will
-	// decode the individual list elements, rather than the entire expression.
-	isJSON := hcljson.IsJSONExpression(expr)
-
 	exprs, diags := hcl.ExprList(expr)
+	if diags.HasErrors() {
+		return nil, diags
+	}
 
 	for i, expr := range exprs {
-		if isJSON {
-			// We can abuse the hcl json api and rely on the fact that calling
-			// Value on a json expression with no EvalContext will return the
-			// raw string. We can then parse that as normal hcl syntax, and
-			// continue with the decoding.
-			v, ds := expr.Value(nil)
-			diags = diags.Extend(ds)
-			if diags.HasErrors() {
-				continue
-			}
-
-			expr, ds = hclsyntax.ParseExpression([]byte(v.AsString()), "", expr.Range().Start)
-			diags = diags.Extend(ds)
-			if diags.HasErrors() {
-				continue
-			}
-			// make sure to swap out the expression we're returning too
-			exprs[i] = expr
+		// Since we are manually parsing the replace_triggered_by argument, we
+		// need to specially handle json configs, in which case the values will
+		// be json strings rather than hcl. To simplify parsing however we will
+		// decode the individual list elements, rather than the entire
+		// expression.
+		var jsDiags hcl.Diagnostics
+		expr, jsDiags = unwrapJSONRefExpr(expr)
+		diags = diags.Extend(jsDiags)
+		if diags.HasErrors() {
+			continue
 		}
+		// re-assign the value in case it was replaced by a json expression
+		exprs[i] = expr
 
 		refs, refDiags := lang.ReferencesInExpr(addrs.ParseRef, expr)
 		for _, diag := range refDiags {
