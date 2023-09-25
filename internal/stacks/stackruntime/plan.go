@@ -26,9 +26,15 @@ import (
 // through resp after passing it to this function, aside from the implicit
 // modifications to the internal state of channels caused by reading them.
 func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
+	var respMu sync.Mutex // must hold this when accessing fields of resp, aside from channel sends
 	resp.Applyable = true // we'll reset this to false later if appropriate
 
-	var respMu sync.Mutex // must hold this when accessing fields of resp, aside from channel sends
+	// Whatever return path we take, we must close our channels to allow
+	// a caller to see that the operation is complete.
+	defer func() {
+		close(resp.Diagnostics)
+		close(resp.PlannedChanges) // MUST be the last channel to close
+	}()
 
 	main := stackeval.NewForPlanning(req.Config, stackeval.PlanOpts{
 		InputVariableValues: req.InputValues,
@@ -66,9 +72,6 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 	resp.PlannedChanges <- &stackplan.PlannedChangeApplyable{
 		Applyable: resp.Applyable,
 	}
-
-	close(resp.Diagnostics)
-	close(resp.PlannedChanges) // MUST be the last channel to close
 }
 
 // PlanRequest represents the inputs to a [Plan] call.

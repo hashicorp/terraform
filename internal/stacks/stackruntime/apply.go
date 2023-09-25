@@ -44,6 +44,13 @@ func Apply(ctx context.Context, req *ApplyRequest, resp *ApplyResponse) {
 		},
 	}
 
+	// Whatever return path we take, we must close our channels to allow
+	// a caller to see that the operation is complete.
+	defer func() {
+		close(resp.Diagnostics)
+		close(resp.AppliedChanges) // MUST be the last channel to close
+	}()
+
 	main, err := stackeval.ApplyPlan(
 		ctx,
 		req.Config,
@@ -78,8 +85,6 @@ func Apply(ctx context.Context, req *ApplyRequest, resp *ApplyResponse) {
 		resp.Diagnostics <- diag
 	}
 
-	close(resp.Diagnostics)
-	close(resp.AppliedChanges) // MUST be the last channel to close
 }
 
 // ApplyRequest represents the inputs to an [Apply] call.
