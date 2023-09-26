@@ -97,7 +97,8 @@ func NewForApplying(config *stackconfig.Config, execResults *ChangeExecResults, 
 	return &Main{
 		config: config,
 		applying: &mainApplying{
-			opts: opts,
+			opts:    opts,
+			results: execResults,
 		},
 		providerFactories: opts.ProviderFactories,
 		providerTypes:     make(map[addrs.Provider]*ProviderType),
@@ -145,6 +146,9 @@ func (m *Main) PlanningOpts() *PlanOpts {
 func (m *Main) ApplyChangeResults() *ChangeExecResults {
 	if !m.Applying() {
 		panic("stacks language runtime is not instantiated for applying")
+	}
+	if m.applying.results == nil {
+		panic("stacks language runtime is instantiated for applying but somehow has no change results")
 	}
 	return m.applying.results
 }

@@ -156,6 +156,9 @@ type ChangeExecResults struct {
 }
 
 func (r *ChangeExecResults) ComponentInstanceResult(ctx context.Context, addr stackaddrs.AbsComponentInstance) (*states.State, tfdiags.Diagnostics, error) {
+	if r == nil {
+		panic("no results for nil ChangeExecResults")
+	}
 	getter, ok := r.componentInstances.GetOk(addr)
 	if !ok {
 		return nil, nil, ErrChangeExecUnregistered{addr}
