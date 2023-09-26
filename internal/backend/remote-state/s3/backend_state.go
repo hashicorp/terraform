@@ -151,6 +151,9 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 		acl:                   b.acl,
 		kmsKeyID:              b.kmsKeyID,
 		ddbTable:              b.ddbTable,
+		lockStorageType:       b.lockStorageType,
+		lockFileName:          b.lockFileName(),
+		digestFileName:        b.digestFileName(),
 	}
 
 	return client, nil
@@ -238,6 +241,13 @@ func (b *Backend) path(name string) string {
 	}
 
 	return path.Join(b.workspaceKeyPrefix, name, b.keyName)
+}
+
+func (b *Backend) lockFileName() string {
+	return fmt.Sprintf("%s.lock", b.keyName)
+}
+func (b *Backend) digestFileName() string {
+	return fmt.Sprintf("%s.digest", b.keyName)
 }
 
 const errStateUnlock = `

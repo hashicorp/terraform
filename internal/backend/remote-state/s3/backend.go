@@ -28,6 +28,13 @@ import (
 	"golang.org/x/exp/maps"
 )
 
+type LockStorageType string
+
+var (
+	DynamoDB = LockStorageType("DynamoDB")
+	S3Bucket = LockStorageType("S3Bucket")
+)
+
 func New() backend.Backend {
 	return &Backend{}
 }
@@ -36,6 +43,8 @@ type Backend struct {
 	awsConfig aws.Config
 	s3Client  *s3.Client
 	dynClient *dynamodb.Client
+
+	lockStorageType LockStorageType
 
 	bucketName            string
 	keyName               string
@@ -315,6 +324,11 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.Bool,
 				Optional:    true,
 				Description: "Force the backend to resolve endpoints with DualStack capability.",
+			},
+			"lock_storage_type": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Type of lock storage(S3Bucket or DynamoDB)",
 			},
 		},
 	}
@@ -808,6 +822,16 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		endpointModeValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
+	attrPath = cty.GetAttrPath("lock_storage_type")
+	if val := obj.GetAttr("lock_storage_type"); !val.IsNull() {
+		lockStorageValidator := validateString{
+			Validators: []stringValidator{
+				validateStringInSlice([]string{string(DynamoDB), string(S3Bucket)}),
+			},
+		}
+		lockStorageValidator.ValidateAttr(val, attrPath, &diags)
+	}
+
 	validateAttributesConflict(
 		cty.GetAttrPath("allowed_account_ids"),
 		cty.GetAttrPath("forbidden_account_ids"),
@@ -892,7 +916,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.serverSideEncryption = boolAttr(obj, "encrypt")
 	b.kmsKeyID = stringAttr(obj, "kms_key_id")
 	b.ddbTable = stringAttr(obj, "dynamodb_table")
-
+	b.lockStorageType = LockStorageType(stringAttr(obj, "lock_storage_type"))
 	if _, ok := stringAttrOk(obj, "kms_key_id"); ok {
 		if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
 			diags = diags.Append(wholeBodyErrDiag(
