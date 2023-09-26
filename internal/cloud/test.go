@@ -437,8 +437,12 @@ func (runner *TestSuiteRunner) wait(ctx context.Context, client *tfe.Client, run
 
 	select {
 	case <-runner.StoppedCtx.Done():
+		// The StoppedCtx is passed in from the command package, which is
+		// listening for interrupts from the user. After the first interrupt the
+		// StoppedCtx is triggered.
 		handleStopped()
 	case <-runner.CancelledCtx.Done():
+		// After the second interrupt the CancelledCtx is triggered.
 		handleCancelled()
 	case <-ctx.Done():
 		// The remote run finished normally! Do nothing.
