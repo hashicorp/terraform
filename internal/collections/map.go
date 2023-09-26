@@ -57,6 +57,9 @@ func NewMapCmp[K comparable, V any]() Map[K, V] {
 // HasKey returns true if the map has an element with the given key, or
 // false otherwise.
 func (m Map[K, V]) HasKey(k K) bool {
+	if m.key == nil {
+		return false // an uninitialized map has no keys
+	}
 	uniq := m.key(k)
 	_, exists := m.elems[uniq]
 	return exists
@@ -72,6 +75,10 @@ func (m Map[K, V]) Get(k K) V {
 // GetOk is like [Map.Get] but also returns a second boolean result reporting
 // whether a matching element was present in the map.
 func (m Map[K, V]) GetOk(k K) (V, bool) {
+	if m.key == nil {
+		var zero V
+		return zero, false // an uninitialized map has no keys
+	}
 	uniq := m.key(k)
 	ret, ok := m.elems[uniq]
 	return ret.V, ok
@@ -82,6 +89,9 @@ func (m Map[K, V]) GetOk(k K) (V, bool) {
 // If there is already an element with an equivalent key (as determined by the
 // set's "key function") then the new element replaces that existing element.
 func (m Map[K, V]) Put(k K, v V) {
+	if m.key == nil {
+		panic("Put into uninitialized collections.Map")
+	}
 	uniq := m.key(k)
 	m.elems[uniq] = MapElem[K, V]{
 		K: k,
@@ -92,6 +102,9 @@ func (m Map[K, V]) Put(k K, v V) {
 // Delete removes from the map the element with the given key, or does nothing
 // if there is no such element.
 func (m Map[K, V]) Delete(k K) {
+	if m.key == nil {
+		panic("Delete from uninitialized collections.Map")
+	}
 	uniq := m.key(k)
 	delete(m.elems, uniq)
 }
