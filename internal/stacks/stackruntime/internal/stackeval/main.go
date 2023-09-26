@@ -64,8 +64,9 @@ type mainPlanning struct {
 }
 
 type mainApplying struct {
-	opts    ApplyOpts
-	results *ChangeExecResults
+	opts          ApplyOpts
+	rootInputVals map[stackaddrs.InputVariable]cty.Value
+	results       *ChangeExecResults
 }
 
 func NewForValidating(config *stackconfig.Config, opts ValidateOpts) *Main {
@@ -93,12 +94,13 @@ func NewForPlanning(config *stackconfig.Config, opts PlanOpts) *Main {
 	}
 }
 
-func NewForApplying(config *stackconfig.Config, execResults *ChangeExecResults, opts ApplyOpts) *Main {
+func NewForApplying(config *stackconfig.Config, rootInputs map[stackaddrs.InputVariable]cty.Value, execResults *ChangeExecResults, opts ApplyOpts) *Main {
 	return &Main{
 		config: config,
 		applying: &mainApplying{
-			opts:    opts,
-			results: execResults,
+			opts:          opts,
+			rootInputVals: rootInputs,
+			results:       execResults,
 		},
 		providerFactories: opts.ProviderFactories,
 		providerTypes:     make(map[addrs.Provider]*ProviderType),
@@ -313,8 +315,8 @@ func (m *Main) ProviderInstance(ctx context.Context, addr stackaddrs.AbsProvider
 func (m *Main) RootVariableValue(ctx context.Context, addr stackaddrs.InputVariable, phase EvalPhase) ExternalInputValue {
 	switch phase {
 	case PlanPhase:
-		if m.planning == nil {
-			panic("using plan-phase input variable values when not configured for planning")
+		if !m.Planning() {
+			panic("using PlanPhase input variable values when not configured for planning")
 		}
 		ret, ok := m.planning.opts.InputVariableValues[addr]
 		if !ok {
@@ -324,8 +326,27 @@ func (m *Main) RootVariableValue(ctx context.Context, addr stackaddrs.InputVaria
 		}
 		return ret
 
-	// TODO: Also ApplyPhase, which should return values that were recorded
-	// in the plan.
+	case ApplyPhase:
+		if !m.Applying() {
+			panic("using ApplyPhase input variable values when not configured for applying")
+		}
+		ret, ok := m.applying.rootInputVals[addr]
+		if !ok {
+			// We should not get here if the given plan was created from the
+			// given configuration, since we should always record a value
+			// for every declared root input variable in the plan.
+			return ExternalInputValue{
+				Value: cty.DynamicVal,
+			}
+		}
+		return ExternalInputValue{
+			Value: ret,
+
+			// We don't save source location information for variable
+			// definitions in the plan, but that's okay because if we were
+			// going to report any errors for these values then we should've
+			// already done it during the plan phase, and so couldn't get here..
+		}
 
 	default:
 		// Root input variable values are not available in any other phase.

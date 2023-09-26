@@ -655,6 +655,54 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		return nil, diags
 	}
 
+	// We'll need to make some light modifications to the plan to include
+	// information we've learned in other parts of the apply walk that
+	// should've filled in some unknown value placeholders. It would be rude
+	// to modify the plan that our caller is holding though, so we'll
+	// shallow-copy it. This is NOT a deep copy, so don't modify anything
+	// that's reachable through any pointers without copying those first too.
+	modifiedPlan := *plan
+	inputValues := c.inputValuesForModulesRuntime(ctx, ApplyPhase)
+	if inputValues == nil {
+		// inputValuesForModulesRuntime uses nil (as opposed to a
+		// non-nil zerolen map) to represent that the definition of
+		// the input variables was so invalid that we cannot do
+		// anything with it, in which case we'll just return early
+		// and assume the plan walk driver will find the diagnostics
+		// via another return path.
+		return nil, diags
+	}
+	// TODO: Check that the final input values are consistent with what
+	// we had during planning. If not, that suggests a bug elsewhere.
+	//
+	// UGH: the "modules runtime"'s model of planning was designed around
+	// the goal of producing a traditional Terraform CLI-style saved plan
+	// file and so it has the input variable values already encoded as
+	// plans.DynamicValue opaque byte arrays, and so we need to convert
+	// our resolved input values into that format. It would be better
+	// if plans.Plan used the typical in-memory format for input values
+	// and let the plan file serializer worry about encoding, but we'll
+	// defer that API change for now to avoid disrupting other codepaths.
+	modifiedPlan.VariableValues = make(map[string]plans.DynamicValue, len(inputValues))
+	for name, iv := range inputValues {
+		dv, err := plans.NewDynamicValue(iv.Value, cty.DynamicPseudoType)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to encode input variable value",
+				fmt.Sprintf(
+					"Could not encode the value of input variable %q of %s: %s.\n\nThis is a bug in Terraform; please report it!",
+					name, c.Addr(), err,
+				),
+			))
+			continue
+		}
+		modifiedPlan.VariableValues[name] = dv
+	}
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
 	providerClients, valid := c.neededProviderClients(ctx, PlanPhase)
 	if !valid {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -666,7 +714,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		return nil, diags
 	}
 
-	newState, moreDiags := tfCtx.Apply(plan, moduleTree, &terraform.ApplyOpts{
+	newState, moreDiags := tfCtx.Apply(&modifiedPlan, moduleTree, &terraform.ApplyOpts{
 		ExternalProviders: providerClients,
 	})
 	diags = diags.Append(moreDiags)
@@ -797,7 +845,8 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 			// FIXME: Once we actually have a prior state this should vary
 			// depending on whether the same component instance existed in
 			// the prior state.
-			Action: plans.Create,
+			Action:             plans.Create,
+			PlannedInputValues: corePlan.VariableValues,
 
 			// We must remember the plan timestamp so that the plantimestamp
 			// function can return a consistent result during a later apply phase.

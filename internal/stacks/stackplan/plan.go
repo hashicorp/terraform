@@ -1,6 +1,8 @@
 package stackplan
 
 import (
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
@@ -21,6 +23,11 @@ type Plan struct {
 	// some reason, such as if an error occurred during planning and so
 	// the planning process did not entirely run.
 	Applyable bool
+
+	// RootInputValues are the input variable values provided to calculate
+	// the plan. We must use the same values during the apply step to
+	// sure that the actions taken can be consistent with what was planned.
+	RootInputValues map[stackaddrs.InputVariable]cty.Value
 
 	// Components contains the separate plans for each of the compoonent
 	// instances defined in the overall stack configuration, including any

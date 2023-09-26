@@ -165,7 +165,26 @@ func (v *InputVariable) checkValid(ctx context.Context, phase EvalPhase) tfdiags
 // PlanChanges implements Plannable as a plan-time validation of the variable's
 // declaration and of the caller's definition of the variable.
 func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
-	return nil, v.checkValid(ctx, PlanPhase)
+	diags := v.checkValid(ctx, PlanPhase)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// Only the root stack's input values can contribute directly to the plan.
+	// Embedded stack inputs will be recalculated during the apply phase
+	// because the values might be derived from component outputs that aren't
+	// known yet during planning.
+	if !v.Addr().Stack.IsRoot() {
+		return nil, diags
+	}
+
+	val := v.Value(ctx, PlanPhase)
+	return []stackplan.PlannedChange{
+		&stackplan.PlannedChangeRootInputValue{
+			Addr:  v.Addr().Item,
+			Value: val,
+		},
+	}, diags
 }
 
 // CheckApply implements ApplyChecker.

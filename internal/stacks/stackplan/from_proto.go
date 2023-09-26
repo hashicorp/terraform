@@ -10,13 +10,15 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/version"
+	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
 func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 	ret := &Plan{
-		Components: collections.NewMap[stackaddrs.AbsComponentInstance, *Component](),
+		RootInputValues: make(map[stackaddrs.InputVariable]cty.Value),
+		Components:      collections.NewMap[stackaddrs.AbsComponentInstance, *Component](),
 	}
 
 	foundHeader := false
@@ -44,6 +46,17 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 
 		case *tfstackdata1.PlanApplyable:
 			ret.Applyable = msg.Applyable
+
+		case *tfstackdata1.PlanRootInputValue:
+			addr := stackaddrs.InputVariable{
+				Name: msg.Name,
+			}
+			dv := plans.DynamicValue(msg.Value.Msgpack)
+			val, err := dv.Decode(cty.DynamicPseudoType)
+			if err != nil {
+				return nil, fmt.Errorf("invalid stored value for %s: %w", addr, err)
+			}
+			ret.RootInputValues[addr] = val
 
 		case *tfstackdata1.PlanComponentInstance:
 			addr, diags := stackaddrs.ParseAbsComponentInstanceStr(msg.ComponentInstanceAddr)

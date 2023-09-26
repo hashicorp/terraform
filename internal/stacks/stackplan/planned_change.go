@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
+	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
@@ -35,6 +36,45 @@ type PlannedChange interface {
 	PlannedChangeProto() (*terraform1.PlannedChange, error)
 }
 
+// PlannedChangeRootInputValue announces the existence of a root stack input
+// variable and captures its plan-time value so we can make sure to use
+// the same value during the apply phase.
+type PlannedChangeRootInputValue struct {
+	Addr stackaddrs.InputVariable
+
+	// Value is the value we used for the variable during planning.
+	Value cty.Value
+}
+
+var _ PlannedChange = (*PlannedChangeRootInputValue)(nil)
+
+// PlannedChangeProto implements PlannedChange.
+func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*terraform1.PlannedChange, error) {
+	// We use cty.DynamicPseudoType here so that we'll save both the
+	// value _and_ its dynamic type in the plan, so we can recover
+	// exactly the same value later.
+	dv, err := plans.NewDynamicValue(pc.Value, cty.DynamicPseudoType)
+	if err != nil {
+		return nil, fmt.Errorf("can't encode value for %s: %w", pc.Addr, err)
+	}
+
+	var raw anypb.Any
+	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanRootInputValue{
+		Name: pc.Addr.Name,
+		Value: &planproto.DynamicValue{
+			Msgpack: dv,
+		},
+	}, proto.MarshalOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return &terraform1.PlannedChange{
+		Raw: []*anypb.Any{&raw},
+
+		// There is no external-facing description for this change type.
+	}, nil
+}
+
 // PlannedChangeComponentInstance announces the existence of a component
 // instance and describes (using a plan action) whether it is being added
 // or removed.
@@ -50,6 +90,14 @@ type PlannedChangeComponentInstance struct {
 	// are tracked in their own [PlannedChange] objects.
 	Action plans.Action
 
+	// PlannedInputValues records our best approximation of the component's
+	// topmost input values during the planning phase. This could contain
+	// unknown values if one component is configured from results of another.
+	// This therefore won't be used directly as the input values during apply,
+	// but the final set of input values during apply should be consistent
+	// with what's captured here.
+	PlannedInputValues map[string]plans.DynamicValue
+
 	// PlanTimestamp is the timestamp that would be returned from the
 	// "plantimestamp" function in modules inside this component. We
 	// must preserve this in the raw plan data to ensure that we can
@@ -61,10 +109,21 @@ var _ PlannedChange = (*PlannedChangeComponentInstance)(nil)
 
 // PlannedChangeProto implements PlannedChange.
 func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.PlannedChange, error) {
+	var plannedInputValues map[string]*planproto.DynamicValue
+	if n := len(pc.PlannedInputValues); n != 0 {
+		plannedInputValues = make(map[string]*planproto.DynamicValue, n)
+		for k, v := range pc.PlannedInputValues {
+			plannedInputValues[k] = &planproto.DynamicValue{
+				Msgpack: v,
+			}
+		}
+	}
+
 	var raw anypb.Any
 	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanComponentInstance{
 		ComponentInstanceAddr: pc.Addr.String(),
 		PlanTimestamp:         pc.PlanTimestamp.Format(time.RFC3339),
+		PlannedInputValues:    plannedInputValues,
 		// We don't track the action as part of the raw data because we
 		// don't actually need it to apply the change; it's only included
 		// for external consumption, such as rendering changes in the UI.

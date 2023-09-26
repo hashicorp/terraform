@@ -56,6 +56,15 @@ message PlanApplyable {
     bool applyable = 1;
 }
 
+// Records the value of one of the main stack's input values during planning.
+//
+// These values get fixed during the plan phase so that we can ensure that we
+// use identical values when subsequently applying the plan.
+message PlanRootInputValue {
+    string name = 1;
+    tfplan.DynamicValue value = 2;
+}
+
 // Represents the existence of a particular component instance, and so must
 // always appear before any messages representing objects that belong to that
 // component instance.
@@ -71,6 +80,14 @@ message PlanComponentInstance {
     // "plantimestamp" function can return the same value during the apply
     // phase. It must not be used for any other purpose.
     string plan_timestamp = 2;
+
+    // Captures an approximation of the input values for this component with
+    // as much detail as we knew during the planning phase. This might
+    // contain unknown values as placeholders for values that won't be
+    // determined until the apply phase, so this isn't usable directly as
+    // the input to subsequently applying the component plan but the final
+    // input values should be a valid concretization of what's described here.
+    map<string, tfplan.DynamicValue> planned_input_values = 3;
 }
 
 // Represents a planned change to a particular resource instance within a
