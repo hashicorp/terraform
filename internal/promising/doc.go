@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package promising is a utility package providing a model for concurrent
 // data fetching and preparation which can detect and report deadlocks
 // and failure to resolve.
