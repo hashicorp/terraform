@@ -178,8 +178,8 @@ Steps:
 			Key:  addrs.NoKey,
 		}
 		traversal = traversal[2:] // consume the first two steps that we already dealt with
-		if len(traversal) > 2 {
-			idxStep, ok := traversal[2].(hcl.TraverseIndex)
+		if len(traversal) > 0 {
+			idxStep, ok := traversal[0].(hcl.TraverseIndex)
 			if ok {
 				var err error
 				addrStep.Key, err = addrs.ParseInstanceKey(idxStep.Key)
