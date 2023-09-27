@@ -1,7 +1,10 @@
 package stackstate
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/states"
@@ -52,7 +55,28 @@ func (ac *AppliedChangeResourceInstance) AppliedChangeProto() (*terraform1.Appli
 	// but this is sufficient for this early stub since we're not yet emitting
 	// any other change types.
 	tmpKey := ac.ResourceInstanceAddr.String()
-	if ac.NewStateSrc.Current != nil {
+	if currentObjSrc := ac.NewStateSrc.Current; currentObjSrc != nil {
+		// TRICKY: For historical reasons, a states.ResourceInstance
+		// contains pre-JSON-encoded dynamic data ready to be
+		// inserted verbatim into Terraform CLI's traditional
+		// JSON-based state file format. However, our RPC API
+		// exclusively uses MessagePack encoding for dynamic
+		// values, and so we will need to use the ac.Schema to
+		// transcode the data.
+		ty := ac.Schema.ImpliedType()
+		currentObj, err := currentObjSrc.Decode(ty)
+		if err != nil {
+			// It would be _very_ strange to get here because we should just
+			// be reversing the same encoding operation done earlier to
+			// produce this object, using exactly the same schema.
+			return nil, fmt.Errorf("cannot decode new state for %s in preparation for saving it: %w", ac.ResourceInstanceAddr, err)
+		}
+		encValue, err := plans.NewDynamicValue(currentObj.Value, ty)
+		if err != nil {
+			return nil, fmt.Errorf("cannot encode new state for %s in preparation for saving it: %w", ac.ResourceInstanceAddr, err)
+		}
+		protoValue := terraform1.NewDynamicValue(encValue, currentObjSrc.AttrSensitivePaths)
+
 		descs = append(descs, &terraform1.AppliedChange_ChangeDescription{
 			Key: tmpKey,
 			Description: &terraform1.AppliedChange_ChangeDescription_ResourceInstance{
@@ -61,23 +85,7 @@ func (ac *AppliedChangeResourceInstance) AppliedChangeProto() (*terraform1.Appli
 						ComponentInstanceAddr: ac.ResourceInstanceAddr.Component.String(),
 						ResourceInstanceAddr:  ac.ResourceInstanceAddr.Item.String(),
 					},
-
-					// FIXME: The NewStateSrc values are serialized as JSON
-					// for inclusion in traditional Terraform's JSON state
-					// format, but we want MessagePack here for consistency
-					// with the rest of the RPC API protocol. However, we
-					// can't convert between the two without access to the
-					// provider schema. We'll need to handle that conversion
-					// upstream somewhere. For now we're just always returning
-					// an empty object here as placeholder, which is very wrong
-					// but is at least something we can use for early
-					// development of client code concurrently with working on
-					// the rest of this.
-					NewValue: &terraform1.DynamicValue{
-						Msgpack: []byte{
-							0b1000_0000, // MessagePack coding of a zero-length "fixmap"
-						},
-					},
+					NewValue: protoValue,
 				},
 			},
 		})
