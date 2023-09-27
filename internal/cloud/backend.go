@@ -1274,5 +1274,6 @@ is the primary and recommended strategy to use.  This option conflicts with "nam
 	schemaDescriptionName = `The name of a single Terraform Cloud workspace to be used with this configuration.
 When configured, only the specified workspace can be used. This option conflicts with "tags".`
 
-	schemaDescriptionProject = `The name of a project that resulting workspace(s) will be created in.`
+	schemaDescriptionProject = `The name of a Terraform Cloud project. Workspaces that need creating
+will be created within this project.`
 )
