@@ -166,6 +166,12 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 		return nil, fmt.Errorf("nil ChangeSrc")
 	}
 
+	// FIXME: The following is incomplete because it isn't accounting for
+	// the possibility of deposed objects. Currently we're just assuming
+	// resource instance addresses are unique within a plan, which isn't
+	// true: the DeposedKey is required for the address of a changed
+	// resource isntance to be fully-qualified.
+
 	changeProto, err := planfile.ResourceChangeToProto(pc.ChangeSrc)
 	if err != nil {
 		return nil, fmt.Errorf("converting resource instance change to proto: %w", err)

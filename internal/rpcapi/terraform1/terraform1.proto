@@ -754,9 +754,9 @@ message AppliedChange {
     //   - If both key and value are set but the key does not match an
     //     element in the previous apply's description map, this represents
     //     inserting a new element into the map.
-    //   - If key is set and description is not, this represents removing any
-    //     existing element from the previous apply's description map which has
-    //     the given key, or a no-op if no such element exists.
+    //   - If key is set and description is "deleted", this represents removing
+    //     any existing element from the previous apply's description map which
+    //     has the given key, or a no-op if no such element exists.
     //   - If a description field is set that the caller doesn't understand,
     //     the caller should still write it to the updated description map
     //     but ignore it in further processing.
@@ -784,6 +784,7 @@ message AppliedChange {
     message ChangeDescription {
         string key = 1;
         oneof description {
+            Nothing deleted = 4; // explicitly represents the absense of a description
             ResourceInstance resource_instance = 2;
             OutputValue output_value = 3;
         }
@@ -800,6 +801,7 @@ message AppliedChange {
         string name = 1;
         DynamicValue new_value = 2;
     }
+    message Nothing {}
 }
 
 message Diagnostic {

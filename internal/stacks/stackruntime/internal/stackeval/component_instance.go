@@ -885,8 +885,26 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 	_, moreDiags = c.CheckProviders(ctx, ApplyPhase)
 	diags = diags.Append(moreDiags)
 
-	_, moreDiags = c.CheckApplyResultState(ctx)
+	newState, moreDiags := c.CheckApplyResultState(ctx)
 	diags = diags.Append(moreDiags)
+
+	if newState != nil {
+		for _, ms := range newState.Modules {
+			for _, rs := range ms.Resources {
+				resourceAddr := rs.Addr
+				for instKey, is := range rs.Instances {
+					instAddr := resourceAddr.Instance(instKey)
+					changes = append(changes, &stackstate.AppliedChangeResourceInstance{
+						ResourceInstanceAddr: stackaddrs.AbsResourceInstance{
+							Component: c.Addr(),
+							Item:      instAddr,
+						},
+						NewStateSrc: is,
+					})
+				}
+			}
+		}
+	}
 
 	return changes, diags
 }
