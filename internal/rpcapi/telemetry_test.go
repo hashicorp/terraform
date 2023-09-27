@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package rpcapi
 
 //lint:file-ignore U1000 Some utilities in here are intentionally unused in VCS but are for temporary use while debugging a test.

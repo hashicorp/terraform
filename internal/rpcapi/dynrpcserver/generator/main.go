@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // This program is the generator for the gRPC service wrapper types in the
 // parent directory. It's not suitable for any other use.
 //

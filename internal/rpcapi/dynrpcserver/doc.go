@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package dynrpcserver deals with an annoying detail of the rpcapi
 // implementation: we need to complete the Setup.Handshake call before we can
 // instantiate the remaining services (since their behavior might vary
