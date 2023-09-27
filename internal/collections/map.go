@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package collections
 
 // Set represents an associative array from keys of type K to values of type V.

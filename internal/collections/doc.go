@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package collections contains some helper types representing collections
 // of values that could not normally be represented using Go's built-in
 // collection types, typically because of the need to use key types that
