@@ -1,6 +1,7 @@
 package stackstate
 
 import (
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/states"
@@ -25,6 +26,10 @@ type AppliedChange interface {
 type AppliedChangeResourceInstance struct {
 	ResourceInstanceAddr stackaddrs.AbsResourceInstance
 	NewStateSrc          *states.ResourceInstance
+
+	// Schema MUST be the same schema that was used to encode the dynamic
+	// values inside NewStateSrc.
+	Schema *configschema.Block
 }
 
 var _ AppliedChange = (*AppliedChangeResourceInstance)(nil)

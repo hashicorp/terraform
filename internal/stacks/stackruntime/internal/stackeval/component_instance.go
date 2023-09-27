@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -854,15 +855,53 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 		})
 
 		for _, rsrcChange := range corePlan.DriftedResources {
+			schema, err := c.resourceTypeSchema(
+				ctx,
+				rsrcChange.ProviderAddr.Provider,
+				rsrcChange.Addr.Resource.Resource.Mode,
+				rsrcChange.Addr.Resource.Resource.Type,
+			)
+			if err != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Can't fetch provider schema to save plan",
+					fmt.Sprintf(
+						"Failed to retrieve the schema for %s from provider %s: %s. This is a bug in Terraform.",
+						rsrcChange.Addr, rsrcChange.ProviderAddr.Provider, err,
+					),
+				))
+				continue
+			}
+
 			changes = append(changes, &stackplan.PlannedChangeResourceInstanceOutside{
 				ComponentInstanceAddr: c.Addr(),
 				ChangeSrc:             rsrcChange,
+				Schema:                schema,
 			})
 		}
 		for _, rsrcChange := range corePlan.Changes.Resources {
+			schema, err := c.resourceTypeSchema(
+				ctx,
+				rsrcChange.ProviderAddr.Provider,
+				rsrcChange.Addr.Resource.Resource.Mode,
+				rsrcChange.Addr.Resource.Resource.Type,
+			)
+			if err != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Can't fetch provider schema to save plan",
+					fmt.Sprintf(
+						"Failed to retrieve the schema for %s from provider %s: %s. This is a bug in Terraform.",
+						rsrcChange.Addr, rsrcChange.ProviderAddr.Provider, err,
+					),
+				))
+				continue
+			}
+
 			changes = append(changes, &stackplan.PlannedChangeResourceInstancePlanned{
 				ComponentInstanceAddr: c.Addr(),
 				ChangeSrc:             rsrcChange,
+				Schema:                schema,
 			})
 		}
 	}
@@ -892,6 +931,31 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 		for _, ms := range newState.Modules {
 			for _, rs := range ms.Resources {
 				resourceAddr := rs.Addr
+
+				schema, err := c.resourceTypeSchema(
+					ctx,
+					rs.ProviderConfig.Provider,
+					resourceAddr.Resource.Mode,
+					resourceAddr.Resource.Type,
+				)
+				if err != nil {
+					// It shouldn't be possible to get here because we would've
+					// used the same schema we were just trying to retrieve
+					// to encode the dynamic data in this states.State object
+					// in the first place. If we _do_ get here then we won't
+					// actually be able to save the updated state, which will
+					// force the user to manually clean things up.
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Can't fetch provider schema to save new state",
+						fmt.Sprintf(
+							"Failed to retrieve the schema for %s from provider %s: %s. This is a bug in Terraform.\n\nThe new state for this object cannot be saved. If this object was only just created, you may need to delete it manually in the target system to reconcile with the Terraform state before trying again.",
+							resourceAddr, rs.ProviderConfig.Provider, err,
+						),
+					))
+					continue
+				}
+
 				for instKey, is := range rs.Instances {
 					instAddr := resourceAddr.Instance(instKey)
 					changes = append(changes, &stackstate.AppliedChangeResourceInstance{
@@ -900,6 +964,7 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 							Item:      instAddr,
 						},
 						NewStateSrc: is,
+						Schema:      schema,
 					})
 				}
 			}
@@ -907,6 +972,24 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 	}
 
 	return changes, diags
+}
+
+func (c *ComponentInstance) resourceTypeSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, typ string) (*configschema.Block, error) {
+	// This should not be able to fail with an error because we should
+	// be retrieving the same schema that was already used to encode
+	// the object we're working with. The error handling here is for
+	// robustness but any error here suggests a bug in Terraform.
+
+	providerType := c.main.ProviderType(ctx, providerTypeAddr)
+	providerSchema, err := providerType.Schema(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ret, _ := providerSchema.SchemaForResourceType(mode, typ)
+	if ret == nil {
+		return nil, fmt.Errorf("schema does not include %v %q", mode, typ)
+	}
+	return ret, nil
 }
 
 func (c *ComponentInstance) tracingName() string {

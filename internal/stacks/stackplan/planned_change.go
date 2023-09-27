@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
@@ -156,6 +157,10 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 type PlannedChangeResourceInstancePlanned struct {
 	ComponentInstanceAddr stackaddrs.AbsComponentInstance
 	ChangeSrc             *plans.ResourceInstanceChangeSrc
+
+	// Schema MUST be the same schema that was used to encode the dynamic
+	// values inside ChangeSrc.
+	Schema *configschema.Block
 }
 
 var _ PlannedChange = (*PlannedChangeResourceInstancePlanned)(nil)
@@ -218,6 +223,10 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 type PlannedChangeResourceInstanceOutside struct {
 	ComponentInstanceAddr stackaddrs.AbsComponentInstance
 	ChangeSrc             *plans.ResourceInstanceChangeSrc
+
+	// Schema MUST be the same schema that was used to encode the dynamic
+	// values inside ChangeSrc.
+	Schema *configschema.Block
 }
 
 var _ PlannedChange = (*PlannedChangeResourceInstanceOutside)(nil)
