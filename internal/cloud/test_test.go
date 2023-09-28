@@ -731,3 +731,181 @@ Failure! 1 passed, 1 failed.
 		t.Errorf("expected test run to have been cancelled but was %s", tr.Status)
 	}
 }
+
+func TestTest_LongRunningTest(t *testing.T) {
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewTest(arguments.ViewHuman, views.NewView(streams))
+
+	colorize := mockColorize()
+	colorize.Disable = true
+
+	mock := NewMockClient()
+	client := &tfe.Client{
+		ConfigurationVersions: mock.ConfigurationVersions,
+		Organizations:         mock.Organizations,
+		RegistryModules:       mock.RegistryModules,
+		TestRuns:              mock.TestRuns,
+	}
+
+	if _, err := client.Organizations.Create(context.Background(), tfe.OrganizationCreateOptions{
+		Name: tfe.String("organisation"),
+	}); err != nil {
+		t.Fatalf("failed to create organisation: %v", err)
+	}
+
+	if _, err := client.RegistryModules.Create(context.Background(), "organisation", tfe.RegistryModuleCreateOptions{
+		Name:         tfe.String("name"),
+		Provider:     tfe.String("provider"),
+		RegistryName: "app.terraform.io",
+		Namespace:    "organisation",
+	}); err != nil {
+		t.Fatalf("failed to create registry module: %v", err)
+	}
+
+	runner := TestSuiteRunner{
+		// Configuration data.
+		ConfigDirectory:  "testdata/test-long-running",
+		TestingDirectory: "tests",
+		Config:           nil, // We don't need this for this test.
+		Source:           "app.terraform.io/organisation/name/provider",
+
+		// Cancellation controls, we won't be doing any cancellations in this
+		// test.
+		Stopped:      false,
+		Cancelled:    false,
+		StoppedCtx:   context.Background(),
+		CancelledCtx: context.Background(),
+
+		// Test Options, empty for this test.
+		GlobalVariables: nil,
+		Verbose:         false,
+		Filters:         nil,
+
+		// Outputs
+		Renderer: &jsonformat.Renderer{
+			Streams:             streams,
+			Colorize:            colorize,
+			RunningInAutomation: false,
+		},
+		View:    view,
+		Streams: streams,
+
+		// Networking
+		Services:       nil, // Don't need this when the client is overridden.
+		clientOverride: client,
+	}
+
+	_, diags := runner.Test()
+	if len(diags) > 0 {
+		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
+	}
+
+	output := done(t)
+	actual := output.All()
+
+	// The long running test logs actually contain additional progress updates,
+	// but this test should ignore them and just show the usual output.
+
+	expected := `main.tftest.hcl... in progress
+  just_go... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
+
+Success! 1 passed, 0 failed.
+`
+
+	if diff := cmp.Diff(expected, actual); len(diff) > 0 {
+		t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+}
+
+func TestTest_LongRunningTestJSON(t *testing.T) {
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewTest(arguments.ViewHuman, views.NewView(streams))
+
+	colorize := mockColorize()
+	colorize.Disable = true
+
+	mock := NewMockClient()
+	client := &tfe.Client{
+		ConfigurationVersions: mock.ConfigurationVersions,
+		Organizations:         mock.Organizations,
+		RegistryModules:       mock.RegistryModules,
+		TestRuns:              mock.TestRuns,
+	}
+
+	if _, err := client.Organizations.Create(context.Background(), tfe.OrganizationCreateOptions{
+		Name: tfe.String("organisation"),
+	}); err != nil {
+		t.Fatalf("failed to create organisation: %v", err)
+	}
+
+	if _, err := client.RegistryModules.Create(context.Background(), "organisation", tfe.RegistryModuleCreateOptions{
+		Name:         tfe.String("name"),
+		Provider:     tfe.String("provider"),
+		RegistryName: "app.terraform.io",
+		Namespace:    "organisation",
+	}); err != nil {
+		t.Fatalf("failed to create registry module: %v", err)
+	}
+
+	runner := TestSuiteRunner{
+		// Configuration data.
+		ConfigDirectory:  "testdata/test-long-running",
+		TestingDirectory: "tests",
+		Config:           nil, // We don't need this for this test.
+		Source:           "app.terraform.io/organisation/name/provider",
+
+		// Cancellation controls, we won't be doing any cancellations in this
+		// test.
+		Stopped:      false,
+		Cancelled:    false,
+		StoppedCtx:   context.Background(),
+		CancelledCtx: context.Background(),
+
+		// Test Options, empty for this test.
+		GlobalVariables: nil,
+		Verbose:         false,
+		Filters:         nil,
+
+		// Outputs
+		Renderer: nil, // This should force the logs to render as JSON.
+		View:     view,
+		Streams:  streams,
+
+		// Networking
+		Services:       nil, // Don't need this when the client is overridden.
+		clientOverride: client,
+	}
+
+	_, diags := runner.Test()
+	if len(diags) > 0 {
+		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
+	}
+
+	output := done(t)
+	actual := output.All()
+
+	// This test should still include the progress updates as we're doing the
+	// JSON output.
+
+	expected := `{"@level":"info","@message":"Terraform 1.7.0-dev","@module":"terraform.ui","@timestamp":"2023-09-28T14:57:09.175210+02:00","terraform":"1.7.0-dev","type":"version","ui":"1.2"}
+{"@level":"info","@message":"Found 1 file and 1 run block","@module":"terraform.ui","@timestamp":"2023-09-28T14:57:09.189212+02:00","test_abstract":{"main.tftest.hcl":["just_go"]},"type":"test_abstract"}
+{"@level":"info","@message":"main.tftest.hcl... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@timestamp":"2023-09-28T14:57:09.189386+02:00","test_file":{"path":"main.tftest.hcl","progress":"starting"},"type":"test_file"}
+{"@level":"info","@message":"  \"just_go\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"just_go","@timestamp":"2023-09-28T14:57:09.189429+02:00","test_run":{"path":"main.tftest.hcl","run":"just_go","progress":"starting","elapsed":0},"type":"test_run"}
+{"@level":"info","@message":"  \"just_go\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"just_go","@timestamp":"2023-09-28T14:57:11.341278+02:00","test_run":{"path":"main.tftest.hcl","run":"just_go","progress":"running","elapsed":2152},"type":"test_run"}
+{"@level":"info","@message":"  \"just_go\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"just_go","@timestamp":"2023-09-28T14:57:13.343465+02:00","test_run":{"path":"main.tftest.hcl","run":"just_go","progress":"running","elapsed":4154},"type":"test_run"}
+{"@level":"info","@message":"  \"just_go\"... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"just_go","@timestamp":"2023-09-28T14:57:14.381552+02:00","test_run":{"path":"main.tftest.hcl","run":"just_go","progress":"complete","status":"pass"},"type":"test_run"}
+{"@level":"info","@message":"main.tftest.hcl... tearing down","@module":"terraform.ui","@testfile":"main.tftest.hcl","@timestamp":"2023-09-28T14:57:14.381655+02:00","test_file":{"path":"main.tftest.hcl","progress":"teardown"},"type":"test_file"}
+{"@level":"info","@message":"  \"just_go\"... tearing down","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"just_go","@timestamp":"2023-09-28T14:57:14.381712+02:00","test_run":{"path":"main.tftest.hcl","run":"just_go","progress":"teardown","elapsed":0},"type":"test_run"}
+{"@level":"info","@message":"  \"just_go\"... tearing down","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"just_go","@timestamp":"2023-09-28T14:57:16.477705+02:00","test_run":{"path":"main.tftest.hcl","run":"just_go","progress":"teardown","elapsed":2096},"type":"test_run"}
+{"@level":"info","@message":"main.tftest.hcl... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","@timestamp":"2023-09-28T14:57:17.517309+02:00","test_file":{"path":"main.tftest.hcl","progress":"complete","status":"pass"},"type":"test_file"}
+{"@level":"info","@message":"Success! 1 passed, 0 failed.","@module":"terraform.ui","@timestamp":"2023-09-28T14:57:17.517494+02:00","test_summary":{"status":"pass","passed":1,"failed":0,"errored":0,"skipped":0},"type":"test_summary"}
+`
+
+	if diff := cmp.Diff(expected, actual); len(diff) > 0 {
+		t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+}
