@@ -227,12 +227,24 @@ type TestFileState struct {
 func (runner *TestFileRunner) Test(file *moduletest.File) {
 	log.Printf("[TRACE] TestFileRunner: executing test file %s", file.Name)
 
-	file.Status = file.Status.Merge(moduletest.Pass)
+	// We'll execute the tests in the file. First, mark the overall status as
+	// being skipped. This will ensure that if we've cancelled and the files not
+	// going to do anything it'll be marked as skipped.
+	file.Status = file.Status.Merge(moduletest.Skip)
+	if len(file.Runs) == 0 {
+		// If we have zero run blocks then we'll just mark the file as passed.
+		file.Status = file.Status.Merge(moduletest.Pass)
+	}
+
+	// Now execute the runs.
 	for _, run := range file.Runs {
 		if runner.Suite.Cancelled {
 			// This means a hard stop has been requested, in this case we don't
 			// even stop to mark future tests as having been skipped. They'll
-			// just show up as pending in the printed summary.
+			// just show up as pending in the printed summary. We will quickly
+			// just mark the overall file status has having errored to indicate
+			// it was interrupted.
+			file.Status = file.Status.Merge(moduletest.Error)
 			return
 		}
 
