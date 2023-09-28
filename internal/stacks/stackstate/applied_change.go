@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -51,14 +52,13 @@ func (ac *AppliedChangeResourceInstance) AppliedChangeProto() (*terraform1.Appli
 	// representation of the state maps become malformed.
 
 	var descs []*terraform1.AppliedChange_ChangeDescription
-
-	// FIXME: In practice we'll need to pack more information into the keys
-	// than just the naked resource instance id, since we'll need to also
-	// represent other things that aren't current resource instance objects,
-	// but this is sufficient for this early stub since we're not yet emitting
-	// any other change types.
-	tmpKey := ac.ResourceInstanceAddr.String()
+	currentObjKey := statekeys.ResourceInstanceObject{
+		ResourceInstance: ac.ResourceInstanceAddr,
+		DeposedKey:       states.NotDeposed,
+	}
+	currentObjKeyRaw := statekeys.String(currentObjKey)
 	if currentObjSrc := ac.NewStateSrc.Current; currentObjSrc != nil {
+
 		// TRICKY: For historical reasons, a states.ResourceInstance
 		// contains pre-JSON-encoded dynamic data ready to be
 		// inserted verbatim into Terraform CLI's traditional
@@ -81,7 +81,7 @@ func (ac *AppliedChangeResourceInstance) AppliedChangeProto() (*terraform1.Appli
 		protoValue := terraform1.NewDynamicValue(encValue, currentObjSrc.AttrSensitivePaths)
 
 		descs = append(descs, &terraform1.AppliedChange_ChangeDescription{
-			Key: tmpKey,
+			Key: currentObjKeyRaw,
 			Description: &terraform1.AppliedChange_ChangeDescription_ResourceInstance{
 				ResourceInstance: &terraform1.AppliedChange_ResourceInstance{
 					Addr: &terraform1.ResourceInstanceInStackAddr{
@@ -94,7 +94,7 @@ func (ac *AppliedChangeResourceInstance) AppliedChangeProto() (*terraform1.Appli
 		})
 	} else {
 		descs = append(descs, &terraform1.AppliedChange_ChangeDescription{
-			Key: tmpKey,
+			Key: currentObjKeyRaw,
 			Description: &terraform1.AppliedChange_ChangeDescription_Deleted{
 				Deleted: &terraform1.AppliedChange_Nothing{},
 			},
