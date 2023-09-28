@@ -721,7 +721,7 @@ resource "test_resource" "creating" {
 			streams, done := terminal.StreamsForTesting(t)
 			view := NewTest(arguments.ViewHuman, NewView(streams))
 
-			view.Run(tc.Run, file)
+			view.Run(tc.Run, file, moduletest.Complete, 0)
 
 			output := done(t)
 			actual, expected := output.Stdout(), tc.StdOut
@@ -2362,9 +2362,10 @@ func TestTestJSON_Run(t *testing.T) {
 					"@testfile": "main.tftest.hcl",
 					"@testrun":  "run_block",
 					"test_run": map[string]interface{}{
-						"path":   "main.tftest.hcl",
-						"run":    "run_block",
-						"status": "pass",
+						"path":     "main.tftest.hcl",
+						"run":      "run_block",
+						"progress": "complete",
+						"status":   "pass",
 					},
 					"type": "test_run",
 				},
@@ -2385,9 +2386,10 @@ func TestTestJSON_Run(t *testing.T) {
 					"@testfile": "main.tftest.hcl",
 					"@testrun":  "run_block",
 					"test_run": map[string]interface{}{
-						"path":   "main.tftest.hcl",
-						"run":    "run_block",
-						"status": "pass",
+						"path":     "main.tftest.hcl",
+						"run":      "run_block",
+						"progress": "complete",
+						"status":   "pass",
 					},
 					"type": "test_run",
 				},
@@ -2417,9 +2419,10 @@ func TestTestJSON_Run(t *testing.T) {
 					"@testfile": "main.tftest.hcl",
 					"@testrun":  "run_block",
 					"test_run": map[string]interface{}{
-						"path":   "main.tftest.hcl",
-						"run":    "run_block",
-						"status": "pending",
+						"path":     "main.tftest.hcl",
+						"run":      "run_block",
+						"progress": "complete",
+						"status":   "pending",
 					},
 					"type": "test_run",
 				},
@@ -2436,9 +2439,10 @@ func TestTestJSON_Run(t *testing.T) {
 					"@testfile": "main.tftest.hcl",
 					"@testrun":  "run_block",
 					"test_run": map[string]interface{}{
-						"path":   "main.tftest.hcl",
-						"run":    "run_block",
-						"status": "skip",
+						"path":     "main.tftest.hcl",
+						"run":      "run_block",
+						"progress": "complete",
+						"status":   "skip",
 					},
 					"type": "test_run",
 				},
@@ -2455,9 +2459,10 @@ func TestTestJSON_Run(t *testing.T) {
 					"@testfile": "main.tftest.hcl",
 					"@testrun":  "run_block",
 					"test_run": map[string]interface{}{
-						"path":   "main.tftest.hcl",
-						"run":    "run_block",
-						"status": "fail",
+						"path":     "main.tftest.hcl",
+						"run":      "run_block",
+						"progress": "complete",
+						"status":   "fail",
 					},
 					"type": "test_run",
 				},
@@ -2481,9 +2486,10 @@ func TestTestJSON_Run(t *testing.T) {
 					"@testfile": "main.tftest.hcl",
 					"@testrun":  "run_block",
 					"test_run": map[string]interface{}{
-						"path":   "main.tftest.hcl",
-						"run":    "run_block",
-						"status": "fail",
+						"path":     "main.tftest.hcl",
+						"run":      "run_block",
+						"progress": "complete",
+						"status":   "fail",
 					},
 					"type": "test_run",
 				},
@@ -2526,9 +2532,10 @@ func TestTestJSON_Run(t *testing.T) {
 					"@testfile": "main.tftest.hcl",
 					"@testrun":  "run_block",
 					"test_run": map[string]interface{}{
-						"path":   "main.tftest.hcl",
-						"run":    "run_block",
-						"status": "error",
+						"path":     "main.tftest.hcl",
+						"run":      "run_block",
+						"progress": "complete",
+						"status":   "error",
 					},
 					"type": "test_run",
 				},
@@ -2549,9 +2556,10 @@ func TestTestJSON_Run(t *testing.T) {
 					"@testfile": "main.tftest.hcl",
 					"@testrun":  "run_block",
 					"test_run": map[string]interface{}{
-						"path":   "main.tftest.hcl",
-						"run":    "run_block",
-						"status": "error",
+						"path":     "main.tftest.hcl",
+						"run":      "run_block",
+						"progress": "complete",
+						"status":   "error",
 					},
 					"type": "test_run",
 				},
@@ -2661,9 +2669,10 @@ func TestTestJSON_Run(t *testing.T) {
 					"@testfile": "main.tftest.hcl",
 					"@testrun":  "run_block",
 					"test_run": map[string]interface{}{
-						"path":   "main.tftest.hcl",
-						"run":    "run_block",
-						"status": "pass",
+						"path":     "main.tftest.hcl",
+						"run":      "run_block",
+						"progress": "complete",
+						"status":   "pass",
 					},
 					"type": "test_run",
 				},
@@ -2786,9 +2795,10 @@ func TestTestJSON_Run(t *testing.T) {
 					"@testfile": "main.tftest.hcl",
 					"@testrun":  "run_block",
 					"test_run": map[string]interface{}{
-						"path":   "main.tftest.hcl",
-						"run":    "run_block",
-						"status": "pass",
+						"path":     "main.tftest.hcl",
+						"run":      "run_block",
+						"progress": "complete",
+						"status":   "pass",
 					},
 					"type": "test_run",
 				},
@@ -2851,7 +2861,7 @@ func TestTestJSON_Run(t *testing.T) {
 
 			file := &moduletest.File{Name: "main.tftest.hcl"}
 
-			view.Run(tc.run, file)
+			view.Run(tc.run, file, moduletest.Complete, 0)
 			testJSONViewOutputEquals(t, done(t).All(), tc.want, cmp.FilterPath(func(path cmp.Path) bool {
 				return strings.Contains(path.Last().String(), "version") || strings.Contains(path.Last().String(), "timestamp")
 			}, cmp.Ignore()))
