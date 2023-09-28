@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package stackplan contains the models and some business logic for stack-wide
 // "meta-plans", which in practice are equivalent to multiple of what we
 // traditionally think of as a "plan" in the non-stacks Terraform workflow,
