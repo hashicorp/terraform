@@ -657,13 +657,13 @@ Throughout a `terraform test` execution, Terraform will produce several progress
 
 ## Test Run
 
-While executing `run` blocks within a test file, Terraform will also produce several status updates for each `run` block. The progress field for a run block can be `starting`, `running`, `teardown`, and `complete`. The `starting` and `complete` progress updates will be emitted exactly once. While the `running` and `teardown` progress updates can be emitted multiple times.
+While executing `run` blocks within a test file, Terraform will also produce several status updates for each `run` block. The progress field for a `run` block progress update can be `starting`, `running`, `teardown`, and `complete`. The `starting` and `complete` progress updates will be emitted exactly once. While the `running` and `teardown` progress updates can be emitted multiple times.
 
 The `starting`, `running` and `teardown` updates will also include an `elapsed` field indicating the number of milliseconds the current test operation (for `starting` and `running`) or the current destroy operation (for `teardown`) has been in progress.
 
 The `complete` progress update will also include a `status` field containing one of `pass`, `error`, `fail`, or `skip` denoting the overall status of the completed `run` block`.
 
-Not every `run` block will emit `teardown` progress updates, as only the most recently executed `run` blocks reference the latest in-memory state files that need to be torn down. In addition, the `run` block tear down process is only initiated once the overall test file has already emitted its `teardown` status update. This means you can expect the `complete` progress update to be issued for a `run` block before any `teardown` updates are provided.
+Not every `run` block will emit `teardown` progress updates, as only the most recently executed `run` blocks reference the latest in-memory state files that need to be torn down. In addition, the `run` block tear down process is only initiated once the overall test file has already emitted its `teardown` status update. This means you can expect the `complete` progress update to be issued for a `run` block before any `teardown` updates are provided. There will always be a `complete` progress update issued by the enclosing test file when the tear down process for all `run` blocks is complete.
 
 ### Examples
 
