@@ -145,6 +145,12 @@ func (s simple) ReadDataSource(req providers.ReadDataSourceRequest) (resp provid
 	return resp
 }
 
+func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
+	// Our schema doesn't include any functions, so it should be impossible
+	// to get in here.
+	panic("CallFunction on provider that didn't declare any functions")
+}
+
 func (s simple) Close() error {
 	return nil
 }
