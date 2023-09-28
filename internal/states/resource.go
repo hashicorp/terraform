@@ -4,8 +4,10 @@
 package states
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -187,6 +189,22 @@ var deposedKeyRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 func NewDeposedKey() DeposedKey {
 	v := deposedKeyRand.Uint32()
 	return DeposedKey(fmt.Sprintf("%08x", v))
+}
+
+// ParseDeposedKey parses a string that is expected to be a deposed key,
+// returning an error if it doesn't conform to the expected syntax.
+func ParseDeposedKey(raw string) (DeposedKey, error) {
+	if len(raw) != 8 {
+		return "00000000", fmt.Errorf("must be eight hexadecimal digits")
+	}
+	if raw != strings.ToLower(raw) {
+		return "00000000", fmt.Errorf("must use lowercase hex digits")
+	}
+	_, err := hex.DecodeString(raw)
+	if err != nil {
+		return "00000000", fmt.Errorf("must be eight hexadecimal digits")
+	}
+	return DeposedKey(raw), nil
 }
 
 func (k DeposedKey) String() string {
