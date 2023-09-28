@@ -9,13 +9,14 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[Starting-0]
-	_ = x[TearDown-1]
-	_ = x[Complete-2]
+	_ = x[Running-1]
+	_ = x[TearDown-2]
+	_ = x[Complete-3]
 }
 
-const _Progress_name = "StartingTearDownComplete"
+const _Progress_name = "StartingRunningTearDownComplete"
 
-var _Progress_index = [...]uint8{0, 8, 16, 24}
+var _Progress_index = [...]uint8{0, 8, 15, 23, 31}
 
 func (i Progress) String() string {
 	if i < 0 || i >= Progress(len(_Progress_index)-1) {
