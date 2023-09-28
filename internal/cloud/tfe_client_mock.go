@@ -1643,6 +1643,12 @@ type MockTestRuns struct {
 	// completing an operation. It's used
 	delayedCancel context.CancelFunc
 	cancelled     bool
+
+	// cancels counts the number of cancels that have been called. targetCancels
+	// tells the mock how many cancels we should receive before we let things
+	// finish. This is for testing the stop/cancel relationship.
+	cancels       int
+	targetCancels int
 }
 
 var _ tfe.TestRuns = (*MockTestRuns)(nil)
@@ -1767,10 +1773,14 @@ func (m *MockTestRuns) Logs(ctx context.Context, moduleID tfe.RegistryModuleID, 
 				}
 				return false, nil
 			} else {
-				// Update the status so that on the next call it thinks it's
-				// finished.
-				tr.Status = tfe.TestRunFinished
-				tr.TestStatus = tfe.TestPass
+
+				if m.targetCancels == 0 {
+					// Update the status so that on the next call it thinks it's
+					// finished.
+					tr.Status = tfe.TestRunFinished
+					tr.TestStatus = tfe.TestPass
+				}
+
 				return false, nil
 			}
 
@@ -1799,18 +1809,15 @@ func (m *MockTestRuns) Cancel(ctx context.Context, moduleID tfe.RegistryModuleID
 		return tfe.ErrResourceNotFound
 	}
 
-	tr.Status = tfe.TestRunCanceled
+	m.cancels++
+	if m.cancels >= m.targetCancels {
+		tr.Status = tfe.TestRunCanceled
+	}
 	return nil
 }
 
 func (m *MockTestRuns) ForceCancel(ctx context.Context, moduleID tfe.RegistryModuleID, testRunID string) error {
-	tr, exists := m.TestRuns[testRunID]
-	if !exists {
-		return tfe.ErrResourceNotFound
-	}
-
-	tr.Status = tfe.TestRunCanceled
-	return nil
+	panic("not implemented, you can't force cancel a test run via the Terraform CLI")
 }
 
 type MockVariables struct {
