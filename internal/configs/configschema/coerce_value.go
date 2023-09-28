@@ -67,10 +67,8 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 			val = in.GetAttr(name)
 		case attrS.Computed || attrS.Optional:
 			val = cty.NullVal(attrType)
-		case attrS.Required:
-			return cty.UnknownVal(impliedType), path.NewErrorf("attribute %q is required", name)
 		default:
-			return cty.UnknownVal(impliedType), path.NewErrorf("attribute %q has none of required, optional, or computed set", name)
+			return cty.UnknownVal(impliedType), path.NewErrorf("attribute %q is required", name)
 		}
 
 		val, err := convert.Convert(val, attrConvType)

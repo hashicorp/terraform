@@ -4,7 +4,7 @@ License text copyright (c) 2020 MariaDB Corporation Ab, All Rights Reserved.
 Parameters
 
 Licensor:             HashiCorp, Inc.
-Licensed Work:        Terraform 1.7.0-dev. The Licensed Work is (c) 2023 HashiCorp, Inc.
+Licensed Work:        Terraform 1.6.0-rc2. The Licensed Work is (c) 2023 HashiCorp, Inc.
 Additional Use Grant: You may make production use of the Licensed Work,
                       provided such use does not include offering the Licensed Work
                       to third parties on a hosted or embedded basis which is

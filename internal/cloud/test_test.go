@@ -416,6 +416,10 @@ func TestTest_Cancel(t *testing.T) {
 		clientOverride: client,
 	}
 
+	// We're only going to be able to finish this if the cancellation calls
+	// are done correctly.
+	mock.TestRuns.targetCancels = 1
+
 	var diags tfdiags.Diagnostics
 	go func() {
 		defer done()
@@ -457,6 +461,10 @@ Success! 1 passed, 0 failed, 1 skipped.
 	if tr.Status != tfe.TestRunCanceled {
 		t.Errorf("expected test run to have been cancelled but was %s", tr.Status)
 	}
+
+	if mock.TestRuns.cancels != 1 {
+		t.Errorf("incorrect number of cancels, expected 1 but was %d", mock.TestRuns.cancels)
+	}
 }
 
 // TestTest_DelayedCancel just makes sure that if we trigger the cancellation
@@ -497,6 +505,10 @@ func TestTest_DelayedCancel(t *testing.T) {
 	stopContext, stop := context.WithCancel(context.Background())
 
 	mock.TestRuns.delayedCancel = stop
+
+	// We're only going to be able to finish this if the cancellation calls
+	// are done correctly.
+	mock.TestRuns.targetCancels = 1
 
 	runner := TestSuiteRunner{
 		// Configuration data.
@@ -613,6 +625,7 @@ func TestTest_ForceCancel(t *testing.T) {
 	}
 
 	doneContext, done := context.WithCancel(context.Background())
+	stopContext, stop := context.WithCancel(context.Background())
 	cancelContext, cancel := context.WithCancel(context.Background())
 
 	runner := TestSuiteRunner{
@@ -626,7 +639,7 @@ func TestTest_ForceCancel(t *testing.T) {
 		// test.
 		Stopped:      false,
 		Cancelled:    false,
-		StoppedCtx:   context.Background(),
+		StoppedCtx:   stopContext,
 		CancelledCtx: cancelContext,
 
 		// Test Options, empty for this test.
@@ -648,13 +661,18 @@ func TestTest_ForceCancel(t *testing.T) {
 		clientOverride: client,
 	}
 
+	// We're only going to be able to finish this if the cancellation calls
+	// are done correctly.
+	mock.TestRuns.targetCancels = 2
+
 	var diags tfdiags.Diagnostics
 	go func() {
 		defer done()
 		_, diags = runner.Test()
 	}()
 
-	cancel() // immediately cancel
+	stop()
+	cancel()
 
 	// Wait for finish!
 	<-doneContext.Done()
@@ -729,6 +747,10 @@ Failure! 1 passed, 1 failed.
 	tr := mock.TestRuns.modules[module.ID][0]
 	if tr.Status != tfe.TestRunCanceled {
 		t.Errorf("expected test run to have been cancelled but was %s", tr.Status)
+	}
+
+	if mock.TestRuns.cancels != 2 {
+		t.Errorf("incorrect number of cancels, expected 2 but was %d", mock.TestRuns.cancels)
 	}
 }
 

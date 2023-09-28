@@ -241,14 +241,17 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			waitTime := 5 * time.Second
 			if len(args.CloudRunSource) > 0 {
 				// We wait longer for cloud runs because the agent should force
-				// kill the remote job after 5 seconds and we still want to
-				// wait for all the logs to be printed locally before we
-				// forcefully exit.
+				// kill the remote job after 5 seconds (as defined above).
 				//
-				// If after 10 seconds there still hasn't been progress from the
-				// agent then something else has gone wrong and we'll just have
-				// to live with the consequences.
-				waitTime = 10 * time.Second
+				// This can take longer as the remote agent doesn't receive the
+				// interrupt immediately. So for cloud runs, we'll wait a minute
+				// which should give the remote process enough to receive the
+				// signal, process it, and exit.
+				//
+				// If after a minute, the job still hasn't finished then we
+				// assume something else has gone wrong and we'll just have to
+				// live with the consequences.
+				waitTime = time.Minute
 			}
 
 			// We'll wait 5 seconds for this operation to finish now, regardless
