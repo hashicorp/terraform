@@ -400,11 +400,11 @@ func (runner *TestSuiteRunner) wait(ctx context.Context, client *tfe.Client, run
 	var diags tfdiags.Diagnostics
 
 	handleCancelled := func() {
-		if err := client.TestRuns.ForceCancel(context.Background(), moduleId, run.ID); err != nil {
+		if err := client.TestRuns.Cancel(context.Background(), moduleId, run.ID); err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Could not force cancel the test run",
-				fmt.Sprintf("Terraform could not force cancel the test run, you will have to navigate to the Terraform Cloud console and cancel the test run manually.\n\nThe error message received when cancelling the test run was %s", err)))
+				"Could not cancel the test run",
+				fmt.Sprintf("Terraform could not cancel the test run, you will have to navigate to the Terraform Cloud console and cancel the test run manually.\n\nThe error message received when cancelling the test run was %s", err)))
 			return
 		}
 
@@ -419,8 +419,8 @@ func (runner *TestSuiteRunner) wait(ctx context.Context, client *tfe.Client, run
 		if err := client.TestRuns.Cancel(context.Background(), moduleId, run.ID); err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Could not cancel the test run",
-				fmt.Sprintf("Terraform could not cancel the test run, you will have to navigate to the Terraform Cloud console and cancel the test run manually.\n\nThe error message received when cancelling the test run was %s", err)))
+				"Could not stop the test run",
+				fmt.Sprintf("Terraform could not stop the test run, you will have to navigate to the Terraform Cloud console and cancel the test run manually.\n\nThe error message received when stopping the test run was %s", err)))
 			return
 		}
 
@@ -441,9 +441,6 @@ func (runner *TestSuiteRunner) wait(ctx context.Context, client *tfe.Client, run
 		// listening for interrupts from the user. After the first interrupt the
 		// StoppedCtx is triggered.
 		handleStopped()
-	case <-runner.CancelledCtx.Done():
-		// After the second interrupt the CancelledCtx is triggered.
-		handleCancelled()
 	case <-ctx.Done():
 		// The remote run finished normally! Do nothing.
 	}
