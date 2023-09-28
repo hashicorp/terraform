@@ -276,6 +276,38 @@ func TestTest_Interrupt(t *testing.T) {
 	}
 }
 
+func TestTest_InterruptSkipsRemaining(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "with_interrupt_and_additional_file")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	interrupt := make(chan struct{})
+	provider.Interrupt = interrupt
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+			ShutdownCh:       interrupt,
+		},
+	}
+
+	c.Run([]string{"-no-color"})
+	output := done(t).All()
+
+	if !strings.Contains(output, "skip_me.tftest.hcl... skip") {
+		t.Errorf("output didn't produce the right output:\n\n%s", output)
+	}
+
+	if provider.ResourceCount() > 0 {
+		// we asked for a nice stop in this one, so it should still have tidied everything up.
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
 func TestTest_DoubleInterrupt(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "with_double_interrupt")), td)
