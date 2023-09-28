@@ -70,6 +70,9 @@ type Interface interface {
 	// ReadDataSource returns the data source's current state.
 	ReadDataSource(ReadDataSourceRequest) ReadDataSourceResponse
 
+	// CallFunction calls a provider-contributed function.
+	CallFunction(CallFunctionRequest) CallFunctionResponse
+
 	// Close shuts down the plugin process if applicable.
 	Close() error
 }
@@ -91,6 +94,10 @@ type GetProviderSchemaResponse struct {
 
 	// DataSources maps the data source name to that data source's schema.
 	DataSources map[string]Schema
+
+	// Functions maps from local function name (not including an namespace
+	// prefix) to the declaration of a function.
+	Functions map[string]FunctionDecl
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
@@ -415,5 +422,37 @@ type ReadDataSourceResponse struct {
 	State cty.Value
 
 	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type CallFunctionRequest struct {
+	// FunctionName is the local name of the function to call, as it was
+	// declared by the provider in its schema and without any
+	// externally-imposed namespace prefixes.
+	FunctionName string
+
+	// Arguments are the positional argument values given at the call site.
+	//
+	// Provider functions are required to behave as pure functions, and so
+	// if all of the argument values are known then two separate calls with the
+	// same arguments must always return an identical value, without performing
+	// any externally-visible side-effects.
+	Arguments []cty.Value
+}
+
+type CallFunctionResponse struct {
+	// Result is the successful result of the function call.
+	//
+	// If all of the arguments in the call were known then the result must
+	// also be known. If any arguments were unknown then the result may
+	// optionally be unknown. The type of the returned value must conform
+	// to the return type constraint for this function as declared in the
+	// provider schema.
+	//
+	// If Diagnostics contains any errors, this field will be ignored and
+	// so can be left as cty.NilVal to represent the absense of a value.
+	Result cty.Value
+
+	// Diagnostics contains any warnings or errors from the function call.
 	Diagnostics tfdiags.Diagnostics
 }
