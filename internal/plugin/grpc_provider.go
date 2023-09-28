@@ -678,6 +678,15 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 	return resp
 }
 
+func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
+	// Protocol version 5 doesn't support provider-contributed functions,
+	// and so providers of this protocol cannot possibly declare any functions
+	// in their schemas and thus if we get in here it'd be a bug in Terraform
+	// Core trying to call a function that we didn't actually declare.
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("can't call provider-contributed functions via protocol version 5"))
+	return resp
+}
+
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
 func (p *GRPCProvider) Close() error {
 	logger.Trace("GRPCProvider: Close")
