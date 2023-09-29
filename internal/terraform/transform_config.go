@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // ConfigTransformer is a GraphTransformer that adds all the resources
@@ -61,23 +63,23 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 	}
 
 	// Start the transformation process
-	return t.transform(g, t.Config, t.generateConfigPathForImportTargets)
+	return t.transform(g, t.Config)
 }
 
-func (t *ConfigTransformer) transform(g *Graph, config *configs.Config, generateConfigPath string) error {
+func (t *ConfigTransformer) transform(g *Graph, config *configs.Config) error {
 	// If no config, do nothing
 	if config == nil {
 		return nil
 	}
 
 	// Add our resources
-	if err := t.transformSingle(g, config, generateConfigPath); err != nil {
+	if err := t.transformSingle(g, config); err != nil {
 		return err
 	}
 
 	// Transform all the children without generating config.
 	for _, c := range config.Children {
-		if err := t.transform(g, c, ""); err != nil {
+		if err := t.transform(g, c); err != nil {
 			return err
 		}
 	}
@@ -85,7 +87,7 @@ func (t *ConfigTransformer) transform(g *Graph, config *configs.Config, generate
 	return nil
 }
 
-func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config, generateConfigPath string) error {
+func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) error {
 	path := config.Path
 	module := config.Module
 	log.Printf("[TRACE] ConfigTransformer: Starting for path: %v", path)
@@ -102,8 +104,15 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config, ge
 	// Only include import targets that are targeting the current module.
 	var importTargets []*ImportTarget
 	for _, target := range t.importTargets {
-		if targetModule := target.Addr.Module.Module(); targetModule.Equal(config.Path) {
-			importTargets = append(importTargets, target)
+		switch {
+		case target.Config == nil:
+			if target.LegacyAddr.Module.Module().Equal(config.Path) {
+				importTargets = append(importTargets, target)
+			}
+		default:
+			if target.Config.ToResource.Module.Equal(config.Path) {
+				importTargets = append(importTargets, target)
+			}
 		}
 	}
 
@@ -122,7 +131,12 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config, ge
 
 		var matchedIndices []int
 		for ix, i := range importTargets {
-			if target := i.Addr.ContainingResource().Config(); target.Equal(configAddr) {
+			if i.LegacyAddr.ConfigResource().Equal(configAddr) {
+				matchedIndices = append(matchedIndices, ix)
+				imports = append(imports, i)
+
+			}
+			if i.Config != nil && i.Config.ToResource.Equal(configAddr) {
 				// This import target has been claimed by an actual resource,
 				// let's make a note of this to remove it from the targets.
 				matchedIndices = append(matchedIndices, ix)
@@ -157,39 +171,76 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config, ge
 		g.Add(node)
 	}
 
-	// If any import targets were not claimed by resources, then let's add them
-	// into the graph now.
-	//
-	// We actually know that if any of the resources aren't claimed and
-	// generateConfig is false, then we have a problem. But, we can't raise a
-	// nice error message from this function.
-	//
-	// We'll add the nodes that we know will fail, and catch them again later
-	// in the processing when we are in a position to raise a much more helpful
-	// error message.
-	//
-	// TODO: We could actually catch and process these kind of problems earlier,
-	//   this is something that could be done during the Validate process.
+	// If any import targets were not claimed by resources and we are
+	// generating configuration, then let's add them into the graph now.
+
+	// TODO: use diagnostics to collect detailed errors for now, even though we
+	// can only return an error from here. This gives the user more immediate
+	// feedback, rather than waiting an unknown amount of time for the plan to
+	// fail.
+	var diags tfdiags.Diagnostics
+
 	for _, i := range importTargets {
-		// The case in which an unmatched import block targets an expanded
-		// resource instance can error here. Others can error later.
-		if i.Addr.Resource.Key != addrs.NoKey {
-			return fmt.Errorf("Config generation for count and for_each resources not supported.\n\nYour configuration contains an import block with a \"to\" address of %s. This resource instance does not exist in configuration.\n\nIf you intended to target a resource that exists in configuration, please double-check the address. Otherwise, please remove this import block or re-run the plan without the -generate-config-out flag to ignore the import block.", i.Addr)
+		if path.IsRoot() {
+			// If we have a single instance import target in the root module, we
+			// can suggest config generation.
+			// We do need to make sure there are no dynamic expressions here
+			// and we can parse this at all.
+			var toDiags tfdiags.Diagnostics
+			traversal, hd := hcl.AbsTraversalForExpr(i.Config.To)
+			toDiags = toDiags.Append(hd)
+			to, td := addrs.ParseAbsResourceInstance(traversal)
+			toDiags = toDiags.Append(td)
+			canGenerate := !toDiags.HasErrors() && to.Resource.Key == addrs.NoKey
+
+			if t.generateConfigPathForImportTargets != "" && canGenerate {
+				log.Printf("[DEBUG] ConfigTransformer: adding config generation node for %s", i.Config.ToResource)
+
+				// TODO: if config generation is ever supported for for_each
+				// resources, this will add multiple nodes for the same
+				// resource
+				abstract := &NodeAbstractResource{
+					Addr:               i.Config.ToResource,
+					importTargets:      []*ImportTarget{i},
+					generateConfigPath: t.generateConfigPathForImportTargets,
+				}
+				var node dag.Vertex = abstract
+				if f := t.Concrete; f != nil {
+					node = f(abstract)
+				}
+
+				g.Add(node)
+				continue
+			}
+
+			if t.generateConfigPathForImportTargets != "" && !canGenerate {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Cannot generate configuration",
+					Detail:   "The given import block is not compatible with config generation. The -generate-config-out option cannot be used with import blocks which use for_each, or resources which use for_each or count.",
+					Subject:  i.Config.To.Range().Ptr(),
+				})
+				continue
+			}
+
+			if canGenerate {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Configuration for import target does not exist",
+					Detail:   fmt.Sprintf("The configuration for the given import target %s does not exist. If you wish to automatically generate config for this resource, use the -generate-config-out option within terraform plan. Otherwise, make sure the target resource exists within your configuration. For example:\n\n  terraform plan -generate-config-out=generated.tf", to),
+					Subject:  i.Config.To.Range().Ptr(),
+				})
+				continue
+			}
 		}
 
-		abstract := &NodeAbstractResource{
-			Addr:               i.Addr.ConfigResource(),
-			importTargets:      []*ImportTarget{i},
-			generateConfigPath: generateConfigPath,
-		}
-
-		var node dag.Vertex = abstract
-		if f := t.Concrete; f != nil {
-			node = f(abstract)
-		}
-
-		g.Add(node)
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Configuration for import target does not exist",
+			Detail:   fmt.Sprintf("The configuration for the given import target %s does not exist. All target instances must have an associated configuration to be imported.", i.Config.ToResource),
+			Subject:  i.Config.To.Range().Ptr(),
+		})
 	}
 
-	return nil
+	return diags.Err()
 }

@@ -2485,3 +2485,33 @@ locals {
 		t.Fatalf("expected deprecated warning, got: %q\n", warn)
 	}
 }
+
+func TestContext2Validate_unknownForEach(t *testing.T) {
+	p := testProvider("aws")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "aws_instance" "test" {
+}
+
+locals {
+  follow = {
+    (aws_instance.test.id): "follow"
+  }
+}
+
+resource "aws_instance" "follow" {
+  for_each = local.follow
+}
+ `,
+	})
+	c := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := c.Validate(m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}

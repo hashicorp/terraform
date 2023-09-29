@@ -524,45 +524,14 @@ func (c *Context) postPlanValidateMoves(config *configs.Config, stmts []refactor
 	return refactoring.ValidateMoves(stmts, config, allInsts)
 }
 
-// All import target addresses with a key must already exist in config.
-// When we are able to generate config for expanded resources, this rule can be
-// relaxed.
-func (c *Context) postPlanValidateImports(config *configs.Config, importTargets []*ImportTarget, allInst instances.Set) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	for _, it := range importTargets {
-		// We only care about import target addresses that have a key.
-		// If the address does not have a key, we don't need it to be in config
-		// because are able to generate config.
-		if it.Addr.Resource.Key == nil {
-			continue
-		}
-
-		if !allInst.HasResourceInstance(it.Addr) {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Cannot import to non-existent resource address",
-				fmt.Sprintf(
-					"Importing to resource address %s is not possible, because that address does not exist in configuration. Please ensure that the resource key is correct, or remove this import block.",
-					it.Addr,
-				),
-			))
-		}
-	}
-	return diags
-}
-
 // findImportTargets builds a list of import targets by taking the import blocks
 // in the config and filtering out any that target a resource already in state.
 func (c *Context) findImportTargets(config *configs.Config, priorState *states.State) []*ImportTarget {
 	var importTargets []*ImportTarget
 	for _, ic := range config.Module.Import {
-		if priorState.ResourceInstance(ic.To) == nil {
-			importTargets = append(importTargets, &ImportTarget{
-				Addr:   ic.To,
-				ID:     ic.ID,
-				Config: ic,
-			})
-		}
+		importTargets = append(importTargets, &ImportTarget{
+			Config: ic,
+		})
 	}
 	return importTargets
 }
@@ -606,11 +575,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	diags = diags.Append(walkDiags)
 
 	allInsts := walker.InstanceExpander.AllInstances()
-
-	importValidateDiags := c.postPlanValidateImports(config, opts.ImportTargets, allInsts)
-	if importValidateDiags.HasErrors() {
-		return nil, importValidateDiags
-	}
 
 	moveValidateDiags := c.postPlanValidateMoves(config, moveStmts, allInsts)
 	if moveValidateDiags.HasErrors() {
