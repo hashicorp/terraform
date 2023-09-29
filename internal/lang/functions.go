@@ -178,7 +178,8 @@ func (s *Scope) Functions() map[string]function.Function {
 		// namespaces that can serve as external extension points.
 		s.funcs = make(map[string]function.Function, len(coreFuncs)*2)
 		for name, fn := range coreFuncs {
-			s.funcs[name] = funcs.WithDescription(name, fn)
+			fn = funcs.WithDescription(name, fn)
+			s.funcs[name] = fn
 			s.funcs["core::"+name] = fn
 		}
 
