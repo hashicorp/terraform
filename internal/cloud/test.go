@@ -491,6 +491,13 @@ func (runner *TestSuiteRunner) renderLogs(client *tfe.Client, run *tfe.TestRun, 
 				// isn't available within the renderer so we process them first.
 
 				switch log.Type {
+				case jsonformat.Log:
+					// Don't show the normal log messages as the only one that
+					// is produced for the test framework is the interrupt
+					// message and that is also display locally already so we
+					// would get a duplicate.
+					continue
+
 				case jsonformat.LogTestInterrupt:
 					interrupt := log.TestFatalInterrupt
 

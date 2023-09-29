@@ -46,6 +46,8 @@ type JSONLog struct {
 }
 
 const (
+	Log JSONLogType = "log"
+
 	LogApplyComplete     JSONLogType = "apply_complete"
 	LogApplyErrored      JSONLogType = "apply_errored"
 	LogApplyStart        JSONLogType = "apply_start"
