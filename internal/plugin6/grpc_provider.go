@@ -74,7 +74,6 @@ type GRPCProvider struct {
 }
 
 func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
-	logger.Trace("GRPCProvider.v6: GetProviderSchema")
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -88,6 +87,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 			return resp
 		}
 	}
+	logger.Trace("GRPCProvider.v6: GetProviderSchema")
 
 	// If the local cache is non-zero, we know this instance has called
 	// GetProviderSchema at least once and we can return early.
@@ -675,9 +675,15 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 }
 
 func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
-	logger.Trace("GRPCProvider.v6: CallFunction(%q)", r.FunctionName)
+	logger.Trace("GRPCProvider.v6", "CallFunction", r.FunctionName)
 
-	funcDecl, ok := p.schemas.Functions[r.FunctionName]
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	funcDecl, ok := schema.Functions[r.FunctionName]
 	// We check for various problems with the request below in the interests
 	// of robustness, just to avoid crashing while trying to encode/decode, but
 	// if we reach any of these errors then that suggests a bug in the caller,
