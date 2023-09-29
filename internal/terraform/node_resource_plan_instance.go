@@ -159,41 +159,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	importing := n.importTarget.ID != nil
-	var importId string
-
-	if importing {
-		var evalDiags tfdiags.Diagnostics
-
-		importId, evalDiags = evaluateImportIdExpression(n.importTarget.ID, ctx)
-		if evalDiags.HasErrors() {
-			diags = diags.Append(evalDiags)
-			return diags
-		}
-	}
-
-	if importing && n.Config == nil && len(n.generateConfigPath) == 0 {
-		// Then the user wrote an import target to a target that didn't exist.
-		if n.Addr.Module.IsRoot() {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Import block target does not exist",
-				Detail:   "The target for the given import block does not exist. If you wish to automatically generate config for this resource, use the -generate-config-out option within terraform plan. Otherwise, make sure the target resource exists within your configuration. For example:\n\n  terraform plan -generate-config-out=generated.tf",
-				Subject:  n.importTarget.Config.DeclRange.Ptr(),
-			})
-		} else {
-			// You can't generate config for a resource that is inside a
-			// module, so we will present a different error message for
-			// this case.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Import block target does not exist",
-				Detail:   "The target for the given import block does not exist. The specified target is within a module, and must be defined as a resource within that module before anything can be imported.",
-				Subject:  n.importTarget.Config.DeclRange.Ptr(),
-			})
-		}
-		return diags
-	}
+	importing := n.importTarget.IDString != ""
+	importId := n.importTarget.IDString
 
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
@@ -505,7 +472,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	}))
 
 	if imported[0].TypeName == "" {
-		diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.importTarget.Addr.String()))
+		diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.Addr.String()))
 		return nil, diags
 	}
 
@@ -517,14 +484,14 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			"Import returned null resource",
 			fmt.Sprintf("While attempting to import with ID %s, the provider"+
 				"returned an instance with no state.",
-				n.importTarget.ID,
+				n.importTarget.IDString,
 			),
 		))
 	}
 
 	// refresh
 	riNode := &NodeAbstractResourceInstance{
-		Addr: n.importTarget.Addr,
+		Addr: n.Addr,
 		NodeAbstractResource: NodeAbstractResource{
 			ResolvedProvider: n.ResolvedProvider,
 		},
@@ -548,7 +515,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 					"is correct and that it is associated with the provider's "+
 					"configured region or endpoint, or use \"terraform apply\" to "+
 					"create a new remote object for this resource.",
-				n.importTarget.Addr,
+				n.Addr,
 			),
 		))
 		return instanceRefreshState, diags

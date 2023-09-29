@@ -1638,16 +1638,28 @@ type MockTestRuns struct {
 	TestRuns map[string]*tfe.TestRun
 	modules  map[string][]*tfe.TestRun
 	logs     map[string]string
+
+	// delayedCancel allows a mock test run to cancel an operation instead of
+	// completing an operation. It's used
+	delayedCancel context.CancelFunc
+	cancelled     bool
+
+	// cancels counts the number of cancels that have been called. targetCancels
+	// tells the mock how many cancels we should receive before we let things
+	// finish. This is for testing the stop/cancel relationship.
+	cancels       int
+	targetCancels int
 }
 
 var _ tfe.TestRuns = (*MockTestRuns)(nil)
 
 func newMockTestRuns(client *MockClient) *MockTestRuns {
 	return &MockTestRuns{
-		client:   client,
-		TestRuns: make(map[string]*tfe.TestRun),
-		modules:  make(map[string][]*tfe.TestRun),
-		logs:     make(map[string]string),
+		client:    client,
+		TestRuns:  make(map[string]*tfe.TestRun),
+		modules:   make(map[string][]*tfe.TestRun),
+		logs:      make(map[string]string),
+		cancelled: false,
 	}
 }
 
@@ -1679,12 +1691,11 @@ func (m *MockTestRuns) Read(ctx context.Context, moduleID tfe.RegistryModuleID, 
 
 	if tr, exists := m.TestRuns[testRunID]; exists {
 
-		// This just simulates some natural progression
+		// This just simulates some natural progression, the first time a
+		// test run is read it'll progress from queued to running.
 		switch tr.Status {
 		case tfe.TestRunQueued:
 			tr.Status = tfe.TestRunRunning
-		case tfe.TestRunRunning:
-			tr.Status = tfe.TestRunFinished
 		}
 
 		return tr, nil
@@ -1707,7 +1718,6 @@ func (m *MockTestRuns) Create(ctx context.Context, options tfe.TestRunCreateOpti
 		ID:         id,
 		LogReadURL: url,
 		Status:     tfe.TestRunQueued,
-		TestStatus: tfe.TestPass, // Default the test runs we create to passing.
 
 		ConfigurationVersion: options.ConfigurationVersion,
 		RegistryModule:       options.RegistryModule,
@@ -1750,10 +1760,29 @@ func (m *MockTestRuns) Logs(ctx context.Context, moduleID tfe.RegistryModuleID, 
 
 		switch tr.Status {
 		case tfe.TestRunRunning:
-			// Update the status so that on the next call it thinks it's
-			// finished.
-			tr.Status = tfe.TestRunFinished
-			return false, nil
+
+			// The first time the done function is called we'll progress from
+			// running into finished. We may instead cancel this if the
+			// delayedCancel trigger is set.
+
+			if m.delayedCancel != nil {
+				if !m.cancelled {
+					// Make sure we only trigger the cancel once.
+					m.delayedCancel()
+					m.cancelled = true
+				}
+				return false, nil
+			} else {
+
+				if m.targetCancels == 0 {
+					// Update the status so that on the next call it thinks it's
+					// finished.
+					tr.Status = tfe.TestRunFinished
+					tr.TestStatus = tfe.TestPass
+				}
+
+				return false, nil
+			}
 
 		case tfe.TestRunFinished, tfe.TestRunCanceled:
 			// We're done.
@@ -1780,18 +1809,15 @@ func (m *MockTestRuns) Cancel(ctx context.Context, moduleID tfe.RegistryModuleID
 		return tfe.ErrResourceNotFound
 	}
 
-	tr.Status = tfe.TestRunCanceled
+	m.cancels++
+	if m.cancels >= m.targetCancels {
+		tr.Status = tfe.TestRunCanceled
+	}
 	return nil
 }
 
 func (m *MockTestRuns) ForceCancel(ctx context.Context, moduleID tfe.RegistryModuleID, testRunID string) error {
-	tr, exists := m.TestRuns[testRunID]
-	if !exists {
-		return tfe.ErrResourceNotFound
-	}
-
-	tr.Status = tfe.TestRunCanceled
-	return nil
+	panic("not implemented, you can't force cancel a test run via the Terraform CLI")
 }
 
 type MockVariables struct {

@@ -416,6 +416,10 @@ func TestTest_Cancel(t *testing.T) {
 		clientOverride: client,
 	}
 
+	// We're only going to be able to finish this if the cancellation calls
+	// are done correctly.
+	mock.TestRuns.targetCancels = 1
+
 	var diags tfdiags.Diagnostics
 	go func() {
 		defer done()
@@ -423,6 +427,127 @@ func TestTest_Cancel(t *testing.T) {
 	}()
 
 	stop() // immediately cancel
+
+	// Wait for finish!
+	<-doneContext.Done()
+
+	if len(diags) > 0 {
+		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
+	}
+
+	output := outputFn(t)
+	actual := output.All()
+	expected := `main.tftest.hcl... in progress
+
+Interrupt received.
+Please wait for Terraform to exit or data loss may occur.
+Gracefully shutting down...
+
+  defaults... pass
+  overrides... skip
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
+
+Success! 1 passed, 0 failed, 1 skipped.
+`
+
+	if diff := cmp.Diff(expected, actual); len(diff) > 0 {
+		t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+
+	// We want to make sure the cancel signal actually made it through.
+	// Luckily we can access the test runs directly in the mock client.
+	tr := mock.TestRuns.modules[module.ID][0]
+	if tr.Status != tfe.TestRunCanceled {
+		t.Errorf("expected test run to have been cancelled but was %s", tr.Status)
+	}
+
+	if mock.TestRuns.cancels != 1 {
+		t.Errorf("incorrect number of cancels, expected 1 but was %d", mock.TestRuns.cancels)
+	}
+}
+
+// TestTest_DelayedCancel just makes sure that if we trigger the cancellation
+// during the log reading stage then it still cancels properly.
+func TestTest_DelayedCancel(t *testing.T) {
+
+	streams, outputFn := terminal.StreamsForTesting(t)
+	view := views.NewTest(arguments.ViewHuman, views.NewView(streams))
+
+	colorize := mockColorize()
+	colorize.Disable = true
+
+	mock := NewMockClient()
+	client := &tfe.Client{
+		ConfigurationVersions: mock.ConfigurationVersions,
+		Organizations:         mock.Organizations,
+		RegistryModules:       mock.RegistryModules,
+		TestRuns:              mock.TestRuns,
+	}
+
+	if _, err := client.Organizations.Create(context.Background(), tfe.OrganizationCreateOptions{
+		Name: tfe.String("organisation"),
+	}); err != nil {
+		t.Fatalf("failed to create organisation: %v", err)
+	}
+
+	module, err := client.RegistryModules.Create(context.Background(), "organisation", tfe.RegistryModuleCreateOptions{
+		Name:         tfe.String("name"),
+		Provider:     tfe.String("provider"),
+		RegistryName: "app.terraform.io",
+		Namespace:    "organisation",
+	})
+	if err != nil {
+		t.Fatalf("failed to create registry module: %v", err)
+	}
+
+	doneContext, done := context.WithCancel(context.Background())
+	stopContext, stop := context.WithCancel(context.Background())
+
+	mock.TestRuns.delayedCancel = stop
+
+	// We're only going to be able to finish this if the cancellation calls
+	// are done correctly.
+	mock.TestRuns.targetCancels = 1
+
+	runner := TestSuiteRunner{
+		// Configuration data.
+		ConfigDirectory:  "testdata/test-cancel",
+		TestingDirectory: "tests",
+		Config:           nil, // We don't need this for this test.
+		Source:           "app.terraform.io/organisation/name/provider",
+
+		// Cancellation controls, we won't be doing any cancellations in this
+		// test.
+		Stopped:      false,
+		Cancelled:    false,
+		StoppedCtx:   stopContext,
+		CancelledCtx: context.Background(),
+
+		// Test Options, empty for this test.
+		GlobalVariables: nil,
+		Verbose:         false,
+		Filters:         nil,
+
+		// Outputs
+		Renderer: &jsonformat.Renderer{
+			Streams:             streams,
+			Colorize:            colorize,
+			RunningInAutomation: false,
+		},
+		View:    view,
+		Streams: streams,
+
+		// Networking
+		Services:       nil, // Don't need this when the client is overridden.
+		clientOverride: client,
+	}
+
+	var diags tfdiags.Diagnostics
+	go func() {
+		defer done()
+		_, diags = runner.Test()
+	}()
 
 	// Wait for finish!
 	<-doneContext.Done()
@@ -500,6 +625,7 @@ func TestTest_ForceCancel(t *testing.T) {
 	}
 
 	doneContext, done := context.WithCancel(context.Background())
+	stopContext, stop := context.WithCancel(context.Background())
 	cancelContext, cancel := context.WithCancel(context.Background())
 
 	runner := TestSuiteRunner{
@@ -513,7 +639,7 @@ func TestTest_ForceCancel(t *testing.T) {
 		// test.
 		Stopped:      false,
 		Cancelled:    false,
-		StoppedCtx:   context.Background(),
+		StoppedCtx:   stopContext,
 		CancelledCtx: cancelContext,
 
 		// Test Options, empty for this test.
@@ -535,13 +661,18 @@ func TestTest_ForceCancel(t *testing.T) {
 		clientOverride: client,
 	}
 
+	// We're only going to be able to finish this if the cancellation calls
+	// are done correctly.
+	mock.TestRuns.targetCancels = 2
+
 	var diags tfdiags.Diagnostics
 	go func() {
 		defer done()
 		_, diags = runner.Test()
 	}()
 
-	cancel() // immediately cancel
+	stop()
+	cancel()
 
 	// Wait for finish!
 	<-doneContext.Done()
@@ -616,5 +747,9 @@ Failure! 1 passed, 1 failed.
 	tr := mock.TestRuns.modules[module.ID][0]
 	if tr.Status != tfe.TestRunCanceled {
 		t.Errorf("expected test run to have been cancelled but was %s", tr.Status)
+	}
+
+	if mock.TestRuns.cancels != 2 {
+		t.Errorf("incorrect number of cancels, expected 2 but was %d", mock.TestRuns.cancels)
 	}
 }
