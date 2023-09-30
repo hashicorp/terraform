@@ -151,22 +151,19 @@ message PlanResourceInstanceChangeOutside {
 // message of this type with a matching component instance address and with
 // all other fields unset.
 message StateComponentInstanceV1 {
-    string component_instance_addr = 1;
+    // No details to track yet. The presence of an instance of this message
+    // at all is the signal of the component instance's existence.
 }
 
-// Represents the existence of a particular resource instance in a particular
-// component instance.
+// Represents the existence of a particular resource instance object in a
+// particular component instance.
 //
-// A resource instance message should typically be accompanied by a
+// A resource instance message object should typically be accompanied by a
 // StateComponentInstanceV1 (or later version) that represents the existence
 // of the component itself, but for robustness we tolerate the absense of
 // such a message and just assume that all of its fields (other than the
 // component instance address) are unset.
-message StateResourceInstanceV1 {
-    string component_instance_addr = 1;
-    string resource_instance_addr = 2;
-    string deposed_key = 3;
-
+message StateResourceInstanceObjectV1 {
     tfplan.DynamicValue value = 4;
-    tfplan.Path sensitive_paths = 5;
+    repeated tfplan.Path sensitive_paths = 5;
 }
