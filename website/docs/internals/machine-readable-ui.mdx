@@ -635,7 +635,7 @@ The `terraform test` command emits a `test_abstract` message describing the test
 
 ## Test File
 
-After Terraform completes execution of each test file, `terraform test` emits a `test_file` message with the status of the test file.
+Throughout a `terraform test` execution, Terraform will produce several progress updates for each test file. The progress field can be `starting`, `teardown`, or `complete`. Each test file will emit each progress update exactly once. When a test file emits the `complete` progress update, it will also include a status field containing one of `pass`, `error`, `fail`, or `skip` denoting the overall status of the completed test file.
 
 ### Example
 
@@ -648,6 +648,7 @@ After Terraform completes execution of each test file, `terraform test` emits a 
   "@timestamp": "2023-08-09T16:12:30.724368+02:00",
   "test_file": {
     "path": "validation.tftest.hcl",
+    "progress": "complete",
     "status": "pass"
   },
   "type": "test_file"
@@ -656,9 +657,15 @@ After Terraform completes execution of each test file, `terraform test` emits a 
 
 ## Test Run
 
-After Terraform completes execution of each test file, `terraform test` emits a series of `test_run` messages with each run block's status within the test file.
+While executing `run` blocks within a test file, Terraform will also produce several status updates for each `run` block. The progress field for a `run` block progress update can be `starting`, `running`, `teardown`, and `complete`. The `starting` and `complete` progress updates will be emitted exactly once. While the `running` and `teardown` progress updates can be emitted multiple times.
 
-### Example
+The `starting`, `running` and `teardown` updates will also include an `elapsed` field indicating the number of milliseconds the current test operation (for `starting` and `running`) or the current destroy operation (for `teardown`) has been in progress.
+
+The `complete` progress update will also include a `status` field containing one of `pass`, `error`, `fail`, or `skip` denoting the overall status of the completed `run` block`.
+
+Not every `run` block will emit `teardown` progress updates, as only the most recently executed `run` blocks reference the latest in-memory state files that need to be torn down. In addition, the `run` block tear down process is only initiated once the overall test file has already emitted its `teardown` status update. This means you can expect the `complete` progress update to be issued for a `run` block before any `teardown` updates are provided. There will always be a `complete` progress update issued by the enclosing test file when the tear down process for all `run` blocks is complete.
+
+### Examples
 
 ```json
 {
@@ -671,7 +678,26 @@ After Terraform completes execution of each test file, `terraform test` emits a 
   "test_run": {
     "path": "main.tftest.hcl",
     "run": "successful_validation",
+    "progress": "complete",
     "status": "pass"
+  },
+  "type": "test_run"
+}
+```
+
+```json
+{
+  "@level": "info",
+  "@message": "  \"successful_validation\"... in progress",
+  "@module": "terraform.ui",
+  "@testfile": "validation.tftest.hcl",
+  "@testrun": "successful_validation",
+  "@timestamp": "2023-08-09T16:12:30.724407+02:00",
+  "test_run": {
+    "path": "main.tftest.hcl",
+    "run": "successful_validation",
+    "progress": "running",
+    "elapsed": 2024
   },
   "type": "test_run"
 }

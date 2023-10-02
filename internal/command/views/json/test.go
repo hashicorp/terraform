@@ -22,9 +22,11 @@ type TestFileStatus struct {
 }
 
 type TestRunStatus struct {
-	Path   string     `json:"path"`
-	Run    string     `json:"run"`
-	Status TestStatus `json:"status"`
+	Path     string       `json:"path"`
+	Run      string       `json:"run"`
+	Progress TestProgress `json:"progress"`
+	Elapsed  *int64       `json:"elapsed,omitempty"`
+	Status   TestStatus   `json:"status,omitempty"`
 }
 
 type TestSuiteSummary struct {

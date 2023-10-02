@@ -13,6 +13,7 @@ type Progress int
 
 const (
 	Starting Progress = iota
+	Running
 	TearDown
 	Complete
 )
