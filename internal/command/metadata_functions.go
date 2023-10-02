@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	ignoredFunctions = []string{"map", "list"}
+	ignoredFunctions = []string{"map", "list", "core::map", "core::list"}
 )
 
 // MetadataFunctionsCommand is a Command implementation that prints out information
