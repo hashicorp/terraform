@@ -79,7 +79,7 @@ func (n *nodeExpandCheck) ModulePath() addrs.Module {
 	return n.addr.Module
 }
 
-func (n *nodeExpandCheck) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandCheck) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	exp := ctx.InstanceExpander()
 	modInsts := exp.ExpandModule(n.ModulePath())
 
