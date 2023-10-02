@@ -429,24 +429,9 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 		}
 		reqs[fqn] = nil
 	}
-	for _, i := range c.Module.Import {
-		implied, err := addrs.ParseProviderPart(i.ToResource.Resource.ImpliedProvider())
-		if err == nil {
-			// FIXME: this will not resolve correctly if the target module uses
-			// a different local name from the root module.
-			provider := c.Module.ImpliedProviderForUnqualifiedType(implied)
-			if _, exists := reqs[provider]; exists {
-				// Explicit dependency already present
-				continue
-			}
-			reqs[provider] = nil
-		}
-		// We don't return a diagnostic here, because the invalid address will
-		// have been caught elsewhere.
-	}
 
-	// Import blocks that are generating config may also have a custom provider
-	// meta argument. Like the provider meta argument used in resource blocks,
+	// Import blocks that are generating config may have a custom provider
+	// meta-argument. Like the provider meta-argument used in resource blocks,
 	// we use this opportunity to load any implicit providers.
 	//
 	// We'll also use this to validate that import blocks and targeted resource
