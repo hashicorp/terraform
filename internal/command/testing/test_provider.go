@@ -33,10 +33,12 @@ var (
 			"test_resource": {
 				Block: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
-						"id":              {Type: cty.String, Optional: true, Computed: true},
-						"value":           {Type: cty.String, Optional: true},
-						"interrupt_count": {Type: cty.Number, Optional: true},
-						"destroy_fail":    {Type: cty.Bool, Optional: true, Computed: true},
+						"id":                   {Type: cty.String, Optional: true, Computed: true},
+						"value":                {Type: cty.String, Optional: true},
+						"interrupt_count":      {Type: cty.Number, Optional: true},
+						"destroy_fail":         {Type: cty.Bool, Optional: true, Computed: true},
+						"create_wait_seconds":  {Type: cty.Number, Optional: true},
+						"destroy_wait_seconds": {Type: cty.Number, Optional: true},
 					},
 				},
 			},
@@ -45,10 +47,18 @@ var (
 			"test_data_source": {
 				Block: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
-						"id":              {Type: cty.String, Required: true},
-						"value":           {Type: cty.String, Computed: true},
-						"interrupt_count": {Type: cty.Number, Computed: true},
-						"destroy_fail":    {Type: cty.Bool, Computed: true},
+						"id":    {Type: cty.String, Required: true},
+						"value": {Type: cty.String, Computed: true},
+
+						// We never actually reference these values from a data
+						// source, but we have tests that use the same cty.Value
+						// to represent a test_resource and a test_data_source
+						// so the schemas have to match.
+
+						"interrupt_count":      {Type: cty.Number, Computed: true},
+						"destroy_fail":         {Type: cty.Bool, Computed: true},
+						"create_wait_seconds":  {Type: cty.Number, Computed: true},
+						"destroy_wait_seconds": {Type: cty.Number, Computed: true},
 					},
 				},
 			},
@@ -218,6 +228,11 @@ func (provider *TestProvider) ApplyResourceChange(request providers.ApplyResourc
 			}
 		}
 
+		if wait := request.PriorState.GetAttr("destroy_wait_seconds"); !wait.IsNull() && wait.IsKnown() {
+			waitTime, _ := wait.AsBigFloat().Int64()
+			time.Sleep(time.Second * time.Duration(waitTime))
+		}
+
 		provider.Store.Delete(provider.GetResourceKey(request.PriorState.GetAttr("id").AsString()))
 		return providers.ApplyResourceChangeResponse{
 			NewState: request.PlannedState,
@@ -249,6 +264,11 @@ func (provider *TestProvider) ApplyResourceChange(request providers.ApplyResourc
 		// Terraform before the provider finishes. This is an attempt to ensure
 		// the output of any tests that rely on this behaviour is deterministic.
 		time.Sleep(time.Second)
+	}
+
+	if wait := resource.GetAttr("create_wait_seconds"); !wait.IsNull() && wait.IsKnown() {
+		waitTime, _ := wait.AsBigFloat().Int64()
+		time.Sleep(time.Second * time.Duration(waitTime))
 	}
 
 	if destroyFail := resource.GetAttr("destroy_fail"); !destroyFail.IsKnown() {

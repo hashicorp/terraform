@@ -218,12 +218,21 @@ func (renderer Renderer) RenderLog(log *JSONLog) error {
 			case "skip", "pending":
 				msg = fmt.Sprintf(renderer.Colorize.Color("%s... [light_gray]%s[reset]"), status.Path, string(status.Status))
 			}
+		case "running":
+			// Don't print anything for the running status.
+			break
 		}
 
 		renderer.Streams.Println(msg)
 
 	case LogTestRun:
 		status := log.TestRunStatus
+
+		if status.Progress != "complete" {
+			// Don't print anything for status updates, we only report when the
+			// run is actually finished.
+			break
+		}
 
 		var msg string
 		switch status.Status {
