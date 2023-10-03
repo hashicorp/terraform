@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -29,7 +30,7 @@ func TestEvaluatorGetTerraformAttr(t *testing.T) {
 	data := &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope := evaluator.Scope(data, nil, nil)
+	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
 	t.Run("workspace", func(t *testing.T) {
 		want := cty.StringVal("foo")
@@ -59,7 +60,7 @@ func TestEvaluatorGetPathAttr(t *testing.T) {
 	data := &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope := evaluator.Scope(data, nil, nil)
+	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
 	t.Run("module", func(t *testing.T) {
 		want := cty.StringVal("bar/baz")
@@ -125,7 +126,7 @@ func TestEvaluatorGetOutputValue(t *testing.T) {
 	data := &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope := evaluator.Scope(data, nil, nil)
+	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
 	want := cty.StringVal("first").Mark(marks.Sensitive)
 	got, diags := scope.Data.GetOutput(addrs.OutputValue{
@@ -192,7 +193,7 @@ func TestEvaluatorGetInputVariable(t *testing.T) {
 	data := &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope := evaluator.Scope(data, nil, nil)
+	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
 	want := cty.StringVal("bar").Mark(marks.Sensitive)
 	got, diags := scope.Data.GetInputVariable(addrs.InputVariable{
@@ -342,7 +343,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 	data := &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope := evaluator.Scope(data, nil, nil)
+	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
 	want := cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("foo"),
@@ -508,7 +509,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 	data := &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope := evaluator.Scope(data, nil, nil)
+	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
 	want := cty.ObjectVal(map[string]cty.Value{
 		"id":              cty.StringVal("foo"),
@@ -543,7 +544,7 @@ func TestEvaluatorGetModule(t *testing.T) {
 	data := &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope := evaluator.Scope(data, nil, nil)
+	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 	want := cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("bar").Mark(marks.Sensitive)})
 	got, diags := scope.Data.GetModule(addrs.ModuleCall{
 		Name: "mod",
@@ -571,7 +572,7 @@ func TestEvaluatorGetModule(t *testing.T) {
 	data = &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope = evaluator.Scope(data, nil, nil)
+	scope = evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 	want = cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("baz").Mark(marks.Sensitive)})
 	got, diags = scope.Data.GetModule(addrs.ModuleCall{
 		Name: "mod",
@@ -589,7 +590,7 @@ func TestEvaluatorGetModule(t *testing.T) {
 	data = &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope = evaluator.Scope(data, nil, nil)
+	scope = evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 	want = cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("baz").Mark(marks.Sensitive)})
 	got, diags = scope.Data.GetModule(addrs.ModuleCall{
 		Name: "mod",
@@ -689,7 +690,7 @@ func TestGetRunBlocks(t *testing.T) {
 		InstanceKeyData: EvalDataForNoInstanceKey,
 	}
 
-	scope := evaluator.Scope(data, nil, nil)
+	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 	got, diags := scope.Data.GetRunBlock(addrs.Run{Name: "zero"}, tfdiags.SourceRange{})
 	want := cty.ObjectVal(map[string]cty.Value{
 		"value": cty.StringVal("Hello, world!"),
