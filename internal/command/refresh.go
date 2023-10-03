@@ -161,7 +161,7 @@ func (c *RefreshCommand) GatherVariables(opReq *backend.Operation, args *argumen
 	var diags tfdiags.Diagnostics
 
 	// FIXME the arguments package currently trivially gathers variable related
-	// arguments in a heterogenous slice, in order to minimize the number of
+	// arguments in a heterogeneous slice, in order to minimize the number of
 	// code paths gathering variables during the transition to this structure.
 	// Once all commands that gather variables have been converted to this
 	// structure, we could move the variable gathering code to the arguments

@@ -230,7 +230,7 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 		f.Var((*flagStringSlice)(&operation.forceReplaceRaw), "replace", "replace")
 	}
 
-	// Gather all -var and -var-file arguments into one heterogenous structure
+	// Gather all -var and -var-file arguments into one heterogeneous structure
 	// to preserve the overall order.
 	if vars != nil {
 		varsFlags := newFlagNameValueSlice("-var")
