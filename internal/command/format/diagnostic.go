@@ -205,7 +205,7 @@ func DiagnosticWarningsCompact(diags tfdiags.Diagnostics, color *colorstring.Col
 				}
 			} else if len(sources) > 1 {
 				b.WriteString(fmt.Sprintf(
-					"  (%d occurences of this warning)\n",
+					"  (%d occurrences of this warning)\n",
 					len(sources),
 				))
 			}

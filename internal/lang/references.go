@@ -19,7 +19,7 @@ import (
 // This function does not do any de-duplication of references, since references
 // have source location information embedded in them and so any invalid
 // references that are duplicated should have errors reported for each
-// occurence.
+// occurrence.
 //
 // If the returned diagnostics contains errors then the result may be
 // incomplete or invalid. Otherwise, the returned slice has one reference per
