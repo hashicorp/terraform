@@ -132,7 +132,7 @@ func ParseDeclaredVariableValues(vv map[string]UnparsedVariableValue, decls map[
 	return ret, diags
 }
 
-// Checks all given terraform.InputValues variable maps for the existance of
+// Checks all given terraform.InputValues variable maps for the existence of
 // a named variable
 func isDefinedAny(name string, maps ...terraform.InputValues) bool {
 	for _, m := range maps {

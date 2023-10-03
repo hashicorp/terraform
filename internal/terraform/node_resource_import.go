@@ -230,7 +230,7 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 		return diags
 	}
 
-	// Verify the existance of the imported resource
+	// Verify the existence of the imported resource
 	if state.Value.IsNull() {
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.Sourceless(
