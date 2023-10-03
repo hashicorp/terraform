@@ -1130,7 +1130,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			Action: action,
 			Before: priorVal,
 			// Pass the marked planned value through in our change
-			// to propogate through evaluation.
+			// to propagate through evaluation.
 			// Marks will be removed when encoding.
 			After:           plannedNewVal,
 			GeneratedConfig: n.generatedConfigHCL,
