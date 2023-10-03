@@ -210,7 +210,7 @@ func (c *Config) EntersNewPackage() bool {
 
 // VerifyDependencySelections checks whether the given locked dependencies
 // are acceptable for all of the version constraints reported in the
-// configuration tree represented by the reciever.
+// configuration tree represented by the receiver.
 //
 // This function will errors only if any of the locked dependencies are out of
 // range for corresponding constraints in the configuration. If there are

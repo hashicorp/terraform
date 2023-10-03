@@ -23,7 +23,7 @@ type Reference struct {
 }
 
 // DisplayString returns a string that approximates the subject and remaining
-// traversal of the reciever in a way that resembles the Terraform language
+// traversal of the receiver in a way that resembles the Terraform language
 // syntax that could've produced it.
 //
 // It's not guaranteed to actually be a valid Terraform language expression,

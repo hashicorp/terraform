@@ -115,13 +115,13 @@ func (v *InputValue) GoString() string {
 	}
 }
 
-// HasSourceRange returns true if the reciever has a source type for which
+// HasSourceRange returns true if the receiver has a source type for which
 // we expect the SourceRange field to be populated with a valid range.
 func (v *InputValue) HasSourceRange() bool {
 	return v.SourceType.HasSourceRange()
 }
 
-// HasSourceRange returns true if the reciever is one of the source types
+// HasSourceRange returns true if the receiver is one of the source types
 // that is used along with a valid SourceRange field when appearing inside an
 // InputValue object.
 func (v ValueSourceType) HasSourceRange() bool {
@@ -212,7 +212,7 @@ func (vv InputValues) SameValues(other InputValues) bool {
 	return true
 }
 
-// HasValues returns true if the reciever has the same values as in the given
+// HasValues returns true if the receiver has the same values as in the given
 // map, disregarding the source types and source ranges.
 //
 // Values are compared using the cty "RawEquals" method, which means that

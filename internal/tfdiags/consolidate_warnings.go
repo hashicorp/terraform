@@ -15,7 +15,7 @@ import "fmt"
 // particularly if they are going to be interpreted by software rather than
 // by a human reader.
 //
-// The returned slice always has a separate backing array from the reciever,
+// The returned slice always has a separate backing array from the receiver,
 // but some diagnostic values themselves might be shared.
 //
 // The definition of "unreasonable" is given as the threshold argument. At most

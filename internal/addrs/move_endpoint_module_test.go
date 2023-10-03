@@ -284,7 +284,7 @@ func TestModuleInstanceMoveDestination(t *testing.T) {
 					var diags tfdiags.Diagnostics
 					receiverAddr, diags = ParseModuleInstanceStr(test.Receiver)
 					if diags.HasErrors() {
-						t.Fatalf("invalid reciever address: %s", diags.Err().Error())
+						t.Fatalf("invalid receiver address: %s", diags.Err().Error())
 					}
 				}
 				gotAddr, gotMatch := receiverAddr.MoveDestination(fromEP, toEP)
@@ -392,7 +392,7 @@ func TestAbsResourceInstanceMoveDestination(t *testing.T) {
 			`test_object.beep`,
 			`test_object.boop`,
 			`test_object.boop`,
-			false, // the reciever is already the "to" address
+			false, // the receiver is already the "to" address
 			``,
 		},
 		{
@@ -682,7 +682,7 @@ func TestAbsResourceInstanceMoveDestination(t *testing.T) {
 
 				receiverAddr, diags := ParseAbsResourceInstanceStr(test.Receiver)
 				if diags.HasErrors() {
-					t.Fatalf("invalid reciever address: %s", diags.Err().Error())
+					t.Fatalf("invalid receiver address: %s", diags.Err().Error())
 				}
 				gotAddr, gotMatch := receiverAddr.MoveDestination(fromEP, toEP)
 				if !test.WantMatch {
@@ -765,7 +765,7 @@ func TestAbsResourceMoveDestination(t *testing.T) {
 			`test_object.beep`,
 			`test_object.boop`,
 			`test_object.boop`,
-			false, // the reciever is already the "to" address
+			false, // the receiver is already the "to" address
 			``,
 		},
 		{
@@ -1052,10 +1052,10 @@ func TestAbsResourceMoveDestination(t *testing.T) {
 				// key.
 				receiverInstanceAddr, diags := ParseAbsResourceInstanceStr(test.Receiver)
 				if diags.HasErrors() {
-					t.Fatalf("invalid reciever address: %s", diags.Err().Error())
+					t.Fatalf("invalid receiver address: %s", diags.Err().Error())
 				}
 				if receiverInstanceAddr.Resource.Key != NoKey {
-					t.Fatalf("invalid reciever address: must be a resource, not a resource instance")
+					t.Fatalf("invalid receiver address: must be a resource, not a resource instance")
 				}
 				receiverAddr := receiverInstanceAddr.ContainingResource()
 				gotAddr, gotMatch := receiverAddr.MoveDestination(fromEP, toEP)

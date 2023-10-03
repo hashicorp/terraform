@@ -125,7 +125,7 @@ func (l *Locks) RemoveProvider(addr addrs.Provider) {
 //
 // This is an in-memory-only annotation which lives only inside a particular
 // Locks object, and is never persisted as part of a saved lock file on disk.
-// It's valid to still use other methods of the reciever to access
+// It's valid to still use other methods of the receiver to access
 // already-stored lock information and to update lock information for an
 // overridden provider, but some callers may need to use ProviderIsOverridden
 // to selectively disregard stored lock information for overridden providers,
@@ -149,7 +149,7 @@ func (l *Locks) ProviderIsOverridden(addr addrs.Provider) bool {
 //
 // This allows propagating override information between different lock objects,
 // as if calling SetProviderOverridden for each address already overridden
-// in the other given locks. If the reciever already has overridden providers,
+// in the other given locks. If the receiver already has overridden providers,
 // SetSameOverriddenProviders will preserve them.
 func (l *Locks) SetSameOverriddenProviders(other *Locks) {
 	if other == nil {

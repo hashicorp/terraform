@@ -420,7 +420,7 @@ func (m ModuleInstance) CallInstance() (ModuleInstance, ModuleCallInstance) {
 // TargetContains implements Targetable by returning true if the given other
 // address either matches the receiver, is a sub-module-instance of the
 // receiver, or is a targetable absolute address within a module that
-// is contained within the reciever.
+// is contained within the receiver.
 func (m ModuleInstance) TargetContains(other Targetable) bool {
 	switch to := other.(type) {
 	case Module:

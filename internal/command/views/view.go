@@ -54,7 +54,7 @@ func NewView(streams *terminal.Streams) *View {
 // instead for situations where the user isn't running Terraform directly.
 //
 // For convenient use during initialization (in conjunction with NewView),
-// SetRunningInAutomation returns the reciever after modifying it.
+// SetRunningInAutomation returns the receiver after modifying it.
 func (v *View) SetRunningInAutomation(new bool) *View {
 	v.runningInAutomation = new
 	return v

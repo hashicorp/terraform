@@ -14,7 +14,7 @@ import (
 // in this file comprehensively copy all parts of the state data structure
 // that could be mutated via pointers.
 
-// DeepCopy returns a new state that contains equivalent data to the reciever
+// DeepCopy returns a new state that contains equivalent data to the receiver
 // but shares no backing memory in common.
 //
 // As with all methods on State, this method is not safe to use concurrently
