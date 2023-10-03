@@ -400,7 +400,7 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 
 func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize Terraform Cloud")
-	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
+	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
 	defer span.End()
 
 	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing Terraform Cloud..."))
@@ -428,7 +428,7 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 
 func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize backend")
-	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
+	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
 	defer span.End()
 
 	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing the backend..."))

@@ -32,7 +32,7 @@ func runCheckpoint(ctx context.Context, c *cliconfig.Config) {
 	}
 
 	ctx, span := tracer.Start(ctx, "HashiCorp Checkpoint")
-	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
+	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
 	defer span.End()
 
 	configDir, err := cliconfig.ConfigDir()
