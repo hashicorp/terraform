@@ -98,13 +98,13 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	var diags tfdiags.Diagnostics
 
 	// To start, we'll collect the _requested_ provider addresses for each
-	// node, which we'll then resolve (handling provider inheritence, etc) in
+	// node, which we'll then resolve (handling provider inheritance, etc) in
 	// the next step.
 	// Our "requested" map is from graph vertices to string representations of
 	// provider config addresses (for deduping) to requests.
 	type ProviderRequest struct {
 		Addr  addrs.AbsProviderConfig
-		Exact bool // If true, inheritence from parent modules is not attempted
+		Exact bool // If true, inheritance from parent modules is not attempted
 	}
 	requested := map[dag.Vertex]map[string]ProviderRequest{}
 	needConfigured := map[string]addrs.AbsProviderConfig{}
@@ -297,7 +297,7 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 // This transformer may create extra nodes that are not needed in practice,
 // due to overriding provider configurations in child modules.
 // PruneProviderTransformer can then remove these once ProviderTransformer
-// has resolved all of the inheritence, etc.
+// has resolved all of the inheritance, etc.
 type MissingProviderTransformer struct {
 	// MissingProviderTransformer needs the config to rule out _implied_ default providers
 	Config *configs.Config
