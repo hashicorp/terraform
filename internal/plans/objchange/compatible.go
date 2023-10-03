@@ -57,7 +57,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		path := append(path, cty.GetAttrStep{Name: name})
 
 		// Unmark values here before checking value assertions,
-		// but save the marks so we can see if we should supress
+		// but save the marks so we can see if we should suppress
 		// exposing a value through errors
 		unmarkedActualV, marksA := actualV.UnmarkDeep()
 		unmarkedPlannedV, marksP := plannedV.UnmarkDeep()

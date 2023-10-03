@@ -433,7 +433,7 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backend.Oper
 		// should always have been called earlier to prepare the "ContextOpts"
 		// for the backend anyway, so we should never actually get here in
 		// a real situation. If we do get here then the backend will inevitably
-		// fail downstream somwhere if it tries to use the empty depLocks.
+		// fail downstream somewhere if it tries to use the empty depLocks.
 		log.Printf("[WARN] Failed to load dependency locks while preparing backend operation (ignored): %s", diags.Err().Error())
 	}
 

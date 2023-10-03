@@ -872,24 +872,24 @@ func (m schemaMap) diff(
 	d resourceDiffer,
 	all bool) error {
 
-	unsupressedDiff := new(terraform.InstanceDiff)
-	unsupressedDiff.Attributes = make(map[string]*terraform.ResourceAttrDiff)
+	unsuppressedDiff := new(terraform.InstanceDiff)
+	unsuppressedDiff.Attributes = make(map[string]*terraform.ResourceAttrDiff)
 
 	var err error
 	switch schema.Type {
 	case TypeBool, TypeInt, TypeFloat, TypeString:
-		err = m.diffString(k, schema, unsupressedDiff, d, all)
+		err = m.diffString(k, schema, unsuppressedDiff, d, all)
 	case TypeList:
-		err = m.diffList(k, schema, unsupressedDiff, d, all)
+		err = m.diffList(k, schema, unsuppressedDiff, d, all)
 	case TypeMap:
-		err = m.diffMap(k, schema, unsupressedDiff, d, all)
+		err = m.diffMap(k, schema, unsuppressedDiff, d, all)
 	case TypeSet:
-		err = m.diffSet(k, schema, unsupressedDiff, d, all)
+		err = m.diffSet(k, schema, unsuppressedDiff, d, all)
 	default:
 		err = fmt.Errorf("%s: unknown type %#v", k, schema.Type)
 	}
 
-	for attrK, attrV := range unsupressedDiff.Attributes {
+	for attrK, attrV := range unsuppressedDiff.Attributes {
 		switch rd := d.(type) {
 		case *ResourceData:
 			if schema.DiffSuppressFunc != nil && attrV != nil &&
