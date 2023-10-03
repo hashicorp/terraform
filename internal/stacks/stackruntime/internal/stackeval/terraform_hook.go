@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -39,7 +38,7 @@ func (h *componentInstanceTerraformHook) resourceInstanceAddr(addr addrs.AbsReso
 	}
 }
 
-func (h *componentInstanceTerraformHook) PreDiff(addr addrs.AbsResourceInstance, gen states.Generation, priorState, proposedNewState cty.Value) (terraform.HookAction, error) {
+func (h *componentInstanceTerraformHook) PreDiff(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (terraform.HookAction, error) {
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
 		Addr:   h.resourceInstanceAddr(addr),
 		Status: hooks.ResourceInstancePlanning,
@@ -47,7 +46,7 @@ func (h *componentInstanceTerraformHook) PreDiff(addr addrs.AbsResourceInstance,
 	return terraform.HookActionContinue, nil
 }
 
-func (h *componentInstanceTerraformHook) PostDiff(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *componentInstanceTerraformHook) PostDiff(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
 		Addr:   h.resourceInstanceAddr(addr),
 		Status: hooks.ResourceInstancePlanned,
@@ -55,7 +54,7 @@ func (h *componentInstanceTerraformHook) PostDiff(addr addrs.AbsResourceInstance
 	return terraform.HookActionContinue, nil
 }
 
-func (h *componentInstanceTerraformHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *componentInstanceTerraformHook) PreApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	if action != plans.NoOp {
 		hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
 			Addr:   h.resourceInstanceAddr(addr),
@@ -65,7 +64,7 @@ func (h *componentInstanceTerraformHook) PreApply(addr addrs.AbsResourceInstance
 	return terraform.HookActionContinue, nil
 }
 
-func (h *componentInstanceTerraformHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, err error) (terraform.HookAction, error) {
+func (h *componentInstanceTerraformHook) PostApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, newState cty.Value, err error) (terraform.HookAction, error) {
 	// FIXME: need to emit nothing if this was a no-op, which means tracking
 	// the `action` argument to `PreApply`. See `jsonHook` for more on this.
 	status := hooks.ResourceInstanceApplied

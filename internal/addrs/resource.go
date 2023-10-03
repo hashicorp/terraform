@@ -4,8 +4,11 @@
 package addrs
 
 import (
+	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"strings"
+	"time"
 )
 
 // Resource is an address for a resource block within configuration, which
@@ -292,6 +295,26 @@ func (r AbsResourceInstance) ConfigResource() ConfigResource {
 	}
 }
 
+// CurrentObject returns the address of the resource instance's "current"
+// object, which is the one used for expression evaluation etc.
+func (r AbsResourceInstance) CurrentObject() AbsResourceInstanceObject {
+	return AbsResourceInstanceObject{
+		ResourceInstance: r,
+		DeposedKey:       NotDeposed,
+	}
+}
+
+// DeposedObject returns the address of a "deposed" object for the receiving
+// resource instance, which appears only if a create-before-destroy replacement
+// succeeds the create step but fails the destroy step, making the original
+// object live on as a desposed object.
+func (r AbsResourceInstance) DeposedObject(key DeposedKey) AbsResourceInstanceObject {
+	return AbsResourceInstanceObject{
+		ResourceInstance: r,
+		DeposedKey:       key,
+	}
+}
+
 // TargetContains implements Targetable by returning true if the given other
 // address is equal to the receiver.
 func (r AbsResourceInstance) TargetContains(other Targetable) bool {
@@ -480,3 +503,107 @@ const (
 	// "data" blocks in configuration.
 	DataResourceMode ResourceMode = 'D'
 )
+
+// AbsResourceInstanceObject represents one of the specific remote objects
+// associated with a resource instance.
+//
+// When DeposedKey is [NotDeposed], this represents the "current" object.
+// Otherwise, this represents a deposed object with the given key.
+//
+// The distinction between "current" and "deposed" objects is a planning and
+// state concern that isn't reflected directly in configuration, so there
+// are no "ConfigResourceInstanceObject" or "ResourceInstanceObject" address
+// types.
+type AbsResourceInstanceObject struct {
+	ResourceInstance AbsResourceInstance
+	DeposedKey       DeposedKey
+}
+
+// String returns a string that could be used to refer to this object
+// in the UI, but is not necessarily suitable for use as a unique key.
+func (o AbsResourceInstanceObject) String() string {
+	if o.DeposedKey != NotDeposed {
+		return fmt.Sprintf("%s deposed object %s", o.ResourceInstance, o.DeposedKey)
+	}
+	return o.ResourceInstance.String()
+}
+
+// IsCurrent returns true only if this address is for a "current" object.
+func (o AbsResourceInstanceObject) IsCurrent() bool {
+	return o.DeposedKey == NotDeposed
+}
+
+// IsCurrent returns true only if this address is for a "deposed" object.
+func (o AbsResourceInstanceObject) IsDeposed() bool {
+	return o.DeposedKey != NotDeposed
+}
+
+// UniqueKey implements [UniqueKeyer]
+func (o AbsResourceInstanceObject) UniqueKey() UniqueKey {
+	return absResourceInstanceObjectKey{
+		resourceInstanceKey: o.ResourceInstance.UniqueKey(),
+		deposedKey:          o.DeposedKey,
+	}
+}
+
+type absResourceInstanceObjectKey struct {
+	resourceInstanceKey UniqueKey
+	deposedKey          DeposedKey
+}
+
+func (absResourceInstanceObjectKey) uniqueKeySigil() {}
+
+// DeposedKey is a 8-character hex string used to uniquely identify deposed
+// instance objects in the state.
+//
+// The zero value of this type is [NotDeposed] and represents a "current"
+// object, not deposed at all. All other valid values of this type are strings
+// containing exactly eight lowercase hex characters.
+type DeposedKey string
+
+// NotDeposed is a special invalid value of DeposedKey that is used to represent
+// the absense of a deposed key, typically when referring to the "current" object
+// for a particular resource instance. It must not be used as an actual deposed
+// key.
+const NotDeposed = DeposedKey("")
+
+var deposedKeyRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+// NewDeposedKey generates a pseudo-random deposed key. Because of the short
+// length of these keys, uniqueness is not a natural consequence and so the
+// caller should test to see if the generated key is already in use and generate
+// another if so, until a unique key is found.
+func NewDeposedKey() DeposedKey {
+	v := deposedKeyRand.Uint32()
+	return DeposedKey(fmt.Sprintf("%08x", v))
+}
+
+// ParseDeposedKey parses a string that is expected to be a deposed key,
+// returning an error if it doesn't conform to the expected syntax.
+func ParseDeposedKey(raw string) (DeposedKey, error) {
+	if len(raw) != 8 {
+		return "00000000", fmt.Errorf("must be eight hexadecimal digits")
+	}
+	if raw != strings.ToLower(raw) {
+		return "00000000", fmt.Errorf("must use lowercase hex digits")
+	}
+	_, err := hex.DecodeString(raw)
+	if err != nil {
+		return "00000000", fmt.Errorf("must be eight hexadecimal digits")
+	}
+	return DeposedKey(raw), nil
+}
+
+func (k DeposedKey) String() string {
+	return string(k)
+}
+
+func (k DeposedKey) GoString() string {
+	ks := string(k)
+	switch {
+	case ks == "":
+		return "states.NotDeposed"
+	default:
+		return fmt.Sprintf("states.DeposedKey(%q)", ks)
+	}
+}

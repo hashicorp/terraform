@@ -445,7 +445,7 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 
 	log.Printf("[TRACE] readResourceInstanceState: reading state for %s", addr)
 
-	src := ctx.State().ResourceInstanceObject(addr, states.CurrentGen)
+	src := ctx.State().ResourceInstanceObject(addr, addrs.NotDeposed)
 	if src == nil {
 		// Presumably we only have deposed objects, then.
 		log.Printf("[TRACE] readResourceInstanceState: no state present for %s", addr)

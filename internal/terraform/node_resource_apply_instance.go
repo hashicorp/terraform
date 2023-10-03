@@ -122,7 +122,7 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 		// to do and the change was left in the plan for informational
 		// purposes only.
 		changes := ctx.Changes()
-		csrc := changes.GetResourceInstanceChange(n.ResourceInstanceAddr(), states.CurrentGen)
+		csrc := changes.GetResourceInstanceChange(n.ResourceInstanceAddr(), addrs.NotDeposed)
 		if csrc == nil || csrc.Action == plans.NoOp {
 			log.Printf("[DEBUG] NodeApplyableResourceInstance: No config or planned change recorded for %s", n.Addr)
 			return nil

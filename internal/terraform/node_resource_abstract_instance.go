@@ -161,8 +161,7 @@ func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema 
 		return nil, fmt.Errorf("provider does not support resource type %q", addr.Resource.Resource.Type)
 	}
 
-	gen := states.CurrentGen
-	csrc := changes.GetResourceInstanceChange(addr, gen)
+	csrc := changes.GetResourceInstanceChange(addr, addrs.NotDeposed)
 	if csrc == nil {
 		log.Printf("[TRACE] readDiff: No planned change recorded for %s", n.Addr)
 		return nil, nil
@@ -216,7 +215,7 @@ func (n *NodeAbstractResourceInstance) preApplyHook(ctx EvalContext, change *pla
 		plannedNewState := change.After
 
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PreApply(n.Addr, change.DeposedKey.Generation(), change.Action, priorState, plannedNewState)
+			return h.PreApply(n.Addr, change.DeposedKey, change.Action, priorState, plannedNewState)
 		}))
 		if diags.HasErrors() {
 			return diags
@@ -239,7 +238,7 @@ func (n *NodeAbstractResourceInstance) postApplyHook(ctx EvalContext, state *sta
 			newState = cty.NullVal(cty.DynamicPseudoType)
 		}
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostApply(n.Addr, nil, newState, err)
+			return h.PostApply(n.Addr, addrs.NotDeposed, newState, err)
 		}))
 	}
 
@@ -484,11 +483,7 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 	if change == nil {
 		// Caller sets nil to indicate that we need to remove a change from
 		// the set of changes.
-		gen := states.CurrentGen
-		if deposedKey != states.NotDeposed {
-			gen = deposedKey
-		}
-		changes.RemoveResourceInstanceChange(n.Addr, gen)
+		changes.RemoveResourceInstanceChange(n.Addr, deposedKey)
 		return nil
 	}
 
@@ -566,14 +561,9 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		return state, diags
 	}
 
-	hookGen := states.CurrentGen
-	if deposedKey != states.NotDeposed {
-		hookGen = deposedKey
-	}
-
 	// Call pre-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreRefresh(absAddr, hookGen, state.Value)
+		return h.PreRefresh(absAddr, deposedKey, state.Value)
 	}))
 	if diags.HasErrors() {
 		return state, diags
@@ -660,7 +650,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostRefresh(absAddr, hookGen, priorVal, ret.Value)
+		return h.PostRefresh(absAddr, deposedKey, priorVal, ret.Value)
 	}))
 	if diags.HasErrors() {
 		return ret, diags
@@ -824,7 +814,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	// Call pre-diff hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreDiff(n.Addr, states.CurrentGen, priorVal, proposedNewVal)
+		return h.PreDiff(n.Addr, addrs.NotDeposed, priorVal, proposedNewVal)
 	}))
 	if diags.HasErrors() {
 		return nil, nil, keyData, diags
@@ -1178,7 +1168,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostDiff(n.Addr, states.CurrentGen, action, priorVal, plannedNewVal)
+		return h.PostDiff(n.Addr, addrs.NotDeposed, action, priorVal, plannedNewVal)
 	}))
 	if diags.HasErrors() {
 		return nil, nil, keyData, diags
@@ -1505,7 +1495,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	log.Printf("[TRACE] readDataSource: %s configuration is complete, so reading from provider", n.Addr)
 
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreApply(n.Addr, states.CurrentGen, plans.Read, cty.NullVal(configVal.Type()), configVal)
+		return h.PreApply(n.Addr, addrs.NotDeposed, plans.Read, cty.NullVal(configVal.Type()), configVal)
 	}))
 	if diags.HasErrors() {
 		return newVal, diags
@@ -1588,7 +1578,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	}
 
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostApply(n.Addr, states.CurrentGen, newVal, diags.Err())
+		return h.PostApply(n.Addr, addrs.NotDeposed, newVal, diags.Err())
 	}))
 
 	return newVal, diags
@@ -1754,7 +1744,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 		}
 
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostDiff(n.Addr, states.CurrentGen, plans.Read, priorVal, proposedNewVal)
+			return h.PostDiff(n.Addr, addrs.NotDeposed, plans.Read, priorVal, proposedNewVal)
 		}))
 
 		return plannedChange, plannedNewState, keyData, diags
@@ -1944,7 +1934,7 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 	diags = diags.Append(checkDiags)
 	if diags.HasErrors() {
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostApply(n.Addr, states.CurrentGen, planned.Before, diags.Err())
+			return h.PostApply(n.Addr, addrs.NotDeposed, planned.Before, diags.Err())
 		}))
 		return nil, keyData, diags // failed preconditions prevent further evaluation
 	}

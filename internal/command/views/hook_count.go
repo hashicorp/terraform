@@ -10,7 +10,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -46,7 +45,7 @@ func (h *countHook) Reset() {
 	h.Imported = 0
 }
 
-func (h *countHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *countHook) PreApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -59,7 +58,7 @@ func (h *countHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generati
 	return terraform.HookActionContinue, nil
 }
 
-func (h *countHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, err error) (terraform.HookAction, error) {
+func (h *countHook) PostApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, newState cty.Value, err error) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -87,7 +86,7 @@ func (h *countHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generat
 	return terraform.HookActionContinue, nil
 }
 
-func (h *countHook) PostDiff(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *countHook) PostDiff(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
