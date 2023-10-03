@@ -14,7 +14,7 @@ import (
 // "Working directory" is unfortunately a slight misnomer, because non-default
 // options can potentially stretch the definition such that multiple working
 // directories end up appearing to share a data directory, or other similar
-// anomolies, but we continue to use this terminology both for historical
+// anomalies, but we continue to use this terminology both for historical
 // reasons and because it reflects the common case without any special
 // overrides.
 //
