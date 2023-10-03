@@ -304,7 +304,7 @@ func (ms *Module) PruneResourceHusks() {
 	}
 }
 
-// empty returns true if the receving module state is contributing nothing
+// empty returns true if the receiving module state is contributing nothing
 // to the state. In other words, it returns true if the module could be
 // removed from the state altogether without changing the meaning of the state.
 //

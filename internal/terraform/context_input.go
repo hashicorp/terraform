@@ -21,7 +21,7 @@ import (
 // configurations.
 //
 // Unlike the other better-behaved operation methods, this one actually
-// modifies some internal state inside the receving context so that the
+// modifies some internal state inside the receiving context so that the
 // captured values will be implicitly available to a subsequent call to Plan,
 // or to some other operation entry point. Hopefully a future iteration of
 // this will change design to make that data flow more explicit.

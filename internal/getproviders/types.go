@@ -172,7 +172,7 @@ var CurrentPlatform = Platform{
 // provider package targeting a single platform.
 //
 // Package findproviders does no signature verification or protocol version
-// compatibility checking of its own. A caller receving a PackageMeta must
+// compatibility checking of its own. A caller receiving a PackageMeta must
 // verify that it has a correct signature and supports a protocol version
 // accepted by the current version of Terraform before trying to use the
 // described package.

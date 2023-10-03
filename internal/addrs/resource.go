@@ -274,7 +274,7 @@ func (m ModuleInstance) ResourceInstance(mode ResourceMode, typeName string, nam
 }
 
 // ContainingResource returns the address of the resource that contains the
-// receving resource instance. In other words, it discards the key portion
+// receiving resource instance. In other words, it discards the key portion
 // of the address to produce an AbsResource value.
 func (r AbsResourceInstance) ContainingResource() AbsResource {
 	return AbsResource{

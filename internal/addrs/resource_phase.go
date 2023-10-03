@@ -23,7 +23,7 @@ type ResourceInstancePhase struct {
 
 var _ Referenceable = ResourceInstancePhase{}
 
-// Phase returns a special "phase address" for the receving instance. See the
+// Phase returns a special "phase address" for the receiving instance. See the
 // documentation of ResourceInstancePhase for the limited situations where this
 // is intended to be used.
 func (r ResourceInstance) Phase(rpt ResourceInstancePhaseType) ResourceInstancePhase {
@@ -95,7 +95,7 @@ type ResourcePhase struct {
 
 var _ Referenceable = ResourcePhase{}
 
-// Phase returns a special "phase address" for the receving instance. See the
+// Phase returns a special "phase address" for the receiving instance. See the
 // documentation of ResourceInstancePhase for the limited situations where this
 // is intended to be used.
 func (r Resource) Phase(rpt ResourceInstancePhaseType) ResourcePhase {
