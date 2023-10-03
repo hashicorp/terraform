@@ -175,7 +175,7 @@ func (i *ResourceInstance) findUnusedDeposedKey() DeposedKey {
 type DeposedKey string
 
 // NotDeposed is a special invalid value of DeposedKey that is used to represent
-// the absense of a deposed key. It must not be used as an actual deposed key.
+// the absence of a deposed key. It must not be used as an actual deposed key.
 const NotDeposed = DeposedKey("")
 
 var deposedKeyRand = rand.New(rand.NewSource(time.Now().UnixNano()))

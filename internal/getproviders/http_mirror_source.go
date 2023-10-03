@@ -413,7 +413,7 @@ func svchostFromURL(u *url.URL) (svchost.Hostname, error) {
 	// a network mirror over HTTP would potentially transmit any configured
 	// credentials in cleartext. Therefore we don't need to do any special
 	// handling of default ports here, because svchost.Hostname already
-	// considers the absense of a port to represent the standard HTTPS port
+	// considers the absence of a port to represent the standard HTTPS port
 	// 443, and will normalize away an explicit specification of port 443
 	// in svchost.ForComparison below.
 

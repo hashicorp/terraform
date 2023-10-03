@@ -180,7 +180,7 @@ func (err ErrProtocolNotSupported) Error() string {
 // unexpected error.
 //
 // This is used for any error responses other than "Not Found", which would
-// indicate the absense of a provider and is thus reported using
+// indicate the absence of a provider and is thus reported using
 // ErrProviderNotKnown instead.
 type ErrQueryFailed struct {
 	Provider addrs.Provider

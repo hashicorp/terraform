@@ -33,7 +33,7 @@ import (
 //
 // Recipients of a ProviderConfig value can assume it can contain only a
 // LocalProviderConfig value, an AbsProviderConfigValue, or nil to represent
-// the absense of a provider config in situations where that is meaningful.
+// the absence of a provider config in situations where that is meaningful.
 type ProviderConfig interface {
 	providerConfig()
 }

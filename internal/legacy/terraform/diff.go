@@ -1331,7 +1331,7 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 				continue
 			}
 
-			// If the last diff was a computed value then the absense of
+			// If the last diff was a computed value then the absence of
 			// that value is allowed since it may mean the value ended up
 			// being the same.
 			if diffOld.NewComputed {

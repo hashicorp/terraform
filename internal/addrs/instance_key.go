@@ -49,7 +49,7 @@ func ParseInstanceKey(key cty.Value) (InstanceKey, error) {
 	}
 }
 
-// NoKey represents the absense of an InstanceKey, for the single instance
+// NoKey represents the absence of an InstanceKey, for the single instance
 // of a configuration object that does not use "count" or "for_each" at all.
 var NoKey InstanceKey
 

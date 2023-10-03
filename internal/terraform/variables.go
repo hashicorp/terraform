@@ -37,7 +37,7 @@ type InputValue struct {
 	//
 	// If a particular variable declared in the root module is _not_ set by
 	// the user then the caller must still provide an InputValue for it but
-	// must set Value to cty.NilVal to represent the absense of a value.
+	// must set Value to cty.NilVal to represent the absence of a value.
 	// This requirement is to help detect situations where the caller isn't
 	// correctly detecting and handling all of the declared variables.
 	//

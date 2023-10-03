@@ -591,7 +591,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	if moveResults.Blocked.Len() > 0 && !diags.HasErrors() {
 		// If we had blocked moves and we're not going to be returning errors
 		// then we'll report the blockers as a warning. We do this only in the
-		// absense of errors because invalid move statements might well be
+		// absence of errors because invalid move statements might well be
 		// the root cause of the blockers, and so better to give an actionable
 		// error message than a less-actionable warning.
 		diags = diags.Append(blockedMovesWarningDiag(moveResults))

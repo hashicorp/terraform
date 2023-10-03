@@ -297,7 +297,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 	}
 
 	// Saved check results from the previous run, if any.
-	// We differentiate absense from an empty array here so that we can
+	// We differentiate absence from an empty array here so that we can
 	// recognize if the previous run was with a version of Terraform that
 	// didn't support checks yet, or if there just weren't any checkable
 	// objects to record, in case that's important for certain messaging.

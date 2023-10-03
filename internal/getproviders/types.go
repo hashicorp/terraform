@@ -18,7 +18,7 @@ import (
 // Version represents a particular single version of a provider.
 type Version = versions.Version
 
-// UnspecifiedVersion is the zero value of Version, representing the absense
+// UnspecifiedVersion is the zero value of Version, representing the absence
 // of a version number.
 var UnspecifiedVersion Version = versions.Unspecified
 
