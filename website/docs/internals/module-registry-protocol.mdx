@@ -147,7 +147,7 @@ $ curl 'https://registry.terraform.io/v1/modules/hashicorp/consul/aws/versions'
 The `modules` array in the response always includes the requested module as the
 first element.
 
-Terraform does not use the other elements of this list. However, third-party implementations should always use a single-element list for forward compatiblity.
+Terraform does not use the other elements of this list. However, third-party implementations should always use a single-element list for forward compatibility.
 
 Each returned module has an array of available versions, which Terraform
 matches against any version constraints given in configuration.
