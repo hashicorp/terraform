@@ -85,10 +85,10 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		if ev, ok := v.(GraphNodeDynamicExpandable); ok {
 			log.Printf("[TRACE] vertex %q: expanding dynamic subgraph", dag.VertexName(v))
 
-			g, err := ev.DynamicExpand(vertexCtx)
-			diags = diags.Append(err)
+			g, moreDiags := ev.DynamicExpand(vertexCtx)
+			diags = diags.Append(moreDiags)
 			if diags.HasErrors() {
-				log.Printf("[TRACE] vertex %q: failed expanding dynamic subgraph: %s", dag.VertexName(v), err)
+				log.Printf("[TRACE] vertex %q: failed expanding dynamic subgraph: %s", dag.VertexName(v), diags.Err())
 				return
 			}
 			if g != nil {

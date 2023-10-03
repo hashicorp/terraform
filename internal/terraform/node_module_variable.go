@@ -46,7 +46,7 @@ func (n *nodeExpandModuleVariable) temporaryValue() bool {
 	return true
 }
 
-func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 
 	// If this variable has preconditions, we need to report these checks now.
