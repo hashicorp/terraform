@@ -54,6 +54,14 @@ type Scope struct {
 	// then differ during apply.
 	PureOnly bool
 
+	// ExternalFuncs specifies optional additional functions contributed by
+	// components outside of Terraform Core.
+	//
+	// Do not modify anything this field refers to after constructing a
+	// Scope value; Scope methods may derive and cache other data from
+	// this data structure and will assume this entire structure is immutable.
+	ExternalFuncs ExternalFuncs
+
 	funcs     map[string]function.Function
 	funcsLock sync.Mutex
 

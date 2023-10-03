@@ -181,6 +181,17 @@ func (s *Scope) Functions() map[string]function.Function {
 			s.funcs[name] = funcs.WithDescription(name, fn)
 			s.funcs["core::"+name] = fn
 		}
+
+		// We'll also bring in any external functions that the caller provided
+		// when constructing this scope. For now, that's just
+		// provider-contributed functions, under a "provider::NAME::" namespace
+		// where NAME is the local name of the provider in the current module.
+		for providerLocalName, funcs := range s.ExternalFuncs.Provider {
+			for funcName, fn := range funcs {
+				name := fmt.Sprintf("provider::%s::%s", providerLocalName, funcName)
+				s.funcs[name] = fn
+			}
+		}
 	}
 	s.funcsLock.Unlock()
 
@@ -371,4 +382,16 @@ func (s *Scope) experimentalFunction(experiment experiments.Experiment, fn funct
 			return cty.DynamicVal, err
 		},
 	})
+}
+
+// ExternalFuncs represents functions defined by extension components outside
+// of Terraform Core.
+//
+// This package expects the caller to provide ready-to-use function.Function
+// instances for each function, which themselves perform whatever adaptations
+// are necessary to translate a call into a form suitable for the external
+// component that's contributing the function, and to translate the results
+// to conform to the expected function return value conventions.
+type ExternalFuncs struct {
+	Provider map[string]map[string]function.Function
 }
