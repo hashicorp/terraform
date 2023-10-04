@@ -209,15 +209,16 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 	}
 	log.Printf("[TRACE] plan mode is %s", planMode) // TODO: Just so planMode is used for now
 
-	if len(req.PreviousState) != 0 {
-		// TODO: We don't yet support planning from a prior state.
-		return status.Errorf(codes.InvalidArgument, "don't yet support planning with a previous state")
+	prevState, err := stackstate.LoadFromProto(req.PreviousState)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "can't load previous state: %s", err)
 	}
 
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
 	rtReq := stackruntime.PlanRequest{
 		Config:            cfg,
+		PrevState:         prevState,
 		ProviderFactories: providerFactories,
 		InputValues:       inputValues,
 	}

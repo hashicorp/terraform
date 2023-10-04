@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -79,8 +80,8 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 
 // PlanRequest represents the inputs to a [Plan] call.
 type PlanRequest struct {
-	Config *stackconfig.Config
-	// TODO: Prior state
+	Config    *stackconfig.Config
+	PrevState *stackstate.State
 
 	InputValues       map[stackaddrs.InputVariable]ExternalInputValue
 	ProviderFactories map[addrs.Provider]providers.Factory
