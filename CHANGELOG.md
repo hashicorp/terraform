@@ -1,4 +1,4 @@
-## 1.6.0-rc2 (Unreleased)
+## 1.6.0 (October 4, 2023)
 
 UPGRADE NOTES:
 * On macOS, Terraform now requires macOS 10.15 Catalina or later; support for previous versions has been discontinued.
