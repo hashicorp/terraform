@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -63,7 +64,8 @@ type mainValidating struct {
 }
 
 type mainPlanning struct {
-	opts PlanOpts
+	opts      PlanOpts
+	prevState *stackstate.State
 }
 
 type mainApplying struct {
@@ -83,14 +85,17 @@ func NewForValidating(config *stackconfig.Config, opts ValidateOpts) *Main {
 	}
 }
 
-func NewForPlanning(config *stackconfig.Config, opts PlanOpts) *Main {
-	// TODO: This function should also take an optional prior state, but we
-	// don't actually have a type for that yet.
-
+func NewForPlanning(config *stackconfig.Config, prevState *stackstate.State, opts PlanOpts) *Main {
+	if prevState == nil {
+		// We'll make an empty state just to avoid other code needing to deal
+		// with this possibly being nil.
+		prevState = stackstate.NewState()
+	}
 	return &Main{
 		config: config,
 		planning: &mainPlanning{
-			opts: opts,
+			opts:      opts,
+			prevState: prevState,
 		},
 		providerFactories: opts.ProviderFactories,
 		providerTypes:     make(map[addrs.Provider]*ProviderType),
@@ -143,6 +148,15 @@ func (m *Main) PlanningOpts() *PlanOpts {
 		panic("stacks language runtime is not instantiated for planning")
 	}
 	return &m.planning.opts
+}
+
+// PlanPrevState returns the "previous state" object to use as the basis for
+// planning, or panics if this [Main] is not instantiated for planning.
+func (m *Main) PlanPrevState() *stackstate.State {
+	if !m.Planning() {
+		panic("previous state is only available in the planning phase")
+	}
+	return m.planning.prevState
 }
 
 // ApplyChangeResults returns the object that tracks the results of the actual

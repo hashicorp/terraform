@@ -40,7 +40,7 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 		close(resp.PlannedChanges) // MUST be the last channel to close
 	}()
 
-	main := stackeval.NewForPlanning(req.Config, stackeval.PlanOpts{
+	main := stackeval.NewForPlanning(req.Config, req.PrevState, stackeval.PlanOpts{
 		InputVariableValues: req.InputValues,
 		ProviderFactories:   req.ProviderFactories,
 	})

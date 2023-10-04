@@ -461,6 +461,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				// object.
 				return nil, diags
 			}
+			prevState := c.PlanPrevState(ctx)
 
 			providerSchemas, moreDiags := c.neededProviderSchemas(ctx)
 			diags = diags.Append(moreDiags)
@@ -520,7 +521,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			// [ComponentInstanceRemoved] for the model of a component instance
 			// that existed in the prior state but is not currently declared
 			// in the configuration.
-			plan, moreDiags := tfCtx.Plan(moduleTree, nil, &terraform.PlanOpts{
+			plan, moreDiags := tfCtx.Plan(moduleTree, prevState, &terraform.PlanOpts{
 				Mode:              stackPlanOpts.PlanningMode,
 				SetVariables:      inputValues,
 				ExternalProviders: providerClients,
@@ -735,6 +736,18 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 	}
 
 	return newState, diags
+}
+
+// PlanPrevState returns the previous state for this component instance during
+// the planning phase, or panics if called in any other phase.
+func (c *ComponentInstance) PlanPrevState(ctx context.Context) *states.State {
+	// The following call will panic if we aren't in the plan phase.
+	stackState := c.main.PlanPrevState()
+	ret := stackState.ComponentInstanceStateForModulesRuntime(c.Addr())
+	if ret == nil {
+		ret = states.NewState() // so caller doesn't need to worry about nil
+	}
+	return ret
 }
 
 // ApplyResultState returns the new state resulting from applying a plan for
