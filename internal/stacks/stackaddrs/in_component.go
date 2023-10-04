@@ -79,6 +79,10 @@ var _ collections.UniqueKeyer[AbsResource] = AbsResource{}
 // particular component instance.
 type AbsResourceInstance = InAbsComponentInstance[addrs.AbsResourceInstance]
 
+// AbsResourceInstanceObject represents an object associated with an instance
+// of a resource from inside a particular component instance.
+type AbsResourceInstanceObject = InAbsComponentInstance[addrs.AbsResourceInstanceObject]
+
 // AbsModuleInstance represents an instance of a module from inside a
 // particular component instance.
 //

@@ -336,6 +336,11 @@ func TestParse(t *testing.T) {
 					if gotAsStr != test.Input {
 						t.Errorf("valid key of type %T did not round-trip\ngot:  %s\nwant: %s", got, gotAsStr, test.Input)
 					}
+					if test.WantUnrecognizedHandling != UnrecognizedKeyHandling(0) {
+						if got, want := got.KeyType().UnrecognizedKeyHandling(), test.WantUnrecognizedHandling; got != want {
+							t.Errorf("unexpected UnrecognizedKeyHandling\ngot:  %s\nwant: %s", got, want)
+						}
+					}
 				} else if err == nil {
 					t.Error("Parse returned nil Key and nil error")
 				}
