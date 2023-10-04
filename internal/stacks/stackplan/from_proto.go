@@ -70,8 +70,7 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 			}
 			if !ret.Components.HasKey(addr) {
 				ret.Components.Put(addr, &Component{
-					ResourceInstanceChangedOutside: addrs.MakeMap[addrs.AbsResourceInstance, *plans.ResourceInstanceChangeSrc](),
-					ResourceInstancePlanned:        addrs.MakeMap[addrs.AbsResourceInstance, *plans.ResourceInstanceChangeSrc](),
+					ResourceInstancePlanned: addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.ResourceInstanceChangeSrc](),
 				})
 			}
 			c := ret.Components.Get(addr)
@@ -96,25 +95,11 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 			if err != nil {
 				return nil, fmt.Errorf("invalid resource instance change: %w", err)
 			}
-			c.ResourceInstancePlanned.Put(riPlan.Addr, riPlan)
-
-		case *tfstackdata1.PlanResourceInstanceChangeOutside:
-			if msg.Change == nil {
-				return nil, fmt.Errorf("%T has nil Change", msg)
+			fullAddr := addrs.AbsResourceInstanceObject{
+				ResourceInstance: riPlan.Addr,
+				DeposedKey:       riPlan.DeposedKey,
 			}
-			cAddr, diags := stackaddrs.ParseAbsComponentInstanceStr(msg.ComponentInstanceAddr)
-			if diags.HasErrors() {
-				return nil, fmt.Errorf("invalid component instance address syntax in %q", msg.ComponentInstanceAddr)
-			}
-			c, ok := ret.Components.GetOk(cAddr)
-			if !ok {
-				return nil, fmt.Errorf("resource instance change for unannounced component instance %s", cAddr)
-			}
-			riPlan, err := planfile.ResourceChangeFromProto(msg.Change)
-			if err != nil {
-				return nil, fmt.Errorf("invalid resource instance change: %w", err)
-			}
-			c.ResourceInstanceChangedOutside.Put(riPlan.Addr, riPlan)
+			c.ResourceInstancePlanned.Put(fullAddr, riPlan)
 
 		default:
 			// Should not get here, because a stack plan can only be loaded by

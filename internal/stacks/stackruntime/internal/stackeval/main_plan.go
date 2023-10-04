@@ -40,6 +40,10 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 		TerraformVersion: version.SemVer,
 	})
 
+	// TODO: Announce an extra planned change here if we have any unrecognized
+	// raw state or state description keys that we'll need to delete during the
+	// apply phase.
+
 	diags, err := promising.MainTask(ctx, func(ctx context.Context) (tfdiags.Diagnostics, error) {
 		// The idea here is just to iterate over everything in the configuration,
 		// find its corresponding evaluation object, and then ask it to validate

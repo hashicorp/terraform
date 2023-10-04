@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -66,6 +67,10 @@ type mainValidating struct {
 type mainPlanning struct {
 	opts      PlanOpts
 	prevState *stackstate.State
+
+	// This is a utility for unit tests that want to encourage stable output
+	// to assert against. Not for real use.
+	forcePlanTimestamp *time.Time
 }
 
 type mainApplying struct {

@@ -525,6 +525,10 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				Mode:              stackPlanOpts.PlanningMode,
 				SetVariables:      inputValues,
 				ExternalProviders: providerClients,
+
+				// This is set by some tests but should not be used in main code.
+				// (nil means to use the real time when tfCtx.Plan was called.)
+				ForcePlanTimestamp: stackPlanOpts.ForcePlanTimestamp,
 			})
 			diags = diags.Append(moreDiags)
 
@@ -870,31 +874,6 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 			PlanTimestamp: corePlan.Timestamp,
 		})
 
-		for _, rsrcChange := range corePlan.DriftedResources {
-			schema, err := c.resourceTypeSchema(
-				ctx,
-				rsrcChange.ProviderAddr.Provider,
-				rsrcChange.Addr.Resource.Resource.Mode,
-				rsrcChange.Addr.Resource.Resource.Type,
-			)
-			if err != nil {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Can't fetch provider schema to save plan",
-					fmt.Sprintf(
-						"Failed to retrieve the schema for %s from provider %s: %s. This is a bug in Terraform.",
-						rsrcChange.Addr, rsrcChange.ProviderAddr.Provider, err,
-					),
-				))
-				continue
-			}
-
-			changes = append(changes, &stackplan.PlannedChangeResourceInstanceOutside{
-				ComponentInstanceAddr: c.Addr(),
-				ChangeSrc:             rsrcChange,
-				Schema:                schema,
-			})
-		}
 		for _, rsrcChange := range corePlan.Changes.Resources {
 			schema, err := c.resourceTypeSchema(
 				ctx,
@@ -918,6 +897,11 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 				ComponentInstanceAddr: c.Addr(),
 				ChangeSrc:             rsrcChange,
 				Schema:                schema,
+				// TODO: Also provide the previous run state, if it's
+				// different from the prior state already captured
+				// inside rsrcChange, and signal whether the difference
+				// from previous run seems "notable" per Terraform Core's
+				// heuristics.
 			})
 		}
 	}

@@ -5,6 +5,7 @@ package stackplan
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/go-version"
@@ -27,6 +28,10 @@ func TestPlannedChangeAsProto(t *testing.T) {
 		t.Fatal(err)
 	}
 	nullObjectForPlan, err := plans.NewDynamicValue(cty.NullVal(cty.EmptyObject), cty.EmptyObject)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "2017-03-27T10:00:00-08:00")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,12 +90,14 @@ func TestPlannedChangeAsProto(t *testing.T) {
 						Component: stackaddrs.Component{Name: "foo"},
 					},
 				},
-				Action: plans.Create,
+				Action:        plans.Create,
+				PlanTimestamp: fakePlanTimestamp,
 			},
 			Want: &terraform1.PlannedChange{
 				Raw: []*anypb.Any{
 					mustMarshalAnyPb(&tfstackdata1.PlanComponentInstance{
 						ComponentInstanceAddr: "component.foo",
+						PlanTimestamp:         "2017-03-27T10:00:00-08:00",
 					}),
 				},
 				Description: &terraform1.PlannedChange_ComponentInstancePlanned{
@@ -113,12 +120,14 @@ func TestPlannedChangeAsProto(t *testing.T) {
 						Key:       addrs.StringKey("bar"),
 					},
 				},
-				Action: plans.NoOp,
+				Action:        plans.NoOp,
+				PlanTimestamp: fakePlanTimestamp,
 			},
 			Want: &terraform1.PlannedChange{
 				Raw: []*anypb.Any{
 					mustMarshalAnyPb(&tfstackdata1.PlanComponentInstance{
 						ComponentInstanceAddr: `component.foo["bar"]`,
+						PlanTimestamp:         "2017-03-27T10:00:00-08:00",
 					}),
 				},
 				Description: &terraform1.PlannedChange_ComponentInstancePlanned{
@@ -218,69 +227,6 @@ func TestPlannedChangeAsProto(t *testing.T) {
 							},
 							New: &terraform1.DynamicValue{
 								Msgpack: []byte{'\x80'}, // zero-length mapping
-							},
-						},
-					},
-				},
-			},
-		},
-		"resource instance deleted outside": {
-			Receiver: &PlannedChangeResourceInstanceOutside{
-				ComponentInstanceAddr: stackaddrs.AbsComponentInstance{
-					Stack: stackaddrs.RootStackInstance.Child("a", addrs.StringKey("boop")),
-					Item: stackaddrs.ComponentInstance{
-						Component: stackaddrs.Component{Name: "foo"},
-						Key:       addrs.StringKey("beep"),
-					},
-				},
-				ChangeSrc: &plans.ResourceInstanceChangeSrc{
-					Addr: addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "thingy",
-						Name: "wotsit",
-					}.Instance(addrs.IntKey(1)).Absolute(
-						addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
-					),
-					ProviderAddr: addrs.AbsProviderConfig{
-						Module:   addrs.RootModule,
-						Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
-					},
-					ChangeSrc: plans.ChangeSrc{
-						Action: plans.Delete,
-						Before: emptyObjectForPlan,
-						After:  nullObjectForPlan,
-					},
-				},
-			},
-			Want: &terraform1.PlannedChange{
-				Raw: []*anypb.Any{
-					mustMarshalAnyPb(&tfstackdata1.PlanResourceInstanceChangeOutside{
-						ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
-						Change: &planproto.ResourceInstanceChange{
-							Addr: `module.pizza["chicken"].thingy.wotsit[1]`,
-							Change: &planproto.Change{
-								Action: planproto.Action_DELETE,
-								Values: []*planproto.DynamicValue{
-									{Msgpack: []byte{'\x80'}}, // zero-length mapping
-								},
-							},
-							Provider: `provider["example.com/thingers/thingy"]`,
-						},
-					}),
-				},
-				Description: &terraform1.PlannedChange_ResourceInstanceDrifted{
-					ResourceInstanceDrifted: &terraform1.PlannedChange_ResourceInstance{
-						Addr: &terraform1.ResourceInstanceInStackAddr{
-							ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
-							ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
-						},
-						Actions: []terraform1.ChangeType{terraform1.ChangeType_DELETE},
-						Values: &terraform1.DynamicValueChange{
-							Old: &terraform1.DynamicValue{
-								Msgpack: []byte{'\x80'}, // zero-length mapping
-							},
-							New: &terraform1.DynamicValue{
-								Msgpack: []byte{'\xc0'}, // null
 							},
 						},
 					},

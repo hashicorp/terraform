@@ -100,15 +100,20 @@ message PlanResourceInstanceChangePlanned {
     tfplan.ResourceInstanceChange change = 2;
 }
 
-// Represents a change to a particular resource instance within a particular
-// component instance that Terraform has detected was made outside of Terraform
-// since the most recent apply.
-message PlanResourceInstanceChangeOutside {
-    // The same string must previously have been announced with a
-    // PlanComponentInstance message, or the overall plan sequence is invalid.
-    string component_instance_addr = 1;
+// Represents that we need to emit "delete" requests for one or more raw
+// state and/or state description objects during the apply phase.
+//
+// This situation arises if the previous state (given as input to the apply
+// phase) contains keys that are of a type unrecognized by the current
+// version of Terraform and that are marked as "discard if unrecognized",
+// suggesting that their content is likely to become somehow invalid if
+// other parts of the state were to get updated.
+message PlanDiscardStateMapKeys {
+    // A set of keys to delete from the "raw state".
+    repeated string raw_state_keys = 1;
 
-    tfplan.ResourceInstanceChange change = 2;
+    // A set of keys to delete from the "state description".
+    repeated string description_keys = 2;
 }
 
 ///////////// STATE MAP MESSAGES

@@ -658,11 +658,11 @@ message PlannedChange {
     // incomplete if isolated.
     oneof description {
         ComponentInstance component_instance_planned = 2;
-        ResourceInstance resource_instance_drifted = 3;
         ResourceInstance resource_instance_planned = 4;
         OutputValue output_value_planned = 5;
         bool plan_applyable = 6;
     }
+    reserved 3; // formerly "resource_instance_drifted" in the oneof above.
 
     // A set of provider selections that will be needed to apply this
     // change, which the caller should remember and use to populate the
@@ -690,6 +690,29 @@ message PlannedChange {
         ResourceMode resource_mode = 6;
         string resource_type = 7;
         string provider_addr = 8;
+
+        // previous_run_value is included only if it would be
+        // different from values.old, which typically means that
+        // Terraform detected some changes made outside of Terraform
+        // since the previous run. In that case, this field is
+        // the un-refreshed (but still upgraded) value from
+        // the previous run and values.old is the refreshed version.
+        //
+        // If this isn't set then values.old should be used as the
+        // previous run value, if needed.
+        DynamicValue previous_run_value = 9;
+
+        // This flag is set if Terraform Core considers the difference
+        // between previous_run_value and values.old to be "notable",
+        // which is a heuristic subject to change over time but is
+        // broadly intended to mean that it would be worth mentioning
+        // the difference between the two in the UI as a
+        // "change outside of Terraform". If this isn't set then the
+        // difference is probably not worth mentioning to the user
+        // by default, although it could still be shown behind an
+        // optional disclosure in UI contexts where such things are possible.
+        bool notable_change_outside = 10;
+
         // TODO: Everything else we need for feature-parity with the
         // existing JSON plan export format.
 
@@ -796,6 +819,29 @@ message AppliedChange {
     message ResourceInstance {
         ResourceInstanceInStackAddr addr = 1;
         DynamicValue new_value = 2;
+
+        // Sometimes Terraform needs to make changes to a resource in
+        // multiple steps during the apply phase, with each step
+        // changing something about the state. This flag will be set
+        // for such interim updates, and left unset for whatever
+        // description Terraform Core considers to be "final", at
+        // which point the new value should be converged with the
+        // desired state.
+        //
+        // The intended use for this is when presenting updated values
+        // to users in the UI, where it might be best to ignore or
+        // present differently interim updates to avoid creating
+        // confusion by showing the not-yet-converged intermediate
+        // states.
+        //
+        // If Terraform encounters a problem during the apply phase
+        // and needs to stop partway through then a "final" change
+        // description might never arrive. In that case, callers
+        // should save the most recent interim object as the final
+        // description, since it would represent the most accurate
+        // description of the state the remote system has been left
+        // in.
+        bool interim = 3;
     }
     message OutputValue {
         string name = 1;

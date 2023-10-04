@@ -18,18 +18,10 @@ import (
 // Terraform language runtime to apply all of the described changes together as
 // a single operation.
 type Component struct {
-	// ResourceInstanceChangedOutside describes changes that Terraform has
-	// detected were made outside of Terraform since the last run.
-	ResourceInstanceChangedOutside addrs.Map[addrs.AbsResourceInstance, *plans.ResourceInstanceChangeSrc]
-
 	// ResourceInstancePlanned describes the changes that Terraform is proposing
 	// to make to try to converge the real system state with the desired state
 	// as described by the configuration.
-	//
-	// FIXME: This modelling is incorrect, because it doesn't handle the fact that
-	// a resource instance change might actually be for a deposed object
-	// rather than the current object.
-	ResourceInstancePlanned addrs.Map[addrs.AbsResourceInstance, *plans.ResourceInstanceChangeSrc]
+	ResourceInstancePlanned addrs.Map[addrs.AbsResourceInstanceObject, *plans.ResourceInstanceChangeSrc]
 
 	// TODO: Something for deferred resource instance changes, once we have
 	// such a concept.

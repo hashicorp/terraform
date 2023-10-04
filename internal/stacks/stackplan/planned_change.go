@@ -123,10 +123,16 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 		}
 	}
 
+	var planTimestampStr string
+	var zeroTime time.Time
+	if pc.PlanTimestamp != zeroTime {
+		planTimestampStr = pc.PlanTimestamp.Format(time.RFC3339)
+	}
+
 	var raw anypb.Any
 	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanComponentInstance{
 		ComponentInstanceAddr: pc.Addr.String(),
-		PlanTimestamp:         pc.PlanTimestamp.Format(time.RFC3339),
+		PlanTimestamp:         planTimestampStr,
 		PlannedInputValues:    plannedInputValues,
 		// We don't track the action as part of the raw data because we
 		// don't actually need it to apply the change; it's only included
@@ -210,62 +216,6 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 				ResourceType: pc.ChangeSrc.Addr.Resource.Resource.Type,
 				ProviderAddr: pc.ChangeSrc.ProviderAddr.Provider.String(),
 
-				Actions: protoChangeTypes,
-				Values: &terraform1.DynamicValueChange{
-					Old: terraform1.NewDynamicValue(pc.ChangeSrc.Before, pc.ChangeSrc.BeforeValMarks),
-					New: terraform1.NewDynamicValue(pc.ChangeSrc.After, pc.ChangeSrc.AfterValMarks),
-				},
-				// TODO: Moved, Imported
-			},
-		},
-	}, nil
-}
-
-// PlannedChangeResourceInstanceOutside announces that Terraform has detected
-// some action taken outside of Terraform since the last apply.
-type PlannedChangeResourceInstanceOutside struct {
-	ComponentInstanceAddr stackaddrs.AbsComponentInstance
-	ChangeSrc             *plans.ResourceInstanceChangeSrc
-
-	// Schema MUST be the same schema that was used to encode the dynamic
-	// values inside ChangeSrc.
-	Schema *configschema.Block
-}
-
-var _ PlannedChange = (*PlannedChangeResourceInstanceOutside)(nil)
-
-// PlannedChangeProto implements PlannedChange.
-func (pc *PlannedChangeResourceInstanceOutside) PlannedChangeProto() (*terraform1.PlannedChange, error) {
-	if pc.ChangeSrc == nil {
-		return nil, fmt.Errorf("nil ChangeSrc")
-	}
-
-	changeProto, err := planfile.ResourceChangeToProto(pc.ChangeSrc)
-	if err != nil {
-		return nil, fmt.Errorf("converting resource instance change to proto: %w", err)
-	}
-	var raw anypb.Any
-	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanResourceInstanceChangeOutside{
-		ComponentInstanceAddr: pc.ComponentInstanceAddr.String(),
-		Change:                changeProto,
-	}, proto.MarshalOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	protoChangeTypes, err := terraform1.ChangeTypesForPlanAction(pc.ChangeSrc.Action)
-	if err != nil {
-		return nil, err
-	}
-
-	return &terraform1.PlannedChange{
-		Raw: []*anypb.Any{&raw},
-		Description: &terraform1.PlannedChange_ResourceInstanceDrifted{
-			ResourceInstanceDrifted: &terraform1.PlannedChange_ResourceInstance{
-				Addr: &terraform1.ResourceInstanceInStackAddr{
-					ComponentInstanceAddr: pc.ComponentInstanceAddr.String(),
-					ResourceInstanceAddr:  pc.ChangeSrc.Addr.String(),
-				},
 				Actions: protoChangeTypes,
 				Values: &terraform1.DynamicValueChange{
 					Old: terraform1.NewDynamicValue(pc.ChangeSrc.Before, pc.ChangeSrc.BeforeValMarks),

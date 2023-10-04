@@ -54,6 +54,19 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 	hs, ctx := hookBegin(ctx, hooks.BeginApply, hooks.ContextAttach, struct{}{})
 	defer hookMore(ctx, hs, hooks.EndApply, struct{}{})
 
+	// TODO: Somewhere in all of this we need to deal with two bits of
+	// general bookkeeping to ensure the state stays consistent:
+	//  1. Emitting interim "applied change" events for resource instances
+	//     whose prior state changed during the refresh step in the plan,
+	//     so we have those refreshes committed even if errors block us
+	//     from completing other updates.
+	//  2. Emitting events to let the caller know it should drop any
+	//     raw state or state description keys that the plan phase didn't
+	//     understand and that were marked as needing to be discarded in
+	//     that case. Otherwise they'll stick around after this work is
+	//     complete and possibly leave us with an inconsistent or invalid
+	//     state overall.
+
 	withDiags, err := promising.MainTask(ctx, func(ctx context.Context) (withDiagnostics[*Main], error) {
 		// We'll register all of the changes we intend to make up front, so we
 		// can error rather than deadlock if something goes wrong and causes

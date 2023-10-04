@@ -6,6 +6,7 @@ package stackruntime
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -43,6 +44,8 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 	main := stackeval.NewForPlanning(req.Config, req.PrevState, stackeval.PlanOpts{
 		InputVariableValues: req.InputValues,
 		ProviderFactories:   req.ProviderFactories,
+
+		ForcePlanTimestamp: req.ForcePlanTimestamp,
 	})
 	main.PlanAll(ctx, stackeval.PlanOutput{
 		AnnouncePlannedChange: func(ctx context.Context, change stackplan.PlannedChange) {
@@ -85,6 +88,11 @@ type PlanRequest struct {
 
 	InputValues       map[stackaddrs.InputVariable]ExternalInputValue
 	ProviderFactories map[addrs.Provider]providers.Factory
+
+	// ForcePlanTimestamp, if not nil, will force the plantimestamp function
+	// to return the given value instead of whatever real time the plan
+	// operation started. This is for testing purposes only.
+	ForcePlanTimestamp *time.Time
 }
 
 // PlanResponse is used by [Plan] to describe the results of planning.

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -20,12 +21,18 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 )
 
 func TestPlanWithSingleResource(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, "with-single-resource")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
@@ -36,6 +43,8 @@ func TestPlanWithSingleResource(t *testing.T) {
 				return terraformProvider.NewProvider(), nil
 			},
 		},
+
+		ForcePlanTimestamp: &fakePlanTimestamp,
 	}
 	resp := PlanResponse{
 		PlannedChanges: changesCh,
@@ -70,7 +79,9 @@ func TestPlanWithSingleResource(t *testing.T) {
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
-			Action: plans.Create,
+			Action:             plans.Create,
+			PlannedInputValues: make(map[string]plans.DynamicValue),
+			PlanTimestamp:      fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
@@ -131,10 +142,23 @@ func TestPlanWithSingleResource(t *testing.T) {
 					},
 				},
 			},
+
+			// The following is schema for the real terraform_data resource
+			// type from the real terraform.io/builtin/terraform provider
+			// maintained elsewhere in this codebase. If that schema changes
+			// in future then this should change to match it.
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"input":            {Type: cty.DynamicPseudoType, Optional: true},
+					"output":           {Type: cty.DynamicPseudoType, Computed: true},
+					"triggers_replace": {Type: cty.DynamicPseudoType, Optional: true},
+					"id":               {Type: cty.String, Computed: true},
+				},
+			},
 		},
 	}
 
-	if diff := cmp.Diff(wantChanges, gotChanges); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -161,6 +185,9 @@ func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 	}
 
 	wantChanges := []stackplan.PlannedChange{
+		&stackplan.PlannedChangeApplyable{
+			Applyable: true,
+		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
 		},
@@ -170,12 +197,19 @@ func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 			OldValue: plans.DynamicValue{0xc0},                  // MessagePack nil
 			NewValue: plans.DynamicValue([]byte("\xa7default")), // MessagePack string "default"
 		},
-		&stackplan.PlannedChangeApplyable{
-			Applyable: true,
+		&stackplan.PlannedChangeRootInputValue{
+			Addr: stackaddrs.InputVariable{
+				Name: "msg",
+			},
+			Value: cty.NullVal(cty.String),
 		},
 	}
+	sort.SliceStable(gotChanges, func(i, j int) bool {
+		// An arbitrary sort just to make the result stable for comparison.
+		return fmt.Sprintf("%T", gotChanges[i]) < fmt.Sprintf("%T", gotChanges[j])
+	})
 
-	if diff := cmp.Diff(wantChanges, gotChanges); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
