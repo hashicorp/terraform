@@ -288,9 +288,9 @@ func (p *Provider) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.
 func (p *Provider) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	_, moreDiags := p.CheckForEachValue(ctx, PlanPhase)
+	_, moreDiags := p.CheckForEachValue(ctx, phase)
 	diags = diags.Append(moreDiags)
-	_, moreDiags = p.CheckInstances(ctx, PlanPhase)
+	_, moreDiags = p.CheckInstances(ctx, phase)
 	diags = diags.Append(moreDiags)
 	// Everything else is instance-specific and so the plan walk driver must
 	// call p.Instances and ask each instance to plan itself.

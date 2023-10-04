@@ -113,6 +113,7 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 		walk.state = ws
 		walkDynamicObjects(
 			ctx, walk, m,
+			PlanPhase,
 			func(ctx context.Context, walk *planWalk, obj DynamicEvaler) {
 				m.walkPlanObjectChanges(ctx, walk, obj)
 			},

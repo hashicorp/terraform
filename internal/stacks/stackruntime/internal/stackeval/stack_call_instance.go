@@ -164,7 +164,7 @@ func (c *StackCallInstance) ResolveExpressionReference(ctx context.Context, ref 
 func (c *StackCallInstance) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	_, moreDiags := c.CheckInputVariableValues(ctx, PlanPhase)
+	_, moreDiags := c.CheckInputVariableValues(ctx, phase)
 	diags = diags.Append(moreDiags)
 
 	return diags

@@ -163,6 +163,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 
 		walkDynamicObjects(
 			ctx, walk, main,
+			ApplyPhase,
 			func(ctx context.Context, walk *walkWithOutput[*ApplyOutput], obj DynamicEvaler) {
 				main.walkApplyCheckObjectChanges(ctx, walk, obj)
 			},

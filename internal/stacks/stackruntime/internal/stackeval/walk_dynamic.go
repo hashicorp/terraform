@@ -32,15 +32,17 @@ func walkDynamicObjects[Output any](
 	ctx context.Context,
 	walk *walkWithOutput[Output],
 	main *Main,
+	phase EvalPhase,
 	visit func(ctx context.Context, walk *walkWithOutput[Output], obj DynamicEvaler),
 ) {
-	walkDynamicObjectsInStack(ctx, walk, main.MainStack(ctx), visit)
+	walkDynamicObjectsInStack(ctx, walk, main.MainStack(ctx), phase, visit)
 }
 
 func walkDynamicObjectsInStack[Output any](
 	ctx context.Context,
 	walk *walkWithOutput[Output],
 	stack *Stack,
+	phase EvalPhase,
 	visit func(ctx context.Context, walk *walkWithOutput[Output], obj DynamicEvaler),
 ) {
 	// We'll get the expansion of any child stack calls going first, so that
@@ -56,12 +58,12 @@ func walkDynamicObjectsInStack[Output any](
 		// because it involves evaluating for_each expressions, and one
 		// stack call's for_each might depend on the results of another.
 		walk.AsyncTask(ctx, func(ctx context.Context) {
-			insts := call.Instances(ctx, PlanPhase)
+			insts := call.Instances(ctx, phase)
 			for _, inst := range insts {
 				visit(ctx, walk, inst)
 
 				childStack := inst.CalledStack(ctx)
-				walkDynamicObjectsInStack(ctx, walk, childStack, visit)
+				walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
 			}
 		})
 	}
@@ -78,7 +80,7 @@ func walkDynamicObjectsInStack[Output any](
 		// because it involves potentially evaluating a for_each expression.
 		// and that might depend on data from elsewhere in the same stack.
 		walk.AsyncTask(ctx, func(ctx context.Context) {
-			insts := component.Instances(ctx, PlanPhase)
+			insts := component.Instances(ctx, phase)
 			for _, inst := range insts {
 				visit(ctx, walk, inst)
 			}
@@ -93,7 +95,7 @@ func walkDynamicObjectsInStack[Output any](
 		// task because it involves potentially evaluating a for_each expression,
 		// and that might depend on data from elsewhere in the same stack.
 		walk.AsyncTask(ctx, func(ctx context.Context) {
-			insts := provider.Instances(ctx, PlanPhase)
+			insts := provider.Instances(ctx, phase)
 			for _, inst := range insts {
 				visit(ctx, walk, inst)
 			}
