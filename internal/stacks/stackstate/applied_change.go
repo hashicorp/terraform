@@ -6,9 +6,9 @@ package stackstate
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
@@ -37,6 +37,7 @@ type AppliedChange interface {
 type AppliedChangeResourceInstance struct {
 	ResourceInstanceAddr stackaddrs.AbsResourceInstance
 	NewStateSrc          *states.ResourceInstance
+	ProviderConfigAddr   addrs.AbsProviderConfig
 
 	// Schema MUST be the same schema that was used to encode the dynamic
 	// values inside NewStateSrc.
@@ -146,13 +147,31 @@ func (ac *AppliedChangeResourceInstance) protosForObject(objSrc *states.Resource
 		},
 	})
 
+	rawMsg := &tfstackdata1.StateResourceInstanceObjectV1{
+		SchemaVersion:        objSrc.SchemaVersion,
+		ValueJson:            objSrc.AttrsJSON,
+		SensitivePaths:       tfstackdata1.Terraform1ToPlanProtoAttributePaths(protoValue.Sensitive),
+		CreateBeforeDestroy:  obj.CreateBeforeDestroy,
+		ProviderConfigAddr:   ac.ProviderConfigAddr.String(),
+		ProviderSpecificData: obj.Private,
+	}
+
+	switch objSrc.Status {
+	case states.ObjectReady:
+		rawMsg.Status = tfstackdata1.StateResourceInstanceObjectV1_READY
+	case states.ObjectTainted:
+		rawMsg.Status = tfstackdata1.StateResourceInstanceObjectV1_DAMAGED
+	default:
+		rawMsg.Status = tfstackdata1.StateResourceInstanceObjectV1_UNKNOWN
+	}
+
+	rawMsg.Dependencies = make([]string, len(objSrc.Dependencies))
+	for i, addr := range objSrc.Dependencies {
+		rawMsg.Dependencies[i] = addr.String()
+	}
+
 	var raw anypb.Any
-	err = anypb.MarshalFrom(&raw, &tfstackdata1.StateResourceInstanceObjectV1{
-		Value: &planproto.DynamicValue{
-			Msgpack: protoValue.Msgpack,
-		},
-		SensitivePaths: tfstackdata1.Terraform1ToPlanProtoAttributePaths(protoValue.Sensitive),
-	}, proto.MarshalOptions{})
+	err = anypb.MarshalFrom(&raw, rawMsg, proto.MarshalOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("encoding raw state object: %w", err)
 	}

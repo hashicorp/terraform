@@ -164,6 +164,36 @@ message StateComponentInstanceV1 {
 // such a message and just assume that all of its fields (other than the
 // component instance address) are unset.
 message StateResourceInstanceObjectV1 {
-    tfplan.DynamicValue value = 4;
-    repeated tfplan.Path sensitive_paths = 5;
+    // value_json is a JSON representation of the object value representing
+    // this resource instance object.
+    //
+    // This is JSON-serialized rather than MessagePack serialized (as we do
+    // for everything else in this format and in the RPC API) because
+    // the provider protocol only supports legacy flatmap and JSON as input
+    // to the state upgrade process, and we won't be able to transcode from
+    // MessagePack to JSON once we decode this because we won't know the
+    // schema that the value was encoded with.
+    //
+    // This is a pragmatic exception for this particular quirk of Terraform's
+    // provider API design. Other parts of this format and associated protocol
+    // should use tfplan.DynamicValue and MessagePack encoding for consistency.
+    bytes value_json = 1;
+    repeated tfplan.Path sensitive_paths = 2;
+    uint64 schema_version = 3;
+
+    Status status = 4;
+    repeated string dependencies = 5;
+    bool create_before_destroy = 6;
+    string provider_config_addr = 7;
+
+    // provider_specific_data is arbitrary bytes produced by the provider
+    // in its apply response which we preserve and pass back to it in any
+    // subsequent plan operation.
+    bytes provider_specific_data = 8;
+
+    enum Status {
+        UNKNOWN = 0;
+        READY = 1;
+        DAMAGED = 2; // (formerly known as "tainted")
+    }
 }

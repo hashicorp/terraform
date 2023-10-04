@@ -966,8 +966,9 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 							Component: c.Addr(),
 							Item:      instAddr,
 						},
-						NewStateSrc: is,
-						Schema:      schema,
+						ProviderConfigAddr: rs.ProviderConfig,
+						NewStateSrc:        is,
+						Schema:             schema,
 					})
 				}
 			}

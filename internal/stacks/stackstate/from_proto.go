@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
+	"github.com/hashicorp/terraform/internal/states"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -70,6 +71,7 @@ func LoadFromProto(msgs map[string]*anypb.Any) (*State, error) {
 				// Should not get here. The above should be exhaustive.
 				panic(fmt.Sprintf("unsupported UnrecognizedKeyHandling value %s", handling))
 			}
+			continue
 		}
 
 		msg, err := anypb.UnmarshalNew(rawMsg, proto.UnmarshalOptions{})
@@ -126,7 +128,48 @@ func handleResourceInstanceObjectMsg(key statekeys.ResourceInstanceObject, msg p
 		return fmt.Errorf("unsupported message type %T for state of %s", msg, fullAddr.String())
 	}
 
-	// TODO: Implement this
-	_ = riMsg
-	return fmt.Errorf("resource instance object state decoding not yet implemented")
+	objSrc := &states.ResourceInstanceObjectSrc{
+		SchemaVersion:       riMsg.SchemaVersion,
+		AttrsJSON:           riMsg.ValueJson,
+		CreateBeforeDestroy: riMsg.CreateBeforeDestroy,
+		Private:             riMsg.ProviderSpecificData,
+	}
+
+	switch riMsg.Status {
+	case tfstackdata1.StateResourceInstanceObjectV1_READY:
+		objSrc.Status = states.ObjectReady
+	case tfstackdata1.StateResourceInstanceObjectV1_DAMAGED:
+		objSrc.Status = states.ObjectTainted
+	default:
+		return fmt.Errorf("unsupported status %s for %s", riMsg.Status.String(), fullAddr.String())
+	}
+
+	providerConfigAddr, diags := addrs.ParseAbsProviderConfigStr(riMsg.ProviderConfigAddr)
+	if diags.HasErrors() {
+		return fmt.Errorf("provider configuration reference %q for %s", riMsg.ProviderConfigAddr, fullAddr)
+	}
+
+	if len(riMsg.SensitivePaths) != 0 {
+		// TODO: Deal with sensitive paths
+	}
+
+	if len(riMsg.Dependencies) != 0 {
+		objSrc.Dependencies = make([]addrs.ConfigResource, len(riMsg.Dependencies))
+		for i, raw := range riMsg.Dependencies {
+			instAddr, diags := addrs.ParseAbsResourceInstanceStr(raw)
+			if diags.HasErrors() {
+				return fmt.Errorf("invalid dependency %q for %s", raw, fullAddr)
+			}
+			// We used the resource instance address parser here but we
+			// actually want the "config resource" subset of that syntax only.
+			configAddr := instAddr.ConfigResource()
+			if configAddr.String() != instAddr.String() {
+				return fmt.Errorf("invalid dependency %q for %s", raw, fullAddr)
+			}
+			objSrc.Dependencies[i] = configAddr
+		}
+	}
+
+	state.addResourceInstanceObject(fullAddr, objSrc, providerConfigAddr)
+	return nil
 }

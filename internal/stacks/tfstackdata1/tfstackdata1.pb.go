@@ -24,6 +24,55 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type StateResourceInstanceObjectV1_Status int32
+
+const (
+	StateResourceInstanceObjectV1_UNKNOWN StateResourceInstanceObjectV1_Status = 0
+	StateResourceInstanceObjectV1_READY   StateResourceInstanceObjectV1_Status = 1
+	StateResourceInstanceObjectV1_DAMAGED StateResourceInstanceObjectV1_Status = 2 // (formerly known as "tainted")
+)
+
+// Enum value maps for StateResourceInstanceObjectV1_Status.
+var (
+	StateResourceInstanceObjectV1_Status_name = map[int32]string{
+		0: "UNKNOWN",
+		1: "READY",
+		2: "DAMAGED",
+	}
+	StateResourceInstanceObjectV1_Status_value = map[string]int32{
+		"UNKNOWN": 0,
+		"READY":   1,
+		"DAMAGED": 2,
+	}
+)
+
+func (x StateResourceInstanceObjectV1_Status) Enum() *StateResourceInstanceObjectV1_Status {
+	p := new(StateResourceInstanceObjectV1_Status)
+	*p = x
+	return p
+}
+
+func (x StateResourceInstanceObjectV1_Status) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (StateResourceInstanceObjectV1_Status) Descriptor() protoreflect.EnumDescriptor {
+	return file_tfstackdata1_proto_enumTypes[0].Descriptor()
+}
+
+func (StateResourceInstanceObjectV1_Status) Type() protoreflect.EnumType {
+	return &file_tfstackdata1_proto_enumTypes[0]
+}
+
+func (x StateResourceInstanceObjectV1_Status) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use StateResourceInstanceObjectV1_Status.Descriptor instead.
+func (StateResourceInstanceObjectV1_Status) EnumDescriptor() ([]byte, []int) {
+	return file_tfstackdata1_proto_rawDescGZIP(), []int{7, 0}
+}
+
 // Appears early in a raw plan sequence to capture some metadata that we need
 // to process subsequent messages, or to abort if we're being asked to decode
 // a plan created by a different version of Terraform.
@@ -457,8 +506,30 @@ type StateResourceInstanceObjectV1 struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Value          *planproto.DynamicValue `protobuf:"bytes,4,opt,name=value,proto3" json:"value,omitempty"`
-	SensitivePaths []*planproto.Path       `protobuf:"bytes,5,rep,name=sensitive_paths,json=sensitivePaths,proto3" json:"sensitive_paths,omitempty"`
+	// value_json is a JSON representation of the object value representing
+	// this resource instance object.
+	//
+	// This is JSON-serialized rather than MessagePack serialized (as we do
+	// for everything else in this format and in the RPC API) because
+	// the provider protocol only supports legacy flatmap and JSON as input
+	// to the state upgrade process, and we won't be able to transcode from
+	// MessagePack to JSON once we decode this because we won't know the
+	// schema that the value was encoded with.
+	//
+	// This is a pragmatic exception for this particular quirk of Terraform's
+	// provider API design. Other parts of this format and associated protocol
+	// should use tfplan.DynamicValue and MessagePack encoding for consistency.
+	ValueJson           []byte                               `protobuf:"bytes,1,opt,name=value_json,json=valueJson,proto3" json:"value_json,omitempty"`
+	SensitivePaths      []*planproto.Path                    `protobuf:"bytes,2,rep,name=sensitive_paths,json=sensitivePaths,proto3" json:"sensitive_paths,omitempty"`
+	SchemaVersion       uint64                               `protobuf:"varint,3,opt,name=schema_version,json=schemaVersion,proto3" json:"schema_version,omitempty"`
+	Status              StateResourceInstanceObjectV1_Status `protobuf:"varint,4,opt,name=status,proto3,enum=tfstackdata1.StateResourceInstanceObjectV1_Status" json:"status,omitempty"`
+	Dependencies        []string                             `protobuf:"bytes,5,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
+	CreateBeforeDestroy bool                                 `protobuf:"varint,6,opt,name=create_before_destroy,json=createBeforeDestroy,proto3" json:"create_before_destroy,omitempty"`
+	ProviderConfigAddr  string                               `protobuf:"bytes,7,opt,name=provider_config_addr,json=providerConfigAddr,proto3" json:"provider_config_addr,omitempty"`
+	// provider_specific_data is arbitrary bytes produced by the provider
+	// in its apply response which we preserve and pass back to it in any
+	// subsequent plan operation.
+	ProviderSpecificData []byte `protobuf:"bytes,8,opt,name=provider_specific_data,json=providerSpecificData,proto3" json:"provider_specific_data,omitempty"`
 }
 
 func (x *StateResourceInstanceObjectV1) Reset() {
@@ -493,9 +564,9 @@ func (*StateResourceInstanceObjectV1) Descriptor() ([]byte, []int) {
 	return file_tfstackdata1_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *StateResourceInstanceObjectV1) GetValue() *planproto.DynamicValue {
+func (x *StateResourceInstanceObjectV1) GetValueJson() []byte {
 	if x != nil {
-		return x.Value
+		return x.ValueJson
 	}
 	return nil
 }
@@ -503,6 +574,48 @@ func (x *StateResourceInstanceObjectV1) GetValue() *planproto.DynamicValue {
 func (x *StateResourceInstanceObjectV1) GetSensitivePaths() []*planproto.Path {
 	if x != nil {
 		return x.SensitivePaths
+	}
+	return nil
+}
+
+func (x *StateResourceInstanceObjectV1) GetSchemaVersion() uint64 {
+	if x != nil {
+		return x.SchemaVersion
+	}
+	return 0
+}
+
+func (x *StateResourceInstanceObjectV1) GetStatus() StateResourceInstanceObjectV1_Status {
+	if x != nil {
+		return x.Status
+	}
+	return StateResourceInstanceObjectV1_UNKNOWN
+}
+
+func (x *StateResourceInstanceObjectV1) GetDependencies() []string {
+	if x != nil {
+		return x.Dependencies
+	}
+	return nil
+}
+
+func (x *StateResourceInstanceObjectV1) GetCreateBeforeDestroy() bool {
+	if x != nil {
+		return x.CreateBeforeDestroy
+	}
+	return false
+}
+
+func (x *StateResourceInstanceObjectV1) GetProviderConfigAddr() string {
+	if x != nil {
+		return x.ProviderConfigAddr
+	}
+	return ""
+}
+
+func (x *StateResourceInstanceObjectV1) GetProviderSpecificData() []byte {
+	if x != nil {
+		return x.ProviderSpecificData
 	}
 	return nil
 }
@@ -566,15 +679,37 @@ var file_tfstackdata1_proto_rawDesc = []byte{
 	0x74, 0x61, 0x6e, 0x63, 0x65, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x52, 0x06, 0x63, 0x68, 0x61,
 	0x6e, 0x67, 0x65, 0x22, 0x1a, 0x0a, 0x18, 0x53, 0x74, 0x61, 0x74, 0x65, 0x43, 0x6f, 0x6d, 0x70,
 	0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x56, 0x31, 0x22,
-	0x82, 0x01, 0x0a, 0x1d, 0x53, 0x74, 0x61, 0x74, 0x65, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0xd7, 0x03, 0x0a, 0x1d, 0x53, 0x74, 0x61, 0x74, 0x65, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63,
 	0x65, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x56,
-	0x31, 0x12, 0x2a, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b,
-	0x32, 0x14, 0x2e, 0x74, 0x66, 0x70, 0x6c, 0x61, 0x6e, 0x2e, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69,
-	0x63, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x35, 0x0a,
-	0x0f, 0x73, 0x65, 0x6e, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65, 0x5f, 0x70, 0x61, 0x74, 0x68, 0x73,
-	0x18, 0x05, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x74, 0x66, 0x70, 0x6c, 0x61, 0x6e, 0x2e,
-	0x50, 0x61, 0x74, 0x68, 0x52, 0x0e, 0x73, 0x65, 0x6e, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65, 0x50,
-	0x61, 0x74, 0x68, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x31, 0x12, 0x1d, 0x0a, 0x0a, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x5f, 0x6a, 0x73, 0x6f, 0x6e, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x09, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x4a, 0x73, 0x6f, 0x6e,
+	0x12, 0x35, 0x0a, 0x0f, 0x73, 0x65, 0x6e, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65, 0x5f, 0x70, 0x61,
+	0x74, 0x68, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x74, 0x66, 0x70, 0x6c,
+	0x61, 0x6e, 0x2e, 0x50, 0x61, 0x74, 0x68, 0x52, 0x0e, 0x73, 0x65, 0x6e, 0x73, 0x69, 0x74, 0x69,
+	0x76, 0x65, 0x50, 0x61, 0x74, 0x68, 0x73, 0x12, 0x25, 0x0a, 0x0e, 0x73, 0x63, 0x68, 0x65, 0x6d,
+	0x61, 0x5f, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x04, 0x52,
+	0x0d, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x4a,
+	0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x32,
+	0x2e, 0x74, 0x66, 0x73, 0x74, 0x61, 0x63, 0x6b, 0x64, 0x61, 0x74, 0x61, 0x31, 0x2e, 0x53, 0x74,
+	0x61, 0x74, 0x65, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x49, 0x6e, 0x73, 0x74, 0x61,
+	0x6e, 0x63, 0x65, 0x4f, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x56, 0x31, 0x2e, 0x53, 0x74, 0x61, 0x74,
+	0x75, 0x73, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x22, 0x0a, 0x0c, 0x64, 0x65,
+	0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x69, 0x65, 0x73, 0x18, 0x05, 0x20, 0x03, 0x28, 0x09,
+	0x52, 0x0c, 0x64, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x69, 0x65, 0x73, 0x12, 0x32,
+	0x0a, 0x15, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x5f, 0x62, 0x65, 0x66, 0x6f, 0x72, 0x65, 0x5f,
+	0x64, 0x65, 0x73, 0x74, 0x72, 0x6f, 0x79, 0x18, 0x06, 0x20, 0x01, 0x28, 0x08, 0x52, 0x13, 0x63,
+	0x72, 0x65, 0x61, 0x74, 0x65, 0x42, 0x65, 0x66, 0x6f, 0x72, 0x65, 0x44, 0x65, 0x73, 0x74, 0x72,
+	0x6f, 0x79, 0x12, 0x30, 0x0a, 0x14, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x5f, 0x63,
+	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x18, 0x07, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x12, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67,
+	0x41, 0x64, 0x64, 0x72, 0x12, 0x34, 0x0a, 0x16, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72,
+	0x5f, 0x73, 0x70, 0x65, 0x63, 0x69, 0x66, 0x69, 0x63, 0x5f, 0x64, 0x61, 0x74, 0x61, 0x18, 0x08,
+	0x20, 0x01, 0x28, 0x0c, 0x52, 0x14, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x53, 0x70,
+	0x65, 0x63, 0x69, 0x66, 0x69, 0x63, 0x44, 0x61, 0x74, 0x61, 0x22, 0x2d, 0x0a, 0x06, 0x53, 0x74,
+	0x61, 0x74, 0x75, 0x73, 0x12, 0x0b, 0x0a, 0x07, 0x55, 0x4e, 0x4b, 0x4e, 0x4f, 0x57, 0x4e, 0x10,
+	0x00, 0x12, 0x09, 0x0a, 0x05, 0x52, 0x45, 0x41, 0x44, 0x59, 0x10, 0x01, 0x12, 0x0b, 0x0a, 0x07,
+	0x44, 0x41, 0x4d, 0x41, 0x47, 0x45, 0x44, 0x10, 0x02, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x33,
 }
 
 var (
@@ -589,29 +724,31 @@ func file_tfstackdata1_proto_rawDescGZIP() []byte {
 	return file_tfstackdata1_proto_rawDescData
 }
 
+var file_tfstackdata1_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_tfstackdata1_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_tfstackdata1_proto_goTypes = []interface{}{
-	(*PlanHeader)(nil),                        // 0: tfstackdata1.PlanHeader
-	(*PlanApplyable)(nil),                     // 1: tfstackdata1.PlanApplyable
-	(*PlanRootInputValue)(nil),                // 2: tfstackdata1.PlanRootInputValue
-	(*PlanComponentInstance)(nil),             // 3: tfstackdata1.PlanComponentInstance
-	(*PlanResourceInstanceChangePlanned)(nil), // 4: tfstackdata1.PlanResourceInstanceChangePlanned
-	(*PlanResourceInstanceChangeOutside)(nil), // 5: tfstackdata1.PlanResourceInstanceChangeOutside
-	(*StateComponentInstanceV1)(nil),          // 6: tfstackdata1.StateComponentInstanceV1
-	(*StateResourceInstanceObjectV1)(nil),     // 7: tfstackdata1.StateResourceInstanceObjectV1
-	nil,                                       // 8: tfstackdata1.PlanComponentInstance.PlannedInputValuesEntry
-	(*planproto.DynamicValue)(nil),            // 9: tfplan.DynamicValue
-	(*planproto.ResourceInstanceChange)(nil),  // 10: tfplan.ResourceInstanceChange
-	(*planproto.Path)(nil),                    // 11: tfplan.Path
+	(StateResourceInstanceObjectV1_Status)(0), // 0: tfstackdata1.StateResourceInstanceObjectV1.Status
+	(*PlanHeader)(nil),                        // 1: tfstackdata1.PlanHeader
+	(*PlanApplyable)(nil),                     // 2: tfstackdata1.PlanApplyable
+	(*PlanRootInputValue)(nil),                // 3: tfstackdata1.PlanRootInputValue
+	(*PlanComponentInstance)(nil),             // 4: tfstackdata1.PlanComponentInstance
+	(*PlanResourceInstanceChangePlanned)(nil), // 5: tfstackdata1.PlanResourceInstanceChangePlanned
+	(*PlanResourceInstanceChangeOutside)(nil), // 6: tfstackdata1.PlanResourceInstanceChangeOutside
+	(*StateComponentInstanceV1)(nil),          // 7: tfstackdata1.StateComponentInstanceV1
+	(*StateResourceInstanceObjectV1)(nil),     // 8: tfstackdata1.StateResourceInstanceObjectV1
+	nil,                                       // 9: tfstackdata1.PlanComponentInstance.PlannedInputValuesEntry
+	(*planproto.DynamicValue)(nil),            // 10: tfplan.DynamicValue
+	(*planproto.ResourceInstanceChange)(nil),  // 11: tfplan.ResourceInstanceChange
+	(*planproto.Path)(nil),                    // 12: tfplan.Path
 }
 var file_tfstackdata1_proto_depIdxs = []int32{
-	9,  // 0: tfstackdata1.PlanRootInputValue.value:type_name -> tfplan.DynamicValue
-	8,  // 1: tfstackdata1.PlanComponentInstance.planned_input_values:type_name -> tfstackdata1.PlanComponentInstance.PlannedInputValuesEntry
-	10, // 2: tfstackdata1.PlanResourceInstanceChangePlanned.change:type_name -> tfplan.ResourceInstanceChange
-	10, // 3: tfstackdata1.PlanResourceInstanceChangeOutside.change:type_name -> tfplan.ResourceInstanceChange
-	9,  // 4: tfstackdata1.StateResourceInstanceObjectV1.value:type_name -> tfplan.DynamicValue
-	11, // 5: tfstackdata1.StateResourceInstanceObjectV1.sensitive_paths:type_name -> tfplan.Path
-	9,  // 6: tfstackdata1.PlanComponentInstance.PlannedInputValuesEntry.value:type_name -> tfplan.DynamicValue
+	10, // 0: tfstackdata1.PlanRootInputValue.value:type_name -> tfplan.DynamicValue
+	9,  // 1: tfstackdata1.PlanComponentInstance.planned_input_values:type_name -> tfstackdata1.PlanComponentInstance.PlannedInputValuesEntry
+	11, // 2: tfstackdata1.PlanResourceInstanceChangePlanned.change:type_name -> tfplan.ResourceInstanceChange
+	11, // 3: tfstackdata1.PlanResourceInstanceChangeOutside.change:type_name -> tfplan.ResourceInstanceChange
+	12, // 4: tfstackdata1.StateResourceInstanceObjectV1.sensitive_paths:type_name -> tfplan.Path
+	0,  // 5: tfstackdata1.StateResourceInstanceObjectV1.status:type_name -> tfstackdata1.StateResourceInstanceObjectV1.Status
+	10, // 6: tfstackdata1.PlanComponentInstance.PlannedInputValuesEntry.value:type_name -> tfplan.DynamicValue
 	7,  // [7:7] is the sub-list for method output_type
 	7,  // [7:7] is the sub-list for method input_type
 	7,  // [7:7] is the sub-list for extension type_name
@@ -727,13 +864,14 @@ func file_tfstackdata1_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_tfstackdata1_proto_rawDesc,
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_tfstackdata1_proto_goTypes,
 		DependencyIndexes: file_tfstackdata1_proto_depIdxs,
+		EnumInfos:         file_tfstackdata1_proto_enumTypes,
 		MessageInfos:      file_tfstackdata1_proto_msgTypes,
 	}.Build()
 	File_tfstackdata1_proto = out.File
