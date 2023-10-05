@@ -54,7 +54,7 @@ func (n *nodeExpandOutput) temporaryValue() bool {
 	return !n.Module.IsRoot()
 }
 
-func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	expander := ctx.InstanceExpander()
 	changes := ctx.Changes()
 

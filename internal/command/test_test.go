@@ -4,6 +4,7 @@
 package command
 
 import (
+	"encoding/json"
 	"fmt"
 	"path"
 	"strings"
@@ -1457,4 +1458,135 @@ operation, and the specified output value is only known after apply.
 		})
 	}
 
+}
+
+// This test takes around 10 seconds to complete, as we're testing the progress
+// updates that are printed every 2 seconds. Sorry!
+func TestTest_LongRunningTest(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "long_running")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	actual := output.All()
+	expected := `main.tftest.hcl... in progress
+  run "test"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
+
+Success! 1 passed, 0 failed.
+`
+
+	if code != 0 {
+		t.Errorf("expected return code %d but got %d", 0, code)
+	}
+
+	if diff := cmp.Diff(expected, actual); len(diff) > 0 {
+		t.Errorf("unexpected output\n\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+}
+
+// This test takes around 10 seconds to complete, as we're testing the progress
+// updates that are printed every 2 seconds. Sorry!
+func TestTest_LongRunningTestJSON(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "long_running")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-json"})
+	output := done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	actual := output.All()
+	var messages []string
+	for ix, line := range strings.Split(actual, "\n") {
+		if len(line) == 0 {
+			// Skip empty lines.
+			continue
+		}
+
+		if ix == 0 {
+			// skip the first one, it's version information
+			continue
+		}
+
+		var obj map[string]interface{}
+
+		if err := json.Unmarshal([]byte(line), &obj); err != nil {
+			t.Errorf("failed to unmarshal returned line: %s", line)
+			continue
+		}
+
+		// Remove the timestamp as it changes every time.
+		delete(obj, "@timestamp")
+
+		if obj["type"].(string) == "test_run" {
+			// Then we need to delete the `elapsed` field from within the run
+			// as it'll cause flaky tests.
+
+			run := obj["test_run"].(map[string]interface{})
+			if run["progress"].(string) != "complete" {
+				delete(run, "elapsed")
+			}
+		}
+
+		message, err := json.Marshal(obj)
+		if err != nil {
+			t.Errorf("failed to remarshal returned line: %s", line)
+			continue
+		}
+
+		messages = append(messages, string(message))
+	}
+
+	expected := []string{
+		`{"@level":"info","@message":"Found 1 file and 1 run block","@module":"terraform.ui","test_abstract":{"main.tftest.hcl":["test"]},"type":"test_abstract"}`,
+		`{"@level":"info","@message":"main.tftest.hcl... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","test_file":{"path":"main.tftest.hcl","progress":"starting"},"type":"test_file"}`,
+		`{"@level":"info","@message":"  \"test\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test","test_run":{"path":"main.tftest.hcl","progress":"starting","run":"test"},"type":"test_run"}`,
+		`{"@level":"info","@message":"  \"test\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test","test_run":{"path":"main.tftest.hcl","progress":"running","run":"test"},"type":"test_run"}`,
+		`{"@level":"info","@message":"  \"test\"... in progress","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test","test_run":{"path":"main.tftest.hcl","progress":"running","run":"test"},"type":"test_run"}`,
+		`{"@level":"info","@message":"  \"test\"... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test","test_run":{"path":"main.tftest.hcl","progress":"complete","run":"test","status":"pass"},"type":"test_run"}`,
+		`{"@level":"info","@message":"main.tftest.hcl... tearing down","@module":"terraform.ui","@testfile":"main.tftest.hcl","test_file":{"path":"main.tftest.hcl","progress":"teardown"},"type":"test_file"}`,
+		`{"@level":"info","@message":"  \"test\"... tearing down","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test","test_run":{"path":"main.tftest.hcl","progress":"teardown","run":"test"},"type":"test_run"}`,
+		`{"@level":"info","@message":"  \"test\"... tearing down","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test","test_run":{"path":"main.tftest.hcl","progress":"teardown","run":"test"},"type":"test_run"}`,
+		`{"@level":"info","@message":"main.tftest.hcl... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","test_file":{"path":"main.tftest.hcl","progress":"complete","status":"pass"},"type":"test_file"}`,
+		`{"@level":"info","@message":"Success! 1 passed, 0 failed.","@module":"terraform.ui","test_summary":{"errored":0,"failed":0,"passed":1,"skipped":0,"status":"pass"},"type":"test_summary"}`,
+	}
+
+	if code != 0 {
+		t.Errorf("expected return code %d but got %d", 0, code)
+	}
+
+	if diff := cmp.Diff(expected, messages); len(diff) > 0 {
+		t.Errorf("unexpected output\n\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", strings.Join(expected, "\n"), strings.Join(messages, "\n"), diff)
+	}
 }

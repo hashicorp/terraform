@@ -45,7 +45,7 @@ type Test interface {
 	File(file *moduletest.File, progress moduletest.Progress)
 
 	// Run prints out the summary for a single test run block.
-	Run(run *moduletest.Run, file *moduletest.File)
+	Run(run *moduletest.Run, file *moduletest.File, progress moduletest.Progress, elapsed int64)
 
 	// DestroySummary prints out the summary of the destroy step of each test
 	// file. If everything goes well, this should be empty.
@@ -145,7 +145,7 @@ func (t *TestHuman) Conclusion(suite *moduletest.Suite) {
 
 func (t *TestHuman) File(file *moduletest.File, progress moduletest.Progress) {
 	switch progress {
-	case moduletest.Starting:
+	case moduletest.Starting, moduletest.Running:
 		t.view.streams.Printf(t.view.colorize.Color("%s... [light_gray]in progress[reset]\n"), file.Name)
 	case moduletest.TearDown:
 		t.view.streams.Printf(t.view.colorize.Color("%s... [light_gray]tearing down[reset]\n"), file.Name)
@@ -157,7 +157,16 @@ func (t *TestHuman) File(file *moduletest.File, progress moduletest.Progress) {
 	}
 }
 
-func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File) {
+func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File, progress moduletest.Progress, _ int64) {
+	switch progress {
+	case moduletest.Starting, moduletest.Running, moduletest.TearDown:
+		return // We don't print progress updates in human mode
+	case moduletest.Complete:
+		// Do nothing, the rest of the function handles this.
+	default:
+		panic("unrecognized test progress: " + progress.String())
+	}
+
 	t.view.streams.Printf("  run %q... %s\n", run.Name, colorizeTestStatus(run.Status, t.view.colorize))
 
 	if run.Verbose != nil {
@@ -449,7 +458,7 @@ func (t *TestJSON) Conclusion(suite *moduletest.Suite) {
 
 func (t *TestJSON) File(file *moduletest.File, progress moduletest.Progress) {
 	switch progress {
-	case moduletest.Starting:
+	case moduletest.Starting, moduletest.Running:
 		t.view.log.Info(
 			fmt.Sprintf("%s... in progress", file.Name),
 			"type", json.MessageTestFile,
@@ -483,11 +492,48 @@ func (t *TestJSON) File(file *moduletest.File, progress moduletest.Progress) {
 	}
 }
 
-func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File) {
+func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress moduletest.Progress, elapsed int64) {
+	switch progress {
+	case moduletest.Starting, moduletest.Running:
+		t.view.log.Info(
+			fmt.Sprintf("  %q... in progress", run.Name),
+			"type", json.MessageTestRun,
+			json.MessageTestRun, json.TestRunStatus{
+				Path:     file.Name,
+				Run:      run.Name,
+				Progress: json.ToTestProgress(progress),
+				Elapsed:  &elapsed,
+			},
+			"@testfile", file.Name,
+			"@testrun", run.Name)
+		return
+	case moduletest.TearDown:
+		t.view.log.Info(
+			fmt.Sprintf("  %q... tearing down", run.Name),
+			"type", json.MessageTestRun,
+			json.MessageTestRun, json.TestRunStatus{
+				Path:     file.Name,
+				Run:      run.Name,
+				Progress: json.ToTestProgress(progress),
+				Elapsed:  &elapsed,
+			},
+			"@testfile", file.Name,
+			"@testrun", run.Name)
+		return
+	case moduletest.Complete:
+		// Do nothing, the rest of the function handles this case.
+	default:
+		panic("unrecognized test progress: " + progress.String())
+	}
+
 	t.view.log.Info(
 		fmt.Sprintf("  %q... %s", run.Name, testStatus(run.Status)),
 		"type", json.MessageTestRun,
-		json.MessageTestRun, json.TestRunStatus{file.Name, run.Name, json.ToTestStatus(run.Status)},
+		json.MessageTestRun, json.TestRunStatus{
+			Path:     file.Name,
+			Run:      run.Name,
+			Progress: json.ToTestProgress(progress),
+			Status:   json.ToTestStatus(run.Status)},
 		"@testfile", file.Name,
 		"@testrun", run.Name)
 

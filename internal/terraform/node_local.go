@@ -66,7 +66,7 @@ func (n *nodeExpandLocal) References() []*addrs.Reference {
 	return refs
 }
 
-func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 	expander := ctx.InstanceExpander()
 	for _, module := range expander.ExpandModule(n.Module) {

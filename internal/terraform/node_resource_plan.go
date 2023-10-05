@@ -102,7 +102,7 @@ func (n *nodeExpandPlannableResource) ModifyCreateBeforeDestroy(v bool) error {
 	return nil
 }
 
-func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 
 	expander := ctx.InstanceExpander()
@@ -175,7 +175,7 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		diags = diags.Append(err)
 	}
 	if diags.HasErrors() {
-		return nil, diags.ErrWithWarnings()
+		return nil, diags
 	}
 
 	diags = diags.Append(n.validateExpandedImportTargets())
@@ -191,7 +191,7 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 
 	addRootNodeToGraph(&g)
 
-	return &g, diags.ErrWithWarnings()
+	return &g, diags
 }
 
 // validateExpandedImportTargets checks that all expanded imports correspond to
@@ -225,7 +225,7 @@ func (n *nodeExpandPlannableResource) validateExpandedImportTargets() tfdiags.Di
 // within, the caller must register the final superset instAddrs with the
 // checks subsystem so that it knows the fully expanded set of checkable
 // object instances for this resource instance.
-func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalContext, resAddr addrs.AbsResource, g *Graph) error {
+func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalContext, resAddr addrs.AbsResource, g *Graph) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// The rest of our work here needs to know which module instance it's
@@ -238,7 +238,7 @@ func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalCont
 	moreDiags := n.writeResourceState(moduleCtx, resAddr)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
-		return diags.ErrWithWarnings()
+		return diags
 	}
 
 	// Before we expand our resource into potentially many resource instances,
@@ -317,14 +317,14 @@ func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalCont
 	// construct a subgraph just for this individual modules's instances and
 	// then we'll steal all of its nodes and edges to incorporate into our
 	// main graph which contains all of the resource instances together.
-	instG, err := n.resourceInstanceSubgraph(moduleCtx, resAddr, instanceAddrs)
-	if err != nil {
-		diags = diags.Append(err)
-		return diags.ErrWithWarnings()
+	instG, instDiags := n.resourceInstanceSubgraph(moduleCtx, resAddr, instanceAddrs)
+	if instDiags.HasErrors() {
+		diags = diags.Append(instDiags)
+		return diags
 	}
 	g.Subsume(&instG.AcyclicGraph.Graph)
 
-	return diags.ErrWithWarnings()
+	return diags
 }
 
 // Import blocks are expanded in conjunction with their associated resource block.
@@ -415,8 +415,7 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 	return imports, diags
 }
 
-// TODO: incorporate diagnostics
-func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, addr addrs.AbsResource, instanceAddrs []addrs.AbsResourceInstance) (*Graph, error) {
+func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, addr addrs.AbsResource, instanceAddrs []addrs.AbsResourceInstance) (*Graph, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Now that the resources are all expanded, we can expand the imports for
@@ -533,6 +532,5 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 	graph, graphDiags := b.Build(addr.Module)
 	diags = diags.Append(graphDiags)
 
-	// FIXME: diagnostics!
-	return graph, diags.ErrWithWarnings()
+	return graph, diags
 }

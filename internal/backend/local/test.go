@@ -9,6 +9,7 @@ import (
 	"log"
 	"path"
 	"sort"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -252,7 +253,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 			// Then the test was requested to be stopped, so we just mark each
 			// following test as skipped, print the status, and move on.
 			run.Status = moduletest.Skip
-			runner.Suite.View.Run(run, file)
+			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
 			continue
 		}
 
@@ -261,7 +262,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 			// execute tests. Instead, we mark all remaining run blocks as
 			// skipped, print the status, and move on.
 			run.Status = moduletest.Skip
-			runner.Suite.View.Run(run, file)
+			runner.Suite.View.Run(run, file, moduletest.Complete, 0)
 			continue
 		}
 
@@ -306,7 +307,7 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 			runner.RelevantStates[key].Run = run
 		}
 
-		runner.Suite.View.Run(run, file)
+		runner.Suite.View.Run(run, file, moduletest.Complete, 0)
 		file.Status = file.Status.Merge(run.Status)
 	}
 }
@@ -327,6 +328,9 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return state, false
 	}
 
+	start := time.Now().UTC().UnixMilli()
+	runner.Suite.View.Run(run, file, moduletest.Starting, 0)
+
 	run.Diagnostics = run.Diagnostics.Append(run.Config.Validate())
 	if run.Diagnostics.HasErrors() {
 		run.Status = moduletest.Error
@@ -342,7 +346,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return state, false
 	}
 
-	validateDiags := runner.validate(config, run, file)
+	validateDiags := runner.validate(config, run, file, start)
 	run.Diagnostics = run.Diagnostics.Append(validateDiags)
 	if validateDiags.HasErrors() {
 		run.Status = moduletest.Error
@@ -356,7 +360,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return state, false
 	}
 
-	planCtx, plan, planDiags := runner.plan(config, state, run, file, references)
+	planCtx, plan, planDiags := runner.plan(config, state, run, file, references, start)
 	if run.Config.Command == configs.PlanTestCommand {
 		// Then we want to assess our conditions and diagnostics differently.
 		planDiags = run.ValidateExpectedFailures(planDiags)
@@ -439,7 +443,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	}
 	run.Diagnostics = filteredDiags
 
-	applyCtx, updated, applyDiags := runner.apply(plan, state, config, run, file)
+	applyCtx, updated, applyDiags := runner.apply(plan, state, config, run, file, moduletest.Running, start)
 
 	// Remove expected diagnostics, and add diagnostics in case anything that should have failed didn't.
 	applyDiags = run.ValidateExpectedFailures(applyDiags)
@@ -504,7 +508,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	return updated, true
 }
 
-func (runner *TestFileRunner) validate(config *configs.Config, run *moduletest.Run, file *moduletest.File) tfdiags.Diagnostics {
+func (runner *TestFileRunner) validate(config *configs.Config, run *moduletest.Run, file *moduletest.File, start int64) tfdiags.Diagnostics {
 	log.Printf("[TRACE] TestFileRunner: called validate for %s/%s", file.Name, run.Name)
 
 	var diags tfdiags.Diagnostics
@@ -526,7 +530,7 @@ func (runner *TestFileRunner) validate(config *configs.Config, run *moduletest.R
 		validateDiags = tfCtx.Validate(config)
 		log.Printf("[DEBUG] TestFileRunner: completed validate for  %s/%s", file.Name, run.Name)
 	}()
-	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, nil)
+	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, nil, moduletest.Running, start)
 
 	if cancelled {
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
@@ -568,6 +572,9 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 
 	runningCtx, done := context.WithCancel(context.Background())
 
+	start := time.Now().UTC().UnixMilli()
+	runner.Suite.View.Run(run, file, moduletest.TearDown, 0)
+
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
 	go func() {
@@ -578,7 +585,7 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 		plan, planDiags = tfCtx.Plan(config, state, planOpts)
 		log.Printf("[DEBUG] TestFileRunner: completed destroy plan for %s/%s", file.Name, run.Name)
 	}()
-	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, nil)
+	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, nil, moduletest.TearDown, start)
 
 	if cancelled {
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
@@ -591,12 +598,12 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 		return state, diags
 	}
 
-	_, updated, applyDiags := runner.apply(plan, state, config, run, file)
+	_, updated, applyDiags := runner.apply(plan, state, config, run, file, moduletest.TearDown, start)
 	diags = diags.Append(applyDiags)
 	return updated, diags
 }
 
-func (runner *TestFileRunner) plan(config *configs.Config, state *states.State, run *moduletest.Run, file *moduletest.File, references []*addrs.Reference) (*terraform.Context, *plans.Plan, tfdiags.Diagnostics) {
+func (runner *TestFileRunner) plan(config *configs.Config, state *states.State, run *moduletest.Run, file *moduletest.File, references []*addrs.Reference, start int64) (*terraform.Context, *plans.Plan, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] TestFileRunner: called plan for %s/%s", file.Name, run.Name)
 
 	var diags tfdiags.Diagnostics
@@ -648,7 +655,7 @@ func (runner *TestFileRunner) plan(config *configs.Config, state *states.State, 
 		plan, planDiags = tfCtx.Plan(config, state, planOpts)
 		log.Printf("[DEBUG] TestFileRunner: completed plan for %s/%s", file.Name, run.Name)
 	}()
-	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, nil)
+	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, nil, moduletest.Running, start)
 
 	if cancelled {
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
@@ -660,7 +667,7 @@ func (runner *TestFileRunner) plan(config *configs.Config, state *states.State, 
 	return tfCtx, plan, diags
 }
 
-func (runner *TestFileRunner) apply(plan *plans.Plan, state *states.State, config *configs.Config, run *moduletest.Run, file *moduletest.File) (*terraform.Context, *states.State, tfdiags.Diagnostics) {
+func (runner *TestFileRunner) apply(plan *plans.Plan, state *states.State, config *configs.Config, run *moduletest.Run, file *moduletest.File, progress moduletest.Progress, start int64) (*terraform.Context, *states.State, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] TestFileRunner: called apply for %s/%s", file.Name, run.Name)
 
 	var diags tfdiags.Diagnostics
@@ -702,7 +709,7 @@ func (runner *TestFileRunner) apply(plan *plans.Plan, state *states.State, confi
 		updated, applyDiags = tfCtx.Apply(plan, config)
 		log.Printf("[DEBUG] TestFileRunner: completed apply for %s/%s", file.Name, run.Name)
 	}()
-	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, created)
+	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, created, progress, start)
 
 	if cancelled {
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Test interrupted", "The test operation could not be completed due to an interrupt signal. Please read the remaining diagnostics carefully for any sign of failed state cleanup or dangling resources."))
@@ -714,7 +721,7 @@ func (runner *TestFileRunner) apply(plan *plans.Plan, state *states.State, confi
 	return tfCtx, updated, diags
 }
 
-func (runner *TestFileRunner) wait(ctx *terraform.Context, runningCtx context.Context, run *moduletest.Run, file *moduletest.File, created []*plans.ResourceInstanceChangeSrc) (diags tfdiags.Diagnostics, cancelled bool) {
+func (runner *TestFileRunner) wait(ctx *terraform.Context, runningCtx context.Context, run *moduletest.Run, file *moduletest.File, created []*plans.ResourceInstanceChangeSrc, progress moduletest.Progress, start int64) (diags tfdiags.Diagnostics, cancelled bool) {
 	var identifier string
 	if file == nil {
 		identifier = "validate"
@@ -725,6 +732,9 @@ func (runner *TestFileRunner) wait(ctx *terraform.Context, runningCtx context.Co
 		}
 	}
 	log.Printf("[TRACE] TestFileRunner: waiting for execution during %s", identifier)
+
+	// Keep track of when the execution is actually finished.
+	finished := false
 
 	// This function handles what happens when the user presses the second
 	// interrupt. This is a "hard cancel", we are going to stop doing whatever
@@ -746,9 +756,19 @@ func (runner *TestFileRunner) wait(ctx *terraform.Context, runningCtx context.Co
 		cancelled = true
 		go ctx.Stop()
 
-		// Just wait for things to finish now, the overall test execution will
-		// exit early if this takes too long.
-		<-runningCtx.Done()
+		for !finished {
+			select {
+			case <-time.After(2 * time.Second):
+				// Print an update while we're waiting.
+				now := time.Now().UTC().UnixMilli()
+				runner.Suite.View.Run(run, file, progress, now-start)
+			case <-runningCtx.Done():
+				// Just wait for things to finish now, the overall test execution will
+				// exit early if this takes too long.
+				finished = true
+			}
+		}
+
 	}
 
 	// This function handles what happens when the user presses the first
@@ -758,25 +778,39 @@ func (runner *TestFileRunner) wait(ctx *terraform.Context, runningCtx context.Co
 	handleStopped := func() {
 		log.Printf("[DEBUG] TestFileRunner: test execution stopped during %s", identifier)
 
-		select {
-		case <-runner.Suite.CancelledCtx.Done():
-			// We've been asked again. This time we stop whatever we're doing
-			// and abandon all attempts to do anything reasonable.
-			handleCancelled()
-		case <-runningCtx.Done():
-			// Do nothing, we finished safely and skipping the remaining tests
-			// will be handled elsewhere.
+		for !finished {
+			select {
+			case <-time.After(2 * time.Second):
+				// Print an update while we're waiting.
+				now := time.Now().UTC().UnixMilli()
+				runner.Suite.View.Run(run, file, progress, now-start)
+			case <-runner.Suite.CancelledCtx.Done():
+				// We've been asked again. This time we stop whatever we're doing
+				// and abandon all attempts to do anything reasonable.
+				handleCancelled()
+			case <-runningCtx.Done():
+				// Do nothing, we finished safely and skipping the remaining tests
+				// will be handled elsewhere.
+				finished = true
+			}
 		}
 
 	}
 
-	select {
-	case <-runner.Suite.StoppedCtx.Done():
-		handleStopped()
-	case <-runner.Suite.CancelledCtx.Done():
-		handleCancelled()
-	case <-runningCtx.Done():
-		// The operation exited normally.
+	for !finished {
+		select {
+		case <-time.After(2 * time.Second):
+			// Print an update while we're waiting.
+			now := time.Now().UTC().UnixMilli()
+			runner.Suite.View.Run(run, file, progress, now-start)
+		case <-runner.Suite.StoppedCtx.Done():
+			handleStopped()
+		case <-runner.Suite.CancelledCtx.Done():
+			handleCancelled()
+		case <-runningCtx.Done():
+			// The operation exited normally.
+			finished = true
+		}
 	}
 
 	return diags, cancelled
