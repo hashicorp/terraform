@@ -21,6 +21,7 @@ import (
 const (
 	multiRegionKeyIdPattern = `mrk-[a-f0-9]{32}`
 	uuidRegexPattern        = `[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[ab89][a-f0-9]{3}-[a-f0-9]{12}`
+	aliasRegexPattern       = `alias/(.*)`
 )
 
 func validateKMSKey(path cty.Path, s string) (diags tfdiags.Diagnostics) {
@@ -31,7 +32,7 @@ func validateKMSKey(path cty.Path, s string) (diags tfdiags.Diagnostics) {
 }
 
 func validateKMSKeyID(path cty.Path, s string) (diags tfdiags.Diagnostics) {
-	keyIdRegex := regexp.MustCompile(`^` + uuidRegexPattern + `|` + multiRegionKeyIdPattern + `$`)
+	keyIdRegex := regexp.MustCompile(`^` + uuidRegexPattern + `|` + multiRegionKeyIdPattern + `|` + aliasRegexPattern + `$`)
 	if !keyIdRegex.MatchString(s) {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
@@ -71,12 +72,22 @@ func validateKMSKeyARN(path cty.Path, s string) (diags tfdiags.Diagnostics) {
 }
 
 func isKeyARN(arn arn.ARN) bool {
-	return keyIdFromARNResource(arn.Resource) != ""
+	return keyIdFromARNResource(arn.Resource) != "" || aliasIdFromARNResource(arn.Resource) != ""
 }
 
 func keyIdFromARNResource(s string) string {
 	keyIdResourceRegex := regexp.MustCompile(`^key/(` + uuidRegexPattern + `|` + multiRegionKeyIdPattern + `)$`)
 	matches := keyIdResourceRegex.FindStringSubmatch(s)
+	if matches == nil || len(matches) != 2 {
+		return ""
+	}
+
+	return matches[1]
+}
+
+func aliasIdFromARNResource(s string) string {
+	aliasIdResourceRegex := regexp.MustCompile(`^` + aliasRegexPattern + `$`)
+	matches := aliasIdResourceRegex.FindStringSubmatch(s)
 	if matches == nil || len(matches) != 2 {
 		return ""
 	}
