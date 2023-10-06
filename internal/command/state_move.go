@@ -559,7 +559,7 @@ Options:
 }
 
 func (c *StateMoveCommand) Synopsis() string {
-	return "Move an item in the state"
+	return "Move an item in the state (aliases: 'mv', 'rename')"
 }
 
 const errStateMove = `Error moving state: %s

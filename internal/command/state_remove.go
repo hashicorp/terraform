@@ -200,7 +200,7 @@ Options:
 }
 
 func (c *StateRemoveCommand) Synopsis() string {
-	return "Remove instances from the state"
+	return "Remove instances from the state (aliases: 'rm', 'delete')"
 }
 
 const errStateRemovePersist = `Error saving the state: %s
