@@ -407,6 +407,130 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	return diags
 }
 
+// resolveCloudConfig fills in a potentially incomplete cloud config block using
+// environment variables and defaults. If the returned Diagnostics are clean,
+// the resulting value is a logically valid cloud config. If the Diagnostics
+// contain any errors, the resolved config value is invalid and should not be
+// used. Note that this function does not verify that any objects referenced in
+// the config actually exist in the remote system; it only validates that the
+// resulting config is internally consistent.
+func resolveCloudConfig(obj cty.Value) (cloudConfig, tfdiags.Diagnostics) {
+	var ret cloudConfig
+	var diags tfdiags.Diagnostics
+
+	// Get the hostname. Config beats environment. Absent means use the default
+	// hostname.
+	if val := obj.GetAttr("hostname"); !val.IsNull() && val.AsString() != "" {
+		ret.hostname = val.AsString()
+		log.Printf("[TRACE] cloud: using hostname %q from cloud config block", ret.hostname)
+	} else {
+		ret.hostname = os.Getenv("TF_CLOUD_HOSTNAME")
+		log.Printf("[TRACE] cloud: using hostname %q from TF_CLOUD_HOSTNAME variable", ret.hostname)
+	}
+	if ret.hostname == "" {
+		ret.hostname = defaultHostname
+		log.Printf("[TRACE] cloud: using default hostname %q", ret.hostname)
+	}
+
+	// Get the organization. Config beats environment. There's no default, so
+	// absent means error.
+	if val := obj.GetAttr("organization"); !val.IsNull() && val.AsString() != "" {
+		ret.organization = val.AsString()
+		log.Printf("[TRACE] cloud: using organization %q from cloud config block", ret.organization)
+	} else {
+		ret.organization = os.Getenv("TF_CLOUD_ORGANIZATION")
+		log.Printf("[TRACE] cloud: using organization %q from TF_CLOUD_ORGANIZATION variable", ret.organization)
+	}
+	if ret.organization == "" {
+		diags = diags.Append(missingConfigAttributeAndEnvVar("organization", "TF_CLOUD_ORGANIZATION"))
+	}
+
+	// Get the token. We only report what's in the config! An empty value is
+	// ok; later, after this function is called, Configure() can try to resolve
+	// per-hostname credentials from a variety of sources (including
+	// hostname-specific env vars).
+	if val := obj.GetAttr("token"); !val.IsNull() {
+		ret.token = val.AsString()
+		log.Printf("[TRACE] cloud: found token in cloud config block")
+	}
+
+	// Grab any workspace/project info from the nested config object in one go,
+	// so it's easier to work with.
+	var name, project string
+	var tags []string
+	if workspaces := obj.GetAttr("workspaces"); !workspaces.IsNull() {
+		if val := workspaces.GetAttr("name"); !val.IsNull() {
+			name = val.AsString()
+			log.Printf("[TRACE] cloud: found workspace name %q in cloud config block", name)
+		}
+		if val := workspaces.GetAttr("tags"); !val.IsNull() {
+			err := gocty.FromCtyValue(val, &tags)
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("an unexpected error occurred: %w", err))
+			}
+			log.Printf("[TRACE] cloud: using tags %q from cloud config block", tags)
+		}
+		if val := workspaces.GetAttr("project"); !val.IsNull() {
+			project = val.AsString()
+			log.Printf("[TRACE] cloud: found project name %q in cloud config block", project)
+		}
+	}
+
+	// Get the project. Config beats environment, and the default value is the
+	// empty string.
+	if project != "" {
+		ret.workspaceMapping.Project = project
+		log.Printf("[TRACE] cloud: using project %q from cloud config block", ret.workspaceMapping.Project)
+	} else {
+		ret.workspaceMapping.Project = os.Getenv("TF_CLOUD_PROJECT")
+		log.Printf("[TRACE] cloud: using project %q from TF_CLOUD_PROJECT variable", ret.workspaceMapping.Project)
+	}
+
+	// Get the tags from the config. There's no environment variable.
+	ret.workspaceMapping.Tags = tags
+
+	// Get the name, and validate the WorkspaceMapping as a whole. This is the
+	// only real tricky one, because TF_WORKSPACE is used in places beyond
+	// the cloud backend config. The rules are:
+	// - If the config had neither `name` nor `tags`, we fall back to TF_WORKSPACE as the name.
+	// - If the config had `tags`, it's still legal to set TF_WORKSPACE, and it indicates
+	//   which workspace should be *current,* but we leave Name blank in the mapping.
+	//   This is mostly useful in CI.
+	// - If the config had `name`, it's NOT LEGAL to set TF_WORKSPACE, but we make
+	//   an exception if it's the same as the specified `name` because the intent was clear.
+
+	// Start out with the name from the config (if any)
+	ret.workspaceMapping.Name = name
+
+	// Then examine the combination of name + tags:
+	switch ret.workspaceMapping.Strategy() {
+	// Invalid can't really happen here because b.PrepareConfig() already
+	// checked for it. But, still:
+	case WorkspaceInvalidStrategy:
+		diags = diags.Append(invalidWorkspaceConfigMisconfiguration)
+	// If both name and TF_WORKSPACE are set, error (unless they match)
+	case WorkspaceNameStrategy:
+		if tfws, ok := os.LookupEnv("TF_WORKSPACE"); ok && tfws != ret.workspaceMapping.Name {
+			diags = diags.Append(invalidWorkspaceConfigNameConflict)
+		} else {
+			log.Printf("[TRACE] cloud: using workspace name %q from cloud config block", ret.workspaceMapping.Name)
+		}
+	// If config had nothing, use TF_WORKSPACE.
+	case WorkspaceNoneStrategy:
+		ret.workspaceMapping.Name = os.Getenv("TF_WORKSPACE")
+		log.Printf("[TRACE] cloud: using workspace name %q from TF_WORKSPACE variable", ret.workspaceMapping.Name)
+		// And, if config only had tags, do nothing.
+	}
+
+	// If our workspace mapping is still None after all that, then we don't have
+	// a valid completed config!
+	if ret.workspaceMapping.Strategy() == WorkspaceNoneStrategy {
+		diags = diags.Append(invalidWorkspaceConfigMissingValues)
+	}
+
+	return ret, diags
+}
+
 func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
@@ -1084,6 +1208,15 @@ func (wm WorkspaceMapping) Strategy() workspaceStrategy {
 	}
 }
 
+// cloudConfig is an intermediate type that represents the completed
+// cloud block config as a plain Go value.
+type cloudConfig struct {
+	hostname         string
+	organization     string
+	token            string
+	workspaceMapping WorkspaceMapping
+}
+
 func isLocalExecutionMode(execMode string) bool {
 	return execMode == "local"
 }
@@ -1272,7 +1405,8 @@ configuration. New workspaces will automatically be tagged with these tag values
 is the primary and recommended strategy to use.  This option conflicts with "name".`
 
 	schemaDescriptionName = `The name of a single Terraform Cloud workspace to be used with this configuration.
-When configured, only the specified workspace can be used. This option conflicts with "tags".`
+When configured, only the specified workspace can be used. This option conflicts with "tags"
+and with the TF_WORKSPACE environment variable.`
 
 	schemaDescriptionProject = `The name of a Terraform Cloud project. Workspaces that need creating
 will be created within this project.`
