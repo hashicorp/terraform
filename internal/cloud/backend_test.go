@@ -522,7 +522,7 @@ func TestCloud_config(t *testing.T) {
 					"project": cty.NullVal(cty.String),
 				}),
 			}),
-			valErr: `Missing workspace mapping strategy.`,
+			confErr: `Missing workspace mapping strategy.`,
 		},
 		"with_both_a_name_and_tags": {
 			config: cty.ObjectVal(map[string]cty.Value{
