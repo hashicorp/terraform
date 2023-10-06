@@ -167,45 +167,27 @@ func (b *Cloud) ConfigSchema() *configschema.Block {
 	}
 }
 
-// PrepareConfig implements backend.Backend.
+// PrepareConfig implements backend.Backend. Per the interface contract, it
+// should catch invalid contents in the config value and populate knowable
+// default values, but must NOT consult environment variables or other knowledge
+// outside the config value itself.
 func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	if obj.IsNull() {
 		return obj, diags
 	}
 
-	// check if organization is specified in the config.
-	if val := obj.GetAttr("organization"); val.IsNull() || val.AsString() == "" {
-		// organization is specified in the config but is invalid, so
-		// we'll fallback on TF_CLOUD_ORGANIZATION
-		if val := os.Getenv("TF_CLOUD_ORGANIZATION"); val == "" {
-			diags = diags.Append(missingConfigAttributeAndEnvVar("organization", "TF_CLOUD_ORGANIZATION"))
-		}
-	}
-
-	WorkspaceMapping := WorkspaceMapping{}
-	// Initially set the workspace name via env var
-	WorkspaceMapping.Name = os.Getenv("TF_WORKSPACE")
-
+	// Since this backend uses environment variables extensively, this function
+	// can't do very much! We do our main validity checks in resolveCloudConfig,
+	// which is allowed to resolve fallback values from the environment. About
+	// the only thing we can check for here is whether the conflicting `name`
+	// and `tags` attributes are both set.
 	if workspaces := obj.GetAttr("workspaces"); !workspaces.IsNull() {
 		if val := workspaces.GetAttr("name"); !val.IsNull() {
-			WorkspaceMapping.Name = val.AsString()
-		}
-		if val := workspaces.GetAttr("tags"); !val.IsNull() {
-			err := gocty.FromCtyValue(val, &WorkspaceMapping.Tags)
-			if err != nil {
-				log.Panicf("An unexpected error occurred: %s", err)
+			if val := workspaces.GetAttr("tags"); !val.IsNull() {
+				diags = diags.Append(invalidWorkspaceConfigMisconfiguration)
 			}
 		}
-	}
-
-	switch WorkspaceMapping.Strategy() {
-	// Make sure have a workspace mapping strategy present
-	case WorkspaceNoneStrategy:
-		diags = diags.Append(invalidWorkspaceConfigMissingValues)
-	// Make sure that a workspace name is configured.
-	case WorkspaceInvalidStrategy:
-		diags = diags.Append(invalidWorkspaceConfigMisconfiguration)
 	}
 
 	return obj, diags
@@ -240,10 +222,18 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diags
 	}
 
-	diagErr := b.setConfigurationFields(obj)
-	if diagErr.HasErrors() {
-		return diagErr
+	// Combine environment variables and the cloud block to get the full config.
+	// We are now completely done with `obj`!
+	config, configDiags := resolveCloudConfig(obj)
+	diags = diags.Append(configDiags)
+	if diags.HasErrors() {
+		return diags
 	}
+
+	// Use resolved config to set fields on backend (except token, see below)
+	b.Hostname = config.hostname
+	b.organization = config.organization
+	b.WorkspaceMapping = config.workspaceMapping
 
 	// Discover the service URL to confirm that it provides the Terraform Cloud/Enterprise API
 	hostname, err := svchost.ForComparison(b.Hostname)
@@ -268,14 +258,11 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diags
 	}
 
-	// First we'll retrieve the token from the configuration
-	var token string
-	if val := obj.GetAttr("token"); !val.IsNull() {
-		token = val.AsString()
-	}
+	// Token time. First, see if the configuration had one:
+	token := config.token
 
 	// Get the token from the CLI Config File in the credentials section
-	// if no token was not set in the configuration
+	// if no token was set in the configuration
 	if token == "" {
 		token, err = cliConfigToken(hostname, b.services)
 		if err != nil {
@@ -356,6 +343,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diags
 	}
 
+	// If TF_WORKSPACE specifies a current workspace to use, make sure it's usable.
 	if ws, ok := os.LookupEnv("TF_WORKSPACE"); ok {
 		if ws == b.WorkspaceMapping.Name || b.WorkspaceMapping.Strategy() == WorkspaceTagsStrategy {
 			diag := b.validWorkspaceEnvVar(context.Background(), b.organization, ws)
@@ -399,7 +387,9 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	// Configure a local backend for when we need to run operations locally.
 	b.local = backendLocal.NewWithBackend(b)
-	b.forceLocal = b.forceLocal || !entitlements.Operations
+
+	// Determine if we are forced to use the local backend.
+	b.forceLocal = os.Getenv("TF_FORCE_LOCAL_BACKEND") != "" || !entitlements.Operations
 
 	// Enable retries for server errors as the backend is now fully configured.
 	b.client.RetryServerErrors(true)
@@ -529,64 +519,6 @@ func resolveCloudConfig(obj cty.Value) (cloudConfig, tfdiags.Diagnostics) {
 	}
 
 	return ret, diags
-}
-
-func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	// Get the hostname.
-	b.Hostname = os.Getenv("TF_CLOUD_HOSTNAME")
-	if val := obj.GetAttr("hostname"); !val.IsNull() && val.AsString() != "" {
-		b.Hostname = val.AsString()
-	} else if b.Hostname == "" {
-		b.Hostname = defaultHostname
-	}
-
-	// We can have two options, setting the organization via the config
-	// or using TF_CLOUD_ORGANIZATION. Since PrepareConfig() validates that one of these
-	// values must exist, we'll initially set it to the env var and override it if
-	// specified in the configuration.
-	b.organization = os.Getenv("TF_CLOUD_ORGANIZATION")
-
-	// Check if the organization is present and valid in the config.
-	if val := obj.GetAttr("organization"); !val.IsNull() && val.AsString() != "" {
-		b.organization = val.AsString()
-	}
-
-	// Initially set the project via env var
-	b.WorkspaceMapping.Project = os.Getenv("TF_CLOUD_PROJECT")
-
-	// Initially set the workspace name via env var
-	b.WorkspaceMapping.Name = os.Getenv("TF_WORKSPACE")
-
-	// Get the workspaces configuration block and retrieve the
-	// default workspace name.
-	if workspaces := obj.GetAttr("workspaces"); !workspaces.IsNull() {
-
-		// Check if the project is present and valid in the config.
-		if val := workspaces.GetAttr("project"); !val.IsNull() && val.AsString() != "" {
-			b.WorkspaceMapping.Project = val.AsString()
-		}
-
-		// PrepareConfig checks that you cannot set both of these.
-		if val := workspaces.GetAttr("name"); !val.IsNull() {
-			b.WorkspaceMapping.Name = val.AsString()
-		}
-		if val := workspaces.GetAttr("tags"); !val.IsNull() {
-			var tags []string
-			err := gocty.FromCtyValue(val, &tags)
-			if err != nil {
-				log.Panicf("An unexpected error occurred: %s", err)
-			}
-
-			b.WorkspaceMapping.Tags = tags
-		}
-	}
-
-	// Determine if we are forced to use the local backend.
-	b.forceLocal = os.Getenv("TF_FORCE_LOCAL_BACKEND") != ""
-
-	return diags
 }
 
 // discover the TFC/E API service URL and version constraints.
@@ -1249,7 +1181,9 @@ func (b *Cloud) fetchWorkspace(ctx context.Context, organization string, workspa
 }
 
 // validWorkspaceEnvVar ensures we have selected a valid workspace using TF_WORKSPACE:
-// First, it ensures the workspace specified by TF_WORKSPACE exists in the organization
+// First, it ensures the workspace specified by TF_WORKSPACE exists in the organization.
+// (This is because we deliberately DON'T implicitly create a workspace from TF_WORKSPACE,
+// unlike with a workspace specified via `name`.)
 // Second, if tags are specified in the configuration, it ensures TF_WORKSPACE belongs to the set
 // of available workspaces with those given tags.
 func (b *Cloud) validWorkspaceEnvVar(ctx context.Context, organization, workspace string) tfdiags.Diagnostic {
