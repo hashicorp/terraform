@@ -16,7 +16,8 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// StateRemoveCommand is a Command implementation that shows a single resource.
+// StateMoveCommand is a Command implementation that deletes a single
+// resource from the state.
 type StateRemoveCommand struct {
 	StateMeta
 }

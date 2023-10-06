@@ -21,7 +21,6 @@ import (
 // to change the provider associated with existing resources. This is only
 // likely to be useful if a provider is forked or changes its fully-qualified
 // name.
-
 type StateReplaceProviderCommand struct {
 	StateMeta
 }

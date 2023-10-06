@@ -18,7 +18,8 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// StateMoveCommand is a Command implementation that shows a single resource.
+// StateMoveCommand is a Command implementation that renames a single
+// resource in the state.
 type StateMoveCommand struct {
 	StateMeta
 }
