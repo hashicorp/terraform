@@ -122,7 +122,7 @@ func initCommands(
 		}, nil
 	}
 	stateMoveCommandFactory := func() (cli.Command, error) {
-		return &command.StateMvCommand{
+		return &command.StateMoveCommand{
 			StateMeta: command.StateMeta{
 				Meta: meta,
 			},
