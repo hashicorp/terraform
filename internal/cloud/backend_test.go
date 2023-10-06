@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
@@ -823,6 +825,72 @@ func TestCloud_setUnavailableTerraformVersion(t *testing.T) {
 	)
 	if err == nil {
 		t.Fatalf("the mocks aren't emulating a nonexistent remote Terraform version correctly, so this test isn't trustworthy anymore")
+	}
+}
+
+func TestCloud_resolveCloudConfig(t *testing.T) {
+	cases := map[string]struct {
+		config         cty.Value
+		vars           map[string]string
+		expectedResult cloudConfig
+		expectedErr    string
+	}{
+		"hostname/org/name/token/project all set": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.StringVal("app.staging.terraform.io"),
+				"organization": cty.StringVal("examplecorp"),
+				"token":        cty.StringVal("password123"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.StringVal("networking"),
+				}),
+			}),
+			expectedResult: cloudConfig{
+				hostname:     "app.staging.terraform.io",
+				organization: "examplecorp",
+				token:        "password123",
+				workspaceMapping: WorkspaceMapping{
+					Name:    "prod",
+					Project: "networking",
+				},
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			for k, v := range tc.vars {
+				os.Setenv(k, v)
+			}
+			t.Cleanup(func() {
+				for k := range tc.vars {
+					os.Unsetenv(k)
+				}
+			})
+
+			result, diags := resolveCloudConfig(tc.config)
+
+			// Validate either expected error or result, not both
+			if tc.expectedErr != "" {
+				if diags.Err() == nil {
+					t.Fatalf("%s: expected validation error %q but didn't get one", name, tc.expectedErr)
+				} else {
+					actualErr := diags.Err().Error()
+					if !strings.Contains(actualErr, tc.expectedErr) {
+						t.Fatalf("%s: expected validation error %q but instead got %q", name, tc.expectedErr, actualErr)
+					}
+				}
+			} else { // check result
+				// Sort tags first to avoid flaking, since the slice order from
+				// a cty.Set isn't guaranteed:
+				sort.Strings(tc.expectedResult.workspaceMapping.Tags)
+				sort.Strings(result.workspaceMapping.Tags)
+				if !reflect.DeepEqual(tc.expectedResult, result) {
+					t.Fatalf("%s: expected final config of %#v but instead got %#v", name, tc.expectedResult, result)
+				}
+			}
+		})
 	}
 }
 
