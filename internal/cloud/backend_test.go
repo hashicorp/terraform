@@ -138,7 +138,7 @@ func TestCloud_PrepareConfig(t *testing.T) {
 	}
 }
 
-func WithEnvVars(t *testing.T) {
+func TestCloud_configWithEnvVars(t *testing.T) {
 	cases := map[string]struct {
 		setup                 func(b *Cloud)
 		config                cty.Value
