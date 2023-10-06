@@ -243,7 +243,7 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 			vars: map[string]string{
 				"TF_WORKSPACE": "shire",
 			},
-			expectedWorkspaceName: "mt-doom",
+			expectedErr: `conflicts with TF_WORKSPACE environment variable`,
 		},
 		"env var workspace does not have specified tag": {
 			setup: func(b *Cloud) {
@@ -379,7 +379,10 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 					"project": cty.StringVal("my-project"),
 				}),
 			}),
-			expectedProjectName: "another-project", // No error is raised, workspace is still in the original project
+			expectedProjectName: "my-project",
+			// No error is raised, and workspace is still in its original
+			// project, but the configured project for any future workspaces
+			// created with `terraform workspace new` is unaffected.
 		},
 		"with everything set as env vars": {
 			config: cty.ObjectVal(map[string]cty.Value{
