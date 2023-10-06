@@ -611,7 +611,8 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 	addr := c.Addr()
 	decl := c.call.Declaration(ctx)
 
-	// TODO: Emit a "begin component instance apply" hook event
+	h := hooksFromContext(ctx)
+	seq, ctx := hookBegin(ctx, h.BeginComponentInstanceApply, h.ContextAttach, addr)
 
 	moduleTree := c.call.Config(ctx).ModuleTree(ctx)
 	if moduleTree == nil {
@@ -642,14 +643,12 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 
 	tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
 		Hooks: []terraform.Hook{
-			// TODO: Pass the hook sequence started by the "begin component
-			// instance apply" hook event, once there is one.
-			/*&componentInstanceTerraformHook{
+			&componentInstanceTerraformHook{
 				ctx:   ctx,
 				seq:   seq,
 				hooks: hooksFromContext(ctx),
 				addr:  c.Addr(),
-			},*/
+			},
 		},
 		PreloadedProviderSchemas: providerSchemas,
 	})
@@ -730,13 +729,17 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 
 	if newState != nil {
 		// TODO: Emit resource-instance-level "applied" events for all
-		// resource instances mentioned in the state.
+		// resource instances that were affected by applying this plan.
+
+		hookMore(ctx, seq, h.ReportComponentInstanceApplied, &hooks.ComponentInstanceChange{
+			Addr: addr,
+		})
 	}
 
 	if diags.HasErrors() {
-		// TODO: Emit a "component instance apply errored" hook event
+		hookMore(ctx, seq, h.ErrorComponentInstanceApply, addr)
 	} else {
-		// TODO: Emit a "component instance apply complete" hook event
+		hookMore(ctx, seq, h.EndComponentInstanceApply, addr)
 	}
 
 	return newState, diags
