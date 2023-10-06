@@ -1,5 +1,9 @@
 ## 1.6.1 (Unreleased)
 
+BUG FIXES:
+* config: Using sensitive values as one or both of the results of a conditional expression will no longer crash. [GH-33996]
+* config: Conditional expression returning refined-non-null result will no longer crash. [GH-33996]
+
 ## 1.6.0 (October 4, 2023)
 
 UPGRADE NOTES:
