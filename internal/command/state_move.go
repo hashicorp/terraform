@@ -406,22 +406,22 @@ func (c *StateMoveCommand) Run(args []string) int {
 
 	// Write the new state
 	if err := stateToMgr.WriteState(stateTo); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		c.Ui.Error(fmt.Sprintf(errStateRemovePersist, err))
 		return 1
 	}
 	if err := stateToMgr.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		c.Ui.Error(fmt.Sprintf(errStateRemovePersist, err))
 		return 1
 	}
 
 	// Write the old state if it is different
 	if stateTo != stateFrom {
 		if err := stateFromMgr.WriteState(stateFrom); err != nil {
-			c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+			c.Ui.Error(fmt.Sprintf(errStateRemovePersist, err))
 			return 1
 		}
 		if err := stateFromMgr.PersistState(schemas); err != nil {
-			c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+			c.Ui.Error(fmt.Sprintf(errStateRemovePersist, err))
 			return 1
 		}
 	}

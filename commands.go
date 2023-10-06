@@ -129,7 +129,7 @@ func initCommands(
 		}, nil
 	}
 	stateRemoveCommandFactory := func() (cli.Command, error) {
-		return &command.StateRmCommand{
+		return &command.StateRemoveCommand{
 			StateMeta: command.StateMeta{
 				Meta: meta,
 			},

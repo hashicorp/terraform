@@ -181,11 +181,11 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 
 	// Write the updated state
 	if err := stateMgr.WriteState(state); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		c.Ui.Error(fmt.Sprintf(errStateRemovePersist, err))
 		return 1
 	}
 	if err := stateMgr.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		c.Ui.Error(fmt.Sprintf(errStateRemovePersist, err))
 		return 1
 	}
 

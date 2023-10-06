@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 )
 
-func TestStateRm(t *testing.T) {
+func TestStateRemove(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -53,7 +53,7 @@ func TestStateRm(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateRmCommand{
+	c := &StateRemoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -72,17 +72,17 @@ func TestStateRm(t *testing.T) {
 	}
 
 	// Test it is correct
-	testStateOutput(t, statePath, testStateRmOutput)
+	testStateOutput(t, statePath, testStateRemoveOutput)
 
 	// Test we have backups
 	backups := testStateBackups(t, filepath.Dir(statePath))
 	if len(backups) != 1 {
 		t.Fatalf("bad: %#v", backups)
 	}
-	testStateOutput(t, backups[0], testStateRmOutputOriginal)
+	testStateOutput(t, backups[0], testStateRemoveOutputOriginal)
 }
 
-func TestStateRmNotChildModule(t *testing.T) {
+func TestStateRemoveNotChildModule(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -123,7 +123,7 @@ func TestStateRmNotChildModule(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateRmCommand{
+	c := &StateRemoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -173,7 +173,7 @@ module.child:
 `)
 }
 
-func TestStateRmNoArgs(t *testing.T) {
+func TestStateRemoveNoArgs(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -211,7 +211,7 @@ func TestStateRmNoArgs(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateRmCommand{
+	c := &StateRemoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -234,7 +234,7 @@ func TestStateRmNoArgs(t *testing.T) {
 
 }
 
-func TestStateRmNonExist(t *testing.T) {
+func TestStateRemoveNonExist(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -272,7 +272,7 @@ func TestStateRmNonExist(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateRmCommand{
+	c := &StateRemoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -291,7 +291,7 @@ func TestStateRmNonExist(t *testing.T) {
 	}
 }
 
-func TestStateRm_backupExplicit(t *testing.T) {
+func TestStateRemove_backupExplicit(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -330,7 +330,7 @@ func TestStateRm_backupExplicit(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateRmCommand{
+	c := &StateRemoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -350,19 +350,19 @@ func TestStateRm_backupExplicit(t *testing.T) {
 	}
 
 	// Test it is correct
-	testStateOutput(t, statePath, testStateRmOutput)
+	testStateOutput(t, statePath, testStateRemoveOutput)
 
 	// Test backup
-	testStateOutput(t, backupPath, testStateRmOutputOriginal)
+	testStateOutput(t, backupPath, testStateRemoveOutputOriginal)
 }
 
-func TestStateRm_noState(t *testing.T) {
+func TestStateRemove_noState(t *testing.T) {
 	testCwd(t)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateRmCommand{
+	c := &StateRemoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -378,7 +378,7 @@ func TestStateRm_noState(t *testing.T) {
 	}
 }
 
-func TestStateRm_needsInit(t *testing.T) {
+func TestStateRemove_needsInit(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change"), td)
 	defer testChdir(t, td)()
@@ -386,7 +386,7 @@ func TestStateRm_needsInit(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateRmCommand{
+	c := &StateRemoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -406,7 +406,7 @@ func TestStateRm_needsInit(t *testing.T) {
 	}
 }
 
-func TestStateRm_backendState(t *testing.T) {
+func TestStateRemove_backendState(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unchanged"), td)
 	defer testChdir(t, td)()
@@ -461,7 +461,7 @@ func TestStateRm_backendState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateRmCommand{
+	c := &StateRemoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -480,13 +480,13 @@ func TestStateRm_backendState(t *testing.T) {
 	}
 
 	// Test it is correct
-	testStateOutput(t, statePath, testStateRmOutput)
+	testStateOutput(t, statePath, testStateRemoveOutput)
 
 	// Test backup
-	testStateOutput(t, backupPath, testStateRmOutputOriginal)
+	testStateOutput(t, backupPath, testStateRemoveOutputOriginal)
 }
 
-func TestStateRm_checkRequiredVersion(t *testing.T) {
+func TestStateRemove_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
@@ -529,7 +529,7 @@ func TestStateRm_checkRequiredVersion(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateRmCommand{
+	c := &StateRemoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -548,7 +548,7 @@ func TestStateRm_checkRequiredVersion(t *testing.T) {
 	}
 
 	// State is unchanged
-	testStateOutput(t, statePath, testStateRmOutputOriginal)
+	testStateOutput(t, statePath, testStateRemoveOutputOriginal)
 
 	// Required version diags are correct
 	errStr := ui.ErrorWriter.String()
@@ -560,7 +560,7 @@ func TestStateRm_checkRequiredVersion(t *testing.T) {
 	}
 }
 
-const testStateRmOutputOriginal = `
+const testStateRemoveOutputOriginal = `
 test_instance.bar:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -573,7 +573,7 @@ test_instance.foo:
   foo = value
 `
 
-const testStateRmOutput = `
+const testStateRemoveOutput = `
 test_instance.bar:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/test"]
