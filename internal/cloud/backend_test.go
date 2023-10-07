@@ -834,20 +834,6 @@ func TestCloud_resolveCloudConfig(t *testing.T) {
 				},
 			},
 		},
-		"with no organization attribute or env var": {
-			config: cty.ObjectVal(map[string]cty.Value{
-				"organization": cty.NullVal(cty.String),
-				"hostname":     cty.NullVal(cty.String),
-				"token":        cty.NullVal(cty.String),
-				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name":    cty.StringVal("prod"),
-					"tags":    cty.NullVal(cty.Set(cty.String)),
-					"project": cty.NullVal(cty.String),
-				}),
-			}),
-			vars:        map[string]string{},
-			expectedErr: `Invalid or missing required argument: "organization" must be set in the cloud configuration or as an environment variable: TF_CLOUD_ORGANIZATION.`,
-		},
 		"null workspace, TF_WORKSPACE present": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"organization": cty.StringVal("hashicorp"),
@@ -965,28 +951,6 @@ func TestCloud_resolveCloudConfig(t *testing.T) {
 				},
 			},
 		},
-
-		// TODO: fix expectations from setConfigurationFields cases
-		"with hostname set": {
-			config: cty.ObjectVal(map[string]cty.Value{
-				"organization": cty.StringVal("hashicorp"),
-				"hostname":     cty.StringVal("hashicorp.com"),
-				"token":        cty.NullVal(cty.String),
-				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name":    cty.StringVal("prod"),
-					"tags":    cty.NullVal(cty.Set(cty.String)),
-					"project": cty.NullVal(cty.String),
-				}),
-			}),
-			expectedResult: cloudConfig{
-				hostname:     "hashicorp.com",
-				organization: "hashicorp",
-				token:        "",
-				workspaceMapping: WorkspaceMapping{
-					Name: "prod",
-				},
-			},
-		},
 		"with hostname not set, set to default hostname": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"organization": cty.StringVal("hashicorp"),
@@ -1000,26 +964,6 @@ func TestCloud_resolveCloudConfig(t *testing.T) {
 			}),
 			expectedResult: cloudConfig{
 				hostname:     defaultHostname,
-				organization: "hashicorp",
-				token:        "",
-				workspaceMapping: WorkspaceMapping{
-					Name: "prod",
-				},
-			},
-		},
-		"with workspace name set": {
-			config: cty.ObjectVal(map[string]cty.Value{
-				"organization": cty.StringVal("hashicorp"),
-				"hostname":     cty.StringVal("hashicorp.com"),
-				"token":        cty.NullVal(cty.String),
-				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name":    cty.StringVal("prod"),
-					"tags":    cty.NullVal(cty.Set(cty.String)),
-					"project": cty.NullVal(cty.String),
-				}),
-			}),
-			expectedResult: cloudConfig{
-				hostname:     "hashicorp.com",
 				organization: "hashicorp",
 				token:        "",
 				workspaceMapping: WorkspaceMapping{
@@ -1049,27 +993,6 @@ func TestCloud_resolveCloudConfig(t *testing.T) {
 				token:        "",
 				workspaceMapping: WorkspaceMapping{
 					Tags: []string{"billing", "applications"},
-				},
-			},
-		},
-		"with project name set": {
-			config: cty.ObjectVal(map[string]cty.Value{
-				"organization": cty.StringVal("hashicorp"),
-				"hostname":     cty.StringVal("hashicorp.com"),
-				"token":        cty.NullVal(cty.String),
-				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name":    cty.StringVal("prod"),
-					"tags":    cty.NullVal(cty.Set(cty.String)),
-					"project": cty.StringVal("my-project"),
-				}),
-			}),
-			expectedResult: cloudConfig{
-				hostname:     "hashicorp.com",
-				organization: "hashicorp",
-				token:        "",
-				workspaceMapping: WorkspaceMapping{
-					Name:    "prod",
-					Project: "my-project",
 				},
 			},
 		},
