@@ -273,12 +273,9 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 					"dynamodb": "dynamo.test",
 				},
 			},
+			expectedEndpoint: "dynamo.test/",
 			expectedDiags: tfdiags.Diagnostics{
-				attributeErrDiag(
-					"Invalid Value",
-					`The value must be a valid URL containing at least a scheme and hostname. Had "dynamo.test"`,
-					cty.GetAttrPath("endpoints").GetAttr("dynamodb"),
-				),
+				legacyIncompleteURLDiag("dynamo.test", cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
 			},
 		},
 		"deprecated config URL": {
@@ -294,13 +291,10 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 			config: map[string]any{
 				"dynamodb_endpoint": "dynamo.test",
 			},
+			expectedEndpoint: "dynamo.test/",
 			expectedDiags: tfdiags.Diagnostics{
 				deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
-				attributeErrDiag(
-					"Invalid Value",
-					`The value must be a valid URL containing at least a scheme and hostname. Had "dynamo.test"`,
-					cty.GetAttrPath("dynamodb_endpoint"),
-				),
+				legacyIncompleteURLDiag("dynamo.test", cty.GetAttrPath("dynamodb_endpoint")),
 			},
 		},
 		"config conflict": {
@@ -418,11 +412,7 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 				},
 			},
 			expectedDiags: tfdiags.Diagnostics{
-				attributeErrDiag(
-					"Invalid Value",
-					`The value must be a valid URL containing at least a scheme and hostname. Had "iam.test"`,
-					cty.GetAttrPath("endpoints").GetAttr("iam"),
-				),
+				legacyIncompleteURLDiag("iam.test", cty.GetAttrPath("endpoints").GetAttr("iam")),
 			},
 		},
 		"deprecated config URL": {
@@ -439,11 +429,7 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 			},
 			expectedDiags: tfdiags.Diagnostics{
 				deprecatedAttrDiag(cty.GetAttrPath("iam_endpoint"), cty.GetAttrPath("endpoints").GetAttr("iam")),
-				attributeErrDiag(
-					"Invalid Value",
-					`The value must be a valid URL containing at least a scheme and hostname. Had "iam.test"`,
-					cty.GetAttrPath("iam_endpoint"),
-				),
+				legacyIncompleteURLDiag("iam.test", cty.GetAttrPath("iam_endpoint")),
 			},
 		},
 		"config conflict": {
@@ -542,12 +528,9 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 					"s3": "s3.test",
 				},
 			},
+			expectedEndpoint: "/s3.test",
 			expectedDiags: tfdiags.Diagnostics{
-				attributeErrDiag(
-					"Invalid Value",
-					`The value must be a valid URL containing at least a scheme and hostname. Had "s3.test"`,
-					cty.GetAttrPath("endpoints").GetAttr("s3"),
-				),
+				legacyIncompleteURLDiag("s3.test", cty.GetAttrPath("endpoints").GetAttr("s3")),
 			},
 		},
 		"deprecated config URL": {
@@ -563,13 +546,10 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 			config: map[string]any{
 				"endpoint": "s3.test",
 			},
+			expectedEndpoint: "/s3.test",
 			expectedDiags: tfdiags.Diagnostics{
 				deprecatedAttrDiag(cty.GetAttrPath("endpoint"), cty.GetAttrPath("endpoints").GetAttr("s3")),
-				attributeErrDiag(
-					"Invalid Value",
-					`The value must be a valid URL containing at least a scheme and hostname. Had "s3.test"`,
-					cty.GetAttrPath("endpoint"),
-				),
+				legacyIncompleteURLDiag("s3.test", cty.GetAttrPath("endpoint")),
 			},
 		},
 		"config conflict": {

@@ -567,7 +567,7 @@ var endpointsSchema = singleNestedAttribute{
 			},
 			validateString{
 				Validators: []stringValidator{
-					validateStringURL,
+					validateStringLegacyURL,
 				},
 			},
 		},
@@ -580,7 +580,7 @@ var endpointsSchema = singleNestedAttribute{
 			},
 			validateString{
 				Validators: []stringValidator{
-					validateStringURL,
+					validateStringLegacyURL,
 				},
 			},
 		},
@@ -593,7 +593,7 @@ var endpointsSchema = singleNestedAttribute{
 			},
 			validateString{
 				Validators: []stringValidator{
-					validateStringURL,
+					validateStringLegacyURL,
 				},
 			},
 		},
@@ -606,7 +606,7 @@ var endpointsSchema = singleNestedAttribute{
 			},
 			validateString{
 				Validators: []stringValidator{
-					validateStringURL,
+					validateStringLegacyURL,
 				},
 			},
 		},
@@ -769,7 +769,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 
 	endpointValidators := validateString{
 		Validators: []stringValidator{
-			validateStringURL,
+			validateStringLegacyURL,
 		},
 	}
 	for _, k := range maps.Keys(endpointFields) {
@@ -778,9 +778,15 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 			endpointValidators.ValidateAttr(val, attrPath, &diags)
 		}
 	}
+
 	if val := obj.GetAttr("ec2_metadata_service_endpoint"); !val.IsNull() {
 		attrPath := cty.GetAttrPath("ec2_metadata_service_endpoint")
-		endpointValidators.ValidateAttr(val, attrPath, &diags)
+		ec2MetadataEndpointValidators := validateString{
+			Validators: []stringValidator{
+				validateStringValidURL,
+			},
+		}
+		ec2MetadataEndpointValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
 	validateAttributesConflict(
