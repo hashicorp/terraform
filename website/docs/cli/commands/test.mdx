@@ -44,7 +44,7 @@ The Terraform `test` command creates _real_ infrastructure. Once Terraform fully
 
 You should monitor the output of the test command closely to ensure Terraform removes the infrastructure it created or perform manual cleanup if not. We recommend creating dedicated testing accounts within the target providers that you can routinely and safely purge to ensure any accidental and costly resources aren't left behind.
 
-Terraform also provides diagnostics explaining why it could now automatically clean up. You should resolve these diagnostics to ensure that future clean-up operations are successful.
+Terraform also provides diagnostics explaining why it could not automatically clean up. You should review these diagnostics to ensure that future clean-up operations are successful.
 
 ## Terraform Cloud execution
 
