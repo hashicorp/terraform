@@ -268,7 +268,9 @@ func validateStringKMSKey(val string, path cty.Path, diags *tfdiags.Diagnostics)
 	*diags = diags.Append(ds)
 }
 
-func validateStringURL(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+// validateStringLegacyURL validates that a string can be parsed generally as a URL, but does
+// not ensure that the URL is valid.
+func validateStringLegacyURL(val string, path cty.Path, diags *tfdiags.Diagnostics) {
 	u, err := url.Parse(val)
 	if err != nil {
 		*diags = diags.Append(attributeErrDiag(
@@ -279,13 +281,44 @@ func validateStringURL(val string, path cty.Path, diags *tfdiags.Diagnostics) {
 		return
 	}
 	if u.Scheme == "" || u.Host == "" {
+		*diags = diags.Append(legacyIncompleteURLDiag(val, path))
+		return
+	}
+}
+
+func legacyIncompleteURLDiag(val string, path cty.Path) tfdiags.Diagnostic {
+	return attributeWarningDiag(
+		"Complete URL Expected",
+		fmt.Sprintf(`The value should be a valid URL containing at least a scheme and hostname. Had %q.
+
+Using an incomplete URL, such as a hostname only, may work, but may have unexpected behavior.`, val),
+		path,
+	)
+}
+
+// validateStringValidURL validates that a URL is a valid URL, inclding a scheme and host
+func validateStringValidURL(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+	u, err := url.Parse(val)
+	if err != nil {
 		*diags = diags.Append(attributeErrDiag(
 			"Invalid Value",
-			fmt.Sprintf("The value must be a valid URL containing at least a scheme and hostname. Had %q", val),
+			fmt.Sprintf("The value %q cannot be parsed as a URL: %s", val, err),
 			path,
 		))
 		return
 	}
+	if u.Scheme == "" || u.Host == "" {
+		*diags = diags.Append(invalidURLDiag(val, path))
+		return
+	}
+}
+
+func invalidURLDiag(val string, path cty.Path) tfdiags.Diagnostic {
+	return attributeErrDiag(
+		"Invalid Value",
+		fmt.Sprintf("The value must be a valid URL containing at least a scheme and hostname. Had %q", val),
+		path,
+	)
 }
 
 // Using a val of `cty.ValueSet` would be better here, but we can't get an ElementIterator from a ValueSet
