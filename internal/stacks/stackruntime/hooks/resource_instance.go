@@ -30,26 +30,26 @@ const (
 )
 
 // TODO: move this into the rpcapi package somewhere
-func (s ResourceInstanceStatus) ForProtobuf() terraform1.ResourceInstanceStatus_Status {
+func (s ResourceInstanceStatus) ForProtobuf() terraform1.StackChangeProgress_ResourceInstanceStatus_Status {
 	switch s {
 	case ResourceInstancePending:
-		return terraform1.ResourceInstanceStatus_PENDING
+		return terraform1.StackChangeProgress_ResourceInstanceStatus_PENDING
 	case ResourceInstanceRefreshing:
-		return terraform1.ResourceInstanceStatus_REFRESHING
+		return terraform1.StackChangeProgress_ResourceInstanceStatus_REFRESHING
 	case ResourceInstanceRefreshed:
-		return terraform1.ResourceInstanceStatus_REFRESHED
+		return terraform1.StackChangeProgress_ResourceInstanceStatus_REFRESHED
 	case ResourceInstancePlanning:
-		return terraform1.ResourceInstanceStatus_PLANNING
+		return terraform1.StackChangeProgress_ResourceInstanceStatus_PLANNING
 	case ResourceInstancePlanned:
-		return terraform1.ResourceInstanceStatus_PLANNED
+		return terraform1.StackChangeProgress_ResourceInstanceStatus_PLANNED
 	case ResourceInstanceApplying:
-		return terraform1.ResourceInstanceStatus_APPLYING
+		return terraform1.StackChangeProgress_ResourceInstanceStatus_APPLYING
 	case ResourceInstanceApplied:
-		return terraform1.ResourceInstanceStatus_APPLIED
+		return terraform1.StackChangeProgress_ResourceInstanceStatus_APPLIED
 	case ResourceInstanceErrored:
-		return terraform1.ResourceInstanceStatus_ERRORED
+		return terraform1.StackChangeProgress_ResourceInstanceStatus_ERRORED
 	default:
-		return terraform1.ResourceInstanceStatus_INVALID
+		return terraform1.StackChangeProgress_ResourceInstanceStatus_INVALID
 	}
 }
 
@@ -69,16 +69,16 @@ const (
 )
 
 // TODO: move this into the rpcapi package somewhere
-func (s ProvisionerStatus) ForProtobuf() terraform1.ProvisionerStatus_Status {
+func (s ProvisionerStatus) ForProtobuf() terraform1.StackChangeProgress_ProvisionerStatus_Status {
 	switch s {
 	case ProvisionerProvisioning:
-		return terraform1.ProvisionerStatus_PROVISIONING
+		return terraform1.StackChangeProgress_ProvisionerStatus_PROVISIONING
 	case ProvisionerProvisioned:
-		return terraform1.ProvisionerStatus_PROVISIONING
+		return terraform1.StackChangeProgress_ProvisionerStatus_PROVISIONING
 	case ProvisionerErrored:
-		return terraform1.ProvisionerStatus_ERRORED
+		return terraform1.StackChangeProgress_ProvisionerStatus_ERRORED
 	default:
-		return terraform1.ProvisionerStatus_INVALID
+		return terraform1.StackChangeProgress_ProvisionerStatus_INVALID
 	}
 }
 

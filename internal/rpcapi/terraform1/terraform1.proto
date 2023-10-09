@@ -479,15 +479,9 @@ message PlanStackChanges {
         oneof event {
             PlannedChange planned_change = 1;
             Diagnostic diagnostic = 2;
-            ComponentInstanceStatus component_instance_status = 3;
-            ResourceInstanceStatus resource_instance_status = 4;
-            ResourceInstancePlannedChange resource_instance_planned_change = 5;
-            ProvisionerStatus provisioner_status = 6;
-            ProvisionerOutput provisioner_output = 7;
-            ComponentInstanceChanges component_instance_changes = 8;
-            ComponentInstances component_instances = 9;
-            // TODO
+            StackChangeProgress progress = 10;
         }
+        reserved 3 to 9; // formerly used for individual progress events
     }
 }
 
@@ -522,7 +516,7 @@ message ApplyStackChanges {
         oneof event {
             AppliedChange applied_change = 1;
             Diagnostic diagnostic = 2;
-            // TODO: progress events intended for updating the UI
+            StackChangeProgress progress = 3;
         }
     }
 }
@@ -850,6 +844,128 @@ message AppliedChange {
     message Nothing {}
 }
 
+// A container for "progress report" events in both Stacks.PlanStackChanges
+// and Stacks.ApplyStackChanges, which share this message type to allow
+// clients to share event-handling code between the two phases.
+message StackChangeProgress {
+    // Some event types are relevant only to one of the two operations, while
+    // others are common across both but will include different status codes,
+    // etc in different phases.
+    oneof event {
+        ComponentInstanceStatus component_instance_status = 1;
+        ResourceInstanceStatus resource_instance_status = 2;
+        ResourceInstancePlannedChange resource_instance_planned_change = 3;
+        ProvisionerStatus provisioner_status = 4;
+        ProvisionerOutput provisioner_output = 5;
+        ComponentInstanceChanges component_instance_changes = 6;
+        ComponentInstances component_instances = 7;
+    }
+
+    // ComponentInstanceStatus describes the current status of a component instance
+    // undergoing a plan or apply operation.
+    message ComponentInstanceStatus {
+        ComponentInstanceInStackAddr addr = 1;
+        Status status = 2;
+
+        enum Status {
+            INVALID = 0;
+            PENDING = 1;
+            PLANNING = 2;
+            PLANNED = 3;
+            APPLYING = 4;
+            APPLIED = 5;
+            ERRORED = 6;
+        }
+    }
+
+    // ComponentInstanceStatus describes the current status of a resource instance
+    // undergoing a plan or apply operation.
+    message ResourceInstanceStatus {
+        ResourceInstanceInStackAddr addr = 1;
+        Status status = 2;
+
+        enum Status {
+            INVALID = 0;
+            PENDING = 1;
+            REFRESHING = 2;
+            REFRESHED = 3;
+            PLANNING = 4;
+            PLANNED = 5;
+            APPLYING = 6;
+            APPLIED = 7;
+            ERRORED = 8;
+        }
+    }
+
+    // ResourceInstancePlannedChange describes summary information about a planned
+    // change for a resource instance. This does not include the full object change,
+    // which is described in PlannedChange.ResourceChange. The information in this
+    // message is intended for the event stream and need not include the instance's
+    // full object values.
+    message ResourceInstancePlannedChange {
+        ResourceInstanceInStackAddr addr = 1;
+        repeated ChangeType actions = 2;
+        Moved moved = 3;
+        Imported imported = 4;
+
+        message Moved {
+            ResourceInstanceInStackAddr prev_addr = 1;
+        }
+        message Imported {
+            string import_id = 1;
+        }
+    }
+
+    // ProvisionerStatus represents the progress of a given provisioner during its
+    // resource instance's apply operation.
+    message ProvisionerStatus {
+        ResourceInstanceInStackAddr addr = 1;
+        string name = 2;
+        ProvisionerStatus status = 3;
+
+        enum Status {
+            INVALID = 0;
+            PROVISIONING = 1;
+            PROVISIONED = 2;
+            ERRORED = 3;
+        }
+    }
+
+    // ProvisionerOutput represents recorded output data emitted by a provisioner
+    // during a resource instance's apply operation.
+    message ProvisionerOutput {
+        ResourceInstanceInStackAddr addr = 1;
+        string name = 2;
+        string output = 3;
+    }
+
+    // ComponentInstanceChanges represents a roll-up of change counts for a
+    // component instance plan or apply operation.
+    message ComponentInstanceChanges {
+        ComponentInstanceInStackAddr addr = 1;
+
+        // total is the sum of all of the other count fields.
+        //
+        // Clients should sum all of the other count fields they know about
+        // and compare to total. If the sum is less than total then the
+        // difference should be treated as an "other change types" category,
+        // for forward-compatibility when the Terraform Core RPC server is
+        // using a newer version of this protocol than the client.
+        int32 total = 2;
+        int32 add = 3;
+        int32 change = 4;
+        int32 import = 5;
+        int32 remove = 6;
+    }
+
+    // ComponentInstances represents the result of expanding a component into zero
+    // or more instances.
+    message ComponentInstances {
+        string component_addr = 1;
+        repeated string instance_addrs = 2;
+    }
+}
+
 message Diagnostic {
     enum Severity {
         INVALID = 0;
@@ -937,100 +1053,4 @@ message Schema {
             MARKDOWN = 1;
         }
     }
-}
-
-// ComponentInstanceStatus describes the current status of a component instance
-// undergoing a plan or apply operation.
-message ComponentInstanceStatus {
-  ComponentInstanceInStackAddr addr = 1;
-  Status status = 2;
-
-  enum Status {
-    INVALID = 0;
-    PENDING = 1;
-    PLANNING = 2;
-    PLANNED = 3;
-    APPLYING = 4;
-    APPLIED = 5;
-    ERRORED = 6;
-  }
-}
-
-// ComponentInstanceStatus describes the current status of a resource instance
-// undergoing a plan or apply operation.
-message ResourceInstanceStatus {
-  ResourceInstanceInStackAddr addr = 1;
-  Status status = 2;
-
-  enum Status {
-    INVALID = 0;
-    PENDING = 1;
-    REFRESHING = 2;
-    REFRESHED = 3;
-    PLANNING = 4;
-    PLANNED = 5;
-    APPLYING = 6;
-    APPLIED = 7;
-    ERRORED = 8;
-  }
-}
-
-// ResourceInstancePlannedChange describes summary information about a planned
-// change for a resource instance. This does not include the full object change,
-// which is described in PlannedChange.ResourceChange. The information in this
-// message is intended for the event stream and need not include the instance's
-// full object values.
-message ResourceInstancePlannedChange {
-  ResourceInstanceInStackAddr addr = 1;
-  repeated ChangeType actions = 2;
-  Moved moved = 3;
-  Imported imported = 4;
-
-  message Moved {
-      ResourceInstanceInStackAddr prev_addr = 1;
-  }
-  message Imported {
-      string import_id = 1;
-  }
-}
-
-// ProvisionerStatus represents the progress of a given provisioner during its
-// resource instance's apply operation.
-message ProvisionerStatus {
-  ResourceInstanceInStackAddr addr = 1;
-  string name = 2;
-  ProvisionerStatus status = 3;
-
-  enum Status {
-    INVALID = 0;
-    PROVISIONING = 1;
-    PROVISIONED = 2;
-    ERRORED = 3;
-  }
-}
-
-// ProvisionerOutput represents recorded output data emitted by a provisioner
-// during a resource instance's apply operation.
-message ProvisionerOutput {
-  ResourceInstanceInStackAddr addr = 1;
-  string name = 2;
-  string output = 3;
-}
-
-// ComponentInstanceChanges represents a roll-up of change counts for a
-// component instance plan or apply operation.
-message ComponentInstanceChanges {
-  ComponentInstanceInStackAddr addr = 1;
-  int32 total = 2;
-  int32 add = 3;
-  int32 change = 4;
-  int32 import = 5;
-  int32 remove = 6;
-}
-
-// ComponentInstances represents the result of expanding a component into zero
-// or more instances.
-message ComponentInstances {
-  string component_addr = 1;
-  repeated string instance_addrs = 2;
 }

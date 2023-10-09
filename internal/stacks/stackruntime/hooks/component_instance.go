@@ -27,22 +27,22 @@ const (
 )
 
 // TODO: move this into the rpcapi package somewhere
-func (s ComponentInstanceStatus) ForProtobuf() terraform1.ComponentInstanceStatus_Status {
+func (s ComponentInstanceStatus) ForProtobuf() terraform1.StackChangeProgress_ComponentInstanceStatus_Status {
 	switch s {
 	case ComponentInstancePending:
-		return terraform1.ComponentInstanceStatus_PENDING
+		return terraform1.StackChangeProgress_ComponentInstanceStatus_PENDING
 	case ComponentInstancePlanning:
-		return terraform1.ComponentInstanceStatus_PLANNING
+		return terraform1.StackChangeProgress_ComponentInstanceStatus_PLANNING
 	case ComponentInstancePlanned:
-		return terraform1.ComponentInstanceStatus_PLANNED
+		return terraform1.StackChangeProgress_ComponentInstanceStatus_PLANNED
 	case ComponentInstanceApplying:
-		return terraform1.ComponentInstanceStatus_APPLYING
+		return terraform1.StackChangeProgress_ComponentInstanceStatus_APPLYING
 	case ComponentInstanceApplied:
-		return terraform1.ComponentInstanceStatus_APPLIED
+		return terraform1.StackChangeProgress_ComponentInstanceStatus_APPLIED
 	case ComponentInstanceErrored:
-		return terraform1.ComponentInstanceStatus_ERRORED
+		return terraform1.StackChangeProgress_ComponentInstanceStatus_ERRORED
 	default:
-		return terraform1.ComponentInstanceStatus_INVALID
+		return terraform1.StackChangeProgress_ComponentInstanceStatus_INVALID
 	}
 }
 
