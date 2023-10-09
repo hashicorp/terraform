@@ -6,6 +6,7 @@ BUG FIXES:
 * cli: Skip original signing key expiration check when installing providers through the registry. [GH-34004]
 * cloud: The `TF_WORKSPACE` environment variable works with the `cloud` block again; it can specify a workspace when none is configured, or select an active workspace when the config specifies `tags`. [GH-34012]
 * backend/s3: S3, DynamoDB, IAM, and STS endpoint parameters will no longer fail validation if the parsed scheme or hostname is empty. ([#34017](https://github.com/hashicorp/terraform/pull/34017))
+* backend/s3: Providing a key alias to the `kms_key_id` argument will no longer fail validation. ([#33993](https://github.com/hashicorp/terraform/pull/33993))
 
 ENHANCEMENTS:
 * backend/s3: The `skip_requesting_account_id` argument supports AWS API implementations that do not have the IAM, STS, or metadata API. ([#34002](https://github.com/hashicorp/terraform/pull/34002))
