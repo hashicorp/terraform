@@ -4,6 +4,7 @@ BUG FIXES:
 * config: Using sensitive values as one or both of the results of a conditional expression will no longer crash. [GH-33996]
 * config: Conditional expression returning refined-non-null result will no longer crash. [GH-33996]
 * cli: Skip original signing key expiration check when installing providers through the registry. [GH-34004]
+* cloud: The `TF_WORKSPACE` environment variable works with the `cloud` block again; it can specify a workspace when none is configured, or select an active workspace when the config specifies `tags`. [GH-34012]
 
 ## 1.6.0 (October 4, 2023)
 
