@@ -6,6 +6,9 @@ BUG FIXES:
 * cli: Skip original signing key expiration check when installing providers through the registry. [GH-34004]
 * cloud: The `TF_WORKSPACE` environment variable works with the `cloud` block again; it can specify a workspace when none is configured, or select an active workspace when the config specifies `tags`. [GH-34012]
 
+ENHANCEMENTS:
+* backend/s3: The `skip_requesting_account_id` argument supports AWS API implementations that do not have the IAM, STS, or metadata API. ([#34002](https://github.com/hashicorp/terraform/pull/34002))
+
 ## 1.6.0 (October 4, 2023)
 
 UPGRADE NOTES:
