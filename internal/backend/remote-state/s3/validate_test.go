@@ -38,25 +38,9 @@ func TestValidateKMSKey(t *testing.T) {
 		},
 		"kms key alias": {
 			in: "alias/arbitrary-key",
-			expected: tfdiags.Diagnostics{
-				tfdiags.AttributeValue(
-					tfdiags.Error,
-					"Invalid KMS Key ID",
-					`Value must be a valid KMS Key ID, got "alias/arbitrary-key"`,
-					path,
-				),
-			},
 		},
 		"kms key alias arn": {
 			in: "arn:aws:kms:us-west-2:111122223333:alias/arbitrary-key",
-			expected: tfdiags.Diagnostics{
-				tfdiags.AttributeValue(
-					tfdiags.Error,
-					"Invalid KMS Key ARN",
-					`Value must be a valid KMS Key ARN, got "arn:aws:kms:us-west-2:111122223333:alias/arbitrary-key"`,
-					path,
-				),
-			},
 		},
 		"invalid key": {
 			in: "$%wrongkey",
