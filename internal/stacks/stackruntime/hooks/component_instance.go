@@ -4,6 +4,7 @@
 package hooks
 
 import (
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
@@ -62,4 +63,20 @@ type ComponentInstanceChange struct {
 // stating that there are no changes at all.
 func (cic ComponentInstanceChange) Total() int {
 	return cic.Add + cic.Change + cic.Import + cic.Remove
+}
+
+// CountNewAction increments zero or more of the count fields based on the
+// given action.
+func (cic *ComponentInstanceChange) CountNewAction(action plans.Action) {
+	switch action {
+	case plans.Create:
+		cic.Add++
+	case plans.Delete:
+		cic.Remove++
+	case plans.Update:
+		cic.Change++
+	case plans.CreateThenDelete, plans.DeleteThenCreate:
+		cic.Add++
+		cic.Remove++
+	}
 }

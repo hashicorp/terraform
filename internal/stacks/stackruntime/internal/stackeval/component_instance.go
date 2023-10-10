@@ -515,8 +515,6 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				return nil, diags
 			}
 
-			// TODO: Should pass in the previous run state once we have a
-			// previous stack state to take it from.
 			// NOTE: This ComponentInstance type only deals with component
 			// instances currently declared in the configuration. See
 			// [ComponentInstanceRemoved] for the model of a component instance
@@ -533,10 +531,11 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			})
 			diags = diags.Append(moreDiags)
 
-			cic := &hooks.ComponentInstanceChange{
-				Addr: addr,
-			}
 			if plan != nil {
+				cic := &hooks.ComponentInstanceChange{
+					Addr: addr,
+				}
+
 				for _, rsrcChange := range plan.DriftedResources {
 					hookMore(ctx, seq, h.ReportResourceInstanceDrift, &hooks.ResourceInstanceChange{
 						Addr: stackaddrs.AbsResourceInstance{
@@ -550,18 +549,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					if rsrcChange.Importing != nil {
 						cic.Import++
 					}
-
-					switch rsrcChange.Action {
-					case plans.Create:
-						cic.Add++
-					case plans.Delete:
-						cic.Remove++
-					case plans.Update:
-						cic.Change++
-					case plans.CreateThenDelete, plans.DeleteThenCreate:
-						cic.Add++
-						cic.Remove++
-					}
+					cic.CountNewAction(rsrcChange.Action)
 
 					hookMore(ctx, seq, h.ReportResourceInstancePlanned, &hooks.ResourceInstanceChange{
 						Addr: stackaddrs.AbsResourceInstance{
@@ -643,14 +631,15 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		return nil, diags
 	}
 
+	tfHook := &componentInstanceTerraformHook{
+		ctx:   ctx,
+		seq:   seq,
+		hooks: hooksFromContext(ctx),
+		addr:  c.Addr(),
+	}
 	tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
 		Hooks: []terraform.Hook{
-			&componentInstanceTerraformHook{
-				ctx:   ctx,
-				seq:   seq,
-				hooks: hooksFromContext(ctx),
-				addr:  c.Addr(),
-			},
+			tfHook,
 		},
 		PreloadedProviderSchemas: providerSchemas,
 	})
@@ -724,19 +713,41 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		return nil, diags
 	}
 
+	// NOTE: tfCtx.Apply tends to make changes to the given plan while it
+	// works, and so code after this point should not make any further use
+	// of either "modifiedPlan" or "plan" (since they share lots of the same
+	// pointers to mutable objects and so both can get modified together.)
 	newState, moreDiags := tfCtx.Apply(&modifiedPlan, moduleTree, &terraform.ApplyOpts{
 		ExternalProviders: providerClients,
 	})
 	diags = diags.Append(moreDiags)
 
 	if newState != nil {
-		// TODO: Emit resource-instance-level "applied" events for all
-		// resource instances that were affected by applying this plan.
-
-		hookMore(ctx, seq, h.ReportComponentInstanceApplied, &hooks.ComponentInstanceChange{
+		cic := &hooks.ComponentInstanceChange{
 			Addr: addr,
-			// TODO: include counts for each type of change
-		})
+
+			// We'll increment these gradually as we visit each change below.
+			Add:    0,
+			Change: 0,
+			Remove: 0,
+		}
+
+		// We need to report what changes were applied, which is mostly just
+		// re-announcing what was planned but we'll check to see if our
+		// terraform.Hook implementation saw a "successfully applied" event
+		// for each resource instance object before counting it.
+		applied := tfHook.ResourceInstanceObjectsSuccessfullyApplied()
+		for _, rioAddr := range applied {
+			action := tfHook.ResourceInstanceObjectAppliedAction(rioAddr)
+
+			// FIXME: We can't count imports here because they aren't "actions"
+			// in the sense that our hook gets informed about, and so the
+			// import number will always be zero in the apply phase.
+
+			cic.CountNewAction(action)
+		}
+
+		hookMore(ctx, seq, h.ReportComponentInstanceApplied, cic)
 	}
 
 	if diags.HasErrors() {

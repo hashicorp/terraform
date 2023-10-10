@@ -5,6 +5,7 @@ package stackeval
 
 import (
 	"context"
+	"sync"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -29,6 +30,10 @@ type componentInstanceTerraformHook struct {
 	seq   *hookSeq
 	hooks *Hooks
 	addr  stackaddrs.AbsComponentInstance
+
+	mu                                 sync.Mutex
+	resourceInstanceObjectApplyAction  addrs.Map[addrs.AbsResourceInstanceObject, plans.Action]
+	resourceInstanceObjectApplySuccess addrs.Set[addrs.AbsResourceInstanceObject]
 }
 
 func (h *componentInstanceTerraformHook) resourceInstanceAddr(addr addrs.AbsResourceInstance) stackaddrs.AbsResourceInstance {
@@ -61,15 +66,54 @@ func (h *componentInstanceTerraformHook) PreApply(addr addrs.AbsResourceInstance
 			Status: hooks.ResourceInstanceApplying,
 		})
 	}
+
+	h.mu.Lock()
+	if h.resourceInstanceObjectApplyAction.Len() == 0 {
+		h.resourceInstanceObjectApplyAction = addrs.MakeMap[addrs.AbsResourceInstanceObject, plans.Action]()
+	}
+	h.resourceInstanceObjectApplyAction.Put(
+		addrs.AbsResourceInstanceObject{
+			ResourceInstance: addr,
+			DeposedKey:       dk,
+		},
+		action,
+	)
+	h.mu.Unlock()
+
 	return terraform.HookActionContinue, nil
 }
 
 func (h *componentInstanceTerraformHook) PostApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, newState cty.Value, err error) (terraform.HookAction, error) {
-	// FIXME: need to emit nothing if this was a no-op, which means tracking
-	// the `action` argument to `PreApply`. See `jsonHook` for more on this.
+	h.mu.Lock()
+	action, ok := h.resourceInstanceObjectApplyAction.GetOk(addrs.AbsResourceInstanceObject{
+		ResourceInstance: addr,
+		DeposedKey:       dk,
+	})
+	h.mu.Unlock()
+	if !ok {
+		// Weird, but we'll just tolerate it to be robust.
+		return terraform.HookActionContinue, nil
+	}
+
+	if action == plans.NoOp {
+		// We don't emit starting hooks for no-op changes and so we shouldn't
+		// emit ending hooks for them either.
+		return terraform.HookActionContinue, nil
+	}
+
 	status := hooks.ResourceInstanceApplied
 	if err != nil {
 		status = hooks.ResourceInstanceErrored
+	} else {
+		h.mu.Lock()
+		if h.resourceInstanceObjectApplySuccess == nil {
+			h.resourceInstanceObjectApplySuccess = addrs.MakeSet[addrs.AbsResourceInstanceObject]()
+		}
+		h.resourceInstanceObjectApplySuccess.Add(addrs.AbsResourceInstanceObject{
+			ResourceInstance: addr,
+			DeposedKey:       dk,
+		})
+		h.mu.Unlock()
 	}
 
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
@@ -110,4 +154,18 @@ func (h *componentInstanceTerraformHook) PostProvisionInstanceStep(addr addrs.Ab
 		Status: status,
 	})
 	return terraform.HookActionContinue, nil
+}
+
+func (h *componentInstanceTerraformHook) ResourceInstanceObjectAppliedAction(addr addrs.AbsResourceInstanceObject) plans.Action {
+	h.mu.Lock()
+	ret, ok := h.resourceInstanceObjectApplyAction.GetOk(addr)
+	h.mu.Unlock()
+	if !ok {
+		return plans.NoOp
+	}
+	return ret
+}
+
+func (h *componentInstanceTerraformHook) ResourceInstanceObjectsSuccessfullyApplied() addrs.Set[addrs.AbsResourceInstanceObject] {
+	return h.resourceInstanceObjectApplySuccess
 }
