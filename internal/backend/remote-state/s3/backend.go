@@ -185,6 +185,11 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Optional:    true,
 				Description: "Skip the credentials validation via STS API.",
 			},
+			"skip_requesting_account_id": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Skip the requesting account ID. Useful for AWS API implementations that do not have the IAM, STS API, or metadata API.",
+			},
 			"skip_metadata_api_check": {
 				Type:        cty.Bool,
 				Optional:    true,
@@ -562,7 +567,7 @@ var endpointsSchema = singleNestedAttribute{
 			},
 			validateString{
 				Validators: []stringValidator{
-					validateStringURL,
+					validateStringLegacyURL,
 				},
 			},
 		},
@@ -575,7 +580,7 @@ var endpointsSchema = singleNestedAttribute{
 			},
 			validateString{
 				Validators: []stringValidator{
-					validateStringURL,
+					validateStringLegacyURL,
 				},
 			},
 		},
@@ -588,7 +593,7 @@ var endpointsSchema = singleNestedAttribute{
 			},
 			validateString{
 				Validators: []stringValidator{
-					validateStringURL,
+					validateStringLegacyURL,
 				},
 			},
 		},
@@ -601,7 +606,7 @@ var endpointsSchema = singleNestedAttribute{
 			},
 			validateString{
 				Validators: []stringValidator{
-					validateStringURL,
+					validateStringLegacyURL,
 				},
 			},
 		},
@@ -764,7 +769,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 
 	endpointValidators := validateString{
 		Validators: []stringValidator{
-			validateStringURL,
+			validateStringLegacyURL,
 		},
 	}
 	for _, k := range maps.Keys(endpointFields) {
@@ -773,9 +778,15 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 			endpointValidators.ValidateAttr(val, attrPath, &diags)
 		}
 	}
+
 	if val := obj.GetAttr("ec2_metadata_service_endpoint"); !val.IsNull() {
 		attrPath := cty.GetAttrPath("ec2_metadata_service_endpoint")
-		endpointValidators.ValidateAttr(val, attrPath, &diags)
+		ec2MetadataEndpointValidators := validateString{
+			Validators: []stringValidator{
+				validateStringValidURL,
+			},
+		}
+		ec2MetadataEndpointValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
 	validateAttributesConflict(
@@ -956,17 +967,18 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	ctx, baselog := baselogging.NewHcLogger(ctx, log)
 
 	cfg := &awsbase.Config{
-		AccessKey:              stringAttr(obj, "access_key"),
-		APNInfo:                stdUserAgentProducts(),
-		CallerDocumentationURL: "https://www.terraform.io/docs/language/settings/backends/s3.html",
-		CallerName:             "S3 Backend",
-		Logger:                 baselog,
-		MaxRetries:             intAttrDefault(obj, "max_retries", 5),
-		Profile:                stringAttr(obj, "profile"),
-		Region:                 stringAttr(obj, "region"),
-		SecretKey:              stringAttr(obj, "secret_key"),
-		SkipCredsValidation:    boolAttr(obj, "skip_credentials_validation"),
-		Token:                  stringAttr(obj, "token"),
+		AccessKey:               stringAttr(obj, "access_key"),
+		APNInfo:                 stdUserAgentProducts(),
+		CallerDocumentationURL:  "https://www.terraform.io/docs/language/settings/backends/s3.html",
+		CallerName:              "S3 Backend",
+		Logger:                  baselog,
+		MaxRetries:              intAttrDefault(obj, "max_retries", 5),
+		Profile:                 stringAttr(obj, "profile"),
+		Region:                  stringAttr(obj, "region"),
+		SecretKey:               stringAttr(obj, "secret_key"),
+		SkipCredsValidation:     boolAttr(obj, "skip_credentials_validation"),
+		SkipRequestingAccountId: boolAttr(obj, "skip_requesting_account_id"),
+		Token:                   stringAttr(obj, "token"),
 	}
 
 	// The "legacy" authentication workflow used in aws-sdk-go-base V1 will be

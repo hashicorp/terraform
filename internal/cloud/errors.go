@@ -38,6 +38,13 @@ var (
 		fmt.Sprintf("Only one of workspace \"tags\" or \"name\" is allowed.\n\n%s", workspaceConfigurationHelp),
 		cty.Path{cty.GetAttrStep{Name: "workspaces"}},
 	)
+
+	invalidWorkspaceConfigNameConflict = tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Invalid workspaces configuration",
+		fmt.Sprintf("Specified workspace \"name\" conflicts with TF_WORKSPACE environment variable.\n\n%s", workspaceConfigurationHelp),
+		cty.Path{cty.GetAttrStep{Name: "workspaces"}},
+	)
 )
 
 const ignoreRemoteVersionHelp = "If you're sure you want to upgrade the state, you can force Terraform to continue using the -ignore-remote-version flag. This may result in an unusable workspace."

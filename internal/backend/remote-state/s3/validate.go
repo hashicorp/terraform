@@ -21,6 +21,7 @@ import (
 const (
 	multiRegionKeyIdPattern = `mrk-[a-f0-9]{32}`
 	uuidRegexPattern        = `[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[ab89][a-f0-9]{3}-[a-f0-9]{12}`
+	aliasRegexPattern       = `alias/[a-zA-Z0-9/_-]+`
 )
 
 func validateKMSKey(path cty.Path, s string) (diags tfdiags.Diagnostics) {
@@ -31,7 +32,7 @@ func validateKMSKey(path cty.Path, s string) (diags tfdiags.Diagnostics) {
 }
 
 func validateKMSKeyID(path cty.Path, s string) (diags tfdiags.Diagnostics) {
-	keyIdRegex := regexp.MustCompile(`^` + uuidRegexPattern + `|` + multiRegionKeyIdPattern + `$`)
+	keyIdRegex := regexp.MustCompile(`^` + uuidRegexPattern + `|` + multiRegionKeyIdPattern + `|` + aliasRegexPattern + `$`)
 	if !keyIdRegex.MatchString(s) {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
@@ -71,12 +72,22 @@ func validateKMSKeyARN(path cty.Path, s string) (diags tfdiags.Diagnostics) {
 }
 
 func isKeyARN(arn arn.ARN) bool {
-	return keyIdFromARNResource(arn.Resource) != ""
+	return keyIdFromARNResource(arn.Resource) != "" || aliasIdFromARNResource(arn.Resource) != ""
 }
 
 func keyIdFromARNResource(s string) string {
 	keyIdResourceRegex := regexp.MustCompile(`^key/(` + uuidRegexPattern + `|` + multiRegionKeyIdPattern + `)$`)
 	matches := keyIdResourceRegex.FindStringSubmatch(s)
+	if matches == nil || len(matches) != 2 {
+		return ""
+	}
+
+	return matches[1]
+}
+
+func aliasIdFromARNResource(s string) string {
+	aliasIdResourceRegex := regexp.MustCompile(`^(` + aliasRegexPattern + `)$`)
+	matches := aliasIdResourceRegex.FindStringSubmatch(s)
 	if matches == nil || len(matches) != 2 {
 		return ""
 	}
@@ -268,7 +279,9 @@ func validateStringKMSKey(val string, path cty.Path, diags *tfdiags.Diagnostics)
 	*diags = diags.Append(ds)
 }
 
-func validateStringURL(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+// validateStringLegacyURL validates that a string can be parsed generally as a URL, but does
+// not ensure that the URL is valid.
+func validateStringLegacyURL(val string, path cty.Path, diags *tfdiags.Diagnostics) {
 	u, err := url.Parse(val)
 	if err != nil {
 		*diags = diags.Append(attributeErrDiag(
@@ -279,13 +292,44 @@ func validateStringURL(val string, path cty.Path, diags *tfdiags.Diagnostics) {
 		return
 	}
 	if u.Scheme == "" || u.Host == "" {
+		*diags = diags.Append(legacyIncompleteURLDiag(val, path))
+		return
+	}
+}
+
+func legacyIncompleteURLDiag(val string, path cty.Path) tfdiags.Diagnostic {
+	return attributeWarningDiag(
+		"Complete URL Expected",
+		fmt.Sprintf(`The value should be a valid URL containing at least a scheme and hostname. Had %q.
+
+Using an incomplete URL, such as a hostname only, may work, but may have unexpected behavior.`, val),
+		path,
+	)
+}
+
+// validateStringValidURL validates that a URL is a valid URL, inclding a scheme and host
+func validateStringValidURL(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+	u, err := url.Parse(val)
+	if err != nil {
 		*diags = diags.Append(attributeErrDiag(
 			"Invalid Value",
-			fmt.Sprintf("The value must be a valid URL containing at least a scheme and hostname. Had %q", val),
+			fmt.Sprintf("The value %q cannot be parsed as a URL: %s", val, err),
 			path,
 		))
 		return
 	}
+	if u.Scheme == "" || u.Host == "" {
+		*diags = diags.Append(invalidURLDiag(val, path))
+		return
+	}
+}
+
+func invalidURLDiag(val string, path cty.Path) tfdiags.Diagnostic {
+	return attributeErrDiag(
+		"Invalid Value",
+		fmt.Sprintf("The value must be a valid URL containing at least a scheme and hostname. Had %q", val),
+		path,
+	)
 }
 
 // Using a val of `cty.ValueSet` would be better here, but we can't get an ElementIterator from a ValueSet
