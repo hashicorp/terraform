@@ -444,6 +444,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 
 			addr := c.Addr()
 			h := hooksFromContext(ctx)
+			hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstancePlan, c.Addr())
 			seq, ctx := hookBegin(ctx, h.BeginComponentInstancePlan, h.ContextAttach, addr)
 
 			decl := c.call.Declaration(ctx)
@@ -612,6 +613,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 	decl := c.call.Declaration(ctx)
 
 	h := hooksFromContext(ctx)
+	hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstanceApply, c.Addr())
 	seq, ctx := hookBegin(ctx, h.BeginComponentInstanceApply, h.ContextAttach, addr)
 
 	moduleTree := c.call.Config(ctx).ModuleTree(ctx)
@@ -733,6 +735,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 
 		hookMore(ctx, seq, h.ReportComponentInstanceApplied, &hooks.ComponentInstanceChange{
 			Addr: addr,
+			// TODO: include counts for each type of change
 		})
 	}
 
@@ -849,8 +852,6 @@ func (c *ComponentInstance) ResolveExpressionReference(ctx context.Context, ref 
 func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	var changes []stackplan.PlannedChange
 	var diags tfdiags.Diagnostics
-
-	hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstancePlan, c.Addr())
 
 	_, moreDiags := c.CheckInputVariableValues(ctx, PlanPhase)
 	diags = diags.Append(moreDiags)
