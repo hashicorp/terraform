@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"go.opentelemetry.io/otel/attribute"
+	otelCodes "go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -552,11 +553,13 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 		},
 		EndComponentInstancePlan: func(ctx context.Context, span any, ci stackaddrs.AbsComponentInstance) any {
 			send(evtComponentInstanceStatus(ci, hooks.ComponentInstancePlanned))
+			span.(trace.Span).SetStatus(otelCodes.Ok, "planning succeeded")
 			span.(trace.Span).End()
 			return nil
 		},
 		ErrorComponentInstancePlan: func(ctx context.Context, span any, ci stackaddrs.AbsComponentInstance) any {
 			send(evtComponentInstanceStatus(ci, hooks.ComponentInstanceErrored))
+			span.(trace.Span).SetStatus(otelCodes.Error, "planning failed")
 			span.(trace.Span).End()
 			return nil
 		},
@@ -572,11 +575,13 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 		},
 		EndComponentInstanceApply: func(ctx context.Context, span any, ci stackaddrs.AbsComponentInstance) any {
 			send(evtComponentInstanceStatus(ci, hooks.ComponentInstanceApplied))
+			span.(trace.Span).SetStatus(otelCodes.Ok, "applying succeeded")
 			span.(trace.Span).End()
 			return nil
 		},
 		ErrorComponentInstanceApply: func(ctx context.Context, span any, ci stackaddrs.AbsComponentInstance) any {
 			send(evtComponentInstanceStatus(ci, hooks.ComponentInstanceErrored))
+			span.(trace.Span).SetStatus(otelCodes.Error, "applying failed")
 			span.(trace.Span).End()
 			return nil
 		},
@@ -606,6 +611,11 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 				// TODO: what do we do?
 				return span
 			}
+
+			span.(trace.Span).AddEvent("planned resource instance", trace.WithAttributes(
+				attribute.String("component_instance", ric.Addr.Component.String()),
+				attribute.String("resource_instance", ric.Addr.Item.String()),
+			))
 
 			moved := &terraform1.StackChangeProgress_ResourceInstancePlannedChange_Moved{}
 			if !ric.Change.PrevRunAddr.Equal(ric.Change.Addr) {
