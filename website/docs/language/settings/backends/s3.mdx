@@ -243,7 +243,7 @@ terraform {
     bucket = "terraform-state-prod"
     key    = "network/terraform.tfstate"
     region = "us-east-1"
-    assume_role {
+    assume_role = {
       role_arn = "arn:aws:iam::PRODUCTION-ACCOUNT-ID:role/Terraform"
     }
   }
@@ -277,7 +277,7 @@ terraform {
     bucket = "terraform-state-prod"
     key    = "network/terraform.tfstate"
     region = "us-east-1"
-    assume_role_with_web_identity {
+    assume_role_with_web_identity = {
       role_arn           = "arn:aws:iam::PRODUCTION-ACCOUNT-ID:role/Terraform"
       web_identity_token = "<token value>"
     }
@@ -425,7 +425,7 @@ provider "aws" {
   # No credentials explicitly set here because they come from either the
   # environment or the global credentials file.
 
-  assume_role {
+  assume_role = {
     role_arn = "${var.workspace_iam_roles[terraform.workspace]}"
   }
 }
