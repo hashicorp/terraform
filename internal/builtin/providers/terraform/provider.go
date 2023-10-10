@@ -27,6 +27,14 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		ResourceTypes: map[string]providers.Schema{
 			"terraform_data": dataStoreResourceSchema(),
 		},
+		ServerCapabilities: providers.ServerCapabilities{
+			PlanDestroy: true,
+
+			// There is currently no layer which adds this schema to the global
+			// cache because doesn't go through a plugin, but set this for
+			// consistency in case that changes.
+			GetProviderSchemaOptional: true,
+		},
 	}
 }
 
