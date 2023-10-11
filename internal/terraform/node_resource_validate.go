@@ -56,14 +56,7 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 	if managed := n.Config.Managed; managed != nil {
 		// Validate all the provisioners
 		for _, p := range managed.Provisioners {
-			if p.Connection == nil {
-				p.Connection = n.Config.Managed.Connection
-			} else if n.Config.Managed.Connection != nil {
-				p.Connection.Config = configs.MergeBodies(n.Config.Managed.Connection.Config, p.Connection.Config)
-			}
-
-			// Validate Provisioner Config
-			diags = diags.Append(n.validateProvisioner(ctx, p))
+			diags = diags.Append(n.validateProvisioner(ctx, p, n.Config.Managed.Connection))
 			if diags.HasErrors() {
 				return diags
 			}
@@ -75,7 +68,7 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 // validateProvisioner validates the configuration of a provisioner belonging to
 // a resource. The provisioner config is expected to contain the merged
 // connection configurations.
-func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *configs.Provisioner) tfdiags.Diagnostics {
+func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *configs.Provisioner, baseConn *configs.Connection) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	provisioner, err := ctx.Provisioner(p.Type)
@@ -120,8 +113,21 @@ func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *config
 		// configuration keys that are not valid for *any* communicator, catching
 		// typos early rather than waiting until we actually try to run one of
 		// the resource's provisioners.
-		_, _, connDiags := n.evaluateBlock(ctx, p.Connection.Config, connectionBlockSupersetSchema)
+
+		cfg := p.Connection.Config
+		if baseConn != nil {
+			// Merge the local config into the base connection config, if we
+			// both specified.
+			cfg = configs.MergeBodies(baseConn.Config, cfg)
+		}
+
+		_, _, connDiags := n.evaluateBlock(ctx, cfg, connectionBlockSupersetSchema)
 		diags = diags.Append(connDiags)
+	} else if baseConn != nil {
+		// Just validate the baseConn directly.
+		_, _, connDiags := n.evaluateBlock(ctx, baseConn.Config, connectionBlockSupersetSchema)
+		diags = diags.Append(connDiags)
+
 	}
 	return diags
 }
