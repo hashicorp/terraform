@@ -1,5 +1,7 @@
 ## 1.6.2 (Unreleased)
 
+BUG FIXES
+* terraform test: Fix performance issues when using provisioners within configs being tested. ([#34026](https://github.com/hashicorp/terraform/pull/34026))
 
 ## 1.6.1 (October 10, 2023)
 
