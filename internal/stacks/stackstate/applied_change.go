@@ -134,14 +134,19 @@ func (ac *AppliedChangeResourceInstance) protosForObject(objSrc *states.Resource
 	}
 	protoValue := terraform1.NewDynamicValue(encValue, objSrc.AttrSensitivePaths)
 
+	rioAddr := stackaddrs.AbsResourceInstanceObject{
+		Component: ac.ResourceInstanceAddr.Component,
+		Item: addrs.AbsResourceInstanceObject{
+			ResourceInstance: ac.ResourceInstanceAddr.Item,
+			DeposedKey:       deposedKey,
+		},
+	}
+
 	descs = append(descs, &terraform1.AppliedChange_ChangeDescription{
 		Key: objKeyRaw,
 		Description: &terraform1.AppliedChange_ChangeDescription_ResourceInstance{
 			ResourceInstance: &terraform1.AppliedChange_ResourceInstance{
-				Addr: &terraform1.ResourceInstanceInStackAddr{
-					ComponentInstanceAddr: ac.ResourceInstanceAddr.Component.String(),
-					ResourceInstanceAddr:  ac.ResourceInstanceAddr.Item.String(),
-				},
+				Addr:     terraform1.NewResourceInstanceObjectInStackAddr(rioAddr),
 				NewValue: protoValue,
 			},
 		},

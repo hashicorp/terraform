@@ -308,6 +308,9 @@ func (r AbsResourceInstance) CurrentObject() AbsResourceInstanceObject {
 // resource instance, which appears only if a create-before-destroy replacement
 // succeeds the create step but fails the destroy step, making the original
 // object live on as a desposed object.
+//
+// If the given [DeposedKey] is [NotDeposed] then this is equivalent to
+// [AbsResourceInstance.CurrentObject].
 func (r AbsResourceInstance) DeposedObject(key DeposedKey) AbsResourceInstanceObject {
 	return AbsResourceInstanceObject{
 		ResourceInstance: r,

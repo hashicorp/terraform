@@ -583,6 +583,24 @@ message ResourceInstanceInStackAddr {
     string resource_instance_addr = 2;
 }
 
+// Represents the address of a specific resource instance object inside a
+// specific component instance within the containing stack.
+message ResourceInstanceObjectInStackAddr {
+    // Unique address of the component instance that this resource instance
+    // belongs to. This is comparable with
+    string component_instance_addr = 1;
+    // Unique address of the resource instance within the given component
+    // instance. Each component instance has a separate namespace of
+    // resource instance addresses, so callers must take both fields together
+    // to produce a key that's unique throughout the entire plan.
+    string resource_instance_addr = 2;
+    // Optional "deposed key" populated only for non-current (deposed) objects,
+    // which can appear for "create before destroy" replacements where the
+    // create succeeds but then the destroy fails, leaving us with two different
+    // objects to track for the same resource instance.
+    string deposed_key = 3;
+}
+
 enum ResourceMode {
     UNKNOWN = 0;
     MANAGED = 1;
@@ -676,7 +694,7 @@ message PlannedChange {
         repeated ChangeType actions = 2;
     }
     message ResourceInstance {
-        ResourceInstanceInStackAddr addr = 1;
+        ResourceInstanceObjectInStackAddr addr = 1;
         repeated ChangeType actions = 2;
         DynamicValueChange values = 3;
         Moved moved = 4;
@@ -811,7 +829,7 @@ message AppliedChange {
         reserved 20000;
     }
     message ResourceInstance {
-        ResourceInstanceInStackAddr addr = 1;
+        ResourceInstanceObjectInStackAddr addr = 1;
         DynamicValue new_value = 2;
 
         // Sometimes Terraform needs to make changes to a resource in
@@ -881,7 +899,7 @@ message StackChangeProgress {
     // ComponentInstanceStatus describes the current status of a resource instance
     // undergoing a plan or apply operation.
     message ResourceInstanceStatus {
-        ResourceInstanceInStackAddr addr = 1;
+        ResourceInstanceObjectInStackAddr addr = 1;
         Status status = 2;
 
         enum Status {
@@ -903,7 +921,7 @@ message StackChangeProgress {
     // message is intended for the event stream and need not include the instance's
     // full object values.
     message ResourceInstancePlannedChange {
-        ResourceInstanceInStackAddr addr = 1;
+        ResourceInstanceObjectInStackAddr addr = 1;
         repeated ChangeType actions = 2;
         Moved moved = 3;
         Imported imported = 4;
@@ -919,7 +937,7 @@ message StackChangeProgress {
     // ProvisionerStatus represents the progress of a given provisioner during its
     // resource instance's apply operation.
     message ProvisionerStatus {
-        ResourceInstanceInStackAddr addr = 1;
+        ResourceInstanceObjectInStackAddr addr = 1;
         string name = 2;
         ProvisionerStatus status = 3;
 
@@ -934,7 +952,7 @@ message StackChangeProgress {
     // ProvisionerOutput represents recorded output data emitted by a provisioner
     // during a resource instance's apply operation.
     message ProvisionerOutput {
-        ResourceInstanceInStackAddr addr = 1;
+        ResourceInstanceObjectInStackAddr addr = 1;
         string name = 2;
         string output = 3;
     }

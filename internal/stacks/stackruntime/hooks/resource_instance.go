@@ -85,7 +85,7 @@ func (s ProvisionerStatus) ForProtobuf() terraform1.StackChangeProgress_Provisio
 // ResourceInstanceStatusHookData is the argument type for hook callbacks which
 // signal a resource instance's status updates.
 type ResourceInstanceStatusHookData struct {
-	Addr   stackaddrs.AbsResourceInstance
+	Addr   stackaddrs.AbsResourceInstanceObject
 	Status ResourceInstanceStatus
 }
 
@@ -93,7 +93,7 @@ type ResourceInstanceStatusHookData struct {
 // which signal a resource instance's provisioner progress, including both
 // status updates and optional provisioner output data.
 type ResourceInstanceProvisionerHookData struct {
-	Addr   stackaddrs.AbsResourceInstance
+	Addr   stackaddrs.AbsResourceInstanceObject
 	Name   string
 	Status ProvisionerStatus
 	Output *string
@@ -103,6 +103,6 @@ type ResourceInstanceProvisionerHookData struct {
 // a detected or planned change for a resource instance resulting from a plan
 // operation.
 type ResourceInstanceChange struct {
-	Addr   stackaddrs.AbsResourceInstance
+	Addr   stackaddrs.AbsResourceInstanceObject
 	Change *plans.ResourceInstanceChangeSrc
 }

@@ -204,14 +204,16 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 		return nil, err
 	}
 
+	rioAddr := stackaddrs.AbsResourceInstanceObject{
+		Component: pc.ComponentInstanceAddr,
+		Item:      pc.ChangeSrc.ObjectAddr(),
+	}
+
 	return &terraform1.PlannedChange{
 		Raw: []*anypb.Any{&raw},
 		Description: &terraform1.PlannedChange_ResourceInstancePlanned{
 			ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
-				Addr: &terraform1.ResourceInstanceInStackAddr{
-					ComponentInstanceAddr: pc.ComponentInstanceAddr.String(),
-					ResourceInstanceAddr:  pc.ChangeSrc.Addr.String(),
-				},
+				Addr:         terraform1.NewResourceInstanceObjectInStackAddr(rioAddr),
 				ResourceMode: resourceModeForProto(pc.ChangeSrc.Addr.Resource.Resource.Mode),
 				ResourceType: pc.ChangeSrc.Addr.Resource.Resource.Type,
 				ProviderAddr: pc.ChangeSrc.ProviderAddr.Provider.String(),

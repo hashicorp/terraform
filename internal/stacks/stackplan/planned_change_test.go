@@ -184,6 +184,7 @@ func TestPlannedChangeAsProto(t *testing.T) {
 					}.Instance(addrs.IntKey(1)).Absolute(
 						addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
 					),
+					DeposedKey: addrs.DeposedKey("aaaaaaaa"),
 					ProviderAddr: addrs.AbsProviderConfig{
 						Module:   addrs.RootModule,
 						Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
@@ -200,7 +201,8 @@ func TestPlannedChangeAsProto(t *testing.T) {
 					mustMarshalAnyPb(&tfstackdata1.PlanResourceInstanceChangePlanned{
 						ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
 						Change: &planproto.ResourceInstanceChange{
-							Addr: `module.pizza["chicken"].thingy.wotsit[1]`,
+							Addr:       `module.pizza["chicken"].thingy.wotsit[1]`,
+							DeposedKey: "aaaaaaaa",
 							Change: &planproto.Change{
 								Action: planproto.Action_CREATE,
 								Values: []*planproto.DynamicValue{
@@ -213,9 +215,10 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				},
 				Description: &terraform1.PlannedChange_ResourceInstancePlanned{
 					ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
-						Addr: &terraform1.ResourceInstanceInStackAddr{
+						Addr: &terraform1.ResourceInstanceObjectInStackAddr{
 							ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
 							ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
+							DeposedKey:            "aaaaaaaa",
 						},
 						ResourceMode: terraform1.ResourceMode_MANAGED,
 						ResourceType: "thingy",

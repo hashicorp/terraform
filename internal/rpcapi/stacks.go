@@ -592,10 +592,7 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 			send(&terraform1.StackChangeProgress{
 				Event: &terraform1.StackChangeProgress_ResourceInstanceStatus_{
 					ResourceInstanceStatus: &terraform1.StackChangeProgress_ResourceInstanceStatus{
-						Addr: &terraform1.ResourceInstanceInStackAddr{
-							ComponentInstanceAddr: rihd.Addr.Component.String(),
-							ResourceInstanceAddr:  rihd.Addr.Item.String(),
-						},
+						Addr:   terraform1.NewResourceInstanceObjectInStackAddr(rihd.Addr),
 						Status: rihd.Status.ForProtobuf(),
 					},
 				},
@@ -633,10 +630,7 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 			send(&terraform1.StackChangeProgress{
 				Event: &terraform1.StackChangeProgress_ResourceInstancePlannedChange_{
 					ResourceInstancePlannedChange: &terraform1.StackChangeProgress_ResourceInstancePlannedChange{
-						Addr: &terraform1.ResourceInstanceInStackAddr{
-							ComponentInstanceAddr: ric.Addr.Component.String(),
-							ResourceInstanceAddr:  ric.Addr.Item.String(),
-						},
+						Addr:     terraform1.NewResourceInstanceObjectInStackAddr(ric.Addr),
 						Actions:  actions,
 						Moved:    moved,
 						Imported: imported,

@@ -538,9 +538,9 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 
 				for _, rsrcChange := range plan.DriftedResources {
 					hookMore(ctx, seq, h.ReportResourceInstanceDrift, &hooks.ResourceInstanceChange{
-						Addr: stackaddrs.AbsResourceInstance{
+						Addr: stackaddrs.AbsResourceInstanceObject{
 							Component: addr,
-							Item:      rsrcChange.Addr,
+							Item:      rsrcChange.ObjectAddr(),
 						},
 						Change: rsrcChange,
 					})
@@ -552,9 +552,9 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					cic.CountNewAction(rsrcChange.Action)
 
 					hookMore(ctx, seq, h.ReportResourceInstancePlanned, &hooks.ResourceInstanceChange{
-						Addr: stackaddrs.AbsResourceInstance{
+						Addr: stackaddrs.AbsResourceInstanceObject{
 							Component: addr,
-							Item:      rsrcChange.Addr,
+							Item:      rsrcChange.ObjectAddr(),
 						},
 						Change: rsrcChange,
 					})

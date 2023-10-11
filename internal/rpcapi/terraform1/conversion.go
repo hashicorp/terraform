@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -132,4 +133,19 @@ func NewAttributePath(from cty.Path) *AttributePath {
 		}
 	}
 	return ret
+}
+
+func NewResourceInstanceInStackAddr(addr stackaddrs.AbsResourceInstance) *ResourceInstanceInStackAddr {
+	return &ResourceInstanceInStackAddr{
+		ComponentInstanceAddr: addr.Component.String(),
+		ResourceInstanceAddr:  addr.Item.String(),
+	}
+}
+
+func NewResourceInstanceObjectInStackAddr(addr stackaddrs.AbsResourceInstanceObject) *ResourceInstanceObjectInStackAddr {
+	return &ResourceInstanceObjectInStackAddr{
+		ComponentInstanceAddr: addr.Component.String(),
+		ResourceInstanceAddr:  addr.Item.ResourceInstance.String(),
+		DeposedKey:            addr.Item.DeposedKey.String(),
+	}
 }
