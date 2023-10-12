@@ -7,7 +7,7 @@ description: The uuid function generates a unique id.
 
 `uuid` generates UUID-format strings using random bytes.
 
-It is not intended to be RFC compliant, merely to use a well-understood string representation of a 128-bit value.
+The function generates a well-understood string representation of a 128-bit value, but the output is not RFC-compliant.
 
 This function produces a new value each time it is called, and so using it
 directly in resource arguments will result in spurious diffs. We do not
