@@ -163,6 +163,14 @@ func TestTest(t *testing.T) {
 			args:     []string{"-var=global=\"triple\""},
 			code:     0,
 		},
+		"unreferenced_global_variable": {
+			override: "variable_references",
+			expected: "2 passed, 0 failed.",
+			// The other variable shouldn't pass validation, but it won't be
+			// referenced anywhere so should just be ignored.
+			args: []string{"-var=global=\"triple\"", "-var=other=bad"},
+			code: 0,
+		},
 		"variables_types": {
 			expected: "1 passed, 0 failed.",
 			args:     []string{"-var=number_input=0", "-var=string_input=Hello, world!", "-var=list_input=[\"Hello\",\"world\"]"},
