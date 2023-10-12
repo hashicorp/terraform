@@ -1,5 +1,16 @@
 ## 1.7.0 (Unreleased)
 
+UPGRADE NOTES:
+
+* Input validations are being restored to the state file in this version of Terraform. Due to a state interoperability issue ([#33770](https://github.com/hashicorp/terraform/issues/33770)) in earlier versions, users that require interaction between different minor series should ensure they have upgraded to the following patches:
+    * Users of Terraform prior to 1.3.0 are unaffected;
+    * Terraform 1.3 series users should upgrade to 1.3.10;
+    * Terraform 1.4 series users should upgrade to 1.4.7;
+    * Terraform 1.5 series users should upgrade to 1.5.7;
+    * Users of Terraform 1.6.0 and later are unaffected.
+ 
+  This is important for users with `terraform_remote_state` data sources reading remote state across different versions of Terraform.
+
 BUG FIXES:
 
 * Ignore potential remote terraform version mismatch when running force-unlock ([#28853](https://github.com/hashicorp/terraform/issues/28853))
