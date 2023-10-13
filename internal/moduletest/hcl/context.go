@@ -102,7 +102,7 @@ func EvalContext(expressions []hcl.Expression, availableVariables map[string]cty
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Invalid reference",
-						Detail:   fmt.Sprintf("You cannot reference run blocks from within provider configurations. You can only reference run blocks from other run blocks that execute after them."),
+						Detail:   "You cannot reference run blocks from within provider configurations. You can only reference run blocks from other run blocks that execute after them.",
 						Subject:  ref.SourceRange.ToHCL().Ptr(),
 					})
 
