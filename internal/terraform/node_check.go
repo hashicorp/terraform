@@ -58,6 +58,7 @@ var (
 	_ GraphNodeModulePath        = (*nodeExpandCheck)(nil)
 	_ GraphNodeDynamicExpandable = (*nodeExpandCheck)(nil)
 	_ GraphNodeReferencer        = (*nodeExpandCheck)(nil)
+	_ graphNodeExpandsInstances  = (*nodeExpandCheck)(nil)
 )
 
 // nodeExpandCheck creates child nodes that actually execute the assertions for
@@ -74,6 +75,8 @@ type nodeExpandCheck struct {
 
 	makeInstance func(addrs.AbsCheck, *configs.Check) dag.Vertex
 }
+
+func (n *nodeExpandCheck) expandsInstances() {}
 
 func (n *nodeExpandCheck) ModulePath() addrs.Module {
 	return n.addr.Module
