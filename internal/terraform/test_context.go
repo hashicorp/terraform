@@ -48,7 +48,8 @@ func (c *Context) TestContext(run *moduletest.Run, config *configs.Config, state
 	}
 }
 
-func (ctx *TestContext) evaluationStateData(alternateStates map[string]*evaluationStateData) *evaluationStateData {
+func (ctx *TestContext) evaluationStateData(alternateStates map[string]*evaluationStateData) (*evaluationStateData, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 
 	var operation walkOperation
 	switch ctx.Run.Config.Command {
@@ -60,53 +61,68 @@ func (ctx *TestContext) evaluationStateData(alternateStates map[string]*evaluati
 		panic(fmt.Errorf("unrecognized TestCommand: %q", ctx.Run.Config.Command))
 	}
 
+	variableValues := make(map[string]map[string]cty.Value)
+	variableValues[addrs.RootModule.String()] = make(map[string]cty.Value)
+	for name, variable := range ctx.Variables {
+		if config, exists := ctx.Config.Module.Variables[name]; exists {
+			var variableDiags tfdiags.Diagnostics
+			variableValues[addrs.RootModule.String()][name], variableDiags = prepareFinalInputVariableValue(addrs.RootModuleInstance.InputVariable(name), variable, config)
+			diags = diags.Append(variableDiags)
+		} else {
+			variableValues[addrs.RootModule.String()][name] = variable.Value
+		}
+	}
+
 	return &evaluationStateData{
 		Evaluator: &Evaluator{
-			Operation:       operation,
-			Meta:            ctx.meta,
-			Config:          ctx.Config,
-			Plugins:         ctx.plugins,
-			State:           ctx.State.SyncWrapper(),
-			Changes:         ctx.Plan.Changes.SyncWrapper(),
-			AlternateStates: alternateStates,
-			VariableValues: func() map[string]map[string]cty.Value {
-				variables := map[string]map[string]cty.Value{
-					addrs.RootModule.String(): make(map[string]cty.Value),
-				}
-				for name, variable := range ctx.Variables {
-					variables[addrs.RootModule.String()][name] = variable.Value
-				}
-				return variables
-			}(),
+			Operation:          operation,
+			Meta:               ctx.meta,
+			Config:             ctx.Config,
+			Plugins:            ctx.plugins,
+			State:              ctx.State.SyncWrapper(),
+			Changes:            ctx.Plan.Changes.SyncWrapper(),
+			AlternateStates:    alternateStates,
+			VariableValues:     variableValues,
 			VariableValuesLock: new(sync.Mutex),
 			PlanTimestamp:      ctx.Plan.Timestamp,
 		},
 		ModulePath:      nil, // nil for the root module
 		InstanceKeyData: EvalDataForNoInstanceKey,
 		Operation:       operation,
-	}
+	}, diags
 }
 
 // Evaluate processes the assertions inside the provided configs.TestRun against
 // the embedded state.
 func (ctx *TestContext) Evaluate(priorContexts map[string]*TestContext) {
+	run := ctx.Run
 
+	var dataDiags tfdiags.Diagnostics
 	alternateStates := make(map[string]*evaluationStateData)
 	for name, priorContext := range priorContexts {
-		alternateStates[name] = priorContext.evaluationStateData(nil)
+		var moreDiags tfdiags.Diagnostics
+		alternateStates[name], moreDiags = priorContext.evaluationStateData(nil)
+		dataDiags = dataDiags.Append(moreDiags)
 	}
 
-	data := ctx.evaluationStateData(alternateStates)
+	data, moreDiags := ctx.evaluationStateData(alternateStates)
 	scope := &lang.Scope{
 		Data:          data,
 		BaseDir:       ".",
 		PureOnly:      data.Operation != walkApply,
 		PlanTimestamp: ctx.Plan.Timestamp,
 	}
+	dataDiags = dataDiags.Append(moreDiags)
+
+	run.Diagnostics = run.Diagnostics.Append(dataDiags)
+	if dataDiags.HasErrors() {
+		// Fail early if we couldn't adequately build the evaluation state data.
+		run.Status = run.Status.Merge(moduletest.Error)
+		return
+	}
 
 	// We're going to assume the run has passed, and then if anything fails this
 	// value will be updated.
-	run := ctx.Run
 	run.Status = run.Status.Merge(moduletest.Pass)
 
 	// Now validate all the assertions within this run block.
