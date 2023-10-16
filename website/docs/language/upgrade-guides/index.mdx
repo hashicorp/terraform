@@ -15,6 +15,7 @@ but there are some behavior changes outside of those promises that may affect a
 small number of users. Specifically, the following updates may require
 additional upgrade steps:
 * [End of experimental period for `terraform test`](#terraform-test)
+* [S3 Backend may need to be reconfigured](#s3-backend)
 
 See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.6/CHANGELOG.md)
 for more details. If you encounter any problems during upgrading which are not
@@ -132,3 +133,50 @@ run "test_defaults" {
 The above examples demonstrates the differences in layout, scope and access between the two approaches. In the experimental framework, access is granted as if the configuration was being called like a normal module call. In the released framework, assertions execute as if they are custom conditions defined within the main configuration directly.
 
 The `run` block also applies or plans the main configuration by default, there is no need for the specific module call seen in the experimental framework.
+
+## S3 Backend
+
+The S3 Backend has been updated, with a number of added and deprecated fields.
+These changes bring the S3 Backend configuration closer to the AWS Provider configuration.
+
+-> **Note:** Becuase of these changes, you may need to run `terraform init -reconfigure`,
+even if there have been no changes to your backend configuration.
+
+### Deprecations
+
+The major deprecations are discussed here.
+For more information, consult the [S3 Backend documentation](terraform/language/settings/backends/s3).
+
+Configuration for assuming an IAM Role has been moved from a number of top-level attributes into the attribute `assume_role`.
+Previously, the configuration to assume the IAM role `arn:aws:iam::123456789012:role/example` with a session name `example-session` and a session duration of 15 minutes was:
+
+```hcl
+terraform {
+  role_arn                     = "arn:aws:iam::123456789012:role/example"
+  session_name                 = "example-session"
+  assume_role_duration_seconds = 900
+}
+```
+
+The updated configuration is:
+
+```hcl
+terraform {
+  assume_role {
+    role_arn     = "arn:aws:iam::123456789012:role/example"
+    session_name = "example-session"
+    duration     = "15m"
+  }
+}
+```
+
+The AWS API endpoint override attributes
+`endpoint` (for S3),
+`dynamodb_endpoint`,
+`iam_endpoint`, and
+`sts_endpoint`
+have been replaced with the attributes `endpoints` and the corresponding nested attributes
+`s3`,
+`dynamodb`,
+`iam`, and
+`sts`.
