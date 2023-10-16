@@ -491,9 +491,6 @@ message ApplyStackChanges {
         // passed to PlanStackChanges when creating this plan, or the
         // results will be unpredictable.
         int64 stack_config_handle = 1;
-        // This must be exactly the same as the previous_state that
-        // was passed to PlanStackChanges when creating this plan.
-        map<string, google.protobuf.Any> previous_state = 2;
         // The caller should send all of the keys present in the previous
         // apply's description map. Terraform Core will use this for
         // situations such as updating existing descriptions to newer
@@ -511,6 +508,8 @@ message ApplyStackChanges {
         // This must be equivalent to the argument of the same name
         // passed to PlanStackChanges when creating this plan.
         int64 provider_cache_handle = 6;
+
+        reserved 2; // (formerly the previous state, but we now propagate that as part of planned_changes as an implementation detail)
     }
     message Event {
         oneof event {

@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -32,6 +34,10 @@ import (
 // with it to avoid leaking non-memory resources such as goroutines and
 // provider plugin processes.
 func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb.Any, opts ApplyOpts, outp ApplyOutput) (*Main, error) {
+	// FIXME: ApplyPlan takes a raw plan and decodes it here, whereas
+	// the corresponding function for planning expects the caller to
+	// have already done the work to load the raw state. We should
+	// make these two consistent one way or the other.
 	plan, err := stackplan.LoadFromProto(rawPlan)
 	if err != nil {
 		return nil, fmt.Errorf("invalid raw plan: %w", err)
@@ -44,6 +50,14 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 		return nil, fmt.Errorf("plan is not applyable")
 	}
 
+	// We might need to discard some of the keys from the previous run state --
+	// either in the raw state or in the state description -- if they are
+	// unrecognized keys classified as needing to be discarded when unrecognized.
+	discardRawKeys, discardDescKeys, err := stateKeysToDiscard(plan.PrevRunStateRaw, opts.PrevStateDescKeys)
+	if err != nil {
+		return nil, fmt.Errorf("invalid previous run state: %w", err)
+	}
+
 	// --------------------------------------------------------------------
 	// NO ERROR RETURNS AFTER THIS POINT!
 	// From here on we're actually executing the operation, so any problems
@@ -54,18 +68,9 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 	hs, ctx := hookBegin(ctx, hooks.BeginApply, hooks.ContextAttach, struct{}{})
 	defer hookMore(ctx, hs, hooks.EndApply, struct{}{})
 
-	// TODO: Somewhere in all of this we need to deal with two bits of
-	// general bookkeeping to ensure the state stays consistent:
-	//  1. Emitting interim "applied change" events for resource instances
-	//     whose prior state changed during the refresh step in the plan,
-	//     so we have those refreshes committed even if errors block us
-	//     from completing other updates.
-	//  2. Emitting events to let the caller know it should drop any
-	//     raw state or state description keys that the plan phase didn't
-	//     understand and that were marked as needing to be discarded in
-	//     that case. Otherwise they'll stick around after this work is
-	//     complete and possibly leave us with an inconsistent or invalid
-	//     state overall.
+	// Before doing anything else we'll emit zero or more events to deal
+	// with discarding the previous run state data that's no longer needed.
+	emitStateKeyDiscardEvents(ctx, discardRawKeys, discardDescKeys, outp)
 
 	withDiags, err := promising.MainTask(ctx, func(ctx context.Context) (withDiagnostics[*Main], error) {
 		// We'll register all of the changes we intend to make up front, so we
@@ -102,7 +107,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 						// TODO: We should also turn the prior state into the form
 						// the modules runtime expects and pass that in here,
 						// instead of an empty prior state.
-						modulesRuntimePlan, err := componentInstPlan.ForModulesRuntime(states.NewState())
+						modulesRuntimePlan, err := componentInstPlan.ForModulesRuntime()
 						if err != nil {
 							// Suggests that the state is inconsistent with the
 							// plan, which is a bug in whatever provided us with
@@ -247,5 +252,41 @@ func (m *Main) walkApplyCheckObjectChanges(ctx context.Context, walk *applyWalk,
 		if len(diags) != 0 {
 			walk.out.AnnounceDiagnostics(ctx, diags)
 		}
+	})
+}
+
+func stateKeysToDiscard(prevRunState map[string]*anypb.Any, prevDescKeys collections.Set[statekeys.Key]) (discardRaws, discardDescs collections.Set[statekeys.Key], err error) {
+	discardRaws = statekeys.NewKeySet()
+	discardDescs = statekeys.NewKeySet()
+
+	for rawKey := range prevRunState {
+		key, err := statekeys.Parse(rawKey)
+		if err != nil {
+			// We should not typically get here because if there was an invalid
+			// key then we should've caught it during planning.
+			return discardRaws, discardDescs, fmt.Errorf("invalid tracking key %q in previous run state: %w", rawKey, err)
+		}
+		if statekeys.RecognizedType(key) {
+			// Nothing to do for a key of a recognized type.
+			continue
+		}
+		if key.KeyType().UnrecognizedKeyHandling() == statekeys.DiscardIfUnrecognized {
+			discardRaws.Add(key)
+		}
+	}
+
+	return discardDescs, discardDescs, nil
+}
+
+func emitStateKeyDiscardEvents(ctx context.Context, discardRaws, discardDescs collections.Set[statekeys.Key], outp ApplyOutput) {
+	if discardRaws.Len() == 0 && discardDescs.Len() == 0 {
+		// Nothing to do, then!
+		return
+	}
+	// If we have at least one key in either set then we can deal with all
+	// of them at once in a single "applied change".
+	outp.AnnounceAppliedChange(ctx, &stackstate.AppliedChangeDiscardKeys{
+		DiscardRawKeys:  discardRaws,
+		DiscardDescKeys: discardDescs,
 	})
 }

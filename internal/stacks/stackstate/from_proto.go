@@ -18,6 +18,7 @@ import (
 
 func LoadFromProto(msgs map[string]*anypb.Any) (*State, error) {
 	ret := NewState()
+	ret.inputRaw = msgs
 	for rawKey, rawMsg := range msgs {
 		key, err := statekeys.Parse(rawKey)
 		if err != nil {
@@ -128,20 +129,9 @@ func handleResourceInstanceObjectMsg(key statekeys.ResourceInstanceObject, msg p
 		return fmt.Errorf("unsupported message type %T for state of %s", msg, fullAddr.String())
 	}
 
-	objSrc := &states.ResourceInstanceObjectSrc{
-		SchemaVersion:       riMsg.SchemaVersion,
-		AttrsJSON:           riMsg.ValueJson,
-		CreateBeforeDestroy: riMsg.CreateBeforeDestroy,
-		Private:             riMsg.ProviderSpecificData,
-	}
-
-	switch riMsg.Status {
-	case tfstackdata1.StateResourceInstanceObjectV1_READY:
-		objSrc.Status = states.ObjectReady
-	case tfstackdata1.StateResourceInstanceObjectV1_DAMAGED:
-		objSrc.Status = states.ObjectTainted
-	default:
-		return fmt.Errorf("unsupported status %s for %s", riMsg.Status.String(), fullAddr.String())
+	objSrc, err := DecodeProtoResourceInstanceObject(riMsg)
+	if err != nil {
+		return fmt.Errorf("invalid stored state object for %s: %w", fullAddr, err)
 	}
 
 	providerConfigAddr, diags := addrs.ParseAbsProviderConfigStr(riMsg.ProviderConfigAddr)
@@ -149,27 +139,47 @@ func handleResourceInstanceObjectMsg(key statekeys.ResourceInstanceObject, msg p
 		return fmt.Errorf("provider configuration reference %q for %s", riMsg.ProviderConfigAddr, fullAddr)
 	}
 
-	if len(riMsg.SensitivePaths) != 0 {
+	state.addResourceInstanceObject(fullAddr, objSrc, providerConfigAddr)
+	return nil
+}
+
+func DecodeProtoResourceInstanceObject(protoObj *tfstackdata1.StateResourceInstanceObjectV1) (*states.ResourceInstanceObjectSrc, error) {
+	objSrc := &states.ResourceInstanceObjectSrc{
+		SchemaVersion:       protoObj.SchemaVersion,
+		AttrsJSON:           protoObj.ValueJson,
+		CreateBeforeDestroy: protoObj.CreateBeforeDestroy,
+		Private:             protoObj.ProviderSpecificData,
+	}
+
+	switch protoObj.Status {
+	case tfstackdata1.StateResourceInstanceObjectV1_READY:
+		objSrc.Status = states.ObjectReady
+	case tfstackdata1.StateResourceInstanceObjectV1_DAMAGED:
+		objSrc.Status = states.ObjectTainted
+	default:
+		return nil, fmt.Errorf("unsupported status %s", protoObj.Status.String())
+	}
+
+	if len(protoObj.SensitivePaths) != 0 {
 		// TODO: Deal with sensitive paths
 	}
 
-	if len(riMsg.Dependencies) != 0 {
-		objSrc.Dependencies = make([]addrs.ConfigResource, len(riMsg.Dependencies))
-		for i, raw := range riMsg.Dependencies {
+	if len(protoObj.Dependencies) != 0 {
+		objSrc.Dependencies = make([]addrs.ConfigResource, len(protoObj.Dependencies))
+		for i, raw := range protoObj.Dependencies {
 			instAddr, diags := addrs.ParseAbsResourceInstanceStr(raw)
 			if diags.HasErrors() {
-				return fmt.Errorf("invalid dependency %q for %s", raw, fullAddr)
+				return nil, fmt.Errorf("invalid dependency %q", raw)
 			}
 			// We used the resource instance address parser here but we
 			// actually want the "config resource" subset of that syntax only.
 			configAddr := instAddr.ConfigResource()
 			if configAddr.String() != instAddr.String() {
-				return fmt.Errorf("invalid dependency %q for %s", raw, fullAddr)
+				return nil, fmt.Errorf("invalid dependency %q", raw)
 			}
 			objSrc.Dependencies[i] = configAddr
 		}
 	}
 
-	state.addResourceInstanceObject(fullAddr, objSrc, providerConfigAddr)
-	return nil
+	return objSrc, nil
 }

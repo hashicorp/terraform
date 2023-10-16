@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // PlanAll visits all of the objects in the configuration and the prior state,
@@ -36,8 +37,13 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 	// the rest of the code so that the async streaming behavior does not
 	// dominate the overall design of package stackeval.
 
+	var prevRunStateRaw map[string]*anypb.Any
+	if prevRunState := m.PlanPrevState(); prevRunState != nil {
+		prevRunStateRaw = prevRunState.InputRaw()
+	}
 	outp.AnnouncePlannedChange(ctx, &stackplan.PlannedChangeHeader{
 		TerraformVersion: version.SemVer,
+		PrevRunStateRaw:  prevRunStateRaw,
 	})
 
 	// TODO: Announce an extra planned change here if we have any unrecognized

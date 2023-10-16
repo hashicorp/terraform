@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 // PlannedChange represents a single isolated planned changed, emitted as
@@ -166,6 +167,7 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 type PlannedChangeResourceInstancePlanned struct {
 	ComponentInstanceAddr stackaddrs.AbsComponentInstance
 	ChangeSrc             *plans.ResourceInstanceChangeSrc
+	PriorStateSrc         *states.ResourceInstanceObjectSrc
 
 	// Schema MUST be the same schema that was used to encode the dynamic
 	// values inside ChangeSrc.
@@ -180,11 +182,12 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 		return nil, fmt.Errorf("nil ChangeSrc")
 	}
 
-	// FIXME: The following is incomplete because it isn't accounting for
-	// the possibility of deposed objects. Currently we're just assuming
-	// resource instance addresses are unique within a plan, which isn't
-	// true: the DeposedKey is required for the address of a changed
-	// resource isntance to be fully-qualified.
+	// We include the prior state as part of the raw plan because that
+	// contains the result of upgrading the state to the provider's latest
+	// schema version and incorporating any changes detected in the refresh
+	// step, which we'll rely on during the apply step to make sure that
+	// the final plan is consistent, etc.
+	priorStateProto := tfstackdata1.ResourceInstanceObjectStateToTFStackData1(pc.PriorStateSrc, pc.ChangeSrc.ProviderAddr)
 
 	changeProto, err := planfile.ResourceChangeToProto(pc.ChangeSrc)
 	if err != nil {
@@ -194,6 +197,7 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanResourceInstanceChangePlanned{
 		ComponentInstanceAddr: pc.ComponentInstanceAddr.String(),
 		Change:                changeProto,
+		PriorState:            priorStateProto,
 	}, proto.MarshalOptions{})
 	if err != nil {
 		return nil, err
@@ -281,6 +285,8 @@ func (pc *PlannedChangeOutputValue) PlannedChangeProto() (*terraform1.PlannedCha
 // the external-facing plan description.
 type PlannedChangeHeader struct {
 	TerraformVersion *version.Version
+
+	PrevRunStateRaw map[string]*anypb.Any
 }
 
 var _ PlannedChange = (*PlannedChangeHeader)(nil)
@@ -290,6 +296,7 @@ func (pc *PlannedChangeHeader) PlannedChangeProto() (*terraform1.PlannedChange, 
 	var raw anypb.Any
 	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanHeader{
 		TerraformVersion: pc.TerraformVersion.String(),
+		PrevRunStateRaw:  pc.PrevRunStateRaw,
 	}, proto.MarshalOptions{})
 	if err != nil {
 		return nil, err

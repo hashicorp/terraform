@@ -296,6 +296,22 @@ func (s *State) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInstan
 	return ms.ResourceInstance(addr.Resource)
 }
 
+// ResourceInstance returns the (encoded) state for the resource instance object
+// with the given address, or nil if no such object is tracked in the state.
+func (s *State) ResourceInstanceObjectSrc(addr addrs.AbsResourceInstanceObject) *ResourceInstanceObjectSrc {
+	if s == nil {
+		panic("State.ResourceInstanceObjectSrc on nil *State")
+	}
+	rs := s.ResourceInstance(addr.ResourceInstance)
+	if rs == nil {
+		return nil
+	}
+	if addr.DeposedKey != addrs.NotDeposed {
+		return rs.Deposed[addr.DeposedKey]
+	}
+	return rs.Current
+}
+
 // OutputValue returns the state for the output value with the given address,
 // or nil if no such output value is tracked in the state.
 func (s *State) OutputValue(addr addrs.AbsOutputValue) *OutputValue {

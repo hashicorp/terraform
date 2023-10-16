@@ -11,7 +11,9 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
@@ -45,6 +47,7 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 			if gotVersion != wantVersion {
 				return nil, fmt.Errorf("plan was created by Terraform %s, but this is Terraform %s", gotVersion, wantVersion)
 			}
+			ret.PrevRunStateRaw = msg.PrevRunStateRaw
 			foundHeader = true
 
 		case *tfstackdata1.PlanApplyable:
@@ -70,7 +73,8 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 			}
 			if !ret.Components.HasKey(addr) {
 				ret.Components.Put(addr, &Component{
-					ResourceInstancePlanned: addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.ResourceInstanceChangeSrc](),
+					ResourceInstancePlanned:    addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.ResourceInstanceChangeSrc](),
+					ResourceInstancePriorState: addrs.MakeMap[addrs.AbsResourceInstanceObject, *states.ResourceInstanceObjectSrc](),
 				})
 			}
 			c := ret.Components.Get(addr)
@@ -100,6 +104,19 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 				DeposedKey:       riPlan.DeposedKey,
 			}
 			c.ResourceInstancePlanned.Put(fullAddr, riPlan)
+
+			if msg.PriorState != nil {
+				stateSrc, err := stackstate.DecodeProtoResourceInstanceObject(msg.PriorState)
+				if err != nil {
+					return nil, fmt.Errorf("invalid prior state for %s: %w", fullAddr, err)
+				}
+				c.ResourceInstancePriorState.Put(fullAddr, stateSrc)
+			} else {
+				// We'll record an explicit nil just to affirm that there's
+				// intentionally no prior state for this resource instance
+				// object.
+				c.ResourceInstancePriorState.Put(fullAddr, nil)
+			}
 
 		default:
 			// Should not get here, because a stack plan can only be loaded by

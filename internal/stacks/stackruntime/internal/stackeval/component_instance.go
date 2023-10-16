@@ -908,15 +908,28 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 				continue
 			}
 
+			objAddr := addrs.AbsResourceInstanceObject{
+				ResourceInstance: rsrcChange.Addr,
+				DeposedKey:       rsrcChange.DeposedKey,
+			}
+			var priorStateSrc *states.ResourceInstanceObjectSrc
+			if corePlan.PriorState != nil {
+				priorStateSrc = corePlan.PriorState.ResourceInstanceObjectSrc(objAddr)
+			}
+
 			changes = append(changes, &stackplan.PlannedChangeResourceInstancePlanned{
 				ComponentInstanceAddr: c.Addr(),
 				ChangeSrc:             rsrcChange,
 				Schema:                schema,
+				PriorStateSrc:         priorStateSrc,
+
 				// TODO: Also provide the previous run state, if it's
-				// different from the prior state already captured
-				// inside rsrcChange, and signal whether the difference
-				// from previous run seems "notable" per Terraform Core's
-				// heuristics.
+				// different from the prior state, and signal whether the
+				// difference from previous run seems "notable" per
+				// Terraform Core's heuristics. Only the external plan
+				// description needs that info, to populate the
+				// "changes outside of Terraform" part of the plan UI;
+				// the raw plan only needs the prior state.
 			})
 		}
 	}

@@ -5,6 +5,7 @@ syntax = "proto3";
 package tfstackdata1;
 
 import "planfile.proto"; // tfplan, from internal/plans/planproto
+import "google/protobuf/any.proto";
 
 // These definitions describe the PRIVATE raw format that we use to persist
 // stack and plan information for stacks between operations.
@@ -42,6 +43,10 @@ message PlanHeader {
     // decoding the message, because we always expect plans to be applied by
     // the same version of Terraform that created them.
     string terraform_version = 1;
+
+    // A verbatim copy of the state that was provided with the request to
+    // create the plan.
+    map<string, google.protobuf.Any> prev_run_state_raw = 2;
 }
 
 // Confirms whether the overall plan whose raw plan sequence includes this
@@ -97,7 +102,19 @@ message PlanResourceInstanceChangePlanned {
     // PlanComponentInstance message, or the overall plan sequence is invalid.
     string component_instance_addr = 1;
 
+    // Description of the planned change in the standard "tfplan" (planproto)
+    // format.
     tfplan.ResourceInstanceChange change = 2;
+
+    // A snapshot of the "prior state", which is the result of upgrading and
+    // refreshing the previous run's state.
+    //
+    // The very first action on applying this plan should be to update the
+    // raw state for the resource instance to match this value, since
+    // the main apply phase for each component instance assumes that the
+    // prior state has already been updated to match the "old" value from
+    // the "change" message.
+    StateResourceInstanceObjectV1 prior_state = 3;
 }
 
 // Represents that we need to emit "delete" requests for one or more raw

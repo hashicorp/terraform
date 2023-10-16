@@ -4,6 +4,7 @@
 package stackplan
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -22,6 +23,13 @@ type Component struct {
 	// to make to try to converge the real system state with the desired state
 	// as described by the configuration.
 	ResourceInstancePlanned addrs.Map[addrs.AbsResourceInstanceObject, *plans.ResourceInstanceChangeSrc]
+
+	// ResourceInstancePriorState describes the state as it was when making
+	// the proposals described in [Component.ResourceInstancePlanned].
+	//
+	// Elements of this map have nil values if the planned action is "create",
+	// since in that case there is no prior object.
+	ResourceInstancePriorState addrs.Map[addrs.AbsResourceInstanceObject, *states.ResourceInstanceObjectSrc]
 
 	// TODO: Something for deferred resource instance changes, once we have
 	// such a concept.
@@ -46,14 +54,11 @@ type Component struct {
 // returns an error then that suggests that the recieving plan is inconsistent
 // with the given previous run state, which should not happen if the caller
 // is using Terraform Core correctly.
-func (c *Component) ForModulesRuntime(prevRunState *states.State) (*plans.Plan, error) {
+func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 	changes := plans.NewChanges()
-	priorState := prevRunState.DeepCopy()
 	plan := &plans.Plan{
-		Changes:      changes,
-		Timestamp:    c.PlanTimestamp,
-		PrevRunState: prevRunState,
-		PriorState:   priorState,
+		Changes:   changes,
+		Timestamp: c.PlanTimestamp,
 	}
 
 	sc := changes.SyncWrapper()
@@ -62,13 +67,24 @@ func (c *Component) ForModulesRuntime(prevRunState *states.State) (*plans.Plan, 
 		sc.AppendResourceInstanceChange(changeSrc)
 	}
 
-	// FIXME: For ResourceInstanceChangedOutside we actually need to modify
-	// priorState, since that will mimick what the modules runtime would've
-	// done itself during its own refresh and plan process during the
-	// planning phase. But we can't do that here because we'd need providers
-	// to help us convert from msgpack to JSON. So we'll just ignore the
-	// "changed outside" stuff for now and figure out what to do with this
-	// problem later.
+	priorState := states.NewState()
+	ss := priorState.SyncWrapper()
+	for _, elem := range c.ResourceInstancePriorState.Elems {
+		addr := elem.Key
+		changeSrc, ok := c.ResourceInstancePlanned.GetOk(addr)
+		if !ok {
+			return nil, fmt.Errorf("no planned change for %s", addr)
+		}
+		stateSrc := elem.Value
+		if addr.IsCurrent() {
+			ss.SetResourceInstanceCurrent(addr.ResourceInstance, stateSrc, changeSrc.ProviderAddr)
+		} else {
+			ss.SetResourceInstanceDeposed(addr.ResourceInstance, addr.DeposedKey, stateSrc, changeSrc.ProviderAddr)
+		}
+	}
+
+	plan.PriorState = priorState
+	plan.PrevRunState = priorState.DeepCopy() // This is just here to complete the data structure; we don't really do anything with it
 
 	return plan, nil
 }

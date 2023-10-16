@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
@@ -152,29 +153,7 @@ func (ac *AppliedChangeResourceInstance) protosForObject(objSrc *states.Resource
 		},
 	})
 
-	rawMsg := &tfstackdata1.StateResourceInstanceObjectV1{
-		SchemaVersion:        objSrc.SchemaVersion,
-		ValueJson:            objSrc.AttrsJSON,
-		SensitivePaths:       tfstackdata1.Terraform1ToPlanProtoAttributePaths(protoValue.Sensitive),
-		CreateBeforeDestroy:  obj.CreateBeforeDestroy,
-		ProviderConfigAddr:   ac.ProviderConfigAddr.String(),
-		ProviderSpecificData: obj.Private,
-	}
-
-	switch objSrc.Status {
-	case states.ObjectReady:
-		rawMsg.Status = tfstackdata1.StateResourceInstanceObjectV1_READY
-	case states.ObjectTainted:
-		rawMsg.Status = tfstackdata1.StateResourceInstanceObjectV1_DAMAGED
-	default:
-		rawMsg.Status = tfstackdata1.StateResourceInstanceObjectV1_UNKNOWN
-	}
-
-	rawMsg.Dependencies = make([]string, len(objSrc.Dependencies))
-	for i, addr := range objSrc.Dependencies {
-		rawMsg.Dependencies[i] = addr.String()
-	}
-
+	rawMsg := tfstackdata1.ResourceInstanceObjectStateToTFStackData1(objSrc, ac.ProviderConfigAddr)
 	var raw anypb.Any
 	err = anypb.MarshalFrom(&raw, rawMsg, proto.MarshalOptions{})
 	if err != nil {
@@ -186,4 +165,34 @@ func (ac *AppliedChangeResourceInstance) protosForObject(objSrc *states.Resource
 	})
 
 	return descs, raws, nil
+}
+
+type AppliedChangeDiscardKeys struct {
+	DiscardRawKeys  collections.Set[statekeys.Key]
+	DiscardDescKeys collections.Set[statekeys.Key]
+}
+
+var _ AppliedChange = (*AppliedChangeDiscardKeys)(nil)
+
+// AppliedChangeProto implements AppliedChange.
+func (ac *AppliedChangeDiscardKeys) AppliedChangeProto() (*terraform1.AppliedChange, error) {
+	ret := &terraform1.AppliedChange{
+		Raw:          make([]*terraform1.AppliedChange_RawChange, 0, ac.DiscardRawKeys.Len()),
+		Descriptions: make([]*terraform1.AppliedChange_ChangeDescription, 0, ac.DiscardDescKeys.Len()),
+	}
+	for _, key := range ac.DiscardRawKeys.Elems() {
+		ret.Raw = append(ret.Raw, &terraform1.AppliedChange_RawChange{
+			Key:   statekeys.String(key),
+			Value: nil, // nil represents deletion
+		})
+	}
+	for _, key := range ac.DiscardDescKeys.Elems() {
+		ret.Descriptions = append(ret.Descriptions, &terraform1.AppliedChange_ChangeDescription{
+			Key:         statekeys.String(key),
+			Description: &terraform1.AppliedChange_ChangeDescription_Deleted{
+				// Selection of this empty variant represents deletion
+			},
+		})
+	}
+	return ret, nil
 }

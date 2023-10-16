@@ -5,6 +5,7 @@ package stackplan
 
 import (
 	"github.com/zclconf/go-cty/cty"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -26,6 +27,13 @@ type Plan struct {
 	// some reason, such as if an error occurred during planning and so
 	// the planning process did not entirely run.
 	Applyable bool
+
+	// The raw representation of the raw state that was provided in the request
+	// to create the plan. We use this primarily to perform mundane state
+	// data structure maintenence operations, such as discarding keys that
+	// are no longer needed or replacing data in old formats with the
+	// equivalent new representations.
+	PrevRunStateRaw map[string]*anypb.Any
 
 	// RootInputValues are the input variable values provided to calculate
 	// the plan. We must use the same values during the apply step to

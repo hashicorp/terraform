@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/states"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // State represents a previous run's state snapshot.
@@ -27,6 +28,8 @@ type State struct {
 	// events during the apply phase to delete the objects associated with
 	// these keys.
 	discardUnsupportedKeys collections.Set[statekeys.Key]
+
+	inputRaw map[string]*anypb.Any
 }
 
 // NewState constructs a new, empty state.
@@ -34,6 +37,7 @@ func NewState() *State {
 	return &State{
 		componentInstances:     collections.NewMap[stackaddrs.AbsComponentInstance, *componentInstanceState](),
 		discardUnsupportedKeys: statekeys.NewKeySet(),
+		inputRaw:               nil,
 	}
 }
 
@@ -152,6 +156,16 @@ func (s *State) ComponentInstanceStateForModulesRuntime(addr stackaddrs.AbsCompo
 // Do not modify the returned set.
 func (s *State) RawKeysToDiscard() collections.Set[statekeys.Key] {
 	return s.discardUnsupportedKeys
+}
+
+// InputRaw returns the raw representation of state that this object was built
+// from, or nil if this object wasn't constructed by decoding a protocol buffers
+// representation.
+//
+// All callers of this method get the same map, so callers must not modify
+// the map or anything reachable through it.
+func (s *State) InputRaw() map[string]*anypb.Any {
+	return s.inputRaw
 }
 
 func (s *State) ensureComponentInstanceState(addr stackaddrs.AbsComponentInstance) *componentInstanceState {
