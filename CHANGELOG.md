@@ -15,6 +15,10 @@ BUG FIXES:
 
 * Ignore potential remote terraform version mismatch when running force-unlock ([#28853](https://github.com/hashicorp/terraform/issues/28853))
 
+ENHANCEMENTS:
+
+* `terraform test`: Providers defined within test files can now reference variables from their configuration that are defined within the test file. ([#34069](https://github.com/hashicorp/terraform/issues/34069))
+
 ## Previous Releases
 
 For information on prior major and minor releases, see their changelogs:
