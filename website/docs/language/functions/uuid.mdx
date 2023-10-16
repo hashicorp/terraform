@@ -5,12 +5,9 @@ description: The uuid function generates a unique id.
 
 # `uuid` Function
 
-`uuid` generates a unique identifier string.
+`uuid` generates UUID-format strings using random bytes.
 
-The id is a generated and formatted as required by
-[RFC 4122 section 4.4](https://tools.ietf.org/html/rfc4122#section-4.4),
-producing a Version 4 UUID. The result is a UUID generated only from
-pseudo-random numbers.
+The function generates a well-understood string representation of a 128-bit value, but the output is not RFC-compliant.
 
 This function produces a new value each time it is called, and so using it
 directly in resource arguments will result in spurious diffs. We do not

@@ -307,6 +307,13 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 			func() {
 				n := nodes[i]
 				switch n := n.(type) {
+
+				case *nodeExpandCheck:
+					// We always execute check blocks, and they never have
+					// anything referencing them. We have to explicitly list
+					// them here otherwise they'll be deleted.
+					return
+
 				case graphNodeTemporaryValue:
 					// root module outputs indicate they are not temporary by
 					// returning false here.
