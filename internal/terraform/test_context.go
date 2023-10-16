@@ -100,6 +100,11 @@ func (ctx *TestContext) Evaluate(priorContexts map[string]*TestContext) {
 	var dataDiags tfdiags.Diagnostics
 	alternateStates := make(map[string]*evaluationStateData)
 	for name, priorContext := range priorContexts {
+		if priorContext == nil {
+			// Skip contexts that haven't been executed yet.
+			continue
+		}
+
 		var moreDiags tfdiags.Diagnostics
 		alternateStates[name], moreDiags = priorContext.evaluationStateData(nil)
 		dataDiags = dataDiags.Append(moreDiags)

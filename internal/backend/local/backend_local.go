@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend"
@@ -504,4 +505,26 @@ func (v unparsedUnknownVariableValue) ParseVariableValue(mode configs.VariablePa
 		Value:      cty.UnknownVal(v.WantType),
 		SourceType: terraform.ValueFromInput,
 	}, nil
+}
+
+type unparsedTestVariableValue struct {
+	Expr hcl.Expression
+}
+
+var _ backend.UnparsedVariableValue = unparsedTestVariableValue{}
+
+func (v unparsedTestVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	value, valueDiags := v.Expr.Value(nil)
+	diags = diags.Append(valueDiags)
+	if valueDiags.HasErrors() {
+		return nil, diags
+	}
+
+	return &terraform.InputValue{
+		Value:       value,
+		SourceType:  terraform.ValueFromConfig,
+		SourceRange: tfdiags.SourceRangeFromHCL(v.Expr.Range()),
+	}, diags
 }
