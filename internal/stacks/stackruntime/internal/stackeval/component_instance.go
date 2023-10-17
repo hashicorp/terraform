@@ -942,9 +942,11 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 	var changes []stackstate.AppliedChange
 	var diags tfdiags.Diagnostics
 
-	// FIXME: We need to report AppliedChange objects for the component
-	// instance itself and each of the affected resource instances inside it.
-	// For now we're only reporting diagnostics as an initial stub.
+	// FIXME: We need to report an AppliedChange object for the component
+	// instance itself, and we need to emit "interim" objects representing
+	// the "prior state" (refreshed) in each resource instance change in
+	// the plan, so that the effect of refreshing will still get committed
+	// to the state even if other downstream changes don't succeed.
 
 	_, moreDiags := c.CheckInputVariableValues(ctx, ApplyPhase)
 	diags = diags.Append(moreDiags)
