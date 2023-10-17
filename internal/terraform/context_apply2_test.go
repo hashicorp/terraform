@@ -2211,23 +2211,35 @@ resource "test_object" "a" {
 		t.Errorf("expected no errors, but got %s", diags)
 	}
 
+	planResult := plan.Checks.GetObjectResult(addrs.AbsInputVariableInstance{
+		Variable: addrs.InputVariable{
+			Name: "input",
+		},
+		Module: addrs.RootModuleInstance,
+	})
+
+	if planResult.Status != checks.StatusPass {
+		// Should have passed during the planning stage indicating that it did
+		// actually execute.
+		t.Errorf("expected checks to be pass but was %s", planResult.Status)
+	}
+
 	state, diags := ctx.Apply(plan, m)
 	if diags.HasErrors() {
 		t.Errorf("expected no errors, but got %s", diags)
 	}
 
-	results := state.CheckResults.ConfigResults.Get(addrs.ConfigInputVariable{
+	applyResult := state.CheckResults.GetObjectResult(addrs.AbsInputVariableInstance{
 		Variable: addrs.InputVariable{
 			Name: "input",
 		},
+		Module: addrs.RootModuleInstance,
 	})
 
-	if results.Status != checks.StatusUnknown {
-		t.Errorf("expected checks to be unknown but was %s", results.Status)
-	}
-
-	if results.ObjectResults.Len() > 0 {
-		t.Errorf("shouldn't have processed any specific results but found %d", results.ObjectResults.Len())
+	if applyResult.Status != checks.StatusUnknown {
+		// Shouldn't have made any validations here, so result should have
+		// stayed as unknown.
+		t.Errorf("expected checks to be unknown but was %s", applyResult.Status)
 	}
 }
 
