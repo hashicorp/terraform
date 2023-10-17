@@ -32,6 +32,10 @@ type ModuleVariableTransformer struct {
 	// Planning must be set to true when building a planning graph, and must be
 	// false when building an apply graph.
 	Planning bool
+
+	// Destroying must be set to true when planning or applying a destroy
+	// operation, and false otherwise.
+	Destroying bool
 }
 
 func (t *ModuleVariableTransformer) Transform(g *Graph) error {
@@ -110,10 +114,11 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, c *configs
 			Addr: addrs.InputVariable{
 				Name: v.Name,
 			},
-			Module:   c.Path,
-			Config:   v,
-			Expr:     expr,
-			Planning: t.Planning,
+			Module:     c.Path,
+			Config:     v,
+			Expr:       expr,
+			Planning:   t.Planning,
+			Destroying: t.Destroying,
 		}
 		g.Add(node)
 	}
