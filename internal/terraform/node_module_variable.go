@@ -29,6 +29,10 @@ type nodeExpandModuleVariable struct {
 	// Planning must be set to true when building a planning graph, and must be
 	// false when building an apply graph.
 	Planning bool
+
+	// Destroying must be set to true when planning or applying a destroy
+	// operation, and false otherwise.
+	Destroying bool
 }
 
 var (
@@ -54,7 +58,7 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, tfdia
 	// We should only do this during planning as the apply phase starts with
 	// all the same checkable objects that were registered during the plan.
 	var checkableAddrs addrs.Set[addrs.Checkable]
-	if n.Planning {
+	if n.Planning && !n.Destroying {
 		if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.Addr.InModule(n.Module)) {
 			checkableAddrs = addrs.MakeSet[addrs.Checkable]()
 		}
@@ -72,6 +76,7 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, tfdia
 			Config:         n.Config,
 			Expr:           n.Expr,
 			ModuleInstance: module,
+			Destroying:     n.Destroying,
 		}
 		g.Add(o)
 	}
@@ -140,6 +145,10 @@ type nodeModuleVariable struct {
 	// ModuleInstance in order to create the appropriate context for evaluating
 	// ModuleCallArguments, ex. so count.index and each.key can resolve
 	ModuleInstance addrs.ModuleInstance
+
+	// Destroying must be set to true when planning or applying a destroy
+	// operation, and false otherwise.
+	Destroying bool
 }
 
 // Ensure that we are implementing all of the interfaces we think we are
@@ -195,7 +204,14 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 	_, call := n.Addr.Module.CallInstance()
 	ctx.SetModuleCallArgument(call, n.Addr.Variable, val)
 
-	return evalVariableValidations(n.Addr, n.Config, n.Expr, ctx)
+	// Skip evalVariableValidations during destroy operations. We still want
+	// to evaluate the variable in case it is used to initialise providers
+	// or something downstream but we don't need to report on the success
+	// or failure of any validations.
+	if !n.Destroying {
+		diags = diags.Append(evalVariableValidations(n.Addr, n.Config, n.Expr, ctx))
+	}
+	return diags
 }
 
 // dag.GraphNodeDotter impl.
