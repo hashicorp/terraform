@@ -135,8 +135,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Destroying: b.Operation == walkPlanDestroy,
 		},
 		&ModuleVariableTransformer{
-			Config:   b.Config,
-			Planning: true,
+			Config:     b.Config,
+			Planning:   true,
+			Destroying: b.Operation == walkPlanDestroy,
 		},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
