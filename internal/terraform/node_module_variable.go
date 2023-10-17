@@ -30,9 +30,9 @@ type nodeExpandModuleVariable struct {
 	// false when building an apply graph.
 	Planning bool
 
-	// Destroying must be set to true when planning or applying a destroy
+	// DestroyApply must be set to true when planning or applying a destroy
 	// operation, and false otherwise.
-	Destroying bool
+	DestroyApply bool
 }
 
 var (
@@ -58,7 +58,7 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, error
 	// We should only do this during planning as the apply phase starts with
 	// all the same checkable objects that were registered during the plan.
 	var checkableAddrs addrs.Set[addrs.Checkable]
-	if n.Planning && !n.Destroying {
+	if n.Planning {
 		if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.Addr.InModule(n.Module)) {
 			checkableAddrs = addrs.MakeSet[addrs.Checkable]()
 		}
@@ -76,7 +76,7 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, error
 			Config:         n.Config,
 			Expr:           n.Expr,
 			ModuleInstance: module,
-			Destroying:     n.Destroying,
+			DestroyApply:   n.DestroyApply,
 		}
 		g.Add(o)
 	}
@@ -146,9 +146,9 @@ type nodeModuleVariable struct {
 	// ModuleCallArguments, ex. so count.index and each.key can resolve
 	ModuleInstance addrs.ModuleInstance
 
-	// Destroying must be set to true when planning or applying a destroy
-	// operation, and false otherwise.
-	Destroying bool
+	// DestroyApply must be set to true when applying a destroy operation and
+	// false otherwise.
+	DestroyApply bool
 }
 
 // Ensure that we are implementing all of the interfaces we think we are
@@ -207,8 +207,8 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 	// Skip evalVariableValidations during destroy operations. We still want
 	// to evaluate the variable in case it is used to initialise providers
 	// or something downstream but we don't need to report on the success
-	// or failure of any validations.
-	if !n.Destroying {
+	// or failure of any validations for destroy operations.
+	if !n.DestroyApply {
 		diags = diags.Append(evalVariableValidations(n.Addr, n.Config, n.Expr, ctx))
 	}
 	return diags

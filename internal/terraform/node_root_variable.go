@@ -30,9 +30,9 @@ type NodeRootVariable struct {
 	// false when building an apply graph.
 	Planning bool
 
-	// Destroying must be set to true when planning or applying a destroy
-	// operation, and false otherwise.
-	Destroying bool
+	// DestroyApply must be set to true when applying a destroy operation and
+	// false otherwise.
+	DestroyApply bool
 }
 
 var (
@@ -91,7 +91,7 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 		}
 	}
 
-	if n.Planning && !n.Destroying {
+	if n.Planning {
 		if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.Addr.InModule(addrs.RootModule)) {
 			ctx.Checks().ReportCheckableObjects(
 				n.Addr.InModule(addrs.RootModule),
@@ -113,7 +113,7 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 
 	ctx.SetRootModuleArgument(addr.Variable, finalVal)
 
-	if !n.Destroying {
+	if !n.DestroyApply {
 		diags = diags.Append(evalVariableValidations(
 			addrs.RootModuleInstance.InputVariable(n.Addr.Name),
 			n.Config,

@@ -23,9 +23,9 @@ type RootVariableTransformer struct {
 	// false when building an apply graph.
 	Planning bool
 
-	// Destroying must be set to true when planning or applying a destroy
-	// operation, and false otherwise.
-	Destroying bool
+	// DestroyApply must be set to true when applying a destroy operation and
+	// false otherwise.
+	DestroyApply bool
 }
 
 func (t *RootVariableTransformer) Transform(g *Graph) error {
@@ -44,10 +44,10 @@ func (t *RootVariableTransformer) Transform(g *Graph) error {
 			Addr: addrs.InputVariable{
 				Name: v.Name,
 			},
-			Config:     v,
-			RawValue:   t.RawValues[v.Name],
-			Planning:   t.Planning,
-			Destroying: t.Destroying,
+			Config:       v,
+			RawValue:     t.RawValues[v.Name],
+			Planning:     t.Planning,
+			DestroyApply: t.DestroyApply,
 		}
 		g.Add(node)
 	}
