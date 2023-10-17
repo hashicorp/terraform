@@ -16,7 +16,7 @@ A single DynamoDB table can be used to lock multiple remote state files. Terrafo
 [Bucket Versioning](https://docs.aws.amazon.com/AmazonS3/latest/userguide/manage-versioning-examples.html)
 on the S3 bucket to allow for state recovery in the case of accidental deletions and human error.
 
--> **Note:** Becuase of the changes to the S3 Backend in Terraform 1.6, you may need to run `terraform init -reconfigure`,
+-> **Note:** Because of the changes to the S3 Backend in Terraform 1.6, you may need to run `terraform init -reconfigure`,
 even if there have been no changes to your backend configuration.
 
 ## Example Configuration
