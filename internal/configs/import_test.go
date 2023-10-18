@@ -174,9 +174,9 @@ func TestImportBlock_decode(t *testing.T) {
 				Type: "import",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcl.Attributes{
-						"id": {
-							Name: "id",
-							Expr: foo_str_expr,
+						"to": {
+							Name: "to",
+							Expr: bar_expr,
 						},
 					},
 				}),
@@ -187,6 +187,29 @@ func TestImportBlock_decode(t *testing.T) {
 				DeclRange: blockRange,
 			},
 			"Missing required argument",
+		},
+		"error: data source": {
+			&hcl.Block{
+				Type: "import",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"id": {
+							Name: "id",
+							Expr: foo_str_expr,
+						},
+						"to": {
+							Name: "to",
+							Expr: hcltest.MockExprTraversalSrc("data.test_instance.bar"),
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			&Import{
+				ID:        foo_str_expr,
+				DeclRange: blockRange,
+			},
+			"Invalid import address",
 		},
 	}
 
