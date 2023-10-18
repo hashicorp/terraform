@@ -1,4 +1,4 @@
-## 1.6.2 (Unreleased)
+## 1.6.2 (October 18, 2023)
 
 BUG FIXES
 * `terraform test`: Fix performance issues when using provisioners within configs being tested. ([#34026](https://github.com/hashicorp/terraform/pull/34026))
@@ -6,9 +6,9 @@ BUG FIXES
 * Fix occasional crash when destroying configurations with variables containing validations. ([#34101](https://github.com/hashicorp/terraform/pull/34101))
 * Fix interoperability issues between v1.6 series and earlier series by removing variable validations from the state file ([#34058](https://github.com/hashicorp/terraform/pull/34058)).
 * cloud: Fixes panic when saving state in Terraform Cloud when certain types of API errors are returned ([#34074](https://github.com/hashicorp/terraform/pull/34074)).
-* config: Fix crash in conditional statements with certain combinations of unknown values. Improve handling of refined values into the conditional expression results [GH-34096]
-* config: Update HCL to fix bug when decoding objects with optional attributes [GH-34108]
-* backend/s3: Some configurations would require `-reconfigure` during each `init` when config was not decoded correctly [GH-34108]
+* config: Fix crash in conditional statements with certain combinations of unknown values. Improve handling of refined values into the conditional expression results ([#34096](https://github.com/hashicorp/terraform/issues/34096))
+* config: Update HCL to fix bug when decoding objects with optional attributes ([#34108](https://github.com/hashicorp/terraform/issues/34108))
+* backend/s3: Some configurations would require `-reconfigure` during each `init` when config was not decoded correctly ([#34108](https://github.com/hashicorp/terraform/issues/34108))
 
 ## 1.6.1 (October 10, 2023)
 
@@ -16,11 +16,11 @@ ENHANCEMENTS:
 * backend/s3: The `skip_requesting_account_id` argument supports AWS API implementations that do not have the IAM, STS, or metadata API. ([#34002](https://github.com/hashicorp/terraform/pull/34002))
 
 BUG FIXES:
-* config: Using sensitive values as one or both of the results of a conditional expression will no longer crash. [GH-33996]
-* config: Conditional expression returning refined-non-null result will no longer crash. [GH-33996]
-* cli: Reverted back to previous behavior of ignoring signing key expiration for provider installation, since it's the provider registry's responsibility to verify key validity at publication time. [GH-34004]
-* cli: `GIT_SSH_COMMAND` is now preserved again when fetching modules from git source addresses. [GH-34045]
-* cloud: The `TF_WORKSPACE` environment variable works with the `cloud` block again; it can specify a workspace when none is configured, or select an active workspace when the config specifies `tags`. [GH-34012]
+* config: Using sensitive values as one or both of the results of a conditional expression will no longer crash. ([#33996](https://github.com/hashicorp/terraform/issues/33996))
+* config: Conditional expression returning refined-non-null result will no longer crash. ([#33996](https://github.com/hashicorp/terraform/issues/33996))
+* cli: Reverted back to previous behavior of ignoring signing key expiration for provider installation, since it's the provider registry's responsibility to verify key validity at publication time. ([#34004](https://github.com/hashicorp/terraform/issues/34004))
+* cli: `GIT_SSH_COMMAND` is now preserved again when fetching modules from git source addresses. ([#34045](https://github.com/hashicorp/terraform/issues/34045))
+* cloud: The `TF_WORKSPACE` environment variable works with the `cloud` block again; it can specify a workspace when none is configured, or select an active workspace when the config specifies `tags`. ([#34012](https://github.com/hashicorp/terraform/issues/34012))
 * backend/s3: S3, DynamoDB, IAM, and STS endpoint parameters will no longer fail validation if the parsed scheme or hostname is empty. ([#34017](https://github.com/hashicorp/terraform/pull/34017))
 * backend/s3: Providing a key alias to the `kms_key_id` argument will no longer fail validation. ([#33993](https://github.com/hashicorp/terraform/pull/33993))
 
