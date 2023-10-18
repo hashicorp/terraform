@@ -650,14 +650,16 @@ message PlannedChange {
     // in the same order to ApplyStackChanges.
     repeated google.protobuf.Any raw = 1;
 
-    // Caller-facing description of this change, to use for presenting
+    // Caller-facing descriptions of this change, to use for presenting
     // information to end-users in the UI and for other subsystems such as
     // imposing policy rules on the resulting plan.
     //
-    // If none of these fields are populated in a given event then the
-    // raw messages in "raw" represent private information that has no
-    // external-facing equivalent. Callers must still retain the raw messages
-    // to provide to a subsequent ApplyStackChanges RPC.
+    // There can be zero or more description objects associated with each
+    // change. More than one is not common, but should be supported by clients
+    // by treating them the same way as if each description had arrived in
+    // a separate PlannedChange message. Clients should not treat the grouping
+    // or not-grouping of change description objects as meaningful information,
+    // since it's subject to change in future Terraform Core versions.
     //
     // DO NOT attempt to use this to surgically filter particular changes
     // from a larger plan. Although external descriptions often match with
@@ -667,19 +669,25 @@ message PlannedChange {
     // the apply step. For example, some raw messages might omit information
     // that is implied by earlier raw messages and would therefore be
     // incomplete if isolated.
-    oneof description {
-        ComponentInstance component_instance_planned = 2;
-        ResourceInstance resource_instance_planned = 4;
-        OutputValue output_value_planned = 5;
-        bool plan_applyable = 6;
-    }
-    reserved 3; // formerly "resource_instance_drifted" in the oneof above.
+    repeated ChangeDescription descriptions = 2;
+    reserved 3 to 6; // formerly used for an inline "oneof description", now factored out into a separate message type
 
-    // A set of provider selections that will be needed to apply this
-    // change, which the caller should remember and use to populate the
-    // provider cache during the apply step.
-    // TODO: Fill out all of the provider-related functionality in here.
-    //repeated ProviderSelection providers = 6;
+    // Represents a single caller-facing description of a change, to use for
+    // presenting information to end users in the UI and for other subsystems
+    // such as imposing policy rules on the resulting plan.
+    //
+    // New description types might be added in future versions of Terraform
+    // Core, and so clients should tolerate description messages that appear
+    // to have none of the oneof fields set, and should just ignore those
+    // messages entirely.
+    message ChangeDescription {
+        oneof description {
+            ComponentInstance component_instance_planned = 1;
+            ResourceInstance resource_instance_planned = 2;
+            OutputValue output_value_planned = 3;
+            bool plan_applyable = 4;
+        }
+    }
 
     // Reports the existence of a particular instance of a component,
     // once Terraform has resolved arguments such as "for_each" that

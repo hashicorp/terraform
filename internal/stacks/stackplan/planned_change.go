@@ -150,13 +150,17 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 
 	return &terraform1.PlannedChange{
 		Raw: []*anypb.Any{&raw},
-		Description: &terraform1.PlannedChange_ComponentInstancePlanned{
-			ComponentInstancePlanned: &terraform1.PlannedChange_ComponentInstance{
-				Addr: &terraform1.ComponentInstanceInStackAddr{
-					ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(pc.Addr).String(),
-					ComponentInstanceAddr: pc.Addr.String(),
+		Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+			{
+				Description: &terraform1.PlannedChange_ChangeDescription_ComponentInstancePlanned{
+					ComponentInstancePlanned: &terraform1.PlannedChange_ComponentInstance{
+						Addr: &terraform1.ComponentInstanceInStackAddr{
+							ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(pc.Addr).String(),
+							ComponentInstanceAddr: pc.Addr.String(),
+						},
+						Actions: protoChangeTypes,
+					},
 				},
-				Actions: protoChangeTypes,
 			},
 		},
 	}, nil
@@ -215,19 +219,23 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 
 	return &terraform1.PlannedChange{
 		Raw: []*anypb.Any{&raw},
-		Description: &terraform1.PlannedChange_ResourceInstancePlanned{
-			ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
-				Addr:         terraform1.NewResourceInstanceObjectInStackAddr(rioAddr),
-				ResourceMode: resourceModeForProto(pc.ChangeSrc.Addr.Resource.Resource.Mode),
-				ResourceType: pc.ChangeSrc.Addr.Resource.Resource.Type,
-				ProviderAddr: pc.ChangeSrc.ProviderAddr.Provider.String(),
+		Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+			{
+				Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
+					ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
+						Addr:         terraform1.NewResourceInstanceObjectInStackAddr(rioAddr),
+						ResourceMode: resourceModeForProto(pc.ChangeSrc.Addr.Resource.Resource.Mode),
+						ResourceType: pc.ChangeSrc.Addr.Resource.Resource.Type,
+						ProviderAddr: pc.ChangeSrc.ProviderAddr.Provider.String(),
 
-				Actions: protoChangeTypes,
-				Values: &terraform1.DynamicValueChange{
-					Old: terraform1.NewDynamicValue(pc.ChangeSrc.Before, pc.ChangeSrc.BeforeValMarks),
-					New: terraform1.NewDynamicValue(pc.ChangeSrc.After, pc.ChangeSrc.AfterValMarks),
+						Actions: protoChangeTypes,
+						Values: &terraform1.DynamicValueChange{
+							Old: terraform1.NewDynamicValue(pc.ChangeSrc.Before, pc.ChangeSrc.BeforeValMarks),
+							New: terraform1.NewDynamicValue(pc.ChangeSrc.After, pc.ChangeSrc.AfterValMarks),
+						},
+						// TODO: Moved, Imported
+					},
 				},
-				// TODO: Moved, Imported
 			},
 		},
 	}, nil
@@ -262,14 +270,18 @@ func (pc *PlannedChangeOutputValue) PlannedChangeProto() (*terraform1.PlannedCha
 		// No "raw" representation for output values; we emit them only for
 		// external consumption, since Terraform Core will just recalculate
 		// them during apply anyway.
-		Description: &terraform1.PlannedChange_OutputValuePlanned{
-			OutputValuePlanned: &terraform1.PlannedChange_OutputValue{
-				Name:    pc.Addr.Name,
-				Actions: protoChangeTypes,
+		Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+			{
+				Description: &terraform1.PlannedChange_ChangeDescription_OutputValuePlanned{
+					OutputValuePlanned: &terraform1.PlannedChange_OutputValue{
+						Name:    pc.Addr.Name,
+						Actions: protoChangeTypes,
 
-				Values: &terraform1.DynamicValueChange{
-					Old: terraform1.NewDynamicValue(pc.OldValue, pc.OldValueMarks),
-					New: terraform1.NewDynamicValue(pc.NewValue, pc.NewValueMarks),
+						Values: &terraform1.DynamicValueChange{
+							Old: terraform1.NewDynamicValue(pc.OldValue, pc.OldValueMarks),
+							New: terraform1.NewDynamicValue(pc.NewValue, pc.NewValueMarks),
+						},
+					},
 				},
 			},
 		},
@@ -329,8 +341,12 @@ func (pc *PlannedChangeApplyable) PlannedChangeProto() (*terraform1.PlannedChang
 
 	return &terraform1.PlannedChange{
 		Raw: []*anypb.Any{&raw},
-		Description: &terraform1.PlannedChange_PlanApplyable{
-			PlanApplyable: pc.Applyable,
+		Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+			{
+				Description: &terraform1.PlannedChange_ChangeDescription_PlanApplyable{
+					PlanApplyable: pc.Applyable,
+				},
+			},
 		},
 	}, nil
 }

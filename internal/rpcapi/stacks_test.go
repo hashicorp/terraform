@@ -276,8 +276,12 @@ func TestStacksPlanStackChanges(t *testing.T) {
 							Applyable: true,
 						}),
 					},
-					Description: &terraform1.PlannedChange_PlanApplyable{
-						PlanApplyable: true,
+					Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+						{
+							Description: &terraform1.PlannedChange_ChangeDescription_PlanApplyable{
+								PlanApplyable: true,
+							},
+						},
 					},
 				},
 			},
