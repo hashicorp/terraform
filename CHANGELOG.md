@@ -3,6 +3,7 @@
 BUG FIXES
 * `terraform test`: Fix performance issues when using provisioners within configs being tested. ([#34026](https://github.com/hashicorp/terraform/pull/34026))
 * `terraform test`: Only process and parse relevant variables for each run block. ([#34072](https://github.com/hashicorp/terraform/pull/34072))
+* Fix occasional crash when destroying configurations with variables containing validations. ([#34101](https://github.com/hashicorp/terraform/pull/34101))
 * Fix interoperability issues between v1.6 series and earlier series by removing variable validations from the state file ([#34058](https://github.com/hashicorp/terraform/pull/34058)).
 * cloud: Fixes panic when saving state in Terraform Cloud when certain types of API errors are returned ([#34074](https://github.com/hashicorp/terraform/pull/34074)).
 * config: Fix crash in conditional statements with certain combinations of unknown values. Improve handling of refined values into the conditional expression results [GH-34096]
