@@ -7,6 +7,8 @@ BUG FIXES
 * Fix interoperability issues between v1.6 series and earlier series by removing variable validations from the state file ([#34058](https://github.com/hashicorp/terraform/pull/34058)).
 * cloud: Fixes panic when saving state in Terraform Cloud when certain types of API errors are returned ([#34074](https://github.com/hashicorp/terraform/pull/34074)).
 * config: Fix crash in conditional statements with certain combinations of unknown values. Improve handling of refined values into the conditional expression results [GH-34096]
+* config: Update HCL to fix bug when decoding objects with optional attributes [GH-34108]
+* backend/s3: Some configurations would require `-reconfigure` during each `init` when config was not decoded correctly [GH-34108]
 
 ## 1.6.1 (October 10, 2023)
 
