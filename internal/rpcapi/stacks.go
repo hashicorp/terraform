@@ -614,17 +614,21 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 				attribute.String("resource_instance", ric.Addr.Item.String()),
 			))
 
-			moved := &terraform1.StackChangeProgress_ResourceInstancePlannedChange_Moved{}
+			var moved *terraform1.StackChangeProgress_ResourceInstancePlannedChange_Moved
 			if !ric.Change.PrevRunAddr.Equal(ric.Change.Addr) {
-				moved.PrevAddr = &terraform1.ResourceInstanceInStackAddr{
-					ComponentInstanceAddr: ric.Addr.Component.String(),
-					ResourceInstanceAddr:  ric.Change.PrevRunAddr.String(),
+				moved = &terraform1.StackChangeProgress_ResourceInstancePlannedChange_Moved{
+					PrevAddr: &terraform1.ResourceInstanceInStackAddr{
+						ComponentInstanceAddr: ric.Addr.Component.String(),
+						ResourceInstanceAddr:  ric.Change.PrevRunAddr.String(),
+					},
 				}
 			}
 
-			imported := &terraform1.StackChangeProgress_ResourceInstancePlannedChange_Imported{}
+			var imported *terraform1.StackChangeProgress_ResourceInstancePlannedChange_Imported
 			if ric.Change.Importing != nil {
-				imported.ImportId = ric.Change.Importing.ID
+				imported = &terraform1.StackChangeProgress_ResourceInstancePlannedChange_Imported{
+					ImportId: ric.Change.Importing.ID,
+				}
 			}
 
 			send(&terraform1.StackChangeProgress{
