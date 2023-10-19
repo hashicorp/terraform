@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -42,6 +43,7 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 	}()
 
 	main := stackeval.NewForPlanning(req.Config, req.PrevState, stackeval.PlanOpts{
+		PlanningMode:        req.PlanMode,
 		InputVariableValues: req.InputValues,
 		ProviderFactories:   req.ProviderFactories,
 
@@ -83,6 +85,8 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 
 // PlanRequest represents the inputs to a [Plan] call.
 type PlanRequest struct {
+	PlanMode plans.Mode
+
 	Config    *stackconfig.Config
 	PrevState *stackstate.State
 

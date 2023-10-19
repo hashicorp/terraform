@@ -6,7 +6,6 @@ package rpcapi
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
@@ -208,7 +207,6 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 	default:
 		return status.Errorf(codes.InvalidArgument, "unsupported planning mode %d", req.PlanMode)
 	}
-	log.Printf("[TRACE] plan mode is %s", planMode) // TODO: Just so planMode is used for now
 
 	prevState, err := stackstate.LoadFromProto(req.PreviousState)
 	if err != nil {
@@ -218,6 +216,7 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
 	rtReq := stackruntime.PlanRequest{
+		PlanMode:          planMode,
 		Config:            cfg,
 		PrevState:         prevState,
 		ProviderFactories: providerFactories,
