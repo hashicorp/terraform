@@ -152,9 +152,12 @@ Previously, the configuration to assume the IAM role `arn:aws:iam::123456789012:
 
 ```hcl
 terraform {
-  role_arn                     = "arn:aws:iam::123456789012:role/example"
-  session_name                 = "example-session"
-  assume_role_duration_seconds = 900
+  backend "s3" {
+    # additional configuration omitted for brevity
+    role_arn                     = "arn:aws:iam::123456789012:role/example"
+    session_name                 = "example-session"
+    assume_role_duration_seconds = 900
+  }
 }
 ```
 
@@ -162,10 +165,13 @@ The updated configuration is:
 
 ```hcl
 terraform {
-  assume_role {
-    role_arn     = "arn:aws:iam::123456789012:role/example"
-    session_name = "example-session"
-    duration     = "15m"
+  backend "s3" {
+    # additional configuration omitted for brevity
+    assume_role = {
+      role_arn     = "arn:aws:iam::123456789012:role/example"
+      session_name = "example-session"
+      duration     = "15m"
+    }
   }
 }
 ```
