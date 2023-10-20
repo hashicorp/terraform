@@ -593,3 +593,8 @@ By default, the underlying AWS client used by the Terraform AWS Provider creates
 ```sh
 $ export TF_APPEND_USER_AGENT="JenkinsAgent/i-12345678 BuildID/1234 (Optional Extra Information)"
 ```
+
+## Support for "S3 Compatible" Storage Providers
+
+Support for S3 Compatible storage providers is offered as “best effort”.
+HashiCorp only tests the `s3` backend against Amazon S3, so cannot offer any guarantees when using an alternate provider.
