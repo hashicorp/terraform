@@ -103,11 +103,6 @@ func (d *FunctionDecl) BuildFunction(name string, factory func() (Interface, err
 				return cty.UnknownVal(retType), fmt.Errorf("provider returned no result and no errors")
 			}
 
-			err = provider.Close()
-			if err != nil {
-				return cty.UnknownVal(retType), fmt.Errorf("failed to terminate provider plugin: %s", err)
-			}
-
 			return resp.Result, nil
 		},
 	})

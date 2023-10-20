@@ -81,7 +81,7 @@ type MockEvalContext struct {
 	ProvisionerSchemaSchema *configschema.Block
 	ProvisionerSchemaError  error
 
-	CloseProvisionersCalled bool
+	ClosePluginsCalled bool
 
 	EvaluateBlockCalled     bool
 	EvaluateBlockBody       hcl.Body
@@ -243,8 +243,8 @@ func (c *MockEvalContext) ProvisionerSchema(n string) (*configschema.Block, erro
 	return c.ProvisionerSchemaSchema, c.ProvisionerSchemaError
 }
 
-func (c *MockEvalContext) CloseProvisioners() error {
-	c.CloseProvisionersCalled = true
+func (c *MockEvalContext) ClosePlugins() error {
+	c.ClosePluginsCalled = true
 	return nil
 }
 

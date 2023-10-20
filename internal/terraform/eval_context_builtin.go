@@ -72,6 +72,7 @@ type BuiltinEvalContext struct {
 	Hooks                 []Hook
 	InputValue            UIInput
 	ProviderCache         map[string]providers.Interface
+	ProviderFuncCache     map[string]providers.Interface
 	ProviderInputConfig   map[string]map[string]cty.Value
 	ProviderLock          *sync.Mutex
 	ProvisionerCache      map[string]provisioners.Interface
@@ -281,7 +282,7 @@ func (ctx *BuiltinEvalContext) ProvisionerSchema(n string) (*configschema.Block,
 	return ctx.Plugins.ProvisionerSchema(n)
 }
 
-func (ctx *BuiltinEvalContext) CloseProvisioners() error {
+func (ctx *BuiltinEvalContext) ClosePlugins() error {
 	var diags tfdiags.Diagnostics
 	ctx.ProvisionerLock.Lock()
 	defer ctx.ProvisionerLock.Unlock()
@@ -291,6 +292,17 @@ func (ctx *BuiltinEvalContext) CloseProvisioners() error {
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("provisioner.Close %s: %s", name, err))
 		}
+		delete(ctx.ProvisionerCache, name)
+	}
+
+	ctx.ProviderLock.Lock()
+	defer ctx.ProviderLock.Unlock()
+	for name, prov := range ctx.ProviderFuncCache {
+		err := prov.Close()
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("provider.Close %s: %s", name, err))
+		}
+		delete(ctx.ProviderFuncCache, name)
 	}
 
 	return diags.Err()
@@ -491,15 +503,32 @@ func (ctx *BuiltinEvalContext) evaluationExternalFunctions() lang.ExternalFuncs 
 		funcs := ret.Provider[localName]
 		for name, decl := range funcDecls {
 			funcs[name] = decl.BuildFunction(name, func() (providers.Interface, error) {
-				// FIXME: We should cache these unconfigured provider instances
-				// somehow, so that many calls to functions in the same
-				// provider won't incur repeated startup cost.
-				return ctx.Plugins.NewProviderInstance(providerAddr)
+				return ctx.functionProvider(providerAddr)
 			})
 		}
 	}
 
 	return ret
+}
+
+// functionProvider fetches a running provider instance for evaluating
+// functions from the cache, or starts a new instance and adds it to the cache.
+func (ctx *BuiltinEvalContext) functionProvider(addr addrs.Provider) (providers.Interface, error) {
+	ctx.ProviderLock.Lock()
+	defer ctx.ProviderLock.Unlock()
+
+	p, ok := ctx.ProviderFuncCache[addr.String()]
+	if ok {
+		return p, nil
+	}
+
+	log.Printf("[TRACE] starting function provider instance for %s", addr)
+	p, err := ctx.Plugins.NewProviderInstance(addr)
+	if err == nil {
+		ctx.ProviderFuncCache[addr.String()] = p
+	}
+
+	return p, err
 }
 
 func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {

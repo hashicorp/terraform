@@ -93,8 +93,8 @@ type EvalContext interface {
 	// InitProvisioner.
 	ProvisionerSchema(string) (*configschema.Block, error)
 
-	// CloseProvisioner closes all provisioner plugins.
-	CloseProvisioners() error
+	// ClosePlugins closes all cached provisioner and provider plugins.
+	ClosePlugins() error
 
 	// EvaluateBlock takes the given raw configuration block and associated
 	// schema and evaluates it to produce a value of an object type that
