@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 var _ hcl.Body = (*ProviderConfig)(nil)
@@ -28,6 +29,7 @@ type ProviderConfig struct {
 
 	ConfigVariables    map[string]*configs.Variable
 	AvailableVariables map[string]backend.UnparsedVariableValue
+	AvailableRunBlocks map[string]*terraform.TestContext
 }
 
 func (p *ProviderConfig) Content(schema *hcl.BodySchema) (*hcl.BodyContent, hcl.Diagnostics) {
@@ -51,7 +53,7 @@ func (p *ProviderConfig) PartialContent(schema *hcl.BodySchema) (*hcl.BodyConten
 		Attributes:       attrs,
 		Blocks:           p.transformBlocks(content.Blocks),
 		MissingItemRange: content.MissingItemRange,
-	}, &ProviderConfig{rest, p.ConfigVariables, p.AvailableVariables}, diags
+	}, &ProviderConfig{rest, p.ConfigVariables, p.AvailableVariables, p.AvailableRunBlocks}, diags
 }
 
 func (p *ProviderConfig) JustAttributes() (hcl.Attributes, hcl.Diagnostics) {
@@ -67,18 +69,29 @@ func (p *ProviderConfig) MissingItemRange() hcl.Range {
 func (p *ProviderConfig) transformAttributes(originals hcl.Attributes) (hcl.Attributes, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
-	relevantVariables := make(map[string]cty.Value)
+	availableVariables := make(map[string]cty.Value)
 	var exprs []hcl.Expression
 
 	for _, original := range originals {
 		exprs = append(exprs, original.Expr)
 
-		// We revalidate this later, so we actually only care about the
-		// references we can extract.
+		// We also need to parse the variables we're going to use, so we extract
+		// the references from this expression now and see if they reference any
+		// input variables. If we find an input variable, we'll copy it into
+		// our availableVariables local.
 		refs, _ := lang.ReferencesInExpr(addrs.ParseRefFromTestingScope, original.Expr)
 		for _, ref := range refs {
 			if addr, ok := ref.Subject.(addrs.InputVariable); ok {
+				if _, exists := availableVariables[addr.Name]; exists {
+					// Then we've processed this variable before. This just
+					// means it's referenced twice in this provider config -
+					// which is fine, we just don't need to do it again.
+					continue
+				}
+
 				if variable, exists := p.AvailableVariables[addr.Name]; exists {
+					// Then we have a value for this variable! So we think we'll
+					// be able to process it - let's parse it now.
 
 					parsingMode := configs.VariableParseHCL
 					if config, exists := p.ConfigVariables[addr.Name]; exists {
@@ -88,17 +101,17 @@ func (p *ProviderConfig) transformAttributes(originals hcl.Attributes) (hcl.Attr
 					value, valueDiags := variable.ParseVariableValue(parsingMode)
 					diags = append(diags, valueDiags.ToHCL()...)
 					if value != nil {
-						relevantVariables[addr.Name] = value.Value
+						availableVariables[addr.Name] = value.Value
 					}
 				}
 			}
 		}
 	}
 
-	ctx, ctxDiags := EvalContext(exprs, relevantVariables, nil)
+	ctx, ctxDiags := EvalContext(TargetProvider, exprs, availableVariables, p.AvailableRunBlocks)
 	diags = append(diags, ctxDiags.ToHCL()...)
 	if ctxDiags.HasErrors() {
-		return originals, diags
+		return nil, diags
 	}
 
 	attrs := make(hcl.Attributes, len(originals))
@@ -106,7 +119,7 @@ func (p *ProviderConfig) transformAttributes(originals hcl.Attributes) (hcl.Attr
 		value, valueDiags := attr.Expr.Value(ctx)
 		diags = append(diags, valueDiags...)
 		if valueDiags.HasErrors() {
-			attrs[name] = attr
+			continue
 		} else {
 			attrs[name] = &hcl.Attribute{
 				Name:      name,
@@ -125,7 +138,7 @@ func (p *ProviderConfig) transformBlocks(originals hcl.Blocks) hcl.Blocks {
 		blocks[name] = &hcl.Block{
 			Type:        block.Type,
 			Labels:      block.Labels,
-			Body:        &ProviderConfig{block.Body, p.ConfigVariables, p.AvailableVariables},
+			Body:        &ProviderConfig{block.Body, p.ConfigVariables, p.AvailableVariables, p.AvailableRunBlocks},
 			DefRange:    block.DefRange,
 			TypeRange:   block.TypeRange,
 			LabelRanges: block.LabelRanges,

@@ -62,6 +62,13 @@ type TestSuiteRunner struct {
 
 	// Verbose tells the runner to print out plan files during each test run.
 	Verbose bool
+
+	// configProviders is a cache of config keys mapped to all the providers
+	// referenced by the given config.
+	//
+	// The config keys are globally unique across an entire test suite, so we
+	// store this at the suite runner level to get maximum efficiency.
+	configProviders map[string]map[string]bool
 }
 
 func (runner *TestSuiteRunner) Stop() {
@@ -74,6 +81,9 @@ func (runner *TestSuiteRunner) Cancel() {
 
 func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	// First thing, initialise the config providers map.
+	runner.configProviders = make(map[string]map[string]bool)
 
 	suite, suiteDiags := runner.collectTests()
 	diags = diags.Append(suiteDiags)
@@ -349,7 +359,13 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return state, false
 	}
 
-	resetConfig, configDiags := configtest.TransformConfigForTest(config, run, file, runner.globalVariables)
+	key := MainStateIdentifier
+	if run.Config.ConfigUnderTest != nil {
+		key = run.Config.Module.Source.String()
+	}
+	runner.gatherProviders(key, config)
+
+	resetConfig, configDiags := configtest.TransformConfigForTest(config, run, file, runner.globalVariables, runner.PriorStates, runner.Suite.configProviders[key])
 	defer resetConfig()
 
 	run.Diagnostics = run.Diagnostics.Append(configDiags)
@@ -372,7 +388,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return state, false
 	}
 
-	variables, variableDiags := runner.GetVariables(config, run, file, references)
+	variables, variableDiags := runner.GetVariables(config, run, references)
 	run.Diagnostics = run.Diagnostics.Append(variableDiags)
 	if variableDiags.HasErrors() {
 		run.Status = moduletest.Error
@@ -563,7 +579,7 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 
 	var diags tfdiags.Diagnostics
 
-	variables, variableDiags := runner.GetVariables(config, run, file, nil)
+	variables, variableDiags := runner.GetVariables(config, run, nil)
 	diags = diags.Append(variableDiags)
 
 	if diags.HasErrors() {
@@ -845,7 +861,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name)))
 		}
 	} else {
-		reset, configDiags := configtest.TransformConfigForTest(runner.Suite.Config, main.Run, file, runner.globalVariables)
+		reset, configDiags := configtest.TransformConfigForTest(runner.Suite.Config, main.Run, file, runner.globalVariables, runner.PriorStates, runner.Suite.configProviders[MainStateIdentifier])
 		diags = diags.Append(configDiags)
 
 		if !configDiags.HasErrors() {
@@ -920,7 +936,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 
 		var diags tfdiags.Diagnostics
 
-		reset, configDiags := configtest.TransformConfigForTest(state.Run.Config.ConfigUnderTest, state.Run, file, runner.globalVariables)
+		reset, configDiags := configtest.TransformConfigForTest(state.Run.Config.ConfigUnderTest, state.Run, file, runner.globalVariables, runner.PriorStates, runner.Suite.configProviders[state.Run.Config.Module.Source.String()])
 		diags = diags.Append(configDiags)
 
 		updated := state.State
@@ -951,7 +967,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 // more variables than are required by the config. FilterVariablesToConfig
 // should be called before trying to use these variables within a Terraform
 // plan, apply, or destroy operation.
-func (runner *TestFileRunner) GetVariables(config *configs.Config, run *moduletest.Run, file *moduletest.File, references []*addrs.Reference) (terraform.InputValues, tfdiags.Diagnostics) {
+func (runner *TestFileRunner) GetVariables(config *configs.Config, run *moduletest.Run, references []*addrs.Reference) (terraform.InputValues, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// relevantVariables contains the variables that are of interest to this
@@ -1039,7 +1055,7 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 		variables[name] = value.Value
 	}
 
-	ctx, ctxDiags := hcltest.EvalContext(exprs, variables, runner.PriorStates)
+	ctx, ctxDiags := hcltest.EvalContext(hcltest.TargetRunBlock, exprs, variables, runner.PriorStates)
 	diags = diags.Append(ctxDiags)
 
 	var failedContext bool
@@ -1187,4 +1203,52 @@ func (runner *TestFileRunner) initVariables(file *moduletest.File) {
 	for name, expr := range file.Config.Variables {
 		runner.globalVariables[name] = unparsedTestVariableValue{expr}
 	}
+}
+
+func (runner *TestFileRunner) gatherProviders(key string, config *configs.Config) {
+	if _, exists := runner.Suite.configProviders[key]; exists {
+		// Then we've processed this key before, so skip it.
+		return
+	}
+
+	providers := make(map[string]bool)
+
+	// First, let's look at the required providers first.
+	for _, provider := range config.Module.ProviderRequirements.RequiredProviders {
+		providers[provider.Name] = true
+		for _, alias := range provider.Aliases {
+			providers[alias.StringCompact()] = true
+		}
+	}
+
+	// Second, we look at the defined provider configs.
+	for _, provider := range config.Module.ProviderConfigs {
+		providers[provider.Addr().StringCompact()] = true
+	}
+
+	// Third, we look at the resources and data sources.
+	for _, resource := range config.Module.ManagedResources {
+		if resource.ProviderConfigRef != nil {
+			providers[resource.ProviderConfigRef.String()] = true
+			continue
+		}
+		providers[resource.Provider.Type] = true
+	}
+	for _, datasource := range config.Module.DataResources {
+		if datasource.ProviderConfigRef != nil {
+			providers[datasource.ProviderConfigRef.String()] = true
+			continue
+		}
+		providers[datasource.Provider.Type] = true
+	}
+
+	// Finally, we look at any module calls to see if any providers are used
+	// in there.
+	for _, module := range config.Module.ModuleCalls {
+		for _, provider := range module.Providers {
+			providers[provider.InParent.String()] = true
+		}
+	}
+
+	runner.Suite.configProviders[key] = providers
 }
