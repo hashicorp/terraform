@@ -231,13 +231,13 @@ func (c *RemoteClient) put(data []byte, optFns ...func(*s3.Options)) error {
 	})
 	_, err := uploader.Upload(ctx, input)
 	if err != nil {
-		return fmt.Errorf("failed to upload state: %s", err)
+		return fmt.Errorf("failed to upload state: %w", err)
 	}
 
 	if err := c.putMD5(ctx, sum[:]); err != nil {
 		// if this errors out, we unfortunately have to error out altogether,
 		// since the next Get will inevitably fail.
-		return fmt.Errorf("failed to store state MD5: %s", err)
+		return fmt.Errorf("failed to store state MD5: %w", err)
 	}
 
 	return nil

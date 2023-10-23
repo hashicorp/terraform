@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"io"
 	"testing"
@@ -452,8 +453,10 @@ func TestRemoteClientSkipS3Checksum(t *testing.T) {
 					addCancelRequestMiddleware(),
 				)
 			})
-			if err != nil {
-				t.Fatal(err)
+			if err == nil {
+				t.Fatal("Expected an error, got none")
+			} else if !errors.Is(err, errCancelOperation) {
+				t.Fatalf("Unexpected error: %s", err)
 			}
 
 			if a, e := header, testcase.expected; a != e {
