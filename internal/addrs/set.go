@@ -3,6 +3,10 @@
 
 package addrs
 
+import (
+	"sort"
+)
+
 // Set represents a set of addresses of types that implement UniqueKeyer.
 //
 // Modify the set only by the methods on this type. This type exposes its
@@ -73,4 +77,37 @@ func (s Set[T]) Intersection(other Set[T]) Set[T] {
 		}
 	}
 	return ret
+}
+
+// Sorted returns a slice of all of the elements of the receiving set, sorted
+// into an order defined by the given callback function.
+//
+// The callback should return true if the first element should sort before
+// the second, or false otherwise.
+func (s Set[T]) Sorted(less func(i, j T) bool) []T {
+	if len(s) == 0 {
+		return nil
+	}
+	ret := make([]T, 0, len(s))
+	for _, elem := range s {
+		ret = append(ret, elem)
+	}
+	sort.Slice(ret, func(i, j int) bool {
+		return less(ret[i], ret[j])
+	})
+	return ret
+}
+
+// SetSortedNatural returns a slice containing the elements of the given set
+// sorted into their "natural" order, as defined by the type's method "Less".
+//
+// For element types that don't have a natural order, or to sort by something
+// other than the natural order, use [Set.Sorted] instead.
+func SetSortedNatural[T interface {
+	UniqueKeyer
+	Less(T) bool
+}](set Set[T]) []T {
+	return set.Sorted(func(i, j T) bool {
+		return i.Less(j)
+	})
 }

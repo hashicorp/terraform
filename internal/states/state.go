@@ -230,10 +230,7 @@ func (s *State) Resources(addr addrs.ConfigResource) []*Resource {
 // This method is guaranteed to return at least one item if
 // s.HasManagedResourceInstanceObjects returns true for the same state, and
 // to return a zero-length slice if it returns false.
-func (s *State) AllResourceInstanceObjectAddrs() []struct {
-	Instance   addrs.AbsResourceInstance
-	DeposedKey DeposedKey
-} {
+func (s *State) AllResourceInstanceObjectAddrs() addrs.Set[addrs.AbsResourceInstanceObject] {
 	if s == nil {
 		return nil
 	}
@@ -250,7 +247,7 @@ func (s *State) AllResourceInstanceObjectAddrs() []struct {
 		Instance   addrs.AbsResourceInstance
 		DeposedKey DeposedKey
 	}
-	var ret []ResourceInstanceObject
+	ret := addrs.MakeSet[addrs.AbsResourceInstanceObject]()
 
 	for _, ms := range s.Modules {
 		for _, rs := range ms.Resources {
@@ -261,24 +258,20 @@ func (s *State) AllResourceInstanceObjectAddrs() []struct {
 			for instKey, is := range rs.Instances {
 				instAddr := rs.Addr.Instance(instKey)
 				if is.Current != nil {
-					ret = append(ret, ResourceInstanceObject{instAddr, NotDeposed})
+					ret.Add(addrs.AbsResourceInstanceObject{
+						ResourceInstance: instAddr,
+						DeposedKey:       addrs.NotDeposed,
+					})
 				}
 				for deposedKey := range is.Deposed {
-					ret = append(ret, ResourceInstanceObject{instAddr, deposedKey})
+					ret.Add(addrs.AbsResourceInstanceObject{
+						ResourceInstance: instAddr,
+						DeposedKey:       deposedKey,
+					})
 				}
 			}
 		}
 	}
-
-	sort.SliceStable(ret, func(i, j int) bool {
-		objI, objJ := ret[i], ret[j]
-		switch {
-		case !objI.Instance.Equal(objJ.Instance):
-			return objI.Instance.Less(objJ.Instance)
-		default:
-			return objI.DeposedKey < objJ.DeposedKey
-		}
-	})
 
 	return ret
 }

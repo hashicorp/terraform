@@ -136,9 +136,9 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		var buf strings.Builder
 		for _, obj := range stateMgr.State().AllResourceInstanceObjectAddrs() {
 			if obj.DeposedKey == states.NotDeposed {
-				fmt.Fprintf(&buf, "\n  - %s", obj.Instance.String())
+				fmt.Fprintf(&buf, "\n  - %s", obj.ResourceInstance.String())
 			} else {
-				fmt.Fprintf(&buf, "\n  - %s (deposed object %s)", obj.Instance.String(), obj.DeposedKey)
+				fmt.Fprintf(&buf, "\n  - %s (deposed object %s)", obj.ResourceInstance.String(), obj.DeposedKey)
 			}
 		}
 

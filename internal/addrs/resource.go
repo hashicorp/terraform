@@ -549,6 +549,21 @@ func (o AbsResourceInstanceObject) UniqueKey() UniqueKey {
 	}
 }
 
+// Less describes the "natural order" of resource instance object addresses.
+//
+// Objects that differ in the resource instance address sort in the natural
+// order of AbsResourceInstance. Objects belonging to the same resource
+// instance sort by deposed key, with non-deposed ("current") objects sorting
+// first.
+func (o AbsResourceInstanceObject) Less(other AbsResourceInstanceObject) bool {
+	switch {
+	case !o.ResourceInstance.Equal(other.ResourceInstance):
+		return o.ResourceInstance.Less(other.ResourceInstance)
+	default:
+		return o.DeposedKey < other.DeposedKey
+	}
+}
+
 type absResourceInstanceObjectKey struct {
 	resourceInstanceKey UniqueKey
 	deposedKey          DeposedKey
