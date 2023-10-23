@@ -1712,6 +1712,133 @@ The -target option is not for routine use, and is provided only for exceptional 
 	})
 }
 
+// KEM
+func TestContext2Plan_movedResourceImportTarget(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			moved  {
+              from = test_object.a
+              to   = test_object.b
+			}
+
+            import {
+              id = "123"
+              to = test_object.a
+            }
+		`,
+	})
+
+	state := states.NewState()
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "path",
+	})
+	if !diags.HasErrors() {
+		t.Fatalf("unexpected successful plan; should have failed")
+	}
+
+	if got, want := diags.Err().Error(), "Resource precondition failed: Not valid!"; !strings.Contains(got, want) {
+		t.Errorf("Missing expected error message\ngot: %s\nwant substring: %s", got, want)
+	}
+}
+
+func TestContext2Plan_movedResourceImportTargetForEachInvalid(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			moved  {
+              from = test_object.a["one"]
+              to   = test_object.a["two"]
+			}
+
+            import {
+              id = "123"
+              to = test_object.a["two"]
+            }
+
+            resource "test_object" "a" {
+              for_each = toset(["two", "three"])
+            }
+		`,
+	})
+
+	state := states.NewState()
+	p := simpleMockProvider()
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State:    cty.ObjectVal(map[string]cty.Value{}),
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if !diags.HasErrors() {
+		t.Fatalf("unexpected successful plan; should have failed")
+	}
+
+	if got, want := diags.Err().Error(), "Resource precondition failed: Not valid!"; !strings.Contains(got, want) {
+		t.Errorf("Missing expected error message\ngot: %s\nwant substring: %s", got, want)
+	}
+}
+
+// With an expanded resource in config, it's valid for a moved block and an
+// import block to target different instance keys.
+func TestContext2Plan_movedResourceImportTargetForEachValid(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			moved  {
+              from = test_object.a["one"]
+              to   = test_object.a["two"]
+			}
+
+            import {
+              id = "123"
+              to = test_object.a["three"]
+            }
+
+            resource "test_object" "a" {
+              for_each = toset(["two", "three"])
+            }
+		`,
+	})
+
+	state := states.NewState()
+	p := simpleMockProvider()
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State:    cty.ObjectVal(map[string]cty.Value{}),
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	assertNoErrors(t, diags)
+}
+
 func TestContext2Plan_untargetedResourceSchemaChange(t *testing.T) {
 	// an untargeted resource which requires a schema migration should not
 	// block planning due external changes in the plan.

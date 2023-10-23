@@ -95,6 +95,9 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 			}
 
 			// It's invalid to have a move statement whose "from" address
+			// is the target ("to" address) of an import block.
+
+			// It's invalid to have a move statement whose "from" address
 			// refers to something that is still declared in the configuration.
 			if moveableObjectExists(absFrom, declaredInsts) {
 				conflictRange, hasRange := movableObjectDeclRange(absFrom, rootCfg)
@@ -103,6 +106,7 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 					// NOTE: It'd be pretty weird to _not_ have a range, since
 					// we're only in this codepath because the plan phase
 					// thought this object existed in the configuration.
+					// KEM ?more
 					declaredAt = fmt.Sprintf(" at %s", conflictRange.StartString())
 				}
 

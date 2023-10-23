@@ -42,6 +42,8 @@ func (p *Parser) LoadConfigDir(path string) (*Module, hcl.Diagnostics) {
 		return nil, diags
 	}
 
+	// KEM: LoadConfigDir plays a dangerous game
+	// contract between loadFiles and NewModule
 	primary, fDiags := p.loadFiles(primaryPaths, false)
 	diags = append(diags, fDiags...)
 	override, fDiags := p.loadFiles(overridePaths, true)

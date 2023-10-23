@@ -51,7 +51,7 @@ type nodeExpandPlannableResource struct {
 	// these are a record of all the addresses used in expansion so they can be
 	// validated as a complete set. While the type is guaranteed to be
 	// addrs.AbsResourceInstance for all these, we use addrs.Checkable because
-	// the expandedInstnaces need to be passed to the check state to register
+	// the expandedInstances need to be passed to the check state to register
 	// the instances for checks.
 	expandedImports   addrs.Set[addrs.Checkable]
 	expandedInstances addrs.Set[addrs.Checkable]

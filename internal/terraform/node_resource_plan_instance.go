@@ -443,7 +443,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Import returned no resources",
-			fmt.Sprintf("While attempting to import with ID %s, the provider"+
+			fmt.Sprintf("While attempting to import with ID %s, the provider "+
 				"returned no instance states.",
 				importId,
 			),
