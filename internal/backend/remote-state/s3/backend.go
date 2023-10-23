@@ -45,6 +45,7 @@ type Backend struct {
 	kmsKeyID              string
 	ddbTable              string
 	workspaceKeyPrefix    string
+	skipS3Checksum        bool
 }
 
 // ConfigSchema returns a description of the expected configuration
@@ -183,7 +184,7 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 			"skip_credentials_validation": {
 				Type:        cty.Bool,
 				Optional:    true,
-				Description: "Skip the credentials validation via STS API.",
+				Description: "Skip the credentials validation via STS API. Useful for testing and for AWS API implementations that do not have STS available.",
 			},
 			"skip_requesting_account_id": {
 				Type:        cty.Bool,
@@ -199,6 +200,11 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.Bool,
 				Optional:    true,
 				Description: "Skip static validation of region name.",
+			},
+			"skip_s3_checksum": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Do not include checksum when uploading S3 Objects. Useful for some S3-Compatible APIs.",
 			},
 			"sse_customer_key": {
 				Type:        cty.String,
@@ -903,6 +909,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.serverSideEncryption = boolAttr(obj, "encrypt")
 	b.kmsKeyID = stringAttr(obj, "kms_key_id")
 	b.ddbTable = stringAttr(obj, "dynamodb_table")
+	b.skipS3Checksum = boolAttr(obj, "skip_s3_checksum")
 
 	if _, ok := stringAttrOk(obj, "kms_key_id"); ok {
 		if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {

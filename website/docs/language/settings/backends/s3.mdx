@@ -173,9 +173,13 @@ The following configuration is optional:
 * `shared_credentials_file`  - (Optional, **Deprecated**, use `shared_credentials_files` instead) Path to the AWS shared credentials file. Defaults to `~/.aws/credentials`.
 * `shared_credentials_files`  - (Optional) List of paths to AWS shared credentials files. Defaults to `~/.aws/credentials`.
 * `skip_credentials_validation` - (Optional) Skip credentials validation via the STS API.
+  Useful for testing and for AWS API implementations that do not have STS available.
 * `skip_region_validation` - (Optional) Skip validation of provided region name.
-* `skip_requesting_account_id` - (Optional) Whether to skip requesting the account ID. Useful for AWS API implementations that do not have the IAM, STS API, or metadata API.
+* `skip_requesting_account_id` - (Optional) Whether to skip requesting the account ID.
+  Useful for AWS API implementations that do not have the IAM, STS API, or metadata API.
 * `skip_metadata_api_check` - (Optional) Skip usage of EC2 Metadata API.
+* `skip_s3_checksum` - (Optional) Do not include checksum when uploading S3 Objects.
+  Useful for some S3-Compatible APIs.
 * `sts_endpoint` - (Optional, **Deprecated**) Custom endpoint URL for the AWS Security Token Service (STS) API.
   Use `endpoints.sts` instead.
 * `sts_region` - (Optional) AWS region for STS. If unset, AWS will use the same region for STS as other non-STS operations.
