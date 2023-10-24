@@ -8,10 +8,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
+
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 type simple struct {
@@ -125,6 +126,11 @@ func (s simple) ApplyResourceChange(req providers.ApplyResourceChangeRequest) (r
 }
 
 func (s simple) ImportResourceState(providers.ImportResourceStateRequest) (resp providers.ImportResourceStateResponse) {
+	resp.Diagnostics = resp.Diagnostics.Append(errors.New("unsupported"))
+	return resp
+}
+
+func (s simple) MoveResourceState(providers.MoveResourceStateRequest) (resp providers.MoveResourceStateResponse) {
 	resp.Diagnostics = resp.Diagnostics.Append(errors.New("unsupported"))
 	return resp
 }

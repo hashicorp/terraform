@@ -12,14 +12,15 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	plugin "github.com/hashicorp/go-plugin"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
+	"github.com/zclconf/go-cty/cty/msgpack"
+	"google.golang.org/grpc"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plugin6/convert"
 	"github.com/hashicorp/terraform/internal/providers"
 	proto6 "github.com/hashicorp/terraform/internal/tfplugin6"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
-	"github.com/zclconf/go-cty/cty/msgpack"
-	"google.golang.org/grpc"
 )
 
 var logger = logging.HCLogger()
@@ -141,6 +142,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	if protoResp.ServerCapabilities != nil {
 		resp.ServerCapabilities.PlanDestroy = protoResp.ServerCapabilities.PlanDestroy
 		resp.ServerCapabilities.GetProviderSchemaOptional = protoResp.ServerCapabilities.GetProviderSchemaOptional
+		resp.ServerCapabilities.MoveResourceState = protoResp.ServerCapabilities.MoveResourceState
 	}
 
 	// set the global cache if we can
@@ -603,6 +605,47 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 		resp.ImportedResources = append(resp.ImportedResources, resource)
 	}
 
+	return resp
+}
+
+func (p *GRPCProvider) MoveResourceState(r providers.MoveResourceStateRequest) (resp providers.MoveResourceStateResponse) {
+	logger.Trace("GRPCProvider: MoveResourceState")
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	sourceType := schema.ResourceTypes[r.SourceTypeName]
+	sourceState, err := msgpack.Marshal(r.SourceState, sourceType.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	protoReq := &proto6.MoveResourceState_Request{
+		SourceProviderAddress: r.SourceProviderAddress,
+		SourceTypeName:        r.SourceTypeName,
+		SourceSchemaVersion:   r.SourceSchemaVersion,
+		SourceState: &proto6.DynamicValue{
+			Msgpack: sourceState,
+		},
+		TargetTypeName: r.TargetTypeName,
+	}
+
+	protoResp, err := p.client.MoveResourceState(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	targetType := schema.ResourceTypes[r.TargetTypeName]
+	resp.TargetSource, err = decodeDynamicValue(protoResp.TargetState, targetType.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+	}
 	return resp
 }
 

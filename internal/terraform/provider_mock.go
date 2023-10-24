@@ -80,6 +80,11 @@ type MockProvider struct {
 	ImportResourceStateRequest  providers.ImportResourceStateRequest
 	ImportResourceStateFn       func(providers.ImportResourceStateRequest) providers.ImportResourceStateResponse
 
+	MoveResourceStateCalled   bool
+	MoveResourceStateResponse *providers.MoveResourceStateResponse
+	MoveResourceStateRequest  providers.MoveResourceStateRequest
+	MoveResourceStateFn       func(providers.MoveResourceStateRequest) providers.MoveResourceStateResponse
+
 	ReadDataSourceCalled   bool
 	ReadDataSourceResponse *providers.ReadDataSourceResponse
 	ReadDataSourceRequest  providers.ReadDataSourceRequest
@@ -488,6 +493,28 @@ func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateReques
 			importedResources[i] = res
 		}
 		resp.ImportedResources = importedResources
+	}
+
+	return resp
+}
+
+func (p *MockProvider) MoveResourceState(r providers.MoveResourceStateRequest) (resp providers.MoveResourceStateResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before MoveResourceState %q", r.SourceTypeName))
+		return resp
+	}
+
+	p.MoveResourceStateCalled = true
+	p.MoveResourceStateRequest = r
+	if p.MoveResourceStateFn != nil {
+		return p.MoveResourceStateFn(r)
+	}
+
+	if p.MoveResourceStateResponse != nil {
+		resp = *p.MoveResourceStateResponse
 	}
 
 	return resp

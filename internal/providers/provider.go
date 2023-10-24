@@ -67,6 +67,9 @@ type Interface interface {
 	// ImportResourceState requests that the given resource be imported.
 	ImportResourceState(ImportResourceStateRequest) ImportResourceStateResponse
 
+	// MoveResourceState moves the resource between two resource types.
+	MoveResourceState(MoveResourceStateRequest) MoveResourceStateResponse
+
 	// ReadDataSource returns the data source's current state.
 	ReadDataSource(ReadDataSourceRequest) ReadDataSourceResponse
 
@@ -124,6 +127,8 @@ type ServerCapabilities struct {
 	// normally, and the caller can used a cached copy of the provider's
 	// schema.
 	GetProviderSchemaOptional bool
+
+	MoveResourceState bool
 }
 
 type ValidateProviderConfigRequest struct {
@@ -376,6 +381,19 @@ type ImportedResource struct {
 	// Private is an opaque blob that will be stored in state along with the
 	// resource. It is intended only for interpretation by the provider itself.
 	Private []byte
+}
+
+type MoveResourceStateRequest struct {
+	SourceProviderAddress string
+	SourceTypeName        string
+	SourceSchemaVersion   int64
+	SourceState           cty.Value
+	TargetTypeName        string
+}
+
+type MoveResourceStateResponse struct {
+	TargetSource cty.Value
+	Diagnostics  tfdiags.Diagnostics
 }
 
 // AsInstanceObject converts the receiving ImportedObject into a

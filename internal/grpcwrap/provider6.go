@@ -6,14 +6,15 @@ package grpcwrap
 import (
 	"context"
 
-	"github.com/hashicorp/terraform/internal/plugin6/convert"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/tfplugin6"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/terraform/internal/plugin6/convert"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfplugin6"
 )
 
 // New wraps a providers.Interface to implement a grpc ProviderServer using
@@ -71,6 +72,7 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 	resp.ServerCapabilities = &tfplugin6.ServerCapabilities{
 		GetProviderSchemaOptional: p.schema.ServerCapabilities.GetProviderSchemaOptional,
 		PlanDestroy:               p.schema.ServerCapabilities.PlanDestroy,
+		MoveResourceState:         p.schema.ServerCapabilities.MoveResourceState,
 	}
 
 	// include any diagnostics from the original GetSchema call
@@ -354,6 +356,33 @@ func (p *provider6) ImportResourceState(_ context.Context, req *tfplugin6.Import
 		})
 	}
 
+	return resp, nil
+}
+
+func (p *provider6) MoveResourceState(_ context.Context, req *tfplugin6.MoveResourceState_Request) (*tfplugin6.MoveResourceState_Response, error) {
+	resp := &tfplugin6.MoveResourceState_Response{}
+
+	sourceType := p.schema.ResourceTypes[req.SourceTypeName].Block.ImpliedType()
+	sourceState, err := decodeDynamicValue6(req.SourceState, sourceType)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	moveResp := p.provider.MoveResourceState(providers.MoveResourceStateRequest{
+		SourceProviderAddress: req.SourceProviderAddress,
+		SourceTypeName:        req.SourceTypeName,
+		SourceSchemaVersion:   req.SourceSchemaVersion,
+		SourceState:           sourceState,
+		TargetTypeName:        req.TargetTypeName,
+	})
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, moveResp.Diagnostics)
+
+	targetType := p.schema.ResourceTypes[req.TargetTypeName].Block.ImpliedType()
+	resp.TargetState, err = encodeDynamicValue6(moveResp.TargetSource, targetType)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+	}
 	return resp, nil
 }
 

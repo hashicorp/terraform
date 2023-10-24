@@ -161,6 +161,10 @@ message ServerCapabilities {
     // normally, and the caller can used a cached copy of the provider's
     // schema.
     bool get_provider_schema_optional = 2;
+
+    // move_resource_state signals that the provider supports the
+    // MoveResourceState RPC.
+    bool move_resource_state = 3;
 }
 
 service Provider {
@@ -189,6 +193,7 @@ service Provider {
     rpc PlanResourceChange(PlanResourceChange.Request) returns (PlanResourceChange.Response);
     rpc ApplyResourceChange(ApplyResourceChange.Request) returns (ApplyResourceChange.Response);
     rpc ImportResourceState(ImportResourceState.Request) returns (ImportResourceState.Response);
+    rpc MoveResourceState(MoveResourceState.Request) returns (MoveResourceState.Response);
 
     rpc ReadDataSource(ReadDataSource.Request) returns (ReadDataSource.Response);
 
@@ -412,6 +417,21 @@ message ReadDataSource {
     }
     message Response {
         DynamicValue state = 1;
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message MoveResourceState {
+    message Request {
+        string source_provider_address = 1;
+        string source_type_name = 2;
+        int64 source_schema_version = 3;
+        DynamicValue source_state = 4;
+        string target_type_name = 5;
+    }
+
+    message Response {
+        DynamicValue target_state = 1;
         repeated Diagnostic diagnostics = 2;
     }
 }
