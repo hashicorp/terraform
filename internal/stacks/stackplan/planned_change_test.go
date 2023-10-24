@@ -208,6 +208,10 @@ func TestPlannedChangeAsProto(t *testing.T) {
 						DeposedKey: addrs.DeposedKey("aaaaaaaa"),
 					},
 				},
+				ProviderConfigAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
+				},
 				ChangeSrc: &plans.ResourceInstanceChangeSrc{
 					Addr: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
@@ -234,6 +238,7 @@ func TestPlannedChangeAsProto(t *testing.T) {
 						ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
 						ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
 						DeposedKey:            "aaaaaaaa",
+						ProviderConfigAddr:    `provider["example.com/thingers/thingy"]`,
 						Change: &planproto.ResourceInstanceChange{
 							Addr:       `module.pizza["chicken"].thingy.wotsit[1]`,
 							DeposedKey: "aaaaaaaa",

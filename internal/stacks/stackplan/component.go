@@ -31,6 +31,11 @@ type Component struct {
 	// since in that case there is no prior object.
 	ResourceInstancePriorState addrs.Map[addrs.AbsResourceInstanceObject, *states.ResourceInstanceObjectSrc]
 
+	// ResourceInstanceProviderConfig is a lookup table from resource instance
+	// object address to the address of the provider configuration that
+	// will handle any apply-time actions for that object.
+	ResourceInstanceProviderConfig addrs.Map[addrs.AbsResourceInstanceObject, addrs.AbsProviderConfig]
+
 	// TODO: Something for deferred resource instance changes, once we have
 	// such a concept.
 
@@ -73,15 +78,15 @@ func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 	ss := priorState.SyncWrapper()
 	for _, elem := range c.ResourceInstancePriorState.Elems {
 		addr := elem.Key
-		changeSrc, ok := c.ResourceInstancePlanned.GetOk(addr)
+		providerConfigAddr, ok := c.ResourceInstanceProviderConfig.GetOk(addr)
 		if !ok {
-			return nil, fmt.Errorf("no planned change for %s", addr)
+			return nil, fmt.Errorf("no provider config address for %s", addr)
 		}
 		stateSrc := elem.Value
 		if addr.IsCurrent() {
-			ss.SetResourceInstanceCurrent(addr.ResourceInstance, stateSrc, changeSrc.ProviderAddr)
+			ss.SetResourceInstanceCurrent(addr.ResourceInstance, stateSrc, providerConfigAddr)
 		} else {
-			ss.SetResourceInstanceDeposed(addr.ResourceInstance, addr.DeposedKey, stateSrc, changeSrc.ProviderAddr)
+			ss.SetResourceInstanceDeposed(addr.ResourceInstance, addr.DeposedKey, stateSrc, providerConfigAddr)
 		}
 	}
 

@@ -73,8 +73,9 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 			}
 			if !ret.Components.HasKey(addr) {
 				ret.Components.Put(addr, &Component{
-					ResourceInstancePlanned:    addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.ResourceInstanceChangeSrc](),
-					ResourceInstancePriorState: addrs.MakeMap[addrs.AbsResourceInstanceObject, *states.ResourceInstanceObjectSrc](),
+					ResourceInstancePlanned:        addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.ResourceInstanceChangeSrc](),
+					ResourceInstancePriorState:     addrs.MakeMap[addrs.AbsResourceInstanceObject, *states.ResourceInstanceObjectSrc](),
+					ResourceInstanceProviderConfig: addrs.MakeMap[addrs.AbsResourceInstanceObject, addrs.AbsProviderConfig](),
 				})
 			}
 			c := ret.Components.Get(addr)
@@ -99,6 +100,10 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 					return nil, fmt.Errorf("invalid deposed key syntax in %q", msg.DeposedKey)
 				}
 			}
+			providerConfigAddr, diags := addrs.ParseAbsProviderConfigStr(msg.ProviderConfigAddr)
+			if diags.HasErrors() {
+				return nil, fmt.Errorf("invalid provider configuration address syntax in %q", msg.ProviderConfigAddr)
+			}
 			fullAddr := addrs.AbsResourceInstanceObject{
 				ResourceInstance: riAddr,
 				DeposedKey:       deposedKey,
@@ -107,6 +112,9 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 			if !ok {
 				return nil, fmt.Errorf("resource instance change for unannounced component instance %s", cAddr)
 			}
+
+			c.ResourceInstanceProviderConfig.Put(fullAddr, providerConfigAddr)
+
 			var riPlan *plans.ResourceInstanceChangeSrc
 			// Not all "planned changes" for resource instances are actually
 			// changes in the plans.Change sense, confusingly: sometimes the
@@ -118,9 +126,19 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 				if err != nil {
 					return nil, fmt.Errorf("invalid resource instance change: %w", err)
 				}
+				// We currently have some redundant information in the nested
+				// "change" object due to having reused some protobuf message
+				// types from the traditional Terraform CLI planproto format.
+				// We'll make sure the redundant information is consistent
+				// here because otherwise they're likely to cause
+				// difficult-to-debug problems downstream.
 				if !riPlan.Addr.Equal(fullAddr.ResourceInstance) && riPlan.DeposedKey == fullAddr.DeposedKey {
 					return nil, fmt.Errorf("planned change has inconsistent address to its containing object")
 				}
+				if !riPlan.ProviderAddr.Equal(providerConfigAddr) {
+					return nil, fmt.Errorf("planned change has inconsistent provider configuration address to its containing object")
+				}
+
 				c.ResourceInstancePlanned.Put(fullAddr, riPlan)
 			}
 

@@ -111,6 +111,10 @@ func TestPlanWithSingleResource(t *testing.T) {
 					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 				},
 			},
+			ProviderConfigAddr: addrs.AbsProviderConfig{
+				Module:   addrs.RootModule,
+				Provider: addrs.MustParseProviderSourceString("terraform.io/builtin/terraform"),
+			},
 			ChangeSrc: &plans.ResourceInstanceChangeSrc{
 				Addr: addrs.Resource{
 					Mode: addrs.ManagedResourceMode,

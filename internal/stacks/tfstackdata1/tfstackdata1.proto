@@ -104,6 +104,12 @@ message PlanResourceInstanceChangePlanned {
     string resource_instance_addr = 4;
     string deposed_key = 5;
 
+    // The address of the provider configuration that planned this change,
+    // or that produced the prior state for messages where "change" is
+    // unpopulated. This is a module-centric view relative to the root module
+    // of the component identified in component_instance_addr.
+    string provider_config_addr = 6;
+
     // Description of the planned change in the standard "tfplan" (planproto)
     // format.
     tfplan.ResourceInstanceChange change = 2;

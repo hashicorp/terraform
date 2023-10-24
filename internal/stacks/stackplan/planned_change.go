@@ -239,6 +239,7 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 		ComponentInstanceAddr: rioAddr.Component.String(),
 		ResourceInstanceAddr:  rioAddr.Item.ResourceInstance.String(),
 		DeposedKey:            rioAddr.Item.DeposedKey.String(),
+		ProviderConfigAddr:    pc.ProviderConfigAddr.String(),
 		Change:                changeProto,
 		PriorState:            priorStateProto,
 	}, proto.MarshalOptions{})
