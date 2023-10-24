@@ -101,6 +101,8 @@ message PlanResourceInstanceChangePlanned {
     // The same string must previously have been announced with a
     // PlanComponentInstance message, or the overall plan sequence is invalid.
     string component_instance_addr = 1;
+    string resource_instance_addr = 4;
+    string deposed_key = 5;
 
     // Description of the planned change in the standard "tfplan" (planproto)
     // format.

@@ -889,6 +889,7 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 			PlanTimestamp: corePlan.Timestamp,
 		})
 
+		seenObjects := addrs.MakeSet[addrs.AbsResourceInstanceObject]()
 		for _, rsrcChange := range corePlan.Changes.Resources {
 			schema, err := c.resourceTypeSchema(
 				ctx,
@@ -918,10 +919,14 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 			}
 
 			changes = append(changes, &stackplan.PlannedChangeResourceInstancePlanned{
-				ComponentInstanceAddr: c.Addr(),
-				ChangeSrc:             rsrcChange,
-				Schema:                schema,
-				PriorStateSrc:         priorStateSrc,
+				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+					Component: c.Addr(),
+					Item:      objAddr,
+				},
+				ChangeSrc:          rsrcChange,
+				Schema:             schema,
+				PriorStateSrc:      priorStateSrc,
+				ProviderConfigAddr: rsrcChange.ProviderAddr,
 
 				// TODO: Also provide the previous run state, if it's
 				// different from the prior state, and signal whether the
@@ -931,6 +936,89 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 				// "changes outside of Terraform" part of the plan UI;
 				// the raw plan only needs the prior state.
 			})
+			seenObjects.Add(objAddr)
+		}
+
+		// We also need to catch any objects that exist in the "prior state"
+		// but don't have any actions planned, since we still need to capture
+		// the prior state part in case it was updated by refreshing during
+		// the plan walk.
+		if priorState := corePlan.PriorState; priorState != nil {
+			for _, addr := range priorState.AllResourceInstanceObjectAddrs() {
+				if seenObjects.Has(addr) {
+					// We're only interested in objects that didn't appear
+					// in the plan, such as data resources whose read has
+					// completed during the plan phase.
+					continue
+				}
+
+				rs := priorState.Resource(addr.ResourceInstance.ContainingResource())
+				os := priorState.ResourceInstanceObjectSrc(addr)
+				schema, err := c.resourceTypeSchema(
+					ctx,
+					rs.ProviderConfig.Provider,
+					addr.ResourceInstance.Resource.Resource.Mode,
+					addr.ResourceInstance.Resource.Resource.Type,
+				)
+				if err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Can't fetch provider schema to save plan",
+						fmt.Sprintf(
+							"Failed to retrieve the schema for %s from provider %s: %s. This is a bug in Terraform.",
+							addr, rs.ProviderConfig.Provider, err,
+						),
+					))
+					continue
+				}
+
+				changes = append(changes, &stackplan.PlannedChangeResourceInstancePlanned{
+					ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+						Component: c.Addr(),
+						Item:      addr,
+					},
+					Schema:             schema,
+					PriorStateSrc:      os,
+					ProviderConfigAddr: rs.ProviderConfig,
+					// We intentionally omit ChangeSrc, because we're not actually
+					// planning to change this object during the apply phase, only
+					// to update its state data.
+				})
+				seenObjects.Add(addr)
+			}
+		}
+
+		// We also have one more unusual case to deal with: if an object
+		// existed at the end of the previous run but was found to have
+		// been deleted when we refreshed during planning then it will
+		// not be present in either the prior state _or_ the plan, but
+		// we still need to include a stubby object for it in the plan
+		// so we can remember to discard it from the state during the
+		// apply phase.
+		if prevRunState := corePlan.PrevRunState; prevRunState != nil {
+			for _, addr := range prevRunState.AllResourceInstanceObjectAddrs() {
+				if seenObjects.Has(addr) {
+					// We're only interested in objects that didn't appear
+					// in the plan, such as data resources whose read has
+					// completed during the plan phase.
+					continue
+				}
+
+				rs := prevRunState.Resource(addr.ResourceInstance.ContainingResource())
+
+				changes = append(changes, &stackplan.PlannedChangeResourceInstancePlanned{
+					ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+						Component: c.Addr(),
+						Item:      addr,
+					},
+					ProviderConfigAddr: rs.ProviderConfig,
+					// Everything except the addresses are omitted in this case,
+					// which represents that we should just delete the object
+					// from the state when applied, and not take any other
+					// action.
+				})
+				seenObjects.Add(addr)
+			}
 		}
 	}
 

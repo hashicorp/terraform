@@ -169,12 +169,31 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 // PlannedChangeResourceInstancePlanned announces an action that Terraform
 // is proposing to take if this plan is applied.
 type PlannedChangeResourceInstancePlanned struct {
-	ComponentInstanceAddr stackaddrs.AbsComponentInstance
-	ChangeSrc             *plans.ResourceInstanceChangeSrc
-	PriorStateSrc         *states.ResourceInstanceObjectSrc
+	ResourceInstanceObjectAddr stackaddrs.AbsResourceInstanceObject
+
+	// ChangeSrc describes the planned change, if any. This can be nil if
+	// we're only intending to update the state to match PriorStateSrc.
+	ChangeSrc *plans.ResourceInstanceChangeSrc
+
+	// PriorStateSrc describes the "prior state" that the planned change, if
+	// any, was generated against.
+	//
+	// This can be nil if the object didn't previously exist. If both
+	// PriorStateSrc and ChangeSrc are nil then that suggests that the
+	// object existed in the previous run's state but was found to no
+	// longer exist while refreshing during plan.
+	PriorStateSrc *states.ResourceInstanceObjectSrc
+
+	// ProviderConfigAddr is the address of the provider configuration
+	// that planned this change, resolved in terms of the configuration for
+	// the component this resource instance object belongs to.
+	ProviderConfigAddr addrs.AbsProviderConfig
 
 	// Schema MUST be the same schema that was used to encode the dynamic
-	// values inside ChangeSrc.
+	// values inside ChangeSrc and PriorStateSrc.
+	//
+	// Can be nil if and only if ChangeSrc and PriorStateSrc are both nil
+	// themselves.
 	Schema *configschema.Block
 }
 
@@ -182,8 +201,26 @@ var _ PlannedChange = (*PlannedChangeResourceInstancePlanned)(nil)
 
 // PlannedChangeProto implements PlannedChange.
 func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform1.PlannedChange, error) {
-	if pc.ChangeSrc == nil {
-		return nil, fmt.Errorf("nil ChangeSrc")
+	rioAddr := pc.ResourceInstanceObjectAddr
+
+	if pc.ChangeSrc == nil && pc.PriorStateSrc == nil {
+		// This is just a stubby placeholder to remind us to drop the
+		// apparently-deleted-outside-of-Terraform object from the state
+		// if this plan later gets applied.
+		// We only emit a "raw" in this case, because this is a relatively
+		// uninteresting edge-case.
+		var raw anypb.Any
+		err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanResourceInstanceChangePlanned{
+			ComponentInstanceAddr: rioAddr.Component.String(),
+			ResourceInstanceAddr:  rioAddr.Item.ResourceInstance.String(),
+			DeposedKey:            rioAddr.Item.DeposedKey.String(),
+		}, proto.MarshalOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return &terraform1.PlannedChange{
+			Raw: []*anypb.Any{&raw},
+		}, nil
 	}
 
 	// We include the prior state as part of the raw plan because that
@@ -191,7 +228,7 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 	// schema version and incorporating any changes detected in the refresh
 	// step, which we'll rely on during the apply step to make sure that
 	// the final plan is consistent, etc.
-	priorStateProto := tfstackdata1.ResourceInstanceObjectStateToTFStackData1(pc.PriorStateSrc, pc.ChangeSrc.ProviderAddr)
+	priorStateProto := tfstackdata1.ResourceInstanceObjectStateToTFStackData1(pc.PriorStateSrc, pc.ProviderConfigAddr)
 
 	changeProto, err := planfile.ResourceChangeToProto(pc.ChangeSrc)
 	if err != nil {
@@ -199,7 +236,9 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 	}
 	var raw anypb.Any
 	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanResourceInstanceChangePlanned{
-		ComponentInstanceAddr: pc.ComponentInstanceAddr.String(),
+		ComponentInstanceAddr: rioAddr.Component.String(),
+		ResourceInstanceAddr:  rioAddr.Item.ResourceInstance.String(),
+		DeposedKey:            rioAddr.Item.DeposedKey.String(),
 		Change:                changeProto,
 		PriorState:            priorStateProto,
 	}, proto.MarshalOptions{})
@@ -207,19 +246,16 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 		return nil, err
 	}
 
-	protoChangeTypes, err := terraform1.ChangeTypesForPlanAction(pc.ChangeSrc.Action)
-	if err != nil {
-		return nil, err
-	}
-
-	rioAddr := stackaddrs.AbsResourceInstanceObject{
-		Component: pc.ComponentInstanceAddr,
-		Item:      pc.ChangeSrc.ObjectAddr(),
-	}
-
-	return &terraform1.PlannedChange{
-		Raw: []*anypb.Any{&raw},
-		Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+	var descs []*terraform1.PlannedChange_ChangeDescription
+	// We only emit an external description if there's a change to describe.
+	// Otherwise, we just emit a raw to remind us to update the state for
+	// this object during the apply step, to match the prior state.
+	if pc.ChangeSrc != nil {
+		protoChangeTypes, err := terraform1.ChangeTypesForPlanAction(pc.ChangeSrc.Action)
+		if err != nil {
+			return nil, err
+		}
+		descs = []*terraform1.PlannedChange_ChangeDescription{
 			{
 				Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
 					ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
@@ -237,7 +273,12 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 					},
 				},
 			},
-		},
+		}
+	}
+
+	return &terraform1.PlannedChange{
+		Raw:          []*anypb.Any{&raw},
+		Descriptions: descs,
 	}, nil
 }
 

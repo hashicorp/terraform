@@ -189,11 +189,23 @@ func TestPlannedChangeAsProto(t *testing.T) {
 		},
 		"resource instance planned create": {
 			Receiver: &PlannedChangeResourceInstancePlanned{
-				ComponentInstanceAddr: stackaddrs.AbsComponentInstance{
-					Stack: stackaddrs.RootStackInstance.Child("a", addrs.StringKey("boop")),
-					Item: stackaddrs.ComponentInstance{
-						Component: stackaddrs.Component{Name: "foo"},
-						Key:       addrs.StringKey("beep"),
+				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+					Component: stackaddrs.AbsComponentInstance{
+						Stack: stackaddrs.RootStackInstance.Child("a", addrs.StringKey("boop")),
+						Item: stackaddrs.ComponentInstance{
+							Component: stackaddrs.Component{Name: "foo"},
+							Key:       addrs.StringKey("beep"),
+						},
+					},
+					Item: addrs.AbsResourceInstanceObject{
+						ResourceInstance: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "thingy",
+							Name: "wotsit",
+						}.Instance(addrs.IntKey(1)).Absolute(
+							addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+						),
+						DeposedKey: addrs.DeposedKey("aaaaaaaa"),
 					},
 				},
 				ChangeSrc: &plans.ResourceInstanceChangeSrc{
@@ -220,6 +232,8 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				Raw: []*anypb.Any{
 					mustMarshalAnyPb(&tfstackdata1.PlanResourceInstanceChangePlanned{
 						ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+						ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
+						DeposedKey:            "aaaaaaaa",
 						Change: &planproto.ResourceInstanceChange{
 							Addr:       `module.pizza["chicken"].thingy.wotsit[1]`,
 							DeposedKey: "aaaaaaaa",

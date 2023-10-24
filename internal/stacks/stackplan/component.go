@@ -64,7 +64,9 @@ func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 	sc := changes.SyncWrapper()
 	for _, elem := range c.ResourceInstancePlanned.Elems {
 		changeSrc := elem.Value
-		sc.AppendResourceInstanceChange(changeSrc)
+		if changeSrc != nil {
+			sc.AppendResourceInstanceChange(changeSrc)
+		}
 	}
 
 	priorState := states.NewState()

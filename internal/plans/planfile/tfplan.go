@@ -714,6 +714,10 @@ func resourceAttrFromTfplan(ra *planproto.PlanResourceAttr) (globalref.ResourceA
 // This is used by the stackplan package, which includes planproto messages
 // in its own wire format while using a different overall container.
 func ResourceChangeToProto(change *plans.ResourceInstanceChangeSrc) (*planproto.ResourceInstanceChange, error) {
+	if change == nil {
+		// We assume this represents the absense of a change, then.
+		return nil, nil
+	}
 	return resourceChangeToTfplan(change)
 }
 

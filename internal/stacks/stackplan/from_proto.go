@@ -84,26 +84,45 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 			}
 
 		case *tfstackdata1.PlanResourceInstanceChangePlanned:
-			if msg.Change == nil {
-				return nil, fmt.Errorf("%T has nil Change", msg)
-			}
 			cAddr, diags := stackaddrs.ParseAbsComponentInstanceStr(msg.ComponentInstanceAddr)
 			if diags.HasErrors() {
 				return nil, fmt.Errorf("invalid component instance address syntax in %q", msg.ComponentInstanceAddr)
+			}
+			riAddr, diags := addrs.ParseAbsResourceInstanceStr(msg.ResourceInstanceAddr)
+			if diags.HasErrors() {
+				return nil, fmt.Errorf("invalid resource instance address syntax in %q", msg.ResourceInstanceAddr)
+			}
+			var deposedKey addrs.DeposedKey
+			if msg.DeposedKey != "" {
+				deposedKey, err = addrs.ParseDeposedKey(msg.DeposedKey)
+				if err != nil {
+					return nil, fmt.Errorf("invalid deposed key syntax in %q", msg.DeposedKey)
+				}
+			}
+			fullAddr := addrs.AbsResourceInstanceObject{
+				ResourceInstance: riAddr,
+				DeposedKey:       deposedKey,
 			}
 			c, ok := ret.Components.GetOk(cAddr)
 			if !ok {
 				return nil, fmt.Errorf("resource instance change for unannounced component instance %s", cAddr)
 			}
-			riPlan, err := planfile.ResourceChangeFromProto(msg.Change)
-			if err != nil {
-				return nil, fmt.Errorf("invalid resource instance change: %w", err)
+			var riPlan *plans.ResourceInstanceChangeSrc
+			// Not all "planned changes" for resource instances are actually
+			// changes in the plans.Change sense, confusingly: sometimes the
+			// "change" we're recording is just to overwrite the state entry
+			// with a refreshed copy, in which case riPlan is nil and
+			// msg.PriorState is the main content of this change, handled below.
+			if msg.Change != nil {
+				riPlan, err = planfile.ResourceChangeFromProto(msg.Change)
+				if err != nil {
+					return nil, fmt.Errorf("invalid resource instance change: %w", err)
+				}
+				if !riPlan.Addr.Equal(fullAddr.ResourceInstance) && riPlan.DeposedKey == fullAddr.DeposedKey {
+					return nil, fmt.Errorf("planned change has inconsistent address to its containing object")
+				}
+				c.ResourceInstancePlanned.Put(fullAddr, riPlan)
 			}
-			fullAddr := addrs.AbsResourceInstanceObject{
-				ResourceInstance: riPlan.Addr,
-				DeposedKey:       riPlan.DeposedKey,
-			}
-			c.ResourceInstancePlanned.Put(fullAddr, riPlan)
 
 			if msg.PriorState != nil {
 				stateSrc, err := stackstate.DecodeProtoResourceInstanceObject(msg.PriorState)

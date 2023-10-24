@@ -96,12 +96,21 @@ func TestPlanWithSingleResource(t *testing.T) {
 			})),
 		},
 		&stackplan.PlannedChangeResourceInstancePlanned{
-			ComponentInstanceAddr: stackaddrs.Absolute(
-				stackaddrs.RootStackInstance,
-				stackaddrs.ComponentInstance{
-					Component: stackaddrs.Component{Name: "self"},
+			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+				Component: stackaddrs.Absolute(
+					stackaddrs.RootStackInstance,
+					stackaddrs.ComponentInstance{
+						Component: stackaddrs.Component{Name: "self"},
+					},
+				),
+				Item: addrs.AbsResourceInstanceObject{
+					ResourceInstance: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "terraform_data",
+						Name: "main",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 				},
-			),
+			},
 			ChangeSrc: &plans.ResourceInstanceChangeSrc{
 				Addr: addrs.Resource{
 					Mode: addrs.ManagedResourceMode,
