@@ -18,6 +18,7 @@ BUG FIXES:
 ENHANCEMENTS:
 
 * `terraform test`: Providers defined within test files can now reference variables from their configuration that are defined within the test file. ([#34069](https://github.com/hashicorp/terraform/issues/34069))
+* `import`: `for_each` can now be used to expand the `import` block to handle multiple resource instances [GH-33932]
 
 ## Previous Releases
 
