@@ -821,6 +821,24 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 			}
 			attrs[name] = change.After
 		}
+
+		if decl := c.call.Config(ctx).ModuleTree(ctx); decl != nil {
+			// If the plan only ran partially then we might be missing
+			// some planned changes for output values, which could
+			// cause "attrs" to have an incomplete set of attributes.
+			// To avoid confusing downstream errors we'll insert unknown
+			// values for any declared output values that don't yet
+			// have a final value.
+			for name := range decl.Module.Outputs {
+				if _, ok := attrs[name]; !ok {
+					// We can't do any better than DynamicVal because
+					// output values in the modules language don't
+					// have static type constraints.
+					attrs[name] = cty.DynamicVal
+				}
+			}
+		}
+
 		return cty.ObjectVal(attrs)
 
 	case ApplyPhase:
