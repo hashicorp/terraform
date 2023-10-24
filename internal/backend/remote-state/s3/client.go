@@ -47,6 +47,7 @@ type RemoteClient struct {
 	acl                   string
 	kmsKeyID              string
 	ddbTable              string
+	skipS3Checksum        bool
 }
 
 var (
@@ -182,6 +183,10 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 }
 
 func (c *RemoteClient) Put(data []byte) error {
+	return c.put(data)
+}
+
+func (c *RemoteClient) put(data []byte, optFns ...func(*s3.Options)) error {
 	ctx := context.TODO()
 	log := c.logger(operationClientPut)
 
@@ -193,11 +198,13 @@ func (c *RemoteClient) Put(data []byte) error {
 	sum := md5.Sum(data)
 
 	input := &s3.PutObjectInput{
-		ContentType:       aws.String(contentType),
-		Body:              bytes.NewReader(data),
-		Bucket:            aws.String(c.bucketName),
-		Key:               aws.String(c.path),
-		ChecksumAlgorithm: s3types.ChecksumAlgorithmSha256,
+		ContentType: aws.String(contentType),
+		Body:        bytes.NewReader(data),
+		Bucket:      aws.String(c.bucketName),
+		Key:         aws.String(c.path),
+	}
+	if !c.skipS3Checksum {
+		input.ChecksumAlgorithm = s3types.ChecksumAlgorithmSha256
 	}
 
 	if c.serverSideEncryption {
@@ -219,16 +226,18 @@ func (c *RemoteClient) Put(data []byte) error {
 
 	log.Info("Uploading remote state")
 
-	uploader := manager.NewUploader(c.s3Client)
+	uploader := manager.NewUploader(c.s3Client, func(u *manager.Uploader) {
+		u.ClientOptions = optFns
+	})
 	_, err := uploader.Upload(ctx, input)
 	if err != nil {
-		return fmt.Errorf("failed to upload state: %s", err)
+		return fmt.Errorf("failed to upload state: %w", err)
 	}
 
 	if err := c.putMD5(ctx, sum[:]); err != nil {
 		// if this errors out, we unfortunately have to error out altogether,
 		// since the next Get will inevitably fail.
-		return fmt.Errorf("failed to store state MD5: %s", err)
+		return fmt.Errorf("failed to store state MD5: %w", err)
 	}
 
 	return nil
