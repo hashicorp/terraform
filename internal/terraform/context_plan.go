@@ -7,8 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/zclconf/go-cty/cty"
@@ -439,7 +437,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 	return destroyPlan, diags
 }
 
-func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState *states.State, targets []addrs.Targetable) ([]refactoring.MoveStatement, refactoring.MoveResults) {
+func (c *Context) findMoves(config *configs.Config, prevRunState *states.State) ([]refactoring.MoveStatement, *refactoring.Moves) {
 	explicitMoveStmts := refactoring.FindMoveStatements(config)
 	implicitMoveStmts := refactoring.ImpliedMoveStatements(config, prevRunState, explicitMoveStmts)
 	var moveStmts []refactoring.MoveStatement
@@ -448,76 +446,7 @@ func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState 
 		moveStmts = append(moveStmts, explicitMoveStmts...)
 		moveStmts = append(moveStmts, implicitMoveStmts...)
 	}
-	moveResults := refactoring.ApplyMoves(moveStmts, prevRunState)
-	return moveStmts, moveResults
-}
-
-func (c *Context) prePlanVerifyTargetedMoves(moveResults refactoring.MoveResults, targets []addrs.Targetable) tfdiags.Diagnostics {
-	if len(targets) < 1 {
-		return nil // the following only matters when targeting
-	}
-
-	var diags tfdiags.Diagnostics
-
-	var excluded []addrs.AbsResourceInstance
-	for _, result := range moveResults.Changes.Values() {
-		fromMatchesTarget := false
-		toMatchesTarget := false
-		for _, targetAddr := range targets {
-			if targetAddr.TargetContains(result.From) {
-				fromMatchesTarget = true
-			}
-			if targetAddr.TargetContains(result.To) {
-				toMatchesTarget = true
-			}
-		}
-		if !fromMatchesTarget {
-			excluded = append(excluded, result.From)
-		}
-		if !toMatchesTarget {
-			excluded = append(excluded, result.To)
-		}
-	}
-	if len(excluded) > 0 {
-		sort.Slice(excluded, func(i, j int) bool {
-			return excluded[i].Less(excluded[j])
-		})
-
-		var listBuf strings.Builder
-		var prevResourceAddr addrs.AbsResource
-		for _, instAddr := range excluded {
-			// Targeting generally ends up selecting whole resources rather
-			// than individual instances, because we don't factor in
-			// individual instances until DynamicExpand, so we're going to
-			// always show whole resource addresses here, excluding any
-			// instance keys. (This also neatly avoids dealing with the
-			// different quoting styles required for string instance keys
-			// on different shells, which is handy.)
-			//
-			// To avoid showing duplicates when we have multiple instances
-			// of the same resource, we'll remember the most recent
-			// resource we rendered in prevResource, which is sufficient
-			// because we sorted the list of instance addresses above, and
-			// our sort order always groups together instances of the same
-			// resource.
-			resourceAddr := instAddr.ContainingResource()
-			if resourceAddr.Equal(prevResourceAddr) {
-				continue
-			}
-			fmt.Fprintf(&listBuf, "\n  -target=%q", resourceAddr.String())
-			prevResourceAddr = resourceAddr
-		}
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Moved resource instances excluded by targeting",
-			fmt.Sprintf(
-				"Resource instances in your current state have moved to new addresses in the latest configuration. Terraform must include those resource instances while planning in order to ensure a correct result, but your -target=... options do not fully cover all of those resource instances.\n\nTo create a valid plan, either remove your -target=... options altogether or add the following additional target options:%s\n\nNote that adding these options may include further additional resource instances in your plan, in order to respect object dependencies.",
-				listBuf.String(),
-			),
-		))
-	}
-
-	return diags
+	return moveStmts, refactoring.NewMoves(moveStmts)
 }
 
 func (c *Context) postPlanValidateMoves(config *configs.Config, stmts []refactoring.MoveStatement, allInsts instances.Set) tfdiags.Diagnostics {
@@ -541,17 +470,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	log.Printf("[DEBUG] Building and walking plan graph for %s", opts.Mode)
 
 	prevRunState = prevRunState.DeepCopy() // don't modify the caller's object when we process the moves
-	moveStmts, moveResults := c.prePlanFindAndApplyMoves(config, prevRunState, opts.Targets)
-
-	// If resource targeting is in effect then it might conflict with the
-	// move result.
-	diags = diags.Append(c.prePlanVerifyTargetedMoves(moveResults, opts.Targets))
-	if diags.HasErrors() {
-		// We'll return early here, because if we have any moved resource
-		// instances excluded by targeting then planning is likely to encounter
-		// strange problems that may lead to confusing error messages.
-		return nil, diags
-	}
+	moveStmts, moves := c.findMoves(config, prevRunState)
 
 	graph, walkOp, moreDiags := c.planGraph(config, prevRunState, opts)
 	diags = diags.Append(moreDiags)
@@ -568,7 +487,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		Config:            config,
 		InputState:        prevRunState,
 		Changes:           changes,
-		MoveResults:       moveResults,
+		Moves:             moves,
 		PlanTimeTimestamp: timestamp,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
@@ -588,13 +507,13 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	}
 	diags = diags.Append(moveValidateDiags) // might just contain warnings
 
-	if moveResults.Blocked.Len() > 0 && !diags.HasErrors() {
+	if moves.Blocked.Len() > 0 && !diags.HasErrors() {
 		// If we had blocked moves and we're not going to be returning errors
 		// then we'll report the blockers as a warning. We do this only in the
 		// absense of errors because invalid move statements might well be
 		// the root cause of the blockers, and so better to give an actionable
 		// error message than a less-actionable warning.
-		diags = diags.Append(blockedMovesWarningDiag(moveResults))
+		diags = diags.Append(blockedMovesWarningDiag(moves))
 	}
 
 	// If we reach this point with error diagnostics then "changes" is a
@@ -609,7 +528,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	walker.RefreshState.RemovePlannedResourceInstanceObjects()
 	priorState := walker.RefreshState.Close()
 
-	driftedResources, driftDiags := c.driftedResources(config, prevRunState, priorState, moveResults)
+	driftedResources, driftDiags := c.driftedResources(config, prevRunState, priorState, moves)
 	diags = diags.Append(driftDiags)
 
 	plan := &plans.Plan{
@@ -682,7 +601,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 // report. This is known to happen when targeting a subset of resources,
 // because the excluded instances will have been removed from the plan and
 // not upgraded.
-func (c *Context) driftedResources(config *configs.Config, oldState, newState *states.State, moves refactoring.MoveResults) ([]*plans.ResourceInstanceChangeSrc, tfdiags.Diagnostics) {
+func (c *Context) driftedResources(config *configs.Config, oldState, newState *states.State, moves *refactoring.Moves) ([]*plans.ResourceInstanceChangeSrc, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if newState.ManagedResourcesEqual(oldState) && moves.Changes.Len() == 0 {
@@ -841,7 +760,7 @@ func (c *Context) PlanGraphForUI(config *configs.Config, prevRunState *states.St
 	return graph, diags
 }
 
-func blockedMovesWarningDiag(results refactoring.MoveResults) tfdiags.Diagnostic {
+func blockedMovesWarningDiag(results *refactoring.Moves) tfdiags.Diagnostic {
 	if results.Blocked.Len() < 1 {
 		// Caller should check first
 		panic("request to render blocked moves warning without any blocked moves")

@@ -2526,7 +2526,10 @@ func (n *NodeAbstractResourceInstance) prevRunAddr(ctx EvalContext) addrs.AbsRes
 	return resourceInstancePrevRunAddr(ctx, n.Addr)
 }
 
-func resourceInstancePrevRunAddr(ctx EvalContext, currentAddr addrs.AbsResourceInstance) addrs.AbsResourceInstance {
-	table := ctx.MoveResults()
-	return table.OldAddr(currentAddr)
+func resourceInstancePrevRunAddr(ctx EvalContext, currentAddr addrs.AbsResourceInstance) (oldAddr addrs.AbsResourceInstance) {
+	table := ctx.Moves()
+	if table != nil {
+		return table.OldAddr(currentAddr)
+	}
+	return currentAddr
 }

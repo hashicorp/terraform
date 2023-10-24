@@ -41,7 +41,7 @@ type graphWalkOpts struct {
 	// the apply phase.
 	PlanTimeTimestamp time.Time
 
-	MoveResults refactoring.MoveResults
+	Moves *refactoring.Moves
 }
 
 func (c *Context) walk(graph *Graph, operation walkOperation, opts *graphWalkOpts) (*ContextGraphWalker, tfdiags.Diagnostics) {
@@ -146,7 +146,7 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 		Changes:          changes.SyncWrapper(),
 		Checks:           checkState,
 		InstanceExpander: instances.NewExpander(),
-		MoveResults:      opts.MoveResults,
+		Moves:            opts.Moves,
 		Operation:        operation,
 		StopContext:      c.runContext,
 		PlanTimestamp:    opts.PlanTimeTimestamp,

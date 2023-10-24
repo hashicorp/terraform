@@ -6,6 +6,9 @@ package terraform
 import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -17,8 +20,6 @@ import (
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // MockEvalContext is a mock version of EvalContext that can be used
@@ -146,8 +147,8 @@ type MockEvalContext struct {
 	PrevRunStateCalled bool
 	PrevRunStateState  *states.SyncState
 
-	MoveResultsCalled  bool
-	MoveResultsResults refactoring.MoveResults
+	MovesCalled bool
+	MovesMoves  *refactoring.Moves
 
 	InstanceExpanderCalled   bool
 	InstanceExpanderExpander *instances.Expander
@@ -393,9 +394,9 @@ func (c *MockEvalContext) PrevRunState() *states.SyncState {
 	return c.PrevRunStateState
 }
 
-func (c *MockEvalContext) MoveResults() refactoring.MoveResults {
-	c.MoveResultsCalled = true
-	return c.MoveResultsResults
+func (c *MockEvalContext) Moves() *refactoring.Moves {
+	c.MovesCalled = true
+	return c.MovesMoves
 }
 
 func (c *MockEvalContext) InstanceExpander() *instances.Expander {

@@ -5,6 +5,8 @@ package terraform
 
 import (
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -16,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // EvalContext is the interface that is given to eval nodes to execute.
@@ -191,15 +192,9 @@ type EvalContext interface {
 	// EvalContext objects for a given configuration.
 	InstanceExpander() *instances.Expander
 
-	// MoveResults returns a map describing the results of handling any
-	// resource instance move statements prior to the graph walk, so that
-	// the graph walk can then record that information appropriately in other
-	// artifacts produced by the graph walk.
-	//
-	// This data structure is created prior to the graph walk and read-only
-	// thereafter, so callers must not modify the returned map or any other
-	// objects accessible through it.
-	MoveResults() refactoring.MoveResults
+	// Moves returns the object that tracks the operation of any moved blocks
+	// within the configuration.
+	Moves() *refactoring.Moves
 
 	// WithPath returns a copy of the context with the internal path set to the
 	// path argument.

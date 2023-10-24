@@ -28,11 +28,9 @@ import (
 //
 // ApplyMoves expects exclusive access to the given state while it's running.
 // Don't read or write any part of the state structure until ApplyMoves returns.
-func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
-	ret := makeMoveResults()
-
-	if len(stmts) == 0 {
-		return ret
+func ApplyMoves(moves *Moves, state *states.State) {
+	if len(moves.Statements) == 0 {
+		return
 	}
 
 	// The methodology here is to construct a small graph of all of the move
@@ -41,13 +39,13 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 	// That then means we can traverse the graph in topological sort order
 	// to gradually move objects through potentially multiple moves each.
 
-	g := buildMoveStatementGraph(stmts)
+	g := buildMoveStatementGraph(moves.Statements)
 
 	// If the graph is not valid the we will not take any action at all. The
 	// separate validation step should detect this and return an error.
 	if diags := validateMoveStatementGraph(g); diags.HasErrors() {
 		log.Printf("[ERROR] ApplyMoves: %s", diags.ErrWithWarnings())
-		return ret
+		return
 	}
 
 	// The graph must be reduced in order for ReverseDepthFirstWalk to work
@@ -56,7 +54,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 	g.TransitiveReduction()
 
 	// The starting nodes are the ones that don't depend on any other nodes.
-	startNodes := make(dag.Set, len(stmts))
+	startNodes := make(dag.Set, len(moves.Statements))
 	for _, v := range g.Vertices() {
 		if len(g.DownEdges(v)) == 0 {
 			startNodes.Add(v)
@@ -65,31 +63,10 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 
 	if startNodes.Len() == 0 {
 		log.Println("[TRACE] refactoring.ApplyMoves: No 'moved' statements to consider in this configuration")
-		return ret
+		return
 	}
 
 	log.Printf("[TRACE] refactoring.ApplyMoves: Processing 'moved' statements in the configuration\n%s", logging.Indent(g.String()))
-
-	recordOldAddr := func(oldAddr, newAddr addrs.AbsResourceInstance) {
-		if prevMove, exists := ret.Changes.GetOk(oldAddr); exists {
-			// If the old address was _already_ the result of a move then
-			// we'll replace that entry so that our results summarize a chain
-			// of moves into a single entry.
-			ret.Changes.Remove(oldAddr)
-			oldAddr = prevMove.From
-		}
-		ret.Changes.Put(newAddr, MoveSuccess{
-			From: oldAddr,
-			To:   newAddr,
-		})
-	}
-	recordBlockage := func(newAddr, wantedAddr addrs.AbsMoveable) {
-		ret.Blocked.Put(newAddr, MoveBlocked{
-			Wanted: wantedAddr,
-			Actual: newAddr,
-		})
-	}
-
 	for _, v := range g.ReverseTopologicalOrder() {
 		stmt := v.(*MoveStatement)
 
@@ -110,7 +87,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 					// priority.
 					if ms := state.Module(newAddr); ms != nil {
 						log.Printf("[WARN] Skipped moving %s to %s, because there's already another module instance at the destination", modAddr, newAddr)
-						recordBlockage(modAddr, newAddr)
+						moves.RecordBlockage(modAddr, newAddr)
 						continue
 					}
 
@@ -121,7 +98,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 						for key := range rs.Instances {
 							oldInst := relAddr.Instance(key).Absolute(modAddr)
 							newInst := relAddr.Instance(key).Absolute(newAddr)
-							recordOldAddr(oldInst, newInst)
+							moves.RecordMove(oldInst, newInst)
 						}
 					}
 
@@ -148,14 +125,14 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 						// priority.
 						if rs := state.Resource(newAddr); rs != nil {
 							log.Printf("[WARN] Skipped moving %s to %s, because there's already another resource at the destination", rAddr, newAddr)
-							recordBlockage(rAddr, newAddr)
+							moves.RecordBlockage(rAddr, newAddr)
 							continue
 						}
 
 						for key := range rs.Instances {
 							oldInst := rAddr.Instance(key)
 							newInst := newAddr.Instance(key)
-							recordOldAddr(oldInst, newInst)
+							moves.RecordMove(oldInst, newInst)
 						}
 						state.MoveAbsResource(rAddr, newAddr)
 						continue
@@ -170,11 +147,11 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 							// object take priority.
 							if is := state.ResourceInstance(newAddr); is != nil {
 								log.Printf("[WARN] Skipped moving %s to %s, because there's already another resource instance at the destination", iAddr, newAddr)
-								recordBlockage(iAddr, newAddr)
+								moves.RecordBlockage(iAddr, newAddr)
 								continue
 							}
 
-							recordOldAddr(iAddr, newAddr)
+							moves.RecordMove(iAddr, newAddr)
 
 							state.MoveAbsResourceInstance(iAddr, newAddr)
 							continue
@@ -186,8 +163,6 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 			}
 		}
 	}
-
-	return ret
 }
 
 // buildMoveStatementGraph constructs a dependency graph of the given move
@@ -272,74 +247,4 @@ func statementDependsOn(a, b *MoveStatement) bool {
 	}
 
 	return true
-}
-
-// MoveResults describes the outcome of an ApplyMoves call.
-type MoveResults struct {
-	// Changes is a map from the unique keys of the final new resource
-	// instance addresses to an object describing what changed.
-	//
-	// This includes one entry for each resource instance address that was
-	// the destination of a move statement. It doesn't include resource
-	// instances that were not affected by moves at all, but it does include
-	// resource instance addresses that were "blocked" (also recorded in
-	// BlockedAddrs) if and only if they were able to move at least
-	// partially along a chain before being blocked.
-	//
-	// In the return value from ApplyMoves, all of the keys are guaranteed to
-	// be unique keys derived from addrs.AbsResourceInstance values.
-	Changes addrs.Map[addrs.AbsResourceInstance, MoveSuccess]
-
-	// Blocked is a map from the unique keys of the final new
-	// resource instances addresses to information about where they "wanted"
-	// to move, but were blocked by a pre-existing object at the same address.
-	//
-	// "Blocking" can arise in unusual situations where multiple points along
-	// a move chain were already bound to objects, and thus only one of them
-	// can actually adopt the final position in the chain. It can also
-	// occur in other similar situations, such as if a configuration contains
-	// a move of an entire module and a move of an individual resource into
-	// that module, such that the individual resource would collide with a
-	// resource in the whole module that was moved.
-	//
-	// In the return value from ApplyMoves, all of the keys are guaranteed to
-	// be unique keys derived from values of addrs.AbsMoveable types.
-	Blocked addrs.Map[addrs.AbsMoveable, MoveBlocked]
-}
-
-func makeMoveResults() MoveResults {
-	return MoveResults{
-		Changes: addrs.MakeMap[addrs.AbsResourceInstance, MoveSuccess](),
-		Blocked: addrs.MakeMap[addrs.AbsMoveable, MoveBlocked](),
-	}
-}
-
-type MoveSuccess struct {
-	From addrs.AbsResourceInstance
-	To   addrs.AbsResourceInstance
-}
-
-type MoveBlocked struct {
-	Wanted addrs.AbsMoveable
-	Actual addrs.AbsMoveable
-}
-
-// AddrMoved returns true if and only if the given resource instance moved to
-// a new address in the ApplyMoves call that the receiver is describing.
-//
-// If AddrMoved returns true, you can pass the same address to method OldAddr
-// to find its original address prior to moving.
-func (rs MoveResults) AddrMoved(newAddr addrs.AbsResourceInstance) bool {
-	return rs.Changes.Has(newAddr)
-}
-
-// OldAddr returns the old address of the given resource instance address, or
-// just returns back the same address if the given instance wasn't affected by
-// any move statements.
-func (rs MoveResults) OldAddr(newAddr addrs.AbsResourceInstance) addrs.AbsResourceInstance {
-	change, ok := rs.Changes.GetOk(newAddr)
-	if !ok {
-		return newAddr
-	}
-	return change.From
 }

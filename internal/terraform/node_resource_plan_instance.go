@@ -159,6 +159,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
+	// TODO: implement n.moveState function here.
+
 	importing := n.importTarget.IDString != ""
 	importId := n.importTarget.IDString
 

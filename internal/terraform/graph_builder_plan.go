@@ -237,6 +237,11 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// node due to dependency edges, to avoid graph cycles during apply.
 		&ForcedCBDTransformer{},
 
+		&MovedTransformer{
+			Targets: b.Targets,
+			skip:    b.Operation != walkPlan,
+		},
+
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 
