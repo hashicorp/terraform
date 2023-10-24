@@ -280,7 +280,7 @@ func (t *TestHuman) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Ru
 		// FIXME: This message says "resources" but this is actually a list
 		// of resource instance objects.
 		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform left the following resources in state after executing %s, and they need to be cleaned up manually:\n", identifier), t.view.errorColumns()))
-		for _, resource := range addrs.SetSortedNatural(state.AllResourceInstanceObjectAddrs()) {
+		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
 			if resource.DeposedKey != states.NotDeposed {
 				t.view.streams.Eprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)
 				continue
@@ -309,7 +309,7 @@ func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.
 	// with a run block.
 	if state, exists := existingStates[nil]; exists && !state.Empty() {
 		t.view.streams.Eprint(format.WordWrap("\nTerraform has already created the following resources from the module under test:\n", t.view.errorColumns()))
-		for _, resource := range addrs.SetSortedNatural(state.AllResourceInstanceObjectAddrs()) {
+		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
 			if resource.DeposedKey != states.NotDeposed {
 				t.view.streams.Eprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)
 				continue
@@ -326,7 +326,7 @@ func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.
 		}
 
 		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform has already created the following resources for %q from %q:\n", run.Name, run.Config.Module.Source), t.view.errorColumns()))
-		for _, resource := range addrs.SetSortedNatural(state.AllResourceInstanceObjectAddrs()) {
+		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
 			if resource.DeposedKey != states.NotDeposed {
 				t.view.streams.Eprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)
 				continue
@@ -605,7 +605,7 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 func (t *TestJSON) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State) {
 	if state.HasManagedResourceInstanceObjects() {
 		cleanup := json.TestFileCleanup{}
-		for _, resource := range addrs.SetSortedNatural(state.AllResourceInstanceObjectAddrs()) {
+		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
 			cleanup.FailedResources = append(cleanup.FailedResources, json.TestFailedResource{
 				Instance:   resource.ResourceInstance.String(),
 				DeposedKey: resource.DeposedKey.String(),
@@ -663,7 +663,7 @@ func (t *TestJSON) FatalInterruptSummary(run *moduletest.Run, file *moduletest.F
 		}
 
 		var resources []json.TestFailedResource
-		for _, resource := range addrs.SetSortedNatural(state.AllResourceInstanceObjectAddrs()) {
+		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
 			resources = append(resources, json.TestFailedResource{
 				Instance:   resource.ResourceInstance.String(),
 				DeposedKey: resource.DeposedKey.String(),

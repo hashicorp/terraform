@@ -230,44 +230,39 @@ func (s *State) Resources(addr addrs.ConfigResource) []*Resource {
 // This method is guaranteed to return at least one item if
 // s.HasManagedResourceInstanceObjects returns true for the same state, and
 // to return a zero-length slice if it returns false.
-func (s *State) AllResourceInstanceObjectAddrs() addrs.Set[addrs.AbsResourceInstanceObject] {
+func (s *State) AllManagedResourceInstanceObjectAddrs() addrs.Set[addrs.AbsResourceInstanceObject] {
+	return s.allResourceInstanceObjectAddrs(func(addr addrs.AbsResourceInstanceObject) bool {
+		return addr.ResourceInstance.Resource.Resource.Mode == addrs.ManagedResourceMode
+	})
+}
+
+func (s *State) allResourceInstanceObjectAddrs(keepAddr func(addr addrs.AbsResourceInstanceObject) bool) addrs.Set[addrs.AbsResourceInstanceObject] {
 	if s == nil {
 		return nil
 	}
 
-	// We use an unnamed return type here just because we currently have no
-	// general need to return pairs of instance address and deposed key aside
-	// from this method, and this method itself is only of marginal value
-	// when producing some error messages.
-	//
-	// If that need ends up arising more in future then it might make sense to
-	// name this as addrs.AbsResourceInstanceObject, although that would require
-	// moving DeposedKey into the addrs package too.
-	type ResourceInstanceObject = struct {
-		Instance   addrs.AbsResourceInstance
-		DeposedKey DeposedKey
-	}
 	ret := addrs.MakeSet[addrs.AbsResourceInstanceObject]()
-
 	for _, ms := range s.Modules {
 		for _, rs := range ms.Resources {
-			if rs.Addr.Resource.Mode != addrs.ManagedResourceMode {
-				continue
-			}
-
 			for instKey, is := range rs.Instances {
 				instAddr := rs.Addr.Instance(instKey)
 				if is.Current != nil {
-					ret.Add(addrs.AbsResourceInstanceObject{
+					objAddr := addrs.AbsResourceInstanceObject{
 						ResourceInstance: instAddr,
 						DeposedKey:       addrs.NotDeposed,
-					})
+					}
+					if keepAddr(objAddr) {
+						ret.Add(objAddr)
+					}
 				}
 				for deposedKey := range is.Deposed {
-					ret.Add(addrs.AbsResourceInstanceObject{
+					objAddr := addrs.AbsResourceInstanceObject{
 						ResourceInstance: instAddr,
 						DeposedKey:       deposedKey,
-					})
+					}
+					if keepAddr(objAddr) {
+						ret.Add(objAddr)
+					}
 				}
 			}
 		}
