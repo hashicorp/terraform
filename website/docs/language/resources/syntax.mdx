@@ -20,12 +20,11 @@ For information about how Terraform manages resources after applying a configura
 
 ## Resource Syntax
 
-A "resource" block declares a resource of a specific type 
-with a specific local name. The name is used to refer to this resource 
-in the same Terraform module but has no meaning outside that module's scope.
+A `resource` block declares a resource of a specific type 
+with a specific local name. Terraform uses the name when referring to the resource 
+in the same module, but it has no meaning outside that module's scope.
 
-The resource type ("aws_instance") and name ("Web") together must be unique within a module because they
-serve as an identifier for a given resource.
+In the following example,  the `aws_instance` resource type is named `web`. The resource type and name must be unique within a module because they serve as an identifier for a given resource.
 
 ```hcl
 resource "aws_instance" "web" {
