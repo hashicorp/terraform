@@ -446,10 +446,10 @@ func TestRemoteClientSkipS3Checksum(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			var header string
+			var checksum string
 			err = client.put(stateBuf.Bytes(), func(opts *s3.Options) {
 				opts.APIOptions = append(opts.APIOptions,
-					addRetrieveChecksumHeaderMiddleware(t, &header),
+					addRetrieveChecksumHeaderMiddleware(t, &checksum),
 					addCancelRequestMiddleware(),
 				)
 			})
@@ -459,23 +459,23 @@ func TestRemoteClientSkipS3Checksum(t *testing.T) {
 				t.Fatalf("Unexpected error: %s", err)
 			}
 
-			if a, e := header, testcase.expected; a != e {
+			if a, e := checksum, testcase.expected; a != e {
 				t.Fatalf("expected %q, got %q", e, a)
 			}
 		})
 	}
 }
 
-func addRetrieveChecksumHeaderMiddleware(t *testing.T, stuff *string) func(*middleware.Stack) error {
+func addRetrieveChecksumHeaderMiddleware(t *testing.T, checksum *string) func(*middleware.Stack) error {
 	return func(stack *middleware.Stack) error {
 		return stack.Finalize.Add(
-			retrieveChecksumHeaderMiddleware(t, stuff),
+			retrieveChecksumHeaderMiddleware(t, checksum),
 			middleware.After,
 		)
 	}
 }
 
-func retrieveChecksumHeaderMiddleware(t *testing.T, stuff *string) middleware.FinalizeMiddleware {
+func retrieveChecksumHeaderMiddleware(t *testing.T, checksum *string) middleware.FinalizeMiddleware {
 	return middleware.FinalizeMiddlewareFunc(
 		"Test: Retrieve Stuff",
 		func(ctx context.Context, in middleware.FinalizeInput, next middleware.FinalizeHandler) (middleware.FinalizeOutput, middleware.Metadata, error) {
@@ -486,7 +486,7 @@ func retrieveChecksumHeaderMiddleware(t *testing.T, stuff *string) middleware.Fi
 				t.Fatalf("Expected *github.com/aws/smithy-go/transport/http.Request, got %s", fullTypeName(in.Request))
 			}
 
-			*stuff = request.Header.Get("x-amz-sdk-checksum-algorithm")
+			*checksum = request.Header.Get("x-amz-sdk-checksum-algorithm")
 
 			return next.HandleFinalize(ctx, in)
 		})
