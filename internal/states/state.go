@@ -215,6 +215,18 @@ func (s *State) Resources(addr addrs.ConfigResource) []*Resource {
 	return ret
 }
 
+// AllResourceInstanceObjectAddrs returns a set of addresses for all of
+// the leaf resource instance objects of any mode that are tracked in this
+// state.
+//
+// If you only care about objects belonging to managed resources, use
+// [State.AllManagedResourceInstanceObjectAddrs] instead.
+func (s *State) AllResourceInstanceObjectAddrs() addrs.Set[addrs.AbsResourceInstanceObject] {
+	return s.allResourceInstanceObjectAddrs(func(addr addrs.AbsResourceInstanceObject) bool {
+		return true // we filter nothing
+	})
+}
+
 // AllManagedResourceInstanceObjectAddrs returns a set of addresses for all of
 // the leaf resource instance objects associated with managed resources that
 // are tracked in this state.
@@ -224,12 +236,6 @@ func (s *State) Resources(addr addrs.ConfigResource) []*Resource {
 // by deleting a workspace. This function is intended only for reporting
 // context in error messages, such as when we reject deleting a "non-empty"
 // workspace as detected by s.HasManagedResourceInstanceObjects.
-//
-// The ordering of the result is meaningless but consistent. DeposedKey will
-// be NotDeposed (the zero value of DeposedKey) for any "current" objects.
-// This method is guaranteed to return at least one item if
-// s.HasManagedResourceInstanceObjects returns true for the same state, and
-// to return a zero-length slice if it returns false.
 func (s *State) AllManagedResourceInstanceObjectAddrs() addrs.Set[addrs.AbsResourceInstanceObject] {
 	return s.allResourceInstanceObjectAddrs(func(addr addrs.AbsResourceInstanceObject) bool {
 		return addr.ResourceInstance.Resource.Resource.Mode == addrs.ManagedResourceMode
