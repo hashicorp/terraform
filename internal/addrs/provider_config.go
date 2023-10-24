@@ -422,6 +422,19 @@ func (pc AbsProviderConfig) String() string {
 	return strings.Join(parts, ".")
 }
 
+func (pc AbsProviderConfig) Equal(other AbsProviderConfig) bool {
+	if !pc.Provider.Equals(other.Provider) {
+		return false
+	}
+	if pc.Alias != other.Alias {
+		return false
+	}
+	if !pc.Module.Equal(other.Module) {
+		return false
+	}
+	return true
+}
+
 // UniqueKey returns a unique key suitable for including the receiver in a
 // generic collection type such as `Map` or `Set`.
 //
