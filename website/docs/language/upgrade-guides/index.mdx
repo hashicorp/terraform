@@ -15,7 +15,7 @@ but there are some behavior changes outside of those promises that may affect a
 small number of users. Specifically, the following updates may require
 additional upgrade steps:
 * [End of experimental period for `terraform test`](#terraform-test)
-* [S3 Backend may need to be reconfigured](#s3-backend)
+* [Deprecated parameters for the  S3 backend](#s3-backend)
 
 See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.6/CHANGELOG.md)
 for more details. If you encounter any problems during upgrading which are not
@@ -138,9 +138,6 @@ The `run` block also applies or plans the main configuration by default, there i
 
 The S3 Backend has been updated, with a number of added and deprecated fields.
 These changes bring the S3 Backend configuration closer to the AWS Provider configuration.
-
--> **Note:** Because of these changes, you may need to run `terraform init -reconfigure`,
-even if there have been no changes to your backend configuration.
 
 ### Deprecations
 
