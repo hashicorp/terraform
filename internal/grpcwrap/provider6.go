@@ -40,6 +40,7 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 	resp := &tfplugin6.GetProviderSchema_Response{
 		ResourceSchemas:   make(map[string]*tfplugin6.Schema),
 		DataSourceSchemas: make(map[string]*tfplugin6.Schema),
+		Functions:         make(map[string]*tfplugin6.Function),
 	}
 
 	resp.Provider = &tfplugin6.Schema{
@@ -67,6 +68,12 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 			Version: dat.Version,
 			Block:   convert.ConfigSchemaToProto(dat.Block),
 		}
+	}
+	if decls, err := convert.FunctionDeclsToProto(p.schema.Functions); err == nil {
+		resp.Functions = decls
+	} else {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
 	}
 
 	resp.ServerCapabilities = &tfplugin6.ServerCapabilities{
@@ -394,11 +401,16 @@ func (p *provider6) ReadDataSource(_ context.Context, req *tfplugin6.ReadDataSou
 	return resp, nil
 }
 
+func (p *provider6) GetFunctions(context.Context, *tfplugin6.GetFunctions_Request) (*tfplugin6.GetFunctions_Response, error) {
+	panic("unimplemented")
+	return nil, nil
+}
+
 func (p *provider6) CallFunction(_ context.Context, req *tfplugin6.CallFunction_Request) (*tfplugin6.CallFunction_Response, error) {
 	var err error
 	resp := &tfplugin6.CallFunction_Response{}
 
-	funcSchema := p.schema.Functions[req.FunctionName]
+	funcSchema := p.schema.Functions[req.Name]
 
 	var args []cty.Value
 	if len(req.Arguments) != 0 {
@@ -428,7 +440,7 @@ func (p *provider6) CallFunction(_ context.Context, req *tfplugin6.CallFunction_
 	}
 
 	callResp := p.provider.CallFunction(providers.CallFunctionRequest{
-		FunctionName: req.FunctionName,
+		FunctionName: req.Name,
 		Arguments:    args,
 	})
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, callResp.Diagnostics)

@@ -34,9 +34,9 @@ func FunctionDeclFromProto(protoFunc *tfplugin6.Function) (providers.FunctionDec
 		return ret, fmt.Errorf("invalid return type constraint: %s", err)
 	}
 
-	if len(protoFunc.Params) != 0 {
-		ret.Parameters = make([]providers.FunctionParam, len(protoFunc.Params))
-		for i, protoParam := range protoFunc.Params {
+	if len(protoFunc.Parameters) != 0 {
+		ret.Parameters = make([]providers.FunctionParam, len(protoFunc.Parameters))
+		for i, protoParam := range protoFunc.Parameters {
 			param, err := functionParamFromProto(protoParam)
 			if err != nil {
 				return ret, fmt.Errorf("invalid parameter %d (%q): %s", i, protoParam.Name, err)
@@ -44,10 +44,10 @@ func FunctionDeclFromProto(protoFunc *tfplugin6.Function) (providers.FunctionDec
 			ret.Parameters[i] = param
 		}
 	}
-	if protoFunc.VariadicParam != nil {
-		param, err := functionParamFromProto(protoFunc.VariadicParam)
+	if protoFunc.VariadicParameter != nil {
+		param, err := functionParamFromProto(protoFunc.VariadicParameter)
 		if err != nil {
-			return ret, fmt.Errorf("invalid variadic parameter (%q): %s", protoFunc.VariadicParam.Name, err)
+			return ret, fmt.Errorf("invalid variadic parameter (%q): %s", protoFunc.VariadicParameter.Name, err)
 		}
 		ret.VariadicParameter = &param
 	}
@@ -65,5 +65,69 @@ func functionParamFromProto(protoParam *tfplugin6.Function_Parameter) (providers
 	if err := json.Unmarshal(protoParam.Type, &ret.Type); err != nil {
 		return ret, fmt.Errorf("invalid type constraint: %s", err)
 	}
+	return ret, nil
+}
+
+func FunctionDeclsToProto(fns map[string]providers.FunctionDecl) (map[string]*tfplugin6.Function, error) {
+	if len(fns) == 0 {
+		return nil, nil
+	}
+
+	ret := make(map[string]*tfplugin6.Function, len(fns))
+	for name, fn := range fns {
+		decl, err := FunctionDeclToProto(fn)
+		if err != nil {
+			return nil, fmt.Errorf("invalid declaration for function %q: %s", name, err)
+		}
+		ret[name] = decl
+	}
+	return ret, nil
+}
+
+func FunctionDeclToProto(fn providers.FunctionDecl) (*tfplugin6.Function, error) {
+	ret := &tfplugin6.Function{}
+
+	ret.Description = fn.Description
+	ret.DescriptionKind = protoStringKind(fn.DescriptionKind)
+
+	retTy, err := json.Marshal(fn.ReturnType)
+	if err != nil {
+		return ret, fmt.Errorf("invalid return type constraint: %s", err)
+	}
+	ret.ReturnType = retTy
+
+	if len(fn.Parameters) != 0 {
+		ret.Parameters = make([]*tfplugin6.Function_Parameter, len(fn.Parameters))
+		for i, fnParam := range fn.Parameters {
+			protoParam, err := functionParamToProto(fnParam)
+			if err != nil {
+				return ret, fmt.Errorf("invalid parameter %d (%q): %s", i, fnParam.Name, err)
+			}
+			ret.Parameters[i] = protoParam
+		}
+	}
+	if fn.VariadicParameter != nil {
+		param, err := functionParamToProto(*fn.VariadicParameter)
+		if err != nil {
+			return ret, fmt.Errorf("invalid variadic parameter (%q): %s", fn.VariadicParameter.Name, err)
+		}
+		ret.VariadicParameter = param
+	}
+
+	return ret, nil
+}
+
+func functionParamToProto(param providers.FunctionParam) (*tfplugin6.Function_Parameter, error) {
+	ret := &tfplugin6.Function_Parameter{}
+	ret.Name = param.Name
+	ret.Description = param.Description
+	ret.DescriptionKind = protoStringKind(param.DescriptionKind)
+	ret.Nullable = param.Nullable
+	ret.AllowUnknownValues = param.AllowUnknownValues
+	ty, err := json.Marshal(param.Type)
+	if err != nil {
+		return ret, fmt.Errorf("invalid type constraint: %s", err)
+	}
+	ret.Type = ty
 	return ret, nil
 }

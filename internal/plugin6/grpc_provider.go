@@ -141,7 +141,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		resp.DataSources[name] = convert.ProtoToProviderSchema(data)
 	}
 
-	if decls, err := convert.FunctionDeclsFromProto(protoResp.FunctionSignatures); err == nil {
+	if decls, err := convert.FunctionDeclsFromProto(protoResp.Functions); err == nil {
 		resp.Functions = decls
 	} else {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -724,8 +724,8 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 	}
 
 	protoResp, err := p.client.CallFunction(p.ctx, &proto6.CallFunction_Request{
-		FunctionName: r.FunctionName,
-		Arguments:    args,
+		Name:      r.FunctionName,
+		Arguments: args,
 	})
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
