@@ -582,15 +582,15 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 // [ApplyPlan] function, which arranges for this function to be called
 // concurrently with the same method on other component instances and with
 // a whole-tree walk to gather up results and diagnostics.
-func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans.Plan) (*states.State, tfdiags.Diagnostics) {
+func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans.Plan) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// NOTE WELL: This function MUST either successfully apply the component
 	// instance's plan or return at least one error diagnostic explaining why
 	// it cannot.
 	//
-	// It's okay to return a nil state if also returning at least one error,
-	// but a non-error return MUST provide a non-nil state.
+	// It's okay to return a nil result if also returning at least one error,
+	// but a non-error return MUST provide a non-nil result.
 	//
 	// If the underlying modules runtime raises errors when asked to apply the
 	// plan, then this function should pass all of those errors through to its
@@ -599,6 +599,13 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 
 	addr := c.Addr()
 	decl := c.call.Declaration(ctx)
+
+	// We'll gather up our set of potentially-affected objects before we do
+	// anything else, because the modules runtime tends to mutate the objects
+	// accessible through the given plan pointer while it does its work and
+	// so we're likely to get a different/incomplete answer if we ask after
+	// work has already been done.
+	affectedResourceInstanceObjects := resourceInstanceObjectsAffectedByPlan(plan)
 
 	h := hooksFromContext(ctx)
 	hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstanceApply, c.Addr())
@@ -756,7 +763,10 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		hookMore(ctx, seq, h.EndComponentInstanceApply, addr)
 	}
 
-	return newState, diags
+	return &ComponentInstanceApplyResult{
+		FinalState:                      newState,
+		AffectedResourceInstanceObjects: affectedResourceInstanceObjects,
+	}, diags
 }
 
 // PlanPrevState returns the previous state for this component instance during
@@ -771,6 +781,24 @@ func (c *ComponentInstance) PlanPrevState(ctx context.Context) *states.State {
 	return ret
 }
 
+// CheckApplyResult returns the results from applying a plan for this object
+// using [ApplyModuleTreePlan], and diagnostics describing any problems
+// encountered when applying it.
+func (c *ComponentInstance) CheckApplyResult(ctx context.Context) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	changes := c.main.ApplyChangeResults()
+	applyResult, moreDiags, err := changes.ComponentInstanceResult(ctx, c.Addr())
+	diags = diags.Append(moreDiags)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Component instance apply not scheduled",
+			fmt.Sprintf("Terraform needs the result from applying changes to %s, but that apply was apparently not scheduled to run. This is a bug in Terraform.", c.Addr()),
+		))
+	}
+	return applyResult, diags
+}
+
 // ApplyResultState returns the new state resulting from applying a plan for
 // this object using [ApplyModuleTreePlan], or nil if the apply failed and
 // so there is no new state to return.
@@ -783,16 +811,10 @@ func (c *ComponentInstance) ApplyResultState(ctx context.Context) *states.State 
 // this object using [ApplyModuleTreePlan] and diagnostics describing any
 // problems encountered when applying it.
 func (c *ComponentInstance) CheckApplyResultState(ctx context.Context) (*states.State, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	changes := c.main.ApplyChangeResults()
-	newState, moreDiags, err := changes.ComponentInstanceResult(ctx, c.Addr())
-	diags = diags.Append(moreDiags)
-	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Component instance apply not scheduled",
-			fmt.Sprintf("Terraform needs the result from applying changes to %s, but that apply was apparently not scheduled to run. This is a bug in Terraform.", c.Addr()),
-		))
+	result, diags := c.CheckApplyResult(ctx)
+	var newState *states.State
+	if result != nil {
+		newState = result.FinalState
 	}
 	return newState, diags
 }
@@ -1060,19 +1082,41 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 	_, moreDiags = c.CheckProviders(ctx, ApplyPhase)
 	diags = diags.Append(moreDiags)
 
-	newState, moreDiags := c.CheckApplyResultState(ctx)
+	applyResult, moreDiags := c.CheckApplyResult(ctx)
 	diags = diags.Append(moreDiags)
 
-	if newState != nil {
-		for _, ms := range newState.Modules {
-			for _, rs := range ms.Resources {
-				resourceAddr := rs.Addr
+	if applyResult != nil {
+		newState := applyResult.FinalState
+		for _, rioAddr := range applyResult.AffectedResourceInstanceObjects {
+			os := newState.ResourceInstanceObjectSrc(rioAddr)
+			var providerConfigAddr addrs.AbsProviderConfig
+			var schema *configschema.Block
+			if os != nil {
+				rAddr := rioAddr.ResourceInstance.ContainingResource()
+				rs := newState.Resource(rAddr)
+				if rs == nil {
+					// We should not get here: it should be impossible to
+					// have state for a resource instance object without
+					// also having state for its containing resource, because
+					// the object is nested inside the resource state.
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Inconsistent updated state for resource",
+						fmt.Sprintf(
+							"There is a state for %s specifically, but somehow no state for its containing resource %s. This is a bug in Terraform.",
+							rioAddr, rAddr,
+						),
+					))
+					continue
+				}
+				providerConfigAddr = rs.ProviderConfig
 
-				schema, err := c.resourceTypeSchema(
+				var err error
+				schema, err = c.resourceTypeSchema(
 					ctx,
 					rs.ProviderConfig.Provider,
-					resourceAddr.Resource.Mode,
-					resourceAddr.Resource.Type,
+					rAddr.Resource.Mode,
+					rAddr.Resource.Type,
 				)
 				if err != nil {
 					// It shouldn't be possible to get here because we would've
@@ -1086,25 +1130,33 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 						"Can't fetch provider schema to save new state",
 						fmt.Sprintf(
 							"Failed to retrieve the schema for %s from provider %s: %s. This is a bug in Terraform.\n\nThe new state for this object cannot be saved. If this object was only just created, you may need to delete it manually in the target system to reconcile with the Terraform state before trying again.",
-							resourceAddr, rs.ProviderConfig.Provider, err,
+							rAddr, rs.ProviderConfig.Provider, err,
 						),
 					))
 					continue
 				}
-
-				for instKey, is := range rs.Instances {
-					instAddr := resourceAddr.Instance(instKey)
-					changes = append(changes, &stackstate.AppliedChangeResourceInstance{
-						ResourceInstanceAddr: stackaddrs.AbsResourceInstance{
-							Component: c.Addr(),
-							Item:      instAddr,
-						},
-						ProviderConfigAddr: rs.ProviderConfig,
-						NewStateSrc:        is,
-						Schema:             schema,
-					})
+			} else {
+				// Our model doesn't have any way to represent the absense
+				// of a provider configuration, so if we're trying to describe
+				// just that the object has been deleted then we'll just
+				// use a synthetic provider config address, this won't get
+				// used for anything significant anyway.
+				providerAddr := addrs.ImpliedProviderForUnqualifiedType(rioAddr.ResourceInstance.Resource.Resource.ImpliedProvider())
+				providerConfigAddr = addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: providerAddr,
 				}
 			}
+
+			changes = append(changes, &stackstate.AppliedChangeResourceInstanceObject{
+				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+					Component: c.Addr(),
+					Item:      rioAddr,
+				},
+				NewStateSrc:        os,
+				ProviderConfigAddr: providerConfigAddr,
+				Schema:             schema,
+			})
 		}
 	}
 

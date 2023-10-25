@@ -33,22 +33,23 @@ type AppliedChange interface {
 	AppliedChangeProto() (*terraform1.AppliedChange, error)
 }
 
-// AppliedChangeResourceInstance announces the result of applying changes to
-// a particular resource instance.
-type AppliedChangeResourceInstance struct {
-	ResourceInstanceAddr stackaddrs.AbsResourceInstance
-	NewStateSrc          *states.ResourceInstance
-	ProviderConfigAddr   addrs.AbsProviderConfig
+// AppliedChangeResourceInstanceObject announces the result of applying changes to
+// a particular resource instance object.
+type AppliedChangeResourceInstanceObject struct {
+	ResourceInstanceObjectAddr stackaddrs.AbsResourceInstanceObject
+	NewStateSrc                *states.ResourceInstanceObjectSrc
+	ProviderConfigAddr         addrs.AbsProviderConfig
 
 	// Schema MUST be the same schema that was used to encode the dynamic
-	// values inside NewStateSrc.
+	// values inside NewStateSrc. This can be left as nil if NewStateSrc
+	// is nil, which represents that the object has been deleted.
 	Schema *configschema.Block
 }
 
-var _ AppliedChange = (*AppliedChangeResourceInstance)(nil)
+var _ AppliedChange = (*AppliedChangeResourceInstanceObject)(nil)
 
 // AppliedChangeProto implements AppliedChange.
-func (ac *AppliedChangeResourceInstance) AppliedChangeProto() (*terraform1.AppliedChange, error) {
+func (ac *AppliedChangeResourceInstanceObject) AppliedChangeProto() (*terraform1.AppliedChange, error) {
 	// FIXME: This is just a temporary stub to allow starting development of
 	// RPC API clients that consume the description information. To implement
 	// this fully we'll also need to emit a raw representation to save as
@@ -57,44 +58,28 @@ func (ac *AppliedChangeResourceInstance) AppliedChangeProto() (*terraform1.Appli
 	// flexibility to evolve things in future without making the client's
 	// representation of the state maps become malformed.
 
-	var descs []*terraform1.AppliedChange_ChangeDescription
-	var raws []*terraform1.AppliedChange_RawChange
-
-	moreDescs, moreRaws, err := ac.protosForObject(ac.NewStateSrc.Current, states.NotDeposed)
+	descs, raws, err := ac.protosForObject(ac.ResourceInstanceObjectAddr, ac.NewStateSrc)
 	if err != nil {
-		return nil, fmt.Errorf("encoding current object for %s: %w", ac.ResourceInstanceAddr, err)
+		return nil, fmt.Errorf("encoding %s: %w", ac.ResourceInstanceObjectAddr, err)
 	}
-	descs = append(descs, moreDescs...)
-	raws = append(raws, moreRaws...)
-
-	for dk, objSrc := range ac.NewStateSrc.Deposed {
-		moreDescs, moreRaws, err := ac.protosForObject(objSrc, dk)
-		if err != nil {
-			return nil, fmt.Errorf("encoding deposed object %s for %s: %w", dk, ac.ResourceInstanceAddr, err)
-		}
-		descs = append(descs, moreDescs...)
-		raws = append(raws, moreRaws...)
-	}
-	// FIXME: We also need to emit "deletion" entries for any deposed keys
-	// that were present in the prior state but not present in the new state,
-	// but we'll need stackeval to provide us with the prior state deposed key
-	// information in order to achieve that.
-
 	return &terraform1.AppliedChange{
 		Raw:          raws,
 		Descriptions: descs,
 	}, nil
 }
 
-func (ac *AppliedChangeResourceInstance) protosForObject(objSrc *states.ResourceInstanceObjectSrc, deposedKey states.DeposedKey) ([]*terraform1.AppliedChange_ChangeDescription, []*terraform1.AppliedChange_RawChange, error) {
+func (ac *AppliedChangeResourceInstanceObject) protosForObject(addr stackaddrs.AbsResourceInstanceObject, objSrc *states.ResourceInstanceObjectSrc) ([]*terraform1.AppliedChange_ChangeDescription, []*terraform1.AppliedChange_RawChange, error) {
 	var descs []*terraform1.AppliedChange_ChangeDescription
 	var raws []*terraform1.AppliedChange_RawChange
 
 	// For resource instance objects we use the same key format for both the
 	// raw and description representations, but callers MUST NOT rely on this.
 	objKey := statekeys.ResourceInstanceObject{
-		ResourceInstance: ac.ResourceInstanceAddr,
-		DeposedKey:       deposedKey,
+		ResourceInstance: stackaddrs.AbsResourceInstance{
+			Component: addr.Component,
+			Item:      addr.Item.ResourceInstance,
+		},
+		DeposedKey: addr.Item.DeposedKey,
 	}
 	objKeyRaw := statekeys.String(objKey)
 
@@ -127,27 +112,19 @@ func (ac *AppliedChangeResourceInstance) protosForObject(objSrc *states.Resource
 		// It would be _very_ strange to get here because we should just
 		// be reversing the same encoding operation done earlier to
 		// produce this object, using exactly the same schema.
-		return nil, nil, fmt.Errorf("cannot decode new state for %s in preparation for saving it: %w", ac.ResourceInstanceAddr, err)
+		return nil, nil, fmt.Errorf("cannot decode new state for %s in preparation for saving it: %w", addr, err)
 	}
 	encValue, err := plans.NewDynamicValue(obj.Value, ty)
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot encode new state for %s in preparation for saving it: %w", ac.ResourceInstanceAddr, err)
+		return nil, nil, fmt.Errorf("cannot encode new state for %s in preparation for saving it: %w", addr, err)
 	}
 	protoValue := terraform1.NewDynamicValue(encValue, objSrc.AttrSensitivePaths)
-
-	rioAddr := stackaddrs.AbsResourceInstanceObject{
-		Component: ac.ResourceInstanceAddr.Component,
-		Item: addrs.AbsResourceInstanceObject{
-			ResourceInstance: ac.ResourceInstanceAddr.Item,
-			DeposedKey:       deposedKey,
-		},
-	}
 
 	descs = append(descs, &terraform1.AppliedChange_ChangeDescription{
 		Key: objKeyRaw,
 		Description: &terraform1.AppliedChange_ChangeDescription_ResourceInstance{
 			ResourceInstance: &terraform1.AppliedChange_ResourceInstance{
-				Addr:     terraform1.NewResourceInstanceObjectInStackAddr(rioAddr),
+				Addr:     terraform1.NewResourceInstanceObjectInStackAddr(addr),
 				NewValue: protoValue,
 			},
 		},

@@ -55,28 +55,32 @@ func TestChangeExec(t *testing.T) {
 	_, err := promising.MainTask(ctx, func(ctx context.Context) (FakeMain, error) {
 		changeResults, begin := ChangeExec(ctx, func(ctx context.Context, reg *ChangeExecRegistry[FakeMain]) {
 			t.Logf("begin setup phase")
-			reg.RegisterComponentInstanceChange(ctx, instAAddr, func(ctx context.Context, main FakeMain) (*states.State, tfdiags.Diagnostics) {
+			reg.RegisterComponentInstanceChange(ctx, instAAddr, func(ctx context.Context, main FakeMain) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
 				t.Logf("producing result for A")
-				return states.BuildState(func(ss *states.SyncState) {
-					ss.SetOutputValue(valueAddr, cty.StringVal("a"), false)
-				}), nil
+				return &ComponentInstanceApplyResult{
+					FinalState: states.BuildState(func(ss *states.SyncState) {
+						ss.SetOutputValue(valueAddr, cty.StringVal("a"), false)
+					}),
+				}, nil
 			})
-			reg.RegisterComponentInstanceChange(ctx, instBAddr, func(ctx context.Context, main FakeMain) (*states.State, tfdiags.Diagnostics) {
+			reg.RegisterComponentInstanceChange(ctx, instBAddr, func(ctx context.Context, main FakeMain) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
 				t.Logf("B is waiting for A")
 				aState, _, err := main.results.ComponentInstanceResult(ctx, instAAddr)
 				if err != nil {
 					return nil, nil
 				}
 				t.Logf("producing result for B")
-				aOutputVal := aState.OutputValue(valueAddr)
+				aOutputVal := aState.FinalState.OutputValue(valueAddr)
 				if aOutputVal == nil {
 					return nil, nil
 				}
-				return states.BuildState(func(ss *states.SyncState) {
-					ss.SetOutputValue(
-						valueAddr, cty.TupleVal([]cty.Value{aOutputVal.Value, cty.StringVal("b")}), false,
-					)
-				}), nil
+				return &ComponentInstanceApplyResult{
+					FinalState: states.BuildState(func(ss *states.SyncState) {
+						ss.SetOutputValue(
+							valueAddr, cty.TupleVal([]cty.Value{aOutputVal.Value, cty.StringVal("b")}), false,
+						)
+					}),
+				}, nil
 			})
 			t.Logf("end setup phase")
 		})
@@ -95,23 +99,23 @@ func TestChangeExec(t *testing.T) {
 		// the "B" task depends on the result from the "A" task.
 		var wg sync.WaitGroup
 		wg.Add(3)
-		var gotAState, gotBState, gotCState *states.State
+		var gotAResult, gotBResult, gotCResult *ComponentInstanceApplyResult
 		var errA, errB, errC error
 		promising.AsyncTask(ctx, promising.NoPromises, func(ctx context.Context, _ promising.PromiseContainer) {
 			t.Logf("requesting result C")
-			gotCState, _, errC = main.results.ComponentInstanceResult(ctx, instCAddr)
+			gotCResult, _, errC = main.results.ComponentInstanceResult(ctx, instCAddr)
 			t.Logf("got result C")
 			wg.Done()
 		})
 		promising.AsyncTask(ctx, promising.NoPromises, func(ctx context.Context, _ promising.PromiseContainer) {
 			t.Logf("requesting result B")
-			gotBState, _, errB = main.results.ComponentInstanceResult(ctx, instBAddr)
+			gotBResult, _, errB = main.results.ComponentInstanceResult(ctx, instBAddr)
 			t.Logf("got result B")
 			wg.Done()
 		})
 		promising.AsyncTask(ctx, promising.NoPromises, func(ctx context.Context, _ promising.PromiseContainer) {
 			t.Logf("requesting result A")
-			gotAState, _, errA = main.results.ComponentInstanceResult(ctx, instAAddr)
+			gotAResult, _, errA = main.results.ComponentInstanceResult(ctx, instAAddr)
 			t.Logf("got result A")
 			wg.Done()
 		})
@@ -129,21 +133,21 @@ func TestChangeExec(t *testing.T) {
 		if errA != nil || errB != nil {
 			t.FailNow()
 		}
-		if gotAState == nil {
+		if gotAResult == nil {
 			t.Fatal("A state is nil")
 		}
-		if gotBState == nil {
+		if gotBResult == nil {
 			t.Fatal("B state is nil")
 		}
-		if gotCState != nil {
+		if gotCResult != nil {
 			t.Fatal("C state isn't nil, but should have been")
 		}
 
-		gotAOutputVal := gotAState.OutputValue(valueAddr)
+		gotAOutputVal := gotAResult.FinalState.OutputValue(valueAddr)
 		if gotAOutputVal == nil {
 			t.Fatal("A state has no value")
 		}
-		gotBOutputVal := gotBState.OutputValue(valueAddr)
+		gotBOutputVal := gotBResult.FinalState.OutputValue(valueAddr)
 		if gotBOutputVal == nil {
 			t.Fatal("B state has no value")
 		}

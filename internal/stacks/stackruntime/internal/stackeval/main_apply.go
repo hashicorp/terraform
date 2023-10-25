@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -82,7 +81,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 				componentInstPlan := elem.V
 				reg.RegisterComponentInstanceChange(
 					ctx, addr,
-					func(ctx context.Context, main *Main) (*states.State, tfdiags.Diagnostics) {
+					func(ctx context.Context, main *Main) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
 						ctx, span := tracer.Start(ctx, addr.String()+" apply")
 						defer span.End()
 
