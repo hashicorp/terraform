@@ -137,6 +137,26 @@ func (mr *MockProviderClientMockRecorder) ImportResourceState(arg0, arg1 interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportResourceState", reflect.TypeOf((*MockProviderClient)(nil).ImportResourceState), varargs...)
 }
 
+// MoveResourceState mocks base method.
+func (m *MockProviderClient) MoveResourceState(arg0 context.Context, arg1 *tfplugin5.MoveResourceState_Request, arg2 ...grpc.CallOption) (*tfplugin5.MoveResourceState_Response, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "MoveResourceState", varargs...)
+	ret0, _ := ret[0].(*tfplugin5.MoveResourceState_Response)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MoveResourceState indicates an expected call of MoveResourceState.
+func (mr *MockProviderClientMockRecorder) MoveResourceState(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MoveResourceState", reflect.TypeOf((*MockProviderClient)(nil).MoveResourceState), varargs...)
+}
+
 // PlanResourceChange mocks base method.
 func (m *MockProviderClient) PlanResourceChange(arg0 context.Context, arg1 *tfplugin5.PlanResourceChange_Request, arg2 ...grpc.CallOption) (*tfplugin5.PlanResourceChange_Response, error) {
 	m.ctrl.T.Helper()

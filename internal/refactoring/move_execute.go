@@ -261,7 +261,7 @@ func initialiseCrossTypeMove(stmt *MoveStatement, source, target addrs.AbsResour
 	return crossTypeMove, true
 }
 
-func (crossTypeMove crossTypeMove) completeCrossTypeMove(stmt *MoveStatement, source, target addrs.AbsResourceInstance, state *states.State) {
+func (crossTypeMove *crossTypeMove) completeCrossTypeMove(stmt *MoveStatement, source, target addrs.AbsResourceInstance, state *states.State) {
 
 	sourceInstance := state.ResourceInstance(source)
 	value, err := sourceInstance.Current.Decode(crossTypeMove.sourceResourceSchema.ImpliedType())

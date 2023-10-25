@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -22,13 +25,36 @@ var (
 )
 
 func (n *NodeExecuteMoved) Execute(context EvalContext, _ walkOperation) tfdiags.Diagnostics {
-	state := context.State().Lock()
-	defer context.State().Unlock()
-
 	moves := context.Moves()
+
+	// To say this is an inefficient function is an understatement.
+	// But this is just a proof of concept, in practice we could only apply
+	// the changes to the refresh state (since that has the most up-to-date
+	// data), and then backport the changes into the other states somehow. Or
+	// maybe we'd have to do both prior state and refresh state but we could
+	// modify the applyMoves function so it accepts all the various states and
+	// applies the changes once if necessary.
+
+	state := context.State().Lock()
 	refactoring.ApplyMoves(moves, n.Config, state, func(addr addrs.AbsProviderConfig) providers.Interface {
 		return context.Provider(addr)
 	})
+	context.State().Unlock()
+
+	//prevRunState
+
+	prevRunState := context.PrevRunState().Lock()
+	refactoring.ApplyMoves(moves, n.Config, prevRunState, func(addr addrs.AbsProviderConfig) providers.Interface {
+		return context.Provider(addr)
+	})
+	context.PrevRunState().Unlock()
+
+	priorState := context.RefreshState().Lock()
+	refactoring.ApplyMoves(moves, n.Config, priorState, func(addr addrs.AbsProviderConfig) providers.Interface {
+		return context.Provider(addr)
+	})
+	context.RefreshState().Unlock()
+
 	diags := prePlanVerifyTargetedMoves(moves, n.Targets)
 	return diags
 }

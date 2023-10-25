@@ -101,14 +101,17 @@ func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
 	// the graph builders changes.
 	got := strings.TrimSpace(g.String())
 	want := strings.TrimSpace(`
+(moved)
 provider["registry.terraform.io/hashicorp/test"]
 provider["registry.terraform.io/hashicorp/test"] (close)
   test_thing.c (expand)
 root
   provider["registry.terraform.io/hashicorp/test"] (close)
 test_thing.a (expand)
+  (moved)
   provider["registry.terraform.io/hashicorp/test"]
 test_thing.b (expand)
+  (moved)
   provider["registry.terraform.io/hashicorp/test"]
 test_thing.c (expand)
   test_thing.a (expand)
@@ -157,12 +160,14 @@ func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
 	// type "nested" along with an attribute named "nested".
 	got := strings.TrimSpace(g.String())
 	want := strings.TrimSpace(`
+(moved)
 provider["registry.terraform.io/hashicorp/test"]
 provider["registry.terraform.io/hashicorp/test"] (close)
   test_thing.b (expand)
 root
   provider["registry.terraform.io/hashicorp/test"] (close)
 test_thing.a (expand)
+  (moved)
   provider["registry.terraform.io/hashicorp/test"]
 test_thing.b (expand)
   test_thing.a (expand)
@@ -225,6 +230,7 @@ func TestPlanGraphBuilder_forEach(t *testing.T) {
 }
 
 const testPlanGraphBuilderStr = `
+(moved)
 aws_instance.web (expand)
   aws_security_group.firewall (expand)
   var.foo
@@ -235,6 +241,7 @@ aws_security_group.firewall (expand)
 local.instance_id (expand)
   aws_instance.web (expand)
 openstack_floating_ip.random (expand)
+  (moved)
   provider["registry.terraform.io/hashicorp/openstack"]
 output.instance_id (expand)
   local.instance_id (expand)
@@ -252,17 +259,23 @@ root
 var.foo
 `
 const testPlanGraphBuilderForEachStr = `
+(moved)
 aws_instance.bar (expand)
+  (moved)
   provider["registry.terraform.io/hashicorp/aws"]
 aws_instance.bar2 (expand)
+  (moved)
   provider["registry.terraform.io/hashicorp/aws"]
 aws_instance.bat (expand)
   aws_instance.boo (expand)
 aws_instance.baz (expand)
+  (moved)
   provider["registry.terraform.io/hashicorp/aws"]
 aws_instance.boo (expand)
+  (moved)
   provider["registry.terraform.io/hashicorp/aws"]
 aws_instance.foo (expand)
+  (moved)
   provider["registry.terraform.io/hashicorp/aws"]
 provider["registry.terraform.io/hashicorp/aws"]
 provider["registry.terraform.io/hashicorp/aws"] (close)
