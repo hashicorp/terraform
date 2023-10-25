@@ -1,4 +1,4 @@
-## 1.7.0 (Unreleased)
+## 1.7.0-alpha20231025 (October 25, 2023)
 
 UPGRADE NOTES:
 
@@ -18,7 +18,7 @@ BUG FIXES:
 ENHANCEMENTS:
 
 * `terraform test`: Providers defined within test files can now reference variables from their configuration that are defined within the test file. ([#34069](https://github.com/hashicorp/terraform/issues/34069))
-* `import`: `for_each` can now be used to expand the `import` block to handle multiple resource instances [GH-33932]
+* `import`: `for_each` can now be used to expand the `import` block to handle multiple resource instances ([#33932](https://github.com/hashicorp/terraform/issues/33932))
 
 ## Previous Releases
 
