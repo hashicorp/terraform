@@ -2,10 +2,12 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
 type MovedTransformer struct {
+	Config  *configs.Config
 	Targets []addrs.Targetable
 
 	skip bool
@@ -17,6 +19,7 @@ func (t *MovedTransformer) Transform(g *Graph) error {
 	}
 
 	node := &NodeExecuteMoved{
+		Config:  t.Config,
 		Targets: t.Targets,
 	}
 	g.Add(node)

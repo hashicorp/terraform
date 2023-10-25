@@ -2,6 +2,7 @@ package refactoring
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type Moves struct {
@@ -9,6 +10,8 @@ type Moves struct {
 
 	Changes addrs.Map[addrs.AbsResourceInstance, MoveSuccess]
 	Blocked addrs.Map[addrs.AbsMoveable, MoveBlocked]
+
+	Diags tfdiags.Diagnostics
 }
 
 type MoveSuccess struct {

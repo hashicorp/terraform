@@ -7,10 +7,17 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/logging"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // ApplyMoves modifies in-place the given state object so that any existing
@@ -28,7 +35,7 @@ import (
 //
 // ApplyMoves expects exclusive access to the given state while it's running.
 // Don't read or write any part of the state structure until ApplyMoves returns.
-func ApplyMoves(moves *Moves, state *states.State) {
+func ApplyMoves(moves *Moves, config *configs.Config, state *states.State, getProvider func(addrs.AbsProviderConfig) providers.Interface) {
 	if len(moves.Statements) == 0 {
 		return
 	}
@@ -129,6 +136,16 @@ func ApplyMoves(moves *Moves, state *states.State) {
 							continue
 						}
 
+						crossTypeMove, crossTypeMovedRequired := initialiseCrossTypeMove(stmt, rAddr, newAddr, state, config, getProvider)
+						if crossTypeMovedRequired {
+							for key := range rs.Instances {
+								oldInst := rAddr.Instance(key)
+								newInst := newAddr.Instance(key)
+								crossTypeMove.completeCrossTypeMove(stmt, oldInst, newInst, state)
+							}
+						}
+						moves.Diags = moves.Diags.Append(crossTypeMove.diags)
+
 						for key := range rs.Instances {
 							oldInst := rAddr.Instance(key)
 							newInst := newAddr.Instance(key)
@@ -151,8 +168,13 @@ func ApplyMoves(moves *Moves, state *states.State) {
 								continue
 							}
 
-							moves.RecordMove(iAddr, newAddr)
+							crossTypeMove, crossTypeMovedRequired := initialiseCrossTypeMove(stmt, rAddr, newAddr.ContainingResource(), state, config, getProvider)
+							if crossTypeMovedRequired {
+								crossTypeMove.completeCrossTypeMove(stmt, iAddr, newAddr, state)
+							}
+							moves.Diags = moves.Diags.Append(crossTypeMove.diags)
 
+							moves.RecordMove(iAddr, newAddr)
 							state.MoveAbsResourceInstance(iAddr, newAddr)
 							continue
 						}
@@ -163,6 +185,139 @@ func ApplyMoves(moves *Moves, state *states.State) {
 			}
 		}
 	}
+}
+
+type crossTypeMove struct {
+	targetProvider              providers.Interface
+	targetProviderAddr          addrs.AbsProviderConfig
+	targetResourceSchema        *configschema.Block
+	targetResourceSchemaVersion uint64
+
+	sourceResourceSchema *configschema.Block
+	sourceProviderAddr   addrs.AbsProviderConfig
+
+	diags tfdiags.Diagnostics
+}
+
+func initialiseCrossTypeMove(stmt *MoveStatement, source, target addrs.AbsResource, state *states.State, config *configs.Config, getProvider func(addrs.AbsProviderConfig) providers.Interface) (crossTypeMove, bool) {
+	var crossTypeMove crossTypeMove
+
+	targetModule := config.DescendentForInstance(target.Module).Module
+	targetResourceConfig := targetModule.ResourceByAddr(target.Resource)
+	targetProviderAddr := targetResourceConfig.Provider
+
+	crossTypeMove.sourceProviderAddr = state.Resource(source).ProviderConfig
+
+	if targetProviderAddr.Equals(crossTypeMove.sourceProviderAddr.Provider) {
+		if source.Resource.Type == target.Resource.Type {
+			return crossTypeMove, false
+		}
+	}
+
+	crossTypeMove.targetProviderAddr = addrs.AbsProviderConfig{
+		Module:   target.Module.Module(),
+		Provider: targetProviderAddr,
+	}
+
+	if targetResourceConfig.ProviderConfigRef != nil {
+		crossTypeMove.targetProviderAddr.Alias = targetResourceConfig.ProviderConfigRef.Alias
+	}
+
+	sourceProvider := getProvider(crossTypeMove.sourceProviderAddr)
+	crossTypeMove.targetProvider = getProvider(crossTypeMove.targetProviderAddr)
+
+	if sourceProvider == nil {
+		panic(fmt.Errorf("move source provider %s is not available", crossTypeMove.sourceProviderAddr))
+	}
+
+	if crossTypeMove.targetProvider == nil {
+		panic(fmt.Errorf("move target provider %s is not available", crossTypeMove.targetProviderAddr))
+	}
+
+	targetSchema := crossTypeMove.targetProvider.GetProviderSchema()
+	crossTypeMove.diags = crossTypeMove.diags.Append(targetSchema.Diagnostics)
+	if targetSchema.Diagnostics.HasErrors() {
+		return crossTypeMove, false
+	}
+
+	sourceSchema := sourceProvider.GetProviderSchema()
+	crossTypeMove.diags = crossTypeMove.diags.Append(sourceSchema.Diagnostics)
+	if sourceSchema.Diagnostics.HasErrors() {
+		return crossTypeMove, false
+	}
+
+	if !targetSchema.ServerCapabilities.MoveResourceState {
+		crossTypeMove.diags = crossTypeMove.diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unsupported `moved` across resource types",
+			Detail:   fmt.Sprintf("The provider %q does not support moved operations across resource types and providers.", targetProviderAddr.Type),
+			Subject:  stmt.DeclRange.ToHCL().Ptr(),
+		})
+		return crossTypeMove, false
+	}
+
+	crossTypeMove.sourceResourceSchema, _ = sourceSchema.SchemaForResourceAddr(source.Resource)
+	crossTypeMove.targetResourceSchema, crossTypeMove.targetResourceSchemaVersion = targetSchema.SchemaForResourceAddr(target.Resource)
+	return crossTypeMove, true
+}
+
+func (crossTypeMove crossTypeMove) completeCrossTypeMove(stmt *MoveStatement, source, target addrs.AbsResourceInstance, state *states.State) {
+
+	sourceInstance := state.ResourceInstance(source)
+	value, err := sourceInstance.Current.Decode(crossTypeMove.sourceResourceSchema.ImpliedType())
+	if err != nil {
+		crossTypeMove.diags = crossTypeMove.diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to decode source value",
+			Detail:   fmt.Sprintf("Terraform failed to decode the value in state for %s: %v. This is a bug in Terraform; Please report it.", source.String(), err),
+			Subject:  stmt.DeclRange.ToHCL().Ptr(),
+		})
+		return
+	}
+
+	resp := crossTypeMove.targetProvider.MoveResourceState(providers.MoveResourceStateRequest{
+		SourceProviderAddress: crossTypeMove.sourceProviderAddr.String(),
+		SourceTypeName:        source.Resource.Resource.Type,
+		SourceSchemaVersion:   int64(sourceInstance.Current.SchemaVersion),
+		SourceState:           value.Value,
+		TargetTypeName:        target.Resource.Resource.Type,
+	})
+	crossTypeMove.diags = crossTypeMove.diags.Append(resp.Diagnostics)
+	if resp.Diagnostics.HasErrors() {
+		return
+	}
+
+	if resp.TargetSource == cty.NilVal {
+		crossTypeMove.diags = crossTypeMove.diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider returned invalid value",
+			Detail:   fmt.Sprintf("The provider returned an invalid value during an across type move operation to %s. This is a bug in the relevant provider; Please report it.", target),
+			Subject:  stmt.DeclRange.ToHCL().Ptr(),
+		})
+	}
+
+	newValue := &states.ResourceInstanceObject{
+		Value:               resp.TargetSource,
+		Private:             value.Private,
+		Status:              value.Status,
+		Dependencies:        value.Dependencies,
+		CreateBeforeDestroy: value.CreateBeforeDestroy,
+	}
+
+	data, err := newValue.Encode(crossTypeMove.targetResourceSchema.ImpliedType(), crossTypeMove.targetResourceSchemaVersion)
+	if err != nil {
+		crossTypeMove.diags = crossTypeMove.diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to encode source value",
+			Detail:   fmt.Sprintf("Terraform failed to encode the value in state for %s: %v. This is a bug in Terraform; Please report it.", source.String(), err),
+			Subject:  stmt.DeclRange.ToHCL().Ptr(),
+		})
+		return
+	}
+
+	// Finally, overwrite the value in state for the source address so that when
+	// it is moved it has the correct value in the new place.
+	state.SyncWrapper().SetResourceInstanceCurrent(source, data, crossTypeMove.targetProviderAddr)
 }
 
 // buildMoveStatementGraph constructs a dependency graph of the given move

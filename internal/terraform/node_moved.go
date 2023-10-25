@@ -6,11 +6,14 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type NodeExecuteMoved struct {
+	Config  *configs.Config
 	Targets []addrs.Targetable
 }
 
@@ -23,7 +26,9 @@ func (n *NodeExecuteMoved) Execute(context EvalContext, _ walkOperation) tfdiags
 	defer context.State().Unlock()
 
 	moves := context.Moves()
-	refactoring.ApplyMoves(moves, state)
+	refactoring.ApplyMoves(moves, n.Config, state, func(addr addrs.AbsProviderConfig) providers.Interface {
+		return context.Provider(addr)
+	})
 	diags := prePlanVerifyTargetedMoves(moves, n.Targets)
 	return diags
 }

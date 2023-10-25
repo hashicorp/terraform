@@ -238,8 +238,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&ForcedCBDTransformer{},
 
 		&MovedTransformer{
+			Config:  b.Config,
 			Targets: b.Targets,
-			skip:    b.Operation != walkPlan,
+			skip:    !(b.Operation == walkPlan || b.Operation == walkPlanDestroy),
 		},
 
 		// Close opened plugin connections

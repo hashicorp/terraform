@@ -496,6 +496,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	allInsts := walker.InstanceExpander.AllInstances()
 
 	moveValidateDiags := c.postPlanValidateMoves(config, moveStmts, allInsts)
+	moveValidateDiags = moveValidateDiags.Append(moves.Diags)
 	if moveValidateDiags.HasErrors() {
 		// If any of the move statements are invalid then those errors take
 		// precedence over any other errors because an incomplete move graph
