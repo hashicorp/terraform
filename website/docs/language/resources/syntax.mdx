@@ -15,12 +15,16 @@ Each resource block describes one or more infrastructure objects, such
 as virtual networks, compute instances, or higher-level components such
 as DNS records.
 
+For information about how Terraform manages resources after applying a configuration, refer to
+[Resource Behavior](/terraform/language/resources/behavior).
+
 ## Resource Syntax
 
-Resource declarations can include a number of advanced features, but only
-a small subset are required for initial use. More advanced syntax features,
-such as single resource declarations that produce multiple similar remote
-objects, are described later in this page.
+A `resource` block declares a resource of a specific type 
+with a specific local name. Terraform uses the name when referring to the resource 
+in the same module, but it has no meaning outside that module's scope.
+
+In the following example,  the `aws_instance` resource type is named `web`. The resource type and name must be unique within a module because they serve as an identifier for a given resource.
 
 ```hcl
 resource "aws_instance" "web" {
@@ -29,21 +33,17 @@ resource "aws_instance" "web" {
 }
 ```
 
-A `resource` block declares a resource of a given type ("aws_instance")
-with a given local name ("web"). The name is used to refer to this resource
-from elsewhere in the same Terraform module, but has no significance outside
-that module's scope.
-
-The resource type and name together serve as an identifier for a given
-resource and so must be unique within a module.
-
 Within the block body (between `{` and `}`) are the configuration arguments
-for the resource itself. Most arguments in this section depend on the
-resource type, and indeed in this example both `ami` and `instance_type` are
-arguments defined specifically for [the `aws_instance` resource type](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance).
+for the resource itself. The arguments often depend on the
+resource type. In this example, both `ami` and `instance_type` are special 
+arguments for [the `aws_instance` resource type](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance).
 
 -> **Note:** Resource names must start with a letter or underscore, and may
 contain only letters, digits, underscores, and dashes.
+
+Resource declarations can include more advanced features, such as single 
+resource declarations that produce multiple similar remote objects, but only
+a small subset is required for initial use. 
 
 ## Resource Types
 
@@ -53,29 +53,25 @@ attributes the resource supports.
 
 ### Providers
 
-Each resource type is implemented by a [provider](/terraform/language/providers/requirements),
-which is a plugin for Terraform that offers a collection of resource types. A
-provider usually provides resources to manage a single cloud or on-premises
-infrastructure platform. Providers are distributed separately from Terraform
-itself, but Terraform can automatically install most providers when initializing
+A [provider](/terraform/language/providers/requirements) is a plugin for Terraform 
+that offers a collection of resource types. Each resource type is implemented by a provider. A
+provider provides resources to manage a single cloud or on-premises
+infrastructure platform. Providers are distributed separately from Terraform, 
+but Terraform can automatically install most providers when initializing
 a working directory.
 
-In order to manage resources, a Terraform module must specify which providers it
-requires. Additionally, most providers need some configuration in order to
-access their remote APIs, and the root module must provide that configuration.
+To manage resources, a Terraform module must specify the required providers. Refer to 
+[Provider Requirements](/terraform/language/providers/requirements) for additional information.
 
-For more information, see:
+Most providers need some configuration to access their remote API, 
+which is provided by the root module. Refer to 
+[Provider Configuration](/terraform/language/providers/configuration) for additional information.
 
-- [Provider Requirements](/terraform/language/providers/requirements), for declaring which
-  providers a module uses.
-- [Provider Configuration](/terraform/language/providers/configuration), for configuring provider settings.
-
-Terraform usually automatically determines which provider to use based on a
-resource type's name. (By convention, resource type names start with their
-provider's preferred local name.) When using multiple configurations of a
-provider (or non-preferred local provider names), you must use the `provider`
-meta-argument to manually choose an alternate provider configuration. See
-[the `provider` meta-argument](/terraform/language/meta-arguments/resource-provider) for more details.
+Based on a resource type's name, Terraform can usually determine which provider to use. 
+By convention, resource type names start with their provider's preferred local name.
+When using multiple configurations of a provider or non-preferred local provider names, 
+you must use [the `provider` meta-argument](/terraform/language/meta-arguments/resource-provider) 
+to manually choose a provider configuration.
 
 ### Resource Arguments
 
@@ -87,41 +83,26 @@ The values for resource arguments can make full use of
 [expressions](/terraform/language/expressions) and other dynamic Terraform
 language features.
 
-There are also some _meta-arguments_ that are defined by Terraform itself
-and apply across all resource types. (See [Meta-Arguments](#meta-arguments) below.)
+[Meta-arguments](#meta-arguments) are defined by Terraform
+and apply across all resource types. 
 
 ### Documentation for Resource Types
 
 Every Terraform provider has its own documentation, describing its resource
 types and their arguments.
 
-Most publicly available providers are distributed on the
-[Terraform Registry](https://registry.terraform.io/browse/providers), which also
-hosts their documentation. When viewing a provider's page on the Terraform
-Registry, you can click the "Documentation" link in the header to browse its
-documentation. Provider documentation on the registry is versioned, and you can
-use the dropdown version menu in the header to switch which version's
-documentation you are viewing.
+Some provider documentation is still part of Terraform's core documentation, 
+but the [Terraform Registry](https://registry.terraform.io/browse/providers) 
+is the main home for all publicly available provider docs.
 
-To browse the publicly available providers and their documentation, see
-[the providers section of the Terraform Registry](https://registry.terraform.io/browse/providers).
-
--> **Note:** Provider documentation previously existed as part of Terraform's core documentation. Although some provider documentation
-might still be hosted here, the Terraform Registry is now the main home for all
-public provider docs.
-
-## Resource Behavior
-
-For more information about how Terraform manages resources when applying a
-configuration, see
-[Resource Behavior](/terraform/language/resources/behavior).
+When viewing a provider's page on the Terraform
+Registry, you can click the **Documentation** link in the header to browse its
+documentation. The documentation is versioned. To choose a different version of the provider documentation, click on the version in the provider breadcrumbs to choose a version from the drop-down menu.
 
 ## Meta-Arguments
 
-The Terraform language defines several meta-arguments, which can be used with
-any resource type to change the behavior of resources.
-
-The following meta-arguments are documented on separate pages:
+The Terraform language defines the following meta-arguments, which can be used with
+any resource type to change the behavior of resources:
 
 - [`depends_on`, for specifying hidden dependencies](/terraform/language/meta-arguments/depends_on)
 - [`count`, for creating multiple resource instances according to a count](/terraform/language/meta-arguments/count)
@@ -150,9 +131,11 @@ resource "aws_instance" "example" {
 }
 ```
 
-Custom conditions can help capture assumptions, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
-
-Refer to [Custom Condition Checks](/terraform/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
+[Custom condition checks](/terraform/language/expressions/custom-conditions#preconditions-and-postconditions) 
+can help capture assumptions so that future maintainers 
+understand the configuration design and intent. They also return useful 
+information about errors earlier and in context, helping consumers to diagnose 
+issues in their configuration.
 
 ## Operation Timeouts
 
@@ -160,7 +143,7 @@ Some resource types provide a special `timeouts` nested block argument that
 allows you to customize how long certain operations are allowed to take
 before being considered to have failed.
 For example, [`aws_db_instance`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance)
-allows configurable timeouts for `create`, `update` and `delete` operations.
+allows configurable timeouts for `create`, `update`, and `delete` operations.
 
 Timeouts are handled entirely by the resource type implementation in the
 provider, but resource types offering these features follow the convention
