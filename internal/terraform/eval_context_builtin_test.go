@@ -8,9 +8,11 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 func TestBuiltinEvalContextProviderInput(t *testing.T) {
@@ -75,14 +77,26 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 		Provider: addrs.NewDefaultProvider("test"),
 		Alias:    "foo",
 	}
+	providerAddrMock := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: addrs.NewDefaultProvider("test"),
+		Alias:    "mock",
+	}
 
-	_, err := ctx.InitProvider(providerAddrDefault)
+	_, err := ctx.InitProvider(providerAddrDefault, nil)
 	if err != nil {
 		t.Fatalf("error initializing provider test: %s", err)
 	}
-	_, err = ctx.InitProvider(providerAddrAlias)
+	_, err = ctx.InitProvider(providerAddrAlias, nil)
 	if err != nil {
 		t.Fatalf("error initializing provider test.foo: %s", err)
+	}
+
+	_, err = ctx.InitProvider(providerAddrMock, &configs.Provider{
+		Mock: true,
+	})
+	if err != nil {
+		t.Fatalf("error initializing provider test.mock: %s", err)
 	}
 }
 

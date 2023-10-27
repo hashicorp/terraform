@@ -17,6 +17,6 @@ var _ GraphNodeExecutable = (*NodeEvalableProvider)(nil)
 
 // GraphNodeExecutable
 func (n *NodeEvalableProvider) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	_, err := ctx.InitProvider(n.Addr)
+	_, err := ctx.InitProvider(n.Addr, n.Config)
 	return diags.Append(err)
 }
