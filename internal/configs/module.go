@@ -49,8 +49,9 @@ type Module struct {
 	ManagedResources map[string]*Resource
 	DataResources    map[string]*Resource
 
-	Moved  []*Moved
-	Import []*Import
+	Moved   []*Moved
+	Removed []*Removed
+	Import  []*Import
 
 	Checks map[string]*Check
 
@@ -88,8 +89,9 @@ type File struct {
 	ManagedResources []*Resource
 	DataResources    []*Resource
 
-	Moved  []*Moved
-	Import []*Import
+	Moved   []*Moved
+	Removed []*Removed
+	Import  []*Import
 
 	Checks []*Check
 }
@@ -419,6 +421,8 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	// another at this level. (We handle any references between them at
 	// runtime.)
 	m.Moved = append(m.Moved, file.Moved...)
+
+	m.Removed = append(m.Removed, file.Removed...)
 
 	for _, i := range file.Import {
 		iTo, iToOK := parseImportToStatic(i.To)
