@@ -100,8 +100,15 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Add dynamic values
-		&RootVariableTransformer{Config: b.Config, RawValues: b.RootVariableValues},
-		&ModuleVariableTransformer{Config: b.Config},
+		&RootVariableTransformer{
+			Config:       b.Config,
+			RawValues:    b.RootVariableValues,
+			DestroyApply: b.Operation == walkDestroy,
+		},
+		&ModuleVariableTransformer{
+			Config:       b.Config,
+			DestroyApply: b.Operation == walkDestroy,
+		},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
 			Config:     b.Config,

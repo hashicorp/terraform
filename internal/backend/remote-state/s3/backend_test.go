@@ -61,6 +61,15 @@ func TestBackend_impl(t *testing.T) {
 	var _ backend.Backend = new(Backend)
 }
 
+func TestBackend_InternalValidate(t *testing.T) {
+	b := New()
+
+	schema := b.ConfigSchema()
+	if err := schema.InternalValidate(); err != nil {
+		t.Fatalf("failed InternalValidate: %s", err)
+	}
+}
+
 func TestBackendConfig_original(t *testing.T) {
 	testACC(t)
 

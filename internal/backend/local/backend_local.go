@@ -508,20 +508,23 @@ func (v unparsedUnknownVariableValue) ParseVariableValue(mode configs.VariablePa
 }
 
 type unparsedTestVariableValue struct {
-	expr hcl.Expression
-	ctx  *hcl.EvalContext
+	Expr hcl.Expression
 }
+
+var _ backend.UnparsedVariableValue = unparsedTestVariableValue{}
 
 func (v unparsedTestVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	val, hclDiags := v.expr.Value(v.ctx) // nil because no function calls or variable references are allowed here
-	diags = diags.Append(hclDiags)
 
-	rng := tfdiags.SourceRangeFromHCL(v.expr.Range())
+	value, valueDiags := v.Expr.Value(nil)
+	diags = diags.Append(valueDiags)
+	if valueDiags.HasErrors() {
+		return nil, diags
+	}
 
 	return &terraform.InputValue{
-		Value:       val,
-		SourceType:  terraform.ValueFromConfig, // Test variables always come from config.
-		SourceRange: rng,
+		Value:       value,
+		SourceType:  terraform.ValueFromConfig,
+		SourceRange: tfdiags.SourceRangeFromHCL(v.Expr.Range()),
 	}, diags
 }

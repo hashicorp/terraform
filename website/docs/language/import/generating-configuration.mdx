@@ -83,7 +83,7 @@ Terraform has generated configuration and written it to generated.tf. Please rev
 The example above instructs Terraform to generate configuration in a file named `generated.tf`. The below code is an example of a `generated.tf` file.
 
 ```hcl
-resource aws_iot_thing "bar" {
+resource "aws_iot_thing" "bar" {
   name = "foo"
 }
 ```

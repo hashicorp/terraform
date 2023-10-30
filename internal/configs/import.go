@@ -54,6 +54,16 @@ func decodeImportBlock(block *hcl.Block) (*Import, hcl.Diagnostics) {
 
 		addr, toDiags := parseConfigResourceFromExpression(imp.To)
 		diags = diags.Extend(toDiags.ToHCL())
+
+		if addr.Resource.Mode != addrs.ManagedResourceMode {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid import address",
+				Detail:   "Only managed resources can be imported.",
+				Subject:  attr.Range.Ptr(),
+			})
+		}
+
 		imp.ToResource = addr
 	}
 
