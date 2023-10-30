@@ -709,7 +709,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		return nil, diags
 	}
 
-	providerClients, valid := c.neededProviderClients(ctx, PlanPhase)
+	providerClients, valid := c.neededProviderClients(ctx, ApplyPhase)
 	if !valid {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
