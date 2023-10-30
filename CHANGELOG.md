@@ -14,6 +14,7 @@ UPGRADE NOTES:
 BUG FIXES:
 
 * Ignore potential remote terraform version mismatch when running force-unlock ([#28853](https://github.com/hashicorp/terraform/issues/28853))
+* Exit Dockerfile build script early on `cd` failure. ([#34128](https://github.com/hashicorp/terraform/issues/34128))
 
 ENHANCEMENTS:
 
