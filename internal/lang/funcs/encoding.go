@@ -199,7 +199,7 @@ var GunzipBase64Func = function.New(&function.Spec{
 		sDecBuffer := bytes.NewReader(sDec)
 		gzipReader, err := gzip.NewReader(sDecBuffer)
 		if err != nil {
-			return cty.UnknownVal(cty.String), fmt.Errorf("failed to gunzip base64 decoded data: %w", err)
+			return cty.UnknownVal(cty.String), fmt.Errorf("failed to gunzip bytestream: %w", err)
 		}
 		gunzip, err := io.ReadAll(gzipReader)
 		if err != nil {
