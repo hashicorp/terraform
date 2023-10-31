@@ -51,9 +51,15 @@ type TestFile struct {
 	// Providers defines a set of providers that are available to run blocks
 	// within this test file.
 	//
+	// Some or all of these providers may be mocked providers.
+	//
 	// If empty, tests should use the default providers for the module under
 	// test.
 	Providers map[string]*Provider
+
+	// Overrides contains any specific overrides that should be applied for this
+	// test outside any mock providers.
+	Overrides addrs.Map[addrs.Targetable, *Override]
 
 	// Runs defines the sequential list of run blocks that should be executed in
 	// order.
@@ -87,6 +93,10 @@ type TestRun struct {
 	// Any variables specified locally that clash with the global variables will
 	// take precedence over the global definition.
 	Variables map[string]hcl.Expression
+
+	// Overrides contains any specific overrides that should be applied for this
+	// run block only outside any mock providers or overrides from the file.
+	Overrides addrs.Map[addrs.Targetable, *Override]
 
 	// Providers specifies the set of providers that should be loaded into the
 	// module for this run block.
@@ -181,7 +191,7 @@ type TestRunOptions struct {
 	// Refresh is analogous to the -refresh=false Terraform plan option.
 	Refresh bool
 
-	// Replace is analogous to the -refresh=ADDRESS Terraform plan option.
+	// Replace is analogous to the -replace=ADDRESS Terraform plan option.
 	Replace []hcl.Traversal
 
 	// Target is analogous to the -target=ADDRESS Terraform plan option.
@@ -198,6 +208,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 
 	tf := TestFile{
 		Providers: make(map[string]*Provider),
+		Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
 	}
 
 	runBlockNames := make(map[string]hcl.Range)
@@ -245,7 +256,84 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 			provider, providerDiags := decodeProviderBlock(block)
 			diags = append(diags, providerDiags...)
 			if provider != nil {
-				tf.Providers[provider.moduleUniqueKey()] = provider
+				key := provider.moduleUniqueKey()
+				if previous, exists := tf.Providers[key]; exists {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate provider block",
+						Detail:   fmt.Sprintf("A provider for %s is already defined at %s.", key, previous.NameRange),
+						Subject:  provider.DeclRange.Ptr(),
+					})
+					continue
+				}
+				tf.Providers[key] = provider
+			}
+		case "mock_provider":
+			provider, providerDiags := decodeMockProviderBlock(block)
+			diags = append(diags, providerDiags...)
+			if provider != nil {
+				key := provider.moduleUniqueKey()
+				if previous, exists := tf.Providers[key]; exists {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate provider block",
+						Detail:   fmt.Sprintf("A provider for %s is already defined at %s.", key, previous.NameRange),
+						Subject:  provider.DeclRange.Ptr(),
+					})
+					continue
+				}
+				tf.Providers[key] = provider
+			}
+		case "override_resource":
+			override, overrideDiags := decodeOverrideResourceBlock(block)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := tf.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_resource block",
+						Detail:   fmt.Sprintf("An override_resource block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				tf.Overrides.Put(subject, override)
+			}
+		case "override_data":
+			override, overrideDiags := decodeOverrideDataBlock(block)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := tf.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_data block",
+						Detail:   fmt.Sprintf("An override_data block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				tf.Overrides.Put(subject, override)
+			}
+		case "override_module":
+			override, overrideDiags := decodeOverrideModuleBlock(block)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := tf.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_module block",
+						Detail:   fmt.Sprintf("An override_module block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				tf.Overrides.Put(subject, override)
 			}
 		}
 	}
@@ -260,6 +348,8 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 	diags = append(diags, contentDiags...)
 
 	r := TestRun{
+		Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+
 		Name:          block.Labels[0],
 		NameDeclRange: block.LabelRanges[0],
 		DeclRange:     block.DefRange,
@@ -321,6 +411,57 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 			diags = append(diags, moduleDiags...)
 			if !moduleDiags.HasErrors() {
 				r.Module = module
+			}
+		case "override_resource":
+			override, overrideDiags := decodeOverrideResourceBlock(block)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := r.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_resource block",
+						Detail:   fmt.Sprintf("An override_resource block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				r.Overrides.Put(subject, override)
+			}
+		case "override_data":
+			override, overrideDiags := decodeOverrideDataBlock(block)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := r.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_data block",
+						Detail:   fmt.Sprintf("An override_data block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				r.Overrides.Put(subject, override)
+			}
+		case "override_module":
+			override, overrideDiags := decodeOverrideModuleBlock(block)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := r.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_module block",
+						Detail:   fmt.Sprintf("An override_module block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				r.Overrides.Put(subject, override)
 			}
 		}
 	}
@@ -549,7 +690,20 @@ var testFileSchema = &hcl.BodySchema{
 			LabelNames: []string{"name"},
 		},
 		{
+			Type:       "mock_provider",
+			LabelNames: []string{"name"},
+		},
+		{
 			Type: "variables",
+		},
+		{
+			Type: "override_resource",
+		},
+		{
+			Type: "override_data",
+		},
+		{
+			Type: "override_module",
 		},
 	},
 }
@@ -572,6 +726,15 @@ var testRunBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Type: "module",
+		},
+		{
+			Type: "override_resource",
+		},
+		{
+			Type: "override_data",
+		},
+		{
+			Type: "override_module",
 		},
 	},
 }
