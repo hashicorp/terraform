@@ -73,12 +73,22 @@ func (d *FunctionDecl) BuildFunction(name string, factory func() (Interface, err
 		Params:   params,
 		VarParam: varParam,
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-			// We promise provider developers that we won't pass them even
-			// _nested_ unknown values unless they opt in to dealing with them.
 			for i, arg := range args {
-				if !argParamDecl(i).AllowUnknownValues {
+				param := argParamDecl(i)
+				// We promise provider developers that we won't pass them even
+				// _nested_ unknown values unless they opt in to dealing with
+				// them.
+				if !param.AllowUnknownValues {
 					if !arg.IsWhollyKnown() {
 						return cty.UnknownVal(retType), nil
+					}
+				}
+
+				// We also ensure that null values are never passed where they
+				// are not expected.
+				if !param.Nullable {
+					if arg.IsNull() {
+						return cty.UnknownVal(retType), fmt.Errorf("argument %q cannot be null", param.Name)
 					}
 				}
 			}
@@ -113,6 +123,11 @@ func (p *FunctionParam) ctyParameter() function.Parameter {
 		Name:      p.Name,
 		Type:      p.Type,
 		AllowNull: p.Nullable,
+
+		// While the function may not allow DynamicVal, a `null` literal is
+		// also dynamically typed. If the parameter is dynamically typed, then
+		// we must allow this for `null` to pass through.
+		AllowDynamicType: p.Type == cty.DynamicPseudoType,
 
 		// NOTE: Setting this is not a sufficient implementation of
 		// FunctionParam.AllowUnknownValues, because cty's function
