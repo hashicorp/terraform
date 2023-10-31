@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -111,6 +112,13 @@ type Plan struct {
 	// terraform testing framework, and so isn't written into any external
 	// representation of the plan.
 	ExternalReferences []*addrs.Reference
+
+	// Overrides contains the set of overrides that were applied while making
+	// this plan. We need to provide the same set of overrides when applying
+	// the plan so we preserve them here. As with PlannedState and
+	// ExternalReferences, this is only used by the testing framework and so
+	// isn't written into any external representation of the plan.
+	Overrides *mocking.Overrides
 
 	// Timestamp is the record of truth for when the plan happened.
 	Timestamp time.Time
