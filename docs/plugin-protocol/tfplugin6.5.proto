@@ -151,35 +151,61 @@ message Schema {
     Block block = 2;
 }
 
-
 message Function {
-    repeated Function.Parameter parameters = 1;
-    Function.Parameter variadic_parameter = 2;
-    bytes return_type = 3;
+    // parameters is the ordered list of positional function parameters.
+    repeated Parameter parameters = 1;
+
+    // variadic_parameter is an optional final parameter which accepts
+    // zero or more argument values, in which Terraform will send an
+    // ordered list of the parameter type.
+    Parameter variadic_parameter = 2;
+
+    // Return is the function return parameter.
+    Return return = 3;
 
     // summary is the human-readable shortened documentation for the function.
     string summary = 4;
+
     // description is human-readable documentation for the function.
     string description = 5;
+
+    // description_kind is the formatting of the description.
     StringKind description_kind = 6;
 
-    message Parameter {
-        // for documentation/UI purposes only, because parameters are positional
-        string name = 1;
-        bytes type = 2;
-        // unless true, Terraform Core will return an error if the module
-        // author passes null
-        bool nullable = 3;
+    // deprecation_message is human-readable documentation if the
+    // function is deprecated.
+    string deprecation_message = 7;
 
-        // unless true, Terrform core will assume an unknown result with any
-        // unknown parameters.
+    message Parameter {
+        // name is the human-readable display name for the parameter.
+        string name = 1;
+
+        // type is the type constraint for the parameter.
+        bytes type = 2;
+
+        // allow_null_value when enabled denotes that a null argument value can
+        // be passed to the provider. When disabled, Terraform returns an error
+        // if the argument value is null.
+        bool allow_null_value = 3;
+
+        // allow_unknown_values when enabled denotes that only wholly known
+        // argument values will be passed to the provider. When disabled,
+        // Terraform skips the function call entirely and assumes an unknown
+        // value result from the function.
         bool allow_unknown_values = 4;
 
-        StringKind description_kind = 5;
-        string description = 6;
+        // description is human-readable documentation for the parameter.
+        string description = 5;
+
+        // description_kind is the formatting of the description.
+        StringKind description_kind = 6;
+    }
+
+    message Return {
+        // type is the type constraint for the function result.
+        bytes type = 1;
     }
 }
-
 
 // ServerCapabilities allows providers to communicate extra information
 // regarding supported protocol features. This is used to indicate

@@ -30,7 +30,7 @@ func FunctionDeclFromProto(protoFunc *tfplugin6.Function) (providers.FunctionDec
 	ret.Description = protoFunc.Description
 	ret.DescriptionKind = schemaStringKind(protoFunc.DescriptionKind)
 
-	if err := json.Unmarshal(protoFunc.ReturnType, &ret.ReturnType); err != nil {
+	if err := json.Unmarshal(protoFunc.Return.Type, &ret.ReturnType); err != nil {
 		return ret, fmt.Errorf("invalid return type constraint: %s", err)
 	}
 
@@ -60,7 +60,7 @@ func functionParamFromProto(protoParam *tfplugin6.Function_Parameter) (providers
 	ret.Name = protoParam.Name
 	ret.Description = protoParam.Description
 	ret.DescriptionKind = schemaStringKind(protoParam.DescriptionKind)
-	ret.Nullable = protoParam.Nullable
+	ret.AllowNullValue = protoParam.AllowNullValue
 	ret.AllowUnknownValues = protoParam.AllowUnknownValues
 	if err := json.Unmarshal(protoParam.Type, &ret.Type); err != nil {
 		return ret, fmt.Errorf("invalid type constraint: %s", err)
@@ -85,7 +85,9 @@ func FunctionDeclsToProto(fns map[string]providers.FunctionDecl) (map[string]*tf
 }
 
 func FunctionDeclToProto(fn providers.FunctionDecl) (*tfplugin6.Function, error) {
-	ret := &tfplugin6.Function{}
+	ret := &tfplugin6.Function{
+		Return: &tfplugin6.Function_Return{},
+	}
 
 	ret.Description = fn.Description
 	ret.DescriptionKind = protoStringKind(fn.DescriptionKind)
@@ -94,7 +96,7 @@ func FunctionDeclToProto(fn providers.FunctionDecl) (*tfplugin6.Function, error)
 	if err != nil {
 		return ret, fmt.Errorf("invalid return type constraint: %s", err)
 	}
-	ret.ReturnType = retTy
+	ret.Return.Type = retTy
 
 	if len(fn.Parameters) != 0 {
 		ret.Parameters = make([]*tfplugin6.Function_Parameter, len(fn.Parameters))
@@ -122,7 +124,7 @@ func functionParamToProto(param providers.FunctionParam) (*tfplugin6.Function_Pa
 	ret.Name = param.Name
 	ret.Description = param.Description
 	ret.DescriptionKind = protoStringKind(param.DescriptionKind)
-	ret.Nullable = param.Nullable
+	ret.AllowNullValue = param.AllowNullValue
 	ret.AllowUnknownValues = param.AllowUnknownValues
 	ty, err := json.Marshal(param.Type)
 	if err != nil {

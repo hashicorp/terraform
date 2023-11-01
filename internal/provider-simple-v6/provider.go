@@ -56,7 +56,7 @@ func Provider() providers.Interface {
 						{
 							Name:               "noop",
 							Type:               cty.DynamicPseudoType,
-							Nullable:           true,
+							AllowNullValue:     true,
 							AllowUnknownValues: true,
 							Description:        "any value",
 							DescriptionKind:    configschema.StringPlain,

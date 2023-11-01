@@ -22,7 +22,7 @@ type FunctionParam struct {
 	Name string // Only for documentation and UI, because arguments are positional
 	Type cty.Type
 
-	Nullable           bool
+	AllowNullValue     bool
 	AllowUnknownValues bool
 
 	Description     string
@@ -86,7 +86,7 @@ func (d *FunctionDecl) BuildFunction(name string, factory func() (Interface, err
 
 				// We also ensure that null values are never passed where they
 				// are not expected.
-				if !param.Nullable {
+				if !param.AllowNullValue {
 					if arg.IsNull() {
 						return cty.UnknownVal(retType), fmt.Errorf("argument %q cannot be null", param.Name)
 					}
@@ -122,7 +122,7 @@ func (p *FunctionParam) ctyParameter() function.Parameter {
 	return function.Parameter{
 		Name:      p.Name,
 		Type:      p.Type,
-		AllowNull: p.Nullable,
+		AllowNull: p.AllowNullValue,
 
 		// While the function may not allow DynamicVal, a `null` literal is
 		// also dynamically typed. If the parameter is dynamically typed, then
