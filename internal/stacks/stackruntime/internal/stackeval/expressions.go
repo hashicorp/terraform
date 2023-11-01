@@ -262,8 +262,6 @@ func (r ExprResult[T]) Diagnostic(severity tfdiags.Severity, summary string, det
 // differently depending on the phase.
 //
 // This utility works best for types that have a ready-to-use zero value.
-// If callers will need to modify the returned objects, type T should be
-// a pointer type or other reference type.
 type perEvalPhase[T any] struct {
 	mu   sync.Mutex
 	vals map[EvalPhase]*T

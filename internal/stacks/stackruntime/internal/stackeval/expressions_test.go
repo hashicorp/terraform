@@ -158,6 +158,47 @@ func TestEvalBody(t *testing.T) {
 	})
 }
 
+func TestPerEvalPhase(t *testing.T) {
+	pep := perEvalPhase[string]{}
+
+	forPlan := pep.For(PlanPhase)
+	if forPlan == nil || *forPlan != "" {
+		t.Error("value should initially be the zero value of T")
+	}
+	forApply := pep.For(ApplyPhase)
+	if forApply == nil || *forApply != "" {
+		t.Error("value should initially be the zero value of T")
+	}
+
+	*forPlan = "plan phase"
+	*forApply = "apply phase"
+
+	forPlan = pep.For(PlanPhase)
+	if forPlan == nil || *forPlan != "plan phase" {
+		t.Error("didn't remember the value for the plan phase")
+	}
+
+	forApply = pep.For(ApplyPhase)
+	if forApply == nil || *forApply != "apply phase" {
+		t.Error("didn't remember the value for the apply phase")
+	}
+
+	*(pep.For(ValidatePhase)) = "validate phase"
+
+	gotVals := map[EvalPhase]string{}
+	pep.Each(func(ep EvalPhase, t *string) {
+		gotVals[ep] = *t
+	})
+	wantVals := map[EvalPhase]string{
+		ValidatePhase: "validate phase",
+		PlanPhase:     "plan phase",
+		ApplyPhase:    "apply phase",
+	}
+	if diff := cmp.Diff(wantVals, gotVals); diff != "" {
+		t.Errorf("wrong values\n%s", diff)
+	}
+}
+
 // staticReferenceable is an implementation of [Referenceable] that just
 // returns a statically-provided value, as an aid to unit testing.
 type staticReferenceable struct {
