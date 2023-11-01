@@ -12,13 +12,15 @@ func _() {
 	_ = x[ValidatePhase-86]
 	_ = x[PlanPhase-80]
 	_ = x[ApplyPhase-65]
+	_ = x[InspectPhase-73]
 }
 
 const (
 	_EvalPhase_name_0 = "NoPhase"
 	_EvalPhase_name_1 = "ApplyPhase"
-	_EvalPhase_name_2 = "PlanPhase"
-	_EvalPhase_name_3 = "ValidatePhase"
+	_EvalPhase_name_2 = "InspectPhase"
+	_EvalPhase_name_3 = "PlanPhase"
+	_EvalPhase_name_4 = "ValidatePhase"
 )
 
 func (i EvalPhase) String() string {
@@ -27,10 +29,12 @@ func (i EvalPhase) String() string {
 		return _EvalPhase_name_0
 	case i == 65:
 		return _EvalPhase_name_1
-	case i == 80:
+	case i == 73:
 		return _EvalPhase_name_2
-	case i == 86:
+	case i == 80:
 		return _EvalPhase_name_3
+	case i == 86:
+		return _EvalPhase_name_4
 	default:
 		return "EvalPhase(" + strconv.FormatInt(int64(i), 10) + ")"
 	}

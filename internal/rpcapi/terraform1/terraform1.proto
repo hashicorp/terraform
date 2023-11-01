@@ -407,6 +407,14 @@ service Stacks {
     // Execute the changes proposed by an earlier call to PlanStackChanges.
     rpc ApplyStackChanges(ApplyStackChanges.Request)
         returns (stream ApplyStackChanges.Event);
+    // OpenStackInspector creates a stack inspector handle that can be used
+    // with subsequent calls to the "Inspect"-prefixed functions.
+    rpc OpenStackInspector(OpenStackInspector.Request)
+        returns (OpenStackInspector.Response);
+    // InspectExpressionResult evaluates an arbitrary expression in the context
+    // of a stack inspector handle.
+    rpc InspectExpressionResult(InspectExpressionResult.Request)
+        returns (InspectExpressionResult.Response);
 }
 
 message OpenStackConfiguration {
@@ -517,6 +525,38 @@ message ApplyStackChanges {
             Diagnostic diagnostic = 2;
             StackChangeProgress progress = 3;
         }
+    }
+}
+
+message OpenStackInspector {
+    message Request {
+        int64 stack_config_handle = 1;
+        map<string, google.protobuf.Any> state = 2;
+        int64 dependency_locks_handle = 3;
+        int64 provider_cache_handle = 4;
+        map<string, DynamicValueWithSource> input_values = 5;
+    }
+    message Response {
+        int64 stack_inspector_handle = 1;
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message InspectExpressionResult {
+    message Request {
+        int64 stack_inspector_handle = 1;
+        bytes expression_src = 2;
+        string stack_addr = 3;
+    }
+    message Response {
+        // The result of evaluating the expression, if successful enough to
+        // produce a result. Unpopulated if the expression was too invalid
+        // to produce a result, with the problem then described in the
+        // associated diagnostics.
+        //
+        // Uses a MessagePack encoding with in-band type information.
+        DynamicValue result = 1;
+        repeated Diagnostic diagnostics = 2;
     }
 }
 

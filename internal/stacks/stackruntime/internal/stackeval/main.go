@@ -45,6 +45,11 @@ type Main struct {
 	// gathered during the apply process.
 	applying *mainApplying
 
+	// inspecting captures the data needed when operating in the special
+	// "inspect" mode, which doesn't plan or apply but can still evaluate
+	// expressions and inspect the current configuration/state.
+	inspecting *mainInspecting
+
 	// providerFactories is a set of callback functions through which the
 	// runtime can obtain new instances of each of the available providers.
 	providerFactories ProviderFactories
@@ -77,6 +82,11 @@ type mainApplying struct {
 	opts          ApplyOpts
 	rootInputVals map[stackaddrs.InputVariable]cty.Value
 	results       *ChangeExecResults
+}
+
+type mainInspecting struct {
+	opts  InspectOpts
+	state *stackstate.State
 }
 
 func NewForValidating(config *stackconfig.Config, opts ValidateOpts) *Main {
@@ -120,6 +130,18 @@ func NewForApplying(config *stackconfig.Config, rootInputs map[stackaddrs.InputV
 	}
 }
 
+func NewForInspecting(config *stackconfig.Config, state *stackstate.State, opts InspectOpts) *Main {
+	return &Main{
+		config: config,
+		inspecting: &mainInspecting{
+			state: state,
+			opts:  opts,
+		},
+		providerFactories: opts.ProviderFactories,
+		providerTypes:     make(map[addrs.Provider]*ProviderType),
+	}
+}
+
 // Validating returns true if the receiving [Main] is configured for validating.
 //
 // If this returns false then validation methods may panic or return strange
@@ -142,6 +164,14 @@ func (m *Main) Planning() bool {
 // results.
 func (m *Main) Applying() bool {
 	return m.applying != nil
+}
+
+// Inspecting returns true if the receiving [Main] is configured for inspecting.
+//
+// If this returns false then expression evaluation in [InspectPhase] is
+// likely to panic or return strange results.
+func (m *Main) Inspecting() bool {
+	return m.inspecting != nil
 }
 
 // PlanningOpts returns the planning options to use during the planning phase,
@@ -175,6 +205,16 @@ func (m *Main) ApplyChangeResults() *ChangeExecResults {
 		panic("stacks language runtime is instantiated for applying but somehow has no change results")
 	}
 	return m.applying.results
+}
+
+// InspectingState returns the state snapshot that was provided when
+// instantiating [Main] "for inspecting", or panics if this object was not
+// instantiated in that mode.
+func (m *Main) InspectingState() *stackstate.State {
+	if !m.Inspecting() {
+		panic("stacks language runtime is not instantiated for inspecting")
+	}
+	return m.inspecting.state
 }
 
 // SourceBundle returns the source code bundle that the stack configuration
@@ -369,6 +409,23 @@ func (m *Main) RootVariableValue(ctx context.Context, addr stackaddrs.InputVaria
 			// going to report any errors for these values then we should've
 			// already done it during the plan phase, and so couldn't get here..
 		}
+
+	case InspectPhase:
+		if !m.Inspecting() {
+			panic("using InspectPhase input variable values when not configured for inspecting")
+		}
+		ret, ok := m.inspecting.opts.InputVariableValues[addr]
+		if !ok {
+			return ExternalInputValue{
+				// We use the generic "unknown value of unknown type"
+				// placeholder here because this method provides the external
+				// view of the input variables, and so we expect internal
+				// access points like methods of [InputVariable] to convert
+				// this result into the appropriate type constraint themselves.
+				Value: cty.DynamicVal,
+			}
+		}
+		return ret
 
 	default:
 		// Root input variable values are not available in any other phase.

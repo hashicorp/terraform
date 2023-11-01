@@ -25,6 +25,13 @@ const (
 	ValidatePhase EvalPhase = 'V'
 	PlanPhase     EvalPhase = 'P'
 	ApplyPhase    EvalPhase = 'A'
+
+	// InspectPhase is a special phase that is used only to inspect the
+	// current dynamic situation, without any intention of changing it.
+	// This mode allows evaluation against some existing state (possibly
+	// empty) but cannot plan to make changes nor apply previously-created
+	// plans.
+	InspectPhase EvalPhase = 'I'
 )
 
 // Referenceable is implemented by types that are identified by the

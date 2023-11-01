@@ -50,12 +50,28 @@ func (s *Stacks) FindStackConfigurationProviders(a0 context.Context, a1 *tf1.Fin
 	return impl.FindStackConfigurationProviders(a0, a1)
 }
 
+func (s *Stacks) InspectExpressionResult(a0 context.Context, a1 *tf1.InspectExpressionResult_Request) (*tf1.InspectExpressionResult_Response, error) {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return nil, err
+	}
+	return impl.InspectExpressionResult(a0, a1)
+}
+
 func (s *Stacks) OpenStackConfiguration(a0 context.Context, a1 *tf1.OpenStackConfiguration_Request) (*tf1.OpenStackConfiguration_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
 	}
 	return impl.OpenStackConfiguration(a0, a1)
+}
+
+func (s *Stacks) OpenStackInspector(a0 context.Context, a1 *tf1.OpenStackInspector_Request) (*tf1.OpenStackInspector_Response, error) {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return nil, err
+	}
+	return impl.OpenStackInspector(a0, a1)
 }
 
 func (s *Stacks) PlanStackChanges(a0 *tf1.PlanStackChanges_Request, a1 tf1.Stacks_PlanStackChangesServer) error {

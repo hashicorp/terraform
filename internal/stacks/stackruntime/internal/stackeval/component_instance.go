@@ -437,6 +437,10 @@ func (c *ComponentInstance) ModuleTreePlan(ctx context.Context) *plans.Plan {
 }
 
 func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
+	if !c.main.Planning() {
+		panic("called CheckModuleTreePlan with an evaluator not instantiated for planning")
+	}
+
 	return doOnceWithDiags(
 		ctx, &c.moduleTreePlan, c.main,
 		func(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
@@ -584,6 +588,9 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 // a whole-tree walk to gather up results and diagnostics.
 func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans.Plan) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	if !c.main.Applying() {
+		panic("called ApplyModuleTreePlan with an evaluator not instantiated for applying")
+	}
 
 	// NOTE WELL: This function MUST either successfully apply the component
 	// instance's plan or return at least one error diagnostic explaining why
@@ -819,6 +826,13 @@ func (c *ComponentInstance) CheckApplyResultState(ctx context.Context) (*states.
 	return newState, diags
 }
 
+// InspectingState returns the state as captured in the snapshot provided when
+// instantiating [Main] for [InspectPhase] evaluation.
+func (c *ComponentInstance) InspectingState(ctx context.Context) *states.State {
+	wholeState := c.main.InspectingState()
+	return wholeState.ComponentInstanceStateForModulesRuntime(c.Addr())
+}
+
 func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
 	switch phase {
 	case PlanPhase:
@@ -863,21 +877,34 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 
 		return cty.ObjectVal(attrs)
 
-	case ApplyPhase:
-		newState := c.ApplyResultState(ctx)
-		if newState == nil {
+	case ApplyPhase, InspectPhase:
+		var state *states.State
+		switch phase {
+		case ApplyPhase:
+			state = c.ApplyResultState(ctx)
+		case InspectPhase:
+			state = c.InspectingState(ctx)
+		default:
+			panic(fmt.Sprintf("unsupported evaluation phase %s", state)) // should not get here
+		}
+		if state == nil {
 			// Applying seems to have failed so we cannot provide a result
 			// value, and so we'll return a placeholder to help our caller
 			// unwind gracefully with its own placeholder result.
 			// We can't do any better than DynamicVal here because in the
 			// modules language output values don't have statically-declared
 			// result types.
+			// (This should not typically happen in InspectPhase if the caller
+			// provided a valid state snapshot, but we'll still tolerate it in
+			// that case because InspectPhase is sometimes used in our unit
+			// tests which might provide contrived input if testing component
+			// instances is not their primary focus.)
 			return cty.DynamicVal
 		}
 
-		// During the apply phase we use the root module output values from
-		// the new state to construct our value.
-		outputVals := newState.RootModule().OutputValues
+		// For apply and inspect phases we use the root module output values
+		// from the state to construct our value.
+		outputVals := state.RootModule().OutputValues
 		attrs := make(map[string]cty.Value, len(outputVals))
 		for _, ov := range outputVals {
 			name := ov.Addr.OutputValue.Name

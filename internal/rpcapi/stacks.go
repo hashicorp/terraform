@@ -447,6 +447,72 @@ Events:
 	return nil
 }
 
+func (s *stacksServer) OpenStackInspector(ctx context.Context, req *terraform1.OpenStackInspector_Request) (*terraform1.OpenStackInspector_Response, error) {
+	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
+	cfg := s.handles.StackConfig(cfgHnd)
+	if cfg == nil {
+		return nil, status.Error(codes.InvalidArgument, "the given stack configuration handle is invalid")
+	}
+	depsHnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
+	var deps *depsfile.Locks
+	if !depsHnd.IsNil() {
+		deps = s.handles.DependencyLocks(depsHnd)
+		if deps == nil {
+			return nil, status.Error(codes.InvalidArgument, "the given dependency locks handle is invalid")
+		}
+	} else {
+		deps = depsfile.NewLocks()
+	}
+	providerCacheHnd := handle[*providercache.Dir](req.ProviderCacheHandle)
+	var providerCache *providercache.Dir
+	if !providerCacheHnd.IsNil() {
+		providerCache = s.handles.ProviderPluginCache(providerCacheHnd)
+		if providerCache == nil {
+			return nil, status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
+		}
+	} else {
+		// NOTE: providerCache can be nil if no handle was provided, in which
+		// case the call can only use built-in providers. All code below
+		// must avoid panicking when providerCache is nil, but is allowed to
+		// return an InvalidArgument error in that case.
+	}
+	// (providerFactoriesForLocks explicitly supports a nil providerCache)
+	providerFactories, err := providerFactoriesForLocks(deps, providerCache)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+	}
+	inputValues, err := externalInputValuesFromProto(req.InputValues)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid input values: %s", err)
+	}
+	state, err := stackstate.LoadFromProto(req.State)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "can't load state snapshot: %s", err)
+	}
+
+	hnd := s.handles.NewStackInspector(&stacksInspector{
+		Config:            cfg,
+		State:             state,
+		ProviderFactories: providerFactories,
+		InputValues:       inputValues,
+	})
+
+	return &terraform1.OpenStackInspector_Response{
+		StackInspectorHandle: hnd.ForProtobuf(),
+		// There are currently no situations that return diagnostics, but
+		// we reserve the right to add some later.
+	}, nil
+}
+
+func (s *stacksServer) InspectExpressionResult(ctx context.Context, req *terraform1.InspectExpressionResult_Request) (*terraform1.InspectExpressionResult_Response, error) {
+	hnd := handle[*stacksInspector](req.StackInspectorHandle)
+	insp := s.handles.StackInspector(hnd)
+	if insp == nil {
+		return nil, status.Error(codes.InvalidArgument, "the given stack inspector handle is invalid")
+	}
+	return insp.InspectExpressionResult(ctx, req)
+}
+
 func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
 	return stackChangeHooks(
 		func(scp *terraform1.StackChangeProgress) error {

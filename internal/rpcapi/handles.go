@@ -145,6 +145,19 @@ func (t *handleTable) CloseProviderPluginCache(hnd handle[*providercache.Dir]) e
 	return closeHandle(t, hnd)
 }
 
+func (t *handleTable) NewStackInspector(dir *stacksInspector) handle[*stacksInspector] {
+	return newHandle(t, dir)
+}
+
+func (t *handleTable) StackInspector(hnd handle[*stacksInspector]) *stacksInspector {
+	ret, _ := readHandle(t, hnd) // non-existent or invalid returns nil
+	return ret
+}
+
+func (t *handleTable) CloseStackInspector(hnd handle[*stacksInspector]) error {
+	return closeHandle(t, hnd)
+}
+
 func newHandle[ObjT any](t *handleTable, obj ObjT) handle[ObjT] {
 	t.mu.Lock()
 	hnd := t.nextHandle
