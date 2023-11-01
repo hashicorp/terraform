@@ -163,70 +163,9 @@ func (c *StackCall) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 			var diags tfdiags.Diagnostics
 			forEachVal := c.ForEachValue(ctx, phase)
 
-			switch {
-			case forEachVal == cty.NilVal:
-				// No for_each expression at all, then. We have exactly one instance
-				// without an instance key and with no repetition data.
-				return map[addrs.InstanceKey]*StackCallInstance{
-					addrs.NoKey: newStackCallInstance(c, addrs.NoKey, instances.RepetitionData{
-						// no repetition symbols available in this case
-					}),
-				}, diags
-
-			case !forEachVal.IsKnown():
-				// The for_each expression is too invalid for us to be able to
-				// know which instances exist. A totally nil map (as opposed to a
-				// non-nil map of length zero) signals that situation.
-				return nil, diags
-
-			default:
-				// Otherwise we should be able to assume the value is valid per the
-				// definition of [CheckForEachValue]. The following will panic if
-				// that other function doesn't satisfy its documented contract;
-				// if that happens, prefer to correct [CheckForEachValue] than to
-				// add additional complexity here.
-
-				// NOTE: We MUST return a non-nil map from every return path under
-				// this case, even if there are zero elements in it, because a nil map
-				// represents an _invalid_ for_each expression (handled above).
-
-				ty := forEachVal.Type()
-				switch {
-				case ty.IsObjectType() || ty.IsMapType():
-					elems := forEachVal.AsValueMap()
-					ret := make(map[addrs.InstanceKey]*StackCallInstance, len(elems))
-					for k, v := range elems {
-						ik := addrs.StringKey(k)
-						ret[ik] = newStackCallInstance(c, ik, instances.RepetitionData{
-							EachKey:   cty.StringVal(k),
-							EachValue: v,
-						})
-					}
-					return ret, diags
-
-				case ty.IsSetType():
-					// ForEachValue should have already guaranteed us a set of strings,
-					// but we'll check again here just so we can panic more intellgibly
-					// if that function is buggy.
-					if ty.ElementType() != cty.String {
-						panic(fmt.Sprintf("ForEachValue returned invalid result %#v", forEachVal))
-					}
-
-					elems := forEachVal.AsValueSlice()
-					ret := make(map[addrs.InstanceKey]*StackCallInstance, len(elems))
-					for _, sv := range elems {
-						k := addrs.StringKey(sv.AsString())
-						ret[k] = newStackCallInstance(c, k, instances.RepetitionData{
-							EachKey:   sv,
-							EachValue: sv,
-						})
-					}
-					return ret, diags
-
-				default:
-					panic(fmt.Sprintf("ForEachValue returned invalid result %#v", forEachVal))
-				}
-			}
+			return instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *StackCallInstance {
+				return newStackCallInstance(c, ik, rd)
+			}), diags
 		},
 	)
 }
