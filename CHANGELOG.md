@@ -1,4 +1,4 @@
-## 1.6.3 (Unreleased)
+## 1.6.3 (November 1, 2023)
 
 ENHANCEMENTS:
 * backend/s3: Adds the parameter `skip_s3_checksum` to allow users to disable checksum on S3 uploads for compatibility with "S3-compatible" APIs. ([#34127](https://github.com/hashicorp/terraform/pull/34127))
