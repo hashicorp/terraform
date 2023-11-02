@@ -31,7 +31,12 @@ type Stack struct {
 
 	// The remaining fields memoize other objects we might create in response
 	// to method calls. Must lock "mu" before interacting with them.
-	mu             sync.Mutex
+	mu sync.Mutex
+	// childStacks is a cache of all of the child stacks that have been
+	// requested, but this could include non-existant child stacks requested
+	// through ChildStackUnchecked, so should not be used directly by
+	// anything that needs to return only child stacks that actually exist;
+	// use ChildStackChecked if you need to be sure it's actually configured.
 	childStacks    map[stackaddrs.StackInstanceStep]*Stack
 	inputVariables map[stackaddrs.InputVariable]*InputVariable
 	stackCalls     map[stackaddrs.StackCall]*StackCall
@@ -80,15 +85,23 @@ func (s *Stack) ParentStack(ctx context.Context) *Stack {
 // then consider [Stack.ChildStackChecked], but note that it's more expensive
 // because it must block for the "for_each" expression to be fully resolved.
 func (s *Stack) ChildStackUnchecked(ctx context.Context, addr stackaddrs.StackInstanceStep) *Stack {
-	// First we'll check if the step address refers to a
 	calls := s.EmbeddedStackCalls(ctx)
 	callAddr := stackaddrs.StackCall{Name: addr.Name}
 	if _, exists := calls[callAddr]; !exists {
 		return nil
 	}
 
-	childAddr := s.Addr().Child(addr.Name, addr.Key)
-	return newStack(s.main, childAddr)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, exists := s.childStacks[addr]; !exists {
+		childAddr := s.Addr().Child(addr.Name, addr.Key)
+		if s.childStacks == nil {
+			s.childStacks = make(map[stackaddrs.StackInstanceStep]*Stack)
+		}
+		s.childStacks[addr] = newStack(s.main, childAddr)
+	}
+
+	return s.childStacks[addr]
 }
 
 // ChildStackChecked returns an object representing a child of this stack,

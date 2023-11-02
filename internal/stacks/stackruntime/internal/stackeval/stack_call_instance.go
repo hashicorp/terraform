@@ -121,6 +121,7 @@ func (c *StackCallInstance) CheckInputVariableValues(ctx context.Context, phase 
 		}
 		expr = result.Expression
 		hclCtx = result.EvalContext
+		v = result.Value
 	}
 
 	v = defs.Apply(v)

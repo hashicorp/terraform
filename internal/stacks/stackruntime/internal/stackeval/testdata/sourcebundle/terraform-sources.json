@@ -1,0 +1,9 @@
+{
+    "terraform_source_bundle": 1,
+    "packages": [
+      {
+        "source": "https://testing.invalid/input_variable.tar.gz",
+        "local": "input_variable"
+      }
+    ]
+  }
