@@ -50,14 +50,6 @@ var _ AppliedChange = (*AppliedChangeResourceInstanceObject)(nil)
 
 // AppliedChangeProto implements AppliedChange.
 func (ac *AppliedChangeResourceInstanceObject) AppliedChangeProto() (*terraform1.AppliedChange, error) {
-	// FIXME: This is just a temporary stub to allow starting development of
-	// RPC API clients that consume the description information. To implement
-	// this fully we'll also need to emit a raw representation to save as
-	// part of the raw state map, and also think a little harder about how
-	// to structure the keys for the two state maps so we'll have the
-	// flexibility to evolve things in future without making the client's
-	// representation of the state maps become malformed.
-
 	descs, raws, err := ac.protosForObject(ac.ResourceInstanceObjectAddr, ac.NewStateSrc)
 	if err != nil {
 		return nil, fmt.Errorf("encoding %s: %w", ac.ResourceInstanceObjectAddr, err)
