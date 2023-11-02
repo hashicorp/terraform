@@ -137,13 +137,83 @@ type TestRun struct {
 	DeclRange          hcl.Range
 }
 
-// Validate does a very simple and cursory check across the run block to look
+// Validate does a very simple and cursory check across the test file to look
 // for simple issues we can highlight early on.
-func (run *TestRun) Validate() tfdiags.Diagnostics {
+//
+// This function only returns warnings in the diagnostics. Callers of this
+// function usually do not validate the returned diagnostics as a result. If
+// you change this function, make sure to update the callers as well.
+func (file *TestFile) Validate(config *Config) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	// For now, we only want to make sure all the ExpectFailure references are
-	// the correct kind of reference.
+	for _, provider := range file.Providers {
+		if !provider.Mock {
+			continue
+		}
+
+		for _, elem := range provider.MockData.Overrides.Elems {
+			if elem.Value.Source != MockProviderOverrideSource {
+				// Only check overrides that are defined directly within the
+				// mock provider block of this file. This is a safety check
+				// against any override blocks loaded from a dedicated data
+				// file, for these we won't raise warnings if they target
+				// resources that don't exist.
+				continue
+			}
+
+			if !file.canTarget(config, elem.Key) {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Invalid override target",
+					Detail:   fmt.Sprintf("The override target %s does not exist within the configuration under test. This could indicate or a typo in the target address or an unnecessary override.", elem.Key),
+					Subject:  elem.Value.TargetRange.Ptr(),
+				})
+			}
+		}
+	}
+
+	for _, elem := range file.Overrides.Elems {
+		if !file.canTarget(config, elem.Key) {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Invalid override target",
+				Detail:   fmt.Sprintf("The override target %s does not exist within the configuration under test. This could indicate or a typo in the target address or an unnecessary override.", elem.Key),
+				Subject:  elem.Value.TargetRange.Ptr(),
+			})
+		}
+	}
+
+	return diags
+}
+
+// canTarget is a helper function, that just checks all the available
+// configurations to make sure at least one contains the specified target.
+func (file *TestFile) canTarget(config *Config, target addrs.Targetable) bool {
+	// If the target is in the main configuration, then easy.
+	if config.TargetExists(target) {
+		return true
+	}
+
+	// But, we could be targeting something in configuration loaded by one of
+	// the run blocks.
+	for _, run := range file.Runs {
+		if run.Module != nil {
+			if run.ConfigUnderTest.TargetExists(target) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// Validate does a very simple and cursory check across the run block to look
+// for simple issues we can highlight early on.
+func (run *TestRun) Validate(config *Config) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// First, we want to make sure all the ExpectFailure references are the
+	// correct kind of reference.
 	for _, traversal := range run.ExpectFailures {
 
 		reference, refDiags := addrs.ParseRefFromTestingScope(traversal)
@@ -165,6 +235,19 @@ func (run *TestRun) Validate() tfdiags.Diagnostics {
 			})
 		}
 
+	}
+
+	// All the overrides defined within a run block should target an existing
+	// configuration block.
+	for _, elem := range run.Overrides.Elems {
+		if !config.TargetExists(elem.Key) {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Invalid override target",
+				Detail:   fmt.Sprintf("The override target %s does not exist within the configuration under test. This could indicate or a typo in the target address or an unnecessary override.", elem.Key),
+				Subject:  elem.Value.TargetRange.Ptr(),
+			})
+		}
 	}
 
 	return diags
@@ -285,7 +368,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 				tf.Providers[key] = provider
 			}
 		case "override_resource":
-			override, overrideDiags := decodeOverrideResourceBlock(block)
+			override, overrideDiags := decodeOverrideResourceBlock(block, TestFileOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -302,7 +385,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 				tf.Overrides.Put(subject, override)
 			}
 		case "override_data":
-			override, overrideDiags := decodeOverrideDataBlock(block)
+			override, overrideDiags := decodeOverrideDataBlock(block, TestFileOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -319,7 +402,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 				tf.Overrides.Put(subject, override)
 			}
 		case "override_module":
-			override, overrideDiags := decodeOverrideModuleBlock(block)
+			override, overrideDiags := decodeOverrideModuleBlock(block, TestFileOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -413,7 +496,7 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 				r.Module = module
 			}
 		case "override_resource":
-			override, overrideDiags := decodeOverrideResourceBlock(block)
+			override, overrideDiags := decodeOverrideResourceBlock(block, RunBlockOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -430,7 +513,7 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 				r.Overrides.Put(subject, override)
 			}
 		case "override_data":
-			override, overrideDiags := decodeOverrideDataBlock(block)
+			override, overrideDiags := decodeOverrideDataBlock(block, RunBlockOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -447,7 +530,7 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 				r.Overrides.Put(subject, override)
 			}
 		case "override_module":
-			override, overrideDiags := decodeOverrideModuleBlock(block)
+			override, overrideDiags := decodeOverrideModuleBlock(block, RunBlockOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
