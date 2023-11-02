@@ -294,9 +294,6 @@ type PlannedChangeOutputValue struct {
 
 	OldValue, NewValue           plans.DynamicValue
 	OldValueMarks, NewValueMarks []cty.PathValueMarks
-	// TODO: We'll need to encode the old and new _types_ here too, because
-	// they aren't available from a schema as is the case for the similar
-	// value fields in PlannedChangeResourceInstancePlanned.
 }
 
 var _ PlannedChange = (*PlannedChangeOutputValue)(nil)
