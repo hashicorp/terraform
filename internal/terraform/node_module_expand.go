@@ -200,8 +200,23 @@ func (n *nodeCloseModule) Execute(ctx EvalContext, op walkOperation) (diags tfdi
 				}
 			}
 
+			// we don't ever remove a module that's been overridden - it will
+			// have outputs that have been set by the user and wouldn't be
+			// removed during normal operations as the module would have created
+			// resources. Overrides are only set during tests, and stop the
+			// module creating resources but we still care about the outputs.
+			overridden := false
+			if overrides := ctx.Overrides(); !overrides.Empty() {
+				_, overridden = overrides.GetOverride(mod.Addr)
+
+				if !overridden && len(mod.Addr) > 0 && mod.Addr[len(mod.Addr)-1].InstanceKey != addrs.NoKey {
+					// Could be all module instances are overridden.
+					_, overridden = overrides.GetOverride(mod.Addr.ContainingModule())
+				}
+			}
+
 			// empty child modules are always removed
-			if len(mod.Resources) == 0 && !mod.Addr.IsRoot() {
+			if len(mod.Resources) == 0 && !mod.Addr.IsRoot() && !overridden {
 				delete(state.Modules, modKey)
 			}
 		}

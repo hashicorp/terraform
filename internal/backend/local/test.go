@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest"
 	configtest "github.com/hashicorp/terraform/internal/moduletest/config"
 	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -601,6 +602,7 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 	planOpts := &terraform.PlanOpts{
 		Mode:         plans.DestroyMode,
 		SetVariables: setVariables,
+		Overrides:    mocking.PackageOverrides(run.Config, file.Config, config),
 	}
 
 	tfCtx, ctxDiags := terraform.NewContext(runner.Suite.Opts)
@@ -671,6 +673,7 @@ func (runner *TestFileRunner) plan(config *configs.Config, state *states.State, 
 		SkipRefresh:        !run.Config.Options.Refresh,
 		SetVariables:       variables,
 		ExternalReferences: references,
+		Overrides:          mocking.PackageOverrides(run.Config, file.Config, config),
 	}
 
 	tfCtx, ctxDiags := terraform.NewContext(runner.Suite.Opts)

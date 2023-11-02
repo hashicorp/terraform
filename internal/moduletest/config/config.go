@@ -67,9 +67,7 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 	if len(run.Config.Providers) > 0 {
 		// Then we'll only copy over and overwrite the specific providers asked
 		// for by this run block.
-
 		for _, ref := range run.Config.Providers {
-
 			testProvider, ok := file.Config.Providers[ref.InParent.String()]
 			if !ok {
 				// Then this reference was invalid as we didn't have the
@@ -96,9 +94,10 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 					AvailableVariables: availableVariables,
 					AvailableRunBlocks: availableRunBlocks,
 				},
+				Mock:      testProvider.Mock,
+				MockData:  testProvider.MockData,
 				DeclRange: testProvider.DeclRange,
 			}
-
 		}
 	} else {
 		// Otherwise, let's copy over and overwrite all providers specified by
@@ -123,6 +122,8 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 					AvailableVariables: availableVariables,
 					AvailableRunBlocks: availableRunBlocks,
 				},
+				Mock:      provider.Mock,
+				MockData:  provider.MockData,
 				DeclRange: provider.DeclRange,
 			}
 		}

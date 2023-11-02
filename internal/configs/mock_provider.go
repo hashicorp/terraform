@@ -32,7 +32,9 @@ func decodeMockProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 		NameRange: block.LabelRanges[0],
 		DeclRange: block.DefRange,
 
-		Config: config,
+		// For mock providers we don't support any internal configuration, so
+		// we always just pass in an empty body.
+		Config: hcl.EmptyBody(),
 
 		// Mark this provider as being mocked.
 		Mock: true,
