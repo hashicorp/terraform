@@ -87,9 +87,11 @@ type MockResource struct {
 type OverrideSource int
 
 const (
-	RunBlockOverrideSource OverrideSource = iota
+	UnknownOverrideSource OverrideSource = iota
+	RunBlockOverrideSource
 	TestFileOverrideSource
 	MockProviderOverrideSource
+	MockDataFileOverrideSource
 )
 
 // Override targets a specific module, resource or data source with a set of
