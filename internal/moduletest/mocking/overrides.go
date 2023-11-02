@@ -72,41 +72,63 @@ func PackageOverrides(run *configs.TestRun, file *configs.TestFile, config *conf
 	return overrides
 }
 
-// IsDirectOrNestedOverriddenModule returns true if the module is either
-// overridden directly or nested within another module that is already being
-// overridden.
+// IsOverridden returns true if the module is either overridden directly or
+// nested within another module that is already being overridden.
 //
 // For this function, we know that overrides defined within mock providers
 // cannot target modules directly. Therefore, we only need to check the local
 // overrides within this function.
-func (overrides *Overrides) IsDirectOrNestedOverriddenModule(module addrs.ModuleInstance) bool {
+func (overrides *Overrides) IsOverridden(module addrs.ModuleInstance) bool {
 	if overrides.localOverrides.Has(module) {
 		// Short circuit things, if we have an exact match just return now.
 		return true
 	}
 
 	// Otherwise, check for parents.
-	return overrides.IsNestedOverriddenModule(module)
+	for _, elem := range overrides.localOverrides.Elems {
+		if elem.Key.TargetContains(module) {
+			// Then we have an ancestor of module being overridden instead of
+			// module being overridden directly.
+			return true
+		}
+	}
+
+	return false
 }
 
-// IsNestedOverriddenModule returns true if a parent or ancestor of the module
-// is overridden, but not if this module is overridden directly.
+// IsDeeplyOverridden returns true if an ancestor of this module is overridden
+// but not if the module is overridden directly.
+//
+// This function doesn't consider an instanced module to be deeply overridden
+// by the uninstanced reference to the same module. So,
+// IsDeeplyOverridden("mod.child[0]") would return false if "mod.child" has been
+// overridden.
 //
 // For this function, we know that overrides defined within mock providers
 // cannot target modules directly. Therefore, we only need to check the local
 // overrides within this function.
-func (overrides *Overrides) IsNestedOverriddenModule(module addrs.ModuleInstance) bool {
+func (overrides *Overrides) IsDeeplyOverridden(module addrs.ModuleInstance) bool {
 	for _, elem := range overrides.localOverrides.Elems {
 		target := elem.Key
-		if instance, ok := target.(addrs.ModuleInstance); ok {
-			if instance.Equal(module) {
-				// We are looking for things that are within the key but are not
-				// exact matches.
-				continue
-			}
-		}
 
 		if target.TargetContains(module) {
+			// So we do think it contains it, but it could be matching here
+			// because of equality or because we have an instanced module.
+			if instance, ok := target.(addrs.ModuleInstance); ok {
+				if instance.Equal(module) {
+					// Then we're exactly equal, so not deeply nested.
+					continue
+				}
+
+				if instance.Module().Equal(module.Module()) {
+					// Then we're an instanced version of they other one, so
+					// also not deeply nested by our definition of deeply.
+					continue
+				}
+
+			}
+
+			// Otherwise, it's deeply nested.
 			return true
 		}
 	}

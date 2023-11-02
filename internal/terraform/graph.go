@@ -170,7 +170,7 @@ func (g *Graph) checkAndApplyOverrides(overrides *mocking.Overrides, target dag.
 		// For resource and data sources, we want to skip them completely if
 		// they are within an overridden module.
 		resourceInstance := v.ResourceInstanceAddr()
-		if overrides.IsDirectOrNestedOverriddenModule(resourceInstance.Module) {
+		if overrides.IsOverridden(resourceInstance.Module) {
 			return true
 		}
 
@@ -188,18 +188,16 @@ func (g *Graph) checkAndApplyOverrides(overrides *mocking.Overrides, target dag.
 		// For outputs, we want to skip them completely if they are deeply
 		// nested within an overridden module.
 		module := v.Path()
-		if overrides.IsNestedOverriddenModule(module) {
+		if overrides.IsDeeplyOverridden(module) {
 			// If the output is deeply nested under an overridden module we want
 			// to skip
 			return true
 		}
 
-		// Otherwise, if we are in a directly overridden module then we want to
-		// apply the overridden output values.
-		if override, ok := overrides.GetOverride(module); ok {
+		setOverride := func(values cty.Value) {
 			key := v.Addr.OutputValue.Name
-			if override.Values.Type().HasAttribute(key) {
-				v.override = override.Values.GetAttr(key)
+			if values.Type().HasAttribute(key) {
+				v.override = values.GetAttr(key)
 			} else {
 				// If we don't have a value provided for an output, then we'll
 				// just set it to be null.
@@ -207,6 +205,22 @@ func (g *Graph) checkAndApplyOverrides(overrides *mocking.Overrides, target dag.
 				// TODO(liamcervante): Can we generate a value here? Probably
 				//   not as we don't know the type.
 				v.override = cty.NullVal(cty.DynamicPseudoType)
+			}
+		}
+
+		// Otherwise, if we are in a directly overridden module then we want to
+		// apply the overridden output values.
+		if override, ok := overrides.GetOverride(module); ok {
+			setOverride(override.Values)
+			return false
+		}
+
+		lastStepInstanced := len(module) > 0 && module[len(module)-1].InstanceKey != addrs.NoKey
+		if lastStepInstanced {
+			// Then we could have overridden all the instances of this module.
+			if override, ok := overrides.GetOverride(module.ContainingModule()); ok {
+				setOverride(override.Values)
+				return false
 			}
 		}
 
@@ -218,7 +232,7 @@ func (g *Graph) checkAndApplyOverrides(overrides *mocking.Overrides, target dag.
 		// We checked for resources and outputs earlier, so we know this isn't
 		// anything special.
 		module := v.Path()
-		if overrides.IsDirectOrNestedOverriddenModule(module) {
+		if overrides.IsOverridden(module) {
 			return true
 		}
 	}

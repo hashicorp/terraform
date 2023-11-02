@@ -392,6 +392,117 @@ output "id" {
 				"value": cty.StringVal("Hello, world!"),
 			}),
 		},
+		"resource_instance_overrides": {
+			configs: map[string]string{
+				"main.tf": `
+provider "test" {}
+
+resource "test_instance" "instance" {
+    count = 3
+	value = "Hello, world!"
+}
+
+output "value" {
+	value = test_instance.instance.*.value
+}
+
+output "id" {
+	value = test_instance.instance.*.id
+}`,
+			},
+			overrides: mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
+				overrides.Put(mustAbsResourceAddr("test_instance.instance"), &configs.Override{
+					Values: cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("generic"),
+					}),
+				})
+				overrides.Put(mustResourceInstanceAddr("test_instance.instance[1]"), &configs.Override{
+					Values: cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("specific"),
+					}),
+				})
+			}),
+			outputs: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.TupleVal([]cty.Value{
+					cty.StringVal("generic"),
+					cty.StringVal("specific"),
+					cty.StringVal("generic"),
+				}),
+				"value": cty.TupleVal([]cty.Value{
+					cty.StringVal("Hello, world!"),
+					cty.StringVal("Hello, world!"),
+					cty.StringVal("Hello, world!"),
+				}),
+			}),
+		},
+		"module_instance_overrides": {
+			configs: map[string]string{
+				"main.tf": `
+provider "test" {}
+
+module "mod" {
+  count = 3
+  source = "./mod"
+}
+
+output "value" {
+	value = module.mod.*.value
+}
+
+output "id" {
+	value = module.mod.*.id
+}`,
+				"mod/main.tf": `
+terraform {
+  required_providers {
+    replaced = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
+resource "test_instance" "instance" {
+    provider = replaced
+	value = "Hello, world!"
+}
+
+output "value" {
+	value = test_instance.instance.value
+}
+
+output "id" {
+	value = test_instance.instance.id
+}
+
+`,
+			},
+			overrides: mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
+				overrides.Put(mustModuleInstance("module.mod"), &configs.Override{
+					Values: cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("generic"),
+						"value": cty.StringVal("Hello, world!"),
+					}),
+				})
+				overrides.Put(mustModuleInstance("module.mod[1]"), &configs.Override{
+					Values: cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("specific"),
+						"value": cty.StringVal("Hello, world!"),
+					}),
+				})
+			}),
+			outputs: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.TupleVal([]cty.Value{
+					cty.StringVal("generic"),
+					cty.StringVal("specific"),
+					cty.StringVal("generic"),
+				}),
+				"value": cty.TupleVal([]cty.Value{
+					cty.StringVal("Hello, world!"),
+					cty.StringVal("Hello, world!"),
+					cty.StringVal("Hello, world!"),
+				}),
+			}),
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
