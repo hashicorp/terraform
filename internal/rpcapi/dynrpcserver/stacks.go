@@ -42,14 +42,6 @@ func (s *Stacks) FindStackConfigurationComponents(a0 context.Context, a1 *tf1.Fi
 	return impl.FindStackConfigurationComponents(a0, a1)
 }
 
-func (s *Stacks) FindStackConfigurationProviders(a0 context.Context, a1 *tf1.FindStackConfigurationProviders_Request) (*tf1.FindStackConfigurationProviders_Response, error) {
-	impl, err := s.realRPCServer()
-	if err != nil {
-		return nil, err
-	}
-	return impl.FindStackConfigurationProviders(a0, a1)
-}
-
 func (s *Stacks) InspectExpressionResult(a0 context.Context, a1 *tf1.InspectExpressionResult_Request) (*tf1.InspectExpressionResult_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {

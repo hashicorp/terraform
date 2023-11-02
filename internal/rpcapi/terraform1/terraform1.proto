@@ -390,10 +390,6 @@ service Stacks {
     // Close a previously-opened stack configuration using its handle.
     rpc CloseStackConfiguration(CloseStackConfiguration.Request)
         returns (CloseStackConfiguration.Response);
-    // Analyze a stack configuration to find all of the providers that it
-    // depends on.
-    rpc FindStackConfigurationProviders(FindStackConfigurationProviders.Request) 
-        returns (FindStackConfigurationProviders.Response);
     // Analyze a stack configuration to find all of the components it declares.
     // This is static analysis only, so it cannot produce dynamic information
     // such as the number of instances of each component.
@@ -461,15 +457,6 @@ message FindStackConfigurationComponents {
     message Component {
         string source_addr = 1;
         Instances instances = 2;
-    }
-}
-
-message FindStackConfigurationProviders {
-    message Request {
-        int64 stack_config_handle = 1;
-    }
-    message Response {
-        // TODO
     }
 }
 
