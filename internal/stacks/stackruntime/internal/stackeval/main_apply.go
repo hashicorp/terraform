@@ -103,9 +103,6 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 							return nil, nil
 						}
 
-						// TODO: We should also turn the prior state into the form
-						// the modules runtime expects and pass that in here,
-						// instead of an empty prior state.
 						modulesRuntimePlan, err := componentInstPlan.ForModulesRuntime()
 						if err != nil {
 							// Suggests that the state is inconsistent with the
