@@ -2018,7 +2018,7 @@ func TestBackendConfig_Authentication_SSO(t *testing.T) {
 		SharedConfigurationFile    string
 		SetSharedConfigurationFile bool
 		ExpectedCredentialsValue   aws.Credentials
-		ValidateDiags              DiagsValidator
+		ExpectedDiags              tfdiags.Diagnostics
 		MockStsEndpoints           []*servicemocks.MockEndpoint
 	}{
 		"shared configuration file": {
@@ -2055,10 +2055,6 @@ sso_registration_scopes = sso:account:access
 			tc.config["region"] = "us-east-1"
 			tc.config["bucket"] = "bucket"
 			tc.config["key"] = "key"
-
-			if tc.ValidateDiags == nil {
-				tc.ValidateDiags = ExpectNoDiags
-			}
 
 			err := servicemocks.SsoTestSetup(t, ssoSessionName)
 			if err != nil {
@@ -2106,7 +2102,9 @@ sso_registration_scopes = sso:account:access
 
 			b, diags := configureBackend(t, tc.config)
 
-			tc.ValidateDiags(t, diags)
+			if diff := cmp.Diff(diags, tc.ExpectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
 			if diags.HasErrors() {
 				return
 			}
@@ -2131,7 +2129,7 @@ func TestBackendConfig_Authentication_LegacySSO(t *testing.T) {
 		SharedConfigurationFile    string
 		SetSharedConfigurationFile bool
 		ExpectedCredentialsValue   aws.Credentials
-		ValidateDiags              DiagsValidator
+		ExpectedDiags              tfdiags.Diagnostics
 		MockStsEndpoints           []*servicemocks.MockEndpoint
 	}{
 		"shared configuration file": {
@@ -2164,10 +2162,6 @@ region = us-east-1
 			tc.config["region"] = "us-east-1"
 			tc.config["bucket"] = "bucket"
 			tc.config["key"] = "key"
-
-			if tc.ValidateDiags == nil {
-				tc.ValidateDiags = ExpectNoDiags
-			}
 
 			err := servicemocks.SsoTestSetup(t, ssoStartUrl)
 			if err != nil {
@@ -2215,7 +2209,9 @@ region = us-east-1
 
 			b, diags := configureBackend(t, tc.config)
 
-			tc.ValidateDiags(t, diags)
+			if diff := cmp.Diff(diags, tc.ExpectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
 			if diags.HasErrors() {
 				return
 			}
