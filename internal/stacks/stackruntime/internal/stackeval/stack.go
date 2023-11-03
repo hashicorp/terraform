@@ -506,11 +506,6 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 			Addr:   outputAddr,
 			Action: plans.Create,
 
-			// FIXME: We should also include the type information for the old
-			// and new values, because the caller doesn't have any other way
-			// to learn that (there's no equivalent to "provider schema" for
-			// a stack configuration.)
-
 			OldValue:      oldDV,
 			OldValueMarks: nil,
 
