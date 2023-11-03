@@ -645,8 +645,8 @@ github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 h1:YBftPWNWd4WwGqtY2yeZL2ef8rH
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0/go.mod h1:YN5jB8ie0yfIUg6VvR9Kz84aCaG7AsGZnLjhHbUqwPg=
 github.com/h2non/parth v0.0.0-20190131123155-b4df798d6542 h1:2VTzZjLZBgl62/EtslCrtky5vbi9dd7HrQPQIx6wqiw=
 github.com/h2non/parth v0.0.0-20190131123155-b4df798d6542/go.mod h1:Ow0tF8D4Kplbc8s8sSb3V2oUCygFHVp8gC3Dn6U4MNI=
-github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.38 h1:C5DvIFGNn7Lhu8SV6PAUY5WNq3aPYYqdnC4PT1tJc1o=
-github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.38/go.mod h1:zjTe61MBV+nvdnW4MDP1NBFEC6qyCbYEd9tI0x8FY5s=
+github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.38.0.20231103062846-b877e512ee57 h1:JUQYJk6eGLmsdh1/wk3xfqKH6ABd9CrQ87LsjmjkVqE=
+github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.38.0.20231103062846-b877e512ee57/go.mod h1:2QDVxfGLmjkLE/eha2EyrkuaW6GcZSukY+ifkg5zclY=
 github.com/hashicorp/consul/api v1.13.0 h1:2hnLQ0GjQvw7f3O61jMO8gbasZviZTrt9R8WzgiirHc=
 github.com/hashicorp/consul/api v1.13.0/go.mod h1:ZlVrynguJKcYr54zGaDbaL3fOvKC9m72FhPvA8T35KQ=
 github.com/hashicorp/consul/sdk v0.8.0 h1:OJtKBtEjboEZvG6AOUdh4Z1Zbyu0WcxQ0qatRrZHTVU=

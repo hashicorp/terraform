@@ -626,8 +626,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 		tc := tc
 
 		t.Run(name, func(t *testing.T) {
-			oldEnv := servicemocks.InitSessionTestEnv()
-			defer servicemocks.PopEnv(oldEnv)
+			servicemocks.InitSessionTestEnv(t)
 
 			ctx := context.TODO()
 
@@ -669,9 +668,9 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 				}
 
 				if tc.EnableWebIdentityEnvVars {
-					os.Setenv("AWS_ROLE_ARN", servicemocks.MockStsAssumeRoleWithWebIdentityArn)
-					os.Setenv("AWS_ROLE_SESSION_NAME", servicemocks.MockStsAssumeRoleWithWebIdentitySessionName)
-					os.Setenv("AWS_WEB_IDENTITY_TOKEN_FILE", file.Name())
+					t.Setenv("AWS_ROLE_ARN", servicemocks.MockStsAssumeRoleWithWebIdentityArn)
+					t.Setenv("AWS_ROLE_SESSION_NAME", servicemocks.MockStsAssumeRoleWithWebIdentitySessionName)
+					t.Setenv("AWS_WEB_IDENTITY_TOKEN_FILE", file.Name())
 				} /*else if tc.EnableWebIdentityConfig {
 					tc.Config.AssumeRoleWithWebIdentity = &AssumeRoleWithWebIdentity{
 						RoleARN:              servicemocks.MockStsAssumeRoleWithWebIdentityArn,
@@ -703,7 +702,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 					t.Fatalf("unexpected error writing shared configuration file: %s", err)
 				}
 
-				setSharedConfigFile(file.Name())
+				setSharedConfigFile(t, file.Name())
 			}
 
 			if tc.SharedCredentialsFile != "" {
@@ -728,7 +727,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			}
 
 			for k, v := range tc.EnvironmentVariables {
-				os.Setenv(k, v)
+				t.Setenv(k, v)
 			}
 
 			b, diags := configureBackend(t, tc.config)
@@ -1112,8 +1111,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 		tc := tc
 
 		t.Run(name, func(t *testing.T) {
-			oldEnv := servicemocks.InitSessionTestEnv()
-			defer servicemocks.PopEnv(oldEnv)
+			servicemocks.InitSessionTestEnv(t)
 
 			ctx := context.TODO()
 
@@ -1162,7 +1160,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 					t.Fatalf("unexpected error writing shared configuration file: %s", err)
 				}
 
-				setSharedConfigFile(file.Name())
+				setSharedConfigFile(t, file.Name())
 			}
 
 			if tc.SharedCredentialsFile != "" {
@@ -1187,7 +1185,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			}
 
 			for k, v := range tc.EnvironmentVariables {
-				os.Setenv(k, v)
+				t.Setenv(k, v)
 			}
 
 			b, diags := configureBackend(t, tc.config)
@@ -1553,8 +1551,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 		tc := tc
 
 		t.Run(name, func(t *testing.T) {
-			oldEnv := servicemocks.InitSessionTestEnv()
-			defer servicemocks.PopEnv(oldEnv)
+			servicemocks.InitSessionTestEnv(t)
 
 			ctx := context.TODO()
 
@@ -1603,7 +1600,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 					t.Fatalf("unexpected error writing shared configuration file: %s", err)
 				}
 
-				setSharedConfigFile(file.Name())
+				setSharedConfigFile(t, file.Name())
 			}
 
 			if tc.SharedCredentialsFile != "" {
@@ -1628,7 +1625,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			}
 
 			for k, v := range tc.EnvironmentVariables {
-				os.Setenv(k, v)
+				t.Setenv(k, v)
 			}
 
 			b, diags := configureBackend(t, tc.config)
@@ -1904,8 +1901,7 @@ web_identity_token_file = no-such-file
 		tc := tc
 
 		t.Run(name, func(t *testing.T) {
-			oldEnv := servicemocks.InitSessionTestEnv()
-			defer servicemocks.PopEnv(oldEnv)
+			servicemocks.InitSessionTestEnv(t)
 
 			ctx := context.TODO()
 
@@ -1919,7 +1915,7 @@ web_identity_token_file = no-such-file
 			}
 
 			for k, v := range tc.EnvironmentVariables {
-				os.Setenv(k, v)
+				t.Setenv(k, v)
 			}
 
 			ts := servicemocks.MockAwsApiServer("STS", tc.MockStsEndpoints)
@@ -1934,7 +1930,7 @@ web_identity_token_file = no-such-file
 				t.Fatalf("error creating temp dir: %s", err)
 			}
 			defer os.Remove(tempdir)
-			os.Setenv("TMPDIR", tempdir)
+			t.Setenv("TMPDIR", tempdir)
 
 			tokenFile, err := os.CreateTemp("", "aws-sdk-go-base-web-identity-token-file")
 			if err != nil {
@@ -1967,7 +1963,7 @@ web_identity_token_file = no-such-file
 			}
 
 			if tc.SetTokenFileEnvironmentVariable {
-				os.Setenv("AWS_WEB_IDENTITY_TOKEN_FILE", tokenFileName)
+				t.Setenv("AWS_WEB_IDENTITY_TOKEN_FILE", tokenFileName)
 			}
 
 			if tc.SharedConfigurationFile != "" {
@@ -1998,6 +1994,228 @@ web_identity_token_file = no-such-file
 
 			tc.ValidateDiags(t, diags)
 
+			if diags.HasErrors() {
+				return
+			}
+
+			credentials, err := b.awsConfig.Credentials.Retrieve(ctx)
+			if err != nil {
+				t.Fatalf("Error when requesting credentials: %s", err)
+			}
+
+			if diff := cmp.Diff(credentials, tc.ExpectedCredentialsValue, cmpopts.IgnoreFields(aws.Credentials{}, "Expires")); diff != "" {
+				t.Fatalf("unexpected credentials: (- got, + expected)\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestBackendConfig_Authentication_SSO(t *testing.T) {
+	const ssoSessionName = "test-sso-session"
+
+	testCases := map[string]struct {
+		config                     map[string]any
+		SharedConfigurationFile    string
+		SetSharedConfigurationFile bool
+		ExpectedCredentialsValue   aws.Credentials
+		ValidateDiags              DiagsValidator
+		MockStsEndpoints           []*servicemocks.MockEndpoint
+	}{
+		"shared configuration file": {
+			config: map[string]any{},
+			SharedConfigurationFile: fmt.Sprintf(`
+[default]
+sso_session = %s
+sso_account_id = 123456789012
+sso_role_name = testRole
+region = us-east-1
+
+[sso-session test-sso-session]
+sso_region = us-east-1
+sso_start_url = https://d-123456789a.awsapps.com/start
+sso_registration_scopes = sso:account:access
+`, ssoSessionName),
+			SetSharedConfigurationFile: true,
+			ExpectedCredentialsValue:   mockdata.MockSsoCredentials,
+			MockStsEndpoints: []*servicemocks.MockEndpoint{
+				servicemocks.MockStsGetCallerIdentityValidEndpoint,
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		tc := tc
+
+		t.Run(name, func(t *testing.T) {
+			servicemocks.InitSessionTestEnv(t)
+
+			ctx := context.TODO()
+
+			// Populate required fields
+			tc.config["region"] = "us-east-1"
+			tc.config["bucket"] = "bucket"
+			tc.config["key"] = "key"
+
+			if tc.ValidateDiags == nil {
+				tc.ValidateDiags = ExpectNoDiags
+			}
+
+			err := servicemocks.SsoTestSetup(t, ssoSessionName)
+			if err != nil {
+				t.Fatalf("setup: %s", err)
+			}
+
+			endpoints := map[string]any{}
+
+			closeSso, ssoEndpoint := servicemocks.SsoCredentialsApiMock()
+			defer closeSso()
+			endpoints["sso"] = ssoEndpoint
+
+			ts := servicemocks.MockAwsApiServer("STS", tc.MockStsEndpoints)
+			defer ts.Close()
+			endpoints["sts"] = ts.URL
+
+			tempdir, err := os.MkdirTemp("", "temp")
+			if err != nil {
+				t.Fatalf("error creating temp dir: %s", err)
+			}
+			defer os.Remove(tempdir)
+			t.Setenv("TMPDIR", tempdir)
+
+			if tc.SharedConfigurationFile != "" {
+				file, err := os.CreateTemp("", "aws-sdk-go-base-shared-configuration-file")
+
+				if err != nil {
+					t.Fatalf("unexpected error creating temporary shared configuration file: %s", err)
+				}
+
+				defer os.Remove(file.Name())
+
+				err = os.WriteFile(file.Name(), []byte(tc.SharedConfigurationFile), 0600)
+
+				if err != nil {
+					t.Fatalf("unexpected error writing shared configuration file: %s", err)
+				}
+
+				tc.config["shared_config_files"] = []any{file.Name()}
+			}
+
+			tc.config["skip_credentials_validation"] = true
+
+			tc.config["endpoints"] = endpoints
+
+			b, diags := configureBackend(t, tc.config)
+
+			tc.ValidateDiags(t, diags)
+			if diags.HasErrors() {
+				return
+			}
+
+			credentials, err := b.awsConfig.Credentials.Retrieve(ctx)
+			if err != nil {
+				t.Fatalf("Error when requesting credentials: %s", err)
+			}
+
+			if diff := cmp.Diff(credentials, tc.ExpectedCredentialsValue, cmpopts.IgnoreFields(aws.Credentials{}, "Expires")); diff != "" {
+				t.Fatalf("unexpected credentials: (- got, + expected)\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestBackendConfig_Authentication_LegacySSO(t *testing.T) {
+	const ssoStartUrl = "https://d-123456789a.awsapps.com/start"
+
+	testCases := map[string]struct {
+		config                     map[string]any
+		SharedConfigurationFile    string
+		SetSharedConfigurationFile bool
+		ExpectedCredentialsValue   aws.Credentials
+		ValidateDiags              DiagsValidator
+		MockStsEndpoints           []*servicemocks.MockEndpoint
+	}{
+		"shared configuration file": {
+			config: map[string]any{},
+			SharedConfigurationFile: fmt.Sprintf(`
+[default]
+sso_start_url = %s
+sso_region = us-east-1
+sso_account_id = 123456789012
+sso_role_name = testRole
+region = us-east-1
+`, ssoStartUrl),
+			SetSharedConfigurationFile: true,
+			ExpectedCredentialsValue:   mockdata.MockSsoCredentials,
+			MockStsEndpoints: []*servicemocks.MockEndpoint{
+				servicemocks.MockStsGetCallerIdentityValidEndpoint,
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		tc := tc
+
+		t.Run(name, func(t *testing.T) {
+			servicemocks.InitSessionTestEnv(t)
+
+			ctx := context.TODO()
+
+			// Populate required fields
+			tc.config["region"] = "us-east-1"
+			tc.config["bucket"] = "bucket"
+			tc.config["key"] = "key"
+
+			if tc.ValidateDiags == nil {
+				tc.ValidateDiags = ExpectNoDiags
+			}
+
+			err := servicemocks.SsoTestSetup(t, ssoStartUrl)
+			if err != nil {
+				t.Fatalf("setup: %s", err)
+			}
+
+			endpoints := map[string]any{}
+
+			closeSso, ssoEndpoint := servicemocks.SsoCredentialsApiMock()
+			defer closeSso()
+			endpoints["sso"] = ssoEndpoint
+
+			ts := servicemocks.MockAwsApiServer("STS", tc.MockStsEndpoints)
+			defer ts.Close()
+			endpoints["sts"] = ts.URL
+
+			tempdir, err := os.MkdirTemp("", "temp")
+			if err != nil {
+				t.Fatalf("error creating temp dir: %s", err)
+			}
+			defer os.Remove(tempdir)
+			t.Setenv("TMPDIR", tempdir)
+
+			if tc.SharedConfigurationFile != "" {
+				file, err := os.CreateTemp("", "aws-sdk-go-base-shared-configuration-file")
+
+				if err != nil {
+					t.Fatalf("unexpected error creating temporary shared configuration file: %s", err)
+				}
+
+				defer os.Remove(file.Name())
+
+				err = os.WriteFile(file.Name(), []byte(tc.SharedConfigurationFile), 0600)
+
+				if err != nil {
+					t.Fatalf("unexpected error writing shared configuration file: %s", err)
+				}
+
+				tc.config["shared_config_files"] = []any{file.Name()}
+			}
+
+			tc.config["skip_credentials_validation"] = true
+
+			tc.config["endpoints"] = endpoints
+
+			b, diags := configureBackend(t, tc.config)
+
+			tc.ValidateDiags(t, diags)
 			if diags.HasErrors() {
 				return
 			}
@@ -2171,15 +2389,14 @@ region = us-west-2
 		tc := tc
 
 		t.Run(name, func(t *testing.T) {
-			oldEnv := servicemocks.InitSessionTestEnv()
-			defer servicemocks.PopEnv(oldEnv)
+			servicemocks.InitSessionTestEnv(t)
 
 			// Populate required fields
 			tc.config["bucket"] = "bucket"
 			tc.config["key"] = "key"
 
 			for k, v := range tc.EnvironmentVariables {
-				os.Setenv(k, v)
+				t.Setenv(k, v)
 			}
 
 			if tc.IMDSRegion != "" {
@@ -2216,7 +2433,7 @@ region = us-west-2
 					t.Fatalf("unexpected error writing shared configuration file: %s", err)
 				}
 
-				setSharedConfigFile(file.Name())
+				setSharedConfigFile(t, file.Name())
 			}
 
 			tc.config["skip_credentials_validation"] = true
@@ -2233,9 +2450,9 @@ region = us-west-2
 	}
 }
 
-func setSharedConfigFile(filename string) {
-	os.Setenv("AWS_SDK_LOAD_CONFIG", "1")
-	os.Setenv("AWS_CONFIG_FILE", filename)
+func setSharedConfigFile(t *testing.T, filename string) {
+	t.Setenv("AWS_SDK_LOAD_CONFIG", "1")
+	t.Setenv("AWS_CONFIG_FILE", filename)
 }
 
 func configureBackend(t *testing.T, config map[string]any) (*Backend, tfdiags.Diagnostics) {
