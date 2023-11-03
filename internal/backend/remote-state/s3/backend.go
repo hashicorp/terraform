@@ -605,6 +605,19 @@ var endpointsSchema = singleNestedAttribute{
 			},
 		},
 
+		"sso": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the IAM Identity Center (formerly known as SSO) API",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringValidURL,
+				},
+			},
+		},
+
 		"sts": stringAttribute{
 			configschema.Attribute{
 				Type:        cty.String,
@@ -1050,6 +1063,13 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		newEnvvarRetriever("AWS_IAM_ENDPOINT"),
 	); ok {
 		cfg.IamEndpoint = v
+	}
+
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("sso")),
+		newEnvvarRetriever("AWS_ENDPOINT_URL_SSO"),
+	); ok {
+		cfg.SsoEndpoint = v
 	}
 
 	if v, ok := retrieveArgument(&diags,

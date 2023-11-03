@@ -274,3 +274,5 @@ require (
 )
 
 go 1.21.3
+
+replace github.com/hashicorp/aws-sdk-go-base/v2 => github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.38.0.20231103062846-b877e512ee57
