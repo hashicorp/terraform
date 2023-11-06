@@ -4,6 +4,10 @@
       {
         "source": "https://testing.invalid/input_variable.tar.gz",
         "local": "input_variable"
+      },
+      {
+        "source": "https://testing.invalid/output_value.tar.gz",
+        "local": "output_value"
       }
     ]
   }

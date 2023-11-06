@@ -14,6 +14,11 @@ func TestInputVariableValue(t *testing.T) {
 	ctx := context.Background()
 	cfg := testStackConfig(t, "input_variable", "basics")
 
+	// NOTE: This also indirectly tests the propagation of input values
+	// from a parent stack into one of itschildren, even though that's
+	// technically the responsibility of [StackCall] rather than [InputVariable],
+	// because propagating downward into child stacks is a major purpose
+	// of input variables that must keep working.
 	childStackAddr := stackaddrs.RootStackInstance.Child("child", addrs.NoKey)
 
 	tests := map[string]struct {
