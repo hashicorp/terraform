@@ -296,6 +296,37 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 	}
 }
 
+func TestBuildConfig_WithMockDataSources(t *testing.T) {
+	parser := NewParser(nil)
+	mod, diags := parser.LoadConfigDirWithTests("testdata/valid-modules/with-mock-sources", "tests")
+	assertNoDiagnostics(t, diags)
+	assertNoDiagnostics(t, diags)
+	if mod == nil {
+		t.Fatal("got nil root module; want non-nil")
+	}
+
+	cfg, diags := BuildConfig(mod, nil, MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+		sourcePath := filepath.Join("testdata/valid-modules/with-mock-sources", "testing/aws")
+		return parser.LoadMockDataDir(sourcePath, hcl.Range{})
+	}))
+	assertNoDiagnostics(t, diags)
+	if cfg == nil {
+		t.Fatal("got nil config; want non-nil")
+	}
+
+	provider := cfg.Module.Tests["main.tftest.hcl"].Providers["aws"]
+
+	if len(provider.MockData.MockDataSources) != 1 {
+		t.Errorf("expected to load 1 mock data source but loaded %d", len(provider.MockData.MockDataSources))
+	}
+	if len(provider.MockData.MockResources) != 1 {
+		t.Errorf("expected to load 1 mock resource but loaded %d", len(provider.MockData.MockResources))
+	}
+	if provider.MockData.Overrides.Len() != 1 {
+		t.Errorf("expected to load 1 override but loaded %d", provider.MockData.Overrides.Len())
+	}
+}
+
 func TestBuildConfig_WithNestedTestModules(t *testing.T) {
 	parser := NewParser(nil)
 	mod, diags := parser.LoadConfigDirWithTests("testdata/valid-modules/with-tests-nested-module", "tests")

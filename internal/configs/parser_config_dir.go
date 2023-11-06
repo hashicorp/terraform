@@ -119,7 +119,7 @@ func (p *Parser) LoadMockDataDir(dir string, source hcl.Range) (*MockData, hcl.D
 			diags = append(diags, data.Merge(current, false)...)
 			continue
 		}
-		current = data
+		data = current
 	}
 	return data, diags
 }

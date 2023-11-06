@@ -103,7 +103,7 @@ func (data *MockData) Merge(other *MockData, skipCollisions bool) (diags hcl.Dia
 	for name, datasource := range other.MockDataSources {
 		current, exists := data.MockDataSources[name]
 		if !exists {
-			data.MockResources[name] = datasource
+			data.MockDataSources[name] = datasource
 			continue
 		}
 
