@@ -55,3 +55,80 @@ The `-cloud-run` option accepts a [private registry module source](/terraform/la
 You must provide a module from a _private_ registry, not the public Terraform registry.
 
 You must execute [`terraform login`](/terraform/cli/commands/login) before using this option, and ensure that your `hostname` argument matches the private registry hostname of your target module.
+
+## Example: Test Directory Structure and Commands
+
+The following directory structure represents an example directory tree for a Terraform module with tests and a setup module.
+
+```
+project/
+|-- main.tf
+|-- outputs.tf
+|-- terraform.tf
+|-- variables.tf
+|-- tests/
+|   |-- validations.tftest.hcl
+|   |-- outputs.tftest.hcl
+|-- testing/
+    |-- setup/
+        |-- main.tf
+        |-- outputs.tf
+        |-- terraform.tf
+        |-- variables.tf
+```
+
+At the root directory of the project, we have some typical Terraform configuration files: `main.tf`, `outputs.tf`, `terraform.tf`, and `variables.tf`. We have placed our test files, `validations.tftest.hcl` and `outputs.tftest.hcl` within the default tests directory: `tests`.
+
+In addition, we have created a [setup module](/terraform/language/tests#modules) for our tests within the `testing` directory.
+
+In order to execute our tests we should run `terraform test` from the root configuration directory as if we were running `terraform plan` or `terraform apply`. Despite our actual test files being in the nested `tests` directory, we still operate Terraform from the main configuration.
+
+We could also execute specific test files using the `-filter` option.
+
+Linux, Mac OS, and UNIX:
+
+```shell
+terraform test -filter=tests/validations.tftest.hcl`
+```
+
+PowerShell:
+
+```shell
+terraform test -filter='tests\validations.tftest.hcl'
+```
+
+Windows `cmd.exe`:
+
+```shell
+terraform test -filter=tests\validations.tftest.hcl
+```
+
+### Alternate Test Directories
+
+In the above example we have placed our tests in the default testing directory of `tests`. We can also define tests directly within our configuration directory:
+
+```
+project/
+|-- main.tf
+|-- outputs.tf
+|-- terraform.tf
+|-- variables.tf
+|-- validations.tftest.hcl
+|-- outputs.tftest.hcl
+|-- testing/
+    |-- setup/
+        |-- main.tf
+        |-- outputs.tf
+        |-- terraform.tf
+        |-- variables.tf
+```
+
+The location of the testing files does not affect the operation of `terraform test`. All references to, and absolute file paths within, the testing files should be relative to the main configuration directory.
+
+We can also use the `-test-directory` argument to change the location of our testing files. For example, `terraform test -test-directory=testing` would instruct Terraform to load tests from the directory `testing` instead of `tests`.
+
+The testing directory must be beneath the main configuration directory, but it can be nested many times.
+
+> Note: Test files within the root configuration directory are always loaded, regardless of the `-test-directory` value.
+
+We do not recommend changing the default test directory. The option for configuration is included for configuration authors who may have included a `tests` submodule in their configuraiton before the `terraform test` command was released. In general, the default test directory of `tests` should always be used.
