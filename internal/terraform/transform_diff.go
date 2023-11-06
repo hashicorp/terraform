@@ -89,7 +89,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		// Depending on the action we'll need some different combinations of
 		// nodes, because destroying uses a special node type separate from
 		// other actions.
-		var update, delete, createBeforeDestroy bool
+		var update, delete, forget, createBeforeDestroy bool
 		switch rc.Action {
 		case plans.NoOp:
 			// For a no-op change we don't take any action but we still
@@ -103,6 +103,8 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			update = true
 			delete = true
 			createBeforeDestroy = (rc.Action == plans.CreateThenDelete)
+		case plans.Forget:
+			forget = true
 		default:
 			update = true
 		}
@@ -205,6 +207,16 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			} else {
 				log.Printf("[TRACE] DiffTransformer: %s deposed object %s will be represented for destruction by %s", addr, dk, dag.VertexName(node))
 			}
+			g.Add(node)
+		}
+
+		if forget {
+			var node GraphNodeResourceInstance
+			abstract := NewNodeAbstractResourceInstance(addr)
+			node = &NodeForgetResourceInstance{
+				NodeAbstractResourceInstance: abstract,
+			}
+			log.Printf("[TRACE] DiffTransformer: %s will be represented for forgetting by %s", addr, dag.VertexName(node))
 			g.Add(node)
 		}
 

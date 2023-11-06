@@ -89,8 +89,13 @@ type PlanOpts struct {
 	// will be added to the plan graph.
 	ImportTargets []*ImportTarget
 
-	// GenerateConfig tells Terraform where to write any generated configuration
-	// for any ImportTargets that do not have configuration already.
+	// forgetTargets is a list of target resources that Terraform
+	// will plan to remove from state.
+	forgetTargets []addrs.ConfigResource
+
+	// GenerateConfigPath tells Terraform where to write any generated
+	// configuration for any ImportTargets that do not have configuration
+	// already.
 	//
 	// If empty, then no config will be generated.
 	GenerateConfigPath string
@@ -585,6 +590,17 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		return nil, diags
 	}
 
+	// TODO KEM: Validation could be earlier
+	// first, make sure nothing targeted by a remove block is still in config
+	removeStmts := refactoring.FindRemoveStatements(config)
+	for _, rst := range removeStmts {
+		if rst.Destroy {
+			// no-op
+		} else {
+			opts.forgetTargets = append(opts.forgetTargets, *rst.From)
+		}
+	}
+
 	graph, walkOp, moreDiags := c.planGraph(config, prevRunState, opts)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
@@ -655,6 +671,21 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	driftedResources, driftDiags := c.driftedResources(config, prevRunState, priorState, moveResults)
 	diags = diags.Append(driftDiags)
 
+	var forgottenResources []string
+	for _, rc := range changes.Resources {
+		if rc.Action == plans.Forget {
+			// TODO KEM display resource ids
+			forgottenResources = append(forgottenResources, fmt.Sprintf(" - %s", rc.Addr))
+		}
+	}
+	if len(forgottenResources) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Some objects will no longer be managed by Terraform",
+			fmt.Sprintf("If you apply this plan, Terraform will discard its tracking information for the following objects, but it will not delete them:\n%s\n\nAfter applying this plan, Terraform will no longer manage these objects. You will need to import them into Terraform to manage them again.", strings.Join(forgottenResources, "\n")),
+		))
+	}
+
 	plan := &plans.Plan{
 		UIMode:             opts.Mode,
 		Changes:            changes,
@@ -687,6 +718,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Operation:          walkPlan,
 			ExternalReferences: opts.ExternalReferences,
 			ImportTargets:      opts.ImportTargets,
+			forgetTargets:      opts.forgetTargets,
 			GenerateConfigPath: opts.GenerateConfigPath,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
