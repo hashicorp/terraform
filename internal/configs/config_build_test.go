@@ -40,8 +40,11 @@ func TestBuildConfig(t *testing.T) {
 			version, _ := version.NewVersion(fmt.Sprintf("1.0.%d", versionI))
 			versionI++
 			return mod, version, diags
-		},
-	))
+		}),
+		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+			return nil, nil
+		}),
+	)
 	assertNoDiagnostics(t, diags)
 	if cfg == nil {
 		t.Fatal("got nil config; want non-nil")
@@ -96,8 +99,11 @@ func TestBuildConfigDiags(t *testing.T) {
 			version, _ := version.NewVersion(fmt.Sprintf("1.0.%d", versionI))
 			versionI++
 			return mod, version, diags
-		},
-	))
+		}),
+		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+			return nil, nil
+		}),
+	)
 
 	wantDiag := `testdata/nested-errors/child_c/child_c.tf:5,1-8: ` +
 		`Unsupported block type; Blocks of type "invalid" are not expected here.`
@@ -139,8 +145,11 @@ func TestBuildConfigChildModuleBackend(t *testing.T) {
 			mod, diags := parser.LoadConfigDir(sourcePath)
 			version, _ := version.NewVersion("1.0.0")
 			return mod, version, diags
-		},
-	))
+		}),
+		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+			return nil, nil
+		}),
+	)
 
 	assertDiagnosticSummary(t, diags, "Backend configuration ignored")
 
@@ -214,8 +223,11 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 					mod, diags := parser.LoadConfigDir(sourcePath)
 					version, _ := version.NewVersion("1.0.0")
 					return mod, version, diags
-				},
-			))
+				}),
+				MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+					return nil, nil
+				}),
+			)
 
 			// we can make this less repetitive later if we want
 			for _, msg := range expectedErrs {
@@ -310,8 +322,11 @@ func TestBuildConfig_WithNestedTestModules(t *testing.T) {
 			mod, diags := parser.LoadConfigDir(sourcePath)
 			version, _ := version.NewVersion("1.0.0")
 			return mod, version, diags
-		},
-	))
+		}),
+		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+			return nil, nil
+		}),
+	)
 	assertNoDiagnostics(t, diags)
 	if cfg == nil {
 		t.Fatal("got nil config; want non-nil")
@@ -383,8 +398,11 @@ func TestBuildConfig_WithTestModule(t *testing.T) {
 			mod, diags := parser.LoadConfigDir(sourcePath)
 			version, _ := version.NewVersion("1.0.0")
 			return mod, version, diags
-		},
-	))
+		}),
+		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+			return nil, nil
+		}),
+	)
 	assertNoDiagnostics(t, diags)
 	if cfg == nil {
 		t.Fatal("got nil config; want non-nil")

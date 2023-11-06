@@ -41,6 +41,11 @@ type Provider struct {
 	// provider.
 	Mock     bool
 	MockData *MockData
+
+	// MockDataExternalSource is a file path pointing to the external data
+	// file for a mock provider. An empty string indicates all data should be
+	// loaded inline.
+	MockDataExternalSource string
 }
 
 func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {

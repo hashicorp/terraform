@@ -56,8 +56,10 @@ func decodeMockProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 	provider.MockData, dataDiags = decodeMockDataBody(config)
 	diags = append(diags, dataDiags...)
 
-	// TODO(liamcervante): Add support for the "source" attribute before the
-	//                     v1.7 release.
+	if attr, exists := content.Attributes["source"]; exists {
+		sourceDiags := gohcl.DecodeExpression(attr.Expr, nil, &provider.MockDataExternalSource)
+		diags = append(diags, sourceDiags...)
+	}
 
 	return provider, diags
 }
@@ -68,6 +70,75 @@ type MockData struct {
 	MockResources   map[string]*MockResource
 	MockDataSources map[string]*MockResource
 	Overrides       addrs.Map[addrs.Targetable, *Override]
+}
+
+// Merge will merge the target MockData object into the current MockData.
+//
+// If skipCollisions is true, then Merge will simply ignore any entries within
+// other that clash with entries already in data. If skipCollisions is false,
+// then we will create diagnostics for each duplicate resource.
+func (data *MockData) Merge(other *MockData, skipCollisions bool) (diags hcl.Diagnostics) {
+	if other == nil {
+		return diags
+	}
+
+	for name, resource := range other.MockResources {
+		current, exists := data.MockResources[name]
+		if !exists {
+			data.MockResources[name] = resource
+			continue
+		}
+
+		if skipCollisions {
+			continue
+		}
+
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Duplicate mock resource block",
+			Detail:   fmt.Sprintf("A mock_resource %q block already exists at %s.", name, current.Range),
+			Subject:  resource.TypeRange.Ptr(),
+		})
+	}
+	for name, datasource := range other.MockDataSources {
+		current, exists := data.MockDataSources[name]
+		if !exists {
+			data.MockResources[name] = datasource
+			continue
+		}
+
+		if skipCollisions {
+			continue
+		}
+
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Duplicate mock resource block",
+			Detail:   fmt.Sprintf("A mock_data %q block already exists at %s.", name, current.Range),
+			Subject:  datasource.TypeRange.Ptr(),
+		})
+	}
+	for _, elem := range other.Overrides.Elems {
+		target, override := elem.Key, elem.Value
+
+		current, exists := data.Overrides.GetOk(target)
+		if !exists {
+			data.Overrides.Put(target, override)
+			continue
+		}
+
+		if skipCollisions {
+			continue
+		}
+
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Duplicate override block",
+			Detail:   fmt.Sprintf("An override block for %s already exists at %s.", target, current.Range),
+			Subject:  override.Range.Ptr(),
+		})
+	}
+	return diags
 }
 
 // MockResource maps a resource or data source type and name to a set of values

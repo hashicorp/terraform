@@ -78,6 +78,52 @@ func (p *Parser) LoadConfigDirWithTests(path string, testDirectory string) (*Mod
 	return mod, diags
 }
 
+func (p *Parser) LoadMockDataDir(dir string, source hcl.Range) (*MockData, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	infos, err := p.fs.ReadDir(dir)
+	if err != nil {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Failed to read mock data directory",
+			Detail:   fmt.Sprintf("Mock data directory %s does not exist or cannot be read.", dir),
+			Subject:  source.Ptr(),
+		})
+		return nil, diags
+	}
+
+	var files []string
+	for _, info := range infos {
+		if info.IsDir() {
+			// We only care about terraform configuration files.
+			continue
+		}
+
+		name := info.Name()
+		if !(strings.HasSuffix(name, ".tfmock.hcl") || strings.HasSuffix(name, ".tfmock.json")) {
+			continue
+		}
+
+		if IsIgnoredFile(name) {
+			continue
+		}
+
+		files = append(files, filepath.Join(dir, name))
+	}
+
+	var data *MockData
+	for _, file := range files {
+		current, currentDiags := p.LoadMockDataFile(file)
+		diags = append(diags, currentDiags...)
+		if data != nil {
+			diags = append(diags, data.Merge(current, false)...)
+			continue
+		}
+		current = data
+	}
+	return data, diags
+}
+
 // ConfigDirFiles returns lists of the primary and override files configuration
 // files in the given directory.
 //
