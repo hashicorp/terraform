@@ -109,6 +109,7 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 	componentVals := make(map[string]cty.Value)
 	stackVals := make(map[string]cty.Value)
 	providerVals := make(map[string]map[string]cty.Value)
+	var testOnlyGlobals map[string]cty.Value // allocated only when needed (see below)
 
 	for addr, obj := range refs {
 		val := obj.ExprReferenceValue(ctx, phase)
@@ -126,6 +127,14 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 				providerVals[addr.ProviderLocalName] = make(map[string]cty.Value)
 			}
 			providerVals[addr.ProviderLocalName][addr.Name] = val
+		case stackaddrs.TestOnlyGlobal:
+			// These are available only to some select unit tests in this
+			// package, and are not exposed as a real language feature to
+			// end-users.
+			if testOnlyGlobals == nil {
+				testOnlyGlobals = make(map[string]cty.Value)
+			}
+			testOnlyGlobals[addr.Name] = val
 		default:
 			// The above should cover all possible referenceable address types.
 			panic(fmt.Sprintf("don't know how to place %T in expression scope", addr))
@@ -160,6 +169,9 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 			"provider":  cty.ObjectVal(providerValVals),
 		},
 		Functions: fakeScope.Functions(),
+	}
+	if testOnlyGlobals != nil {
+		hclCtx.Variables["_test_only_global"] = cty.ObjectVal(testOnlyGlobals)
 	}
 
 	return hclCtx, diags

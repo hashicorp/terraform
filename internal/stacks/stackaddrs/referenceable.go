@@ -15,3 +15,4 @@ var _ Referenceable = StackCall{}
 var _ Referenceable = InputVariable{}
 var _ Referenceable = LocalValue{}
 var _ Referenceable = ProviderConfigRef{}
+var _ Referenceable = TestOnlyGlobal{}

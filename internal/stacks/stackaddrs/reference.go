@@ -59,6 +59,12 @@ func ParseReference(traversal hcl.Traversal) (Reference, hcl.Traversal, tfdiags.
 		ret.SourceRange = tfdiags.SourceRangeFromHCL(rng)
 		return ret, remain, diags
 
+	case "_test_only_global":
+		name, rng, remain, diags := parseSingleAttrRef(traversal)
+		ret.Target = TestOnlyGlobal{Name: name}
+		ret.SourceRange = tfdiags.SourceRangeFromHCL(rng)
+		return ret, remain, diags
+
 	default:
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,

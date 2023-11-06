@@ -25,6 +25,20 @@ type InspectOpts struct {
 	// Populating this is optional but if not populated then operations which
 	// expect to call into providers will return errors.
 	ProviderFactories ProviderFactories
+
+	// TestOnlyGlobals is optional and if set makes it possible to use
+	// references like _test_only_global.name to refer to values from this
+	// map from anywhere in the entire stack configuration.
+	//
+	// This is intended as a kind of "test double" so that we can write more
+	// minimal unit tests that can avoid relying on too many language features
+	// all at once, so that hopefully future maintenance will not require
+	// making broad changes across many different tests at once, which would
+	// then risk inadvertently treating a regression as expected behavior.
+	//
+	// Configurations that refer to test-only globals are not valid for use
+	// outside of the test suite of this package.
+	TestOnlyGlobals map[string]cty.Value
 }
 
 // EvalExpr evaluates an arbitrary expression in the main scope of the

@@ -35,16 +35,28 @@ func testStackConfig(t *testing.T, collection string, subPath string) *stackconf
 		t.Fatalf("artificial source address string %q is invalid: %s", fakeSrcStr, err)
 	}
 
-	sources, err := sourcebundle.OpenDir("testdata/sourcebundle")
-	if err != nil {
-		t.Fatalf("cannot open source bundle: %s", err)
-	}
-
+	sources := testSourceBundle(t)
 	ret, diags := stackconfig.LoadConfigDir(fakeSrc, sources)
 	if diags.HasErrors() {
 		t.Fatalf("configuration is invalid\n%s", diags.Err().Error())
 	}
 	return ret
+}
+
+func testStackConfigEmpty(t *testing.T) *stackconfig.Config {
+	t.Helper()
+	sources := testSourceBundle(t)
+	fakeAddr := sourceaddrs.MustParseSource("https://testing.invalid/nonexist.tar.gz").(sourceaddrs.RemoteSource)
+	return stackconfig.NewEmptyConfig(fakeAddr, sources)
+}
+
+func testSourceBundle(t *testing.T) *sourcebundle.Bundle {
+	t.Helper()
+	sources, err := sourcebundle.OpenDir("testdata/sourcebundle")
+	if err != nil {
+		t.Fatalf("cannot open source bundle: %s", err)
+	}
+	return sources
 }
 
 // testEvaluator constructs a [Main] that's configured for [InspectPhase] using
@@ -87,6 +99,7 @@ func testEvaluator(t *testing.T, opts testEvaluatorOpts) *Main {
 	return NewForInspecting(opts.Config, opts.State, InspectOpts{
 		InputVariableValues: inputVals,
 		ProviderFactories:   opts.ProviderFactories,
+		TestOnlyGlobals:     opts.TestOnlyGlobals,
 	})
 }
 
@@ -106,4 +119,38 @@ type testEvaluatorOpts struct {
 	// for provider types that the test can use. If not set then any attempt
 	// to use provider configurations will lead to some sort of error.
 	ProviderFactories ProviderFactories
+
+	// TestOnlyGlobals is optional and if set makes it possible to use
+	// references like _test_only_global.name to refer to values from this
+	// map from anywhere in the entire stack configuration.
+	//
+	// This is intended as a kind of "test double" so that we can write more
+	// minimal unit tests that can avoid relying on too many language features
+	// all at once, so that hopefully future maintenance will not require
+	// making broad changes across many different tests at once, which would
+	// then risk inadvertently treating a regression as expected behavior.
+	//
+	// Configurations that refer to test-only globals are not valid for use
+	// outside of the test suite of this package.
+	TestOnlyGlobals map[string]cty.Value
+}
+
+// SetTestOnlyGlobals assigns the test-only globals map for the receiving
+// main evaluator.
+//
+// This may be used only from unit tests in this package and must be called
+// before performing any other operations against the reciever. It's invalid
+// to change the test-only globals after some evaluation has already been
+// performed, because the evaluator expects its input to be immutable and
+// caches values derived from that input, and there's no mechanism to
+// invalidate those caches.
+//
+// This is intentionally defined in a _test.go file to prevent it from
+// being used from non-test code, despite being named as if it's exported.
+// It's named as if exported to help differentiate it from unexported
+// methods that are intended only as internal API, since it's a public API
+// from the perspective of a test caller even though it's not public to
+// other callers.
+func (m *Main) SetTestOnlyGlobals(vals map[string]cty.Value) {
+	m.testOnlyGlobals = vals
 }

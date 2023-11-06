@@ -54,6 +54,14 @@ type Main struct {
 	// runtime can obtain new instances of each of the available providers.
 	providerFactories ProviderFactories
 
+	// testOnlyGlobals is a unit testing affordance: if non-nil, expressions
+	// shaped like _test_only_global.name (with the leading underscore)
+	// become valid throughout the stack configuration and evaluate to the
+	// correspondingly-named values here.
+	//
+	// This must never be used outside of test code in this package.
+	testOnlyGlobals map[string]cty.Value
+
 	// The remaining fields memoize other objects we might create in response
 	// to method calls. Must lock "mu" before interacting with them.
 	mu              sync.Mutex
@@ -139,6 +147,7 @@ func NewForInspecting(config *stackconfig.Config, state *stackstate.State, opts 
 		},
 		providerFactories: opts.ProviderFactories,
 		providerTypes:     make(map[addrs.Provider]*ProviderType),
+		testOnlyGlobals:   opts.TestOnlyGlobals,
 	}
 }
 

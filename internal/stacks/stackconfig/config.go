@@ -94,6 +94,28 @@ func LoadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 	return ret, diags
 }
 
+// NewEmptyConfig returns a representation of an empty configuration that's
+// primarily intended for unit testing situations that don't actually depend
+// on any configuration objects being present.
+//
+// The result has non-nil pointers to some items that callers would reasonably
+// expect should always be present, but in particular doesn't include any
+// actual declarations and so closely resembles what would happen if
+// parsing a totally-empty configuration.
+func NewEmptyConfig(fakeSourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bundle) *Config {
+	return &Config{
+		Root: &ConfigNode{
+			Stack: &Stack{
+				SourceAddr: fakeSourceAddr,
+				Declarations: Declarations{
+					RequiredProviders: &ProviderRequirements{},
+				},
+			},
+		},
+		Sources: sources,
+	}
+}
+
 func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bundle, callers []sourceaddrs.FinalSource) (*ConfigNode, tfdiags.Diagnostics) {
 	stack, diags := LoadSingleStackConfig(sourceAddr, sources)
 	if stack == nil {
