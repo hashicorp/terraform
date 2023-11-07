@@ -1,11 +1,13 @@
 package stackeval
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
+	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
@@ -151,6 +153,56 @@ type testEvaluatorOpts struct {
 // methods that are intended only as internal API, since it's a public API
 // from the perspective of a test caller even though it's not public to
 // other callers.
-func (m *Main) SetTestOnlyGlobals(vals map[string]cty.Value) {
+func (m *Main) SetTestOnlyGlobals(t *testing.T, vals map[string]cty.Value) {
 	m.testOnlyGlobals = vals
+}
+
+func assertNoDiags(t *testing.T, diags tfdiags.Diagnostics) {
+	t.Helper()
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics\n%s", diags.Err())
+	}
+}
+
+func assertMatchingDiag(t *testing.T, diags tfdiags.Diagnostics, check func(diag tfdiags.Diagnostic) bool) {
+	t.Helper()
+	for _, diag := range diags {
+		if check(diag) {
+			return
+		}
+	}
+	t.Fatalf("none of the diagnostics is the one we are expecting\n%s", diags.Err())
+}
+
+// inPromisingTask is a helper for conveniently running some code in the context
+// of a [promising.MainTask], with automatic promise error checking. This
+// makes it valid to call functions that expect to run only as part of a
+// promising task, which is true of essentially every method in this package
+// that takes a [context.Context] as its first argument.
+//
+// Specifically, if the function encounters any direct promise-related failures,
+// such as failure to resolve a promise before returning, this function will
+// halt the test with an error message.
+func inPromisingTask(t *testing.T, f func(ctx context.Context, t *testing.T)) {
+	t.Helper()
+	_, err := promising.MainTask(context.Background(), func(ctx context.Context) (struct{}, error) {
+		t.Helper()
+		f(ctx, t)
+		return struct{}{}, nil
+	})
+	if err != nil {
+		// We could get here if the test produces any self-references or
+		// if it creates any promises that are left unresolved once it exits.
+		t.Fatalf("promise resolution failure: %s", err)
+	}
+}
+
+// subtestInPromisingTask compiles [testing.T.Run] with [inPromisingTask] as
+// a convenience wrapper for running an entire subtest as a [promising.MainTask].
+func subtestInPromisingTask(t *testing.T, name string, f func(ctx context.Context, t *testing.T)) {
+	t.Helper()
+	t.Run(name, func(t *testing.T) {
+		t.Helper()
+		inPromisingTask(t, f)
+	})
 }

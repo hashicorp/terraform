@@ -46,6 +46,10 @@ func newStackCallInstance(call *StackCall, key addrs.InstanceKey, repetition ins
 	}
 }
 
+func (c *StackCallInstance) RepetitionData() instances.RepetitionData {
+	return c.repetition
+}
+
 // CallerStack returns the stack instance that contains the call that this
 // is an instance of.
 func (c *StackCallInstance) CallerStack(ctx context.Context) *Stack {
