@@ -6,6 +6,7 @@ package funcs
 import (
 	"fmt"
 	"math/big"
+	"net"
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/hashicorp/terraform/internal/ipaddr"
@@ -197,6 +198,31 @@ var CidrSubnetsFunc = function.New(&function.Spec{
 	},
 })
 
+// IpInCIDRSubnetFunc returns true if a specified IP address is within a give CIDR subnet.
+var IpInCIDRSubnetFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "ip",
+			Type: cty.String,
+		},
+		{
+			Name: "cidr_subnet",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.Bool),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		_, cidr, err := net.ParseCIDR(args[1].AsString())
+		if err != nil {
+			return cty.UnknownVal(cty.Bool), function.NewArgErrorf(0, "invalid CIDR expression: %s", err)
+		}
+
+		ip := net.ParseIP(args[0].AsString())
+
+		return cty.BoolVal(cidr.Contains(ip)), nil
+	},
+})
+
 // CidrHost calculates a full host IP address within a given IP network address prefix.
 func CidrHost(prefix, hostnum cty.Value) (cty.Value, error) {
 	return CidrHostFunc.Call([]cty.Value{prefix, hostnum})
@@ -219,4 +245,9 @@ func CidrSubnets(prefix cty.Value, newbits ...cty.Value) (cty.Value, error) {
 	args[0] = prefix
 	copy(args[1:], newbits)
 	return CidrSubnetsFunc.Call(args)
+}
+
+// IpInCIDRSubnet returns true if a specified IP address is within a give CIDR subnet.
+func IpInCIDRSubnet(ip, cidrSubnet cty.Value) (cty.Value, error) {
+	return IpInCIDRSubnetFunc.Call([]cty.Value{ip, cidrSubnet})
 }

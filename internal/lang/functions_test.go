@@ -512,6 +512,17 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"ipincidr": {
+			{
+				`ipincidr("10.100.33.100", "10.100.33.0/24")`,
+				cty.BoolVal(true),
+			},
+			{
+				`ipincidr("10.100.33.100", "10.100.35.0/24")`,
+				cty.BoolVal(false),
+			},
+		},
+
 		"join": {
 			{
 				`join(" ", ["Hello", "World"])`,

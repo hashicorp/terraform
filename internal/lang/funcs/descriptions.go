@@ -231,6 +231,10 @@ var DescriptionList = map[string]descriptionEntry{
 		Description:      "`index` finds the element index for a given value in a list.",
 		ParamDescription: []string{"", ""},
 	},
+	"ipincidr": {
+		Description:      "`ipincidr` returns true if a given IP address is within a specified CIDR subnet.",
+		ParamDescription: []string{"", ""},
+	},
 	"join": {
 		Description: "`join` produces a string by concatenating together all elements of a given list of strings with the given delimiter.",
 		ParamDescription: []string{
