@@ -224,3 +224,174 @@ func TestStackCallCheckInstances(t *testing.T) {
 		})
 	})
 }
+
+func TestStackCallResultValue(t *testing.T) {
+	getStackCall := func(ctx context.Context, main *Main) *StackCall {
+		mainStack := main.MainStack(ctx)
+		call := mainStack.EmbeddedStackCall(ctx, stackaddrs.StackCall{Name: "child"})
+		if call == nil {
+			t.Fatal("stack.child does not exist, but it should exist")
+		}
+		return call
+	}
+
+	subtestInPromisingTask(t, "single instance", func(ctx context.Context, t *testing.T) {
+		cfg := testStackConfig(t, "stack_call", "single_instance")
+		main := testEvaluator(t, testEvaluatorOpts{
+			Config: cfg,
+			TestOnlyGlobals: map[string]cty.Value{
+				"child_stack_inputs": cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("hello"),
+					"test_map":    cty.MapValEmpty(cty.String),
+				}),
+			},
+		})
+
+		call := getStackCall(ctx, main)
+		got := call.ResultValue(ctx, InspectPhase)
+		want := cty.ObjectVal(map[string]cty.Value{
+			"test_map":    cty.MapValEmpty(cty.String),
+			"test_string": cty.StringVal("hello"),
+		})
+		if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
+			t.Fatalf("wrong result\n%s", diff)
+		}
+	})
+	t.Run("for_each", func(t *testing.T) {
+		cfg := testStackConfig(t, "stack_call", "for_each")
+
+		subtestInPromisingTask(t, "no instances", func(ctx context.Context, t *testing.T) {
+			main := testEvaluator(t, testEvaluatorOpts{
+				Config: cfg,
+				TestOnlyGlobals: map[string]cty.Value{
+					"child_stack_for_each": cty.MapValEmpty(cty.EmptyObject),
+				},
+			})
+
+			call := getStackCall(ctx, main)
+			got := call.ResultValue(ctx, InspectPhase)
+			want := cty.MapValEmpty(cty.Map(cty.Object(map[string]cty.Type{
+				"test_string": cty.String,
+				"test_map":    cty.Map(cty.String),
+			})))
+			if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
+				t.Fatalf("wrong result\n%s", diff)
+			}
+		})
+		subtestInPromisingTask(t, "two instances", func(ctx context.Context, t *testing.T) {
+			forEachVal := cty.MapVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("in a"),
+				}),
+				"b": cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("in b"),
+				}),
+			})
+			main := testEvaluator(t, testEvaluatorOpts{
+				Config: cfg,
+				TestOnlyGlobals: map[string]cty.Value{
+					"child_stack_for_each": forEachVal,
+				},
+			})
+
+			call := getStackCall(ctx, main)
+			got := call.ResultValue(ctx, InspectPhase)
+			want := cty.MapVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("in a"),
+					"test_map":    cty.NullVal(cty.Map(cty.String)),
+				}),
+				"b": cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("in b"),
+					"test_map":    cty.NullVal(cty.Map(cty.String)),
+				}),
+			})
+			// FIXME: the cmp transformer ctydebug.CmpOptions seems to find
+			// this particular pair of values troubling, causing it to get
+			// into an infinite recursion. For now we'll just use RawEquals,
+			// at the expense of a less helpful failure message. This seems
+			// to be a bug in upstream ctydebug.
+			if !want.RawEquals(got) {
+				t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+			}
+		})
+		subtestInPromisingTask(t, "null", func(ctx context.Context, t *testing.T) {
+			main := testEvaluator(t, testEvaluatorOpts{
+				Config: cfg,
+				TestOnlyGlobals: map[string]cty.Value{
+					"child_stack_for_each": cty.NullVal(cty.Map(cty.EmptyObject)),
+				},
+			})
+
+			call := getStackCall(ctx, main)
+			got := call.ResultValue(ctx, InspectPhase)
+			// When the for_each expression is invalid, the result value
+			// is unknown so we can use it as a placeholder for partial
+			// downstream checking.
+			want := cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{
+				"test_map":    cty.Map(cty.String),
+				"test_string": cty.String,
+			})))
+			// FIXME: the cmp transformer ctydebug.CmpOptions seems to find
+			// this particular pair of values troubling, causing it to get
+			// into an infinite recursion. For now we'll just use RawEquals,
+			// at the expense of a less helpful failure message. This seems
+			// to be a bug in upstream ctydebug.
+			if !want.RawEquals(got) {
+				t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+			}
+		})
+		subtestInPromisingTask(t, "string", func(ctx context.Context, t *testing.T) {
+			main := testEvaluator(t, testEvaluatorOpts{
+				Config: cfg,
+				TestOnlyGlobals: map[string]cty.Value{
+					"child_stack_for_each": cty.StringVal("nope"),
+				},
+			})
+
+			call := getStackCall(ctx, main)
+			got := call.ResultValue(ctx, InspectPhase)
+			// When the for_each expression is invalid, the result value
+			// is unknown so we can use it as a placeholder for partial
+			// downstream checking.
+			want := cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{
+				"test_map":    cty.Map(cty.String),
+				"test_string": cty.String,
+			})))
+			// FIXME: the cmp transformer ctydebug.CmpOptions seems to find
+			// this particular pair of values troubling, causing it to get
+			// into an infinite recursion. For now we'll just use RawEquals,
+			// at the expense of a less helpful failure message. This seems
+			// to be a bug in upstream ctydebug.
+			if !want.RawEquals(got) {
+				t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+			}
+		})
+		subtestInPromisingTask(t, "unknown", func(ctx context.Context, t *testing.T) {
+			main := testEvaluator(t, testEvaluatorOpts{
+				Config: cfg,
+				TestOnlyGlobals: map[string]cty.Value{
+					"child_stack_for_each": cty.UnknownVal(cty.Map(cty.EmptyObject)),
+				},
+			})
+
+			call := getStackCall(ctx, main)
+			got := call.ResultValue(ctx, InspectPhase)
+			// When the for_each expression is unknown, the result value
+			// is unknown too so we can use it as a placeholder for partial
+			// downstream checking.
+			want := cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{
+				"test_map":    cty.Map(cty.String),
+				"test_string": cty.String,
+			})))
+			// FIXME: the cmp transformer ctydebug.CmpOptions seems to find
+			// this particular pair of values troubling, causing it to get
+			// into an infinite recursion. For now we'll just use RawEquals,
+			// at the expense of a less helpful failure message. This seems
+			// to be a bug in upstream ctydebug.
+			if !want.RawEquals(got) {
+				t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+			}
+		})
+	})
+}

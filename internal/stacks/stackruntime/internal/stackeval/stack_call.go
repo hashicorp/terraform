@@ -194,6 +194,9 @@ func (c *StackCall) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 			}
 			elems[string(k)] = inst.CalledStack(ctx).ResultValue(ctx, phase)
 		}
+		if len(elems) == 0 {
+			return cty.MapValEmpty(childResultType)
+		}
 		return cty.MapVal(elems)
 
 	default:

@@ -24,6 +24,6 @@ output "test_string" {
 }
 
 output "test_map" {
-  type  = string
+  type  = map(string)
   value = var.test_map
 }
