@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	configtest "github.com/hashicorp/terraform/internal/moduletest/config"
@@ -395,7 +396,12 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return state, false
 	}
 
-	planCtx, plan, planDiags := runner.plan(config, state, run, file, runner.FilterVariablesToConfig(config, variables), references, start)
+	// FilterVariablesToConfig only returns warnings, so we don't check the
+	// returned diags for errors.
+	setVariables, setVariableDiags := runner.FilterVariablesToConfig(config, variables)
+	run.Diagnostics = run.Diagnostics.Append(setVariableDiags)
+
+	planCtx, plan, planDiags := runner.plan(config, state, run, file, setVariables, references, start)
 	if run.Config.Command == configs.PlanTestCommand {
 		// Then we want to assess our conditions and diagnostics differently.
 		planDiags = run.ValidateExpectedFailures(planDiags)
@@ -586,9 +592,15 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 		return state, diags
 	}
 
+	// During the destroy operation, we don't add warnings from this operation.
+	// Anything that would have been reported here was already reported during
+	// the original plan, and a successful destroy operation is the only thing
+	// we care about.
+	setVariables, _ := runner.FilterVariablesToConfig(config, variables)
+
 	planOpts := &terraform.PlanOpts{
 		Mode:         plans.DestroyMode,
-		SetVariables: runner.FilterVariablesToConfig(config, variables),
+		SetVariables: setVariables,
 	}
 
 	tfCtx, ctxDiags := terraform.NewContext(runner.Suite.Opts)
@@ -1140,17 +1152,46 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 // This function is essentially the opposite of AddVariablesToConfig which
 // makes the config match the variables rather than the variables match the
 // config.
-func (runner *TestFileRunner) FilterVariablesToConfig(config *configs.Config, values terraform.InputValues) terraform.InputValues {
+//
+// This function can only return warnings, and the callers can rely on this so
+// please check the callers of this function if you add any error diagnostics.
+func (runner *TestFileRunner) FilterVariablesToConfig(config *configs.Config, values terraform.InputValues) (terraform.InputValues, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	filtered := make(terraform.InputValues)
 	for name, value := range values {
-		if _, exists := config.Module.Variables[name]; !exists {
+		variableConfig, exists := config.Module.Variables[name]
+		if !exists {
 			// Only include values that are actually required by the config.
 			continue
 		}
 
+		if marks.Has(value.Value, marks.Sensitive) {
+			unmarkedValue, _ := value.Value.Unmark()
+			if !variableConfig.Sensitive {
+				// Then we are passing a sensitive value into a non-sensitive
+				// variable. Let's add a warning and tell the user they should
+				// mark the config as sensitive as well. If the config variable
+				// is sensitive, then we don't need to worry.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Sensitive metadata on variable lost",
+					Detail:   fmt.Sprintf("The input variable is marked as sensitive, while the receiving configuration is not. The underlying sensitive information may be exposed when var.%s is referenced. Mark the variable block in the configuration as sensitive to resolve this warning.", variableConfig.Name),
+					Subject:  value.SourceRange.ToHCL().Ptr(),
+				})
+			}
+
+			// Set the unmarked value into the input value.
+			value = &terraform.InputValue{
+				Value:       unmarkedValue,
+				SourceType:  value.SourceType,
+				SourceRange: value.SourceRange,
+			}
+		}
+
 		filtered[name] = value
 	}
-	return filtered
+	return filtered, diags
 }
 
 // AddVariablesToConfig extends the provided config to ensure it has definitions
