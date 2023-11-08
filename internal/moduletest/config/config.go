@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // TransformConfigForTest transforms the provided configuration ready for the
@@ -25,7 +26,7 @@ import (
 // We also return a reset function that should be called to return the
 // configuration to it's original state before the next run block or test file
 // needs to use it.
-func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *moduletest.File, availableVariables map[string]backend.UnparsedVariableValue) (func(), hcl.Diagnostics) {
+func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *moduletest.File, availableVariables map[string]backend.UnparsedVariableValue, availableRunBlocks map[string]*terraform.TestContext, requiredProviders map[string]bool) (func(), hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	// Currently, we only need to override the provider settings.
@@ -63,7 +64,7 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 		next[key] = value
 	}
 
-	if run != nil && len(run.Config.Providers) > 0 {
+	if len(run.Config.Providers) > 0 {
 		// Then we'll only copy over and overwrite the specific providers asked
 		// for by this run block.
 
@@ -93,6 +94,7 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 					Original:           testProvider.Config,
 					ConfigVariables:    config.Module.Variables,
 					AvailableVariables: availableVariables,
+					AvailableRunBlocks: availableRunBlocks,
 				},
 				DeclRange: testProvider.DeclRange,
 			}
@@ -102,6 +104,13 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 		// Otherwise, let's copy over and overwrite all providers specified by
 		// the test file itself.
 		for key, provider := range file.Config.Providers {
+
+			if !requiredProviders[key] {
+				// Then we don't actually need this provider for this
+				// configuration, so skip it.
+				continue
+			}
+
 			next[key] = &configs.Provider{
 				Name:       provider.Name,
 				NameRange:  provider.NameRange,
@@ -112,6 +121,7 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 					Original:           provider.Config,
 					ConfigVariables:    config.Module.Variables,
 					AvailableVariables: availableVariables,
+					AvailableRunBlocks: availableRunBlocks,
 				},
 				DeclRange: provider.DeclRange,
 			}
