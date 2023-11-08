@@ -1153,10 +1153,6 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 // makes the config match the variables rather than the variables match the
 // config.
 //
-// warnOnSensitivityChange will prompt this function to add warnings if an input
-// variable is marked as sensitive and the config variable it is being assigned
-// to is not.
-//
 // This function can only return warnings, and the callers can rely on this so
 // please check the callers of this function if you add any error diagnostics.
 func (runner *TestFileRunner) FilterVariablesToConfig(config *configs.Config, values terraform.InputValues) (terraform.InputValues, tfdiags.Diagnostics) {
