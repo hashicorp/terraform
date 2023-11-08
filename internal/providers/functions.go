@@ -75,6 +75,10 @@ func (d *FunctionDecl) BuildFunction(name string, factory func() (Interface, err
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			for i, arg := range args {
 				param := argParamDecl(i)
+				if param == nil {
+					return cty.UnknownVal(retType), fmt.Errorf("nil parameter definition for arg %d", i)
+				}
+
 				// We promise provider developers that we won't pass them even
 				// _nested_ unknown values unless they opt in to dealing with
 				// them.
