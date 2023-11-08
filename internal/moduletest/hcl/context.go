@@ -17,6 +17,13 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+type EvalContextTarget string
+
+const (
+	TargetRunBlock EvalContextTarget = "run"
+	TargetProvider EvalContextTarget = "provider"
+)
+
 // EvalContext builds hcl.EvalContext objects for use directly within the
 // testing framework.
 //
@@ -39,7 +46,7 @@ import (
 // expressions to be evaluated will pass evaluation. Anything present in the
 // expressions argument will be validated to make sure the only reference the
 // availableVariables and availableRunBlocks.
-func EvalContext(expressions []hcl.Expression, availableVariables map[string]cty.Value, availableRunBlocks map[string]*terraform.TestContext) (*hcl.EvalContext, tfdiags.Diagnostics) {
+func EvalContext(target EvalContextTarget, expressions []hcl.Expression, availableVariables map[string]cty.Value, availableRunBlocks map[string]*terraform.TestContext) (*hcl.EvalContext, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	runs := make(map[string]cty.Value)
@@ -96,31 +103,22 @@ func EvalContext(expressions []hcl.Expression, availableVariables map[string]cty
 
 		for _, ref := range refs {
 			if addr, ok := ref.Subject.(addrs.Run); ok {
-
-				if availableRunBlocks == nil {
-					// Then run blocks are never available from this context.
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid reference",
-						Detail:   "You cannot reference run blocks from within provider configurations. You can only reference run blocks from other run blocks that execute after them.",
-						Subject:  ref.SourceRange.ToHCL().Ptr(),
-					})
-
-					continue
-				}
-
-				// For the error messages here, we know the reference is coming
-				// from a run block as that is the only place that reference
-				// other run blocks.
-
 				ctx, exists := availableRunBlocks[addr.Name]
+
+				var diagPrefix string
+				switch target {
+				case TargetRunBlock:
+					diagPrefix = "You can only reference run blocks that are in the same test file and will execute before the current run block."
+				case TargetProvider:
+					diagPrefix = "You can only reference run blocks that are in the same test file and will execute before the provider is required."
+				}
 
 				if !exists {
 					// Then this is a made up run block.
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to unknown run block",
-						Detail:   fmt.Sprintf("The run block %q does not exist within this test file. You can only reference run blocks that are in the same test file and will execute before the current run block.", addr.Name),
+						Detail:   fmt.Sprintf("The run block %q does not exist within this test file. %s", addr.Name, diagPrefix),
 						Subject:  ref.SourceRange.ToHCL().Ptr(),
 					})
 
@@ -132,7 +130,7 @@ func EvalContext(expressions []hcl.Expression, availableVariables map[string]cty
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Reference to unavailable run block",
-						Detail:   fmt.Sprintf("The run block %q is not available to the current run block. You can only reference run blocks that are in the same test file and will execute before the current run block.", addr.Name),
+						Detail:   fmt.Sprintf("The run block %q has not executed yet. %s", addr.Name, diagPrefix),
 						Subject:  ref.SourceRange.ToHCL().Ptr(),
 					})
 
