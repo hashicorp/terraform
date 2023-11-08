@@ -10,6 +10,7 @@ UPGRADE NOTES:
     * Users of Terraform 1.6.0 and later are unaffected.
  
   This is important for users with `terraform_remote_state` data sources reading remote state across different versions of Terraform.
+* `nonsensitive` function no longer errors when applied to values that are already not sensitive. ([#33856](https://github.com/hashicorp/terraform/issues/33856))
 
 BUG FIXES:
 
