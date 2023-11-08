@@ -453,6 +453,61 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 			})
 		}
 		return ret, diags
+	case stackaddrs.ContextualRef:
+		switch addr {
+		case stackaddrs.EachKey:
+			if repetition.EachKey == cty.NilVal {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid 'each' reference",
+					Detail:   fmt.Sprintf("The special symbol 'each' is not defined in this location. This symbol is valid only inside multi-instance blocks that use the 'for_each' argument."),
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+				return nil, diags
+			}
+			return JustValue{repetition.EachKey}, diags
+		case stackaddrs.EachValue:
+			if repetition.EachValue == cty.NilVal {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid 'each' reference",
+					Detail:   fmt.Sprintf("The special symbol 'each' is not defined in this location. This symbol is valid only inside multi-instance blocks that use the 'for_each' argument."),
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+				return nil, diags
+			}
+			return JustValue{repetition.EachValue}, diags
+		case stackaddrs.CountIndex:
+			if repetition.CountIndex == cty.NilVal {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid 'count' reference",
+					Detail:   fmt.Sprintf("The special symbol 'count' is not defined in this location. This symbol is valid only inside multi-instance blocks that use the 'count' argument."),
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+				return nil, diags
+			}
+			return JustValue{repetition.CountIndex}, diags
+		case stackaddrs.Self:
+			if selfAddr != nil {
+				// We'll just pretend the reference was to whatever "self"
+				// is referring to, then.
+				ref.Target = selfAddr
+				return s.resolveExpressionReference(ctx, ref, nil, repetition)
+			} else {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid 'self' reference",
+					Detail:   "The special symbol 'self' is not defined in this location.",
+					Context:  ref.SourceRange.ToHCL().Ptr(),
+				})
+				return nil, diags
+			}
+		default:
+			// The above should be exhaustive for all defined values of this type.
+			panic(fmt.Sprintf("unsupported ContextualRef %#v", addr))
+		}
+
 	default:
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,

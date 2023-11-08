@@ -59,6 +59,44 @@ func ParseReference(traversal hcl.Traversal) (Reference, hcl.Traversal, tfdiags.
 		ret.SourceRange = tfdiags.SourceRangeFromHCL(rng)
 		return ret, remain, diags
 
+	case "each", "count":
+		attrName, rng, remain, diags := parseSingleAttrRef(traversal)
+		if diags.HasErrors() {
+			return ret, nil, diags
+		}
+		ret.SourceRange = tfdiags.SourceRangeFromHCL(rng)
+
+		switch rootName {
+		case "each":
+			switch attrName {
+			case "key":
+				ret.Target = EachKey
+				return ret, remain, diags
+			case "value":
+				ret.Target = EachValue
+				return ret, remain, diags
+			}
+		case "count":
+			switch attrName {
+			case "index":
+				ret.Target = CountIndex
+				return ret, remain, diags
+			}
+		}
+		// If we get here then rootName and attrName are not a valid combination.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reference to unknown symbol",
+			Detail:   fmt.Sprintf("The object %q has no attribute named %q.", rootName, attrName),
+			Subject:  traversal[1].SourceRange().Ptr(),
+		})
+		return ret, nil, diags
+
+	case "self":
+		ret.Target = Self
+		ret.SourceRange = tfdiags.SourceRangeFromHCL(traversal[0].SourceRange())
+		return ret, traversal[1:], diags
+
 	case "_test_only_global":
 		name, rng, remain, diags := parseSingleAttrRef(traversal)
 		ret.Target = TestOnlyGlobal{Name: name}
