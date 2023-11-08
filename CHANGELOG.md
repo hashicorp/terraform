@@ -1,5 +1,8 @@
 ## 1.6.4 (Unreleased)
 
+BUG FIXES:
+* `terraform test`: Fix bug preventing passing sensitive output values from previous run blocks as inputs to future run blocks. ([#34190](https://github.com/hashicorp/terraform/pull/34190))
+
 ## 1.6.3 (November 1, 2023)
 
 ENHANCEMENTS:
