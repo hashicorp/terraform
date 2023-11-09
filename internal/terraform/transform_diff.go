@@ -193,7 +193,6 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			if dk == states.NotDeposed {
 				node = &NodeDestroyResourceInstance{
 					NodeAbstractResourceInstance: abstract,
-					DeposedKey:                   dk,
 				}
 			} else {
 				node = &NodeDestroyDeposedResourceInstanceObject{
