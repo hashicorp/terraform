@@ -46,7 +46,7 @@ type FunctionParam struct {
 // function that either retrieves already-running plugins or memoizes the
 // plugins it returns so that many calls to functions in the same provider
 // will not incur a repeated startup cost.
-func (d *FunctionDecl) BuildFunction(name string, factory func() (Interface, error)) function.Function {
+func (d FunctionDecl) BuildFunction(name string, factory func() (Interface, error)) function.Function {
 
 	var params []function.Parameter
 	var varParam *function.Parameter
@@ -61,28 +61,23 @@ func (d *FunctionDecl) BuildFunction(name string, factory func() (Interface, err
 		varParam = &cp
 	}
 
-	argParamDecl := func(idx int) *FunctionParam {
-		if idx < len(d.Parameters) {
-			return &d.Parameters[idx]
-		}
-		return d.VariadicParameter
-	}
-
 	return function.New(&function.Spec{
 		Type:     function.StaticReturnType(d.ReturnType),
 		Params:   params,
 		VarParam: varParam,
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			for i, arg := range args {
-				param := argParamDecl(i)
-				if param == nil {
-					return cty.UnknownVal(retType), fmt.Errorf("nil parameter definition for arg %d", i)
+				var param function.Parameter
+				if i < len(params) {
+					param = params[i]
+				} else {
+					param = *varParam
 				}
 
 				// We promise provider developers that we won't pass them even
 				// _nested_ unknown values unless they opt in to dealing with
 				// them.
-				if !param.AllowUnknownValues {
+				if !param.AllowUnknown {
 					if !arg.IsWhollyKnown() {
 						return cty.UnknownVal(retType), nil
 					}
@@ -90,7 +85,7 @@ func (d *FunctionDecl) BuildFunction(name string, factory func() (Interface, err
 
 				// We also ensure that null values are never passed where they
 				// are not expected.
-				if !param.AllowNullValue {
+				if !param.AllowNull {
 					if arg.IsNull() {
 						return cty.UnknownVal(retType), fmt.Errorf("argument %q cannot be null", param.Name)
 					}
