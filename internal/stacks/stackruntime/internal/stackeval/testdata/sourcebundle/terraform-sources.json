@@ -12,6 +12,10 @@
       {
         "source": "https://testing.invalid/stack_call.tar.gz",
         "local": "stack_call"
+      },
+      {
+        "source": "https://testing.invalid/component.tar.gz",
+        "local": "component"
       }
     ]
   }

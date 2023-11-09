@@ -62,6 +62,10 @@ func (c *ComponentInstance) Addr() stackaddrs.AbsComponentInstance {
 	}
 }
 
+func (c *ComponentInstance) RepetitionData() instances.RepetitionData {
+	return c.repetition
+}
+
 func (c *ComponentInstance) InputVariableValues(ctx context.Context, phase EvalPhase) cty.Value {
 	ret, _ := c.CheckInputVariableValues(ctx, phase)
 	return ret
