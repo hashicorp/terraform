@@ -1146,8 +1146,12 @@ is declared in run block "test".
   run "finalise"... skip
 main.tftest.hcl... tearing down
 main.tftest.hcl... fail
+providers.tftest.hcl... in progress
+  run "test"... fail
+providers.tftest.hcl... tearing down
+providers.tftest.hcl... fail
 
-Failure! 1 passed, 1 failed, 1 skipped.
+Failure! 1 passed, 2 failed, 1 skipped.
 `
 	actualOut := output.Stdout()
 	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
@@ -1169,9 +1173,9 @@ Error: Reference to unavailable run block
   on main.tftest.hcl line 16, in run "test":
   16:     input_two = run.finalise.response
 
-The run block "finalise" is not available to the current run block. You can
-only reference run blocks that are in the same test file and will execute
-before the current run block.
+The run block "finalise" has not executed yet. You can only reference run
+blocks that are in the same test file and will execute before the current run
+block.
 
 Error: Reference to unknown run block
 
@@ -1181,6 +1185,15 @@ Error: Reference to unknown run block
 The run block "madeup" does not exist within this test file. You can only
 reference run blocks that are in the same test file and will execute before
 the current run block.
+
+Error: Reference to unavailable variable
+
+  on providers.tftest.hcl line 3, in provider "test":
+   3:   resource_prefix = var.default
+
+The input variable "default" is not available to the current run block. You
+can only reference variables defined at the file or global levels when
+populating the variables block within a run block.
 `
 	actualErr := output.Stderr()
 	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
@@ -1560,6 +1573,80 @@ operation, and the specified output value is only known after apply.
 
 }
 
+func TestTest_SensitiveInputValues(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "sensitive_input_values")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+	}
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	expected := `main.tftest.hcl... in progress
+  run "setup"... pass
+  run "test"... pass
+
+Warning: Sensitive metadata on variable lost
+
+  on main.tftest.hcl line 13, in run "test":
+  13:     password = run.setup.password
+
+The input variable is marked as sensitive, while the receiving configuration
+is not. The underlying sensitive information may be exposed when var.password
+is referenced. Mark the variable block in the configuration as sensitive to
+resolve this warning.
+
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
+
+Success! 2 passed, 0 failed.
+`
+
+	actual := output.All()
+
+	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
 // This test takes around 10 seconds to complete, as we're testing the progress
 // updates that are printed every 2 seconds. Sorry!
 func TestTest_LongRunningTest(t *testing.T) {
@@ -1688,5 +1775,158 @@ func TestTest_LongRunningTestJSON(t *testing.T) {
 
 	if diff := cmp.Diff(expected, messages); len(diff) > 0 {
 		t.Errorf("unexpected output\n\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", strings.Join(expected, "\n"), strings.Join(messages, "\n"), diff)
+	}
+}
+
+func TestTest_RunBlocksInProviders(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "provider_runs")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+	}
+
+	test := &TestCommand{
+		Meta: meta,
+	}
+
+	code := test.Run([]string{"-no-color"})
+	output := done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	expected := `main.tftest.hcl... in progress
+  run "setup"... pass
+  run "main"... pass
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
+
+Success! 2 passed, 0 failed.
+`
+	actual := output.All()
+	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "provider_runs_invalid")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+	}
+
+	test := &TestCommand{
+		Meta: meta,
+	}
+
+	code := test.Run([]string{"-no-color"})
+	output := done(t)
+
+	if code != 1 {
+		t.Errorf("expected status code 1 but got %d", code)
+	}
+
+	expectedOut := `missing_run_block.tftest.hcl... in progress
+  run "main"... fail
+missing_run_block.tftest.hcl... tearing down
+missing_run_block.tftest.hcl... fail
+unavailable_run_block.tftest.hcl... in progress
+  run "main"... fail
+unavailable_run_block.tftest.hcl... tearing down
+unavailable_run_block.tftest.hcl... fail
+unused_provider.tftest.hcl... in progress
+  run "main"... pass
+unused_provider.tftest.hcl... tearing down
+unused_provider.tftest.hcl... pass
+
+Failure! 1 passed, 2 failed.
+`
+	actualOut := output.Stdout()
+	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+	}
+
+	expectedErr := `
+Error: Reference to unknown run block
+
+  on missing_run_block.tftest.hcl line 2, in provider "test":
+   2:   resource_prefix = run.missing.resource_directory
+
+The run block "missing" does not exist within this test file. You can only
+reference run blocks that are in the same test file and will execute before
+the provider is required.
+
+Error: Reference to unavailable run block
+
+  on unavailable_run_block.tftest.hcl line 2, in provider "test":
+   2:   resource_prefix = run.main.resource_directory
+
+The run block "main" has not executed yet. You can only reference run blocks
+that are in the same test file and will execute before the provider is
+required.
+`
+	actualErr := output.Stderr()
+	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
 	}
 }
