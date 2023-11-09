@@ -11,8 +11,10 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 // This file contains some general test utilities that many of our other
@@ -59,6 +61,15 @@ func testSourceBundle(t *testing.T) *sourcebundle.Bundle {
 		t.Fatalf("cannot open source bundle: %s", err)
 	}
 	return sources
+}
+
+func testPriorState(t *testing.T, msgs map[statekeys.Key]protoreflect.ProtoMessage) *stackstate.State {
+	t.Helper()
+	ret, err := stackstate.LoadFromDirectProto(msgs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ret
 }
 
 // testEvaluator constructs a [Main] that's configured for [InspectPhase] using
