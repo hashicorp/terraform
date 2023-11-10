@@ -122,6 +122,7 @@ var (
 	_ GraphNodeAttachProvisionerSchema   = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeAttachProviderMetaConfigs = (*NodeAbstractResourceInstance)(nil)
 	_ GraphNodeTargetable                = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeOverridable               = (*NodeAbstractResourceInstance)(nil)
 	_ dag.GraphNodeDotter                = (*NodeAbstractResourceInstance)(nil)
 )
 
