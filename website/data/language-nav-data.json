@@ -298,9 +298,14 @@
           }
         ]
       },
+
       {
         "title": "String Functions",
         "routes": [
+          {
+            "title": "<code>parseurl</code>",
+            "href": "/language/functions/parseurl"
+          },
           {
             "title": "<code>chomp</code>",
             "href": "/language/functions/chomp"
@@ -756,6 +761,7 @@
       { "title": "can", "path": "functions/can", "hidden": true },
       { "title": "ceil", "path": "functions/ceil", "hidden": true },
       { "title": "chomp", "path": "functions/chomp", "hidden": true },
+      { "title": "parseurl", "path": "functions/parseurl" },
       { "title": "chunklist", "path": "functions/chunklist", "hidden": true },
       { "title": "cidrhost", "path": "functions/cidrhost", "hidden": true },
       {

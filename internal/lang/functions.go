@@ -146,6 +146,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"urlencode":        funcs.URLEncodeFunc,
 			"uuid":             funcs.UUIDFunc,
 			"uuidv5":           funcs.UUIDV5Func,
+			"parseurl":         funcs.ParseURLFunc,
 			"values":           stdlib.ValuesFunc,
 			"yamldecode":       ctyyaml.YAMLDecodeFunc,
 			"yamlencode":       ctyyaml.YAMLEncodeFunc,
