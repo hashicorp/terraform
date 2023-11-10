@@ -58,6 +58,10 @@ func (p *ProviderInstance) Addr() stackaddrs.AbsProviderConfigInstance {
 	}
 }
 
+func (p *ProviderInstance) RepetitionData() instances.RepetitionData {
+	return p.repetition
+}
+
 func (p *ProviderInstance) ProviderType(ctx context.Context) *ProviderType {
 	return p.main.ProviderType(ctx, p.Addr().Item.ProviderConfig.Provider)
 }

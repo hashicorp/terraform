@@ -202,10 +202,16 @@ func (p *Provider) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.
 			if !ok {
 				panic(fmt.Sprintf("provider config with for_each has invalid instance key of type %T", instKey))
 			}
-			elems[string(k)] = cty.CapsuleVal(refType, &stackaddrs.ProviderConfigInstance{
-				ProviderConfig: p.Addr().Item,
-				Key:            instKey,
+			elems[string(k)] = cty.CapsuleVal(refType, &stackaddrs.AbsProviderConfigInstance{
+				Stack: p.Addr().Stack,
+				Item: stackaddrs.ProviderConfigInstance{
+					ProviderConfig: p.Addr().Item,
+					Key:            instKey,
+				},
 			})
+		}
+		if len(elems) == 0 {
+			return cty.MapValEmpty(refType)
 		}
 		return cty.MapVal(elems)
 	default:

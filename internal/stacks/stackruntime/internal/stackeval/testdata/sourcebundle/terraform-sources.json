@@ -16,6 +16,10 @@
       {
         "source": "https://testing.invalid/component.tar.gz",
         "local": "component"
+      },
+      {
+        "source": "https://testing.invalid/provider.tar.gz",
+        "local": "provider"
       }
     ]
   }
