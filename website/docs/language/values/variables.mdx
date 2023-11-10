@@ -367,7 +367,21 @@ a _variable definitions file_ (with a filename ending in either `.tfvars`
 or `.tfvars.json`) and then specify that file on the command line with
 `-var-file`:
 
+Linux, Mac OS, and UNIX:
+
+```shell
+terraform apply -var-file="testing.tfvars"
 ```
+
+PowerShell:
+
+```shell
+terraform apply -var-file='testing.tfvars'
+```
+
+Windows `cmd.exe`:
+
+```shell
 terraform apply -var-file="testing.tfvars"
 ```
 
