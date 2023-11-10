@@ -108,6 +108,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"gunzipbase64": {
+			{
+				`gunzipbase64("H4sIAAAAAAAA/ypJLS4BAAAA//8BAAD//wx+f9gEAAAA")`,
+				cty.StringVal("test"),
+			},
+		},
+
 		"base64sha256": {
 			{
 				`base64sha256("test")`,

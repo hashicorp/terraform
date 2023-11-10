@@ -159,6 +159,39 @@ func TestBase64Gzip(t *testing.T) {
 	}
 }
 
+func TestGunzipBase64(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.StringVal("H4sIAAAAAAAA/ypJLS4BAAAA//8BAAD//wx+f9gEAAAA"),
+			cty.StringVal("test"),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("gunzipbase64(%#v)", test.String), func(t *testing.T) {
+			got, err := GunzipBase64(test.String)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestURLEncode(t *testing.T) {
 	tests := []struct {
 		String cty.Value

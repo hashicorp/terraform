@@ -43,6 +43,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"base64decode":     funcs.Base64DecodeFunc,
 			"base64encode":     funcs.Base64EncodeFunc,
 			"base64gzip":       funcs.Base64GzipFunc,
+			"gunzipbase64":     funcs.GunzipBase64Func,
 			"base64sha256":     funcs.Base64Sha256Func,
 			"base64sha512":     funcs.Base64Sha512Func,
 			"bcrypt":           funcs.BcryptFunc,
