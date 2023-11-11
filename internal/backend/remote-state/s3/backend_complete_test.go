@@ -2034,8 +2034,12 @@ type testCaseDriver struct {
 	config configurer
 }
 
-func (d *testCaseDriver) Configuration() configtesting.Configurer {
-	return d.configuration()
+func (d *testCaseDriver) Configuration(fs []configtesting.ConfigFunc) configtesting.Configurer {
+	config := d.configuration()
+	for _, f := range fs {
+		f(config)
+	}
+	return config
 }
 
 func (d *testCaseDriver) configuration() *configurer {
@@ -2112,8 +2116,24 @@ func (c configurer) setKey(s string) {
 	c["key"] = s
 }
 
+func (c configurer) SetAccessKey(s string) {
+	c["access_key"] = s
+}
+
+func (c configurer) SetSecretKey(s string) {
+	c["secret_key"] = s
+}
+
+func (c configurer) SetProfile(s string) {
+	c["profile"] = s
+}
+
 func (c configurer) SetRegion(s string) {
 	c["region"] = s
+}
+
+func (c configurer) SetUseFIPSEndpoint(b bool) {
+	c["use_fips_endpoint"] = b
 }
 
 func (c configurer) SetSkipCredsValidation(b bool) {
@@ -2130,6 +2150,10 @@ type thing aws.Config
 
 func (t thing) GetCredentials() aws.CredentialsProvider {
 	return t.Credentials
+}
+
+func (t thing) GetRegion() string {
+	return t.Region
 }
 
 func TestBackendConfig_Authentication_SSO(t *testing.T) {

@@ -33,7 +33,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.3.0
-	github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.38
+	github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.39
 	github.com/hashicorp/consul/api v1.13.0
 	github.com/hashicorp/consul/sdk v0.8.0
 	github.com/hashicorp/copywrite v0.16.3
@@ -97,7 +97,7 @@ require (
 	golang.org/x/oauth2 v0.10.0
 	golang.org/x/sys v0.13.0
 	golang.org/x/term v0.13.0
-	golang.org/x/text v0.13.0
+	golang.org/x/text v0.14.0
 	golang.org/x/tools v0.13.0
 	golang.org/x/tools/cmd/cover v0.1.0-deprecated
 	google.golang.org/api v0.126.0
@@ -149,7 +149,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.5.1 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.4.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.2.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/iam v1.26.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/iam v1.27.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.10.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.2.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.8.1 // indirect
@@ -275,5 +275,3 @@ require (
 )
 
 go 1.21.3
-
-replace github.com/hashicorp/aws-sdk-go-base/v2 => github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.38.0.20231106231929-ee4c6bb6c5c8
