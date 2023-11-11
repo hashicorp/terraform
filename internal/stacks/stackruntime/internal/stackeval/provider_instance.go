@@ -103,14 +103,14 @@ func (p *ProviderInstance) CheckProviderArgs(ctx context.Context, phase EvalPhas
 
 			var configVal cty.Value
 			var moreDiags tfdiags.Diagnostics
-			if decl.Config != nil {
-				configVal, moreDiags = EvalBody(ctx, decl.Config, spec, phase, p)
-				diags = diags.Append(moreDiags)
-				if moreDiags.HasErrors() {
-					return cty.UnknownVal(hcldec.ImpliedType(spec)), diags
-				}
-			} else {
-				configVal = cty.EmptyObjectVal
+			configBody := decl.Config
+			if configBody == nil {
+				configBody = hcl.EmptyBody()
+			}
+			configVal, moreDiags = EvalBody(ctx, configBody, spec, phase, p)
+			diags = diags.Append(moreDiags)
+			if moreDiags.HasErrors() {
+				return cty.UnknownVal(hcldec.ImpliedType(spec)), diags
 			}
 
 			unconfClient, err := providerType.UnconfiguredClient(ctx)
