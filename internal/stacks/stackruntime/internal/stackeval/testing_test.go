@@ -200,8 +200,18 @@ func assertMatchingDiag(t *testing.T, diags tfdiags.Diagnostics, check func(diag
 // halt the test with an error message.
 func inPromisingTask(t *testing.T, f func(ctx context.Context, t *testing.T)) {
 	t.Helper()
-	_, err := promising.MainTask(context.Background(), func(ctx context.Context) (struct{}, error) {
+
+	// We'll introduce an extra cancellable context here just to make
+	// sure everything descending from this task gets terminated promptly
+	// after the test is complete.
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(func() {
+		cancel()
+	})
+
+	_, err := promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
 		t.Helper()
+
 		f(ctx, t)
 		return struct{}{}, nil
 	})
