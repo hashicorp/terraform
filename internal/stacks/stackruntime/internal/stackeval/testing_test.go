@@ -109,11 +109,15 @@ func testEvaluator(t *testing.T, opts testEvaluatorOpts) *Main {
 		}
 	}
 
-	return NewForInspecting(opts.Config, opts.State, InspectOpts{
+	main := NewForInspecting(opts.Config, opts.State, InspectOpts{
 		InputVariableValues: inputVals,
 		ProviderFactories:   opts.ProviderFactories,
 		TestOnlyGlobals:     opts.TestOnlyGlobals,
 	})
+	t.Cleanup(func() {
+		main.DoCleanup(context.Background())
+	})
+	return main
 }
 
 type testEvaluatorOpts struct {
