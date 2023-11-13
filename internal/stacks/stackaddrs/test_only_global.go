@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package stackaddrs
 
 // TestOnlyGlobal is a special referenceable address type used only in
