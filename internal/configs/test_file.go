@@ -165,7 +165,7 @@ func (file *TestFile) Validate(config *Config) tfdiags.Diagnostics {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  "Invalid override target",
-					Detail:   fmt.Sprintf("The override target %s does not exist within the configuration under test. This could indicate or a typo in the target address or an unnecessary override.", elem.Key),
+					Detail:   fmt.Sprintf("The override target %s does not exist within the configuration under test. This could indicate a typo in the target address or an unnecessary override.", elem.Key),
 					Subject:  elem.Value.TargetRange.Ptr(),
 				})
 			}
@@ -177,7 +177,7 @@ func (file *TestFile) Validate(config *Config) tfdiags.Diagnostics {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagWarning,
 				Summary:  "Invalid override target",
-				Detail:   fmt.Sprintf("The override target %s does not exist within the configuration under test. This could indicate or a typo in the target address or an unnecessary override.", elem.Key),
+				Detail:   fmt.Sprintf("The override target %s does not exist within the configuration under test. This could indicate a typo in the target address or an unnecessary override.", elem.Key),
 				Subject:  elem.Value.TargetRange.Ptr(),
 			})
 		}
@@ -244,7 +244,7 @@ func (run *TestRun) Validate(config *Config) tfdiags.Diagnostics {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagWarning,
 				Summary:  "Invalid override target",
-				Detail:   fmt.Sprintf("The override target %s does not exist within the configuration under test. This could indicate or a typo in the target address or an unnecessary override.", elem.Key),
+				Detail:   fmt.Sprintf("The override target %s does not exist within the configuration under test. This could indicate a typo in the target address or an unnecessary override.", elem.Key),
 				Subject:  elem.Value.TargetRange.Ptr(),
 			})
 		}

@@ -1743,8 +1743,8 @@ Warning: Invalid override target
   39:     target = test_resource.absent_five
 
 The override target test_resource.absent_five does not exist within the
-configuration under test. This could indicate or a typo in the target address
-or an unnecessary override.
+configuration under test. This could indicate a typo in the target address or
+an unnecessary override.
 
   run "test"... pass
 
@@ -1754,8 +1754,8 @@ Warning: Invalid override target
   45:     target = module.setup.test_resource.absent_six
 
 The override target module.setup.test_resource.absent_six does not exist
-within the configuration under test. This could indicate or a typo in the
-target address or an unnecessary override.
+within the configuration under test. This could indicate a typo in the target
+address or an unnecessary override.
 
 main.tftest.hcl... tearing down
 main.tftest.hcl... pass
@@ -1766,8 +1766,8 @@ Warning: Invalid override target
    4:     target = test_resource.absent_one
 
 The override target test_resource.absent_one does not exist within the
-configuration under test. This could indicate or a typo in the target address
-or an unnecessary override.
+configuration under test. This could indicate a typo in the target address or
+an unnecessary override.
 
 (and 3 more similar warnings elsewhere)
 

@@ -368,8 +368,8 @@ Warning: Invalid override target
    4:     target = test_resource.absent_one
 
 The override target test_resource.absent_one does not exist within the
-configuration under test. This could indicate or a typo in the target address
-or an unnecessary override.
+configuration under test. This could indicate a typo in the target address or
+an unnecessary override.
 
 (and 5 more similar warnings elsewhere)
 Success! The configuration is valid, but there were some validation warnings
