@@ -423,6 +423,15 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 	imports, importDiags := n.expandResourceImports(ctx, addr, instanceAddrs)
 	diags = diags.Append(importDiags)
 
+	if n.Config == nil && n.generateConfigPath != "" && imports.Len() == 0 {
+		// We're generating configuration, but there's nothing to import, which
+		// means the import block must have expanded to zero instances.
+		// the instance expander will always return a single instance because
+		// we have assumed there will eventually be a configuration for this
+		// resource, so return here before we add that to the graph.
+		return &Graph{}, diags
+	}
+
 	// Our graph transformers require access to the full state, so we'll
 	// temporarily lock it while we work on this.
 	state := ctx.State().Lock()

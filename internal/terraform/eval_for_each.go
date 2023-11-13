@@ -23,7 +23,7 @@ func evaluateForEachExpression(expr hcl.Expression, ctx EvalContext) (forEach ma
 	return newForEachEvaluator(expr, ctx).ResourceValue()
 }
 
-// rorEachEvaluator is the standard mechanism for interpreting an expression
+// forEachEvaluator is the standard mechanism for interpreting an expression
 // given for a "for_each" argument on a resource, module, or import.
 func newForEachEvaluator(expr hcl.Expression, ctx EvalContext) *forEachEvaluator {
 	if ctx == nil {
