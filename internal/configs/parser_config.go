@@ -59,7 +59,7 @@ func (p *Parser) LoadMockDataFile(path string) (*MockData, hcl.Diagnostics) {
 		return nil, diags
 	}
 
-	data, dataDiags := decodeMockDataBody(body)
+	data, dataDiags := decodeMockDataBody(body, MockDataFileOverrideSource)
 	diags = append(diags, dataDiags...)
 	return data, diags
 }

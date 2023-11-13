@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -43,6 +44,7 @@ type ContextGraphWalker struct {
 	RootVariableValues InputValues
 	Config             *configs.Config
 	PlanTimestamp      time.Time
+	Overrides          *mocking.Overrides
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
@@ -114,6 +116,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Evaluator:             evaluator,
 		VariableValues:        w.variableValues,
 		VariableValuesLock:    &w.variableValuesLock,
+		OverrideValues:        w.Overrides,
 	}
 
 	return ctx

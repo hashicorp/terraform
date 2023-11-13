@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
@@ -40,6 +41,10 @@ type graphWalkOpts struct {
 	// the current UTC timestamp, and should be read from the plan file during
 	// the apply phase.
 	PlanTimeTimestamp time.Time
+
+	// Overrides contains the set of overrides we should apply during this
+	// operation.
+	Overrides *mocking.Overrides
 
 	MoveResults refactoring.MoveResults
 }
@@ -150,5 +155,6 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 		Operation:        operation,
 		StopContext:      c.runContext,
 		PlanTimestamp:    opts.PlanTimeTimestamp,
+		Overrides:        opts.Overrides,
 	}
 }

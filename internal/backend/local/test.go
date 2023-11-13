@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	configtest "github.com/hashicorp/terraform/internal/moduletest/config"
@@ -62,6 +63,13 @@ type TestSuiteRunner struct {
 
 	// Verbose tells the runner to print out plan files during each test run.
 	Verbose bool
+
+	// configProviders is a cache of config keys mapped to all the providers
+	// referenced by the given config.
+	//
+	// The config keys are globally unique across an entire test suite, so we
+	// store this at the suite runner level to get maximum efficiency.
+	configProviders map[string]map[string]bool
 }
 
 func (runner *TestSuiteRunner) Stop() {
@@ -74,6 +82,9 @@ func (runner *TestSuiteRunner) Cancel() {
 
 func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	// First thing, initialise the config providers map.
+	runner.configProviders = make(map[string]map[string]bool)
 
 	suite, suiteDiags := runner.collectTests()
 	diags = diags.Append(suiteDiags)
@@ -240,6 +251,10 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	// First thing, initialise the global variables for the file
 	runner.initVariables(file)
 
+	// The file validation only returns warnings so we'll just add them without
+	// checking anything about them.
+	file.Diagnostics = file.Diagnostics.Append(file.Config.Validate(runner.Suite.Config))
+
 	// We'll execute the tests in the file. First, mark the overall status as
 	// being skipped. This will ensure that if we've cancelled and the files not
 	// going to do anything it'll be marked as skipped.
@@ -343,13 +358,19 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	start := time.Now().UTC().UnixMilli()
 	runner.Suite.View.Run(run, file, moduletest.Starting, 0)
 
-	run.Diagnostics = run.Diagnostics.Append(run.Config.Validate())
+	run.Diagnostics = run.Diagnostics.Append(run.Config.Validate(config))
 	if run.Diagnostics.HasErrors() {
 		run.Status = moduletest.Error
 		return state, false
 	}
 
-	resetConfig, configDiags := configtest.TransformConfigForTest(config, run, file, runner.globalVariables)
+	key := MainStateIdentifier
+	if run.Config.ConfigUnderTest != nil {
+		key = run.Config.Module.Source.String()
+	}
+	runner.gatherProviders(key, config)
+
+	resetConfig, configDiags := configtest.TransformConfigForTest(config, run, file, runner.globalVariables, runner.PriorStates, runner.Suite.configProviders[key])
 	defer resetConfig()
 
 	run.Diagnostics = run.Diagnostics.Append(configDiags)
@@ -372,14 +393,19 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return state, false
 	}
 
-	variables, variableDiags := runner.GetVariables(config, run, file, references)
+	variables, variableDiags := runner.GetVariables(config, run, references)
 	run.Diagnostics = run.Diagnostics.Append(variableDiags)
 	if variableDiags.HasErrors() {
 		run.Status = moduletest.Error
 		return state, false
 	}
 
-	planCtx, plan, planDiags := runner.plan(config, state, run, file, runner.FilterVariablesToConfig(config, variables), references, start)
+	// FilterVariablesToConfig only returns warnings, so we don't check the
+	// returned diags for errors.
+	setVariables, setVariableDiags := runner.FilterVariablesToConfig(config, variables)
+	run.Diagnostics = run.Diagnostics.Append(setVariableDiags)
+
+	planCtx, plan, planDiags := runner.plan(config, state, run, file, setVariables, references, start)
 	if run.Config.Command == configs.PlanTestCommand {
 		// Then we want to assess our conditions and diagnostics differently.
 		planDiags = run.ValidateExpectedFailures(planDiags)
@@ -563,16 +589,22 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 
 	var diags tfdiags.Diagnostics
 
-	variables, variableDiags := runner.GetVariables(config, run, file, nil)
+	variables, variableDiags := runner.GetVariables(config, run, nil)
 	diags = diags.Append(variableDiags)
 
 	if diags.HasErrors() {
 		return state, diags
 	}
 
+	// During the destroy operation, we don't add warnings from this operation.
+	// Anything that would have been reported here was already reported during
+	// the original plan, and a successful destroy operation is the only thing
+	// we care about.
+	setVariables, _ := runner.FilterVariablesToConfig(config, variables)
+
 	planOpts := &terraform.PlanOpts{
 		Mode:         plans.DestroyMode,
-		SetVariables: runner.FilterVariablesToConfig(config, variables),
+		SetVariables: setVariables,
 	}
 
 	tfCtx, ctxDiags := terraform.NewContext(runner.Suite.Opts)
@@ -845,7 +877,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name)))
 		}
 	} else {
-		reset, configDiags := configtest.TransformConfigForTest(runner.Suite.Config, main.Run, file, runner.globalVariables)
+		reset, configDiags := configtest.TransformConfigForTest(runner.Suite.Config, main.Run, file, runner.globalVariables, runner.PriorStates, runner.Suite.configProviders[MainStateIdentifier])
 		diags = diags.Append(configDiags)
 
 		if !configDiags.HasErrors() {
@@ -920,7 +952,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 
 		var diags tfdiags.Diagnostics
 
-		reset, configDiags := configtest.TransformConfigForTest(state.Run.Config.ConfigUnderTest, state.Run, file, runner.globalVariables)
+		reset, configDiags := configtest.TransformConfigForTest(state.Run.Config.ConfigUnderTest, state.Run, file, runner.globalVariables, runner.PriorStates, runner.Suite.configProviders[state.Run.Config.Module.Source.String()])
 		diags = diags.Append(configDiags)
 
 		updated := state.State
@@ -951,7 +983,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 // more variables than are required by the config. FilterVariablesToConfig
 // should be called before trying to use these variables within a Terraform
 // plan, apply, or destroy operation.
-func (runner *TestFileRunner) GetVariables(config *configs.Config, run *moduletest.Run, file *moduletest.File, references []*addrs.Reference) (terraform.InputValues, tfdiags.Diagnostics) {
+func (runner *TestFileRunner) GetVariables(config *configs.Config, run *moduletest.Run, references []*addrs.Reference) (terraform.InputValues, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// relevantVariables contains the variables that are of interest to this
@@ -1039,7 +1071,7 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 		variables[name] = value.Value
 	}
 
-	ctx, ctxDiags := hcltest.EvalContext(exprs, variables, runner.PriorStates)
+	ctx, ctxDiags := hcltest.EvalContext(hcltest.TargetRunBlock, exprs, variables, runner.PriorStates)
 	diags = diags.Append(ctxDiags)
 
 	var failedContext bool
@@ -1124,17 +1156,46 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 // This function is essentially the opposite of AddVariablesToConfig which
 // makes the config match the variables rather than the variables match the
 // config.
-func (runner *TestFileRunner) FilterVariablesToConfig(config *configs.Config, values terraform.InputValues) terraform.InputValues {
+//
+// This function can only return warnings, and the callers can rely on this so
+// please check the callers of this function if you add any error diagnostics.
+func (runner *TestFileRunner) FilterVariablesToConfig(config *configs.Config, values terraform.InputValues) (terraform.InputValues, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	filtered := make(terraform.InputValues)
 	for name, value := range values {
-		if _, exists := config.Module.Variables[name]; !exists {
+		variableConfig, exists := config.Module.Variables[name]
+		if !exists {
 			// Only include values that are actually required by the config.
 			continue
 		}
 
+		if marks.Has(value.Value, marks.Sensitive) {
+			unmarkedValue, _ := value.Value.Unmark()
+			if !variableConfig.Sensitive {
+				// Then we are passing a sensitive value into a non-sensitive
+				// variable. Let's add a warning and tell the user they should
+				// mark the config as sensitive as well. If the config variable
+				// is sensitive, then we don't need to worry.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Sensitive metadata on variable lost",
+					Detail:   fmt.Sprintf("The input variable is marked as sensitive, while the receiving configuration is not. The underlying sensitive information may be exposed when var.%s is referenced. Mark the variable block in the configuration as sensitive to resolve this warning.", variableConfig.Name),
+					Subject:  value.SourceRange.ToHCL().Ptr(),
+				})
+			}
+
+			// Set the unmarked value into the input value.
+			value = &terraform.InputValue{
+				Value:       unmarkedValue,
+				SourceType:  value.SourceType,
+				SourceRange: value.SourceRange,
+			}
+		}
+
 		filtered[name] = value
 	}
-	return filtered
+	return filtered, diags
 }
 
 // AddVariablesToConfig extends the provided config to ensure it has definitions
@@ -1187,4 +1248,52 @@ func (runner *TestFileRunner) initVariables(file *moduletest.File) {
 	for name, expr := range file.Config.Variables {
 		runner.globalVariables[name] = unparsedTestVariableValue{expr}
 	}
+}
+
+func (runner *TestFileRunner) gatherProviders(key string, config *configs.Config) {
+	if _, exists := runner.Suite.configProviders[key]; exists {
+		// Then we've processed this key before, so skip it.
+		return
+	}
+
+	providers := make(map[string]bool)
+
+	// First, let's look at the required providers first.
+	for _, provider := range config.Module.ProviderRequirements.RequiredProviders {
+		providers[provider.Name] = true
+		for _, alias := range provider.Aliases {
+			providers[alias.StringCompact()] = true
+		}
+	}
+
+	// Second, we look at the defined provider configs.
+	for _, provider := range config.Module.ProviderConfigs {
+		providers[provider.Addr().StringCompact()] = true
+	}
+
+	// Third, we look at the resources and data sources.
+	for _, resource := range config.Module.ManagedResources {
+		if resource.ProviderConfigRef != nil {
+			providers[resource.ProviderConfigRef.String()] = true
+			continue
+		}
+		providers[resource.Provider.Type] = true
+	}
+	for _, datasource := range config.Module.DataResources {
+		if datasource.ProviderConfigRef != nil {
+			providers[datasource.ProviderConfigRef.String()] = true
+			continue
+		}
+		providers[datasource.Provider.Type] = true
+	}
+
+	// Finally, we look at any module calls to see if any providers are used
+	// in there.
+	for _, module := range config.Module.ModuleCalls {
+		for _, provider := range module.Providers {
+			providers[provider.InParent.String()] = true
+		}
+	}
+
+	runner.Suite.configProviders[key] = providers
 }

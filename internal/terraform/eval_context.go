@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -202,6 +203,10 @@ type EvalContext interface {
 	// thereafter, so callers must not modify the returned map or any other
 	// objects accessible through it.
 	MoveResults() refactoring.MoveResults
+
+	// Overrides contains the modules and resources we should mock as part of
+	// this execution.
+	Overrides() *mocking.Overrides
 
 	// WithPath returns a copy of the context with the internal path set to the
 	// path argument.

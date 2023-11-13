@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
@@ -78,6 +79,10 @@ type PlanOpts struct {
 	// nodes that should not be pruned even if they are not referenced within
 	// the actual graph.
 	ExternalReferences []*addrs.Reference
+
+	// Overrides provides a set of override objects that should be applied
+	// during this plan.
+	Overrides *mocking.Overrides
 
 	// ImportTargets is a list of target resources to import. These resources
 	// will be added to the plan graph.
@@ -570,6 +575,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		Changes:           changes,
 		MoveResults:       moveResults,
 		PlanTimeTimestamp: timestamp,
+		Overrides:         opts.Overrides,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -620,6 +626,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		PriorState:         priorState,
 		PlannedState:       walker.State.Close(),
 		ExternalReferences: opts.ExternalReferences,
+		Overrides:          opts.Overrides,
 		Checks:             states.NewCheckResults(walker.Checks),
 		Timestamp:          timestamp,
 

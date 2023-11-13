@@ -208,6 +208,16 @@ func TestTransformForTest(t *testing.T) {
 				"foo.secondary": "source = \"testfile\"",
 			},
 		},
+		"ignores unexpected providers in test file": {
+			configProviders: make(map[string]string),
+			fileProviders: map[string]string{
+				"foo": "source = \"testfile\"",
+				"bar": "source = \"testfile\"",
+			},
+			expectedProviders: map[string]string{
+				"foo": "source = \"testfile\"",
+			},
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -229,7 +239,12 @@ func TestTransformForTest(t *testing.T) {
 				},
 			}
 
-			reset, diags := TransformConfigForTest(config, run, file, nil)
+			availableProviders := make(map[string]bool, len(tc.expectedProviders))
+			for provider := range tc.expectedProviders {
+				availableProviders[provider] = true
+			}
+
+			reset, diags := TransformConfigForTest(config, run, file, nil, nil, availableProviders)
 
 			var actualErrs []string
 			for _, err := range diags.Errs() {

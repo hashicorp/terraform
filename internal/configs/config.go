@@ -191,6 +191,47 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 	return current
 }
 
+// TargetExists returns true if it's possible for the provided target to exist
+// within the configuration.
+//
+// This doesn't consider instance expansion, so we're only making sure the
+// target could exist if the instance expansion expands correctly.
+func (c *Config) TargetExists(target addrs.Targetable) bool {
+	switch target.AddrType() {
+	case addrs.ConfigResourceAddrType:
+		addr := target.(addrs.ConfigResource)
+		module := c.Descendent(addr.Module)
+		if module != nil {
+			return module.Module.ResourceByAddr(addr.Resource) != nil
+		} else {
+			return false
+		}
+	case addrs.AbsResourceInstanceAddrType:
+		addr := target.(addrs.AbsResourceInstance)
+		module := c.DescendentForInstance(addr.Module)
+		if module != nil {
+			return module.Module.ResourceByAddr(addr.Resource.Resource) != nil
+		} else {
+			return false
+		}
+	case addrs.AbsResourceAddrType:
+		addr := target.(addrs.AbsResource)
+		module := c.DescendentForInstance(addr.Module)
+		if module != nil {
+			return module.Module.ResourceByAddr(addr.Resource) != nil
+		} else {
+			return false
+		}
+	case addrs.ModuleAddrType:
+		return c.Descendent(target.(addrs.Module)) != nil
+	case addrs.ModuleInstanceAddrType:
+		return c.DescendentForInstance(target.(addrs.ModuleInstance)) != nil
+	default:
+		panic(fmt.Errorf("unrecognized targetable type: %d", target.AddrType()))
+	}
+	return true
+}
+
 // EntersNewPackage returns true if this call is to an external module, either
 // directly via a remote source address or indirectly via a registry source
 // address.
