@@ -62,6 +62,7 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State
 		Config:     config,
 		InputState: workingState,
 		Changes:    plan.Changes,
+		Overrides:  plan.Overrides,
 
 		// We need to propagate the check results from the plan phase,
 		// because that will tell us which checkable objects we're expecting
