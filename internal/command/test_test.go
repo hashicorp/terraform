@@ -189,6 +189,10 @@ func TestTest(t *testing.T) {
 			expected: "4 passed, 0 failed.",
 			code:     0,
 		},
+		"functions_available": {
+			expected: "1 passed, 0 failed.",
+			code:     0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
