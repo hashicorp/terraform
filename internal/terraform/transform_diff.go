@@ -109,14 +109,14 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			update = true
 		}
 
-		// A deposed instance may only have a change of Delete or NoOp. A NoOp
-		// can happen if the provider shows it no longer exists during the most
-		// recent ReadResource operation.
-		if dk != states.NotDeposed && !(rc.Action == plans.Delete || rc.Action == plans.NoOp) {
+		// A deposed instance may only have a change of Delete, Forget, or NoOp.
+		// A NoOp can happen if the provider shows it no longer exists during
+		// the most recent ReadResource operation.
+		if dk != states.NotDeposed && !(rc.Action == plans.Delete || rc.Action == plans.Forget || rc.Action == plans.NoOp) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Invalid planned change for deposed object",
-				fmt.Sprintf("The plan contains a non-delete change for %s deposed object %s. The only valid action for a deposed object is to destroy it, so this is a bug in Terraform.", addr, dk),
+				fmt.Sprintf("The plan contains a non-remove change for %s deposed object %s. The only valid actions for a deposed object are to destroy it or remove it from state, so this is a bug in Terraform.", addr, dk),
 			))
 			continue
 		}
@@ -213,9 +213,17 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		if forget {
 			var node GraphNodeResourceInstance
 			abstract := NewNodeAbstractResourceInstance(addr)
-			node = &NodeForgetResourceInstance{
-				NodeAbstractResourceInstance: abstract,
+			if dk == states.NotDeposed {
+				node = &NodeForgetResourceInstance{
+					NodeAbstractResourceInstance: abstract,
+				}
+			} else {
+				node = &NodeForgetDeposedResourceInstanceObject{
+					NodeAbstractResourceInstance: abstract,
+					DeposedKey:                   dk,
+				}
 			}
+
 			log.Printf("[TRACE] DiffTransformer: %s will be represented for forgetting by %s", addr, dag.VertexName(node))
 			g.Add(node)
 		}

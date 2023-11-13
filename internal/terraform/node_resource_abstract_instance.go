@@ -476,14 +476,14 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 }
 
 // planForget returns a Forget change.
-func (n *NodeAbstractResourceInstance) planForget(ctx EvalContext, currentState *states.ResourceInstanceObject) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) planForget(ctx EvalContext, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var plan *plans.ResourceInstanceChange
 
 	absAddr := n.Addr
 
-	// If there is no state or our attributes object is null then we're already
-	// destroyed.
+	// If there is no state or our attributes object is null then the resource
+	// is already removed.
 	if currentState == nil || currentState.Value.IsNull() {
 		// We still need to generate a NoOp change, because that allows
 		// outside consumers of the plan to distinguish between us affirming
@@ -492,6 +492,7 @@ func (n *NodeAbstractResourceInstance) planForget(ctx EvalContext, currentState 
 		noop := &plans.ResourceInstanceChange{
 			Addr:        absAddr,
 			PrevRunAddr: n.prevRunAddr(ctx),
+			DeposedKey:  deposedKey,
 			Change: plans.Change{
 				Action: plans.NoOp,
 				Before: cty.NullVal(cty.DynamicPseudoType),
@@ -509,6 +510,7 @@ func (n *NodeAbstractResourceInstance) planForget(ctx EvalContext, currentState 
 	plan = &plans.ResourceInstanceChange{
 		Addr:        absAddr,
 		PrevRunAddr: n.prevRunAddr(ctx),
+		DeposedKey:  deposedKey,
 		Change: plans.Change{
 			Action: plans.Forget,
 			Before: currentState.Value,

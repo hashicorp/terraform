@@ -2501,8 +2501,6 @@ removed {
 
 	checkStateString(t, state, `<no state>`)
 }
-<<<<<<< Updated upstream
-=======
 
 func TestContext2Apply_forgetDeposed(t *testing.T) {
 	addrA := mustResourceInstanceAddr("test_object.a")
@@ -2550,4 +2548,3 @@ removed {
 
 	checkStateString(t, state, `<no state>`)
 }
->>>>>>> Stashed changes

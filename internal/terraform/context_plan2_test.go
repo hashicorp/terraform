@@ -4388,3 +4388,88 @@ func TestContext2Plan_removedResourceDestroyBasic(t *testing.T) {
 		}
 	})
 }
+
+// This test case imagines a situation in which a create_before_destroy resource
+// was replaced during the last apply. The replace partially failed: the create
+// step succeeded while the destroy step failed, so a deposed resource
+// instance remains in state.
+// Now the user has removed the "resource" block from config and replaced it
+// with a "removed" block with destroy = false.
+// In this case, the user signals their intent that any instances of the
+// resource be forgotten, not destroyed, so the correct action is Forget.
+func TestContext2Plan_removedResourceForgetDeposed(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+	deposedKey := states.DeposedKey("gone")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+removed {
+  from = test_object.a
+  lifecycle {
+    destroy = false
+  }
+}
+`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceDeposed(addrA, deposedKey, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		ForceReplace: []addrs.AbsResourceInstance{
+			addrA,
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	// We should have a warning, though! We'll lightly abuse the "for RPC"
+	// feature of diagnostics to get some more-readily-comparable diagnostic
+	// values.
+	gotDiags := diags.ForRPC()
+	wantDiags := tfdiags.Diagnostics{
+		tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Some objects will no longer be managed by Terraform",
+			`If you apply this plan, Terraform will discard its tracking information for the following objects, but it will not delete them:
+ - test_object.a
+
+After applying this plan, Terraform will no longer manage these objects. You will need to import them into Terraform to manage them again.`,
+		),
+	}.ForRPC()
+	if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
+		t.Errorf("wrong diagnostics\n%s", diff)
+	}
+
+	t.Run(addrA.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstanceDeposed(addrA, deposedKey)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addrA)
+		}
+
+		if got, want := instPlan.Addr, addrA; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.PrevRunAddr, addrA; !got.Equal(want) {
+			t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.Action, plans.Forget; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+}

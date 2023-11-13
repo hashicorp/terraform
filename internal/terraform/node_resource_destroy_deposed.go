@@ -26,11 +26,11 @@ type GraphNodeDeposedResourceInstanceObject interface {
 
 // NodePlanDeposedResourceInstanceObject represents deposed resource
 // instance objects during plan. These are distinct from the primary object
-// for each resource instance since the only valid operation to do with them
-// is to destroy them.
+// for each resource instance since they must be either destroyed or forgotten.
 //
 // This node type is also used during the refresh walk to ensure that the
-// record of a deposed object is up-to-date before we plan to destroy it.
+// record of a deposed object is up to date before we plan to destroy or forget
+// it.
 type NodePlanDeposedResourceInstanceObject struct {
 	*NodeAbstractResourceInstance
 	DeposedKey states.DeposedKey
@@ -41,6 +41,10 @@ type NodePlanDeposedResourceInstanceObject struct {
 	// skipPlanChanges indicates we should skip trying to plan change actions
 	// for any instances.
 	skipPlanChanges bool
+
+	// forgetTargets lists resources that should not be destroyed, only removed
+	// from state.
+	forgetTargets []addrs.ConfigResource
 }
 
 var (
@@ -102,10 +106,10 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 	// We don't refresh during the planDestroy walk, since that is only adding
 	// the destroy changes to the plan and the provider will not be configured
 	// at this point. The other nodes use separate types for plan and destroy,
-	// while deposed instances are always a destroy operation, so the logic
-	// here is a bit overloaded.
+	// while deposed instances are always a destroy or forget operation, so the
+	// logic here is a bit overloaded.
 	if !n.skipRefresh && op != walkPlanDestroy {
-		// Refresh this object even though it is going to be destroyed, in
+		// Refresh this object even though it may be destroyed, in
 		// case it's already been deleted outside of Terraform. If this is a
 		// normal plan, providers expect a Read request to remove missing
 		// resources from the plan before apply, and may not handle a missing
@@ -129,9 +133,20 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 	}
 
 	if !n.skipPlanChanges {
+		var forget bool
+		for _, ft := range n.forgetTargets {
+			if ft.Equal(n.ResourceAddr()) {
+				forget = true
+			}
+		}
 		var change *plans.ResourceInstanceChange
-		change, destroyPlanDiags := n.planDestroy(ctx, state, n.DeposedKey)
-		diags = diags.Append(destroyPlanDiags)
+		var pDiags tfdiags.Diagnostics
+		if forget {
+			change, pDiags = n.planForget(ctx, state, n.DeposedKey)
+		} else {
+			change, pDiags = n.planDestroy(ctx, state, n.DeposedKey)
+		}
+		diags = diags.Append(pDiags)
 		if diags.HasErrors() {
 			return diags
 		}
@@ -141,7 +156,7 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		// if we've reached a point where an object is already deposed then
 		// we've already planned and partially-executed a create_before_destroy
 		// replace and we would've checked prevent_destroy at that point. We're
-		// now just need to get the deposed object destroyed, because there
+		// now just need to get the deposed object removed, because there
 		// should be a new object already serving as its replacement.
 
 		diags = diags.Append(n.writeChange(ctx, change, n.DeposedKey))
@@ -269,6 +284,73 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
 
 	return diags.Append(updateStateHook(ctx))
+}
+
+// NodeForgetDeposedResourceInstanceObject represents deposed resource
+// instance objects during apply. Nodes of this type are inserted by
+// DiffTransformer when the planned changeset contains "forget" changes for
+// deposed instance objects, and its only supported operation is to forget the
+// associated object.
+type NodeForgetDeposedResourceInstanceObject struct {
+	*NodeAbstractResourceInstance
+	DeposedKey states.DeposedKey
+}
+
+var (
+	_ GraphNodeDeposedResourceInstanceObject = (*NodeForgetDeposedResourceInstanceObject)(nil)
+	_ GraphNodeConfigResource                = (*NodeForgetDeposedResourceInstanceObject)(nil)
+	_ GraphNodeResourceInstance              = (*NodeForgetDeposedResourceInstanceObject)(nil)
+	_ GraphNodeReferenceable                 = (*NodeForgetDeposedResourceInstanceObject)(nil)
+	_ GraphNodeReferencer                    = (*NodeForgetDeposedResourceInstanceObject)(nil)
+	_ GraphNodeExecutable                    = (*NodeForgetDeposedResourceInstanceObject)(nil)
+	_ GraphNodeProviderConsumer              = (*NodeForgetDeposedResourceInstanceObject)(nil)
+	_ GraphNodeProvisionerConsumer           = (*NodeForgetDeposedResourceInstanceObject)(nil)
+)
+
+func (n *NodeForgetDeposedResourceInstanceObject) Name() string {
+	return fmt.Sprintf("%s (forget deposed %s)", n.ResourceInstanceAddr(), n.DeposedKey)
+}
+
+func (n *NodeForgetDeposedResourceInstanceObject) DeposedInstanceObjectKey() states.DeposedKey {
+	return n.DeposedKey
+}
+
+// GraphNodeReferenceable implementation, overriding the one from NodeAbstractResourceInstance
+func (n *NodeForgetDeposedResourceInstanceObject) ReferenceableAddrs() []addrs.Referenceable {
+	// Deposed objects don't participate in references.
+	return nil
+}
+
+// GraphNodeReferencer implementation, overriding the one from NodeAbstractResourceInstance
+func (n *NodeForgetDeposedResourceInstanceObject) References() []*addrs.Reference {
+	// We don't evaluate configuration for deposed objects, so they effectively
+	// make no references.
+	return nil
+}
+
+// GraphNodeExecutable impl.
+func (n *NodeForgetDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	// Read the state for the deposed resource instance
+	state, err := n.readResourceInstanceStateDeposed(ctx, n.Addr, n.DeposedKey)
+	if err != nil {
+		return diags.Append(err)
+	}
+
+	if state == nil {
+		diags = diags.Append(fmt.Errorf("missing deposed state for %s (%s)", n.Addr, n.DeposedKey))
+		return diags
+	}
+
+	_, forgetPlanDiags := n.planForget(ctx, state, n.DeposedKey)
+	diags = diags.Append(forgetPlanDiags)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	ctx.State().ForgetResourceInstanceDeposed(n.Addr, n.DeposedKey)
+
+	diags = diags.Append(updateStateHook(ctx))
+	return diags
 }
 
 // GraphNodeDeposer is an optional interface implemented by graph nodes that
