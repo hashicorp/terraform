@@ -252,6 +252,10 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	// First thing, initialise the global variables for the file
 	runner.initVariables(file)
 
+	// The file validation only returns warnings so we'll just add them without
+	// checking anything about them.
+	file.Diagnostics = file.Diagnostics.Append(file.Config.Validate(runner.Suite.Config))
+
 	// We'll execute the tests in the file. First, mark the overall status as
 	// being skipped. This will ensure that if we've cancelled and the files not
 	// going to do anything it'll be marked as skipped.
@@ -355,7 +359,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	start := time.Now().UTC().UnixMilli()
 	runner.Suite.View.Run(run, file, moduletest.Starting, 0)
 
-	run.Diagnostics = run.Diagnostics.Append(run.Config.Validate())
+	run.Diagnostics = run.Diagnostics.Append(run.Config.Validate(config))
 	if run.Diagnostics.HasErrors() {
 		run.Status = moduletest.Error
 		return state, false

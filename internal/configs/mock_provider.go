@@ -32,8 +32,7 @@ func decodeMockProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 		NameRange: block.LabelRanges[0],
 		DeclRange: block.DefRange,
 
-		// For mock providers we don't support any internal configuration, so
-		// we always just pass in an empty body.
+		// Mock providers shouldn't need any additional data.
 		Config: hcl.EmptyBody(),
 
 		// Mark this provider as being mocked.
@@ -85,12 +84,25 @@ type MockResource struct {
 	DefaultsRange hcl.Range
 }
 
+type OverrideSource int
+
+const (
+	UnknownOverrideSource OverrideSource = iota
+	RunBlockOverrideSource
+	TestFileOverrideSource
+	MockProviderOverrideSource
+	MockDataFileOverrideSource
+)
+
 // Override targets a specific module, resource or data source with a set of
 // replacement values that should be used in place of whatever the underlying
 // provider would normally do.
 type Override struct {
 	Target *addrs.Target
 	Values cty.Value
+
+	// Source tells us where this Override was defined.
+	Source OverrideSource
 
 	Range       hcl.Range
 	TypeRange   hcl.Range
@@ -143,7 +155,7 @@ func decodeMockDataBody(body hcl.Body) (*MockData, hcl.Diagnostics) {
 				}
 			}
 		case "override_resource":
-			override, overrideDiags := decodeOverrideResourceBlock(block)
+			override, overrideDiags := decodeOverrideResourceBlock(block, MockProviderOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -160,7 +172,7 @@ func decodeMockDataBody(body hcl.Body) (*MockData, hcl.Diagnostics) {
 				data.Overrides.Put(subject, override)
 			}
 		case "override_data":
-			override, overrideDiags := decodeOverrideDataBlock(block)
+			override, overrideDiags := decodeOverrideDataBlock(block, MockProviderOverrideSource)
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
@@ -215,8 +227,8 @@ func decodeMockResourceBlock(block *hcl.Block) (*MockResource, hcl.Diagnostics) 
 	return resource, diags
 }
 
-func decodeOverrideModuleBlock(block *hcl.Block) (*Override, hcl.Diagnostics) {
-	override, diags := decodeOverrideBlock(block, "outputs", "override_module")
+func decodeOverrideModuleBlock(block *hcl.Block, source OverrideSource) (*Override, hcl.Diagnostics) {
+	override, diags := decodeOverrideBlock(block, "outputs", "override_module", source)
 
 	if override.Target != nil {
 		switch override.Target.Subject.AddrType() {
@@ -236,8 +248,8 @@ func decodeOverrideModuleBlock(block *hcl.Block) (*Override, hcl.Diagnostics) {
 	return override, diags
 }
 
-func decodeOverrideResourceBlock(block *hcl.Block) (*Override, hcl.Diagnostics) {
-	override, diags := decodeOverrideBlock(block, "values", "override_resource")
+func decodeOverrideResourceBlock(block *hcl.Block, source OverrideSource) (*Override, hcl.Diagnostics) {
+	override, diags := decodeOverrideBlock(block, "values", "override_resource", source)
 
 	if override.Target != nil {
 		var mode addrs.ResourceMode
@@ -273,8 +285,8 @@ func decodeOverrideResourceBlock(block *hcl.Block) (*Override, hcl.Diagnostics) 
 	return override, diags
 }
 
-func decodeOverrideDataBlock(block *hcl.Block) (*Override, hcl.Diagnostics) {
-	override, diags := decodeOverrideBlock(block, "values", "override_data")
+func decodeOverrideDataBlock(block *hcl.Block, source OverrideSource) (*Override, hcl.Diagnostics) {
+	override, diags := decodeOverrideBlock(block, "values", "override_data", source)
 
 	if override.Target != nil {
 		var mode addrs.ResourceMode
@@ -310,7 +322,7 @@ func decodeOverrideDataBlock(block *hcl.Block) (*Override, hcl.Diagnostics) {
 	return override, diags
 }
 
-func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName string) (*Override, hcl.Diagnostics) {
+func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName string, source OverrideSource) (*Override, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	content, contentDiags := block.Body.Content(&hcl.BodySchema{
@@ -322,6 +334,7 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 	diags = append(diags, contentDiags...)
 
 	override := &Override{
+		Source:    source,
 		Range:     block.DefRange,
 		TypeRange: block.TypeRange,
 	}

@@ -46,6 +46,11 @@ const (
 // expressions to be evaluated will pass evaluation. Anything present in the
 // expressions argument will be validated to make sure the only reference the
 // availableVariables and availableRunBlocks.
+//
+// We perform some pre-validation of the expected expressions that this context
+// will be used to evaluate. This is just so we can provide some better error
+// messages and diagnostics. The expressions argument could be empty without
+// affecting the returned context.
 func EvalContext(target EvalContextTarget, expressions []hcl.Expression, availableVariables map[string]cty.Value, availableRunBlocks map[string]*terraform.TestContext) (*hcl.EvalContext, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -227,5 +232,6 @@ func EvalContext(target EvalContextTarget, expressions []hcl.Expression, availab
 			}
 			return variables
 		}(),
+		Functions: lang.TestingFunctions(),
 	}, diags
 }
