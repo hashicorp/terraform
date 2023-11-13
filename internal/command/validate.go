@@ -108,6 +108,11 @@ func (c *ValidateCommand) validate(dir, testDir string, noTests bool) tfdiags.Di
 	// We'll also do a quick validation of the Terraform test files. These live
 	// outside the Terraform graph so we have to do this separately.
 	for _, file := range cfg.Module.Tests {
+
+		// The file validation only returns warnings so we'll just add them
+		// without checking anything about them.
+		diags = diags.Append(file.Validate(cfg))
+
 		for _, run := range file.Runs {
 
 			if run.Module != nil {
@@ -130,9 +135,12 @@ func (c *ValidateCommand) validate(dir, testDir string, noTests bool) tfdiags.Di
 					}
 
 				}
+
+				diags = diags.Append(run.Validate(run.ConfigUnderTest))
+			} else {
+				diags = diags.Append(run.Validate(cfg))
 			}
 
-			diags = diags.Append(run.Validate())
 		}
 	}
 

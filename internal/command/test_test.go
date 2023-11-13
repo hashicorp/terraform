@@ -1782,6 +1782,100 @@ func TestTest_LongRunningTestJSON(t *testing.T) {
 	}
 }
 
+func TestTest_InvalidOverrides(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "invalid-overrides")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+	}
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	expected := `main.tftest.hcl... in progress
+  run "setup"... pass
+
+Warning: Invalid override target
+
+  on main.tftest.hcl line 39, in run "setup":
+  39:     target = test_resource.absent_five
+
+The override target test_resource.absent_five does not exist within the
+configuration under test. This could indicate a typo in the target address or
+an unnecessary override.
+
+  run "test"... pass
+
+Warning: Invalid override target
+
+  on main.tftest.hcl line 45, in run "test":
+  45:     target = module.setup.test_resource.absent_six
+
+The override target module.setup.test_resource.absent_six does not exist
+within the configuration under test. This could indicate a typo in the target
+address or an unnecessary override.
+
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
+
+Warning: Invalid override target
+
+  on main.tftest.hcl line 4, in mock_provider "test":
+   4:     target = test_resource.absent_one
+
+The override target test_resource.absent_one does not exist within the
+configuration under test. This could indicate a typo in the target address or
+an unnecessary override.
+
+(and 3 more similar warnings elsewhere)
+
+Success! 2 passed, 0 failed.
+`
+
+	actual := output.All()
+
+	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
 func TestTest_RunBlocksInProviders(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "provider_runs")), td)

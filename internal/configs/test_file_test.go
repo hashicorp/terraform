@@ -65,7 +65,7 @@ func TestTestRun_Validate(t *testing.T) {
 				run.ExpectFailures = append(run.ExpectFailures, parseTraversal(t, addr))
 			}
 
-			diags := run.Validate()
+			diags := run.Validate(nil)
 
 			if len(diags) > 1 {
 				t.Fatalf("too many diags: %d", len(diags))
