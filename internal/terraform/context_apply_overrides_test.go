@@ -39,9 +39,10 @@ func TestContextOverrides(t *testing.T) {
 	// sure the overrides are returning the values we want them to.
 
 	tcs := map[string]struct {
-		configs   map[string]string
-		overrides *mocking.Overrides
-		outputs   cty.Value
+		configs     map[string]string
+		overrides   *mocking.Overrides
+		outputs     cty.Value
+		expectedErr string
 	}{
 		"resource": {
 			configs: map[string]string{
@@ -435,6 +436,67 @@ output "id" {
 				}),
 			}),
 		},
+		"imports": {
+			configs: map[string]string{
+				"main.tf": `
+provider "test" {}
+
+import {
+  id = "29C1E645FF91"
+  to = test_instance.instance
+}
+
+resource "test_instance" "instance" {
+  value = "Hello, world!"
+}
+
+output "id" {
+  value = test_instance.instance.id
+}
+`,
+			},
+			overrides: mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
+				overrides.Put(mustAbsResourceAddr("test_instance.instance"), &configs.Override{
+					Values: cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("29C1E645FF91"),
+					}),
+				})
+			}),
+			outputs: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("29C1E645FF91"),
+			}),
+		},
+		// This test is designed to fail as documentation that we do not support
+		// config generation during tests. It's actually impossible in normal
+		// usage to do this since `terraform test` never triggers config
+		// generation.
+		"imports_config_gen": {
+			configs: map[string]string{
+				"main.tf": `
+provider "test" {}
+
+import {
+  id = "29C1E645FF91"
+  to = test_instance.instance
+}
+
+output "id" {
+  value = test_instance.instance.id
+}
+`,
+			},
+			overrides: mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
+				overrides.Put(mustAbsResourceAddr("test_instance.instance"), &configs.Override{
+					Values: cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("29C1E645FF91"),
+					}),
+				})
+			}),
+			outputs: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("29C1E645FF91"),
+			}),
+			expectedErr: "override blocks do not support config generation",
+		},
 		"module_instance_overrides": {
 			configs: map[string]string{
 				"main.tf": `
@@ -514,9 +576,17 @@ output "id" {
 			})
 
 			plan, diags := ctx.Plan(cfg, states.NewState(), &PlanOpts{
-				Mode:      plans.NormalMode,
-				Overrides: tc.overrides,
+				Mode:               plans.NormalMode,
+				Overrides:          tc.overrides,
+				GenerateConfigPath: "out.tf",
 			})
+			if len(tc.expectedErr) > 0 {
+				if diags.ErrWithWarnings().Error() != tc.expectedErr {
+					t.Fatal(diags)
+				}
+				return // Don't do the rest of the test if we were expecting errors.
+			}
+
 			if diags.HasErrors() {
 				t.Fatal(diags.Err())
 			}
@@ -610,5 +680,8 @@ var underlyingOverridesProvider = &MockProvider{
 	},
 	ReadDataSourceFn: func(request providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 		panic("ReadDataSourceFn called, should have been overridden.")
+	},
+	ImportResourceStateFn: func(request providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+		panic("ImportResourceStateFn called, should have been overridden.")
 	},
 }

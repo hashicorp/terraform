@@ -86,9 +86,6 @@ func (m *Mock) Stop() error {
 func (m *Mock) ReadResource(request ReadResourceRequest) ReadResourceResponse {
 	// For a mocked provider, reading a resource is just reading it from the
 	// state. So we'll return what we have.
-	// TODO(liamcervante): Can we do more than just say the state of resources
-	//   never changes? What if we recomputed the values, so we can have drift
-	//   if the value in the mocked data has changed?
 	return ReadResourceResponse{
 		NewState: request.PriorState,
 	}
@@ -162,7 +159,7 @@ func (m *Mock) ApplyResourceChange(request ApplyResourceChangeRequest) ApplyReso
 			panic(fmt.Errorf("failed to retrieve schema for resource %s", request.TypeName))
 		}
 
-		replacement := mocking.ReplacementValue{
+		replacement := mocking.MockedData{
 			Value: cty.NilVal, // If we have no data then we use cty.NilVal.
 		}
 		if mockedResource, exists := m.Data.MockResources[request.TypeName]; exists {
@@ -185,12 +182,11 @@ func (m *Mock) ApplyResourceChange(request ApplyResourceChangeRequest) ApplyReso
 }
 
 func (m *Mock) ImportResourceState(request ImportResourceStateRequest) (response ImportResourceStateResponse) {
-	// Given mock providers only execute from within the test framework and it
-	// doesn't make a lot of sense why someone would want to import something
-	// during a test, we just don't support this at the moment.
-	// TODO(liamcervante): Find use cases for this? The existing syntax for
-	//   mocks does make this possible but let's find a reason to do it first.
-	response.Diagnostics = response.Diagnostics.Append(tfdiags.Sourceless(tfdiags.Error, "Invalid import request", "Cannot import resources from mock providers."))
+	// You can't import via mock providers. The users should write specific
+	// `override_resource` blocks for any resources they want to import, so we
+	// just make them think about it rather than performing a blanket import
+	// of all resources that are backed by mock providers.
+	response.Diagnostics = response.Diagnostics.Append(tfdiags.Sourceless(tfdiags.Error, "Invalid import request", "Cannot import resources from mock providers. Use an `override_resource` block to targeting the specific resource being imported instead."))
 	return response
 }
 
@@ -212,7 +208,7 @@ func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceRespo
 		panic(fmt.Errorf("failed to retrieve schema for data source %s", request.TypeName))
 	}
 
-	mockedData := mocking.ReplacementValue{
+	mockedData := mocking.MockedData{
 		Value: cty.NilVal, // If we have no mocked data we use cty.NilVal.
 	}
 	if mockedDataSource, exists := m.Data.MockDataSources[request.TypeName]; exists {

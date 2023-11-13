@@ -1513,7 +1513,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 
 	var resp providers.ReadDataSourceResponse
 	if n.override != nil {
-		override, overrideDiags := mocking.ComputedValuesForDataSource(configVal, mocking.ReplacementValue{
+		override, overrideDiags := mocking.ComputedValuesForDataSource(configVal, mocking.MockedData{
 			Value: n.override.Values,
 			Range: n.override.ValuesRange,
 		}, schema)
@@ -2375,7 +2375,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		// values the first time the object is created. Otherwise, we're happy
 		// to just apply whatever the user asked for.
 		if change.Action == plans.Create {
-			override, overrideDiags := mocking.ApplyComputedValuesForResource(unmarkedAfter, mocking.ReplacementValue{
+			override, overrideDiags := mocking.ApplyComputedValuesForResource(unmarkedAfter, mocking.MockedData{
 				Value: n.override.Values,
 				Range: n.override.ValuesRange,
 			}, schema)
