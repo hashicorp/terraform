@@ -58,7 +58,7 @@ func fillAttribute(in cty.Value, attribute *configschema.Attribute, path cty.Pat
 		}
 	}
 
-	return FillType(in, attribute.Type)
+	return fillType(in, attribute.Type, path)
 }
 
 // FillType makes the input value match the target type by adding attributes
@@ -78,8 +78,8 @@ func FillType(in cty.Value, target cty.Type) (cty.Value, error) {
 }
 
 func fillType(in cty.Value, target cty.Type, path cty.Path) (cty.Value, error) {
-	// If we're targeting an object directly, and we have an object then we just
-	// need
+	// If we're targeting an object directly, then the in value must be an
+	// object or a map. We'll check for those two cases specifically.
 	if in.Type().IsObjectType() && target.IsObjectType() {
 		attributes := make(map[string]cty.Value)
 		for name, attributeType := range target.AttributeTypes() {
@@ -100,6 +100,7 @@ func fillType(in cty.Value, target cty.Type, path cty.Path) (cty.Value, error) {
 		return cty.ObjectVal(attributes), nil
 	}
 
+	// And for map.
 	if in.Type().IsMapType() && target.IsObjectType() {
 		attributes := make(map[string]cty.Value)
 		for name, attributeType := range target.AttributeTypes() {
@@ -127,6 +128,8 @@ func fillType(in cty.Value, target cty.Type, path cty.Path) (cty.Value, error) {
 		return cty.NilVal, path.NewErrorf("incompatible types; expected %s, found %s", target.FriendlyName(), in.Type().FriendlyName())
 	}
 
+	// We also do a special check for any types that might contain an object as
+	// we'll need to recursively call fill over the nested objects.
 	if target.IsCollectionType() && target.ElementType().IsObjectType() {
 		switch {
 		case target.IsListType():
