@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/zclconf/go-cty/cty"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
@@ -306,7 +307,7 @@ func TestBuildConfig_WithMockDataSources(t *testing.T) {
 	}
 
 	cfg, diags := BuildConfig(mod, nil, MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
-		sourcePath := filepath.Join("testdata/valid-modules/with-mock-sources", "testing/aws")
+		sourcePath := filepath.Join("testdata/valid-modules/with-mock-sources", provider.MockDataExternalSource)
 		return parser.LoadMockDataDir(sourcePath, hcl.Range{})
 	}))
 	assertNoDiagnostics(t, diags)
@@ -324,6 +325,38 @@ func TestBuildConfig_WithMockDataSources(t *testing.T) {
 	}
 	if provider.MockData.Overrides.Len() != 1 {
 		t.Errorf("expected to load 1 override but loaded %d", provider.MockData.Overrides.Len())
+	}
+}
+
+func TestBuildConfig_WithMockDataSourcesInline(t *testing.T) {
+	parser := NewParser(nil)
+	mod, diags := parser.LoadConfigDirWithTests("testdata/valid-modules/with-mock-sources-inline", "tests")
+	assertNoDiagnostics(t, diags)
+	assertNoDiagnostics(t, diags)
+	if mod == nil {
+		t.Fatal("got nil root module; want non-nil")
+	}
+
+	cfg, diags := BuildConfig(mod, nil, MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+		sourcePath := filepath.Join("testdata/valid-modules/with-mock-sources-inline", provider.MockDataExternalSource)
+		return parser.LoadMockDataDir(sourcePath, hcl.Range{})
+	}))
+	assertNoDiagnostics(t, diags)
+	if cfg == nil {
+		t.Fatal("got nil config; want non-nil")
+	}
+
+	provider := cfg.Module.Tests["main.tftest.hcl"].Providers["aws"]
+
+	// This time we want to check that the mock data defined inline took
+	// precedence over the mock data defined in the data files.
+	defaults := provider.MockData.MockResources["aws_s3_bucket"].Defaults
+	expected := cty.ObjectVal(map[string]cty.Value{
+		"arn": cty.StringVal("aws:s3:::bucket"),
+	})
+
+	if !defaults.RawEquals(expected) {
+		t.Errorf("expected: %s\nactual:   %s", expected.GoString(), defaults.GoString())
 	}
 }
 
