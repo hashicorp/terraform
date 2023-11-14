@@ -6,6 +6,7 @@ package mocking
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -28,12 +29,22 @@ func GenerateValueForAttribute(attribute *configschema.Attribute) cty.Value {
 	if attribute.NestedType != nil {
 		switch attribute.NestedType.Nesting {
 		case configschema.NestingSingle, configschema.NestingGroup:
-			children := make(map[string]cty.Value)
-			for name, attribute := range attribute.NestedType.Attributes {
-				children[name] = GenerateValueForAttribute(attribute)
+			var names []string
+			for name := range attribute.NestedType.Attributes {
+				names = append(names, name)
 			}
-			if len(children) == 0 {
+			if len(names) == 0 {
 				return cty.EmptyObjectVal
+			}
+
+			// Make the order we iterate through the attributes deterministic. We
+			// are generating random strings in here so it's worth making the
+			// operation repeatable.
+			sort.Strings(names)
+
+			children := make(map[string]cty.Value)
+			for _, name := range names {
+				children[name] = GenerateValueForAttribute(attribute.NestedType.Attributes[name])
 			}
 			return cty.ObjectVal(children)
 		case configschema.NestingSet:
@@ -72,12 +83,22 @@ func GenerateValueForType(target cty.Type) cty.Value {
 	case target.IsMapType():
 		return cty.MapValEmpty(target.ElementType())
 	case target.IsObjectType():
-		children := make(map[string]cty.Value)
-		for name, attribute := range target.AttributeTypes() {
-			children[name] = GenerateValueForType(attribute)
+		var attributes []string
+		for attribute := range target.AttributeTypes() {
+			attributes = append(attributes, attribute)
 		}
-		if len(children) == 0 {
+		if len(attributes) == 0 {
 			return cty.EmptyObjectVal
+		}
+
+		// Make the order we iterate through the attributes deterministic. We
+		// are generating random strings in here so it's worth making the
+		// operation repeatable.
+		sort.Strings(attributes)
+
+		children := make(map[string]cty.Value)
+		for _, attribute := range attributes {
+			children[attribute] = GenerateValueForType(target.AttributeType(attribute))
 		}
 		return cty.ObjectVal(children)
 	default:

@@ -5,6 +5,7 @@ package mocking
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -30,21 +31,30 @@ func fillAttribute(in cty.Value, attribute *configschema.Attribute, path cty.Pat
 
 		switch attribute.NestedType.Nesting {
 		case configschema.NestingSingle, configschema.NestingGroup:
+			var names []string
+			for name := range attribute.NestedType.Attributes {
+				names = append(names, name)
+			}
+			if len(names) == 0 {
+				return cty.EmptyObjectVal, nil
+			}
+
+			// Make the order we iterate through the attributes deterministic. We
+			// are generating random strings in here so it's worth making the
+			// operation repeatable.
+			sort.Strings(names)
+
 			children := make(map[string]cty.Value)
-			for name, attribute := range attribute.NestedType.Attributes {
+			for _, name := range names {
 				if in.Type().HasAttribute(name) {
-					child, err := fillAttribute(in.GetAttr(name), attribute, path.GetAttr(name))
+					child, err := fillAttribute(in.GetAttr(name), attribute.NestedType.Attributes[name], path.GetAttr(name))
 					if err != nil {
 						return cty.NilVal, err
 					}
 					children[name] = child
 					continue
 				}
-
-				children[name] = GenerateValueForAttribute(attribute)
-			}
-			if len(children) == 0 {
-				return cty.EmptyObjectVal, nil
+				children[name] = GenerateValueForAttribute(attribute.NestedType.Attributes[name])
 			}
 			return cty.ObjectVal(children), nil
 		case configschema.NestingSet:
@@ -80,49 +90,60 @@ func FillType(in cty.Value, target cty.Type) (cty.Value, error) {
 func fillType(in cty.Value, target cty.Type, path cty.Path) (cty.Value, error) {
 	// If we're targeting an object directly, then the in value must be an
 	// object or a map. We'll check for those two cases specifically.
-	if in.Type().IsObjectType() && target.IsObjectType() {
-		attributes := make(map[string]cty.Value)
-		for name, attributeType := range target.AttributeTypes() {
-			if in.Type().HasAttribute(name) {
-				child, err := fillType(in.GetAttr(name), attributeType, path.IndexString(name))
-				if err != nil {
-					return cty.NilVal, err
-				}
-				attributes[name] = child
-				continue
-			}
-
-			attributes[name] = GenerateValueForType(attributeType)
-		}
-		if len(attributes) == 0 {
-			return cty.EmptyObjectVal, nil
-		}
-		return cty.ObjectVal(attributes), nil
-	}
-
-	// And for map.
-	if in.Type().IsMapType() && target.IsObjectType() {
-		attributes := make(map[string]cty.Value)
-		for name, attributeType := range target.AttributeTypes() {
-			index := cty.StringVal(name)
-			if in.HasIndex(index).True() {
-				child, err := fillType(in.Index(index), attributeType, path.Index(index))
-				if err != nil {
-					return cty.NilVal, err
-				}
-				attributes[name] = child
-				continue
-			}
-
-			attributes[name] = GenerateValueForType(attributeType)
-		}
-		if len(attributes) == 0 {
-			return cty.EmptyObjectVal, nil
-		}
-		return cty.ObjectVal(attributes), nil
-	}
-
 	if target.IsObjectType() {
+		var attributes []string
+		for attribute := range target.AttributeTypes() {
+			attributes = append(attributes, attribute)
+		}
+
+		// Make the order we iterate through the attributes deterministic. We
+		// are generating random strings in here so it's worth making the
+		// operation repeatable.
+		sort.Strings(attributes)
+
+		if in.Type().IsObjectType() {
+			if len(attributes) == 0 {
+				return cty.EmptyObjectVal, nil
+			}
+
+			children := make(map[string]cty.Value)
+			for _, attribute := range attributes {
+				if in.Type().HasAttribute(attribute) {
+					child, err := fillType(in.GetAttr(attribute), target.AttributeType(attribute), path.IndexString(attribute))
+					if err != nil {
+						return cty.NilVal, err
+					}
+					children[attribute] = child
+					continue
+				}
+				children[attribute] = GenerateValueForType(target.AttributeType(attribute))
+			}
+			return cty.ObjectVal(children), nil
+		}
+
+		if in.Type().IsMapType() {
+			if len(attributes) == 0 {
+				return cty.EmptyObjectVal, nil
+			}
+
+			children := make(map[string]cty.Value)
+			for _, attribute := range attributes {
+				attributeType := target.AttributeType(attribute)
+				index := cty.StringVal(attribute)
+				if in.HasIndex(index).True() {
+					child, err := fillType(in.Index(index), attributeType, path.Index(index))
+					if err != nil {
+						return cty.NilVal, err
+					}
+					children[attribute] = child
+					continue
+				}
+
+				children[attribute] = GenerateValueForType(attributeType)
+			}
+			return cty.ObjectVal(children), nil
+		}
+
 		// If the target is an object type, and the input wasn't an object or
 		// a map, then we have incompatible types.
 		return cty.NilVal, path.NewErrorf("incompatible types; expected %s, found %s", target.FriendlyName(), in.Type().FriendlyName())
@@ -174,17 +195,36 @@ func fillType(in cty.Value, target cty.Type, path cty.Path) (cty.Value, error) {
 			values := make(map[string]cty.Value)
 			switch {
 			case in.Type().IsMapType():
-				for name, value := range in.AsValueMap() {
-					child, err := fillType(value, target.ElementType(), path.IndexString(name))
+				var keys []string
+				for key := range in.AsValueMap() {
+					keys = append(keys, key)
+				}
+
+				// Make the order we iterate through the map deterministic. We
+				// are generating random strings in here so it's worth making
+				// the operation repeatable.
+				sort.Strings(keys)
+
+				for _, key := range keys {
+					child, err := fillType(in.Index(cty.StringVal(key)), target.ElementType(), path.IndexString(key))
 					if err != nil {
 						return cty.NilVal, err
 					}
-					values[name] = child
+					values[key] = child
 				}
 			case in.Type().IsObjectType():
-				for name := range in.Type().AttributeTypes() {
-					value := in.GetAttr(name)
-					child, err := fillType(value, target.ElementType(), path.IndexString(name))
+				var attributes []string
+				for attribute := range in.Type().AttributeTypes() {
+					attributes = append(attributes, attribute)
+				}
+
+				// Make the order we iterate through the map deterministic. We
+				// are generating random strings in here so it's worth making
+				// the operation repeatable.
+				sort.Strings(attributes)
+
+				for _, name := range attributes {
+					child, err := fillType(in.GetAttr(name), target.ElementType(), path.IndexString(name))
 					if err != nil {
 						return cty.NilVal, err
 					}
