@@ -43,10 +43,22 @@ func (l *Loader) loadConfig(rootMod *configs.Module, diags hcl.Diagnostics) (*co
 		return cfg, diags
 	}
 
-	cfg, cDiags := configs.BuildConfig(rootMod, configs.ModuleWalkerFunc(l.moduleWalkerLoad))
+	cfg, cDiags := configs.BuildConfig(rootMod, configs.ModuleWalkerFunc(l.moduleWalkerLoad), configs.MockDataLoaderFunc(l.LoadExternalMockData))
 	diags = append(diags, cDiags...)
 
 	return cfg, diags
+}
+
+// LoadExternalMockData reads the external mock data files for the given
+// provider, if they are present.
+func (l *Loader) LoadExternalMockData(provider *configs.Provider) (*configs.MockData, hcl.Diagnostics) {
+	if len(provider.MockDataExternalSource) == 0 {
+		// We have no external mock data, so don't do anything.
+		return nil, nil
+	}
+
+	// Otherwise, just hand this off to the parser to handle.
+	return l.parser.LoadMockDataDir(provider.MockDataExternalSource, provider.DeclRange)
 }
 
 // moduleWalkerLoad is a configs.ModuleWalkerFunc for loading modules that

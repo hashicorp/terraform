@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/zclconf/go-cty/cty"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
@@ -40,8 +41,11 @@ func TestBuildConfig(t *testing.T) {
 			version, _ := version.NewVersion(fmt.Sprintf("1.0.%d", versionI))
 			versionI++
 			return mod, version, diags
-		},
-	))
+		}),
+		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+			return nil, nil
+		}),
+	)
 	assertNoDiagnostics(t, diags)
 	if cfg == nil {
 		t.Fatal("got nil config; want non-nil")
@@ -96,8 +100,11 @@ func TestBuildConfigDiags(t *testing.T) {
 			version, _ := version.NewVersion(fmt.Sprintf("1.0.%d", versionI))
 			versionI++
 			return mod, version, diags
-		},
-	))
+		}),
+		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+			return nil, nil
+		}),
+	)
 
 	wantDiag := `testdata/nested-errors/child_c/child_c.tf:5,1-8: ` +
 		`Unsupported block type; Blocks of type "invalid" are not expected here.`
@@ -139,8 +146,11 @@ func TestBuildConfigChildModuleBackend(t *testing.T) {
 			mod, diags := parser.LoadConfigDir(sourcePath)
 			version, _ := version.NewVersion("1.0.0")
 			return mod, version, diags
-		},
-	))
+		}),
+		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+			return nil, nil
+		}),
+	)
 
 	assertDiagnosticSummary(t, diags, "Backend configuration ignored")
 
@@ -214,8 +224,11 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 					mod, diags := parser.LoadConfigDir(sourcePath)
 					version, _ := version.NewVersion("1.0.0")
 					return mod, version, diags
-				},
-			))
+				}),
+				MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+					return nil, nil
+				}),
+			)
 
 			// we can make this less repetitive later if we want
 			for _, msg := range expectedErrs {
@@ -284,6 +297,69 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 	}
 }
 
+func TestBuildConfig_WithMockDataSources(t *testing.T) {
+	parser := NewParser(nil)
+	mod, diags := parser.LoadConfigDirWithTests("testdata/valid-modules/with-mock-sources", "tests")
+	assertNoDiagnostics(t, diags)
+	assertNoDiagnostics(t, diags)
+	if mod == nil {
+		t.Fatal("got nil root module; want non-nil")
+	}
+
+	cfg, diags := BuildConfig(mod, nil, MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+		sourcePath := filepath.Join("testdata/valid-modules/with-mock-sources", provider.MockDataExternalSource)
+		return parser.LoadMockDataDir(sourcePath, hcl.Range{})
+	}))
+	assertNoDiagnostics(t, diags)
+	if cfg == nil {
+		t.Fatal("got nil config; want non-nil")
+	}
+
+	provider := cfg.Module.Tests["main.tftest.hcl"].Providers["aws"]
+
+	if len(provider.MockData.MockDataSources) != 1 {
+		t.Errorf("expected to load 1 mock data source but loaded %d", len(provider.MockData.MockDataSources))
+	}
+	if len(provider.MockData.MockResources) != 1 {
+		t.Errorf("expected to load 1 mock resource but loaded %d", len(provider.MockData.MockResources))
+	}
+	if provider.MockData.Overrides.Len() != 1 {
+		t.Errorf("expected to load 1 override but loaded %d", provider.MockData.Overrides.Len())
+	}
+}
+
+func TestBuildConfig_WithMockDataSourcesInline(t *testing.T) {
+	parser := NewParser(nil)
+	mod, diags := parser.LoadConfigDirWithTests("testdata/valid-modules/with-mock-sources-inline", "tests")
+	assertNoDiagnostics(t, diags)
+	assertNoDiagnostics(t, diags)
+	if mod == nil {
+		t.Fatal("got nil root module; want non-nil")
+	}
+
+	cfg, diags := BuildConfig(mod, nil, MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+		sourcePath := filepath.Join("testdata/valid-modules/with-mock-sources-inline", provider.MockDataExternalSource)
+		return parser.LoadMockDataDir(sourcePath, hcl.Range{})
+	}))
+	assertNoDiagnostics(t, diags)
+	if cfg == nil {
+		t.Fatal("got nil config; want non-nil")
+	}
+
+	provider := cfg.Module.Tests["main.tftest.hcl"].Providers["aws"]
+
+	// This time we want to check that the mock data defined inline took
+	// precedence over the mock data defined in the data files.
+	defaults := provider.MockData.MockResources["aws_s3_bucket"].Defaults
+	expected := cty.ObjectVal(map[string]cty.Value{
+		"arn": cty.StringVal("aws:s3:::bucket"),
+	})
+
+	if !defaults.RawEquals(expected) {
+		t.Errorf("expected: %s\nactual:   %s", expected.GoString(), defaults.GoString())
+	}
+}
+
 func TestBuildConfig_WithNestedTestModules(t *testing.T) {
 	parser := NewParser(nil)
 	mod, diags := parser.LoadConfigDirWithTests("testdata/valid-modules/with-tests-nested-module", "tests")
@@ -310,8 +386,11 @@ func TestBuildConfig_WithNestedTestModules(t *testing.T) {
 			mod, diags := parser.LoadConfigDir(sourcePath)
 			version, _ := version.NewVersion("1.0.0")
 			return mod, version, diags
-		},
-	))
+		}),
+		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+			return nil, nil
+		}),
+	)
 	assertNoDiagnostics(t, diags)
 	if cfg == nil {
 		t.Fatal("got nil config; want non-nil")
@@ -383,8 +462,11 @@ func TestBuildConfig_WithTestModule(t *testing.T) {
 			mod, diags := parser.LoadConfigDir(sourcePath)
 			version, _ := version.NewVersion("1.0.0")
 			return mod, version, diags
-		},
-	))
+		}),
+		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+			return nil, nil
+		}),
+	)
 	assertNoDiagnostics(t, diags)
 	if cfg == nil {
 		t.Fatal("got nil config; want non-nil")

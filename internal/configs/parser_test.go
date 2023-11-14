@@ -48,7 +48,7 @@ func testModuleConfigFromFile(filename string) (*Config, hcl.Diagnostics) {
 	f, diags := parser.LoadConfigFile(filename)
 	mod, modDiags := NewModule([]*File{f}, nil)
 	diags = append(diags, modDiags...)
-	cfg, moreDiags := BuildConfig(mod, nil)
+	cfg, moreDiags := BuildConfig(mod, nil, nil)
 	return cfg, append(diags, moreDiags...)
 }
 
@@ -64,7 +64,7 @@ func testModuleFromDir(path string) (*Module, hcl.Diagnostics) {
 func testModuleConfigFromDir(path string) (*Config, hcl.Diagnostics) {
 	parser := NewParser(nil)
 	mod, diags := parser.LoadConfigDir(path)
-	cfg, moreDiags := BuildConfig(mod, nil)
+	cfg, moreDiags := BuildConfig(mod, nil, nil)
 	return cfg, append(diags, moreDiags...)
 }
 
@@ -125,8 +125,11 @@ func buildNestedModuleConfig(mod *Module, path string, parser *Parser) (*Config,
 			version, _ := version.NewVersion(fmt.Sprintf("1.0.%d", versionI))
 			versionI++
 			return mod, version, diags
-		},
-	))
+		}),
+		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+			return nil, nil
+		}),
+	)
 }
 
 func assertNoDiagnostics(t *testing.T, diags hcl.Diagnostics) bool {
