@@ -7,8 +7,10 @@ import (
 	"fmt"
 
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -54,27 +56,66 @@ func (m *Mock) ValidateProviderConfig(request ValidateProviderConfigRequest) (re
 
 func (m *Mock) ValidateResourceConfig(request ValidateResourceConfigRequest) ValidateResourceConfigResponse {
 	// We'll just pass this through to the underlying provider. The mock should
-	// support the same resource syntax as the original provider.
+	// support the same resource syntax as the original provider and we can call
+	// validate without needing to configure the provider first.
 	return m.Provider.ValidateResourceConfig(request)
 }
 
 func (m *Mock) ValidateDataResourceConfig(request ValidateDataResourceConfigRequest) ValidateDataResourceConfigResponse {
 	// We'll just pass this through to the underlying provider. The mock should
-	// support the same data source syntax as the original provider.
+	// support the same data source syntax as the original provider and we can
+	// call validate without needing to configure the provider first.
 	return m.Provider.ValidateDataResourceConfig(request)
 }
 
-func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) UpgradeResourceStateResponse {
-	// It's unlikely this will ever be called on a mocked provider, given they
-	// can only execute from inside tests. But we don't need to anything special
-	// here, let's just have the original provider handle it.
-	return m.Provider.UpgradeResourceState(request)
+func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) (response UpgradeResourceStateResponse) {
+	// We can't do this from a mocked provider, so we just return whatever state
+	// is in the request back unchanged.
+
+	schema := m.GetProviderSchema()
+	response.Diagnostics = response.Diagnostics.Append(schema.Diagnostics)
+	if schema.Diagnostics.HasErrors() {
+		// We couldn't retrieve the schema for some reason, so the mock
+		// provider can't really function.
+		return response
+	}
+
+	resource, exists := schema.ResourceTypes[request.TypeName]
+	if !exists {
+		// This means something has gone wrong much earlier, we should have
+		// failed a validation somewhere if a resource type doesn't exist.
+		panic(fmt.Errorf("failed to retrieve schema for resource %s", request.TypeName))
+	}
+
+	schemaType := resource.Block.ImpliedType()
+
+	var value cty.Value
+	var err error
+
+	switch {
+	case request.RawStateFlatmap != nil:
+		value, err = hcl2shim.HCL2ValueFromFlatmap(request.RawStateFlatmap, schemaType)
+	case len(request.RawStateJSON) > 0:
+		value, err = ctyjson.Unmarshal(request.RawStateJSON, schemaType)
+	}
+
+	if err != nil {
+		// Generally, we shouldn't get an error here. The mocked providers are
+		// only used in tests, and we can't use different versions of providers
+		// within/between tests so the types should always match up. As such,
+		// we're not gonna return a super detailed error here.
+		response.Diagnostics = response.Diagnostics.Append(err)
+		return response
+	}
+	response.UpgradedState = value
+	return response
 }
 
 func (m *Mock) ConfigureProvider(request ConfigureProviderRequest) (response ConfigureProviderResponse) {
 	// Do nothing here, we don't have anything to configure within the mocked
-	// providers and we don't want to call the original providers from here as
-	// they may try to talk to their underlying cloud providers.
+	// providers. We don't want to call the original providers from here as
+	// they may try to talk to their underlying cloud providers and we
+	// definitely don't have the right configuration or credentials for this.
 	return response
 }
 
@@ -86,9 +127,6 @@ func (m *Mock) Stop() error {
 func (m *Mock) ReadResource(request ReadResourceRequest) ReadResourceResponse {
 	// For a mocked provider, reading a resource is just reading it from the
 	// state. So we'll return what we have.
-	// TODO(liamcervante): Can we do more than just say the state of resources
-	//   never changes? What if we recomputed the values, so we can have drift
-	//   if the value in the mocked data has changed?
 	return ReadResourceResponse{
 		NewState: request.PriorState,
 	}
@@ -162,7 +200,7 @@ func (m *Mock) ApplyResourceChange(request ApplyResourceChangeRequest) ApplyReso
 			panic(fmt.Errorf("failed to retrieve schema for resource %s", request.TypeName))
 		}
 
-		replacement := mocking.ReplacementValue{
+		replacement := mocking.MockedData{
 			Value: cty.NilVal, // If we have no data then we use cty.NilVal.
 		}
 		if mockedResource, exists := m.Data.MockResources[request.TypeName]; exists {
@@ -185,12 +223,11 @@ func (m *Mock) ApplyResourceChange(request ApplyResourceChangeRequest) ApplyReso
 }
 
 func (m *Mock) ImportResourceState(request ImportResourceStateRequest) (response ImportResourceStateResponse) {
-	// Given mock providers only execute from within the test framework and it
-	// doesn't make a lot of sense why someone would want to import something
-	// during a test, we just don't support this at the moment.
-	// TODO(liamcervante): Find use cases for this? The existing syntax for
-	//   mocks does make this possible but let's find a reason to do it first.
-	response.Diagnostics = response.Diagnostics.Append(tfdiags.Sourceless(tfdiags.Error, "Invalid import request", "Cannot import resources from mock providers."))
+	// You can't import via mock providers. The users should write specific
+	// `override_resource` blocks for any resources they want to import, so we
+	// just make them think about it rather than performing a blanket import
+	// of all resources that are backed by mock providers.
+	response.Diagnostics = response.Diagnostics.Append(tfdiags.Sourceless(tfdiags.Error, "Invalid import request", "Cannot import resources from mock providers. Use an `override_resource` block to targeting the specific resource being imported instead."))
 	return response
 }
 
@@ -212,7 +249,7 @@ func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceRespo
 		panic(fmt.Errorf("failed to retrieve schema for data source %s", request.TypeName))
 	}
 
-	mockedData := mocking.ReplacementValue{
+	mockedData := mocking.MockedData{
 		Value: cty.NilVal, // If we have no mocked data we use cty.NilVal.
 	}
 	if mockedDataSource, exists := m.Data.MockDataSources[request.TypeName]; exists {
