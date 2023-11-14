@@ -1,5 +1,8 @@
 ## 1.6.4 (Unreleased)
 
+ENHANCEMENTS:
+* backend/s3: Adds the parameter `endpoints.sso`` to allow overriding the AWS SSO API endpoint. ([#34195](https://github.com/hashicorp/terraform/pull/34195))
+
 BUG FIXES:
 * `terraform test`: Fix bug preventing passing sensitive output values from previous run blocks as inputs to future run blocks. ([#34190](https://github.com/hashicorp/terraform/pull/34190))
 
