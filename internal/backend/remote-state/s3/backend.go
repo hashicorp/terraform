@@ -311,8 +311,21 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 			"http_proxy": {
 				Type:        cty.String,
 				Optional:    true,
-				Description: "Address of an HTTP proxy to use when accessing the AWS API.",
+				Description: "URL of a proxy to use for HTTP requests when accessing the AWS API.",
 			},
+
+			"https_proxy": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "URL of a proxy to use for HTTPS requests when accessing the AWS API.",
+			},
+
+			"no_proxy": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Comma-separated list of hosts that should not use HTTP or HTTPS proxies.",
+			},
+
 			"insecure": {
 				Type:        cty.Bool,
 				Optional:    true,
@@ -995,6 +1008,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		Logger:                  baselog,
 		MaxRetries:              intAttrDefault(obj, "max_retries", 5),
 		Profile:                 stringAttr(obj, "profile"),
+		HTTPProxyMode:           awsbase.HTTPProxyModeLegacy,
 		Region:                  stringAttr(obj, "region"),
 		SecretKey:               stringAttr(obj, "secret_key"),
 		SkipCredsValidation:     boolAttr(obj, "skip_credentials_validation"),
@@ -1168,11 +1182,18 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	if v, ok := retrieveArgument(&diags,
 		newAttributeRetriever(obj, cty.GetAttrPath("http_proxy")),
-		newEnvvarRetriever("HTTP_PROXY"),
-		newEnvvarRetriever("HTTPS_PROXY"),
 	); ok {
-		cfg.HTTPProxy = v
+		cfg.HTTPProxy = aws.String(v)
 	}
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("https_proxy")),
+	); ok {
+		cfg.HTTPSProxy = aws.String(v)
+	}
+	if val, ok := stringAttrOk(obj, "no_proxy"); ok {
+		cfg.NoProxy = val
+	}
+
 	if val, ok := boolAttrOk(obj, "insecure"); ok {
 		cfg.Insecure = val
 	}
