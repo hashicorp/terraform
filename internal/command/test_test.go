@@ -193,6 +193,10 @@ func TestTest(t *testing.T) {
 			expected: "1 passed, 0 failed.",
 			code:     0,
 		},
+		"mocking": {
+			expected: "5 passed, 0 failed.",
+			code:     0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

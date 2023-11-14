@@ -7,8 +7,10 @@ import (
 	"fmt"
 
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -54,27 +56,66 @@ func (m *Mock) ValidateProviderConfig(request ValidateProviderConfigRequest) (re
 
 func (m *Mock) ValidateResourceConfig(request ValidateResourceConfigRequest) ValidateResourceConfigResponse {
 	// We'll just pass this through to the underlying provider. The mock should
-	// support the same resource syntax as the original provider.
+	// support the same resource syntax as the original provider and we can call
+	// validate without needing to configure the provider first.
 	return m.Provider.ValidateResourceConfig(request)
 }
 
 func (m *Mock) ValidateDataResourceConfig(request ValidateDataResourceConfigRequest) ValidateDataResourceConfigResponse {
 	// We'll just pass this through to the underlying provider. The mock should
-	// support the same data source syntax as the original provider.
+	// support the same data source syntax as the original provider and we can
+	// call validate without needing to configure the provider first.
 	return m.Provider.ValidateDataResourceConfig(request)
 }
 
-func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) UpgradeResourceStateResponse {
-	// It's unlikely this will ever be called on a mocked provider, given they
-	// can only execute from inside tests. But we don't need to anything special
-	// here, let's just have the original provider handle it.
-	return m.Provider.UpgradeResourceState(request)
+func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) (response UpgradeResourceStateResponse) {
+	// We can't do this from a mocked provider, so we just return whatever state
+	// is in the request back unchanged.
+
+	schema := m.GetProviderSchema()
+	response.Diagnostics = response.Diagnostics.Append(schema.Diagnostics)
+	if schema.Diagnostics.HasErrors() {
+		// We couldn't retrieve the schema for some reason, so the mock
+		// provider can't really function.
+		return response
+	}
+
+	resource, exists := schema.ResourceTypes[request.TypeName]
+	if !exists {
+		// This means something has gone wrong much earlier, we should have
+		// failed a validation somewhere if a resource type doesn't exist.
+		panic(fmt.Errorf("failed to retrieve schema for resource %s", request.TypeName))
+	}
+
+	schemaType := resource.Block.ImpliedType()
+
+	var value cty.Value
+	var err error
+
+	switch {
+	case request.RawStateFlatmap != nil:
+		value, err = hcl2shim.HCL2ValueFromFlatmap(request.RawStateFlatmap, schemaType)
+	case len(request.RawStateJSON) > 0:
+		value, err = ctyjson.Unmarshal(request.RawStateJSON, schemaType)
+	}
+
+	if err != nil {
+		// Generally, we shouldn't get an error here. The mocked providers are
+		// only used in tests, and we can't use different versions of providers
+		// within/between tests so the types should always match up. As such,
+		// we're not gonna return a super detailed error here.
+		response.Diagnostics = response.Diagnostics.Append(err)
+		return response
+	}
+	response.UpgradedState = value
+	return response
 }
 
 func (m *Mock) ConfigureProvider(request ConfigureProviderRequest) (response ConfigureProviderResponse) {
 	// Do nothing here, we don't have anything to configure within the mocked
-	// providers and we don't want to call the original providers from here as
-	// they may try to talk to their underlying cloud providers.
+	// providers. We don't want to call the original providers from here as
+	// they may try to talk to their underlying cloud providers and we
+	// definitely don't have the right configuration or credentials for this.
 	return response
 }
 
