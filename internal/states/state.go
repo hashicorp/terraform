@@ -215,6 +215,18 @@ func (s *State) Resources(addr addrs.ConfigResource) []*Resource {
 	return ret
 }
 
+// AllResourceInstanceObjectAddrs returns a set of addresses for all of
+// the leaf resource instance objects of any mode that are tracked in this
+// state.
+//
+// If you only care about objects belonging to managed resources, use
+// [State.AllManagedResourceInstanceObjectAddrs] instead.
+func (s *State) AllResourceInstanceObjectAddrs() addrs.Set[addrs.AbsResourceInstanceObject] {
+	return s.allResourceInstanceObjectAddrs(func(addr addrs.AbsResourceInstanceObject) bool {
+		return true // we filter nothing
+	})
+}
+
 // AllManagedResourceInstanceObjectAddrs returns a set of addresses for all of
 // the leaf resource instance objects associated with managed resources that
 // are tracked in this state.
@@ -224,61 +236,43 @@ func (s *State) Resources(addr addrs.ConfigResource) []*Resource {
 // by deleting a workspace. This function is intended only for reporting
 // context in error messages, such as when we reject deleting a "non-empty"
 // workspace as detected by s.HasManagedResourceInstanceObjects.
-//
-// The ordering of the result is meaningless but consistent. DeposedKey will
-// be NotDeposed (the zero value of DeposedKey) for any "current" objects.
-// This method is guaranteed to return at least one item if
-// s.HasManagedResourceInstanceObjects returns true for the same state, and
-// to return a zero-length slice if it returns false.
-func (s *State) AllResourceInstanceObjectAddrs() []struct {
-	Instance   addrs.AbsResourceInstance
-	DeposedKey DeposedKey
-} {
+func (s *State) AllManagedResourceInstanceObjectAddrs() addrs.Set[addrs.AbsResourceInstanceObject] {
+	return s.allResourceInstanceObjectAddrs(func(addr addrs.AbsResourceInstanceObject) bool {
+		return addr.ResourceInstance.Resource.Resource.Mode == addrs.ManagedResourceMode
+	})
+}
+
+func (s *State) allResourceInstanceObjectAddrs(keepAddr func(addr addrs.AbsResourceInstanceObject) bool) addrs.Set[addrs.AbsResourceInstanceObject] {
 	if s == nil {
 		return nil
 	}
 
-	// We use an unnamed return type here just because we currently have no
-	// general need to return pairs of instance address and deposed key aside
-	// from this method, and this method itself is only of marginal value
-	// when producing some error messages.
-	//
-	// If that need ends up arising more in future then it might make sense to
-	// name this as addrs.AbsResourceInstanceObject, although that would require
-	// moving DeposedKey into the addrs package too.
-	type ResourceInstanceObject = struct {
-		Instance   addrs.AbsResourceInstance
-		DeposedKey DeposedKey
-	}
-	var ret []ResourceInstanceObject
-
+	ret := addrs.MakeSet[addrs.AbsResourceInstanceObject]()
 	for _, ms := range s.Modules {
 		for _, rs := range ms.Resources {
-			if rs.Addr.Resource.Mode != addrs.ManagedResourceMode {
-				continue
-			}
-
 			for instKey, is := range rs.Instances {
 				instAddr := rs.Addr.Instance(instKey)
 				if is.Current != nil {
-					ret = append(ret, ResourceInstanceObject{instAddr, NotDeposed})
+					objAddr := addrs.AbsResourceInstanceObject{
+						ResourceInstance: instAddr,
+						DeposedKey:       addrs.NotDeposed,
+					}
+					if keepAddr(objAddr) {
+						ret.Add(objAddr)
+					}
 				}
 				for deposedKey := range is.Deposed {
-					ret = append(ret, ResourceInstanceObject{instAddr, deposedKey})
+					objAddr := addrs.AbsResourceInstanceObject{
+						ResourceInstance: instAddr,
+						DeposedKey:       deposedKey,
+					}
+					if keepAddr(objAddr) {
+						ret.Add(objAddr)
+					}
 				}
 			}
 		}
 	}
-
-	sort.SliceStable(ret, func(i, j int) bool {
-		objI, objJ := ret[i], ret[j]
-		switch {
-		case !objI.Instance.Equal(objJ.Instance):
-			return objI.Instance.Less(objJ.Instance)
-		default:
-			return objI.DeposedKey < objJ.DeposedKey
-		}
-	})
 
 	return ret
 }
@@ -294,6 +288,22 @@ func (s *State) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInstan
 		return nil
 	}
 	return ms.ResourceInstance(addr.Resource)
+}
+
+// ResourceInstance returns the (encoded) state for the resource instance object
+// with the given address, or nil if no such object is tracked in the state.
+func (s *State) ResourceInstanceObjectSrc(addr addrs.AbsResourceInstanceObject) *ResourceInstanceObjectSrc {
+	if s == nil {
+		panic("State.ResourceInstanceObjectSrc on nil *State")
+	}
+	rs := s.ResourceInstance(addr.ResourceInstance)
+	if rs == nil {
+		return nil
+	}
+	if addr.DeposedKey != addrs.NotDeposed {
+		return rs.Deposed[addr.DeposedKey]
+	}
+	return rs.Current
 }
 
 // OutputValue returns the state for the output value with the given address,

@@ -106,6 +106,14 @@ type PlanOpts struct {
 	// configure these providers based on information outside the scope of
 	// the root module.
 	ExternalProviders map[addrs.RootProviderConfig]providers.Interface
+
+	// ForcePlanTimestamp, if not nil, will force the "plantimestamp" function
+	// to return the given value instead of the time when the plan operation
+	// started.
+	//
+	// This is here only to allow producing fixed results for tests. Don't
+	// use it for main code.
+	ForcePlanTimestamp *time.Time
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -584,6 +592,10 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	}
 
 	timestamp := time.Now().UTC()
+	if opts.ForcePlanTimestamp != nil {
+		// Some tests use this to produce stable results to assert against.
+		timestamp = *opts.ForcePlanTimestamp
+	}
 
 	var externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
 	if opts != nil {

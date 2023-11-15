@@ -5,8 +5,6 @@ package states
 
 import (
 	"fmt"
-	"math/rand"
-	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )
@@ -126,23 +124,14 @@ func (i *ResourceInstance) deposeCurrentObject(forceKey DeposedKey) DeposedKey {
 	return key
 }
 
-// GetGeneration retrieves the object of the given generation from the
-// ResourceInstance, or returns nil if there is no such object.
-//
-// If the given generation is nil or invalid, this method will panic.
-func (i *ResourceInstance) GetGeneration(gen Generation) *ResourceInstanceObjectSrc {
-	if gen == CurrentGen {
+// Object retrieves the object with the given deposed key from the
+// ResourceInstance, or returns nil if there is no such object. Use
+// [addrs.NotDeposed] to retrieve the "current" object, if any.
+func (i *ResourceInstance) Object(dk DeposedKey) *ResourceInstanceObjectSrc {
+	if dk == addrs.NotDeposed {
 		return i.Current
 	}
-	if dk, ok := gen.(DeposedKey); ok {
-		return i.Deposed[dk]
-	}
-	if gen == nil {
-		panic("get with nil Generation")
-	}
-	// Should never fall out here, since the above covers all possible
-	// Generation values.
-	panic(fmt.Sprintf("get invalid Generation %#v", gen))
+	return i.Deposed[dk]
 }
 
 // FindUnusedDeposedKey generates a unique DeposedKey that is guaranteed not to
@@ -170,49 +159,21 @@ func (i *ResourceInstance) findUnusedDeposedKey() DeposedKey {
 	}
 }
 
-// DeposedKey is a 8-character hex string used to uniquely identify deposed
-// instance objects in the state.
-type DeposedKey string
+// DeposedKey is an alias for [addrs.DeposedKey], representing keys assigned
+// to deposed resource instance objects.
+type DeposedKey = addrs.DeposedKey
 
-// NotDeposed is a special invalid value of DeposedKey that is used to represent
-// the absense of a deposed key. It must not be used as an actual deposed key.
-const NotDeposed = DeposedKey("")
+// NotDeposed is an alias for the zero value of [addrs.DeposedKey], which
+// represents the absense of a deposed key, i.e. that the associated object
+// is the "current" object for some resource instance.
+const NotDeposed = addrs.NotDeposed
 
-var deposedKeyRand = rand.New(rand.NewSource(time.Now().UnixNano()))
-
-// NewDeposedKey generates a pseudo-random deposed key. Because of the short
-// length of these keys, uniqueness is not a natural consequence and so the
-// caller should test to see if the generated key is already in use and generate
-// another if so, until a unique key is found.
+// NewDeposedKey is an alias for [addrs.NewDeposedKey].
 func NewDeposedKey() DeposedKey {
-	v := deposedKeyRand.Uint32()
-	return DeposedKey(fmt.Sprintf("%08x", v))
+	return addrs.NewDeposedKey()
 }
 
-func (k DeposedKey) String() string {
-	return string(k)
+// ParseDeposedKey is an alias for [addrs.ParseDeposedKey].
+func ParseDeposedKey(raw string) (DeposedKey, error) {
+	return addrs.ParseDeposedKey(raw)
 }
-
-func (k DeposedKey) GoString() string {
-	ks := string(k)
-	switch {
-	case ks == "":
-		return "states.NotDeposed"
-	default:
-		return fmt.Sprintf("states.DeposedKey(%s)", ks)
-	}
-}
-
-// Generation is a helper method to convert a DeposedKey into a Generation.
-// If the reciever is anything other than NotDeposed then the result is
-// just the same value as a Generation. If the receiver is NotDeposed then
-// the result is CurrentGen.
-func (k DeposedKey) Generation() Generation {
-	if k == NotDeposed {
-		return CurrentGen
-	}
-	return k
-}
-
-// generation is an implementation of Generation.
-func (k DeposedKey) generation() {}

@@ -331,7 +331,7 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	case addrs.ResourceInstance:
 		resourceAddr = sub.ContainingResource()
 		rc := sub.Absolute(ctx.Path())
-		change := ctx.Changes().GetResourceInstanceChange(rc, states.CurrentGen)
+		change := ctx.Changes().GetResourceInstanceChange(rc, addrs.NotDeposed)
 		if change != nil {
 			// we'll generate an error below if there was no change
 			changes = append(changes, change)

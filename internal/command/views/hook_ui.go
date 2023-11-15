@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -71,10 +70,10 @@ const (
 	uiResourceNoOp
 )
 
-func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	dispAddr := addr.String()
-	if gen != states.CurrentGen {
-		dispAddr = fmt.Sprintf("%s (deposed object %s)", dispAddr, gen)
+	if dk != addrs.NotDeposed {
+		dispAddr = fmt.Sprintf("%s (deposed object %s)", dispAddr, dk)
 	}
 
 	var operation string
@@ -184,7 +183,7 @@ func (h *UiHook) stillApplying(state uiResourceState) {
 	}
 }
 
-func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, applyerr error) (terraform.HookAction, error) {
+func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, newState cty.Value, applyerr error) (terraform.HookAction, error) {
 	id := addr.String()
 
 	h.resourcesLock.Lock()
@@ -224,8 +223,8 @@ func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation
 	}
 
 	addrStr := addr.String()
-	if depKey, ok := gen.(states.DeposedKey); ok {
-		addrStr = fmt.Sprintf("%s (deposed object %s)", addrStr, depKey)
+	if dk != addrs.NotDeposed {
+		addrStr = fmt.Sprintf("%s (deposed object %s)", addrStr, dk)
 	}
 
 	colorized := fmt.Sprintf(
@@ -264,15 +263,15 @@ func (h *UiHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName string
 	h.println(strings.TrimSpace(buf.String()))
 }
 
-func (h *UiHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value) (terraform.HookAction, error) {
+func (h *UiHook) PreRefresh(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState cty.Value) (terraform.HookAction, error) {
 	var stateIdSuffix string
 	if k, v := format.ObjectValueID(priorState); k != "" && v != "" {
 		stateIdSuffix = fmt.Sprintf(" [%s=%s]", k, v)
 	}
 
 	addrStr := addr.String()
-	if depKey, ok := gen.(states.DeposedKey); ok {
-		addrStr = fmt.Sprintf("%s (deposed object %s)", addrStr, depKey)
+	if dk != addrs.NotDeposed {
+		addrStr = fmt.Sprintf("%s (deposed object %s)", addrStr, dk)
 	}
 
 	h.println(fmt.Sprintf(
