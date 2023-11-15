@@ -9,12 +9,14 @@ import (
 	"log"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
@@ -229,6 +231,46 @@ The -target option is not for routine use, and is provided only for exceptional 
 	// here because we'll still populate other metadata below on a best-effort
 	// basis to try to give the UI some extra context to return alongside the
 	// error messages.
+
+	// If we have a plan with changes, check if any of the targeted resources are
+	// not among the planned changes, likely due to a typo in resource address.
+	if plan != nil && plan.Changes != nil && len(opts.Targets) > 0 {
+		resourceMap := make(map[string]struct{}, len(plan.Changes.Resources))
+		for _, resource := range plan.Changes.Resources {
+			resourceMap[resource.Addr.String()] = struct{}{}
+		}
+
+		// We will build up suggestions if necessary based on previous state only once
+		var once sync.Once
+		var suggestions []string
+
+		for _, target := range opts.Targets {
+			if _, ok := resourceMap[target.String()]; ok {
+				continue
+			}
+
+			once.Do(func() {
+				if plan.PrevRunState == nil {
+					return
+				}
+				for _, resource := range plan.PrevRunState.AllResourceInstanceObjectAddrs() {
+					suggestions = append(suggestions, resource.Instance.Resource.Resource.String())
+				}
+			})
+
+			suggestion := didyoumean.NameSuggestion(target.String(), suggestions)
+			prompt := "Check for a typo."
+			if suggestion != "" {
+				prompt = fmt.Sprintf("Did you mean %s?", suggestion)
+			}
+
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Failed to target resource",
+				fmt.Sprintf("%s is not a valid resource address. %s", target.String(), prompt),
+			))
+		}
+	}
 
 	// convert the variables into the format expected for the plan
 	varVals := make(map[string]plans.DynamicValue, len(opts.SetVariables))

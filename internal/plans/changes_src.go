@@ -42,7 +42,7 @@ type ResourceInstanceChangeSrc struct {
 	// the current object is being replaced with the deposed.
 	DeposedKey states.DeposedKey
 
-	// Provider is the address of the provider configuration that was used
+	// ProviderAddr is the address of the provider configuration that was used
 	// to plan this change, and thus the configuration that must also be
 	// used to apply it.
 	ProviderAddr addrs.AbsProviderConfig
