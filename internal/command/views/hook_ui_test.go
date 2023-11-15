@@ -51,7 +51,7 @@ func TestUiHookPreApply_create(t *testing.T) {
 		}),
 	})
 
-	action, err := h.PreApply(addr, states.CurrentGen, plans.Create, priorState, plannedNewState)
+	action, err := h.PreApply(addr, addrs.NotDeposed, plans.Create, priorState, plannedNewState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +109,7 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 		}),
 	})
 
-	action, err := h.PreApply(addr, states.CurrentGen, plans.Update, priorState, plannedNewState)
+	action, err := h.PreApply(addr, addrs.NotDeposed, plans.Update, priorState, plannedNewState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +224,7 @@ func TestUiHookPostApply_colorInterpolation(t *testing.T) {
 		"id": cty.StringVal("[blue]"),
 	})
 
-	action, err := h.PostApply(addr, states.CurrentGen, newState, nil)
+	action, err := h.PostApply(addr, addrs.NotDeposed, newState, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -277,7 +277,7 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 		"names": cty.List(cty.String),
 	}))
 
-	action, err := h.PostApply(addr, states.CurrentGen, newState, nil)
+	action, err := h.PostApply(addr, addrs.NotDeposed, newState, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -425,7 +425,7 @@ func TestPreRefresh(t *testing.T) {
 		"bar": cty.ListValEmpty(cty.String),
 	})
 
-	action, err := h.PreRefresh(addr, states.CurrentGen, priorState)
+	action, err := h.PreRefresh(addr, addrs.NotDeposed, priorState)
 
 	if err != nil {
 		t.Fatal(err)
@@ -457,7 +457,7 @@ func TestPreRefresh_noID(t *testing.T) {
 		"bar": cty.ListValEmpty(cty.String),
 	})
 
-	action, err := h.PreRefresh(addr, states.CurrentGen, priorState)
+	action, err := h.PreRefresh(addr, addrs.NotDeposed, priorState)
 
 	if err != nil {
 		t.Fatal(err)

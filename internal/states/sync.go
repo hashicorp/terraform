@@ -181,13 +181,14 @@ func (s *SyncState) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceIn
 	return ret
 }
 
-// ResourceInstanceObject returns a snapshot of the current instance object
-// of the given generation belonging to the instance with the given address,
-// or nil if no such object is tracked..
+// ResourceInstanceObject returns a snapshot of the resource instance object
+// of the given deposed key belonging to the given resource instance. Use
+// [addrs.NotDeposed] for the deposed key to retrieve the "current" object,
+// if any. Returns nil if there is no such object.
 //
 // The return value is a pointer to a copy of the object, which the caller may
 // then freely access and mutate.
-func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, gen Generation) *ResourceInstanceObjectSrc {
+func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, dk DeposedKey) *ResourceInstanceObjectSrc {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -195,7 +196,7 @@ func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, gen G
 	if inst == nil {
 		return nil
 	}
-	return inst.GetGeneration(gen).DeepCopy()
+	return inst.Object(dk).DeepCopy()
 }
 
 // SetResourceMeta updates the resource-level metadata for the resource at

@@ -1135,7 +1135,7 @@ func TestContext2Apply_createBeforeDestroy_hook(t *testing.T) {
 
 	var actual []cty.Value
 	var actualLock sync.Mutex
-	h.PostApplyFn = func(addr addrs.AbsResourceInstance, gen states.Generation, sv cty.Value, e error) (HookAction, error) {
+	h.PostApplyFn = func(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, sv cty.Value, e error) (HookAction, error) {
 		actualLock.Lock()
 
 		defer actualLock.Unlock()
