@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -46,6 +49,14 @@ type ApplyGraphBuilder struct {
 	// The apply step refers to these as part of verifying that the planned
 	// actions remain consistent between plan and apply.
 	ForceReplace []addrs.AbsResourceInstance
+
+	// Plan Operation this graph will be used for.
+	Operation walkOperation
+
+	// ExternalReferences allows the external caller to pass in references to
+	// nodes that should not be pruned even if they are not referenced within
+	// the actual graph.
+	ExternalReferences []*addrs.Reference
 }
 
 // See GraphBuilder
@@ -89,10 +100,20 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Add dynamic values
-		&RootVariableTransformer{Config: b.Config, RawValues: b.RootVariableValues},
-		&ModuleVariableTransformer{Config: b.Config},
+		&RootVariableTransformer{
+			Config:       b.Config,
+			RawValues:    b.RootVariableValues,
+			DestroyApply: b.Operation == walkDestroy,
+		},
+		&ModuleVariableTransformer{
+			Config:       b.Config,
+			DestroyApply: b.Operation == walkDestroy,
+		},
 		&LocalTransformer{Config: b.Config},
-		&OutputTransformer{Config: b.Config, Changes: b.Changes},
+		&OutputTransformer{
+			Config:     b.Config,
+			Destroying: b.Operation == walkDestroy,
+		},
 
 		// Creates all the resource instances represented in the diff, along
 		// with dependency edges against the whole-resource nodes added by
@@ -101,6 +122,14 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Concrete: concreteResourceInstance,
 			State:    b.State,
 			Changes:  b.Changes,
+			Config:   b.Config,
+		},
+
+		// Add nodes and edges for check block assertions. Check block data
+		// sources were added earlier.
+		&checkTransformer{
+			Config:    b.Config,
+			Operation: b.Operation,
 		},
 
 		// Attach the state
@@ -127,16 +156,28 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// objects that can belong to modules.
 		&ModuleExpansionTransformer{Config: b.Config},
 
+		// Plug in any external references.
+		&ExternalReferenceTransformer{
+			ExternalReferences: b.ExternalReferences,
+		},
+
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
 		&AttachDependenciesTransformer{},
+
+		// Nested data blocks should be loaded after every other resource has
+		// done its thing.
+		&checkStartTransformer{Config: b.Config, Operation: b.Operation},
 
 		// Detect when create_before_destroy must be forced on for a particular
 		// node due to dependency edges, to avoid graph cycles during apply.
 		&ForcedCBDTransformer{},
 
 		// Destruction ordering
-		&DestroyEdgeTransformer{},
+		&DestroyEdgeTransformer{
+			Changes:   b.Changes,
+			Operation: b.Operation,
+		},
 		&CBDEdgeTransformer{
 			Config: b.Config,
 			State:  b.State,

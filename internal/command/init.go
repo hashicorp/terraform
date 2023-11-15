@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -9,10 +12,12 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/posener/complete"
 	"github.com/zclconf/go-cty/cty"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -36,7 +41,7 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
-	var flagFromModule, flagLockfile string
+	var flagFromModule, flagLockfile, testsDirectory string
 	var flagBackend, flagCloud, flagGet, flagUpgrade bool
 	var flagPluginPath FlagStringSlice
 	flagConfigExtra := newRawFlags("-backend-config")
@@ -57,6 +62,7 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
 	cmdFlags.StringVar(&flagLockfile, "lockfile", "", "Set a dependency lockfile mode")
 	cmdFlags.BoolVar(&c.Meta.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local Terraform versions are incompatible")
+	cmdFlags.StringVar(&testsDirectory, "test-directory", "tests", "test-directory")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -105,6 +111,10 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Initialization can be aborted by interruption signals
+	ctx, done := c.InterruptibleContext(c.CommandContext())
+	defer done()
+
 	// This will track whether we outputted anything so that we know whether
 	// to output a newline before the success message
 	var header bool
@@ -132,12 +142,19 @@ func (c *InitCommand) Run(args []string) int {
 			ShowLocalPaths: false, // since they are in a weird location for init
 		}
 
-		initDirFromModuleAbort, initDirFromModuleDiags := c.initDirFromModule(path, src, hooks)
+		ctx, span := tracer.Start(ctx, "-from-module=...", trace.WithAttributes(
+			attribute.String("module_source", src),
+		))
+
+		initDirFromModuleAbort, initDirFromModuleDiags := c.initDirFromModule(ctx, path, src, hooks)
 		diags = diags.Append(initDirFromModuleDiags)
 		if initDirFromModuleAbort || initDirFromModuleDiags.HasErrors() {
 			c.showDiagnostics(diags)
+			span.SetStatus(codes.Error, "module installation failed")
+			span.End()
 			return 1
 		}
+		span.End()
 
 		c.Ui.Output("")
 	}
@@ -155,124 +172,39 @@ func (c *InitCommand) Run(args []string) int {
 		return 0
 	}
 
-	// For Terraform v0.12 we introduced a special loading mode where we would
-	// use the 0.11-syntax-compatible "earlyconfig" package as a heuristic to
-	// identify situations where it was likely that the user was trying to use
-	// 0.11-only syntax that the upgrade tool might help with.
-	//
-	// However, as the language has moved on that is no longer a suitable
-	// heuristic in Terraform 0.13 and later: other new additions to the
-	// language can cause the main loader to disagree with earlyconfig, which
-	// would lead us to give poor advice about how to respond.
-	//
-	// For that reason, we no longer use a different error message in that
-	// situation, but for now we still use both codepaths because some of our
-	// initialization functionality remains built around "earlyconfig" and
-	// so we need to still load the module via that mechanism anyway until we
-	// can do some more invasive refactoring here.
-	rootModEarly, earlyConfDiags := c.loadSingleModuleEarly(path)
-	// If _only_ the early loader encountered errors then that's unusual
-	// (it should generally be a superset of the normal loader) but we'll
-	// return those errors anyway since otherwise we'll probably get
-	// some weird behavior downstream. Errors from the early loader are
-	// generally not as high-quality since it has less context to work with.
-	if earlyConfDiags.HasErrors() {
-		c.Ui.Error(c.Colorize().Color(strings.TrimSpace(errInitConfigError)))
-		// Errors from the early loader are generally not as high-quality since
-		// it has less context to work with.
+	// Load just the root module to begin backend and module initialization
+	rootModEarly, earlyConfDiags := c.loadSingleModuleWithTests(path, testsDirectory)
 
-		// TODO: It would be nice to check the version constraints in
-		// rootModEarly.RequiredCore and print out a hint if the module is
-		// declaring that it's not compatible with this version of Terraform,
-		// and that may be what caused earlyconfig to fail.
+	// There may be parsing errors in config loading but these will be shown later _after_
+	// checking for core version requirement errors. Not meeting the version requirement should
+	// be the first error displayed if that is an issue, but other operations are required
+	// before being able to check core version requirements.
+	if rootModEarly == nil {
+		c.Ui.Error(c.Colorize().Color(strings.TrimSpace(errInitConfigError)))
 		diags = diags.Append(earlyConfDiags)
 		c.showDiagnostics(diags)
-		return 1
-	}
 
-	if flagGet {
-		modsOutput, modsAbort, modsDiags := c.getModules(path, rootModEarly, flagUpgrade)
-		diags = diags.Append(modsDiags)
-		if modsAbort || modsDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-		if modsOutput {
-			header = true
-		}
-	}
-
-	// With all of the modules (hopefully) installed, we can now try to load the
-	// whole configuration tree.
-	config, confDiags := c.loadConfig(path)
-	// configDiags will be handled after the version constraint check, since an
-	// incorrect version of terraform may be producing errors for configuration
-	// constructs added in later versions.
-
-	// Before we go further, we'll check to make sure none of the modules in
-	// the configuration declare that they don't support this Terraform
-	// version, so we can produce a version-related error message rather than
-	// potentially-confusing downstream errors.
-	versionDiags := terraform.CheckCoreVersionRequirements(config)
-	if versionDiags.HasErrors() {
-		c.showDiagnostics(versionDiags)
-		return 1
-	}
-
-	diags = diags.Append(confDiags)
-	if confDiags.HasErrors() {
-		c.Ui.Error(strings.TrimSpace(errInitConfigError))
-		c.showDiagnostics(diags)
 		return 1
 	}
 
 	var back backend.Backend
 
+	// There may be config errors or backend init errors but these will be shown later _after_
+	// checking for core version requirement errors.
+	var backDiags tfdiags.Diagnostics
+	var backendOutput bool
+
 	switch {
-	case flagCloud && config.Module.CloudConfig != nil:
-		be, backendOutput, backendDiags := c.initCloud(config.Module, flagConfigExtra)
-		diags = diags.Append(backendDiags)
-		if backendDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-		if backendOutput {
-			header = true
-		}
-		back = be
+	case flagCloud && rootModEarly.CloudConfig != nil:
+		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, flagConfigExtra)
 	case flagBackend:
-		be, backendOutput, backendDiags := c.initBackend(config.Module, flagConfigExtra)
-		diags = diags.Append(backendDiags)
-		if backendDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-		if backendOutput {
-			header = true
-		}
-		back = be
+		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, flagConfigExtra)
 	default:
 		// load the previously-stored backend config
-		be, backendDiags := c.Meta.backendFromState()
-		diags = diags.Append(backendDiags)
-		if backendDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-		back = be
+		back, backDiags = c.Meta.backendFromState(ctx)
 	}
-
-	if back == nil {
-		// If we didn't initialize a backend then we'll try to at least
-		// instantiate one. This might fail if it wasn't already initialized
-		// by a previous run, so we must still expect that "back" may be nil
-		// in code that follows.
-		var backDiags tfdiags.Diagnostics
-		back, backDiags = c.Backend(&BackendOpts{Init: true})
-		if backDiags.HasErrors() {
-			// This is fine. We'll proceed with no backend, then.
-			back = nil
-		}
+	if backendOutput {
+		header = true
 	}
 
 	var state *states.State
@@ -301,8 +233,77 @@ func (c *InitCommand) Run(args []string) int {
 		state = sMgr.State()
 	}
 
+	if flagGet {
+		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, testsDirectory, rootModEarly, flagUpgrade)
+		diags = diags.Append(modsDiags)
+		if modsAbort || modsDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+		if modsOutput {
+			header = true
+		}
+	}
+
+	// With all of the modules (hopefully) installed, we can now try to load the
+	// whole configuration tree.
+	config, confDiags := c.loadConfigWithTests(path, testsDirectory)
+	// configDiags will be handled after the version constraint check, since an
+	// incorrect version of terraform may be producing errors for configuration
+	// constructs added in later versions.
+
+	// Before we go further, we'll check to make sure none of the modules in
+	// the configuration declare that they don't support this Terraform
+	// version, so we can produce a version-related error message rather than
+	// potentially-confusing downstream errors.
+	versionDiags := terraform.CheckCoreVersionRequirements(config)
+	if versionDiags.HasErrors() {
+		c.showDiagnostics(versionDiags)
+		return 1
+	}
+
+	// We've passed the core version check, now we can show errors from the
+	// configuration and backend initialisation.
+
+	// Now, we can check the diagnostics from the early configuration and the
+	// backend.
+	diags = diags.Append(earlyConfDiags)
+	diags = diags.Append(backDiags)
+	if earlyConfDiags.HasErrors() {
+		c.Ui.Error(strings.TrimSpace(errInitConfigError))
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// Now, we can show any errors from initializing the backend, but we won't
+	// show the errInitConfigError preamble as we didn't detect problems with
+	// the early configuration.
+	if backDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// If everything is ok with the core version check and backend initialization,
+	// show other errors from loading the full configuration tree.
+	diags = diags.Append(confDiags)
+	if confDiags.HasErrors() {
+		c.Ui.Error(strings.TrimSpace(errInitConfigError))
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	if cb, ok := back.(*cloud.Cloud); ok {
+		if c.RunningInAutomation {
+			if err := cb.AssertImportCompatible(config); err != nil {
+				diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Compatibility error", err.Error()))
+				c.showDiagnostics(diags)
+				return 1
+			}
+		}
+	}
+
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providersAbort, providerDiags := c.getProviders(config, state, flagUpgrade, flagPluginPath, flagLockfile)
+	providersOutput, providersAbort, providerDiags := c.getProviders(ctx, config, state, flagUpgrade, flagPluginPath, flagLockfile)
 	diags = diags.Append(providerDiags)
 	if providersAbort || providerDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -343,11 +344,25 @@ func (c *InitCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrade bool) (output bool, abort bool, diags tfdiags.Diagnostics) {
-	if len(earlyRoot.ModuleCalls) == 0 {
+func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, earlyRoot *configs.Module, upgrade bool) (output bool, abort bool, diags tfdiags.Diagnostics) {
+	testModules := false // We can also have modules buried in test files.
+	for _, file := range earlyRoot.Tests {
+		for _, run := range file.Runs {
+			if run.Module != nil {
+				testModules = true
+			}
+		}
+	}
+
+	if len(earlyRoot.ModuleCalls) == 0 && !testModules {
 		// Nothing to do
 		return false, false, nil
 	}
+
+	ctx, span := tracer.Start(ctx, "install modules", trace.WithAttributes(
+		attribute.Bool("upgrade", upgrade),
+	))
+	defer span.End()
 
 	if upgrade {
 		c.Ui.Output(c.Colorize().Color("[reset][bold]Upgrading modules..."))
@@ -360,7 +375,7 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 		ShowLocalPaths: true,
 	}
 
-	installAbort, installDiags := c.installModules(path, upgrade, hooks)
+	installAbort, installDiags := c.installModules(ctx, path, testsDir, upgrade, false, hooks)
 	diags = diags.Append(installDiags)
 
 	// At this point, installModules may have generated error diags or been
@@ -383,7 +398,11 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 	return true, installAbort, diags
 }
 
-func (c *InitCommand) initCloud(root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+	ctx, span := tracer.Start(ctx, "initialize Terraform Cloud")
+	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
+	defer span.End()
+
 	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing Terraform Cloud..."))
 
 	if len(extraConfig.AllItems()) != 0 {
@@ -407,7 +426,11 @@ func (c *InitCommand) initCloud(root *configs.Module, extraConfig rawFlags) (be 
 	return back, true, diags
 }
 
-func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+	ctx, span := tracer.Start(ctx, "initialize backend")
+	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
+	defer span.End()
+
 	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing the backend..."))
 
 	var backendConfig *configs.Backend
@@ -488,7 +511,10 @@ the backend configuration is present and valid.
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(config *configs.Config, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string) (output, abort bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string) (output, abort bool, diags tfdiags.Diagnostics) {
+	ctx, span := tracer.Start(ctx, "install providers")
+	defer span.End()
+
 	// Dev overrides cause the result of "terraform init" to be irrelevant for
 	// any overridden providers, so we'll warn about it to avoid later
 	// confusion when Terraform ends up using a different provider than the
@@ -545,10 +571,6 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		log.Println("[DEBUG] init: overriding provider plugin search paths")
 		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
-
-	// Installation can be aborted by interruption signals
-	ctx, done := c.InterruptibleContext()
-	defer done()
 
 	// We want to print out a nice warning if we don't manage to pull
 	// checksums for all our providers. This is tracked via callbacks
@@ -653,7 +675,7 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Invalid provider registry host",
-						fmt.Sprintf("The host %q given in in provider source address %q does not offer a Terraform provider registry that is compatible with this Terraform version, but it may be compatible with a different Terraform version.",
+						fmt.Sprintf("The host %q given in provider source address %q does not offer a Terraform provider registry that is compatible with this Terraform version, but it may be compatible with a different Terraform version.",
 							errorTy.Hostname, provider.String(),
 						),
 					))
@@ -662,7 +684,7 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Invalid provider registry host",
-						fmt.Sprintf("The host %q given in in provider source address %q does not offer a Terraform provider registry.",
+						fmt.Sprintf("The host %q given in provider source address %q does not offer a Terraform provider registry.",
 							errorTy.Hostname, provider.String(),
 						),
 					))
@@ -1155,6 +1177,8 @@ Options:
                           See the documentation on configuring Terraform with
                           Terraform Cloud for more information.
 
+  -test-directory=path    Set the Terraform test directory, defaults to "tests".
+
 `
 	return strings.TrimSpace(helpText)
 }
@@ -1164,7 +1188,8 @@ func (c *InitCommand) Synopsis() string {
 }
 
 const errInitConfigError = `
-[reset]There are some problems with the configuration, described below.
+[reset]Terraform encountered problems during initialisation, including problems
+with the configuration, described below.
 
 The Terraform configuration must be valid before initialization so that
 Terraform can determine which modules and providers need to be installed.

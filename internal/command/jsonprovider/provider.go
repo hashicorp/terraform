@@ -1,8 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonprovider
 
 import (
 	"encoding/json"
 
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -11,60 +15,49 @@ import (
 // consuming parser.
 const FormatVersion = "1.0"
 
-// providers is the top-level object returned when exporting provider schemas
-type providers struct {
+// Providers is the top-level object returned when exporting provider schemas
+type Providers struct {
 	FormatVersion string               `json:"format_version"`
 	Schemas       map[string]*Provider `json:"provider_schemas,omitempty"`
 }
 
 type Provider struct {
-	Provider          *schema            `json:"provider,omitempty"`
-	ResourceSchemas   map[string]*schema `json:"resource_schemas,omitempty"`
-	DataSourceSchemas map[string]*schema `json:"data_source_schemas,omitempty"`
+	Provider          *Schema            `json:"provider,omitempty"`
+	ResourceSchemas   map[string]*Schema `json:"resource_schemas,omitempty"`
+	DataSourceSchemas map[string]*Schema `json:"data_source_schemas,omitempty"`
 }
 
-func newProviders() *providers {
+func newProviders() *Providers {
 	schemas := make(map[string]*Provider)
-	return &providers{
+	return &Providers{
 		FormatVersion: FormatVersion,
 		Schemas:       schemas,
 	}
 }
 
+// MarshalForRenderer converts the provided internation representation of the
+// schema into the public structured JSON versions.
+//
+// This is a format that can be read by the structured plan renderer.
+func MarshalForRenderer(s *terraform.Schemas) map[string]*Provider {
+	schemas := make(map[string]*Provider, len(s.Providers))
+	for k, v := range s.Providers {
+		schemas[k.String()] = marshalProvider(v)
+	}
+	return schemas
+}
+
 func Marshal(s *terraform.Schemas) ([]byte, error) {
 	providers := newProviders()
-
-	for k, v := range s.Providers {
-		providers.Schemas[k.String()] = marshalProvider(v)
-	}
-
+	providers.Schemas = MarshalForRenderer(s)
 	ret, err := json.Marshal(providers)
 	return ret, err
 }
 
-func marshalProvider(tps *terraform.ProviderSchema) *Provider {
-	if tps == nil {
-		return &Provider{}
-	}
-
-	var ps *schema
-	var rs, ds map[string]*schema
-
-	if tps.Provider != nil {
-		ps = marshalSchema(tps.Provider)
-	}
-
-	if tps.ResourceTypes != nil {
-		rs = marshalSchemas(tps.ResourceTypes, tps.ResourceTypeSchemaVersions)
-	}
-
-	if tps.DataSources != nil {
-		ds = marshalSchemas(tps.DataSources, tps.ResourceTypeSchemaVersions)
-	}
-
+func marshalProvider(tps providers.ProviderSchema) *Provider {
 	return &Provider{
-		Provider:          ps,
-		ResourceSchemas:   rs,
-		DataSourceSchemas: ds,
+		Provider:          marshalSchema(tps.Provider),
+		ResourceSchemas:   marshalSchemas(tps.ResourceTypes),
+		DataSourceSchemas: marshalSchemas(tps.DataSources),
 	}
 }

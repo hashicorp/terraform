@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package remote
 
 import (
@@ -63,6 +66,15 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 			"Saving a generated plan is currently not supported",
 			`The "remote" backend does not support saving the generated execution `+
 				`plan locally at this time.`,
+		))
+	}
+
+	if op.GenerateConfigOut != "" {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Generating configuration is not currently supported",
+			`The "remote" backend does not currently support generating resource configuration `+
+				`as part of a plan.`,
 		))
 	}
 

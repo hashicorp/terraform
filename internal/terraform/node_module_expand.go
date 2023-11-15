@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -61,11 +64,11 @@ func (n *nodeExpandModule) References() []*addrs.Reference {
 	// child module instances we might expand to during our evaluation.
 
 	if n.ModuleCall.Count != nil {
-		countRefs, _ := lang.ReferencesInExpr(n.ModuleCall.Count)
+		countRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.ModuleCall.Count)
 		refs = append(refs, countRefs...)
 	}
 	if n.ModuleCall.ForEach != nil {
-		forEachRefs, _ := lang.ReferencesInExpr(n.ModuleCall.ForEach)
+		forEachRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.ModuleCall.ForEach)
 		refs = append(refs, forEachRefs...)
 	}
 	return refs
@@ -176,11 +179,13 @@ func (n *nodeCloseModule) Name() string {
 }
 
 func (n *nodeCloseModule) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	if n.Addr.IsRoot() {
-		// If this is the root module, we are cleaning up the walk, so close
-		// any running provisioners
-		diags = diags.Append(ctx.CloseProvisioners())
+	if !n.Addr.IsRoot() {
+		return
 	}
+
+	// If this is the root module, we are cleaning up the walk, so close
+	// any running provisioners
+	diags = diags.Append(ctx.CloseProvisioners())
 
 	switch op {
 	case walkApply, walkDestroy:
@@ -188,10 +193,6 @@ func (n *nodeCloseModule) Execute(ctx EvalContext, op walkOperation) (diags tfdi
 		defer ctx.State().Unlock()
 
 		for modKey, mod := range state.Modules {
-			if !n.Addr.Equal(mod.Addr.Module()) {
-				continue
-			}
-
 			// clean out any empty resources
 			for resKey, res := range mod.Resources {
 				if len(res.Instances) == 0 {
@@ -199,8 +200,23 @@ func (n *nodeCloseModule) Execute(ctx EvalContext, op walkOperation) (diags tfdi
 				}
 			}
 
+			// we don't ever remove a module that's been overridden - it will
+			// have outputs that have been set by the user and wouldn't be
+			// removed during normal operations as the module would have created
+			// resources. Overrides are only set during tests, and stop the
+			// module creating resources but we still care about the outputs.
+			overridden := false
+			if overrides := ctx.Overrides(); !overrides.Empty() {
+				_, overridden = overrides.GetOverride(mod.Addr)
+
+				if !overridden && len(mod.Addr) > 0 && mod.Addr[len(mod.Addr)-1].InstanceKey != addrs.NoKey {
+					// Could be all module instances are overridden.
+					_, overridden = overrides.GetOverride(mod.Addr.ContainingModule())
+				}
+			}
+
 			// empty child modules are always removed
-			if len(mod.Resources) == 0 && !mod.Addr.IsRoot() {
+			if len(mod.Resources) == 0 && !mod.Addr.IsRoot() && !overridden {
 				delete(state.Modules, modKey)
 			}
 		}
@@ -240,7 +256,7 @@ func (n *nodeValidateModule) Execute(ctx EvalContext, op walkOperation) (diags t
 			diags = diags.Append(countDiags)
 
 		case n.ModuleCall.ForEach != nil:
-			_, forEachDiags := evaluateForEachExpressionValue(n.ModuleCall.ForEach, ctx, true)
+			forEachDiags := newForEachEvaluator(n.ModuleCall.ForEach, ctx).ValidateResourceValue()
 			diags = diags.Append(forEachDiags)
 		}
 

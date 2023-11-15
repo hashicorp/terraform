@@ -1,0 +1,20 @@
+{
+  "tfcoremock_set": {
+    "attributes": {
+      "set": {
+        "type": "set",
+        "required": true,
+        "set": {
+          "type": "object",
+          "object": {
+            "id": {
+              "type": "string",
+              "replace": true,
+              "required": true
+            }
+          }
+        }
+      }
+    }
+  }
+}

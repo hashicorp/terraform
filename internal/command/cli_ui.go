@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -7,7 +10,7 @@ import (
 	"github.com/mitchellh/colorstring"
 )
 
-// ColoredUi is a Ui implementation that colors its output according
+// ColorizeUi is a Ui implementation that colors its output according
 // to the given color schemes for the given type of output.
 type ColorizeUi struct {
 	Colorize    *colorstring.Colorize

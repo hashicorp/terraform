@@ -1,0 +1,5 @@
+# tfcoremock_simple_resource.drift:
+resource "tfcoremock_simple_resource" "drift" {
+    id     = "f3c6ddc5-37d5-0170-64ff-518ad421385a"
+    string = "Hello, world!"
+}

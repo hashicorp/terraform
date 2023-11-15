@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package schema
 
 //go:generate go run golang.org/x/tools/cmd/stringer -type=ValueType valuetype.go

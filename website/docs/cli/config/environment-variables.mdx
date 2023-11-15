@@ -27,7 +27,7 @@ To disable, either unset it, or set it to `off`. For example:
 export TF_LOG=off
 ```
 
-For more on debugging Terraform, check out the section on [Debugging](/internals/debugging).
+For more on debugging Terraform, check out the section on [Debugging](/terraform/internals/debugging).
 
 ## TF_LOG_PATH
 
@@ -37,7 +37,7 @@ This specifies where the log should persist its output to. Note that even when `
 export TF_LOG_PATH=./terraform.log
 ```
 
-For more on debugging Terraform, check out the section on [Debugging](/internals/debugging).
+For more on debugging Terraform, check out the section on [Debugging](/terraform/internals/debugging).
 
 ## TF_INPUT
 
@@ -58,7 +58,7 @@ export TF_VAR_alist='[1,2,3]'
 export TF_VAR_amap='{ foo = "bar", baz = "qux" }'
 ```
 
-For more on how to use `TF_VAR_name` in context, check out the section on [Variable Configuration](/language/values/variables).
+For more on how to use `TF_VAR_name` in context, check out the section on [Variable Configuration](/terraform/language/values/variables).
 
 ## TF_CLI_ARGS and TF_CLI_ARGS_name
 
@@ -114,7 +114,7 @@ export TF_WORKSPACE=your_workspace
 
 Using this environment variable is recommended only for non-interactive usage, since in a local shell environment it can be easy to forget the variable is set and apply changes to the wrong state.
 
-For more information regarding workspaces, check out the section on [Using Workspaces](/language/state/workspaces).
+For more information regarding workspaces, check out the section on [Using Workspaces](/terraform/language/state/workspaces).
 
 ## TF_IN_AUTOMATION
 
@@ -127,7 +127,7 @@ applications.
 This is a purely cosmetic change to Terraform's human-readable output, and the
 exact output differences can change between minor Terraform versions.
 
-For more details, see [Running Terraform in Automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
+For more details, see [Running Terraform in Automation](/terraform/tutorials/automation/automate-terraform?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
 
 ## TF_REGISTRY_DISCOVERY_RETRY
 
@@ -137,7 +137,7 @@ the remote registry client will attempt for client connection errors or
 
 ## TF_REGISTRY_CLIENT_TIMEOUT
 
-The default client timeout for requests to the remote registry is 10s. `TF_REGISTRY_CLIENT_TIMEOUT` can be configured and increased during extraneous circumstances.
+The default client timeout for requests to the remote registry is 10s. `TF_REGISTRY_CLIENT_TIMEOUT` can be configured and increased during exceptional circumstances.
 
 ```shell
 export TF_REGISTRY_CLIENT_TIMEOUT=15
@@ -145,11 +145,17 @@ export TF_REGISTRY_CLIENT_TIMEOUT=15
 
 ## TF_CLI_CONFIG_FILE
 
-The location of the [Terraform CLI configuration file](/cli/config/config-file).
+The location of the [Terraform CLI configuration file](/terraform/cli/config/config-file).
 
 ```shell
 export TF_CLI_CONFIG_FILE="$HOME/.terraformrc-custom"
 ```
+
+## TF_PLUGIN_CACHE_DIR
+
+The `TF_PLUGIN_CACHE_DIR` environment variable is an alternative way to set [the `plugin_cache_dir` setting in the CLI configuration](/terraform/cli/config/config-file#provider-plugin-cache).
+
+You can also use `TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE` to activate [the transitional compatibility setting `plugin_cache_may_break_dependency_lock_file`](/terraform/cli/config/config-file#allowing-the-provider-plugin-cache-to-break-the-dependency-lock-file).
 
 ## TF_IGNORE
 
@@ -159,10 +165,10 @@ If `TF_IGNORE` is set to "trace", Terraform will output debug messages to displa
 export TF_IGNORE=trace
 ```
 
-For more details on `.terraformignore`, please see [Excluding Files from Upload with .terraformignore](/language/settings/backends/remote#excluding-files-from-upload-with-terraformignore).
+For more details on `.terraformignore`, please see [Excluding Files from Upload with .terraformignore](/terraform/language/settings/backends/remote#excluding-files-from-upload-with-terraformignore).
 
 ## Terraform Cloud CLI Integration
 
 The CLI integration with Terraform Cloud lets you use Terraform Cloud and Terraform Enterprise on the command line. The integration requires including a `cloud` block in your Terraform configuration. You can define its arguments directly in your configuration file or supply them through environment variables, which can be useful for non-interactive workflows like Continuous Integration (CI).
 
-Refer to [Terraform Cloud Settings](/cli/cloud/settings#environment-variables) for a full list of `cloud` block environment variables.
+Refer to [Terraform Cloud Settings](/terraform/cli/cloud/settings#environment-variables) for a full list of `cloud` block environment variables.

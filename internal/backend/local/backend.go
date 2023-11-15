@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package local
 
 import (
@@ -180,6 +183,10 @@ func (b *Local) Configure(obj cty.Value) tfdiags.Diagnostics {
 	return diags
 }
 
+func (b *Local) ServiceDiscoveryAliases() ([]backend.HostAlias, error) {
+	return []backend.HostAlias{}, nil
+}
+
 func (b *Local) Workspaces() ([]string, error) {
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
@@ -214,10 +221,10 @@ func (b *Local) Workspaces() ([]string, error) {
 // DeleteWorkspace removes a workspace.
 //
 // The "default" workspace cannot be removed.
-func (b *Local) DeleteWorkspace(name string) error {
+func (b *Local) DeleteWorkspace(name string, force bool) error {
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
-		return b.Backend.DeleteWorkspace(name)
+		return b.Backend.DeleteWorkspace(name, force)
 	}
 
 	if name == "" {
@@ -344,7 +351,7 @@ func (b *Local) opWait(
 
 		// try to force a PersistState just in case the process is terminated
 		// before we can complete.
-		if err := opStateMgr.PersistState(); err != nil {
+		if err := opStateMgr.PersistState(nil); err != nil {
 			// We can't error out from here, but warn the user if there was an error.
 			// If this isn't transient, we will catch it again below, and
 			// attempt to save the state another way.

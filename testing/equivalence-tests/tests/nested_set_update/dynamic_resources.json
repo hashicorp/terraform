@@ -1,0 +1,16 @@
+{
+  "tfcoremock_nested_set": {
+    "attributes": {
+      "sets": {
+        "type": "set",
+        "required": true,
+        "set": {
+          "type": "set",
+          "set": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

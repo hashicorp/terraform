@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package e2etest
 
 import (
@@ -17,6 +20,14 @@ import (
 // compromise for now to keep these tests relatively simple.
 
 func TestTerraformProvidersMirror(t *testing.T) {
+	testTerraformProvidersMirror(t, "terraform-providers-mirror")
+}
+
+func TestTerraformProvidersMirrorWithLockFile(t *testing.T) {
+	testTerraformProvidersMirror(t, "terraform-providers-mirror-with-lock-file")
+}
+
+func testTerraformProvidersMirror(t *testing.T, fixture string) {
 	// This test reaches out to releases.hashicorp.com to download the
 	// template and null providers, so it can only run if network access is
 	// allowed.
@@ -25,7 +36,7 @@ func TestTerraformProvidersMirror(t *testing.T) {
 	outputDir := t.TempDir()
 	t.Logf("creating mirror directory in %s", outputDir)
 
-	fixturePath := filepath.Join("testdata", "terraform-providers-mirror")
+	fixturePath := filepath.Join("testdata", fixture)
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	stdout, stderr, err := tf.Run("providers", "mirror", "-platform=linux_amd64", "-platform=windows_386", outputDir)

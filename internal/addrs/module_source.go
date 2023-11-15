@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package addrs
 
 import (
@@ -316,10 +319,17 @@ func parseModuleSourceRemote(raw string) (ModuleSourceRemote, error) {
 func (s ModuleSourceRemote) moduleSource() {}
 
 func (s ModuleSourceRemote) String() string {
+	base := s.Package.String()
+
 	if s.Subdir != "" {
-		return s.Package.String() + "//" + s.Subdir
+		// Address contains query string
+		if strings.Contains(base, "?") {
+			parts := strings.SplitN(base, "?", 2)
+			return parts[0] + "//" + s.Subdir + "?" + parts[1]
+		}
+		return base + "//" + s.Subdir
 	}
-	return s.Package.String()
+	return base
 }
 
 func (s ModuleSourceRemote) ForDisplay() string {

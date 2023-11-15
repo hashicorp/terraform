@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package refactoring
 
 import (
@@ -335,7 +338,7 @@ Each resource can have moved from only one source resource.`,
 					`test.thing`,
 				),
 			},
-			WantError: `Cross-package move statement: This statement declares a move from an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
+			WantError: ``,
 		},
 		"move to resource in another module package": {
 			Statements: []MoveStatement{
@@ -345,7 +348,7 @@ Each resource can have moved from only one source resource.`,
 					`module.fake_external.test.thing`,
 				),
 			},
-			WantError: `Cross-package move statement: This statement declares a move to an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
+			WantError: ``,
 		},
 		"move from module call in another module package": {
 			Statements: []MoveStatement{
@@ -355,7 +358,7 @@ Each resource can have moved from only one source resource.`,
 					`module.b`,
 				),
 			},
-			WantError: `Cross-package move statement: This statement declares a move from an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
+			WantError: ``,
 		},
 		"move to module call in another module package": {
 			Statements: []MoveStatement{
@@ -365,7 +368,7 @@ Each resource can have moved from only one source resource.`,
 					`module.fake_external.module.b`,
 				),
 			},
-			WantError: `Cross-package move statement: This statement declares a move to an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
+			WantError: ``,
 		},
 		"implied move from resource in another module package": {
 			Statements: []MoveStatement{
@@ -534,8 +537,8 @@ func loadRefactoringFixture(t *testing.T, dir string) (*configs.Config, instance
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
 
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
-	_, instDiags := inst.InstallModules(context.Background(), dir, true, initwd.ModuleInstallHooksImpl{})
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}

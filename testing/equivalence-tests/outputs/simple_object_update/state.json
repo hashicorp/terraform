@@ -1,0 +1,28 @@
+{
+  "format_version": "1.0",
+  "values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_object.object",
+          "mode": "managed",
+          "name": "object",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "schema_version": 0,
+          "sensitive_values": {
+            "object": {}
+          },
+          "type": "tfcoremock_object",
+          "values": {
+            "id": "00e14fba-4d56-6cc5-b685-633555376e3f",
+            "object": {
+              "boolean": false,
+              "number": 2,
+              "string": "Hello, a totally different world!"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -323,10 +326,10 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 	})
 }
 
-//This test specifically tests responses from the
-//providers.ValidateProviderConfigFn. See
-//TestNodeApplyableProvider_ConfigProvider_config_fn_err for
-//providers.ConfigureProviderRequest responses.
+// This test specifically tests responses from the
+// providers.ValidateProviderConfigFn. See
+// TestNodeApplyableProvider_ConfigProvider_config_fn_err for
+// providers.ConfigureProviderRequest responses.
 func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 	provider := mockProviderWithConfigSchema(&configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
@@ -409,7 +412,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 
 }
 
-//This test is similar to TestNodeApplyableProvider_ConfigProvider, but tests responses from the providers.ConfigureProviderRequest
+// This test is similar to TestNodeApplyableProvider_ConfigProvider, but tests responses from the providers.ConfigureProviderRequest
 func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
 	provider := mockProviderWithConfigSchema(&configschema.Block{
 		Attributes: map[string]*configschema.Attribute{

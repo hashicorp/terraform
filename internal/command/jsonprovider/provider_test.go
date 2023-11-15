@@ -1,31 +1,39 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonprovider
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 func TestMarshalProvider(t *testing.T) {
 	tests := []struct {
-		Input *terraform.ProviderSchema
+		Input providers.ProviderSchema
 		Want  *Provider
 	}{
 		{
-			nil,
-			&Provider{},
+			providers.ProviderSchema{},
+			&Provider{
+				Provider:          &Schema{},
+				ResourceSchemas:   map[string]*Schema{},
+				DataSourceSchemas: map[string]*Schema{},
+			},
 		},
 		{
 			testProvider(),
 			&Provider{
-				Provider: &schema{
-					Block: &block{
-						Attributes: map[string]*attribute{
+				Provider: &Schema{
+					Block: &Block{
+						Attributes: map[string]*Attribute{
 							"region": {
 								AttributeType:   json.RawMessage(`"string"`),
 								Required:        true,
@@ -35,11 +43,11 @@ func TestMarshalProvider(t *testing.T) {
 						DescriptionKind: "plain",
 					},
 				},
-				ResourceSchemas: map[string]*schema{
+				ResourceSchemas: map[string]*Schema{
 					"test_instance": {
 						Version: 42,
-						Block: &block{
-							Attributes: map[string]*attribute{
+						Block: &Block{
+							Attributes: map[string]*Attribute{
 								"id": {
 									AttributeType:   json.RawMessage(`"string"`),
 									Optional:        true,
@@ -52,9 +60,9 @@ func TestMarshalProvider(t *testing.T) {
 									DescriptionKind: "plain",
 								},
 								"volumes": {
-									AttributeNestedType: &nestedType{
+									AttributeNestedType: &NestedType{
 										NestingMode: "list",
-										Attributes: map[string]*attribute{
+										Attributes: map[string]*Attribute{
 											"size": {
 												AttributeType:   json.RawMessage(`"string"`),
 												Required:        true,
@@ -71,10 +79,10 @@ func TestMarshalProvider(t *testing.T) {
 									DescriptionKind: "plain",
 								},
 							},
-							BlockTypes: map[string]*blockType{
+							BlockTypes: map[string]*BlockType{
 								"network_interface": {
-									Block: &block{
-										Attributes: map[string]*attribute{
+									Block: &Block{
+										Attributes: map[string]*Attribute{
 											"device_index": {
 												AttributeType:   json.RawMessage(`"string"`),
 												Optional:        true,
@@ -95,11 +103,11 @@ func TestMarshalProvider(t *testing.T) {
 						},
 					},
 				},
-				DataSourceSchemas: map[string]*schema{
+				DataSourceSchemas: map[string]*Schema{
 					"test_data_source": {
 						Version: 3,
-						Block: &block{
-							Attributes: map[string]*attribute{
+						Block: &Block{
+							Attributes: map[string]*Attribute{
 								"id": {
 									AttributeType:   json.RawMessage(`"string"`),
 									Optional:        true,
@@ -112,10 +120,10 @@ func TestMarshalProvider(t *testing.T) {
 									DescriptionKind: "plain",
 								},
 							},
-							BlockTypes: map[string]*blockType{
+							BlockTypes: map[string]*BlockType{
 								"network_interface": {
-									Block: &block{
-										Attributes: map[string]*attribute{
+									Block: &Block{
+										Attributes: map[string]*Attribute{
 											"device_index": {
 												AttributeType:   json.RawMessage(`"string"`),
 												Optional:        true,
@@ -140,73 +148,78 @@ func TestMarshalProvider(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		got := marshalProvider(test.Input)
-		if !cmp.Equal(got, test.Want) {
-			t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, test.Want))
-		}
+	for i, test := range tests {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			got := marshalProvider(test.Input)
+			if !cmp.Equal(got, test.Want) {
+				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, test.Want))
+			}
+		})
 	}
 }
 
-func testProvider() *terraform.ProviderSchema {
-	return &terraform.ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"region": {Type: cty.String, Required: true},
+func testProvider() providers.ProviderSchema {
+	return providers.ProviderSchema{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"region": {Type: cty.String, Required: true},
+				},
 			},
 		},
-		ResourceTypes: map[string]*configschema.Block{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
-					"volumes": {
-						Optional: true,
-						NestedType: &configschema.Object{
+				Version: 42,
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Optional: true, Computed: true},
+						"ami": {Type: cty.String, Optional: true},
+						"volumes": {
+							Optional: true,
+							NestedType: &configschema.Object{
+								Nesting: configschema.NestingList,
+								Attributes: map[string]*configschema.Attribute{
+									"size":        {Type: cty.String, Required: true},
+									"mount_point": {Type: cty.String, Required: true},
+								},
+							},
+						},
+					},
+					BlockTypes: map[string]*configschema.NestedBlock{
+						"network_interface": {
 							Nesting: configschema.NestingList,
-							Attributes: map[string]*configschema.Attribute{
-								"size":        {Type: cty.String, Required: true},
-								"mount_point": {Type: cty.String, Required: true},
-							},
-						},
-					},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"network_interface": {
-						Nesting: configschema.NestingList,
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"device_index": {Type: cty.String, Optional: true},
-								"description":  {Type: cty.String, Optional: true},
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"device_index": {Type: cty.String, Optional: true},
+									"description":  {Type: cty.String, Optional: true},
+								},
 							},
 						},
 					},
 				},
 			},
 		},
-		DataSources: map[string]*configschema.Block{
+		DataSources: map[string]providers.Schema{
 			"test_data_source": {
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"network_interface": {
-						Nesting: configschema.NestingList,
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"device_index": {Type: cty.String, Optional: true},
-								"description":  {Type: cty.String, Optional: true},
+				Version: 3,
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Optional: true, Computed: true},
+						"ami": {Type: cty.String, Optional: true},
+					},
+					BlockTypes: map[string]*configschema.NestedBlock{
+						"network_interface": {
+							Nesting: configschema.NestingList,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"device_index": {Type: cty.String, Optional: true},
+									"description":  {Type: cty.String, Optional: true},
+								},
 							},
 						},
 					},
 				},
 			},
-		},
-
-		ResourceTypeSchemaVersions: map[string]uint64{
-			"test_instance":    42,
-			"test_data_source": 3,
 		},
 	}
 }

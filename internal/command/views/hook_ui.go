@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package views
 
 import (
@@ -297,6 +300,33 @@ func (h *UiHook) PostImportState(addr addrs.AbsResourceInstance, imported []prov
 			s.TypeName,
 		))
 	}
+
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PrePlanImport(addr addrs.AbsResourceInstance, importID string) (terraform.HookAction, error) {
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s: Preparing import... [id=%s]"),
+		addr, importID,
+	))
+
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PreApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (terraform.HookAction, error) {
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s: Importing... [id=%s]"),
+		addr, importing.ID,
+	))
+
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PostApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (terraform.HookAction, error) {
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s: Import complete [id=%s]"),
+		addr, importing.ID,
+	))
 
 	return terraform.HookActionContinue, nil
 }

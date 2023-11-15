@@ -7,7 +7,7 @@ description: >-
 
 # Splat Expressions
 
-> **Hands-on:** Try the [Create Dynamic Expressions](https://learn.hashicorp.com/tutorials/terraform/expressions?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+> **Hands-on:** Try the [Create Dynamic Expressions](/terraform/tutorials/configuration-language/expressions?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
 A _splat expression_ provides a more concise way to express a common
 operation that could otherwise be performed with a `for` expression.
@@ -45,12 +45,12 @@ The above expression is equivalent to the following `for` expression:
 
 The splat expression patterns shown above apply only to lists, sets, and
 tuples. To get a similar result with a map or object value you must use
-[`for` expressions](/language/expressions/for).
+[`for` expressions](/terraform/language/expressions/for).
 
 Resources that use the `for_each` argument will appear in expressions as a map
 of objects, so you can't use splat expressions with those resources.
 For more information, see
-[Referring to Resource Instances](/language/meta-arguments/for_each#referring-to-instances).
+[Referring to Resource Instances](/terraform/language/meta-arguments/for_each#referring-to-instances).
 
 ## Single Values as Lists
 
@@ -87,7 +87,7 @@ resource "aws_s3_bucket" "example" {
 }
 ```
 
-The above example uses a [`dynamic` block](/language/expressions/dynamic-blocks), which
+The above example uses a [`dynamic` block](/terraform/language/expressions/dynamic-blocks), which
 generates zero or more nested blocks based on a collection value. The input
 variable `var.website_setting` is defined as a single object that might be null,
 so the `dynamic` block's `for_each` expression uses `[*]` to ensure that

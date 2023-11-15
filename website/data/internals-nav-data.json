@@ -1,6 +1,10 @@
 [
   { "heading": "Terraform Internals" },
   {
+    "title": "Overview", 
+    "path": ""
+   },
+  {
     "title": "Credentials Helpers",
     "path": "credentials-helpers"
   },
@@ -25,10 +29,6 @@
     "path": "graph"
   },
   {
-    "title": "Resource Lifecycle",
-    "path": "lifecycle"
-  },
-  {
     "title": "Login Protocol",
     "path": "login-protocol"
   },
@@ -45,6 +45,10 @@
     "path": "provider-meta"
   },
   {
+    "title": "Functions Metadata",
+    "path": "functions-meta"
+  },
+  {
     "title": "Machine Readable UI",
     "path": "machine-readable-ui",
     "hidden": true
@@ -57,6 +61,5 @@
   { "divider": true },
   { "title": "Terraform CLI", "href": "/cli" },
   { "divider": true },
-  { "title": "Configuration Language", "href": "/language" },
-  { "divider": true }
+  { "title": "Configuration Language", "href": "/language" }
 ]

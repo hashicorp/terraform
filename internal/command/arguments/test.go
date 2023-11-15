@@ -1,63 +1,71 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package arguments
 
 import (
-	"flag"
-	"io/ioutil"
-
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// Test represents the command line arguments for the "terraform test" command.
+// Test represents the command-line arguments for the test command.
 type Test struct {
-	Output TestOutput
+	// CloudRunSource specifies the remote private module that this test run
+	// should execute against in a remote Terraform Cloud run.
+	CloudRunSource string
+
+	// Filter contains a list of test files to execute. If empty, all test files
+	// will be executed.
+	Filter []string
+
+	// TestDirectory allows the user to override the directory that the test
+	// command will use to discover test files, defaults to "tests". Regardless
+	// of the value here, test files within the configuration directory will
+	// always be discovered.
+	TestDirectory string
+
+	// ViewType specifies which output format to use: human or JSON.
+	ViewType ViewType
+
+	// You can specify common variables for all tests from the command line.
+	Vars *Vars
+
+	// Verbose tells the test command to print out the plan either in
+	// human-readable format or JSON for each run step depending on the
+	// ViewType.
+	Verbose bool
 }
 
-// TestOutput represents a subset of the arguments for "terraform test"
-// related to how it presents its results. That is, it's the arguments that
-// are relevant to the command's view rather than its controller.
-type TestOutput struct {
-	// If not an empty string, JUnitXMLFile gives a filename where JUnit-style
-	// XML test result output should be written, in addition to the normal
-	// output printed to the standard output and error streams.
-	// (The typical usage pattern for tools that can consume this file format
-	// is to configure them to look for a separate test result file on disk
-	// after running the tests.)
-	JUnitXMLFile string
-}
-
-// ParseTest interprets a slice of raw command line arguments into a
-// Test value.
-func ParseTest(args []string) (Test, tfdiags.Diagnostics) {
-	var ret Test
+func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	// NOTE: ParseTest should still return at least a partial
-	// Test even on error, containing enough information for the
-	// command to report error diagnostics in a suitable way.
-
-	f := flag.NewFlagSet("test", flag.ContinueOnError)
-	f.SetOutput(ioutil.Discard)
-	f.Usage = func() {}
-	f.StringVar(&ret.Output.JUnitXMLFile, "junit-xml", "", "Write a JUnit XML file describing the results")
-
-	err := f.Parse(args)
-	if err != nil {
-		diags = diags.Append(err)
-		return ret, diags
+	test := Test{
+		Vars: new(Vars),
 	}
 
-	// We'll now discard all of the arguments that the flag package handled,
-	// and focus only on the positional arguments for the rest of the function.
-	args = f.Args()
+	var jsonOutput bool
+	cmdFlags := extendedFlagSet("test", nil, nil, test.Vars)
+	cmdFlags.Var((*flagStringSlice)(&test.Filter), "filter", "filter")
+	cmdFlags.StringVar(&test.TestDirectory, "test-directory", configs.DefaultTestDirectory, "test-directory")
+	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
+	cmdFlags.BoolVar(&test.Verbose, "verbose", false, "verbose")
 
-	if len(args) != 0 {
+	// TODO: Finalise the name of this flag.
+	cmdFlags.StringVar(&test.CloudRunSource, "cloud-run", "", "cloud-run")
+
+	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Invalid command arguments",
-			"The test command doesn't expect any positional command-line arguments.",
-		))
-		return ret, diags
+			"Failed to parse command-line flags",
+			err.Error()))
 	}
 
-	return ret, diags
+	switch {
+	case jsonOutput:
+		test.ViewType = ViewJSON
+	default:
+		test.ViewType = ViewHuman
+	}
+
+	return &test, diags
 }

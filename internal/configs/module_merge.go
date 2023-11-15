@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configs
 
 import (
@@ -190,12 +193,12 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 
 	// We don't allow depends_on to be overridden because that is likely to
 	// cause confusing misbehavior.
-	if len(mc.DependsOn) != 0 {
+	if len(omc.DependsOn) != 0 {
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Unsupported override",
 			Detail:   "The depends_on argument may not be overridden.",
-			Subject:  mc.DependsOn[0].SourceRange().Ptr(), // the first item is the closest range we have
+			Subject:  omc.DependsOn[0].SourceRange().Ptr(), // the first item is the closest range we have
 		})
 	}
 

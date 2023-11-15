@@ -1,10 +1,189 @@
 ---
-page_title: Upgrade Guides
-description: Upgrade Guides
+page_title: Upgrading to Terraform v1.6
+description: Upgrading to Terraform v1.6
 ---
 
-# Upgrade Guides
+# Upgrading to Terraform v1.6
 
-Terraform's major releases can include an upgrade guide to help upgrading users
-walk through backwards compatibility issues and changes to expect. See the
-navigation for the available upgrade guides.
+-> **Tip:** Use the version selector to view the upgrade guides for older Terraform versions.
+
+Terraform v1.6 is a minor release in the stable Terraform v1.0 series.
+
+Terraform v1.6 honors the
+[Terraform v1.0 Compatibility Promises](https://developer.hashicorp.com/terraform/language/v1-compatibility-promises),
+but there are some behavior changes outside of those promises that may affect a
+small number of users. Specifically, the following updates may require
+additional upgrade steps:
+* [End of experimental period for `terraform test`](#terraform-test)
+* [Deprecated parameters for the  S3 backend](#s3-backend)
+
+See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.6/CHANGELOG.md)
+for more details. If you encounter any problems during upgrading which are not
+covered this guide, please start a new topic in
+[the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core)
+to discuss it.
+
+## Terraform Test
+
+The previous experimental `terraform test` command has been deprecated and replaced with a fully supported and finalized `terraform test` command.
+
+There are substantial differences between the previous experimental approach and the finalized approach:
+
+- The builtin test provider, `terraform.io/builtin/test`, has been removed and a dedicated syntax introduced for testing files.
+- A new `.tftest.hcl` file extension has been introduced for testing files, allowing a change into the directory structure and test file layout.
+- Test assertions and conditions execute with extended scope and access to the configuration under test.
+
+The major differences are discussed here, for more information consult the [CLI](/terraform/cli/test) and [Language](/terraform/language/tests) documentation.
+
+### Directory structure
+
+Previously, test files would be placed within their own subdirectories underneath the `tests` directory from the configuration directory. The following example contains three test files using the experimental framework:
+
+```
+main.tf
+outputs.tf
+providers.tf
+variables.tf
+tests/
+  defaults/
+    test_defaults.tf
+  maximums/
+    test_maximums.tf
+  minimums/
+    test_minimums.tf
+```
+
+With the new directory structure, tests are defined using the new `.tftest.hcl` file extension and do not need to be embedded within subdirectories. To help with organization, test files can, optionally, be embedded within a test directory. The name for this test directory defaults to `tests`, but can be overridden with the `-test-directory` flag.
+
+The following examples are both valid directory structures for test files in the updated framework:
+
+```
+main.tf
+outputs.tf
+providers.tf
+variables.tf
+defaults.tftest.hcl
+maximums.tftest.hcl
+minimums.tftest.hcl
+```
+
+```
+main.tf
+outputs.tf
+providers.tf
+variables.tf
+tests/
+  defaults.tftest.hcl
+  maximums.tftest.hcl
+  minimums.tftest.hcl
+```
+
+### Test structure and assertions
+
+Previously, a test file would contain a module call and a collection of resources from the builtin `test` provider:
+
+```hcl
+# tests/defaults/test_defaults.tf
+
+terraform{
+  required_providers {
+    test = {
+      source = "terraform.io/builtin/test"
+    }
+  }
+}
+
+module "main" {
+  source = "../.."
+}
+
+resource "test_assertions" "api_url" {
+  component = "api_url"
+
+  equal "scheme" {
+    description = "default scheme is https"
+    got         = module.main.scheme
+    want        = "https"
+  }
+  check "port_number" {
+    description = "default port number is 8080"
+    condition   = can(regex(":8080$", module.main.authority))
+  }
+}
+```
+
+With the new framework each test file is made up of a series of `run` blocks. Each `run` block represents a single `terraform plan` or a `terraform apply` operation executed against the main configuration. Assertions from within these `run` blocks can access outputs, variables, resources, and local values from the main configuration directly.
+
+```hcl
+# tests/defaults.tftest.hcl
+
+run "test_defaults" {
+  assert {
+    condition     = output.scheme == "https"
+    error_message = "default scheme should be https"
+  }
+
+  assert {
+    condition     = can(regex(":8080", output.authority))
+    error_message = "default port number should be 8080"
+  }
+}
+```
+
+The above examples demonstrates the differences in layout, scope and access between the two approaches. In the experimental framework, access is granted as if the configuration was being called like a normal module call. In the released framework, assertions execute as if they are custom conditions defined within the main configuration directly.
+
+The `run` block also applies or plans the main configuration by default, there is no need for the specific module call seen in the experimental framework.
+
+## S3 Backend
+
+We updated the S3 backend in Terraform 1.6.0 so that it more closely matches the AWS provider configuration.
+As a result, the backend has new and deprecated fields.
+Refer to the [release notes](https://github.com/hashicorp/terraform/releases/tag/v1.6.0) for additional information. 
+
+The major deprecations are discussed here.
+Refer to the [S3 backend documentation](/terraform/language/settings/backends/s3) for information about all deprecations.
+
+We removed the configuration for assuming an IAM role from several top-level attributes and consolidated them into the `assume_role` attribute.
+
+The following example shows the configuration in Terraform 1.5.6 and older for assuming the IAM role `arn:aws:iam::123456789012:role/example` with a session name `example-session` and a session duration of 15 minutes:
+
+```hcl
+terraform {
+  backend "s3" {
+    # additional configuration omitted for brevity
+    role_arn                     = "arn:aws:iam::123456789012:role/example"
+    session_name                 = "example-session"
+    assume_role_duration_seconds = 900
+  }
+}
+```
+
+The configuration in Terraform 1.6.0 is:
+
+```hcl
+terraform {
+  backend "s3" {
+    # additional configuration omitted for brevity
+    assume_role = {
+      role_arn     = "arn:aws:iam::123456789012:role/example"
+      session_name = "example-session"
+      duration     = "15m"
+    }
+  }
+}
+```
+
+We removed the configuration for overriding AWS API endpoints from several top-level attributes and consolidated them into the `endpoints` attribute.
+The following endpoint attributes are now nested under the `endpoint` attribute:
+
+- `s3`
+- `dynamodb`
+- `iam`
+- `sts`
+
+The `endpoint` attribute replaces the following top-level attributes:
+
+- `endpoint` (for S3),
+- `dynamodb_endpoint`,
+- `iam_endpoint`
+- `sts_endpoint`

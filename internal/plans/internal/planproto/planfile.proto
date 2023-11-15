@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 syntax = "proto3";
 package tfplan;
 
@@ -24,6 +27,11 @@ message Plan {
     // make decisions in Terraform Core during the applying of a plan.
     Mode ui_mode = 17;
 
+    // Errored is true for any plan whose creation was interrupted by an
+    // error. A plan with this flag set cannot be applied, and the changes
+    // it proposes are likely to be incomplete.
+    bool errored = 20;
+
     // The variables that were set when creating the plan. Each value is
     // a msgpack serialization of an HCL value.
     map<string, DynamicValue> variables = 2;
@@ -44,10 +52,12 @@ message Plan {
     // at apply time.
     repeated OutputChange output_changes = 4;
 
-    // An undordered set of condition block results for the entire
-    // configuration. This set includes unknown results for conditions which
-    // can only be evaluated at apply time.
-    repeated ConditionResult condition_results = 19;
+    // An unordered set of check results for the entire configuration.
+    //
+    // Each element represents a single static configuration object that has
+    // checks, and each of those may have zero or more dynamic objects that
+    // the checks were applied to nested within.
+    repeated CheckResults check_results = 19;
 
     // An unordered set of target addresses to include when applying. If no
     // target addresses are present, the plan applies to the whole
@@ -75,6 +85,9 @@ message Plan {
     // RelevantAttributes lists individual resource attributes from
     // ResourceDrift which may have contributed to the plan changes.
     repeated resource_attr relevant_attributes = 15;
+
+    // timestamp is the record of truth for when the plan happened.
+    string timestamp = 21;
 }
 
 // Mode describes the planning mode that created the plan.
@@ -130,6 +143,14 @@ message Change {
     // sensitive. Values at these paths should be obscured in human-readable
     // output. This set is always empty for delete.
     repeated Path after_sensitive_paths = 4;
+
+    // Importing, if true, specifies that the resource is being imported as part
+    // of the change.
+    Importing importing = 5;
+
+    // GeneratedConfig contains any configuration that was generated as part of
+    // the change, as an HCL string.
+    string generated_config = 6;
 }
 
 // ResourceInstanceActionReason sometimes provides some additional user-facing
@@ -149,6 +170,8 @@ enum ResourceInstanceActionReason {
     REPLACE_BY_TRIGGERS = 9;
     READ_BECAUSE_CONFIG_UNKNOWN = 10;
     READ_BECAUSE_DEPENDENCY_PENDING = 11;
+    READ_BECAUSE_CHECK_NESTED = 13;
+    DELETE_BECAUSE_NO_MOVE_TARGET = 12;
 }
 
 message ResourceInstanceChange {
@@ -215,36 +238,42 @@ message OutputChange {
     bool sensitive = 3;
 }
 
-// ConditionType defines the type of condition block used to generate a result.
-enum ConditionType {
-	INVALID                = 0;
-	RESOURCE_PRECONDITION  = 1;
-	RESOURCE_POSTCONDITION = 2;
-	OUTPUT_PRECONDITION    = 3;
-}
-
-message ConditionResult {
-    // Address of the object containing the condition.
-    string addr = 1;
-
-    // Globally-unique address of the condition block. This is a run-specific
-    // identifier and is only stored in the plan in order to reconstruct the
-    // set of condition results.
-    string condition_addr = 2;
-
-    // Result indicates the value of the condition expression, which is
-    // true if the condition succeeds, false if it fails, and unknown if the
-    // condition depends on values which are only known at apply time.
-    oneof result {
-      bool value = 3;
-      bool unknown = 4;
+message CheckResults {
+    // Status describes the status of a particular checkable object at the
+    // completion of the plan.
+    enum Status {
+        UNKNOWN = 0;
+        PASS    = 1;
+        FAIL    = 2;
+        ERROR   = 3;
     }
 
-    // Type of the condition block.
-    ConditionType type = 5;
+    enum ObjectKind {
+        UNSPECIFIED = 0;
+        RESOURCE = 1;
+        OUTPUT_VALUE = 2;
+        CHECK = 3;
+        INPUT_VARIABLE = 4;
+    }
 
-    // Custom error message for a failing condition.
-    string error_message = 6;
+    message ObjectResult {
+        string object_addr = 1;
+        Status status = 2;
+        repeated string failure_messages = 3;
+    }
+
+    ObjectKind kind = 1;
+
+    // Address of the configuration object that declared the checks.
+    string config_addr = 2;
+
+    // The aggregate status of the entire configuration object, based on
+    // the statuses of its zero or more checkable objects.
+    Status status = 3;
+
+    // The results for individual objects that were declared by the
+    // configuration object named in config_addr.
+    repeated ObjectResult objects = 4;
 }
 
 // DynamicValue represents a value whose type is not decided until runtime,
@@ -279,4 +308,11 @@ message Path {
         }
     }
     repeated Step steps = 1;
+}
+
+// Importing contains the embedded metadata about the import operation if this
+// change describes it.
+message Importing {
+    // The original ID of the resource.
+    string id = 1;
 }

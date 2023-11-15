@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package arguments
 
 import (
@@ -5,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -16,22 +20,42 @@ func TestParseValidate_valid(t *testing.T) {
 		"defaults": {
 			nil,
 			&Validate{
-				Path:     ".",
-				ViewType: ViewHuman,
+				Path:          ".",
+				TestDirectory: "tests",
+				ViewType:      ViewHuman,
 			},
 		},
 		"json": {
 			[]string{"-json"},
 			&Validate{
-				Path:     ".",
-				ViewType: ViewJSON,
+				Path:          ".",
+				TestDirectory: "tests",
+				ViewType:      ViewJSON,
 			},
 		},
 		"path": {
 			[]string{"-json", "foo"},
 			&Validate{
-				Path:     "foo",
-				ViewType: ViewJSON,
+				Path:          "foo",
+				TestDirectory: "tests",
+				ViewType:      ViewJSON,
+			},
+		},
+		"test-directory": {
+			[]string{"-test-directory", "other"},
+			&Validate{
+				Path:          ".",
+				TestDirectory: "other",
+				ViewType:      ViewHuman,
+			},
+		},
+		"no-tests": {
+			[]string{"-no-tests"},
+			&Validate{
+				Path:          ".",
+				TestDirectory: "tests",
+				ViewType:      ViewHuman,
+				NoTests:       true,
 			},
 		},
 	}
@@ -58,8 +82,9 @@ func TestParseValidate_invalid(t *testing.T) {
 		"unknown flag": {
 			[]string{"-boop"},
 			&Validate{
-				Path:     ".",
-				ViewType: ViewHuman,
+				Path:          ".",
+				TestDirectory: "tests",
+				ViewType:      ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -72,8 +97,9 @@ func TestParseValidate_invalid(t *testing.T) {
 		"too many arguments": {
 			[]string{"-json", "bar", "baz"},
 			&Validate{
-				Path:     "bar",
-				ViewType: ViewJSON,
+				Path:          "bar",
+				TestDirectory: "tests",
+				ViewType:      ViewJSON,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package local
 
 import (
@@ -7,6 +10,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
@@ -14,7 +20,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // backend.Local implementation.
@@ -74,7 +79,12 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 
 	var ctxDiags tfdiags.Diagnostics
 	var configSnap *configload.Snapshot
-	if op.PlanFile != nil {
+	if op.PlanFile.IsCloud() {
+		diags = diags.Append(fmt.Errorf("error: using a saved cloud plan when executing Terraform locally is not supported"))
+		return nil, nil, nil, diags
+	}
+
+	if lp, ok := op.PlanFile.Local(); ok {
 		var stateMeta *statemgr.SnapshotMeta
 		// If the statemgr implements our optional PersistentMeta interface then we'll
 		// additionally verify that the state snapshot in the plan file has
@@ -84,7 +94,7 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 			stateMeta = &m
 		}
 		log.Printf("[TRACE] backend/local: populating backend.LocalRun from plan file")
-		ret, configSnap, ctxDiags = b.localRunForPlanFile(op, op.PlanFile, ret, &coreOpts, stateMeta)
+		ret, configSnap, ctxDiags = b.localRunForPlanFile(op, lp, ret, &coreOpts, stateMeta)
 		if ctxDiags.HasErrors() {
 			diags = diags.Append(ctxDiags)
 			return nil, nil, nil, diags
@@ -187,11 +197,12 @@ func (b *Local) localRunDirect(op *backend.Operation, run *backend.LocalRun, cor
 	}
 
 	planOpts := &terraform.PlanOpts{
-		Mode:         op.PlanMode,
-		Targets:      op.Targets,
-		ForceReplace: op.ForceReplace,
-		SetVariables: variables,
-		SkipRefresh:  op.Type != backend.OperationTypeRefresh && !op.PlanRefresh,
+		Mode:               op.PlanMode,
+		Targets:            op.Targets,
+		ForceReplace:       op.ForceReplace,
+		SetVariables:       variables,
+		SkipRefresh:        op.Type != backend.OperationTypeRefresh && !op.PlanRefresh,
+		GenerateConfigPath: op.GenerateConfigOut,
 	}
 	run.PlanOpts = planOpts
 
@@ -284,6 +295,7 @@ func (b *Local) localRunForPlanFile(op *backend.Operation, pf *planfile.Reader, 
 		))
 		return nil, snap, diags
 	}
+
 	if currentStateMeta != nil {
 		// If the caller sets this, we require that the stored prior state
 		// has the same metadata, which is an extra safety check that nothing
@@ -394,6 +406,7 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 			Id:          fmt.Sprintf("var.%s", name),
 			Query:       fmt.Sprintf("var.%s", name),
 			Description: vc.Description,
+			Secret:      vc.Sensitive,
 		})
 		if err != nil {
 			// Since interactive prompts are best-effort, we'll just continue
@@ -492,4 +505,26 @@ func (v unparsedUnknownVariableValue) ParseVariableValue(mode configs.VariablePa
 		Value:      cty.UnknownVal(v.WantType),
 		SourceType: terraform.ValueFromInput,
 	}, nil
+}
+
+type unparsedTestVariableValue struct {
+	Expr hcl.Expression
+}
+
+var _ backend.UnparsedVariableValue = unparsedTestVariableValue{}
+
+func (v unparsedTestVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	value, valueDiags := v.Expr.Value(nil)
+	diags = diags.Append(valueDiags)
+	if valueDiags.HasErrors() {
+		return nil, diags
+	}
+
+	return &terraform.InputValue{
+		Value:       value,
+		SourceType:  terraform.ValueFromConfig,
+		SourceRange: tfdiags.SourceRangeFromHCL(v.Expr.Range()),
+	}, diags
 }

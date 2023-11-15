@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -8,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/mitchellh/cli"
 )
@@ -110,11 +114,26 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 0 // This is as far as we go in dry-run mode
 	}
 
+	b, backendDiags := c.Backend(nil)
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// Get schemas, if possible, before writing state
+	var schemas *terraform.Schemas
+	if isCloudMode(b) {
+		var schemaDiags tfdiags.Diagnostics
+		schemas, schemaDiags = c.MaybeGetSchemas(state, nil)
+		diags = diags.Append(schemaDiags)
+	}
+
 	if err := stateMgr.WriteState(state); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}
-	if err := stateMgr.PersistState(); err != nil {
+	if err := stateMgr.PersistState(schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}

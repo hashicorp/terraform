@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -9,6 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -68,6 +72,145 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			nullable  = false
 			type      = string
 		}
+		variable "complex_type_with_nested_default_optional" {
+			type = set(object({
+				name      = string
+				schedules = set(object({
+					name               = string
+					cold_storage_after = optional(number, 10)
+				}))
+  			}))
+		}
+		variable "complex_type_with_nested_complex_types" {
+			type = object({
+				name                       = string
+				nested_object              = object({
+					name  = string
+					value = optional(string, "foo")
+				})
+				nested_object_with_default = optional(object({
+					name  = string
+					value = optional(string, "bar")
+				}), {
+					name = "nested_object_with_default"
+				})
+			})
+		}
+		// https://github.com/hashicorp/terraform/issues/32152
+		// This variable was originally added to test that optional attribute
+		// metadata is stripped from empty default collections. Essentially, you
+		// should be able to mix and match custom and default values for the
+		// optional_list attribute.
+        variable "complex_type_with_empty_default_and_nested_optional" {
+			type = list(object({
+				name          = string
+				optional_list = optional(list(object({
+					string          = string
+					optional_string = optional(string)
+				})), [])
+			}))
+        }
+ 		// https://github.com/hashicorp/terraform/issues/32160#issuecomment-1302783910
+		// These variables were added to test the specific use case from this
+		// GitHub comment.
+		variable "empty_object_with_optional_nested_object_with_optional_bool" {
+			type = object({
+				thing = optional(object({
+					flag = optional(bool, false)
+				}))
+			})
+			default = {}
+		}
+		variable "populated_object_with_optional_nested_object_with_optional_bool" {
+			type = object({
+				thing = optional(object({
+					flag = optional(bool, false)
+				}))
+			})
+			default = {
+				thing = {}
+			}
+		}
+		variable "empty_object_with_default_nested_object_with_optional_bool" {
+			type = object({
+				thing = optional(object({
+					flag = optional(bool, false)
+				}), {})
+			})
+			default = {}
+		}
+		// https://github.com/hashicorp/terraform/issues/32160
+		// This variable was originally added to test that optional objects do
+		// get created containing only their defaults. Instead they should be
+		// left empty. We do not expect nested_object to be created just because
+		// optional_string has a default value.
+		variable "object_with_nested_object_with_required_and_optional_attributes" {
+			type = object({
+				nested_object = optional(object({
+					string          = string
+					optional_string = optional(string, "optional")
+				}))
+			})
+		}
+		// https://github.com/hashicorp/terraform/issues/32157
+		// Similar to above, we want to see that merging combinations of the
+		// nested_object into a single collection doesn't crash because of
+		// inconsistent elements.
+		variable "list_with_nested_object_with_required_and_optional_attributes" {
+			type = list(object({
+				nested_object = optional(object({
+					string          = string
+					optional_string = optional(string, "optional")
+				}))
+			}))
+		}
+		// https://github.com/hashicorp/terraform/issues/32109
+		// This variable was originally introduced to test the behaviour of 
+		// the dynamic type constraint. You should be able to use the 'any' 
+		// constraint and introduce empty, null, and populated values into the
+		// list.
+		variable "list_with_nested_list_of_any" {
+			type = list(object({
+				a = string
+				b = optional(list(any))
+			}))
+			default = [
+				{
+					a = "a"
+				},
+				{
+					a = "b"
+					b = [1]
+				}
+			]
+		}
+		// https://github.com/hashicorp/terraform/issues/32396
+		// This variable was originally introduced to test the behaviour of the
+        // dynamic type constraint. You should be able to set primitive types in
+        // the list consistently.
+        variable "list_with_nested_collections_dynamic_with_default" {
+			type = list(
+				object({
+					name = optional(string, "default")
+					taints = optional(list(map(any)), [])
+				})
+			)
+		}
+        // https://github.com/hashicorp/terraform/issues/32752
+		// This variable was introduced to make sure the evaluation doesn't 
+        // crash even when the types are wrong.
+        variable "invalid_nested_type" {
+            type = map(
+                object({
+					rules = map(
+						object({
+							destination_addresses = optional(list(string), [])
+						})
+					)
+                })
+            )
+			default = {}
+        }
 	`
 	cfg := testModuleInline(t, map[string]string{
 		"main.tf": cfgSrc,
@@ -398,6 +541,292 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			cty.UnknownVal(cty.String),
 			``,
 		},
+		{
+			"list_with_nested_collections_dynamic_with_default",
+			cty.TupleVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("default"),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("complex"),
+					"taints": cty.ListVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"key":   cty.StringVal("my_key"),
+							"value": cty.StringVal("my_value"),
+						}),
+					}),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("default"),
+					"taints": cty.ListValEmpty(cty.Map(cty.String)),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("complex"),
+					"taints": cty.ListVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"key":   cty.StringVal("my_key"),
+							"value": cty.StringVal("my_value"),
+						}),
+					}),
+				}),
+			}),
+			``,
+		},
+
+		// complex types
+
+		{
+			"complex_type_with_nested_default_optional",
+			cty.SetVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("test1"),
+					"schedules": cty.SetVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"name": cty.StringVal("daily"),
+						}),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("test2"),
+					"schedules": cty.SetVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"name": cty.StringVal("daily"),
+						}),
+						cty.MapVal(map[string]cty.Value{
+							"name":               cty.StringVal("weekly"),
+							"cold_storage_after": cty.StringVal("0"),
+						}),
+					}),
+				}),
+			}),
+			cty.SetVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("test1"),
+					"schedules": cty.SetVal([]cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"name":               cty.StringVal("daily"),
+							"cold_storage_after": cty.NumberIntVal(10),
+						}),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("test2"),
+					"schedules": cty.SetVal([]cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"name":               cty.StringVal("daily"),
+							"cold_storage_after": cty.NumberIntVal(10),
+						}),
+						cty.ObjectVal(map[string]cty.Value{
+							"name":               cty.StringVal("weekly"),
+							"cold_storage_after": cty.NumberIntVal(0),
+						}),
+					}),
+				}),
+			}),
+			``,
+		},
+		{
+			"complex_type_with_nested_complex_types",
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("object"),
+				"nested_object": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("nested_object"),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("object"),
+				"nested_object": cty.ObjectVal(map[string]cty.Value{
+					"name":  cty.StringVal("nested_object"),
+					"value": cty.StringVal("foo"),
+				}),
+				"nested_object_with_default": cty.ObjectVal(map[string]cty.Value{
+					"name":  cty.StringVal("nested_object_with_default"),
+					"value": cty.StringVal("bar"),
+				}),
+			}),
+			``,
+		},
+		{
+			"complex_type_with_empty_default_and_nested_optional",
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("abc"),
+					"optional_list": cty.ListVal([]cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"string":          cty.StringVal("child"),
+							"optional_string": cty.NullVal(cty.String),
+						}),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("def"),
+					"optional_list": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+						"string":          cty.String,
+						"optional_string": cty.String,
+					}))),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("abc"),
+					"optional_list": cty.ListVal([]cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"string":          cty.StringVal("child"),
+							"optional_string": cty.NullVal(cty.String),
+						}),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("def"),
+					"optional_list": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+						"string":          cty.String,
+						"optional_string": cty.String,
+					})),
+				}),
+			}),
+			``,
+		},
+		{
+			"object_with_nested_object_with_required_and_optional_attributes",
+			cty.EmptyObjectVal,
+			cty.ObjectVal(map[string]cty.Value{
+				"nested_object": cty.NullVal(cty.Object(map[string]cty.Type{
+					"string":          cty.String,
+					"optional_string": cty.String,
+				})),
+			}),
+			``,
+		},
+		{
+			"empty_object_with_optional_nested_object_with_optional_bool",
+			cty.NilVal,
+			cty.ObjectVal(map[string]cty.Value{
+				"thing": cty.NullVal(cty.Object(map[string]cty.Type{
+					"flag": cty.Bool,
+				})),
+			}),
+			``,
+		},
+		{
+			"populated_object_with_optional_nested_object_with_optional_bool",
+			cty.NilVal,
+			cty.ObjectVal(map[string]cty.Value{
+				"thing": cty.ObjectVal(map[string]cty.Value{
+					"flag": cty.False,
+				}),
+			}),
+			``,
+		},
+		{
+			"empty_object_with_default_nested_object_with_optional_bool",
+			cty.NilVal,
+			cty.ObjectVal(map[string]cty.Value{
+				"thing": cty.ObjectVal(map[string]cty.Value{
+					"flag": cty.False,
+				}),
+			}),
+			``,
+		},
+		{
+			"list_with_nested_object_with_required_and_optional_attributes",
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"nested_object": cty.ObjectVal(map[string]cty.Value{
+						"string":          cty.StringVal("string"),
+						"optional_string": cty.NullVal(cty.String),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"nested_object": cty.NullVal(cty.Object(map[string]cty.Type{
+						"string":          cty.String,
+						"optional_string": cty.String,
+					})),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"nested_object": cty.ObjectVal(map[string]cty.Value{
+						"string":          cty.StringVal("string"),
+						"optional_string": cty.StringVal("optional"),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"nested_object": cty.NullVal(cty.Object(map[string]cty.Type{
+						"string":          cty.String,
+						"optional_string": cty.String,
+					})),
+				}),
+			}),
+			``,
+		},
+		{
+			"list_with_nested_list_of_any",
+			cty.NilVal,
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.NullVal(cty.List(cty.Number)),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+					"b": cty.ListVal([]cty.Value{
+						cty.NumberIntVal(1),
+					}),
+				}),
+			}),
+			``,
+		},
+		{
+			"list_with_nested_collections_dynamic_with_default",
+			cty.TupleVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("default"),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("complex"),
+					"taints": cty.ListVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"key":   cty.StringVal("my_key"),
+							"value": cty.StringVal("my_value"),
+						}),
+					}),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("default"),
+					"taints": cty.ListValEmpty(cty.Map(cty.String)),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("complex"),
+					"taints": cty.ListVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"key":   cty.StringVal("my_key"),
+							"value": cty.StringVal("my_value"),
+						}),
+					}),
+				}),
+			}),
+			``,
+		},
+		{
+			"invalid_nested_type",
+			cty.MapVal(map[string]cty.Value{
+				"mysql": cty.ObjectVal(map[string]cty.Value{
+					"rules": cty.ObjectVal(map[string]cty.Value{
+						"destination_addresses": cty.ListVal([]cty.Value{cty.StringVal("192.168.0.1")}),
+					}),
+				}),
+			}),
+			cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{
+				"rules": cty.Map(cty.Object(map[string]cty.Type{
+					"destination_addresses": cty.List(cty.String),
+				})),
+			}))),
+			`Invalid value for input variable: Unsuitable value for var.invalid_nested_type set from outside of the configuration: incorrect map element type: attribute "rules": element "destination_addresses": object required.`,
+		},
 
 		// sensitive
 		{
@@ -679,12 +1108,14 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 		given    cty.Value
 		wantErr  []string
 		wantWarn []string
+		status   checks.Status
 	}{
 		// Valid variable validation declaration, assigned value which passes
 		// the condition generates no diagnostics.
 		{
 			varName: "valid",
 			given:   cty.StringVal("foo"),
+			status:  checks.StatusPass,
 		},
 		// Assigning a value which fails the condition generates an error
 		// message with the expression successfully evaluated.
@@ -695,6 +1126,7 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 				"Invalid value for variable",
 				"Valid template string bar",
 			},
+			status: checks.StatusFail,
 		},
 		// Invalid variable validation declaration due to an unparseable
 		// template string. Assigning a value which passes the condition
@@ -706,6 +1138,7 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 				"Validation error message expression is invalid",
 				"Missing expression; Expected the start of an expression, but found the end of the file.",
 			},
+			status: checks.StatusPass,
 		},
 		// Assigning a value which fails the condition generates an error
 		// message including the configured string interpreted as a literal
@@ -721,6 +1154,7 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 				"Validation error message expression is invalid",
 				"Missing expression; Expected the start of an expression, but found the end of the file.",
 			},
+			status: checks.StatusFail,
 		},
 	}
 
@@ -745,10 +1179,16 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 				}
 				return test.given
 			}
+			ctx.ChecksState = checks.NewState(cfg)
+			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
 			gotDiags := evalVariableValidations(
 				varAddr, varCfg, nil, ctx,
 			)
+
+			if ctx.ChecksState.ObjectCheckStatus(varAddr) != test.status {
+				t.Errorf("expected check result %s but instead %s", test.status, ctx.ChecksState.ObjectCheckStatus(varAddr))
+			}
 
 			if len(test.wantErr) == 0 && len(test.wantWarn) == 0 {
 				if len(gotDiags) > 0 {
@@ -830,12 +1270,14 @@ variable "bar" {
 		varName string
 		given   cty.Value
 		wantErr []string
+		status  checks.Status
 	}{
 		// Validations pass on a sensitive variable with an error message which
 		// would generate a sensitive value
 		{
 			varName: "foo",
 			given:   cty.StringVal("boop"),
+			status:  checks.StatusPass,
 		},
 		// Assigning a value which fails the condition generates a sensitive
 		// error message, which is elided and generates another error
@@ -847,12 +1289,14 @@ variable "bar" {
 				"The error message included a sensitive value, so it will not be displayed.",
 				"Error message refers to sensitive values",
 			},
+			status: checks.StatusFail,
 		},
 		// Validations pass on a sensitive variable with a correctly defined
 		// error message
 		{
 			varName: "bar",
 			given:   cty.StringVal("boop"),
+			status:  checks.StatusPass,
 		},
 		// Assigning a value which fails the condition generates a nonsensitive
 		// error message, which is displayed
@@ -863,6 +1307,7 @@ variable "bar" {
 				"Invalid value for variable",
 				"Bar must be 4 characters, not 3.",
 			},
+			status: checks.StatusFail,
 		},
 	}
 
@@ -891,10 +1336,16 @@ variable "bar" {
 					return test.given
 				}
 			}
+			ctx.ChecksState = checks.NewState(cfg)
+			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
 			gotDiags := evalVariableValidations(
 				varAddr, varCfg, nil, ctx,
 			)
+
+			if ctx.ChecksState.ObjectCheckStatus(varAddr) != test.status {
+				t.Errorf("expected check result %s but instead %s", test.status, ctx.ChecksState.ObjectCheckStatus(varAddr))
+			}
 
 			if len(test.wantErr) == 0 {
 				if len(gotDiags) > 0 {

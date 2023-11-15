@@ -5,11 +5,9 @@ description: Terraform can store state remotely in Kubernetes and lock that stat
 
 # kubernetes
 
--> **Note:** This backend is limited by Kubernetes' maximum Secret size of 1MB. See [Secret restrictions](https://kubernetes.io/docs/concepts/configuration/secret/#restrictions) for details.
-
 Stores the state in a [Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/).
 
-This backend supports [state locking](/language/state/locking), with locking done using a Lease resource.
+This backend supports [state locking](/terraform/language/state/locking), with locking done using a Lease resource.
 
 ## Example Configuration
 
@@ -30,7 +28,7 @@ If the `in_cluster_config` flag is set the backend will attempt to use a [servic
 
 For most use cases either `in_cluster_config`, `config_path`, or `config_paths` will need to be set. If all flags are set the configuration at `config_path` will be used.
 
-Note that for the access credentials we recommend using a [partial configuration](/language/settings/backends/configuration#partial-configuration).
+Note that for the access credentials we recommend using a [partial configuration](/terraform/language/settings/backends/configuration#partial-configuration).
 
 ## Example Referencing
 
@@ -46,7 +44,7 @@ data "terraform_remote_state" "foo" {
 
 ## Configuration Variables
 
-!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
 
 The following configuration options are supported:
 

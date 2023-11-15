@@ -11,7 +11,7 @@ Most provisioners require access to the remote resource via SSH or WinRM and
 expect a nested `connection` block with details about how to connect.
 
 ~> **Important:** Use provisioners as a last resort. There are better alternatives for most situations. Refer to
-[Declaring Provisioners](/language/resources/provisioners/syntax) for more details.
+[Declaring Provisioners](/terraform/language/resources/provisioners/syntax) for more details.
 
 ## Connection Block
 
@@ -72,7 +72,7 @@ Expressions in `connection` blocks cannot refer to their parent resource by name
 
 ### Argument Reference
 
-The `connection` block supports the following argments. Some arguments are only supported by either the SSH or the WinRM connection type.
+The `connection` block supports the following arguments. Some arguments are only supported by either the SSH or the WinRM connection type.
 
 
 | Argument | Connection Type | Description | Default |
@@ -84,8 +84,8 @@ The `connection` block supports the following argments. Some arguments are only 
 | `port` | Both| The port to connect to. | `22` for type `"ssh"`<br />`5985` for type `"winrm"` |
 | `timeout` | Both | The timeout to wait for the connection to become available. Should be provided as a string (e.g., `"30s"` or `"5m"`.) | `"5m"` |
 | `script_path` | Both | The path used to copy scripts meant for remote execution. Refer to [How Provisioners Execute Remote Scripts](#how-provisioners-execute-remote-scripts) below for more details. | (details below) |
-| `private_key` | SSH | The contents of an SSH key to use for the connection. These can be loaded from a file on disk using [the `file` function](/language/functions/file). This takes preference over `password` if provided. | |
-| `certificate` | SSH | The contents of a signed CA Certificate. The certificate argument must be used in conjunction with a `private_key`. These can be loaded from a file on disk using the [the `file` function](/language/functions/file). | |
+| `private_key` | SSH | The contents of an SSH key to use for the connection. These can be loaded from a file on disk using [the `file` function](/terraform/language/functions/file). This takes preference over `password` if provided. | |
+| `certificate` | SSH | The contents of a signed CA Certificate. The certificate argument must be used in conjunction with a `private_key`. These can be loaded from a file on disk using the [the `file` function](/terraform/language/functions/file). | |
 | `agent` | SSH | Set to `false` to disable using `ssh-agent` to authenticate. On Windows the only supported SSH authentication agent is [Pageant](http://the.earth.li/\~sgtatham/putty/0.66/htmldoc/Chapter9.html#pageant). |   |
 | `agent_identity` | SSH | The preferred identity from the ssh agent for authentication. | |
 | `host_key` | SSH | The public key from the remote host or the signing CA, used to verify the connection. | |
@@ -110,8 +110,8 @@ indirectly with a [bastion host](https://en.wikipedia.org/wiki/Bastion_host).
 | `bastion_port` | The port to use connect to the bastion host. | The value of the `port` field.|
 | `bastion_user`| The user for the connection to the bastion host. | The value of the `user` field. |
 | `bastion_password` | The password to use for the bastion host. | The value of the `password` field. |
-| `bastion_private_key` | The contents of an SSH key file to use for the bastion host. These can be loaded from a file on disk using [the `file` function](/language/functions/file). | The value of the `private_key` field. |
-| `bastion_certificate` |  The contents of a signed CA Certificate. The certificate argument must be used in conjunction with a `bastion_private_key`. These can be loaded from a file on disk using the [the `file` function](/language/functions/file). |
+| `bastion_private_key` | The contents of an SSH key file to use for the bastion host. These can be loaded from a file on disk using [the `file` function](/terraform/language/functions/file). | The value of the `private_key` field. |
+| `bastion_certificate` |  The contents of a signed CA Certificate. The certificate argument must be used in conjunction with a `bastion_private_key`. These can be loaded from a file on disk using the [the `file` function](/terraform/language/functions/file). |
 
 ## Connection through a HTTP Proxy with SSH
 

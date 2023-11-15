@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -11,6 +14,8 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/mitchellh/cli"
 )
 
@@ -126,15 +131,24 @@ func (c *StatePushCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
 		return 1
 	}
+
+	// Get schemas, if possible, before writing state
+	var schemas *terraform.Schemas
+	var diags tfdiags.Diagnostics
+	if isCloudMode(b) {
+		schemas, diags = c.MaybeGetSchemas(srcStateFile.State, nil)
+	}
+
 	if err := stateMgr.WriteState(srcStateFile.State); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
 		return 1
 	}
-	if err := stateMgr.PersistState(); err != nil {
+	if err := stateMgr.PersistState(schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to persist state: %s", err))
 		return 1
 	}
 
+	c.showDiagnostics(diags)
 	return 0
 }
 

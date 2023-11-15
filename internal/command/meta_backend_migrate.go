@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -26,6 +29,7 @@ import (
 type backendMigrateOpts struct {
 	SourceType, DestinationType string
 	Source, Destination         backend.Backend
+	ViewType                    arguments.ViewType
 
 	// Fields below are set internally when migrate is called
 
@@ -339,8 +343,13 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 
 	if m.stateLock {
 		lockCtx := context.Background()
-
-		view := views.NewStateLocker(arguments.ViewHuman, m.View)
+		vt := arguments.ViewJSON
+		// Set default viewtype if none was set as the StateLocker needs to know exactly
+		// what viewType we want to have.
+		if opts == nil || opts.ViewType != vt {
+			vt = arguments.ViewHuman
+		}
+		view := views.NewStateLocker(vt, m.View)
 		locker := clistate.NewLocker(m.stateLockTimeout, view)
 
 		lockerSource := locker.WithContext(lockCtx)
@@ -438,7 +447,11 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		return fmt.Errorf(strings.TrimSpace(errBackendStateCopy),
 			opts.SourceType, opts.DestinationType, err)
 	}
-	if err := destinationState.PersistState(); err != nil {
+	// The backend is currently handled before providers are installed during init,
+	// so requiring schemas here could lead to a catch-22 where it requires some manual
+	// intervention to proceed far enough for provider installation. To avoid this,
+	// when migrating to TFC backend, the initial JSON varient of state won't be generated and stored.
+	if err := destinationState.PersistState(nil); err != nil {
 		return fmt.Errorf(strings.TrimSpace(errBackendStateCopy),
 			opts.SourceType, opts.DestinationType, err)
 	}
@@ -960,7 +973,7 @@ This will attempt to copy (with permission) all workspaces again.
 `
 
 const errBackendStateCopy = `
-Error copying state from the previous %q backend to the newly configured 
+Error copying state from the previous %q backend to the newly configured
 %q backend:
     %s
 

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -18,7 +21,9 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
+	var orCreate bool
 	cmdFlags := c.Meta.defaultFlagSet("workspace select")
+	cmdFlags.BoolVar(&orCreate, "or-create", false, "create workspace if it does not exist")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
@@ -95,9 +100,20 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		}
 	}
 
+	var newState bool
+
 	if !found {
-		c.Ui.Error(fmt.Sprintf(envDoesNotExist, name))
-		return 1
+		if orCreate {
+			_, err = b.StateMgr(name)
+			if err != nil {
+				c.Ui.Error(err.Error())
+				return 1
+			}
+			newState = true
+		} else {
+			c.Ui.Error(fmt.Sprintf(envDoesNotExist, name))
+			return 1
+		}
 	}
 
 	err = c.SetWorkspace(name)
@@ -106,11 +122,16 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(
-		c.Colorize().Color(
-			fmt.Sprintf(envChanged, name),
-		),
-	)
+	if newState {
+		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+			strings.TrimSpace(envCreated), name)))
+	} else {
+		c.Ui.Output(
+			c.Colorize().Color(
+				fmt.Sprintf(envChanged, name),
+			),
+		)
+	}
 
 	return 0
 }
@@ -131,6 +152,10 @@ func (c *WorkspaceSelectCommand) Help() string {
 Usage: terraform [global options] workspace select NAME
 
   Select a different Terraform workspace.
+
+Options:
+
+    -or-create=false    Create the Terraform workspace if it doesn't exist.
 
 `
 	return strings.TrimSpace(helpText)

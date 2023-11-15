@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -45,7 +49,7 @@ func TestMetaBackend_emptyDir(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 	s.WriteState(testState())
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
@@ -134,7 +138,7 @@ func TestMetaBackend_emptyWithDefaultState(t *testing.T) {
 	next := testState()
 	next.RootModule().SetOutputValue("foo", cty.StringVal("bar"), false)
 	s.WriteState(next)
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
@@ -205,7 +209,7 @@ func TestMetaBackend_emptyWithExplicitState(t *testing.T) {
 	next := testState()
 	markStateForMatching(next, "bar") // just any change so it shows as different than before
 	s.WriteState(next)
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
@@ -265,7 +269,7 @@ func TestMetaBackend_configureNew(t *testing.T) {
 	mark := markStateForMatching(state, "changing")
 
 	s.WriteState(state)
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
@@ -339,7 +343,7 @@ func TestMetaBackend_configureNewWithState(t *testing.T) {
 	state = states.NewState()
 	mark := markStateForMatching(state, "changing")
 
-	if err := statemgr.WriteAndPersist(s, state); err != nil {
+	if err := statemgr.WriteAndPersist(s, state, nil); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
@@ -505,7 +509,7 @@ func TestMetaBackend_configureNewWithStateExisting(t *testing.T) {
 	mark := markStateForMatching(state, "changing")
 
 	s.WriteState(state)
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
@@ -576,7 +580,7 @@ func TestMetaBackend_configureNewWithStateExistingNoMigrate(t *testing.T) {
 	state = states.NewState()
 	mark := markStateForMatching(state, "changing")
 	s.WriteState(state)
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
@@ -695,7 +699,7 @@ func TestMetaBackend_configuredChange(t *testing.T) {
 	mark := markStateForMatching(state, "changing")
 
 	s.WriteState(state)
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
@@ -1448,7 +1452,7 @@ func TestMetaBackend_configuredUnset(t *testing.T) {
 
 	// Write some state
 	s.WriteState(testState())
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
@@ -1506,7 +1510,7 @@ func TestMetaBackend_configuredUnsetCopy(t *testing.T) {
 
 	// Write some state
 	s.WriteState(testState())
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
@@ -1546,7 +1550,7 @@ func TestMetaBackend_planLocal(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, diags := m.BackendForPlan(backendConfig)
+	b, diags := m.BackendForLocalPlan(backendConfig)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1585,7 +1589,7 @@ func TestMetaBackend_planLocal(t *testing.T) {
 	mark := markStateForMatching(state, "changing")
 
 	s.WriteState(state)
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
@@ -1647,7 +1651,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	m.stateOutPath = statePath
 
 	// Get the backend
-	b, diags := m.BackendForPlan(plannedBackend)
+	b, diags := m.BackendForLocalPlan(plannedBackend)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1686,7 +1690,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	mark := markStateForMatching(state, "changing")
 
 	s.WriteState(state)
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
@@ -1736,7 +1740,7 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, diags := m.BackendForPlan(backendConfig)
+	b, diags := m.BackendForLocalPlan(backendConfig)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1773,7 +1777,7 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 	mark := markStateForMatching(state, "changing")
 
 	s.WriteState(state)
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
@@ -1936,7 +1940,7 @@ func TestBackendFromState(t *testing.T) {
 	// them to match just for this test.
 	wd.OverrideDataDir(".")
 
-	stateBackend, diags := m.backendFromState()
+	stateBackend, diags := m.backendFromState(context.Background())
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}

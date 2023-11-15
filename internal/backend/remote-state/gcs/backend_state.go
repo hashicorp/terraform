@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package gcs
 
 import (
@@ -55,7 +58,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 }
 
 // DeleteWorkspace deletes the named workspaces. The "default" state cannot be deleted.
-func (b *Backend) DeleteWorkspace(name string) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 	if name == backend.DefaultStateName {
 		return fmt.Errorf("cowardly refusing to delete the %q state", name)
 	}
@@ -81,6 +84,7 @@ func (b *Backend) client(name string) (*remoteClient, error) {
 		stateFilePath:  b.stateFile(name),
 		lockFilePath:   b.lockFile(name),
 		encryptionKey:  b.encryptionKey,
+		kmsKeyName:     b.kmsKeyName,
 	}, nil
 }
 
@@ -131,7 +135,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		if err := st.WriteState(states.NewState()); err != nil {
 			return nil, unlock(err)
 		}
-		if err := st.PersistState(); err != nil {
+		if err := st.PersistState(nil); err != nil {
 			return nil, unlock(err)
 		}
 

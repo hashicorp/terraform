@@ -13,7 +13,7 @@ When Terraform plans to make changes, it prints a human-readable summary to the 
 
 Since the format of plan files isn't suited for use with external tools (and likely never will be), Terraform can output a machine-readable JSON representation of a plan file's changes. It can also convert state files to the same format, to simplify data loading and provide better long-term compatibility.
 
-Use `terraform show -json <FILE>` to generate a JSON representation of a plan or state file. See [the `terraform show` documentation](/cli/commands/show) for more details.
+Use `terraform show -json <FILE>` to generate a JSON representation of a plan or state file. See [the `terraform show` documentation](/terraform/cli/commands/show) for more details.
 
 The output includes a `format_version` key, which as of Terraform 1.1.0 has
 value `"1.0"`. The semantics of this version are:
@@ -26,7 +26,7 @@ value `"1.0"`. The semantics of this version are:
   version.
 
 We will introduce new major versions only within the bounds of
-[the Terraform 1.0 Compatibility Promises](/language/v1-compatibility-promises).
+[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
 
 ## Format Summary
 
@@ -45,10 +45,11 @@ The JSON output format consists of the following objects and sub-objects:
   - [Expression Representation](#expression-representation) — A sub-object of a configuration representation that describes an unevaluated expression.
   - [Block Expressions Representation](#block-expressions-representation) — A sub-object of a configuration representation that describes the expressions nested inside a block.
 - [Change Representation](#change-representation) — A sub-object of plan output that describes changes to an object.
+- [Checks Representation](#checks-representation) — A property of both the plan and state representations that describes the current status of any checks (e.g. preconditions and postconditions) in the configuration.
 
 ## State Representation
 
-Because state does not currently have any significant metadata not covered by the common values representation ([described below](#values-representation)), the `<state-representation>` is straightforward:
+State does not have any significant metadata not included in the common [values representation](#values-representation), so the `<state-representation>` uses the following format:
 
 ```javascript
 {
@@ -59,8 +60,6 @@ Because state does not currently have any significant metadata not covered by th
   "terraform_version": "version.string"
 }
 ```
-
-The extra wrapping object here will allow for any extension we may need to add in future versions of this format.
 
 ## Plan Representation
 
@@ -224,7 +223,17 @@ For ease of consumption by callers, the plan representation includes a partial r
       // fully accurate, but the "after" value will always be correct.
       "change": <change-representation>,
     }
-  }
+  },
+
+  // "checks" describes the partial results for any checkable objects, such as
+  // resources with postconditions, with as much information as Terraform can
+  // recognize at plan time. Some objects will have status "unknown" to
+  // indicate that their status will only be determined after applying the plan.
+  "checks" <checks-representation>,
+
+  // "errored" indicates whether planning failed. An errored plan cannot be applied,
+  // but the actions planned before failure may help to understand the error.
+  "errored": false
 }
 ```
 
@@ -333,7 +342,7 @@ The following example illustrates the structure of a `<values-representation>`:
 }
 ```
 
-The translation of attribute and output values is the same intuitive mapping from HCL types to JSON types used by Terraform's [`jsonencode`](/language/functions/jsonencode) function. This mapping does lose some information: lists, sets, and tuples all lower to JSON arrays while maps and objects both lower to JSON objects. Unknown values and null values are both treated as absent or null.
+The translation of attribute and output values is the same intuitive mapping from HCL types to JSON types used by Terraform's [`jsonencode`](/terraform/language/functions/jsonencode) function. This mapping does lose some information: lists, sets, and tuples all lower to JSON arrays while maps and objects both lower to JSON objects. Unknown values and null values are both treated as absent or null.
 
 Output values include a `"type"` field, which is a [serialization of the value's type](https://pkg.go.dev/github.com/zclconf/go-cty/cty#Type.MarshalJSON). For primitive types this is a string value, such as `"number"` or `"bool"`. Complex types are represented as a nested JSON array, such as `["map","string"]` or `["object",{"a":"number"}]`. This can be used to reconstruct the output value with the correct type.
 
@@ -604,3 +613,131 @@ A `<change-representation>` describes the change to the indicated object.
   "replace_paths": [["triggers"]]
 }
 ```
+
+## Checks Representation
+
+~> **Warning:** The JSON representation of checks is experimental
+and some details may change in future Terraform versions based on feedback,
+even in minor releases of Terraform CLI.
+
+A `<checks-representation>` describes the current state of a checkable object in the configuration. For example, a resource with one or more preconditions or postconditions is an example of a checkable object, and its check state represents the results of those conditions.
+
+```javascript
+[
+  {
+    // "address" describes the address of the checkable object whose status
+    // this object is describing.
+    "address": {
+      // "kind" specifies what kind of checkable object this is. Different
+      // kinds of object will have different additional properties inside the
+      // address object, but all kinds include both "kind" and "to_display".
+      // The two valid kinds are "resource" and "output_value".
+      "kind": "resource",
+
+      // "to_display" contains an opaque string representation of the address
+      // of the object that is suitable for display in a UI. For consumers that
+      // have special handling depending on the value of "kind", this property
+      // is a good fallback to use when the application doesn't recognize the
+      // "kind" value.
+      "to_display": "aws_instance.example",
+
+      // "mode" is included for kind "resource" only, and specifies the resource
+      // mode which can either be "managed" (for "resource" blocks) or "data"
+      // (for "data" blocks).
+      "mode": "managed",
+
+      // "type" is included for kind "resource" only, and specifies the resource
+      // type.
+      "type": "aws_instance",
+
+      // "name" is the local name of the object. For a resource this is the
+      // second label in the resource block header, and for an output value
+      // this is the single label in the output block header.
+      "name": "example",
+
+      // "module" is included if the object belongs to a module other than
+      // the root module, and provides an opaque string representation of the
+      // module this object belongs to. This example is of a root module
+      // resource and so "module" is not included.
+    }
+
+    // "status" is the aggregate status of all of the instances of the object
+    // being described by this object.
+    // The possible values are "pass", "fail", "error", and "unknown".
+    "status": "fail",
+
+    // "instances" describes the current status of each of the instances of
+    // the object being described. An object can have multiple instances if
+    // it is either a resource which has "count" or "for_each" set, or if
+    // it's contained within a module that has "count" or "for_each" set.
+    //
+    // If "instances" is empty or omitted, that can either mean that the object
+    // has no instances at all (e.g. count = 0) or that an error blocked
+    // evaluation of the repetition argument. You can distinguish these cases
+    // using the "status" property, which will be "pass" or "error" for a
+    // zero-instance object and "unknown" for situations where an error blocked
+    // evalation.
+    "instances": [
+      {
+        // "address" is an object similar to the property of the same name in
+        // the containing object. Merge the instance-level address into the
+        // object-level address, overwriting any conflicting property names,
+        // to create a full description of the instance's address.
+        "address": {
+          // "to_display" overrides the property of the same name in the main
+          // object's address, to include any module instance or resource
+          // instance keys that uniquely identify this instance.
+          "to_display": "aws_instance.example[0]",
+
+          // "instance_key" is included for resources only and specifies the
+          // resource-level instance key, which can either be a number or a
+          // string. Omitted for single-instance resources.
+          "instance_key": 0,
+
+          // "module" is included if the object belongs to a module other than
+          // the root module, and provides an opaque string representation of the
+          // module instance this object belongs to.
+        },
+
+        // "status" describes the result of running the configured checks
+        // against this particular instance of the object, with the same
+        // possible values as the "status" in the parent object.
+        //
+        // "fail" means that the condition evaluated successfully but returned
+        // false, while "error" means that the condition expression itself
+        // was invalid.
+        "status": "fail",
+
+        // "problems" might be included for statuses "fail" or "error", in
+        // which case it describes the individual conditions that failed for
+        // this instance, if any.
+        // When a condition expression is invalid, Terraform returns that as
+        // a normal error message rather than as a problem in this list.
+        "problems": [
+          {
+            // "message" is the string that resulted from evaluating the
+            // error_message argument of the failing condition.
+            "message": "Server does not have a public IPv6 address."
+          }
+        ]
+      },
+    ]
+  }
+]
+```
+
+The "checks" model includes both static checkable objects and instances of
+those objects to ensure that the set of checkable objects will be consistent
+even if an error prevents full evaluation of the configuration. Any object
+in the configuration which has associated checks, such as a resource with
+preconditions or postconditions, will always be included as a checkable object
+even if a runtime error prevents Terraform from evaluating its "count" or
+"for_each" argument and therefore determining which instances of that object
+exist dynamically.
+
+When summarizing checks in a UI, we recommend preferring to list only the
+individual instances and typically ignoring the top-level objects altogether.
+However, in any case where an object has _zero_ instances, the UI should show
+the top-level object instead to serve as a placeholder so that the user can
+see that Terraform recognized the existence of the checks, even if it wasn't
+able to evaluate them on the most recent run.

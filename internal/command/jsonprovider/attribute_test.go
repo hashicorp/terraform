@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonprovider
 
 import (
@@ -13,11 +16,11 @@ import (
 func TestMarshalAttribute(t *testing.T) {
 	tests := []struct {
 		Input *configschema.Attribute
-		Want  *attribute
+		Want  *Attribute
 	}{
 		{
 			&configschema.Attribute{Type: cty.String, Optional: true, Computed: true},
-			&attribute{
+			&Attribute{
 				AttributeType:   json.RawMessage(`"string"`),
 				Optional:        true,
 				Computed:        true,
@@ -26,7 +29,7 @@ func TestMarshalAttribute(t *testing.T) {
 		},
 		{ // collection types look a little odd.
 			&configschema.Attribute{Type: cty.Map(cty.String), Optional: true, Computed: true},
-			&attribute{
+			&Attribute{
 				AttributeType:   json.RawMessage(`["map","string"]`),
 				Optional:        true,
 				Computed:        true,

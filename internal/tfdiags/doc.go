@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package tfdiags is a utility package for representing errors and
 // warnings in a manner that allows us to produce good messages for the
 // user.

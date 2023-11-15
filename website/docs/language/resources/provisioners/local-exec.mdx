@@ -11,7 +11,7 @@ description: >-
 The `local-exec` provisioner invokes a local executable after a resource is
 created. This invokes a process on the machine running Terraform, not on the
 resource. See the `remote-exec`
-[provisioner](/language/resources/provisioners/remote-exec) to run commands on the
+[provisioner](/terraform/language/resources/provisioners/remote-exec) to run commands on the
 resource.
 
 Note that even though the resource will be fully created when the provisioner is
@@ -19,7 +19,7 @@ run, there is no guarantee that it will be in an operable state - for example
 system services such as `sshd` may not be started yet on compute resources.
 
 ~> **Important:** Use provisioners as a last resort. There are better alternatives for most situations. Refer to
-[Declaring Provisioners](/language/resources/provisioners/syntax) for more details.
+[Declaring Provisioners](/terraform/language/resources/provisioners/syntax) for more details.
 
 ## Example usage
 
@@ -39,8 +39,11 @@ The following arguments are supported:
 
 * `command` - (Required) This is the command to execute. It can be provided
   as a relative path to the current working directory or as an absolute path.
-  It is evaluated in a shell, and can use environment variables or Terraform
-  variables.
+  The `command` is is evaluated in a shell and can use environment variables for
+  variable substitution. We do not recommend using Terraform variables for variable
+  substitution because doing so can lead to shell injection vulnerabilities. Instead, you should pass Terraform variables to a command
+  through the `environment` parameter and use environment variable substitution
+  instead. Refer to the following OWASP article for additional information about injection flaws: [Code Injection](https://owasp.org/www-community/attacks/Code_Injection).
 
 * `working_dir` - (Optional) If provided, specifies the working directory where
   `command` will be executed. It can be provided as a relative path to the
@@ -59,13 +62,15 @@ The following arguments are supported:
 
 * `when` - (Optional) If provided, specifies when Terraform will execute the command.
   For example, `when = destroy` specifies that the provisioner will run when the associated resource
-  is destroyed. Refer to [Destroy-Time Provisioners](/language/resources/provisioners/syntax#destroy-time-provisioners)
+  is destroyed. Refer to [Destroy-Time Provisioners](/terraform/language/resources/provisioners/syntax#destroy-time-provisioners)
   for details.
+  
+*  `quiet` - (Optional) If set to `true`, Terraform will not print the command to be executed to stdout, and will instead print "Suppressed by quiet=true". Note that the output of the command will still be printed in any case.
 
 ### Interpreter Examples
 
 ```hcl
-resource "null_resource" "example1" {
+resource "terraform_data" "example1" {
   provisioner "local-exec" {
     command = "open WFH, '>completed.txt' and print WFH scalar localtime"
     interpreter = ["perl", "-e"]
@@ -74,7 +79,7 @@ resource "null_resource" "example1" {
 ```
 
 ```hcl
-resource "null_resource" "example2" {
+resource "terraform_data" "example2" {
   provisioner "local-exec" {
     command = "Get-Date > completed.txt"
     interpreter = ["PowerShell", "-Command"]

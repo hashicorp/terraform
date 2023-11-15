@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package statefile
 
 import (
@@ -11,6 +14,7 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -292,6 +296,17 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 		}
 	}
 
+	// Saved check results from the previous run, if any.
+	// We differentiate absense from an empty array here so that we can
+	// recognize if the previous run was with a version of Terraform that
+	// didn't support checks yet, or if there just weren't any checkable
+	// objects to record, in case that's important for certain messaging.
+	if sV4.CheckResults != nil {
+		var moreDiags tfdiags.Diagnostics
+		state.CheckResults, moreDiags = decodeCheckResultsV4(sV4.CheckResults)
+		diags = diags.Append(moreDiags)
+	}
+
 	file.State = state
 	return file, diags
 }
@@ -402,6 +417,8 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 		}
 	}
 
+	sV4.CheckResults = encodeCheckResultsV4(file.State.CheckResults)
+
 	sV4.normalize()
 
 	src, err := json.MarshalIndent(sV4, "", "  ")
@@ -496,6 +513,165 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 	}), diags
 }
 
+func decodeCheckResultsV4(in []checkResultsV4) (*states.CheckResults, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	ret := &states.CheckResults{}
+	if len(in) == 0 {
+		return ret, diags
+	}
+
+	ret.ConfigResults = addrs.MakeMap[addrs.ConfigCheckable, *states.CheckResultAggregate]()
+	for _, aggrIn := range in {
+		objectKind := decodeCheckableObjectKindV4(aggrIn.ObjectKind)
+		if objectKind == addrs.CheckableKindInvalid {
+			// We cannot decode a future unknown check result kind, but
+			// for forwards compatibility we need not treat this as an
+			// error. Eliding unknown check results will not result in
+			// significant data loss and allows us to maintain state file
+			// interoperability in the 1.x series.
+			continue
+		}
+
+		// Some trickiness here: we only have an address parser for
+		// addrs.Checkable and not for addrs.ConfigCheckable, but that's okay
+		// because once we have an addrs.Checkable we can always derive an
+		// addrs.ConfigCheckable from it, and a ConfigCheckable should always
+		// be the same syntax as a Checkable with no index information and
+		// thus we can reuse the same parser for both here.
+		configAddrProxy, moreDiags := addrs.ParseCheckableStr(objectKind, aggrIn.ConfigAddr)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			continue
+		}
+		configAddr := configAddrProxy.ConfigCheckable()
+		if configAddr.String() != configAddrProxy.String() {
+			// This is how we catch if the config address included index
+			// information that would be allowed in a Checkable but not
+			// in a ConfigCheckable.
+			diags = diags.Append(fmt.Errorf("invalid checkable config address %s", aggrIn.ConfigAddr))
+			continue
+		}
+
+		aggr := &states.CheckResultAggregate{
+			Status: decodeCheckStatusV4(aggrIn.Status),
+		}
+
+		if len(aggrIn.Objects) != 0 {
+			aggr.ObjectResults = addrs.MakeMap[addrs.Checkable, *states.CheckResultObject]()
+			for _, objectIn := range aggrIn.Objects {
+				objectAddr, moreDiags := addrs.ParseCheckableStr(objectKind, objectIn.ObjectAddr)
+				diags = diags.Append(moreDiags)
+				if moreDiags.HasErrors() {
+					continue
+				}
+
+				obj := &states.CheckResultObject{
+					Status:          decodeCheckStatusV4(objectIn.Status),
+					FailureMessages: objectIn.FailureMessages,
+				}
+				aggr.ObjectResults.Put(objectAddr, obj)
+			}
+		}
+
+		ret.ConfigResults.Put(configAddr, aggr)
+	}
+
+	return ret, diags
+}
+
+func encodeCheckResultsV4(in *states.CheckResults) []checkResultsV4 {
+	// normalize empty and nil sets in the serialized state
+	if in == nil || in.ConfigResults.Len() == 0 {
+		return nil
+	}
+
+	ret := make([]checkResultsV4, 0, in.ConfigResults.Len())
+
+	for _, configElem := range in.ConfigResults.Elems {
+		configResultsOut := checkResultsV4{
+			ObjectKind: encodeCheckableObjectKindV4(configElem.Key.CheckableKind()),
+			ConfigAddr: configElem.Key.String(),
+			Status:     encodeCheckStatusV4(configElem.Value.Status),
+		}
+		for _, objectElem := range configElem.Value.ObjectResults.Elems {
+			configResultsOut.Objects = append(configResultsOut.Objects, checkResultsObjectV4{
+				ObjectAddr:      objectElem.Key.String(),
+				Status:          encodeCheckStatusV4(objectElem.Value.Status),
+				FailureMessages: objectElem.Value.FailureMessages,
+			})
+		}
+
+		ret = append(ret, configResultsOut)
+	}
+
+	return ret
+}
+
+func decodeCheckStatusV4(in string) checks.Status {
+	switch in {
+	case "pass":
+		return checks.StatusPass
+	case "fail":
+		return checks.StatusFail
+	case "error":
+		return checks.StatusError
+	default:
+		// We'll treat anything else as unknown just as a concession to
+		// forward-compatible parsing, in case a later version of Terraform
+		// introduces a new status.
+		return checks.StatusUnknown
+	}
+}
+
+func encodeCheckStatusV4(in checks.Status) string {
+	switch in {
+	case checks.StatusPass:
+		return "pass"
+	case checks.StatusFail:
+		return "fail"
+	case checks.StatusError:
+		return "error"
+	case checks.StatusUnknown:
+		return "unknown"
+	default:
+		panic(fmt.Sprintf("unsupported check status %s", in))
+	}
+}
+
+func decodeCheckableObjectKindV4(in string) addrs.CheckableKind {
+	switch in {
+	case "resource":
+		return addrs.CheckableResource
+	case "output":
+		return addrs.CheckableOutputValue
+	case "check":
+		return addrs.CheckableCheck
+	case "var":
+		return addrs.CheckableInputVariable
+	default:
+		// We'll treat anything else as invalid just as a concession to
+		// forward-compatible parsing, in case a later version of Terraform
+		// introduces a new status.
+		return addrs.CheckableKindInvalid
+	}
+}
+
+func encodeCheckableObjectKindV4(in addrs.CheckableKind) string {
+	switch in {
+	case addrs.CheckableResource:
+		return "resource"
+	case addrs.CheckableOutputValue:
+		return "output"
+	case addrs.CheckableCheck:
+		return "check"
+	case addrs.CheckableInputVariable:
+		return "var"
+	default:
+		panic(fmt.Sprintf("unsupported checkable object kind %s", in))
+	}
+}
+
 type stateV4 struct {
 	Version          stateVersionV4           `json:"version"`
 	TerraformVersion string                   `json:"terraform_version"`
@@ -503,6 +679,7 @@ type stateV4 struct {
 	Lineage          string                   `json:"lineage"`
 	RootOutputs      map[string]outputStateV4 `json:"outputs"`
 	Resources        []resourceStateV4        `json:"resources"`
+	CheckResults     []checkResultsV4         `json:"check_results"`
 }
 
 // normalize makes some in-place changes to normalize the way items are
@@ -546,6 +723,19 @@ type instanceObjectStateV4 struct {
 	Dependencies []string `json:"dependencies,omitempty"`
 
 	CreateBeforeDestroy bool `json:"create_before_destroy,omitempty"`
+}
+
+type checkResultsV4 struct {
+	ObjectKind string                 `json:"object_kind"`
+	ConfigAddr string                 `json:"config_addr"`
+	Status     string                 `json:"status"`
+	Objects    []checkResultsObjectV4 `json:"objects"`
+}
+
+type checkResultsObjectV4 struct {
+	ObjectAddr      string   `json:"object_addr"`
+	Status          string   `json:"status"`
+	FailureMessages []string `json:"failure_messages,omitempty"`
 }
 
 // stateVersionV4 is a weird special type we use to produce our hard-coded

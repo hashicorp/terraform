@@ -18,11 +18,11 @@ to the problem, because Terraform only directly manages the machine as a whole.
 
 If you know that an object is damaged, or if you want to force Terraform to
 replace it for any other reason, you can override Terraform's default behavior
-using [the `-replace=...` planning option](/cli/commands/plan#replace-address)
+using [the `-replace=...` planning option](/terraform/cli/commands/plan#replace-address)
 when you run either `terraform plan` or `terraform apply`:
 
 ```shellsession
-$ terraform apply -replace=aws_instance.example
+$ terraform apply -replace="aws_instance.example"
 # ...
 
   # aws_instance.example will be replaced, as requested
@@ -53,11 +53,11 @@ address using `-replace=...` as described above.
 
 If Terraform has marked an object as tainted but you consider it to be working
 correctly and do not want to replace it, you can override Terraform's
-determination using [the `terraform untaint` command](/cli/commands/untaint),
+determination using [the `terraform untaint` command](/terraform/cli/commands/untaint),
 after which Terraform will consider the object to be ready for use by any
 downstream resource declarations.
 
 You can also _force_ Terraform to mark a particular object as tainted using
-[the `terraform taint` command](/cli/commands/taint), but that approach is
+[the `terraform taint` command](/terraform/cli/commands/taint), but that approach is
 deprecated in favor of the `-replace=...` option, which avoids the need to
 create an interim state snapshot with a tainted object.

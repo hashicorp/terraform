@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -7,7 +10,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/google/go-cmp/cmp"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -20,8 +22,12 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
@@ -46,7 +52,6 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/version"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // These are the directories for our test data and fixtures.
@@ -83,8 +88,9 @@ func TestMain(m *testing.M) {
 }
 
 // tempWorkingDir constructs a workdir.Dir object referring to a newly-created
+// tempWorkingDir constructs a workdir.Dir object referring to a newly-created
 // temporary directory. The temporary directory is automatically removed when
-//the test and all its subtests complete.
+// the test and all its subtests complete.
 //
 // Although workdir.Dir is built to support arbitrary base directories, the
 // not-yet-migrated behaviors in command.Meta tend to expect the root module
@@ -92,8 +98,8 @@ func TestMain(m *testing.M) {
 // to use the result inside a command.Meta object you must use a pattern
 // similar to the following when initializing your test:
 //
-//     wd := tempWorkingDir(t)
-//     defer testChdir(t, wd.RootModuleDir())()
+//	wd := tempWorkingDir(t)
+//	defer testChdir(t, wd.RootModuleDir())()
 //
 // Note that testChdir modifies global state for the test process, and so a
 // test using this pattern must never call t.Parallel().
@@ -153,8 +159,8 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
-	_, instDiags := inst.InstallModules(context.Background(), dir, true, initwd.ModuleInstallHooksImpl{})
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
@@ -248,6 +254,24 @@ func testPlanFileNoop(t *testing.T) string {
 	return testPlanFile(t, snap, state, plan)
 }
 
+func testFileEquals(t *testing.T, got, want string) {
+	t.Helper()
+
+	actual, err := os.ReadFile(got)
+	if err != nil {
+		t.Fatalf("error reading %s", got)
+	}
+
+	expected, err := os.ReadFile(want)
+	if err != nil {
+		t.Fatalf("error reading %s", want)
+	}
+
+	if diff := cmp.Diff(string(actual), string(expected)); len(diff) > 0 {
+		t.Fatalf("got:\n%s\nwant:\n%s\ndiff:\n%s", actual, expected, diff)
+	}
+}
+
 func testReadPlan(t *testing.T, path string) *plans.Plan {
 	t.Helper()
 
@@ -327,9 +351,9 @@ func testStateMgrCurrentLineage(mgr statemgr.Persistent) string {
 // The given mark string is returned verbatim, to allow the following pattern
 // in tests:
 //
-//     mark := markStateForMatching(state, "foo")
-//     // (do stuff to the state)
-//     assertStateHasMarker(state, mark)
+//	mark := markStateForMatching(state, "foo")
+//	// (do stuff to the state)
+//	assertStateHasMarker(state, mark)
 func markStateForMatching(state *states.State, mark string) string {
 	state.RootModule().SetOutputValue("testing_mark", cty.StringVal(mark), false)
 	return mark
@@ -704,10 +728,10 @@ func testInputMap(t *testing.T, answers map[string]string) func() {
 // When using this function, the configuration fixture for the test must
 // include an empty configuration block for the HTTP backend, like this:
 //
-// terraform {
-//   backend "http" {
-//   }
-// }
+//	terraform {
+//	  backend "http" {
+//	  }
+//	}
 //
 // If such a block isn't present, or if it isn't empty, then an error will
 // be returned about the backend configuration having changed and that

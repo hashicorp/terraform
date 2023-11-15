@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package cos
 
 import (
@@ -57,7 +60,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 }
 
 // DeleteWorkspace deletes the named workspaces. The "default" state cannot be deleted.
-func (b *Backend) DeleteWorkspace(name string) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 	log.Printf("[DEBUG] delete workspace, workspace: %v", name)
 
 	if name == backend.DefaultStateName || name == "" {
@@ -126,7 +129,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 				err = lockUnlock(err)
 				return nil, err
 			}
-			if err := stateMgr.PersistState(); err != nil {
+			if err := stateMgr.PersistState(nil); err != nil {
 				err = lockUnlock(err)
 				return nil, err
 			}

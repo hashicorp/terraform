@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package views
 
 import (
@@ -8,6 +11,9 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
+	"github.com/hashicorp/terraform/internal/command/jsonplan"
+	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -25,7 +31,7 @@ type Operation interface {
 
 	PlannedChange(change *plans.ResourceInstanceChangeSrc)
 	Plan(plan *plans.Plan, schemas *terraform.Schemas)
-	PlanNextStep(planPath string)
+	PlanNextStep(planPath string, genConfigPath string)
 
 	Diagnostics(diags tfdiags.Diagnostics)
 }
@@ -86,7 +92,38 @@ func (v *OperationHuman) EmergencyDumpState(stateFile *statefile.File) error {
 }
 
 func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
-	renderPlan(plan, schemas, v.view)
+	outputs, changed, drift, attrs, err := jsonplan.MarshalForRenderer(plan, schemas)
+	if err != nil {
+		v.view.streams.Eprintf("Failed to marshal plan to json: %s", err)
+		return
+	}
+
+	renderer := jsonformat.Renderer{
+		Colorize:            v.view.colorize,
+		Streams:             v.view.streams,
+		RunningInAutomation: v.inAutomation,
+	}
+
+	jplan := jsonformat.Plan{
+		PlanFormatVersion:     jsonplan.FormatVersion,
+		ProviderFormatVersion: jsonprovider.FormatVersion,
+		OutputChanges:         outputs,
+		ResourceChanges:       changed,
+		ResourceDrift:         drift,
+		ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+		RelevantAttributes:    attrs,
+	}
+
+	// Side load some data that we can't extract from the JSON plan.
+	var opts []plans.Quality
+	if !plan.CanApply() {
+		opts = append(opts, plans.NoChanges)
+	}
+	if plan.Errored {
+		opts = append(opts, plans.Errored)
+	}
+
+	renderer.RenderHumanPlan(jplan, plan.UIMode, opts...)
 }
 
 func (v *OperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
@@ -98,20 +135,33 @@ func (v *OperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) 
 
 // PlanNextStep gives the user some next-steps, unless we're running in an
 // automation tool which is presumed to provide its own UI for further actions.
-func (v *OperationHuman) PlanNextStep(planPath string) {
+func (v *OperationHuman) PlanNextStep(planPath string, genConfigPath string) {
 	if v.inAutomation {
 		return
 	}
 	v.view.outputHorizRule()
 
+	if genConfigPath != "" {
+		v.view.streams.Printf(
+			format.WordWrap(
+				"\n"+strings.TrimSpace(fmt.Sprintf(planHeaderGenConfig, genConfigPath)),
+				v.view.outputColumns(),
+			) + "\n")
+	}
+
 	if planPath == "" {
 		v.view.streams.Print(
-			"\n" + strings.TrimSpace(format.WordWrap(planHeaderNoOutput, v.view.outputColumns())) + "\n",
+			format.WordWrap(
+				"\n"+strings.TrimSpace(planHeaderNoOutput),
+				v.view.outputColumns(),
+			) + "\n",
 		)
 	} else {
 		v.view.streams.Printf(
-			"\n"+strings.TrimSpace(format.WordWrap(planHeaderYesOutput, v.view.outputColumns()))+"\n",
-			planPath, planPath,
+			format.WordWrap(
+				"\n"+strings.TrimSpace(fmt.Sprintf(planHeaderYesOutput, planPath, planPath)),
+				v.view.outputColumns(),
+			) + "\n",
 		)
 	}
 }
@@ -178,6 +228,11 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 			// Avoid rendering data sources on deletion
 			continue
 		}
+
+		if change.Importing != nil {
+			cs.Import++
+		}
+
 		switch change.Action {
 		case plans.Create:
 			cs.Add++
@@ -190,7 +245,7 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 			cs.Remove++
 		}
 
-		if change.Action != plans.NoOp || !change.Addr.Equal(change.PrevRunAddr) {
+		if change.Action != plans.NoOp || !change.Addr.Equal(change.PrevRunAddr) || change.Importing != nil {
 			v.view.PlannedChange(json.NewResourceInstanceChange(change))
 		}
 	}
@@ -219,7 +274,7 @@ func (v *OperationJSON) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
 
 // PlanNextStep does nothing for the JSON view as it is a hook for user-facing
 // output only applicable to human-readable UI.
-func (v *OperationJSON) PlanNextStep(planPath string) {
+func (v *OperationJSON) PlanNextStep(planPath string, genConfigPath string) {
 }
 
 func (v *OperationJSON) Diagnostics(diags tfdiags.Diagnostics) {
@@ -245,4 +300,8 @@ Saved the plan to: %s
 
 To perform exactly these actions, run the following command to apply:
     terraform apply %q
+`
+
+const planHeaderGenConfig = `
+Terraform has generated configuration and written it to %s. Please review the configuration and edit it as necessary before adding it to version control.
 `

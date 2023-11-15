@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package cloud
 
 import (
@@ -6,6 +9,8 @@ import (
 	"testing"
 
 	tfe "github.com/hashicorp/go-tfe"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -16,7 +21,6 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestRemoteStoredVariableValue(t *testing.T) {
@@ -182,7 +186,7 @@ func TestRemoteContextWithVars(t *testing.T) {
 			b, bCleanup := testBackendWithName(t)
 			defer bCleanup()
 
-			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 			defer configCleanup()
 
 			workspaceID, err := b.getRemoteWorkspaceID(context.Background(), testBackendSingleWorkspaceName)
@@ -405,7 +409,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			b, bCleanup := testBackendWithName(t)
 			defer bCleanup()
 
-			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 			defer configCleanup()
 
 			workspaceID, err := b.getRemoteWorkspaceID(context.Background(), testBackendSingleWorkspaceName)

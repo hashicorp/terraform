@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -19,17 +22,21 @@ type ImportOpts struct {
 	SetVariables InputValues
 }
 
-// ImportTarget is a single resource to import.
+// ImportTarget is a single resource to import,
+// in legacy (CLI) import mode.
 type ImportTarget struct {
-	// Addr is the address for the resource instance that the new object should
-	// be imported into.
-	Addr addrs.AbsResourceInstance
+	// Config is the original import block for this import. This might be null
+	// if the import did not originate in config.
+	Config *configs.Import
 
-	// ID is the ID of the resource to import. This is resource-specific.
-	ID string
+	// LegacyAddr is the import address set from the command line arguments
+	// when using the import command.
+	LegacyAddr addrs.AbsResourceInstance
 
-	// ProviderAddr is the address of the provider that should handle the import.
-	ProviderAddr addrs.AbsProviderConfig
+	// IDString stores the evaluated ID from the Config for the import process.
+	// This is also used by the legacy import command to directly set the ID
+	// given from the CLI.
+	IDString string
 }
 
 // Import takes already-created external resources and brings them
@@ -81,6 +88,11 @@ func (c *Context) Import(config *configs.Config, prevRunState *states.State, opt
 	if walkDiags.HasErrors() {
 		return state, diags
 	}
+
+	// Data sources which could not be read during the import plan will be
+	// unknown. We need to strip those objects out so that the state can be
+	// serialized.
+	walker.State.RemovePlannedResourceInstanceObjects()
 
 	newState := walker.State.Close()
 	return newState, diags

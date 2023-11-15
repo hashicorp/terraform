@@ -1,0 +1,657 @@
+{
+  "format_version": "1.0",
+  "values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_complex_resource.complex",
+          "mode": "managed",
+          "name": "complex",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "schema_version": 0,
+          "sensitive_values": {
+            "list": [
+              {},
+              {},
+              {
+                "list": [
+                  {},
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              {
+                "set": [
+                  {},
+                  {}
+                ]
+              }
+            ],
+            "list_block": [
+              {
+                "list_block": [],
+                "set_block": []
+              },
+              {
+                "list": [
+                  {},
+                  {},
+                  {}
+                ],
+                "list_block": [],
+                "set_block": []
+              }
+            ],
+            "map": {
+              "key_four": {
+                "set": [
+                  {},
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "key_one": {},
+              "key_three": {
+                "list": [
+                  {},
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              "key_two": {}
+            },
+            "object": {
+              "object": {}
+            },
+            "set": [
+              {
+                "list": [
+                  {},
+                  {},
+                  {}
+                ]
+              },
+              {
+                "set": [
+                  {},
+                  {}
+                ]
+              },
+              {},
+              {}
+            ],
+            "set_block": [
+              {
+                "list": [
+                  {},
+                  {},
+                  {}
+                ],
+                "list_block": [],
+                "set_block": []
+              },
+              {
+                "list_block": [],
+                "set": [
+                  {},
+                  {}
+                ],
+                "set_block": []
+              },
+              {
+                "list_block": [],
+                "set_block": []
+              }
+            ]
+          },
+          "type": "tfcoremock_complex_resource",
+          "values": {
+            "bool": true,
+            "float": 123456789,
+            "id": "64564E36-BFCB-458B-9405-EBBF6A3CAC7A",
+            "integer": 123456789,
+            "list": [
+              {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": null,
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": null,
+                "string": "this is my first entry in the list, and doesn't contain anything interesting"
+              },
+              {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": null,
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": null,
+                "string": "this is my second entry in the list\nI am a bit more interesting\nand contain multiple lines\nbut I've been edited"
+              },
+              {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": [
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 0,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 1,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 3,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 4,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  }
+                ],
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": null,
+                "string": "this is my third entry, and I actually have a nested list"
+              },
+              {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": null,
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": [
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 0,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 2,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  }
+                ],
+                "string": "this is my fourth entry, and I actually have a nested set and I edited my test"
+              }
+            ],
+            "list_block": [
+              {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": null,
+                "list_block": [],
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": null,
+                "set_block": [],
+                "string": "{\"index\":0}"
+              },
+              {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": [
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 0,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 1,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 2,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  }
+                ],
+                "list_block": [],
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": null,
+                "set_block": [],
+                "string": "{\"index\":1}"
+              }
+            ],
+            "map": {
+              "key_four": {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": null,
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": [
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 0,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 1,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 3,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 4,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  }
+                ],
+                "string": "this is my fourth entry, and I actually have a nested set"
+              },
+              "key_one": {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": null,
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": null,
+                "string": "this is my first entry in the map, and doesn't contain anything interesting"
+              },
+              "key_three": {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": [
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 0,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 3,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 1,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 2,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  }
+                ],
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": null,
+                "string": "this is my third entry, and I actually have a nested list"
+              },
+              "key_two": {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": null,
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": null,
+                "string": "this is my second entry in the map\nI am a bit more interesting\nand contain multiple lines"
+              }
+            },
+            "number": 987654321,
+            "object": {
+              "bool": null,
+              "float": null,
+              "integer": null,
+              "list": null,
+              "map": null,
+              "number": 0,
+              "object": {
+                "bool": true,
+                "float": null,
+                "integer": null,
+                "list": null,
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": null,
+                "string": "i am a nested nested object"
+              },
+              "set": null,
+              "string": "i am a nested object"
+            },
+            "set": [
+              {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": [
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 0,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 1,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 2,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  }
+                ],
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": null,
+                "string": "this is my third entry, and I actually have a nested list"
+              },
+              {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": null,
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": [
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 0,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 1,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  }
+                ],
+                "string": "this is my fourth entry, and I actually have a nested set"
+              },
+              {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": null,
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": null,
+                "string": "this is my first entry in the set, and doesn't contain anything interesting"
+              },
+              {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": null,
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": null,
+                "string": "this is my second entry in the set\nI am a bit more interesting\nand contain multiple lines"
+              }
+            ],
+            "set_block": [
+              {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": [
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 0,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 1,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 2,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  }
+                ],
+                "list_block": [],
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": null,
+                "set_block": [],
+                "string": "{\"index\":1}"
+              },
+              {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": null,
+                "list_block": [],
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": [
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 0,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  },
+                  {
+                    "bool": null,
+                    "float": null,
+                    "integer": null,
+                    "list": null,
+                    "map": null,
+                    "number": 1,
+                    "object": null,
+                    "set": null,
+                    "string": null
+                  }
+                ],
+                "set_block": [],
+                "string": "{\"index\":2}"
+              },
+              {
+                "bool": null,
+                "float": null,
+                "integer": null,
+                "list": null,
+                "list_block": [],
+                "map": null,
+                "number": null,
+                "object": null,
+                "set": null,
+                "set_block": [],
+                "string": "{\"index\":3}"
+              }
+            ],
+            "string": "a not very long or complex string"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,16 +1,21 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package http
 
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"time"
 
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -93,6 +98,24 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_RETRY_WAIT_MAX", 30),
 				Description: "The maximum time in seconds to wait between HTTP request attempts.",
 			},
+			"client_ca_certificate_pem": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_CLIENT_CA_CERTIFICATE_PEM", ""),
+				Description: "A PEM-encoded CA certificate chain used by the client to verify server certificates during TLS authentication.",
+			},
+			"client_certificate_pem": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_CLIENT_CERTIFICATE_PEM", ""),
+				Description: "A PEM-encoded certificate used by the server to verify the client during mutual TLS (mTLS) authentication.",
+			},
+			"client_private_key_pem": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_CLIENT_PRIVATE_KEY_PEM", ""),
+				Description: "A PEM-encoded private key, required if client_certificate_pem is specified.",
+			},
 		},
 	}
 
@@ -105,6 +128,50 @@ type Backend struct {
 	*schema.Backend
 
 	client *httpClient
+}
+
+// configureTLS configures TLS when needed; if there are no conditions requiring TLS, no change is made.
+func (b *Backend) configureTLS(client *retryablehttp.Client, data *schema.ResourceData) error {
+	// If there are no conditions needing to configure TLS, leave the client untouched
+	skipCertVerification := data.Get("skip_cert_verification").(bool)
+	clientCACertificatePem := data.Get("client_ca_certificate_pem").(string)
+	clientCertificatePem := data.Get("client_certificate_pem").(string)
+	clientPrivateKeyPem := data.Get("client_private_key_pem").(string)
+	if !skipCertVerification && clientCACertificatePem == "" && clientCertificatePem == "" && clientPrivateKeyPem == "" {
+		return nil
+	}
+	if clientCertificatePem != "" && clientPrivateKeyPem == "" {
+		return fmt.Errorf("client_certificate_pem is set but client_private_key_pem is not")
+	}
+	if clientPrivateKeyPem != "" && clientCertificatePem == "" {
+		return fmt.Errorf("client_private_key_pem is set but client_certificate_pem is not")
+	}
+
+	// TLS configuration is needed; create an object and configure it
+	var tlsConfig tls.Config
+	client.HTTPClient.Transport.(*http.Transport).TLSClientConfig = &tlsConfig
+
+	if skipCertVerification {
+		// ignores TLS verification
+		tlsConfig.InsecureSkipVerify = true
+	}
+	if clientCACertificatePem != "" {
+		// trust servers based on a CA
+		tlsConfig.RootCAs = x509.NewCertPool()
+		if !tlsConfig.RootCAs.AppendCertsFromPEM([]byte(clientCACertificatePem)) {
+			return errors.New("failed to append certs")
+		}
+	}
+	if clientCertificatePem != "" && clientPrivateKeyPem != "" {
+		// attach a client certificate to the TLS handshake (aka mTLS)
+		certificate, err := tls.X509KeyPair([]byte(clientCertificatePem), []byte(clientPrivateKeyPem))
+		if err != nil {
+			return fmt.Errorf("cannot load client certificate: %w", err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{certificate}
+	}
+
+	return nil
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -149,21 +216,14 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	unlockMethod := data.Get("unlock_method").(string)
 
-	client := cleanhttp.DefaultPooledClient()
-
-	if data.Get("skip_cert_verification").(bool) {
-		// ignores TLS verification
-		client.Transport.(*http.Transport).TLSClientConfig = &tls.Config{
-			InsecureSkipVerify: true,
-		}
-	}
-
 	rClient := retryablehttp.NewClient()
-	rClient.HTTPClient = client
 	rClient.RetryMax = data.Get("retry_max").(int)
 	rClient.RetryWaitMin = time.Duration(data.Get("retry_wait_min").(int)) * time.Second
 	rClient.RetryWaitMax = time.Duration(data.Get("retry_wait_max").(int)) * time.Second
 	rClient.Logger = log.New(logging.LogOutput(), "", log.Flags())
+	if err = b.configureTLS(rClient, data); err != nil {
+		return err
+	}
 
 	b.client = &httpClient{
 		URL:          updateURL,
@@ -195,6 +255,6 @@ func (b *Backend) Workspaces() ([]string, error) {
 	return nil, backend.ErrWorkspacesNotSupported
 }
 
-func (b *Backend) DeleteWorkspace(string) error {
+func (b *Backend) DeleteWorkspace(string, bool) error {
 	return backend.ErrWorkspacesNotSupported
 }

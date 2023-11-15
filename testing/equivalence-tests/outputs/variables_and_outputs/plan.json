@@ -1,0 +1,402 @@
+{
+  "configuration": {
+    "root_module": {
+      "outputs": {
+        "list_empty_default": {
+          "expression": {
+            "references": [
+              "var.list_empty_default"
+            ]
+          }
+        },
+        "list_no_default": {
+          "expression": {
+            "references": [
+              "var.list_no_default"
+            ]
+          }
+        },
+        "nested_optional_object": {
+          "expression": {
+            "references": [
+              "var.nested_optional_object"
+            ]
+          }
+        },
+        "nested_optional_object_with_default": {
+          "expression": {
+            "references": [
+              "var.nested_optional_object_with_default"
+            ]
+          }
+        },
+        "nested_optional_object_with_embedded_default": {
+          "expression": {
+            "references": [
+              "var.nested_optional_object_with_embedded_default"
+            ]
+          }
+        }
+      },
+      "variables": {
+        "list_empty_default": {
+          "default": []
+        },
+        "list_no_default": {},
+        "nested_optional_object": {
+          "default": {
+            "nested_object": null
+          }
+        },
+        "nested_optional_object_with_default": {
+          "default": {
+            "nested_object": {
+              "flag": false
+            }
+          }
+        },
+        "nested_optional_object_with_embedded_default": {
+          "default": {
+            "nested_object": {
+              "flag": false
+            }
+          }
+        }
+      }
+    }
+  },
+  "format_version": "1.1",
+  "output_changes": {
+    "list_empty_default": {
+      "actions": [
+        "create"
+      ],
+      "after": [],
+      "after_sensitive": false,
+      "after_unknown": false,
+      "before": null,
+      "before_sensitive": false
+    },
+    "list_no_default": {
+      "actions": [
+        "create"
+      ],
+      "after": [
+        {
+          "optional_attribute": null,
+          "optional_attribute_with_default": "Hello, world!",
+          "required_attribute": "D92053D5-948A-4E5E-80BF-E53F0DB33EB5"
+        },
+        {
+          "optional_attribute": "8AC4B9EE-9E05-4AE0-AA35-6D7636AEA487",
+          "optional_attribute_with_default": "Hello, world!",
+          "required_attribute": "E6DA6176-49FB-46D6-9ECD-401B3F46A3E5"
+        },
+        {
+          "optional_attribute": "E68C1EB0-3D3D-4DB0-A41D-0F8C334E181C",
+          "optional_attribute_with_default": "92E855B2-A444-49DF-AFCA-2B5B017451B4",
+          "required_attribute": "9F9922C4-B426-4648-96AE-804A6F52F778"
+        }
+      ],
+      "after_sensitive": false,
+      "after_unknown": false,
+      "before": null,
+      "before_sensitive": false
+    },
+    "nested_optional_object": {
+      "actions": [
+        "create"
+      ],
+      "after": {
+        "nested_object": null
+      },
+      "after_sensitive": false,
+      "after_unknown": false,
+      "before": null,
+      "before_sensitive": false
+    },
+    "nested_optional_object_with_default": {
+      "actions": [
+        "create"
+      ],
+      "after": {
+        "nested_object": {
+          "flag": false
+        }
+      },
+      "after_sensitive": false,
+      "after_unknown": false,
+      "before": null,
+      "before_sensitive": false
+    },
+    "nested_optional_object_with_embedded_default": {
+      "actions": [
+        "create"
+      ],
+      "after": {
+        "nested_object": {
+          "flag": false
+        }
+      },
+      "after_sensitive": false,
+      "after_unknown": false,
+      "before": null,
+      "before_sensitive": false
+    }
+  },
+  "planned_values": {
+    "outputs": {
+      "list_empty_default": {
+        "sensitive": false,
+        "type": [
+          "list",
+          [
+            "object",
+            {
+              "optional_attribute": "string",
+              "optional_attribute_with_default": "string",
+              "required_attribute": "string"
+            }
+          ]
+        ],
+        "value": []
+      },
+      "list_no_default": {
+        "sensitive": false,
+        "type": [
+          "list",
+          [
+            "object",
+            {
+              "optional_attribute": "string",
+              "optional_attribute_with_default": "string",
+              "required_attribute": "string"
+            }
+          ]
+        ],
+        "value": [
+          {
+            "optional_attribute": null,
+            "optional_attribute_with_default": "Hello, world!",
+            "required_attribute": "D92053D5-948A-4E5E-80BF-E53F0DB33EB5"
+          },
+          {
+            "optional_attribute": "8AC4B9EE-9E05-4AE0-AA35-6D7636AEA487",
+            "optional_attribute_with_default": "Hello, world!",
+            "required_attribute": "E6DA6176-49FB-46D6-9ECD-401B3F46A3E5"
+          },
+          {
+            "optional_attribute": "E68C1EB0-3D3D-4DB0-A41D-0F8C334E181C",
+            "optional_attribute_with_default": "92E855B2-A444-49DF-AFCA-2B5B017451B4",
+            "required_attribute": "9F9922C4-B426-4648-96AE-804A6F52F778"
+          }
+        ]
+      },
+      "nested_optional_object": {
+        "sensitive": false,
+        "type": [
+          "object",
+          {
+            "nested_object": [
+              "object",
+              {
+                "flag": "bool"
+              }
+            ]
+          }
+        ],
+        "value": {
+          "nested_object": null
+        }
+      },
+      "nested_optional_object_with_default": {
+        "sensitive": false,
+        "type": [
+          "object",
+          {
+            "nested_object": [
+              "object",
+              {
+                "flag": "bool"
+              }
+            ]
+          }
+        ],
+        "value": {
+          "nested_object": {
+            "flag": false
+          }
+        }
+      },
+      "nested_optional_object_with_embedded_default": {
+        "sensitive": false,
+        "type": [
+          "object",
+          {
+            "nested_object": [
+              "object",
+              {
+                "flag": "bool"
+              }
+            ]
+          }
+        ],
+        "value": {
+          "nested_object": {
+            "flag": false
+          }
+        }
+      }
+    },
+    "root_module": {}
+  },
+  "prior_state": {
+    "format_version": "1.0",
+    "values": {
+      "outputs": {
+        "list_empty_default": {
+          "sensitive": false,
+          "type": [
+            "list",
+            [
+              "object",
+              {
+                "optional_attribute": "string",
+                "optional_attribute_with_default": "string",
+                "required_attribute": "string"
+              }
+            ]
+          ],
+          "value": []
+        },
+        "list_no_default": {
+          "sensitive": false,
+          "type": [
+            "list",
+            [
+              "object",
+              {
+                "optional_attribute": "string",
+                "optional_attribute_with_default": "string",
+                "required_attribute": "string"
+              }
+            ]
+          ],
+          "value": [
+            {
+              "optional_attribute": null,
+              "optional_attribute_with_default": "Hello, world!",
+              "required_attribute": "D92053D5-948A-4E5E-80BF-E53F0DB33EB5"
+            },
+            {
+              "optional_attribute": "8AC4B9EE-9E05-4AE0-AA35-6D7636AEA487",
+              "optional_attribute_with_default": "Hello, world!",
+              "required_attribute": "E6DA6176-49FB-46D6-9ECD-401B3F46A3E5"
+            },
+            {
+              "optional_attribute": "E68C1EB0-3D3D-4DB0-A41D-0F8C334E181C",
+              "optional_attribute_with_default": "92E855B2-A444-49DF-AFCA-2B5B017451B4",
+              "required_attribute": "9F9922C4-B426-4648-96AE-804A6F52F778"
+            }
+          ]
+        },
+        "nested_optional_object": {
+          "sensitive": false,
+          "type": [
+            "object",
+            {
+              "nested_object": [
+                "object",
+                {
+                  "flag": "bool"
+                }
+              ]
+            }
+          ],
+          "value": {
+            "nested_object": null
+          }
+        },
+        "nested_optional_object_with_default": {
+          "sensitive": false,
+          "type": [
+            "object",
+            {
+              "nested_object": [
+                "object",
+                {
+                  "flag": "bool"
+                }
+              ]
+            }
+          ],
+          "value": {
+            "nested_object": {
+              "flag": false
+            }
+          }
+        },
+        "nested_optional_object_with_embedded_default": {
+          "sensitive": false,
+          "type": [
+            "object",
+            {
+              "nested_object": [
+                "object",
+                {
+                  "flag": "bool"
+                }
+              ]
+            }
+          ],
+          "value": {
+            "nested_object": {
+              "flag": false
+            }
+          }
+        }
+      },
+      "root_module": {}
+    }
+  },
+  "variables": {
+    "list_empty_default": {
+      "value": []
+    },
+    "list_no_default": {
+      "value": [
+        {
+          "required_attribute": "D92053D5-948A-4E5E-80BF-E53F0DB33EB5"
+        },
+        {
+          "optional_attribute": "8AC4B9EE-9E05-4AE0-AA35-6D7636AEA487",
+          "required_attribute": "E6DA6176-49FB-46D6-9ECD-401B3F46A3E5"
+        },
+        {
+          "optional_attribute": "E68C1EB0-3D3D-4DB0-A41D-0F8C334E181C",
+          "optional_attribute_with_default": "92E855B2-A444-49DF-AFCA-2B5B017451B4",
+          "required_attribute": "9F9922C4-B426-4648-96AE-804A6F52F778"
+        }
+      ]
+    },
+    "nested_optional_object": {
+      "value": {
+        "nested_object": null
+      }
+    },
+    "nested_optional_object_with_default": {
+      "value": {
+        "nested_object": {
+          "flag": false
+        }
+      }
+    },
+    "nested_optional_object_with_embedded_default": {
+      "value": {
+        "nested_object": {
+          "flag": false
+        }
+      }
+    }
+  }
+}

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package addrs
 
 import (
@@ -30,6 +33,22 @@ func (r Resource) String() string {
 
 func (r Resource) Equal(o Resource) bool {
 	return r.Mode == o.Mode && r.Name == o.Name && r.Type == o.Type
+}
+
+func (r Resource) Less(o Resource) bool {
+	switch {
+	case r.Mode != o.Mode:
+		return r.Mode == DataResourceMode
+
+	case r.Type != o.Type:
+		return r.Type < o.Type
+
+	case r.Name != o.Name:
+		return r.Name < o.Name
+
+	default:
+		return false
+	}
 }
 
 func (r Resource) UniqueKey() UniqueKey {
@@ -98,6 +117,18 @@ func (r ResourceInstance) String() string {
 
 func (r ResourceInstance) Equal(o ResourceInstance) bool {
 	return r.Key == o.Key && r.Resource.Equal(o.Resource)
+}
+
+func (r ResourceInstance) Less(o ResourceInstance) bool {
+	if !r.Resource.Equal(o.Resource) {
+		return r.Resource.Less(o.Resource)
+	}
+
+	if r.Key != o.Key {
+		return InstanceKeyLess(r.Key, o.Key)
+	}
+
+	return false
 }
 
 func (r ResourceInstance) UniqueKey() UniqueKey {
@@ -195,6 +226,18 @@ func (r AbsResource) Equal(o AbsResource) bool {
 	return r.Module.Equal(o.Module) && r.Resource.Equal(o.Resource)
 }
 
+func (r AbsResource) Less(o AbsResource) bool {
+	if !r.Module.Equal(o.Module) {
+		return r.Module.Less(o.Module)
+	}
+
+	if !r.Resource.Equal(o.Resource) {
+		return r.Resource.Less(o.Resource)
+	}
+
+	return false
+}
+
 func (r AbsResource) absMoveableSigil() {
 	// AbsResource is moveable
 }
@@ -210,7 +253,6 @@ func (r AbsResource) UniqueKey() UniqueKey {
 // AbsResourceInstance is an absolute address for a resource instance under a
 // given module path.
 type AbsResourceInstance struct {
-	checkable
 	targetable
 	Module   ModuleInstance
 	Resource ResourceInstance
@@ -238,6 +280,15 @@ func (r AbsResourceInstance) ContainingResource() AbsResource {
 	return AbsResource{
 		Module:   r.Module,
 		Resource: r.Resource.ContainingResource(),
+	}
+}
+
+// ConfigResource returns the address of the configuration block that declared
+// this instance.
+func (r AbsResourceInstance) ConfigResource() ConfigResource {
+	return ConfigResource{
+		Module:   r.Module.Module(),
+		Resource: r.Resource.Resource,
 	}
 }
 
@@ -281,12 +332,16 @@ func (r AbsResourceInstance) AffectedAbsResource() AbsResource {
 	}
 }
 
-func (r AbsResourceInstance) Check(t CheckType, i int) Check {
-	return Check{
+func (r AbsResourceInstance) CheckRule(t CheckRuleType, i int) CheckRule {
+	return CheckRule{
 		Container: r,
 		Type:      t,
 		Index:     i,
 	}
+}
+
+func (v AbsResourceInstance) CheckableKind() CheckableKind {
+	return CheckableResource
 }
 
 func (r AbsResourceInstance) Equal(o AbsResourceInstance) bool {
@@ -296,30 +351,23 @@ func (r AbsResourceInstance) Equal(o AbsResourceInstance) bool {
 // Less returns true if the receiver should sort before the given other value
 // in a sorted list of addresses.
 func (r AbsResourceInstance) Less(o AbsResourceInstance) bool {
-	switch {
-
-	case len(r.Module) != len(o.Module):
-		return len(r.Module) < len(o.Module)
-
-	case r.Module.String() != o.Module.String():
+	if !r.Module.Equal(o.Module) {
 		return r.Module.Less(o.Module)
-
-	case r.Resource.Resource.Mode != o.Resource.Resource.Mode:
-		return r.Resource.Resource.Mode == DataResourceMode
-
-	case r.Resource.Resource.Type != o.Resource.Resource.Type:
-		return r.Resource.Resource.Type < o.Resource.Resource.Type
-
-	case r.Resource.Resource.Name != o.Resource.Resource.Name:
-		return r.Resource.Resource.Name < o.Resource.Resource.Name
-
-	case r.Resource.Key != o.Resource.Key:
-		return InstanceKeyLess(r.Resource.Key, o.Resource.Key)
-
-	default:
-		return false
-
 	}
+
+	if !r.Resource.Equal(o.Resource) {
+		return r.Resource.Less(o.Resource)
+	}
+
+	return false
+}
+
+// AbsResourceInstance is a Checkable
+func (r AbsResourceInstance) checkableSigil() {}
+
+func (r AbsResourceInstance) ConfigCheckable() ConfigCheckable {
+	// The ConfigCheckable for an AbsResourceInstance is its ConfigResource.
+	return r.ConfigResource()
 }
 
 type absResourceInstanceKey string
@@ -393,9 +441,25 @@ func (r ConfigResource) Equal(o ConfigResource) bool {
 	return r.Module.Equal(o.Module) && r.Resource.Equal(o.Resource)
 }
 
-func (r ConfigResource) configMoveableSigil() {
-	// AbsResource is moveable
+func (r ConfigResource) UniqueKey() UniqueKey {
+	return configResourceKey(r.String())
 }
+
+func (r ConfigResource) configMoveableSigil() {
+	// ConfigResource is moveable
+}
+
+func (r ConfigResource) configCheckableSigil() {
+	// ConfigResource represents a configuration object that declares checkable objects
+}
+
+func (v ConfigResource) CheckableKind() CheckableKind {
+	return CheckableResource
+}
+
+type configResourceKey string
+
+func (k configResourceKey) uniqueKeySigil() {}
 
 // ResourceMode defines which lifecycle applies to a given resource. Each
 // resource lifecycle has a slightly different address format.

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package e2e
 
 import (
@@ -150,8 +153,8 @@ func (b *binary) Run(args ...string) (stdout, stderr string, err error) {
 // Path returns a file path within the temporary working directory by
 // appending the given arguments as path segments.
 func (b *binary) Path(parts ...string) string {
-	args := make([]string, len(parts)+1)
-	args[0] = b.workDir
+	args := make([]string, 0, len(parts)+1)
+	args = append(args, b.workDir)
 	args = append(args, parts...)
 	return filepath.Join(args...)
 }

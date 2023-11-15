@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package planfile
 
 import (
@@ -8,9 +11,11 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 func TestTFPlanRoundTrip(t *testing.T) {
@@ -21,32 +26,6 @@ func TestTFPlanRoundTrip(t *testing.T) {
 	plan := &plans.Plan{
 		VariableValues: map[string]plans.DynamicValue{
 			"foo": mustNewDynamicValueStr("foo value"),
-		},
-		Conditions: plans.Conditions{
-			"test_thing.woot[0].preconditions[0]": &plans.ConditionResult{
-				Address: addrs.Resource{
-					Mode: addrs.ManagedResourceMode,
-					Type: "test_thing",
-					Name: "woot",
-				}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
-				Result:       cty.False,
-				Type:         addrs.ResourcePrecondition,
-				ErrorMessage: "Invalid thing: too much woot.",
-			},
-			"test_thing.woot[0].postconditions[0]": &plans.ConditionResult{
-				Address: addrs.Resource{
-					Mode: addrs.ManagedResourceMode,
-					Type: "test_thing",
-					Name: "woot",
-				}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
-				Result: cty.UnknownVal(cty.Bool),
-				Type:   addrs.ResourcePostcondition,
-			},
-			"output.bar.preconditions[0]": &plans.ConditionResult{
-				Address: addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
-				Result:  cty.True,
-				Type:    addrs.OutputPrecondition,
-			},
 		},
 		Changes: &plans.Changes{
 			Outputs: []*plans.OutputChangeSrc{
@@ -143,6 +122,33 @@ func TestTFPlanRoundTrip(t *testing.T) {
 						}), objTy),
 					},
 				},
+				{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "importing",
+					}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance),
+					PrevRunAddr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "importing",
+					}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.NoOp,
+						Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+							"id": cty.StringVal("testing"),
+						}), objTy),
+						After: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+							"id": cty.StringVal("testing"),
+						}), objTy),
+						Importing:       &plans.ImportingSrc{ID: "testing"},
+						GeneratedConfig: "resource \\\"test_thing\\\" \\\"importing\\\" {}",
+					},
+				},
 			},
 		},
 		DriftedResources: []*plans.ResourceInstanceChangeSrc{
@@ -194,6 +200,52 @@ func TestTFPlanRoundTrip(t *testing.T) {
 				}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
 				Attr: cty.GetAttrPath("boop").Index(cty.NumberIntVal(1)),
 			},
+		},
+		Checks: &states.CheckResults{
+			ConfigResults: addrs.MakeMap(
+				addrs.MakeMapElem[addrs.ConfigCheckable](
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "woot",
+					}.InModule(addrs.RootModule),
+					&states.CheckResultAggregate{
+						Status: checks.StatusFail,
+						ObjectResults: addrs.MakeMap(
+							addrs.MakeMapElem[addrs.Checkable](
+								addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_thing",
+									Name: "woot",
+								}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+								&states.CheckResultObject{
+									Status:          checks.StatusFail,
+									FailureMessages: []string{"Oh no!"},
+								},
+							),
+						),
+					},
+				),
+				addrs.MakeMapElem[addrs.ConfigCheckable](
+					addrs.Check{
+						Name: "check",
+					}.InModule(addrs.RootModule),
+					&states.CheckResultAggregate{
+						Status: checks.StatusFail,
+						ObjectResults: addrs.MakeMap(
+							addrs.MakeMapElem[addrs.Checkable](
+								addrs.Check{
+									Name: "check",
+								}.Absolute(addrs.RootModuleInstance),
+								&states.CheckResultObject{
+									Status:          checks.StatusFail,
+									FailureMessages: []string{"check failed"},
+								},
+							),
+						),
+					},
+				),
+			),
 		},
 		TargetAddrs: []addrs.Targetable{
 			addrs.Resource{

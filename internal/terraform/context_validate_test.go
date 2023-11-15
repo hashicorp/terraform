@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -2443,6 +2446,71 @@ resource "aws_instance" "test" {
 	})
 
 	diags := ctx.Validate(m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Validate_deprecatedAttr(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true, Deprecated: true},
+				},
+			},
+		},
+	})
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "aws_instance" "test" {
+}
+locals {
+  deprecated = aws_instance.test.foo
+}
+
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	warn := diags.ErrWithWarnings().Error()
+	if !strings.Contains(warn, `The attribute "foo" is deprecated`) {
+		t.Fatalf("expected deprecated warning, got: %q\n", warn)
+	}
+}
+
+func TestContext2Validate_unknownForEach(t *testing.T) {
+	p := testProvider("aws")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "aws_instance" "test" {
+}
+
+locals {
+  follow = {
+    (aws_instance.test.id): "follow"
+  }
+}
+
+resource "aws_instance" "follow" {
+  for_each = local.follow
+}
+ `,
+	})
+	c := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := c.Validate(m)
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}

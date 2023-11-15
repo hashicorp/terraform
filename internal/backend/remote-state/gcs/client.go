@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package gcs
 
 import (
@@ -23,6 +26,7 @@ type remoteClient struct {
 	stateFilePath  string
 	lockFilePath   string
 	encryptionKey  []byte
+	kmsKeyName     string
 }
 
 func (c *remoteClient) Get() (payload *remote.Payload, err error) {
@@ -57,6 +61,9 @@ func (c *remoteClient) Get() (payload *remote.Payload, err error) {
 func (c *remoteClient) Put(data []byte) error {
 	err := func() error {
 		stateFileWriter := c.stateFile().NewWriter(c.storageContext)
+		if len(c.kmsKeyName) > 0 {
+			stateFileWriter.KMSKeyName = c.kmsKeyName
+		}
 		if _, err := stateFileWriter.Write(data); err != nil {
 			return err
 		}

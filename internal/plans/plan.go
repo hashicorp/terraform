@@ -1,13 +1,19 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package plans
 
 import (
 	"sort"
+	"time"
+
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Plan is the top-level type representing a planned set of changes.
@@ -28,15 +34,33 @@ type Plan struct {
 	// to the end-user, and so it must not be used to influence apply-time
 	// behavior. The actions during apply must be described entirely by
 	// the Changes field, regardless of how the plan was created.
+	//
+	// FIXME: destroy operations still rely on DestroyMode being set, because
+	// there is no other source of this information in the plan. New behavior
+	// should not be added based on this flag, and changing the flag should be
+	// checked carefully against existing destroy behaviors.
 	UIMode Mode
 
 	VariableValues    map[string]DynamicValue
 	Changes           *Changes
-	Conditions        Conditions
 	DriftedResources  []*ResourceInstanceChangeSrc
 	TargetAddrs       []addrs.Targetable
 	ForceReplaceAddrs []addrs.AbsResourceInstance
 	Backend           Backend
+
+	// Errored is true if the Changes information is incomplete because
+	// the planning operation failed. An errored plan cannot be applied,
+	// but can be cautiously inspected for debugging purposes.
+	Errored bool
+
+	// Checks captures a snapshot of the (probably-incomplete) check results
+	// at the end of the planning process.
+	//
+	// If this plan is applyable (that is, if the planning process completed
+	// without errors) then the set of checks here should be complete even
+	// though some of them will likely have StatusUnknown where the check
+	// condition depends on values we won't know until the apply step.
+	Checks *states.CheckResults
 
 	// RelevantAttributes is a set of resource instance addresses and
 	// attributes that are either directly affected by proposed changes or may
@@ -65,6 +89,39 @@ type Plan struct {
 	// order to report to the user any out-of-band changes we've detected.
 	PrevRunState *states.State
 	PriorState   *states.State
+
+	// PlannedState is the temporary planned state that was created during the
+	// graph walk that generated this plan.
+	//
+	// This is required by the testing framework when evaluating run blocks
+	// executing in plan mode. The graph updates the state with certain values
+	// that are difficult to retrieve later, such as local values that reference
+	// updated resources. It is easier to build the testing scope with access
+	// to same temporary state the plan used/built.
+	//
+	// This is never recorded outside of Terraform. It is not written into the
+	// binary plan file, and it is not written into the JSON structured outputs.
+	// The testing framework never writes the plans out but holds everything in
+	// memory as it executes, so there is no need to add any kind of
+	// serialization for this field. This does mean that you shouldn't rely on
+	// this field existing unless you have just generated the plan.
+	PlannedState *states.State
+
+	// ExternalReferences are references that are being made to resources within
+	// the plan from external sources. As with PlannedState this is used by the
+	// terraform testing framework, and so isn't written into any external
+	// representation of the plan.
+	ExternalReferences []*addrs.Reference
+
+	// Overrides contains the set of overrides that were applied while making
+	// this plan. We need to provide the same set of overrides when applying
+	// the plan so we preserve them here. As with PlannedState and
+	// ExternalReferences, this is only used by the testing framework and so
+	// isn't written into any external representation of the plan.
+	Overrides *mocking.Overrides
+
+	// Timestamp is the record of truth for when the plan happened.
+	Timestamp time.Time
 }
 
 // CanApply returns true if and only if the recieving plan includes content
@@ -79,6 +136,13 @@ type Plan struct {
 // locations in the UI code.
 func (p *Plan) CanApply() bool {
 	switch {
+	case p.Errored:
+		// An errored plan can never be applied, because it is incomplete.
+		// Such a plan is only useful for describing the subset of actions
+		// planned so far in case they are useful for understanding the
+		// causes of the errors.
+		return false
+
 	case !p.Changes.Empty():
 		// "Empty" means that everything in the changes is a "NoOp", so if
 		// not empty then there's at least one non-NoOp change.

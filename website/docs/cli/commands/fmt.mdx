@@ -9,7 +9,7 @@ description: >-
 
 The `terraform fmt` command is used to rewrite Terraform configuration files
 to a canonical format and style. This command applies a subset of
-the [Terraform language style conventions](/language/syntax/style),
+the [Terraform language style conventions](/terraform/language/syntax/style),
 along with other minor adjustments for readability.
 
 Other Terraform commands that generate Terraform configuration will produce
@@ -45,15 +45,22 @@ and the generated files.
 
 ## Usage
 
-Usage: `terraform fmt [options] [TARGET]`
+Usage: `terraform fmt [options] [target...]`
 
-By default, `fmt` scans the current directory for configuration files. If
-you provide a directory for the `target` argument, then `fmt` will scan that directory instead. If you provide a file, then `fmt` will process just that file. If you provide a single dash (`-`), then `fmt` will read from standard input (STDIN).
+By default, `fmt` scans the current directory for configuration files. If you
+provide a directory for the `target` argument, then `fmt` will scan that
+directory instead. If you provide a file, then `fmt` will process just that
+file. If you provide a single dash (`-`), then `fmt` will read from standard
+input (STDIN).
 
-The command-line flags are all optional. The following flags are available:
+
+The command-line flags are all optional. If no flag is given, `fmt` rewrites
+the Terraform configuration files to a canonical format and style.
+
+The following flags are available:
 
 * `-list=false` - Don't list the files containing formatting inconsistencies.
 * `-write=false` - Don't overwrite the input files. (This is implied by `-check` or when the input is STDIN.)
-* `-diff` - Display diffs of formatting changes
+* `-diff` - Display diffs of formatting changes.
 * `-check` - Check if the input is formatted. Exit status will be 0 if all input is properly formatted. If not, exit status will be non-zero and the command will output a list of filenames whose files are not properly formatted.
 * `-recursive` - Also process files in subdirectories. By default, only the given directory (or current directory) is processed.

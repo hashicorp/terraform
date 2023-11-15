@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package cloud
 
 import (
@@ -15,10 +18,14 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	mocks "github.com/hashicorp/go-tfe/mocks"
 	version "github.com/hashicorp/go-version"
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/initwd"
@@ -28,7 +35,6 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 	tfversion "github.com/hashicorp/terraform/version"
-	"github.com/mitchellh/cli"
 )
 
 func testOperationApply(t *testing.T, configDir string) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
@@ -40,7 +46,7 @@ func testOperationApply(t *testing.T, configDir string) (*backend.Operation, fun
 func testOperationApplyWithTimeout(t *testing.T, configDir string, timeout time.Duration) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -107,6 +113,153 @@ func TestCloud_applyBasic(t *testing.T) {
 		t.Fatalf("expected apply summery in output: %s", output)
 	}
 
+	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
+	// An error suggests that the state was not unlocked after apply
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after apply: %s", err.Error())
+	}
+}
+
+func TestCloud_applyJSONBasic(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply-json")
+	defer configCleanup()
+	defer done(t)
+
+	input := testInput(t, map[string]string{
+		"approve": "yes",
+	})
+
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = testBackendSingleWorkspaceName
+
+	mockSROWorkspace(t, b, op.Workspace)
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	if len(input.answers) > 0 {
+		t.Fatalf("expected no unused answers, got: %v", input.answers)
+	}
+
+	outp := close(t)
+	gotOut := outp.Stdout()
+
+	if !strings.Contains(gotOut, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summary in output: %s", gotOut)
+	}
+	if !strings.Contains(gotOut, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("expected apply summary in output: %s", gotOut)
+	}
+
+	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
+	// An error suggests that the state was not unlocked after apply
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after apply: %s", err.Error())
+	}
+}
+
+func TestCloud_applyJSONWithOutputs(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply-json-with-outputs")
+	defer configCleanup()
+	defer done(t)
+
+	input := testInput(t, map[string]string{
+		"approve": "yes",
+	})
+
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = testBackendSingleWorkspaceName
+
+	mockSROWorkspace(t, b, op.Workspace)
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	if len(input.answers) > 0 {
+		t.Fatalf("expected no unused answers, got: %v", input.answers)
+	}
+
+	outp := close(t)
+	gotOut := outp.Stdout()
+	expectedSimpleOutput := `simple = [
+        "some",
+        "list",
+    ]`
+	expectedSensitiveOutput := `secret = (sensitive value)`
+	expectedComplexOutput := `complex = {
+        keyA = {
+            someList = [
+                1,
+                2,
+                3,
+            ]
+        }
+        keyB = {
+            someBool = true
+            someStr  = "hello"
+        }
+    }`
+
+	if !strings.Contains(gotOut, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summary in output: %s", gotOut)
+	}
+	if !strings.Contains(gotOut, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("expected apply summary in output: %s", gotOut)
+	}
+	if !strings.Contains(gotOut, "Outputs:") {
+		t.Fatalf("expected output header: %s", gotOut)
+	}
+	if !strings.Contains(gotOut, expectedSimpleOutput) {
+		t.Fatalf("expected output: %s, got: %s", expectedSimpleOutput, gotOut)
+	}
+	if !strings.Contains(gotOut, expectedSensitiveOutput) {
+		t.Fatalf("expected output: %s, got: %s", expectedSensitiveOutput, gotOut)
+	}
+	if !strings.Contains(gotOut, expectedComplexOutput) {
+		t.Fatalf("expected output: %s, got: %s", expectedComplexOutput, gotOut)
+	}
 	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
 	// An error suggests that the state was not unlocked after apply
 	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
@@ -255,14 +408,15 @@ func TestCloud_applyWithParallelism(t *testing.T) {
 	}
 }
 
-func TestCloud_applyWithPlan(t *testing.T) {
+// Apply with local plan file should fail.
+func TestCloud_applyWithLocalPlan(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
 	defer configCleanup()
 
-	op.PlanFile = &planfile.Reader{}
+	op.PlanFile = planfile.NewWrappedLocal(&planfile.Reader{})
 	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
@@ -280,8 +434,77 @@ func TestCloud_applyWithPlan(t *testing.T) {
 	}
 
 	errOutput := output.Stderr()
-	if !strings.Contains(errOutput, "saved plan is currently not supported") {
+	if !strings.Contains(errOutput, "saved local plan is not supported") {
 		t.Fatalf("expected a saved plan error, got: %v", errOutput)
+	}
+}
+
+// Apply with bookmark to an existing cloud plan that's in a confirmable state
+// should work.
+func TestCloud_applyWithCloudPlan(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply-json")
+	defer configCleanup()
+	defer done(t)
+
+	op.UIOut = b.CLI
+	op.Workspace = testBackendSingleWorkspaceName
+
+	mockSROWorkspace(t, b, op.Workspace)
+
+	// Perform the plan before trying to apply it
+	ws, err := b.client.Workspaces.Read(context.Background(), b.organization, b.WorkspaceMapping.Name)
+	if err != nil {
+		t.Fatalf("Couldn't read workspace: %s", err)
+	}
+
+	planRun, err := b.plan(context.Background(), context.Background(), op, ws)
+	if err != nil {
+		t.Fatalf("Couldn't perform plan: %s", err)
+	}
+
+	// Synthesize a cloud plan file with the plan's run ID
+	pf := &cloudplan.SavedPlanBookmark{
+		RemotePlanFormat: 1,
+		RunID:            planRun.ID,
+		Hostname:         b.Hostname,
+	}
+	op.PlanFile = planfile.NewWrappedCloud(pf)
+
+	// Start spying on the apply output (now that the plan's done)
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+
+	// Try apply
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	output := close(t)
+	if run.Result != backend.OperationSuccess {
+		t.Fatal("expected apply operation to succeed")
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected plan to not be empty")
+	}
+
+	gotOut := output.Stdout()
+	if !strings.Contains(gotOut, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("expected apply summary in output: %s", gotOut)
+	}
+
+	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
+	// An error suggests that the state was not unlocked after apply
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after apply: %s", err.Error())
 	}
 }
 
@@ -1114,6 +1337,103 @@ func TestCloud_applyDestroyNoConfig(t *testing.T) {
 	}
 }
 
+func TestCloud_applyJSONWithProvisioner(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+	input := testInput(t, map[string]string{
+		"approve": "yes",
+	})
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply-json-with-provisioner")
+	defer configCleanup()
+	defer done(t)
+
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = testBackendSingleWorkspaceName
+
+	mockSROWorkspace(t, b, op.Workspace)
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	if len(input.answers) > 0 {
+		t.Fatalf("expected no unused answers, got: %v", input.answers)
+	}
+
+	outp := close(t)
+	gotOut := outp.Stdout()
+	if !strings.Contains(gotOut, "null_resource.foo: Provisioning with 'local-exec'") {
+		t.Fatalf("expected provisioner local-exec start in logs: %s", gotOut)
+	}
+
+	if !strings.Contains(gotOut, "null_resource.foo: (local-exec):") {
+		t.Fatalf("expected provisioner local-exec progress in logs: %s", gotOut)
+	}
+
+	if !strings.Contains(gotOut, "Hello World!") {
+		t.Fatalf("expected provisioner local-exec output in logs: %s", gotOut)
+	}
+
+	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
+	// An error suggests that the state was not unlocked after apply
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after apply: %s", err.Error())
+	}
+}
+
+func TestCloud_applyJSONWithProvisionerError(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply-json-with-provisioner-error")
+	defer configCleanup()
+	defer done(t)
+
+	op.Workspace = testBackendSingleWorkspaceName
+
+	mockSROWorkspace(t, b, op.Workspace)
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+
+	outp := close(t)
+	gotOut := outp.Stdout()
+
+	if !strings.Contains(gotOut, "local-exec provisioner error") {
+		t.Fatalf("unexpected error in apply logs: %s", gotOut)
+	}
+}
+
 func TestCloud_applyPolicyPass(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
@@ -1440,6 +1760,46 @@ func TestCloud_applyWithRemoteError(t *testing.T) {
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
 	if !strings.Contains(output, "null_resource.foo: 1 error") {
 		t.Fatalf("expected apply error in output: %s", output)
+	}
+}
+
+func TestCloud_applyJSONWithRemoteError(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply-json-with-error")
+	defer configCleanup()
+	defer done(t)
+
+	op.Workspace = testBackendSingleWorkspaceName
+
+	mockSROWorkspace(t, b, op.Workspace)
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("expected apply operation to fail")
+	}
+	if run.Result.ExitStatus() != 1 {
+		t.Fatalf("expected exit code 1, got %d", run.Result.ExitStatus())
+	}
+
+	outp := close(t)
+	gotOut := outp.Stdout()
+
+	if !strings.Contains(gotOut, "Unsupported block type") {
+		t.Fatalf("unexpected plan error in output: %s", gotOut)
 	}
 }
 

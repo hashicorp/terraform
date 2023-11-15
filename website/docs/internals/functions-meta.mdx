@@ -1,0 +1,101 @@
+---
+page_title: Functions Metadata
+description: >-
+  The `terraform metadata functions` command prints signatures for all the
+  functions available in the current Terraform version.
+---
+
+# Functions Metadata
+
+The `terraform metadata functions` command is used to print signatures for the functions available in the current Terraform version.
+
+-> `terraform metadata functions` requires **Terraform v1.4 or later**.
+
+## Usage
+
+Usage: `terraform metadata functions [options]`
+
+The following flags are available:
+
+- `-json` - Displays the function signatures in a machine-readable, JSON format.
+
+Please note that, at this time, the `-json` flag is a _required_ option. In future releases, this command will be extended to allow for additional options.
+
+The output includes a `format_version` key, which as of Terraform 1.4.0 has
+value `"1.0"`. The semantics of this version are:
+
+- We will increment the minor version, e.g. `"1.1"`, for backward-compatible
+  changes or additions. Ignore any object properties with unrecognized names to
+  remain forward-compatible with future minor versions.
+- We will increment the major version, e.g. `"2.0"`, for changes that are not
+  backward-compatible. Reject any input which reports an unsupported major
+  version.
+
+We will introduce new major versions only within the bounds of
+[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
+
+## Format Summary
+
+The following sections describe the JSON output format by example, using a pseudo-JSON notation.
+Important elements are described with comments, which are prefixed with `//`.
+To avoid excessive repetition, we've split the complete format into several discrete sub-objects, described under separate headers. References wrapped in angle brackets (like `<block-representation>`) are placeholders which, in the real output, would be replaced by an instance of the specified sub-object.
+
+The JSON output format consists of the following objects and sub-objects:
+
+- [Function Signature Representation](#function-signature-representation) - the top-level object returned by `terraform metadata functions -json`
+- [Parameter Representation](#parameter-representation) - a sub-object of signatures that describes their parameters
+
+## Function Signature Representation
+
+```javascript
+{
+  "format_version": "1.0",
+
+  // "function_signatures" describes the signatures for all
+  // available functions.
+  "function_signatures": {
+    // keys in this map are the function names, such as "abs"
+    "example_function": {
+      // "description" is an English-language description of
+      // the purpose and usage of the function in Markdown.
+      "description": "string",
+
+      // "return_type" is a representation of a type specification
+      // that the function returns.
+      "return_type": "string",
+
+      // "parameters" is an optional list of the positional parameters
+      // that the function accepts.
+      "parameters": [
+        <parameter-representation>,
+        …
+      ],
+
+      // "variadic_parameter" is an optional representation of the
+      // additional arguments that the function accepts after those
+      // matching with the fixed parameters.
+      "variadic_parameter": <parameter-representation>
+    },
+    "example_function_two": { … }
+  }
+}
+```
+
+## Parameter Representation
+
+A parameter representation describes a parameter to a function.
+
+```javascript
+{
+  // "name" is the internal name of the parameter
+  "name": "string",
+
+  // "description" is an optional English-language description of
+  // the purpose and usage of the parameter in Markdown.
+  "description": "string",
+
+  // "type" is a representation of a type specification
+  // that the parameter's value must conform to.
+  "type": "string"
+}
+```

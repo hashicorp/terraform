@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -5,8 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/plans"
 )
 
 // OutputTransformer is a GraphTransformer that adds all the outputs
@@ -16,16 +17,19 @@ import (
 // aren't changing since there is no downside: the state will be available
 // even if the dependent items aren't changing.
 type OutputTransformer struct {
-	Config  *configs.Config
-	Changes *plans.Changes
-
-	// If this is a planned destroy, root outputs are still in the configuration
-	// so we need to record that we wish to remove them
-	removeRootOutputs bool
+	Config *configs.Config
 
 	// Refresh-only mode means that any failing output preconditions are
 	// reported as warnings rather than errors
 	RefreshOnly bool
+
+	// Planning must be set to true only when we're building a planning graph.
+	// It must be set to false whenever we're building an apply graph.
+	Planning bool
+
+	// If this is a planned destroy, root outputs are still in the configuration
+	// so we need to record that we wish to remove them.
+	Destroying bool
 }
 
 func (t *OutputTransformer) Transform(g *Graph) error {
@@ -47,49 +51,16 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 		}
 	}
 
-	// Add outputs to the graph, which will be dynamically expanded
-	// into NodeApplyableOutputs to reflect possible expansion
-	// through the presence of "count" or "for_each" on the modules.
-
-	var changes []*plans.OutputChangeSrc
-	if t.Changes != nil {
-		changes = t.Changes.Outputs
-	}
-
 	for _, o := range c.Module.Outputs {
 		addr := addrs.OutputValue{Name: o.Name}
 
-		var rootChange *plans.OutputChangeSrc
-		for _, c := range changes {
-			if c.Addr.Module.IsRoot() && c.Addr.OutputValue.Name == o.Name {
-				rootChange = c
-			}
-		}
-
-		destroy := t.removeRootOutputs
-		if rootChange != nil {
-			destroy = rootChange.Action == plans.Delete
-		}
-
-		// If this is a root output and we're destroying, we add the destroy
-		// node directly, as there is no need to expand.
-
-		var node dag.Vertex
-		switch {
-		case c.Path.IsRoot() && destroy:
-			node = &NodeDestroyableOutput{
-				Addr:   addr.Absolute(addrs.RootModuleInstance),
-				Config: o,
-			}
-
-		default:
-			node = &nodeExpandOutput{
-				Addr:        addr,
-				Module:      c.Path,
-				Config:      o,
-				Destroy:     t.removeRootOutputs,
-				RefreshOnly: t.RefreshOnly,
-			}
+		node := &nodeExpandOutput{
+			Addr:        addr,
+			Module:      c.Path,
+			Config:      o,
+			Destroying:  t.Destroying,
+			RefreshOnly: t.RefreshOnly,
+			Planning:    t.Planning,
 		}
 
 		log.Printf("[TRACE] OutputTransformer: adding %s as %T", o.Name, node)

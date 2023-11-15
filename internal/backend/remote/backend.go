@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package remote
 
 import (
@@ -36,6 +39,7 @@ const (
 	defaultParallelism = 10
 	stateServiceID     = "state.v2"
 	tfeServiceID       = "tfe.v2.1"
+	genericHostname    = "localterraform.com"
 )
 
 // Remote is an implementation of EnhancedBackend that performs all
@@ -192,6 +196,28 @@ func (b *Remote) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	}
 
 	return obj, diags
+}
+
+func (b *Remote) ServiceDiscoveryAliases() ([]backend.HostAlias, error) {
+	aliasHostname, err := svchost.ForComparison(genericHostname)
+	if err != nil {
+		// This should never happen because the hostname is statically defined.
+		return nil, fmt.Errorf("failed to create backend alias from alias %q. The hostname is not in the correct format. This is a bug in the backend", genericHostname)
+	}
+
+	targetHostname, err := svchost.ForComparison(b.hostname)
+	if err != nil {
+		// This should never happen because the 'to' alias is the backend host, which has likely
+		// already been evaluated as a svchost.Hostname by now
+		return nil, fmt.Errorf("failed to create backend alias to target %q. The hostname is not in the correct format", b.hostname)
+	}
+
+	return []backend.HostAlias{
+		{
+			From: aliasHostname,
+			To:   targetHostname,
+		},
+	}, nil
 }
 
 // Configure implements backend.Enhanced.
@@ -582,7 +608,7 @@ func (b *Remote) WorkspaceNamePattern() string {
 }
 
 // DeleteWorkspace implements backend.Enhanced.
-func (b *Remote) DeleteWorkspace(name string) error {
+func (b *Remote) DeleteWorkspace(name string, _ bool) error {
 	if b.workspace == "" && name == backend.DefaultStateName {
 		return backend.ErrDefaultWorkspaceNotSupported
 	}
@@ -671,7 +697,18 @@ func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 		runID: os.Getenv("TFE_RUN_ID"),
 	}
 
-	return &remote.State{Client: client}, nil
+	return &remote.State{
+		Client: client,
+
+		// client.runID will be set if we're running a the Terraform Cloud
+		// or Terraform Enterprise remote execution environment, in which
+		// case we'll disable intermediate snapshots to avoid extra storage
+		// costs for Terraform Enterprise customers.
+		// Other implementations of the remote state protocol should not run
+		// in contexts where there's a "TFE Run ID" and so are not affected
+		// by this special case.
+		DisableIntermediateSnapshots: client.runID != "",
+	}, nil
 }
 
 func isLocalExecutionMode(execMode string) bool {

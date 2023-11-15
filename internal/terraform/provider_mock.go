@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -8,7 +11,6 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/providers"
 )
@@ -107,31 +109,6 @@ func (p *MockProvider) getProviderSchema() providers.GetProviderSchemaResponse {
 		DataSources:   map[string]providers.Schema{},
 		ResourceTypes: map[string]providers.Schema{},
 	}
-}
-
-// ProviderSchema is a helper to convert from the internal GetProviderSchemaResponse to
-// a ProviderSchema.
-func (p *MockProvider) ProviderSchema() *ProviderSchema {
-	resp := p.getProviderSchema()
-
-	schema := &ProviderSchema{
-		Provider:                   resp.Provider.Block,
-		ProviderMeta:               resp.ProviderMeta.Block,
-		ResourceTypes:              map[string]*configschema.Block{},
-		DataSources:                map[string]*configschema.Block{},
-		ResourceTypeSchemaVersions: map[string]uint64{},
-	}
-
-	for resType, s := range resp.ResourceTypes {
-		schema.ResourceTypes[resType] = s.Block
-		schema.ResourceTypeSchemaVersions[resType] = uint64(s.Version)
-	}
-
-	for dataSource, s := range resp.DataSources {
-		schema.DataSources[dataSource] = s.Block
-	}
-
-	return schema
 }
 
 func (p *MockProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
@@ -435,28 +412,16 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		return *p.ApplyResourceChangeResponse
 	}
 
-	schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]
-	if !ok {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
-		return resp
-	}
-
 	// if the value is nil, we return that directly to correspond to a delete
 	if r.PlannedState.IsNull() {
-		resp.NewState = cty.NullVal(schema.Block.ImpliedType())
-		return resp
-	}
-
-	val, err := schema.Block.CoerceValue(r.PlannedState)
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
+		resp.NewState = r.PlannedState
 		return resp
 	}
 
 	// the default behavior will be to create the minimal valid apply value by
 	// setting unknowns (which correspond to computed attributes) to a zero
 	// value.
-	val, _ = cty.Transform(val, func(path cty.Path, v cty.Value) (cty.Value, error) {
+	val, _ := cty.Transform(r.PlannedState, func(path cty.Path, v cty.Value) (cty.Value, error) {
 		if !v.IsKnown() {
 			ty := v.Type()
 			switch {
@@ -500,8 +465,13 @@ func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateReques
 
 	if p.ImportResourceStateResponse != nil {
 		resp = *p.ImportResourceStateResponse
+
+		// take a copy of the slice, because it is read by the resource instance
+		importedResources := make([]providers.ImportedResource, len(resp.ImportedResources))
+		copy(importedResources, resp.ImportedResources)
+
 		// fixup the cty value to match the schema
-		for i, res := range resp.ImportedResources {
+		for i, res := range importedResources {
 			schema, ok := p.getProviderSchema().ResourceTypes[res.TypeName]
 			if !ok {
 				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", res.TypeName))
@@ -515,8 +485,9 @@ func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateReques
 				return resp
 			}
 
-			resp.ImportedResources[i] = res
+			importedResources[i] = res
 		}
+		resp.ImportedResources = importedResources
 	}
 
 	return resp
@@ -546,6 +517,9 @@ func (p *MockProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 }
 
 func (p *MockProvider) Close() error {
+	p.Lock()
+	defer p.Unlock()
+
 	p.CloseCalled = true
 	return p.CloseError
 }

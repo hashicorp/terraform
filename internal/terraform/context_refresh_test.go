@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -201,12 +204,12 @@ func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 		},
 	})
 
-	s, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{Mode: plans.RefreshOnlyMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
-	checkStateString(t, s, `
+	checkStateString(t, plan.PriorState, `
 <no state>
 `)
 }
@@ -1596,5 +1599,90 @@ func TestContext2Refresh_dataSourceOrphan(t *testing.T) {
 
 	if p.ReadDataSourceCalled {
 		t.Fatal("orphaned data source instance should not be read")
+	}
+}
+
+// Legacy providers may return invalid null values for blocks, causing noise in
+// the diff output and unexpected behavior with ignore_changes. Make sure
+// refresh fixes these up before storing the state.
+func TestContext2Refresh_reifyNullBlock(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "foo" {
+}
+`,
+	})
+
+	p := new(MockProvider)
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		// incorrectly return a null _set_block value
+		v := req.PriorState.AsValueMap()
+		v["set_block"] = cty.NullVal(v["set_block"].Type())
+		return providers.ReadResourceResponse{NewState: cty.ObjectVal(v)}
+	}
+
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"set_block": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"a": {Type: cty.String, Optional: true},
+							},
+						},
+						Nesting: configschema.NestingSet,
+					},
+				},
+			},
+		},
+	})
+	p.PlanResourceChangeFn = testDiffFn
+
+	fooAddr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_resource",
+		Name: "foo",
+	}.Instance(addrs.NoKey)
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		fooAddr,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"foo", "network_interface":[]}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.RefreshOnlyMode})
+	if diags.HasErrors() {
+		t.Fatalf("refresh errors: %s", diags.Err())
+	}
+
+	jsonState := plan.PriorState.ResourceInstance(fooAddr.Absolute(addrs.RootModuleInstance)).Current.AttrsJSON
+
+	// the set_block should still be an empty container, and not null
+	expected := `{"id":"foo","set_block":[]}`
+	if string(jsonState) != expected {
+		t.Fatalf("invalid state\nexpected: %s\ngot: %s\n", expected, jsonState)
 	}
 }

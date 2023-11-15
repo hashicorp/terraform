@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -5,6 +8,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -78,7 +82,7 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 	}
 
 	// Build the operation
-	opReq := c.Operation(b)
+	opReq := c.Operation(b, arguments.ViewJSON)
 	opReq.ConfigDir = cwd
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	opReq.AllowUnsetVariables = true

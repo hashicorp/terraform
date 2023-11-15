@@ -1,18 +1,25 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // EvalContext is the interface that is given to eval nodes to execute.
@@ -37,7 +44,7 @@ type EvalContext interface {
 	// It is an error to initialize the same provider more than once. This
 	// method will panic if the module instance address of the given provider
 	// configuration does not match the Path() of the EvalContext.
-	InitProvider(addr addrs.AbsProviderConfig) (providers.Interface, error)
+	InitProvider(addr addrs.AbsProviderConfig, configs *configs.Provider) (providers.Interface, error)
 
 	// Provider gets the provider instance with the given address (already
 	// initialized) or returns nil if the provider isn't initialized.
@@ -53,7 +60,7 @@ type EvalContext interface {
 	//
 	// This method expects an _absolute_ provider configuration address, since
 	// resources in one module are able to use providers from other modules.
-	ProviderSchema(addrs.AbsProviderConfig) (*ProviderSchema, error)
+	ProviderSchema(addrs.AbsProviderConfig) (providers.ProviderSchema, error)
 
 	// CloseProvider closes provider connections that aren't needed anymore.
 	//
@@ -124,7 +131,7 @@ type EvalContext interface {
 
 	// EvaluationScope returns a scope that can be used to evaluate reference
 	// addresses in this context.
-	EvaluationScope(self addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope
+	EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope
 
 	// SetRootModuleArgument defines the value for one variable of the root
 	// module. The caller must ensure that given value is a suitable
@@ -164,9 +171,9 @@ type EvalContext interface {
 	// the global state.
 	State() *states.SyncState
 
-	// Conditions returns the writer object that can be used to store condition
-	// block results as they are evaluated.
-	Conditions() *plans.ConditionsSync
+	// Checks returns the object that tracks the state of any custom checks
+	// declared in the configuration.
+	Checks() *checks.State
 
 	// RefreshState returns a wrapper object that provides safe concurrent
 	// access to the state used to store the most recently refreshed resource
@@ -196,6 +203,10 @@ type EvalContext interface {
 	// thereafter, so callers must not modify the returned map or any other
 	// objects accessible through it.
 	MoveResults() refactoring.MoveResults
+
+	// Overrides contains the modules and resources we should mock as part of
+	// this execution.
+	Overrides() *mocking.Overrides
 
 	// WithPath returns a copy of the context with the internal path set to the
 	// path argument.

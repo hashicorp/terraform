@@ -8,7 +8,7 @@ description: >-
 
 # Module Blocks
 
-> **Hands-on:** Try the [Reuse Configuration with Modules](https://learn.hashicorp.com/collections/terraform/modules?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
+> **Hands-on:** Try the [Reuse Configuration with Modules](/terraform/tutorials/modules?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials.
 
 A _module_ is a container for multiple resources that are used together.
 
@@ -23,13 +23,13 @@ in separate configurations, allowing resource configurations to be packaged
 and re-used.
 
 This page describes how to call one module from another. For more information
-about creating re-usable child modules, see [Module Development](/language/modules/develop).
+about creating re-usable child modules, see [Module Development](/terraform/language/modules/develop).
 
 ## Calling a Child Module
 
 To _call_ a module means to include the contents of that module into the
 configuration with specific values for its
-[input variables](/language/values/variables). Modules are called
+[input variables](/terraform/language/values/variables). Modules are called
 from within other modules using `module` blocks:
 
 ```hcl
@@ -53,7 +53,7 @@ Module calls use the following kinds of arguments:
 
 - The `version` argument is recommended for modules from a registry.
 
-- Most other arguments correspond to [input variables](/language/values/variables)
+- Most other arguments correspond to [input variables](/terraform/language/values/variables)
   defined by the module. (The `servers` argument in the example above is one of
   these.)
 
@@ -67,7 +67,7 @@ Terraform. Its value is either the path to a local directory containing the
 module's configuration files, or a remote module source that Terraform should
 download and use. This value must be a literal string with no template
 sequences; arbitrary expressions are not allowed. For more information on
-possible values for this argument, see [Module Sources](/language/modules/sources).
+possible values for this argument, see [Module Sources](/terraform/language/modules/sources).
 
 The same source address can be specified in multiple `module` blocks to create
 multiple copies of the resources defined within, possibly with different
@@ -95,14 +95,14 @@ module "consul" {
 }
 ```
 
-The `version` argument accepts a [version constraint string](/language/expressions/version-constraints).
+The `version` argument accepts a [version constraint string](/terraform/language/expressions/version-constraints).
 Terraform will use the newest installed version of the module that meets the
 constraint; if no acceptable versions are installed, it will download the newest
 version that meets the constraint.
 
 Version constraints are supported only for modules installed from a module
 registry, such as the public [Terraform Registry](https://registry.terraform.io/)
-or [Terraform Cloud's private module registry](/cloud-docs/registry).
+or [Terraform Cloud's private module registry](/terraform/cloud-docs/registry).
 Other module sources can provide their own versioning mechanisms within the
 source string itself, or might not support versions at all. In particular,
 modules sourced from local file paths do not support `version`; since
@@ -116,32 +116,31 @@ optional meta-arguments that have special meaning across all modules,
 described in more detail in the following pages:
 
 - `count` - Creates multiple instances of a module from a single `module` block.
-  See [the `count` page](/language/meta-arguments/count)
+  See [the `count` page](/terraform/language/meta-arguments/count)
   for details.
 
 - `for_each` - Creates multiple instances of a module from a single `module`
   block. See
-  [the `for_each` page](/language/meta-arguments/for_each)
+  [the `for_each` page](/terraform/language/meta-arguments/for_each)
   for details.
 
 - `providers` - Passes provider configurations to a child module. See
-  [the `providers` page](/language/meta-arguments/module-providers)
+  [the `providers` page](/terraform/language/meta-arguments/module-providers)
   for details. If not specified, the child module inherits all of the default
   (un-aliased) provider configurations from the calling module.
 
 - `depends_on` - Creates explicit dependencies between the entire
   module and the listed targets. See
-  [the `depends_on` page](/language/meta-arguments/depends_on)
+  [the `depends_on` page](/terraform/language/meta-arguments/depends_on)
   for details.
 
-In addition to the above, the `lifecycle` argument is not currently used by
-Terraform but is reserved for planned future features.
+Terraform does not use the `lifecycle` argument. However, the `lifecycle` block is reserved for future versions.
 
 ## Accessing Module Output Values
 
 The resources defined in a module are encapsulated, so the calling module
 cannot access their attributes directly. However, the child module can
-declare [output values](/language/values/outputs) to selectively
+declare [output values](/terraform/language/values/outputs) to selectively
 export certain values to be accessed by the calling module.
 
 For example, if the `./app-cluster` module referenced in the example above
@@ -157,7 +156,7 @@ resource "aws_elb" "example" {
 ```
 
 For more information about referring to named values, see
-[Expressions](/language/expressions).
+[Expressions](/terraform/language/expressions).
 
 ## Transferring Resource State Into Modules
 
@@ -167,7 +166,7 @@ result, Terraform plans to destroy all resource instances at the old address
 and create new instances at the new address.
 
 To preserve existing objects, you can use
-[refactoring blocks](/language/modules/develop/refactoring) to record the old and new
+[refactoring blocks](/terraform/language/modules/develop/refactoring) to record the old and new
 addresses for each resource instance. This directs Terraform to treat existing
 objects at the old addresses as if they had originally been created at the
 corresponding new addresses.
@@ -177,7 +176,7 @@ corresponding new addresses.
 You may have an object that needs to be replaced with a new object for a reason
 that isn't automatically visible to Terraform, such as if a particular virtual
 machine is running on degraded underlying hardware. In this case, you can use
-[the `-replace=...` planning option](/cli/commands/plan#replace-address)
+[the `-replace=...` planning option](/terraform/cli/commands/plan#replace-address)
 to force Terraform to propose replacing that object.
 
 If the object belongs to a resource within a nested module, specify the full

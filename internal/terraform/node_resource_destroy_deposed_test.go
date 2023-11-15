@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -37,13 +40,15 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 		PrevRunStateState: state.DeepCopy().SyncWrapper(),
 		RefreshStateState: state.DeepCopy().SyncWrapper(),
 		ProviderProvider:  p,
-		ProviderSchemaSchema: &ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
+		ProviderSchemaSchema: providers.ProviderSchema{
+			ResourceTypes: map[string]providers.Schema{
 				"test_instance": {
-					Attributes: map[string]*configschema.Attribute{
-						"id": {
-							Type:     cty.String,
-							Computed: true,
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {
+								Type:     cty.String,
+								Computed: true,
+							},
 						},
 					},
 				},
@@ -93,13 +98,15 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
-	schema := &ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	schema := providers.ProviderSchema{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {
-						Type:     cty.String,
-						Computed: true,
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -108,7 +115,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 
 	p := testProvider("test")
 	p.ConfigureProvider(providers.ConfigureProviderRequest{})
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
+	p.GetProviderSchemaResponse = &schema
 
 	p.UpgradeResourceStateResponse = &providers.UpgradeResourceStateResponse{
 		UpgradedState: cty.ObjectVal(map[string]cty.Value{
@@ -156,7 +163,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_WriteResourceInstanceState(t *
 		},
 	})
 	ctx.ProviderProvider = mockProvider
-	ctx.ProviderSchemaSchema = mockProvider.ProviderSchema()
+	ctx.ProviderSchemaSchema = mockProvider.GetProviderSchema()
 
 	obj := &states.ResourceInstanceObject{
 		Value: cty.ObjectVal(map[string]cty.Value{
@@ -191,7 +198,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_ExecuteMissingState(t *testing
 	ctx := &MockEvalContext{
 		StateState:           states.NewState().SyncWrapper(),
 		ProviderProvider:     simpleMockProvider(),
-		ProviderSchemaSchema: p.ProviderSchema(),
+		ProviderSchemaSchema: p.GetProviderSchema(),
 		ChangesChanges:       plans.NewChanges().SyncWrapper(),
 	}
 

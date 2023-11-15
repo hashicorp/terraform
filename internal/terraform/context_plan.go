@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -6,6 +9,7 @@ import (
 	"log"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -13,7 +17,9 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -32,6 +38,16 @@ type PlanOpts struct {
 	// disable the usual step of fetching updated values for each resource
 	// instance using its corresponding provider.
 	SkipRefresh bool
+
+	// PreDestroyRefresh indicated that this is being passed to a plan used to
+	// refresh the state immediately before a destroy plan.
+	// FIXME: This is a temporary fix to allow the pre-destroy refresh to
+	// succeed. The refreshing operation during destroy must be a special case,
+	// which can allow for missing instances in the state, and avoid blocking
+	// on failing condition tests. The destroy plan itself should be
+	// responsible for this special case of refreshing, and the separate
+	// pre-destroy plan removed entirely.
+	PreDestroyRefresh bool
 
 	// SetVariables are the raw values for root module variables as provided
 	// by the user who is requesting the run, prior to any normalization or
@@ -59,16 +75,54 @@ type PlanOpts struct {
 	// outside of Terraform), thereby hopefully replacing it with a
 	// fully-functional new object.
 	ForceReplace []addrs.AbsResourceInstance
+
+	// ExternalReferences allows the external caller to pass in references to
+	// nodes that should not be pruned even if they are not referenced within
+	// the actual graph.
+	ExternalReferences []*addrs.Reference
+
+	// Overrides provides a set of override objects that should be applied
+	// during this plan.
+	Overrides *mocking.Overrides
+
+	// ImportTargets is a list of target resources to import. These resources
+	// will be added to the plan graph.
+	ImportTargets []*ImportTarget
+
+	// GenerateConfig tells Terraform where to write any generated configuration
+	// for any ImportTargets that do not have configuration already.
+	//
+	// If empty, then no config will be generated.
+	GenerateConfigPath string
+
+	// ExternalProviders are clients for pre-configured providers that are
+	// treated as being passed into the root module from the caller. This
+	// is equivalent to writing a "providers" argument inside a "module"
+	// block in the Terraform language, but for the root module the caller
+	// is written in Go rather than the Terraform language.
+	//
+	// Terraform Core will NOT call ValidateProviderConfig or ConfigureProvider
+	// on any providers in this map; it's the caller's responsibility to
+	// configure these providers based on information outside the scope of
+	// the root module.
+	ExternalProviders map[addrs.RootProviderConfig]providers.Interface
 }
 
-// Plan generates an execution plan for the given context, and returns the
-// refreshed state.
+// Plan generates an execution plan by comparing the given configuration
+// with the given previous run state.
 //
-// The execution plan encapsulates the context and can be stored
-// in order to reinstantiate a context later for Apply.
+// The given planning options allow control of various other details of the
+// planning process that are not represented directly in the configuration.
+// You can use terraform.DefaultPlanOpts to generate a normal plan with no
+// special options.
 //
-// Plan also updates the diff of this context to be the diff generated
-// by the plan, so Apply can be called after.
+// If the returned diagnostics contains no errors then the returned plan is
+// applyable, although Terraform cannot guarantee that applying it will fully
+// succeed. If the returned diagnostics contains errors but this method
+// still returns a non-nil Plan then the plan describes the subset of actions
+// planned so far, which is not safe to apply but could potentially be used
+// by the UI layer to give extra context to support understanding of the
+// returned error messages.
 func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
 	defer c.acquireRun("plan")()
 	var diags tfdiags.Diagnostics
@@ -94,6 +148,12 @@ func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts 
 	// otherwise we're likely to just see a bunch of other errors related to
 	// incompatibilities, which could be overwhelming for the user.
 	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	providerCfgDiags := checkExternalProviders(config, opts.ExternalProviders)
+	diags = diags.Append(providerCfgDiags)
+	if providerCfgDiags.HasErrors() {
 		return nil, diags
 	}
 
@@ -165,9 +225,10 @@ The -target option is not for routine use, and is provided only for exceptional 
 		panic(fmt.Sprintf("unsupported plan mode %s", opts.Mode))
 	}
 	diags = diags.Append(planDiags)
-	if diags.HasErrors() {
-		return nil, diags
-	}
+	// NOTE: We're intentionally not returning early when diags.HasErrors
+	// here because we'll still populate other metadata below on a best-effort
+	// basis to try to give the UI some extra context to return alongside the
+	// error messages.
 
 	// convert the variables into the format expected for the plan
 	varVals := make(map[string]plans.DynamicValue, len(opts.SetVariables))
@@ -200,11 +261,24 @@ The -target option is not for routine use, and is provided only for exceptional 
 		panic("nil plan but no errors")
 	}
 
-	relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, plan)
-	diags = diags.Append(rDiags)
+	if plan != nil {
+		relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, plan)
+		diags = diags.Append(rDiags)
+		plan.RelevantAttributes = relevantAttrs
+	}
 
-	plan.RelevantAttributes = relevantAttrs
-	diags = diags.Append(c.checkApplyGraph(plan, config))
+	if diags.HasErrors() {
+		// We can't proceed further with an invalid plan, because an invalid
+		// plan isn't applyable by definition.
+		if plan != nil {
+			// We'll explicitly mark our plan as errored so that it can't
+			// be accidentally applied even though it's incomplete.
+			plan.Errored = true
+		}
+		return plan, diags
+	}
+
+	diags = diags.Append(c.checkApplyGraph(plan, config, opts))
 
 	return plan, diags
 }
@@ -213,13 +287,13 @@ The -target option is not for routine use, and is provided only for exceptional 
 // check for any errors that may arise once the planned changes are added to
 // the graph. This allows terraform to report errors (mostly cycles) during
 // plan that would otherwise only crop up during apply
-func (c *Context) checkApplyGraph(plan *plans.Plan, config *configs.Config) tfdiags.Diagnostics {
+func (c *Context) checkApplyGraph(plan *plans.Plan, config *configs.Config, opts *PlanOpts) tfdiags.Diagnostics {
 	if plan.Changes.Empty() {
 		log.Println("[DEBUG] no planned changes, skipping apply graph check")
 		return nil
 	}
 	log.Println("[DEBUG] building apply graph to check for errors")
-	_, _, diags := c.applyGraph(plan, config, true)
+	_, _, diags := c.applyGraph(plan, config, opts.ApplyOpts(), true)
 	return diags
 }
 
@@ -253,17 +327,9 @@ func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts 
 		panic(fmt.Sprintf("called Context.plan with %s", opts.Mode))
 	}
 
+	opts.ImportTargets = c.findImportTargets(config, prevRunState)
 	plan, walkDiags := c.planWalk(config, prevRunState, opts)
 	diags = diags.Append(walkDiags)
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	// The refreshed state ends up with some placeholder objects in it for
-	// objects pending creation. We only really care about those being in
-	// the working state, since that's what we're going to use when applying,
-	// so we'll prune them all here.
-	plan.PriorState.SyncWrapper().RemovePlannedResourceInstanceObjects()
 
 	return plan, diags
 }
@@ -278,7 +344,10 @@ func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.S
 	plan, walkDiags := c.planWalk(config, prevRunState, opts)
 	diags = diags.Append(walkDiags)
 	if diags.HasErrors() {
-		return nil, diags
+		// Non-nil plan along with errors indicates a non-applyable partial
+		// plan that's only suitable to be shown to the user as extra context
+		// to help understand the errors.
+		return plan, diags
 	}
 
 	// If the graph builder and graph nodes correctly obeyed our directive
@@ -302,10 +371,6 @@ func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.S
 		))
 	}
 
-	// Prune out any placeholder objects we put in the state to represent
-	// objects that would need to be created.
-	plan.PriorState.SyncWrapper().RemovePlannedResourceInstanceObjects()
-
 	// We don't populate RelevantResources for a refresh-only plan, because
 	// they never have any planned actions and so no resource can ever be
 	// "relevant" per the intended meaning of that field.
@@ -315,7 +380,6 @@ func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.S
 
 func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	pendingPlan := &plans.Plan{}
 
 	if opts.Mode != plans.DestroyMode {
 		panic(fmt.Sprintf("called Context.destroyPlan with %s", opts.Mode))
@@ -334,11 +398,19 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 	// must coordinate with this by taking that action only when c.skipRefresh
 	// _is_ set. This coupling between the two is unfortunate but necessary
 	// to work within our current structure.
-	if !opts.SkipRefresh {
+	if !opts.SkipRefresh && !prevRunState.Empty() {
 		log.Printf("[TRACE] Context.destroyPlan: calling Context.plan to get the effect of refreshing the prior state")
-		normalOpts := *opts
-		normalOpts.Mode = plans.NormalMode
-		refreshPlan, refreshDiags := c.plan(config, prevRunState, &normalOpts)
+		refreshOpts := *opts
+		refreshOpts.Mode = plans.NormalMode
+		refreshOpts.PreDestroyRefresh = true
+
+		// FIXME: A normal plan is required here to refresh the state, because
+		// the state and configuration may not match during a destroy, and a
+		// normal refresh plan can fail with evaluation errors. In the future
+		// the destroy plan should take care of refreshing instances itself,
+		// where the special cases of evaluation and skipping condition checks
+		// can be done.
+		refreshPlan, refreshDiags := c.plan(config, prevRunState, &refreshOpts)
 		if refreshDiags.HasErrors() {
 			// NOTE: Normally we'd append diagnostics regardless of whether
 			// there are errors, just in case there are warnings we'd want to
@@ -355,31 +427,33 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 			return nil, diags
 		}
 
-		// insert the refreshed state into the destroy plan result, and ignore
-		// the changes recorded from the refresh.
-		pendingPlan.PriorState = refreshPlan.PriorState.DeepCopy()
-		pendingPlan.PrevRunState = refreshPlan.PrevRunState.DeepCopy()
-		log.Printf("[TRACE] Context.destroyPlan: now _really_ creating a destroy plan")
-
 		// We'll use the refreshed state -- which is the  "prior state" from
-		// the perspective of this "pending plan" -- as the starting state
+		// the perspective of this "destroy plan" -- as the starting state
 		// for our destroy-plan walk, so it can take into account if we
 		// detected during refreshing that anything was already deleted outside
 		// of Terraform.
-		priorState = pendingPlan.PriorState
+		priorState = refreshPlan.PriorState.DeepCopy()
+
+		// The refresh plan may have upgraded state for some resources, make
+		// sure we store the new version.
+		prevRunState = refreshPlan.PrevRunState.DeepCopy()
+		log.Printf("[TRACE] Context.destroyPlan: now _really_ creating a destroy plan")
 	}
 
 	destroyPlan, walkDiags := c.planWalk(config, priorState, opts)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
-		return nil, diags
+		// Non-nil plan along with errors indicates a non-applyable partial
+		// plan that's only suitable to be shown to the user as extra context
+		// to help understand the errors.
+		return destroyPlan, diags
 	}
 
 	if !opts.SkipRefresh {
-		// If we didn't skip refreshing then we want the previous run state
-		// prior state to be the one we originally fed into the c.plan call
-		// above, not the refreshed version we used for the destroy walk.
-		destroyPlan.PrevRunState = pendingPlan.PrevRunState
+		// If we didn't skip refreshing then we want the previous run state to
+		// be the one we originally fed into the c.refreshOnlyPlan call above,
+		// not the refreshed version we used for the destroy planWalk.
+		destroyPlan.PrevRunState = prevRunState
 	}
 
 	relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, destroyPlan)
@@ -461,7 +535,7 @@ func (c *Context) prePlanVerifyTargetedMoves(moveResults refactoring.MoveResults
 			tfdiags.Error,
 			"Moved resource instances excluded by targeting",
 			fmt.Sprintf(
-				"Resource instances in your current state have moved to new addresses in the latest configuration. Terraform must include those resource instances while planning in order to ensure a correct result, but your -target=... options to not fully cover all of those resource instances.\n\nTo create a valid plan, either remove your -target=... options altogether or add the following additional target options:%s\n\nNote that adding these options may include further additional resource instances in your plan, in order to respect object dependencies.",
+				"Resource instances in your current state have moved to new addresses in the latest configuration. Terraform must include those resource instances while planning in order to ensure a correct result, but your -target=... options do not fully cover all of those resource instances.\n\nTo create a valid plan, either remove your -target=... options altogether or add the following additional target options:%s\n\nNote that adding these options may include further additional resource instances in your plan, in order to respect object dependencies.",
 				listBuf.String(),
 			),
 		))
@@ -472,6 +546,18 @@ func (c *Context) prePlanVerifyTargetedMoves(moveResults refactoring.MoveResults
 
 func (c *Context) postPlanValidateMoves(config *configs.Config, stmts []refactoring.MoveStatement, allInsts instances.Set) tfdiags.Diagnostics {
 	return refactoring.ValidateMoves(stmts, config, allInsts)
+}
+
+// findImportTargets builds a list of import targets by taking the import blocks
+// in the config and filtering out any that target a resource already in state.
+func (c *Context) findImportTargets(config *configs.Config, priorState *states.State) []*ImportTarget {
+	var importTargets []*ImportTarget
+	for _, ic := range config.Module.Import {
+		importTargets = append(importTargets, &ImportTarget{
+			Config: ic,
+		})
+	}
+	return importTargets
 }
 
 func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
@@ -497,20 +583,31 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		return nil, diags
 	}
 
+	timestamp := time.Now().UTC()
+
+	var externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+	if opts != nil {
+		externalProviderConfigs = opts.ExternalProviders
+	}
+
 	// If we get here then we should definitely have a non-nil "graph", which
 	// we can now walk.
 	changes := plans.NewChanges()
-	conditions := plans.NewConditions()
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
-		Config:      config,
-		InputState:  prevRunState,
-		Changes:     changes,
-		Conditions:  conditions,
-		MoveResults: moveResults,
+		Config:                  config,
+		InputState:              prevRunState,
+		ExternalProviderConfigs: externalProviderConfigs,
+		Changes:                 changes,
+		MoveResults:             moveResults,
+		Overrides:               opts.Overrides,
+		PlanTimeTimestamp:       timestamp,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
-	moveValidateDiags := c.postPlanValidateMoves(config, moveStmts, walker.InstanceExpander.AllInstances())
+
+	allInsts := walker.InstanceExpander.AllInstances()
+
+	moveValidateDiags := c.postPlanValidateMoves(config, moveStmts, allInsts)
 	if moveValidateDiags.HasErrors() {
 		// If any of the move statements are invalid then those errors take
 		// precedence over any other errors because an incomplete move graph
@@ -531,18 +628,32 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		diags = diags.Append(blockedMovesWarningDiag(moveResults))
 	}
 
+	// If we reach this point with error diagnostics then "changes" is a
+	// representation of the subset of changes we were able to plan before
+	// we encountered errors, which we'll return as part of a non-nil plan
+	// so that e.g. the UI can show what was planned so far in case that extra
+	// context helps the user to understand the error messages we're returning.
 	prevRunState = walker.PrevRunState.Close()
+
+	// The refreshed state may have data resource objects which were deferred
+	// to apply and cannot be serialized.
+	walker.RefreshState.RemovePlannedResourceInstanceObjects()
 	priorState := walker.RefreshState.Close()
+
 	driftedResources, driftDiags := c.driftedResources(config, prevRunState, priorState, moveResults)
 	diags = diags.Append(driftDiags)
 
 	plan := &plans.Plan{
-		UIMode:           opts.Mode,
-		Changes:          changes,
-		Conditions:       conditions,
-		DriftedResources: driftedResources,
-		PrevRunState:     prevRunState,
-		PriorState:       priorState,
+		UIMode:             opts.Mode,
+		Changes:            changes,
+		DriftedResources:   driftedResources,
+		PrevRunState:       prevRunState,
+		PriorState:         priorState,
+		PlannedState:       walker.State.Close(),
+		ExternalReferences: opts.ExternalReferences,
+		Overrides:          opts.Overrides,
+		Checks:             states.NewCheckResults(walker.Checks),
+		Timestamp:          timestamp,
 
 		// Other fields get populated by Context.Plan after we return
 	}
@@ -560,7 +671,11 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Targets:            opts.Targets,
 			ForceReplace:       opts.ForceReplace,
 			skipRefresh:        opts.SkipRefresh,
+			preDestroyRefresh:  opts.PreDestroyRefresh,
 			Operation:          walkPlan,
+			ExternalReferences: opts.ExternalReferences,
+			ImportTargets:      opts.ImportTargets,
+			GenerateConfigPath: opts.GenerateConfigPath,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
@@ -573,6 +688,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			skipRefresh:        opts.SkipRefresh,
 			skipPlanChanges:    true, // this activates "refresh only" mode.
 			Operation:          walkPlan,
+			ExternalReferences: opts.ExternalReferences,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
@@ -592,6 +708,12 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 	}
 }
 
+// driftedResources is a best-effort attempt to compare the current and prior
+// state. If we cannot decode the prior state for some reason, this should only
+// return warnings to help the user correlate any missing resources in the
+// report. This is known to happen when targeting a subset of resources,
+// because the excluded instances will have been removed from the plan and
+// not upgraded.
 func (c *Context) driftedResources(config *configs.Config, oldState, newState *states.State, moves refactoring.MoveResults) ([]*plans.ResourceInstanceChangeSrc, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -639,35 +761,35 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 					addr.Resource.Resource.Type,
 				)
 				if schema == nil {
-					// This should never happen, but just in case
-					return nil, diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Warning,
 						"Missing resource schema from provider",
-						fmt.Sprintf("No resource schema found for %s.", addr.Resource.Resource.Type),
+						fmt.Sprintf("No resource schema found for %s when decoding prior state", addr.Resource.Resource.Type),
 					))
+					continue
 				}
 				ty := schema.ImpliedType()
 
 				oldObj, err := oldIS.Current.Decode(ty)
 				if err != nil {
-					// This should also never happen
-					return nil, diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Warning,
 						"Failed to decode resource from state",
-						fmt.Sprintf("Error decoding %q from previous state: %s", addr.String(), err),
+						fmt.Sprintf("Error decoding %q from prior state: %s", addr.String(), err),
 					))
+					continue
 				}
 
 				var newObj *states.ResourceInstanceObject
 				if newIS != nil && newIS.Current != nil {
 					newObj, err = newIS.Current.Decode(ty)
 					if err != nil {
-						// This should also never happen
-						return nil, diags.Append(tfdiags.Sourceless(
-							tfdiags.Error,
+						diags = diags.Append(tfdiags.Sourceless(
+							tfdiags.Warning,
 							"Failed to decode resource from state",
 							fmt.Sprintf("Error decoding %q from prior state: %s", addr.String(), err),
 						))
+						continue
 					}
 				}
 
@@ -734,7 +856,7 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 // (as opposed to graphs as an implementation detail) intended only for use
 // by the "terraform graph" command when asked to render a plan-time graph.
 //
-// The result of this is intended only for rendering ot the user as a dot
+// The result of this is intended only for rendering to the user as a dot
 // graph, and so may change in future in order to make the result more useful
 // in that context, even if drifts away from the physical graph that Terraform
 // Core currently uses as an implementation detail of planning.

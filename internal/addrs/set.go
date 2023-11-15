@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package addrs
 
 // Set represents a set of addresses of types that implement UniqueKeyer.
@@ -8,6 +11,14 @@ package addrs
 // potentially make the set data invalid or inconsistent, leading to undefined
 // behavior elsewhere.
 type Set[T UniqueKeyer] map[UniqueKey]T
+
+func MakeSet[T UniqueKeyer](elems ...T) Set[T] {
+	ret := Set[T](make(map[UniqueKey]T, len(elems)))
+	for _, elem := range elems {
+		ret.Add(elem)
+	}
+	return ret
+}
 
 // Has returns true if and only if the set includes the given address.
 func (s Set[T]) Has(addr T) bool {

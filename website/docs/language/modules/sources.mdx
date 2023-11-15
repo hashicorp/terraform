@@ -8,19 +8,16 @@ description: >-
 
 # Module Sources
 
-The `source` argument in [a `module` block](/language/modules/syntax)
+The `source` argument in [a `module` block](/terraform/language/modules/syntax)
 tells Terraform where to find the source code for the desired child module.
 
 Terraform uses this during the module installation step of `terraform init`
-to download the source code to a directory on local disk so that it can be
-used by other Terraform commands.
+to download the source code to a directory on local disk so that other Terraform commands can use it. 
 
-> **Hands-on:** Try our HashiCorp Learn tutorials to use modules from [the
-> registry](https://learn.hashicorp.com/tutorials/terraform/module-use)
-> or [locally](https://learn.hashicorp.com/tutorials/terraform/module-create).
+> **Hands-on:** Try the [Use Modules From the Registry](/terraform/tutorials/modules/module-use) or [Build and Use a Local Module](/terraform/tutorials/modules/module-create) tutorials.
 
 The module installer supports installation from a number of different source
-types, as listed below.
+types.
 
 - [Local paths](#local-paths)
 
@@ -100,10 +97,10 @@ to get started with Terraform and find modules created by others in the
 community.
 
 You can also use a
-[private registry](/registry/private), either
+[private registry](/terraform/registry/private), either
 via the built-in feature from Terraform Cloud, or by running a custom
 service that implements
-[the module registry protocol](/registry/api-docs).
+[the module registry protocol](/terraform/registry/api-docs).
 
 Modules on the public Terraform Registry can be referenced using a registry
 source address of the form `<NAMESPACE>/<NAME>/<PROVIDER>`, with each
@@ -135,17 +132,19 @@ If you are using the SaaS version of Terraform Cloud, its private
 registry hostname is `app.terraform.io`. If you use a self-hosted Terraform
 Enterprise instance, its private registry hostname is the same as the host
 where you'd access the web UI and the host you'd use when configuring
-the [Terraform Cloud CLI integration](/cli/cloud).
+the [Terraform Cloud CLI integration](/terraform/cli/cloud).
+
+Both Terraform Cloud and self-hosted Terraform Enterprise support a [generic hostname](/terraform/cloud-docs/registry/using#generic-hostname-terraform-cloud-and-terraform-enterprise) `localterraform.com`.
 
 Registry modules support versioning. You can provide a specific version as shown
 in the above examples, or use flexible
-[version constraints](/language/modules/syntax#version).
+[version constraints](/terraform/language/modules/syntax#version).
 
 You can learn more about the registry at the
-[Terraform Registry documentation](/registry/modules/use#using-modules).
+[Terraform Registry documentation](/terraform/registry/modules/use#using-modules).
 
 To access modules from a private registry, you may need to configure an access
-token [in the CLI config](/cli/config/config-file#credentials). Use the
+token [in the CLI config](/terraform/cli/config/config-file#credentials). Use the
 same hostname as used in the module source string. For a private registry
 within Terraform Cloud, use the same authentication token as you would
 use with the Enterprise API or command-line clients.
@@ -232,7 +231,7 @@ to select a suitable source of credentials for your environment.
 
 If your Terraform configuration will be used within [Terraform Cloud](https://www.hashicorp.com/products/terraform),
 only SSH key authentication is supported, and
-[keys can be configured on a per-workspace basis](/cloud-docs/workspaces/settings/ssh-keys).
+[keys can be configured on a per-workspace basis](/terraform/cloud-docs/workspaces/settings/ssh-keys).
 
 ### Selecting a Revision
 
@@ -321,7 +320,7 @@ repositories without interactive prompts.
 
 If your Terraform configuration will be used within [Terraform Cloud](https://www.hashicorp.com/products/terraform),
 only SSH key authentication is supported, and
-[keys can be configured on a per-workspace basis](/cloud-docs/workspaces/settings/ssh-keys).
+[keys can be configured on a per-workspace basis](/terraform/cloud-docs/workspaces/settings/ssh-keys).
 
 ### Selecting a Revision
 
@@ -359,8 +358,9 @@ In either case, the result is interpreted as another module source address
 using one of the forms documented elsewhere on this page.
 
 If an HTTP/HTTPS URL requires authentication credentials, use a `.netrc`
-file in your home directory to configure these. For information on this format,
-see [the documentation for using it in `curl`](https://everything.curl.dev/usingcurl/netrc).
+file to configure the credentials. By default, Terraform searches for the `.netrc` file 
+in your HOME directory. However, you can override the default filesystem location by setting the `NETRC` environment variable. For information on the `.netrc` format,
+refer to [the documentation for using it in `curl`](https://everything.curl.dev/usingcurl/netrc).
 
 ### Fetching archives over HTTP
 

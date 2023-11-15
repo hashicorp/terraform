@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package dag
 
 import (
@@ -166,28 +169,29 @@ func (g *Graph) RemoveEdge(edge Edge) {
 	}
 }
 
-// UpEdges returns the vertices connected to the outward edges from the source
-// Vertex v.
+// UpEdges returns the vertices that are *sources* of edges that target the
+// destination Vertex v.
 func (g *Graph) UpEdges(v Vertex) Set {
 	return g.upEdgesNoCopy(v).Copy()
 }
 
-// DownEdges returns the vertices connected from the inward edges to Vertex v.
+// DownEdges returns the vertices that are *targets* of edges that originate
+// from the source Vertex v.
 func (g *Graph) DownEdges(v Vertex) Set {
 	return g.downEdgesNoCopy(v).Copy()
 }
 
-// downEdgesNoCopy returns the outward edges from the source Vertex v as a Set.
-// This Set is the same as used internally bu the Graph to prevent a copy, and
-// must not be modified by the caller.
+// downEdgesNoCopy returns the vertices targeted by edges from the source Vertex
+// v as a Set. This Set is the same as used internally by the Graph to prevent a
+// copy, and must not be modified by the caller.
 func (g *Graph) downEdgesNoCopy(v Vertex) Set {
 	g.init()
 	return g.downEdges[hashcode(v)]
 }
 
-// upEdgesNoCopy returns the inward edges to the destination Vertex v as a Set.
-// This Set is the same as used internally bu the Graph to prevent a copy, and
-// must not be modified by the caller.
+// upEdgesNoCopy returns the vertices that are sources of edges targeting the
+// destination Vertex v as a Set. This Set is the same as used internally by the
+// Graph to prevent a copy, and must not be modified by the caller.
 func (g *Graph) upEdgesNoCopy(v Vertex) Set {
 	g.init()
 	return g.upEdges[hashcode(v)]
@@ -228,6 +232,28 @@ func (g *Graph) Connect(edge Edge) {
 		g.upEdges[targetCode] = s
 	}
 	s.Add(source)
+}
+
+// Subsume imports all of the nodes and edges from the given graph into the
+// reciever, leaving the given graph unchanged.
+//
+// If any of the nodes in the given graph are already present in the reciever
+// then the existing node will be retained and any new edges from the given
+// graph will be connected with it.
+//
+// If the given graph has edges in common with the reciever then they will be
+// ignored, because each pair of nodes can only be connected once.
+func (g *Graph) Subsume(other *Graph) {
+	// We're using Set.Filter just as a "visit each element" here, so we're
+	// not doing anything with the result (which will always be empty).
+	other.vertices.Filter(func(i interface{}) bool {
+		g.Add(i)
+		return false
+	})
+	other.edges.Filter(func(i interface{}) bool {
+		g.Connect(i.(Edge))
+		return false
+	})
 }
 
 // String outputs some human-friendly output for the graph structure.

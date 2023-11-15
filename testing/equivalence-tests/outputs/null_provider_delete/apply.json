@@ -1,0 +1,79 @@
+[
+  {
+    "@level": "info",
+    "@message": "null_resource.null_resource: Plan to delete",
+    "@module": "terraform.ui",
+    "change": {
+      "action": "delete",
+      "reason": "delete_because_no_resource_config",
+      "resource": {
+        "addr": "null_resource.null_resource",
+        "implied_provider": "null",
+        "module": "",
+        "resource": "null_resource.null_resource",
+        "resource_key": null,
+        "resource_name": "null_resource",
+        "resource_type": "null_resource"
+      }
+    },
+    "type": "planned_change"
+  },
+  {
+    "@level": "info",
+    "@message": "null_resource.null_resource: Destroying... [id=7115293105928418144]",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "delete",
+      "id_key": "id",
+      "id_value": "7115293105928418144",
+      "resource": {
+        "addr": "null_resource.null_resource",
+        "implied_provider": "null",
+        "module": "",
+        "resource": "null_resource.null_resource",
+        "resource_key": null,
+        "resource_name": "null_resource",
+        "resource_type": "null_resource"
+      }
+    },
+    "type": "apply_start"
+  },
+  {
+    "@level": "info",
+    "@message": "null_resource.null_resource: Destruction complete after 0s",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "delete",
+      "elapsed_seconds": 0,
+      "resource": {
+        "addr": "null_resource.null_resource",
+        "implied_provider": "null",
+        "module": "",
+        "resource": "null_resource.null_resource",
+        "resource_key": null,
+        "resource_name": "null_resource",
+        "resource_type": "null_resource"
+      }
+    },
+    "type": "apply_complete"
+  },
+  {
+    "@level": "info",
+    "@message": "Apply complete! Resources: 0 added, 0 changed, 1 destroyed.",
+    "@module": "terraform.ui",
+    "changes": {
+      "add": 0,
+      "change": 0,
+      "operation": "apply",
+      "remove": 1
+    },
+    "type": "change_summary"
+  },
+  {
+    "@level": "info",
+    "@message": "Outputs: 0",
+    "@module": "terraform.ui",
+    "outputs": {},
+    "type": "outputs"
+  }
+]

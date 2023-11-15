@@ -1,16 +1,19 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configs
 
 import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/typeexpr"
 )
 
 // A consistent detail message for all "not a valid identifier" diagnostics.
@@ -140,8 +143,11 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 		if v.ConstraintType != cty.NilType {
 			var err error
 			// If the type constraint has defaults, we must apply those
-			// defaults to the variable default value before type conversion.
-			if v.TypeDefaults != nil {
+			// defaults to the variable default value before type conversion,
+			// unless the default value is null. Null is excluded from the
+			// type default application process as a special case, to allow
+			// nullable variables to have a null default value.
+			if v.TypeDefaults != nil && !val.IsNull() {
 				val = v.TypeDefaults.Apply(val)
 			}
 			val, err = convert.Convert(val, v.ConstraintType)
@@ -259,6 +265,10 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, Vari
 		// Everything else uses HCL parsing
 		return ty, typeDefaults, VariableParseHCL, diags
 	}
+}
+
+func (v *Variable) Addr() addrs.InputVariable {
+	return addrs.InputVariable{Name: v.Name}
 }
 
 // Required returns true if this variable is required to be set by the caller,
@@ -464,6 +474,10 @@ func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostic
 	}
 
 	return o, diags
+}
+
+func (o *Output) Addr() addrs.OutputValue {
+	return addrs.OutputValue{Name: o.Name}
 }
 
 // Local represents a single entry from a "locals" block in a module or file.

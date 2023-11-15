@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -182,7 +185,7 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 
 	// Build the operation
-	opReq := c.Operation(b)
+	opReq := c.Operation(b, arguments.ViewHuman)
 	opReq.ConfigDir = configPath
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
@@ -232,8 +235,8 @@ func (c *ImportCommand) Run(args []string) int {
 	newState, importDiags := lr.Core.Import(lr.Config, lr.InputState, &terraform.ImportOpts{
 		Targets: []*terraform.ImportTarget{
 			{
-				Addr: addr,
-				ID:   args[1],
+				LegacyAddr: addr,
+				IDString:   args[1],
 			},
 		},
 
@@ -248,13 +251,21 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Get schemas, if possible, before writing state
+	var schemas *terraform.Schemas
+	if isCloudMode(b) {
+		var schemaDiags tfdiags.Diagnostics
+		schemas, schemaDiags = c.MaybeGetSchemas(newState, nil)
+		diags = diags.Append(schemaDiags)
+	}
+
 	// Persist the final state
 	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
 	if err := state.WriteState(newState); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}
-	if err := state.PersistState(); err != nil {
+	if err := state.PersistState(schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}
@@ -285,14 +296,6 @@ Usage: terraform [global options] import [options] ADDR ID
   reference the documentation for the resource type you're importing to
   determine the ID syntax to use. It typically matches directly to the ID
   that the provider uses.
-
-  The current implementation of Terraform import can only import resources
-  into the state. It does not generate configuration. A future version of
-  Terraform will also generate configuration.
-
-  Because of this, prior to running terraform import it is necessary to write
-  a resource configuration block for the resource manually, to which the
-  imported object will be attached.
 
   This command will not modify your infrastructure, but it will make
   network requests to inspect parts of your infrastructure relevant to

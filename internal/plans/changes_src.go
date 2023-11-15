@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package plans
 
 import (
@@ -182,6 +185,16 @@ func (ocs *OutputChangeSrc) DeepCopy() *OutputChangeSrc {
 	return &ret
 }
 
+// ImportingSrc is the part of a ChangeSrc that describes the embedded import
+// action.
+//
+// The fields in here are subject to change, so downstream consumers should be
+// prepared for backwards compatibility in case the contents changes.
+type ImportingSrc struct {
+	// ID is the original ID of the imported resource.
+	ID string
+}
+
 // ChangeSrc is a not-yet-decoded Change.
 type ChangeSrc struct {
 	// Action defines what kind of change is being made.
@@ -198,6 +211,19 @@ type ChangeSrc struct {
 	// the path+mark combinations allow us to re-mark the value later
 	// when, for example, displaying the diff to the UI.
 	BeforeValMarks, AfterValMarks []cty.PathValueMarks
+
+	// Importing is present if the resource is being imported as part of this
+	// change.
+	//
+	// Use the simple presence of this field to detect if a ChangeSrc is to be
+	// imported, the contents of this structure may be modified going forward.
+	Importing *ImportingSrc
+
+	// GeneratedConfig contains any HCL config generated for this resource
+	// during planning, as a string. If GeneratedConfig is populated, Importing
+	// should be true. However, not all Importing changes contain generated
+	// config.
+	GeneratedConfig string
 }
 
 // Decode unmarshals the raw representations of the before and after values
@@ -225,9 +251,16 @@ func (cs *ChangeSrc) Decode(ty cty.Type) (*Change, error) {
 		}
 	}
 
+	var importing *Importing
+	if cs.Importing != nil {
+		importing = &Importing{ID: cs.Importing.ID}
+	}
+
 	return &Change{
-		Action: cs.Action,
-		Before: before.MarkWithPaths(cs.BeforeValMarks),
-		After:  after.MarkWithPaths(cs.AfterValMarks),
+		Action:          cs.Action,
+		Before:          before.MarkWithPaths(cs.BeforeValMarks),
+		After:           after.MarkWithPaths(cs.AfterValMarks),
+		Importing:       importing,
+		GeneratedConfig: cs.GeneratedConfig,
 	}, nil
 }

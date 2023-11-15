@@ -1,0 +1,43 @@
+
+Changes to Outputs:
+  + list_empty_default                           = []
+  + list_no_default                              = [
+      + {
+          + optional_attribute              = null
+          + optional_attribute_with_default = "Hello, world!"
+          + required_attribute              = "D92053D5-948A-4E5E-80BF-E53F0DB33EB5"
+        },
+      + {
+          + optional_attribute              = "8AC4B9EE-9E05-4AE0-AA35-6D7636AEA487"
+          + optional_attribute_with_default = "Hello, world!"
+          + required_attribute              = "E6DA6176-49FB-46D6-9ECD-401B3F46A3E5"
+        },
+      + {
+          + optional_attribute              = "E68C1EB0-3D3D-4DB0-A41D-0F8C334E181C"
+          + optional_attribute_with_default = "92E855B2-A444-49DF-AFCA-2B5B017451B4"
+          + required_attribute              = "9F9922C4-B426-4648-96AE-804A6F52F778"
+        },
+    ]
+  + nested_optional_object                       = {
+      + nested_object = null
+    }
+  + nested_optional_object_with_default          = {
+      + nested_object = {
+          + flag = false
+        }
+    }
+  + nested_optional_object_with_embedded_default = {
+      + nested_object = {
+          + flag = false
+        }
+    }
+
+You can apply this plan to save these new output values to the Terraform
+state, without changing any real infrastructure.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: equivalence_test_plan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "equivalence_test_plan"

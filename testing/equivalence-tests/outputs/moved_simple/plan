@@ -1,0 +1,18 @@
+tfcoremock_simple_resource.second: Refreshing state... [id=70c47571-66c3-b1dc-2474-47a74b9c7886]
+
+Terraform will perform the following actions:
+
+  # tfcoremock_simple_resource.first has moved to tfcoremock_simple_resource.second
+    resource "tfcoremock_simple_resource" "second" {
+        id     = "70c47571-66c3-b1dc-2474-47a74b9c7886"
+        # (1 unchanged attribute hidden)
+    }
+
+Plan: 0 to add, 0 to change, 0 to destroy.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: equivalence_test_plan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "equivalence_test_plan"

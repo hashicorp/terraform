@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -81,6 +84,10 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 			platforms = append(platforms, platform)
 		}
 	}
+
+	// Installation steps can be cancelled by SIGINT and similar.
+	ctx, done := c.InterruptibleContext(c.CommandContext())
+	defer done()
 
 	// Unlike other commands, this command ignores the installation methods
 	// selected in the CLI configuration and instead chooses an installation
@@ -182,8 +189,6 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 	// merge all of the generated locks together at the end.
 	updatedLocks := map[getproviders.Platform]*depsfile.Locks{}
 	selectedVersions := map[addrs.Provider]getproviders.Version{}
-	ctx, cancel := c.InterruptibleContext()
-	defer cancel()
 	for _, platform := range platforms {
 		tempDir, err := ioutil.TempDir("", "terraform-providers-lock")
 		if err != nil {

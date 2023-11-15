@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package remote
 
 import (
@@ -11,6 +14,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	tfe "github.com/hashicorp/go-tfe"
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/cloud"
@@ -24,7 +29,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/mitchellh/cli"
 )
 
 func testOperationPlan(t *testing.T, configDir string) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
@@ -36,7 +40,7 @@ func testOperationPlan(t *testing.T, configDir string) (*backend.Operation, func
 func testOperationPlanWithTimeout(t *testing.T, configDir string, timeout time.Duration) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -235,7 +239,7 @@ func TestRemote_planWithPlan(t *testing.T) {
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
-	op.PlanFile = &planfile.Reader{}
+	op.PlanFile = planfile.NewWrappedLocal(&planfile.Reader{})
 	op.Workspace = backend.DefaultStateName
 
 	run, err := b.Operation(context.Background(), op)
@@ -1243,5 +1247,35 @@ func TestRemote_planOtherError(t *testing.T) {
 	if !strings.Contains(err.Error(),
 		"the configured \"remote\" backend encountered an unexpected error:\n\nI'm a little teacup") {
 		t.Fatalf("expected error message, got: %s", err.Error())
+	}
+}
+
+func TestRemote_planWithGenConfigOut(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
+	defer configCleanup()
+
+	op.GenerateConfigOut = "generated.tf"
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	output := done(t)
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("expected plan operation to fail")
+	}
+	if !run.PlanEmpty {
+		t.Fatalf("expected plan to be empty")
+	}
+
+	errOutput := output.Stderr()
+	if !strings.Contains(errOutput, "Generating configuration is not currently supported") {
+		t.Fatalf("expected error about config generation, got: %v", errOutput)
 	}
 }

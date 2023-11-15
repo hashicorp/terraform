@@ -23,7 +23,7 @@ value is therefore a list with one element per `newbits` argument, each
 a string containing an address range in CIDR notation.
 
 For more information on IP addressing concepts, see the documentation for the
-related function [`cidrsubnet`](/language/functions/cidrsubnet). `cidrsubnet` calculates
+related function [`cidrsubnet`](/terraform/language/functions/cidrsubnet). `cidrsubnet` calculates
 a single subnet address within a prefix while allowing you to specify its
 subnet number, while `cidrsubnets` can calculate many at once, potentially of
 different sizes, and assigns subnet numbers automatically.
@@ -69,7 +69,7 @@ platforms.
 ```
 
 You can use nested `cidrsubnets` calls with
-[`for` expressions](/language/expressions/for)
+[`for` expressions](/terraform/language/expressions/for)
 to concisely allocate groups of network address blocks:
 
 ```
@@ -96,9 +96,9 @@ to concisely allocate groups of network address blocks:
 
 ## Related Functions
 
-* [`cidrhost`](/language/functions/cidrhost) calculates the IP address for a single host
+* [`cidrhost`](/terraform/language/functions/cidrhost) calculates the IP address for a single host
   within a given network address prefix.
-* [`cidrnetmask`](/language/functions/cidrnetmask) converts an IPv4 network prefix in CIDR
+* [`cidrnetmask`](/terraform/language/functions/cidrnetmask) converts an IPv4 network prefix in CIDR
   notation into netmask notation.
-* [`cidrsubnet`](/language/functions/cidrsubnet) calculates a single subnet address, allowing
+* [`cidrsubnet`](/terraform/language/functions/cidrsubnet) calculates a single subnet address, allowing
   you to specify its network number.

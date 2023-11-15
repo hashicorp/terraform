@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package local
 
 import (
@@ -6,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -17,10 +22,10 @@ import (
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestLocal_planBasic(t *testing.T) {
@@ -85,7 +90,7 @@ func TestLocal_planInAutomation(t *testing.T) {
 
 func TestLocal_planNoConfig(t *testing.T) {
 	b := TestLocal(t)
-	TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
+	TestLocalProvider(t, b, "test", providers.ProviderSchema{})
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/empty")
 	defer configCleanup()
@@ -712,7 +717,7 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 func testOperationPlan(t *testing.T, configDir string) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
@@ -851,32 +856,60 @@ func testReadPlan(t *testing.T, path string) *plans.Plan {
 // planFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/plan . This schema should be
 // assigned to a mock provider named "test".
-func planFixtureSchema() *terraform.ProviderSchema {
-	return &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+func planFixtureSchema() providers.ProviderSchema {
+	return providers.ProviderSchema{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"ami": {Type: cty.String, Optional: true},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"network_interface": {
-						Nesting: configschema.NestingList,
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"device_index": {Type: cty.Number, Optional: true},
-								"description":  {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"ami": {Type: cty.String, Optional: true},
+					},
+					BlockTypes: map[string]*configschema.NestedBlock{
+						"network_interface": {
+							Nesting: configschema.NestingList,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"device_index": {Type: cty.Number, Optional: true},
+									"description":  {Type: cty.String, Optional: true},
+								},
 							},
 						},
 					},
 				},
 			},
 		},
-		DataSources: map[string]*configschema.Block{
+		DataSources: map[string]providers.Schema{
 			"test_ds": {
-				Attributes: map[string]*configschema.Attribute{
-					"filter": {Type: cty.String, Required: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"filter": {Type: cty.String, Required: true},
+					},
 				},
 			},
 		},
+	}
+}
+
+func TestLocal_invalidOptions(t *testing.T) {
+	b := TestLocal(t)
+	TestLocalProvider(t, b, "test", planFixtureSchema())
+
+	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
+	defer configCleanup()
+	op.PlanRefresh = true
+	op.PlanMode = plans.RefreshOnlyMode
+	op.ForceReplace = []addrs.AbsResourceInstance{mustResourceInstanceAddr("test_instance.foo")}
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	<-run.Done()
+	if run.Result == backend.OperationSuccess {
+		t.Fatalf("plan operation failed")
+	}
+
+	if errOutput := done(t).Stderr(); errOutput == "" {
+		t.Fatal("expected error output")
 	}
 }

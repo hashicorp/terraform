@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -12,8 +15,9 @@ import (
 // in the given config that are in the state and adds them to the graph
 // for deletion.
 type OrphanOutputTransformer struct {
-	Config *configs.Config // Root of config tree
-	State  *states.State   // State is the root state
+	Config   *configs.Config // Root of config tree
+	State    *states.State   // State is the root state
+	Planning bool
 }
 
 func (t *OrphanOutputTransformer) Transform(g *Graph) error {
@@ -52,7 +56,8 @@ func (t *OrphanOutputTransformer) transform(g *Graph, ms *states.Module) error {
 		}
 
 		g.Add(&NodeDestroyableOutput{
-			Addr: addrs.OutputValue{Name: name}.Absolute(moduleAddr),
+			Addr:     addrs.OutputValue{Name: name}.Absolute(moduleAddr),
+			Planning: t.Planning,
 		})
 	}
 

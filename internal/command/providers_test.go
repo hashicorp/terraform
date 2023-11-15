@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -154,6 +157,42 @@ func TestProviders_state(t *testing.T) {
 		"provider[registry.terraform.io/hashicorp/bar] 2.0.0", // from a provider config block
 		"Providers required by state",                         // header for state providers
 		"provider[registry.terraform.io/hashicorp/baz]",       // from a resouce in state (only)
+	}
+
+	output := ui.OutputWriter.String()
+	for _, want := range wantOutput {
+		if !strings.Contains(output, want) {
+			t.Errorf("output missing %s:\n%s", want, output)
+		}
+	}
+}
+
+func TestProviders_tests(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(testFixturePath("providers/tests")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	ui := new(cli.MockUi)
+	c := &ProvidersCommand{
+		Meta: Meta{
+			Ui: ui,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	wantOutput := []string{
+		"provider[registry.terraform.io/hashicorp/foo]",
+		"test.main",
+		"provider[registry.terraform.io/hashicorp/bar]",
 	}
 
 	output := ui.OutputWriter.String()

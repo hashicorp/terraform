@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package configs contains types that represent Terraform configurations and
 // the different elements thereof.
 //

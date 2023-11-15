@@ -1,9 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
 	"fmt"
 	"log"
-	"sync"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -19,32 +21,29 @@ type contextPlugins struct {
 	providerFactories    map[addrs.Provider]providers.Factory
 	provisionerFactories map[string]provisioners.Factory
 
-	// We memoize the schemas we've previously loaded in here, to avoid
-	// repeatedly paying the cost of activating the same plugins to access
-	// their schemas in various different spots. We use schemas for many
-	// purposes in Terraform, so there isn't a single choke point where
-	// it makes sense to preload all of them.
-	providerSchemas    map[addrs.Provider]*ProviderSchema
-	provisionerSchemas map[string]*configschema.Block
-	schemasLock        sync.Mutex
+	preloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema
 }
 
-func newContextPlugins(providerFactories map[addrs.Provider]providers.Factory, provisionerFactories map[string]provisioners.Factory) *contextPlugins {
+func newContextPlugins(
+	providerFactories map[addrs.Provider]providers.Factory,
+	provisionerFactories map[string]provisioners.Factory,
+	preloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema,
+) *contextPlugins {
 	ret := &contextPlugins{
-		providerFactories:    providerFactories,
-		provisionerFactories: provisionerFactories,
+		providerFactories:        providerFactories,
+		provisionerFactories:     provisionerFactories,
+		preloadedProviderSchemas: preloadedProviderSchemas,
 	}
-	ret.init()
 	return ret
-}
-
-func (cp *contextPlugins) init() {
-	cp.providerSchemas = make(map[addrs.Provider]*ProviderSchema, len(cp.providerFactories))
-	cp.provisionerSchemas = make(map[string]*configschema.Block, len(cp.provisionerFactories))
 }
 
 func (cp *contextPlugins) HasProvider(addr addrs.Provider) bool {
 	_, ok := cp.providerFactories[addr]
+	return ok
+}
+
+func (cp *contextPlugins) HasPreloadedSchemaForProvider(addr addrs.Provider) bool {
+	_, ok := cp.preloadedProviderSchemas[addr]
 	return ok
 }
 
@@ -78,70 +77,68 @@ func (cp *contextPlugins) NewProvisionerInstance(typ string) (provisioners.Inter
 // ProviderSchema memoizes results by unique provider address, so it's fine
 // to repeatedly call this method with the same address if various different
 // parts of Terraform all need the same schema information.
-func (cp *contextPlugins) ProviderSchema(addr addrs.Provider) (*ProviderSchema, error) {
-	cp.schemasLock.Lock()
-	defer cp.schemasLock.Unlock()
+func (cp *contextPlugins) ProviderSchema(addr addrs.Provider) (providers.ProviderSchema, error) {
+	log.Printf("[TRACE] terraform.contextPlugins: Initializing provider %q to read its schema", addr)
 
-	if schema, ok := cp.providerSchemas[addr]; ok {
+	// Check the global schema cache first.
+	// This cache is only written by the provider client, and transparently
+	// used by GetProviderSchema, but we check it here because at this point we
+	// may be able to avoid spinning up the provider instance at all.
+	// We skip this if we have preloaded schemas because that suggests that
+	// our caller is not Terraform CLI and therefore it's probably inappropriate
+	// to assume that provider schemas are unique process-wide.
+	//
+	// FIXME: A global cache is inappropriate when Terraform Core is being
+	// used in a non-Terraform-CLI mode where we shouldn't assume that all
+	// calls share the same provider implementations.
+	schemas, ok := providers.SchemaCache.Get(addr)
+	if ok {
+		return schemas, nil
+	}
+
+	// We might have a non-global preloaded copy of this provider's schema.
+	if schema, ok := cp.preloadedProviderSchemas[addr]; ok {
 		return schema, nil
 	}
 
-	log.Printf("[TRACE] terraform.contextPlugins: Initializing provider %q to read its schema", addr)
-
 	provider, err := cp.NewProviderInstance(addr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to instantiate provider %q to obtain schema: %s", addr, err)
+		return schemas, fmt.Errorf("failed to instantiate provider %q to obtain schema: %s", addr, err)
 	}
 	defer provider.Close()
 
 	resp := provider.GetProviderSchema()
 	if resp.Diagnostics.HasErrors() {
-		return nil, fmt.Errorf("failed to retrieve schema from provider %q: %s", addr, resp.Diagnostics.Err())
-	}
-
-	s := &ProviderSchema{
-		Provider:      resp.Provider.Block,
-		ResourceTypes: make(map[string]*configschema.Block),
-		DataSources:   make(map[string]*configschema.Block),
-
-		ResourceTypeSchemaVersions: make(map[string]uint64),
+		return resp, fmt.Errorf("failed to retrieve schema from provider %q: %s", addr, resp.Diagnostics.Err())
 	}
 
 	if resp.Provider.Version < 0 {
 		// We're not using the version numbers here yet, but we'll check
 		// for validity anyway in case we start using them in future.
-		return nil, fmt.Errorf("provider %s has invalid negative schema version for its configuration blocks,which is a bug in the provider ", addr)
+		return resp, fmt.Errorf("provider %s has invalid negative schema version for its configuration blocks,which is a bug in the provider ", addr)
 	}
 
 	for t, r := range resp.ResourceTypes {
 		if err := r.Block.InternalValidate(); err != nil {
-			return nil, fmt.Errorf("provider %s has invalid schema for managed resource type %q, which is a bug in the provider: %q", addr, t, err)
+			return resp, fmt.Errorf("provider %s has invalid schema for managed resource type %q, which is a bug in the provider: %q", addr, t, err)
 		}
-		s.ResourceTypes[t] = r.Block
-		s.ResourceTypeSchemaVersions[t] = uint64(r.Version)
 		if r.Version < 0 {
-			return nil, fmt.Errorf("provider %s has invalid negative schema version for managed resource type %q, which is a bug in the provider", addr, t)
+			return resp, fmt.Errorf("provider %s has invalid negative schema version for managed resource type %q, which is a bug in the provider", addr, t)
 		}
 	}
 
 	for t, d := range resp.DataSources {
 		if err := d.Block.InternalValidate(); err != nil {
-			return nil, fmt.Errorf("provider %s has invalid schema for data resource type %q, which is a bug in the provider: %q", addr, t, err)
+			return resp, fmt.Errorf("provider %s has invalid schema for data resource type %q, which is a bug in the provider: %q", addr, t, err)
 		}
-		s.DataSources[t] = d.Block
 		if d.Version < 0 {
 			// We're not using the version numbers here yet, but we'll check
 			// for validity anyway in case we start using them in future.
-			return nil, fmt.Errorf("provider %s has invalid negative schema version for data resource type %q, which is a bug in the provider", addr, t)
+			return resp, fmt.Errorf("provider %s has invalid negative schema version for data resource type %q, which is a bug in the provider", addr, t)
 		}
 	}
 
-	if resp.ProviderMeta.Block != nil {
-		s.ProviderMeta = resp.ProviderMeta.Block
-	}
-
-	cp.providerSchemas[addr] = s
-	return s, nil
+	return resp, nil
 }
 
 // ProviderConfigSchema is a helper wrapper around ProviderSchema which first
@@ -154,7 +151,7 @@ func (cp *contextPlugins) ProviderConfigSchema(providerAddr addrs.Provider) (*co
 		return nil, err
 	}
 
-	return providerSchema.Provider, nil
+	return providerSchema.Provider.Block, nil
 }
 
 // ResourceTypeSchema is a helper wrapper around ProviderSchema which first
@@ -185,13 +182,6 @@ func (cp *contextPlugins) ResourceTypeSchema(providerAddr addrs.Provider, resour
 // to repeatedly call this method with the same name if various different
 // parts of Terraform all need the same schema information.
 func (cp *contextPlugins) ProvisionerSchema(typ string) (*configschema.Block, error) {
-	cp.schemasLock.Lock()
-	defer cp.schemasLock.Unlock()
-
-	if schema, ok := cp.provisionerSchemas[typ]; ok {
-		return schema, nil
-	}
-
 	log.Printf("[TRACE] terraform.contextPlugins: Initializing provisioner %q to read its schema", typ)
 	provisioner, err := cp.NewProvisionerInstance(typ)
 	if err != nil {
@@ -204,6 +194,5 @@ func (cp *contextPlugins) ProvisionerSchema(typ string) (*configschema.Block, er
 		return nil, fmt.Errorf("failed to retrieve schema from provisioner %q: %s", typ, resp.Diagnostics.Err())
 	}
 
-	cp.provisionerSchemas[typ] = resp.Provisioner
 	return resp.Provisioner, nil
 }

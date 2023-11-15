@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -6,22 +9,23 @@ import (
 	"log"
 	"sync"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
-	"github.com/hashicorp/terraform/version"
-
 	"github.com/hashicorp/terraform/internal/states"
-
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/zclconf/go-cty/cty"
+	"github.com/hashicorp/terraform/version"
 )
 
 // BuiltinEvalContext is an EvalContext implementation that is used by
@@ -57,6 +61,13 @@ type BuiltinEvalContext struct {
 	// available for use during a graph walk.
 	Plugins *contextPlugins
 
+	// ExternalProviderConfigs are pre-configured provider instances passed
+	// in by the caller, for situations like Stack components where the
+	// root module isn't designed to be planned and applied in isolation and
+	// instead expects to recieve certain provider configurations from the
+	// stack configuration.
+	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+
 	Hooks                 []Hook
 	InputValue            UIInput
 	ProviderCache         map[string]providers.Interface
@@ -66,11 +77,12 @@ type BuiltinEvalContext struct {
 	ProvisionerLock       *sync.Mutex
 	ChangesValue          *plans.ChangesSync
 	StateValue            *states.SyncState
-	ConditionsValue       *plans.ConditionsSync
+	ChecksValue           *checks.State
 	RefreshStateValue     *states.SyncState
 	PrevRunStateValue     *states.SyncState
 	InstanceExpanderValue *instances.Expander
 	MoveResultsValue      refactoring.MoveResults
+	OverrideValues        *mocking.Overrides
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -116,7 +128,7 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 	return ctx.InputValue
 }
 
-func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig) (providers.Interface, error) {
+func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig, config *configs.Provider) (providers.Interface, error) {
 	// If we already initialized, it is an error
 	if p := ctx.Provider(addr); p != nil {
 		return nil, fmt.Errorf("%s is already initialized", addr)
@@ -129,12 +141,38 @@ func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig) (provi
 
 	key := addr.String()
 
+	if addr.Module.IsRoot() {
+		rootAddr := addrs.RootProviderConfig{
+			Provider: addr.Provider,
+			Alias:    addr.Alias,
+		}
+		if external, isExternal := ctx.ExternalProviderConfigs[rootAddr]; isExternal {
+			// External providers should always be pre-configured by the
+			// external caller, and so we'll wrap them in a type that
+			// makes operations like ConfigureProvider and Close be no-op.
+			wrapped := externalProviderWrapper{external}
+			ctx.ProviderCache[key] = wrapped
+			return wrapped, nil
+		}
+	}
+
 	p, err := ctx.Plugins.NewProviderInstance(addr.Provider)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Printf("[TRACE] BuiltinEvalContext: Initialized %q provider for %s", addr.String(), addr)
+
+	// The config might be nil, if there was no config block defined for this
+	// provider.
+	if config != nil && config.Mock {
+		log.Printf("[TRACE] BuiltinEvalContext: Mocked %q provider for %s", addr.String(), addr)
+		p = &providers.Mock{
+			Provider: p,
+			Data:     config.MockData,
+		}
+	}
+
 	ctx.ProviderCache[key] = p
 
 	return p, nil
@@ -147,7 +185,7 @@ func (ctx *BuiltinEvalContext) Provider(addr addrs.AbsProviderConfig) providers.
 	return ctx.ProviderCache[addr.String()]
 }
 
-func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (*ProviderSchema, error) {
+func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (providers.ProviderSchema, error) {
 	return ctx.Plugins.ProviderSchema(addr.Provider)
 }
 
@@ -176,16 +214,6 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, c
 	p := ctx.Provider(addr)
 	if p == nil {
 		diags = diags.Append(fmt.Errorf("%s not initialized", addr))
-		return diags
-	}
-
-	providerSchema, err := ctx.ProviderSchema(addr)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("failed to read schema for %s: %s", addr, err))
-		return diags
-	}
-	if providerSchema == nil {
-		diags = diags.Append(fmt.Errorf("schema for %s is not available", addr))
 		return diags
 	}
 
@@ -269,7 +297,7 @@ func (ctx *BuiltinEvalContext) CloseProvisioners() error {
 
 func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, keyData InstanceKeyEvalData) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	scope := ctx.EvaluationScope(self, keyData)
+	scope := ctx.EvaluationScope(self, nil, keyData)
 	body, evalDiags := scope.ExpandBlock(body, schema)
 	diags = diags.Append(evalDiags)
 	val, evalDiags := scope.EvalBlock(body, schema)
@@ -278,7 +306,7 @@ func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema
 }
 
 func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
-	scope := ctx.EvaluationScope(self, EvalDataForNoInstanceKey)
+	scope := ctx.EvaluationScope(self, nil, EvalDataForNoInstanceKey)
 	return scope.EvalExpr(expr, wantType)
 }
 
@@ -396,7 +424,7 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	return ref, replace, diags
 }
 
-func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, keyData instances.RepetitionData) *lang.Scope {
+func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {
 	if !ctx.pathSet {
 		panic("context path not set")
 	}
@@ -406,7 +434,7 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, keyData
 		InstanceKeyData: keyData,
 		Operation:       ctx.Evaluator.Operation,
 	}
-	scope := ctx.Evaluator.Scope(data, self)
+	scope := ctx.Evaluator.Scope(data, self, source)
 
 	// ctx.PathValue is the path of the module that contains whatever
 	// expression the caller will be trying to evaluate, so this will
@@ -482,8 +510,8 @@ func (ctx *BuiltinEvalContext) State() *states.SyncState {
 	return ctx.StateValue
 }
 
-func (ctx *BuiltinEvalContext) Conditions() *plans.ConditionsSync {
-	return ctx.ConditionsValue
+func (ctx *BuiltinEvalContext) Checks() *checks.State {
+	return ctx.ChecksValue
 }
 
 func (ctx *BuiltinEvalContext) RefreshState() *states.SyncState {
@@ -500,4 +528,8 @@ func (ctx *BuiltinEvalContext) InstanceExpander() *instances.Expander {
 
 func (ctx *BuiltinEvalContext) MoveResults() refactoring.MoveResults {
 	return ctx.MoveResultsValue
+}
+
+func (ctx *BuiltinEvalContext) Overrides() *mocking.Overrides {
+	return ctx.OverrideValues
 }

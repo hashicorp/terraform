@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -9,33 +12,40 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 )
 
-func TestNodeApplyableResourceExecute(t *testing.T) {
+func TestNodeExpandApplyableResourceExecute(t *testing.T) {
 	state := states.NewState()
-	ctx := &MockEvalContext{
-		StateState:               state.SyncWrapper(),
-		InstanceExpanderExpander: instances.NewExpander(),
-	}
-
 	t.Run("no config", func(t *testing.T) {
-		node := NodeApplyableResource{
+		ctx := &MockEvalContext{
+			StateState:               state.SyncWrapper(),
+			InstanceExpanderExpander: instances.NewExpander(),
+		}
+
+		node := &nodeExpandApplyableResource{
 			NodeAbstractResource: &NodeAbstractResource{
+				Addr:   mustConfigResourceAddr("test_instance.foo"),
 				Config: nil,
 			},
-			Addr: mustAbsResourceAddr("test_instance.foo"),
 		}
 		diags := node.Execute(ctx, walkApply)
 		if diags.HasErrors() {
 			t.Fatalf("unexpected error: %s", diags.Err())
 		}
+
+		state.PruneResourceHusks()
 		if !state.Empty() {
 			t.Fatalf("expected no state, got:\n %s", state.String())
 		}
 	})
 
 	t.Run("simple", func(t *testing.T) {
+		ctx := &MockEvalContext{
+			StateState:               state.SyncWrapper(),
+			InstanceExpanderExpander: instances.NewExpander(),
+		}
 
-		node := NodeApplyableResource{
+		node := &nodeExpandApplyableResource{
 			NodeAbstractResource: &NodeAbstractResource{
+				Addr: mustConfigResourceAddr("test_instance.foo"),
 				Config: &configs.Resource{
 					Mode: addrs.ManagedResourceMode,
 					Type: "test_instance",
@@ -46,7 +56,6 @@ func TestNodeApplyableResourceExecute(t *testing.T) {
 					Module:   addrs.RootModule,
 				},
 			},
-			Addr: mustAbsResourceAddr("test_instance.foo"),
 		}
 		diags := node.Execute(ctx, walkApply)
 		if diags.HasErrors() {

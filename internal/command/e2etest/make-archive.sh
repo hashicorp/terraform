@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 
 # For normal use this package can just be tested with "go test" as standard,
 # but this script is an alternative to allow the tests to be run somewhere
@@ -8,7 +11,7 @@
 # archive that can be extracted on a Windows system to run the e2e tests there:
 #    $ GOOS=windows GOARCH=amd64 ./make-archive.sh
 #
-# This will produce a zip file build/terraform-s2stest_windows_amd64.zip which
+# This will produce a zip file build/terraform-e2etest_windows_amd64.zip which
 # can be shipped off to a Windows amd64 system, extracted to some directory,
 # and then executed as follows:
 #    set TF_ACC=1

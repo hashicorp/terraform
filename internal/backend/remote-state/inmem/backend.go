@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package inmem
 
 import (
@@ -101,7 +104,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 	return workspaces, nil
 }
 
-func (b *Backend) DeleteWorkspace(name string) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 	states.Lock()
 	defer states.Unlock()
 
@@ -141,7 +144,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 			if err := s.WriteState(statespkg.NewState()); err != nil {
 				return nil, err
 			}
-			if err := s.PersistState(); err != nil {
+			if err := s.PersistState(nil); err != nil {
 				return nil, err
 			}
 		}

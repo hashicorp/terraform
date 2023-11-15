@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package addrs
 
 import (
@@ -5,6 +8,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -12,10 +16,11 @@ import (
 // that is defining it.
 //
 // This is related to but separate from ModuleCallOutput, which represents
-// a module output from the perspective of its parent module. Since output
-// values cannot be represented from the module where they are defined,
-// OutputValue is not Referenceable, while ModuleCallOutput is.
+// a module output from the perspective of its parent module. Outputs are
+// referencable from the testing scope, in general terraform operation users
+// will be referencing ModuleCallOutput.
 type OutputValue struct {
+	referenceable
 	Name string
 }
 
@@ -23,10 +28,29 @@ func (v OutputValue) String() string {
 	return "output." + v.Name
 }
 
+func (v OutputValue) Equal(o OutputValue) bool {
+	return v.Name == o.Name
+}
+
+func (v OutputValue) UniqueKey() UniqueKey {
+	return v // An OutputValue is its own UniqueKey
+}
+
+func (v OutputValue) uniqueKeySigil() {}
+
 // Absolute converts the receiver into an absolute address within the given
 // module instance.
 func (v OutputValue) Absolute(m ModuleInstance) AbsOutputValue {
 	return AbsOutputValue{
+		Module:      m,
+		OutputValue: v,
+	}
+}
+
+// InModule converts the receiver into a config address within the given
+// module.
+func (v OutputValue) InModule(m Module) ConfigOutputValue {
+	return ConfigOutputValue{
 		Module:      m,
 		OutputValue: v,
 	}
@@ -38,7 +62,6 @@ func (v OutputValue) Absolute(m ModuleInstance) AbsOutputValue {
 // configuration. It is related to but separate from ModuleCallOutput, which
 // represents a module output from the perspective of its parent module.
 type AbsOutputValue struct {
-	checkable
 	Module      ModuleInstance
 	OutputValue OutputValue
 }
@@ -54,8 +77,8 @@ func (m ModuleInstance) OutputValue(name string) AbsOutputValue {
 	}
 }
 
-func (v AbsOutputValue) Check(t CheckType, i int) Check {
-	return Check{
+func (v AbsOutputValue) CheckRule(t CheckRuleType, i int) CheckRule {
+	return CheckRule{
 		Container: v,
 		Type:      t,
 		Index:     i,
@@ -70,8 +93,37 @@ func (v AbsOutputValue) String() string {
 }
 
 func (v AbsOutputValue) Equal(o AbsOutputValue) bool {
-	return v.OutputValue == o.OutputValue && v.Module.Equal(o.Module)
+	return v.OutputValue.Equal(o.OutputValue) && v.Module.Equal(o.Module)
 }
+
+func (v AbsOutputValue) ConfigOutputValue() ConfigOutputValue {
+	return ConfigOutputValue{
+		Module:      v.Module.Module(),
+		OutputValue: v.OutputValue,
+	}
+}
+
+func (v AbsOutputValue) checkableSigil() {
+	// Output values are checkable
+}
+
+func (v AbsOutputValue) ConfigCheckable() ConfigCheckable {
+	// Output values are declared by "output" blocks in the configuration,
+	// represented as ConfigOutputValue.
+	return v.ConfigOutputValue()
+}
+
+func (v AbsOutputValue) CheckableKind() CheckableKind {
+	return CheckableOutputValue
+}
+
+func (v AbsOutputValue) UniqueKey() UniqueKey {
+	return absOutputValueUniqueKey(v.String())
+}
+
+type absOutputValueUniqueKey string
+
+func (k absOutputValueUniqueKey) uniqueKeySigil() {}
 
 func ParseAbsOutputValue(traversal hcl.Traversal) (AbsOutputValue, tfdiags.Diagnostics) {
 	path, remain, diags := parseModuleInstancePrefix(traversal)
@@ -152,3 +204,35 @@ func (v AbsOutputValue) ModuleCallOutput() (ModuleInstance, ModuleCallInstanceOu
 		Name: v.OutputValue.Name,
 	}
 }
+
+// ConfigOutputValue represents a particular "output" block in the
+// configuration, which might have many AbsOutputValue addresses associated
+// with it at runtime if it belongs to a module that was called using
+// "count" or "for_each".
+type ConfigOutputValue struct {
+	Module      Module
+	OutputValue OutputValue
+}
+
+func (v ConfigOutputValue) String() string {
+	if v.Module.IsRoot() {
+		return v.OutputValue.String()
+	}
+	return fmt.Sprintf("%s.%s", v.Module.String(), v.OutputValue.String())
+}
+
+func (v ConfigOutputValue) configCheckableSigil() {
+	// ConfigOutputValue is the ConfigCheckable for AbsOutputValue.
+}
+
+func (v ConfigOutputValue) CheckableKind() CheckableKind {
+	return CheckableOutputValue
+}
+
+func (v ConfigOutputValue) UniqueKey() UniqueKey {
+	return configOutputValueUniqueKey(v.String())
+}
+
+type configOutputValueUniqueKey string
+
+func (k configOutputValueUniqueKey) uniqueKeySigil() {}

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package repl
 
 import (
@@ -271,7 +274,7 @@ func testSession(t *testing.T, test testSessionTest) {
 		},
 	}
 
-	config, _, cleanup, configDiags := initwd.LoadConfigForTests(t, "testdata/config-fixture")
+	config, _, cleanup, configDiags := initwd.LoadConfigForTests(t, "testdata/config-fixture", "tests")
 	defer cleanup()
 	if configDiags.HasErrors() {
 		t.Fatalf("unexpected problems loading config: %s", configDiags.Err())

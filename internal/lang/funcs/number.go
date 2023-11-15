@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package funcs
 
 import (
@@ -21,7 +24,8 @@ var LogFunc = function.New(&function.Spec{
 			Type: cty.Number,
 		},
 	},
-	Type: function.StaticReturnType(cty.Number),
+	Type:         function.StaticReturnType(cty.Number),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		var num float64
 		if err := gocty.FromCtyValue(args[0], &num); err != nil {
@@ -49,7 +53,8 @@ var PowFunc = function.New(&function.Spec{
 			Type: cty.Number,
 		},
 	},
-	Type: function.StaticReturnType(cty.Number),
+	Type:         function.StaticReturnType(cty.Number),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		var num float64
 		if err := gocty.FromCtyValue(args[0], &num); err != nil {
@@ -74,7 +79,8 @@ var SignumFunc = function.New(&function.Spec{
 			Type: cty.Number,
 		},
 	},
-	Type: function.StaticReturnType(cty.Number),
+	Type:         function.StaticReturnType(cty.Number),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		var num int
 		if err := gocty.FromCtyValue(args[0], &num); err != nil {
@@ -112,6 +118,7 @@ var ParseIntFunc = function.New(&function.Spec{
 		}
 		return cty.Number, nil
 	},
+	RefineResult: refineNotNull,
 
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		var numstr string

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package lang
 
 import (
@@ -6,13 +9,14 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/dynblock"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/blocktoattr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // ExpandBlock expands any "dynamic" blocks present in the given body. The
@@ -25,7 +29,7 @@ func (s *Scope) ExpandBlock(body hcl.Body, schema *configschema.Block) (hcl.Body
 	spec := schema.DecoderSpec()
 
 	traversals := dynblock.ExpandVariablesHCLDec(body, spec)
-	refs, diags := References(traversals)
+	refs, diags := References(s.ParseRef, traversals)
 
 	ctx, ctxDiags := s.EvalContext(refs)
 	diags = diags.Append(ctxDiags)
@@ -46,7 +50,7 @@ func (s *Scope) ExpandBlock(body hcl.Body, schema *configschema.Block) (hcl.Body
 func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
 	spec := schema.DecoderSpec()
 
-	refs, diags := ReferencesInBlock(body, schema)
+	refs, diags := ReferencesInBlock(s.ParseRef, body, schema)
 
 	ctx, ctxDiags := s.EvalContext(refs)
 	diags = diags.Append(ctxDiags)
@@ -93,7 +97,7 @@ func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschem
 		})
 	}
 
-	refs, refDiags := References(hcldec.Variables(body, spec))
+	refs, refDiags := References(s.ParseRef, hcldec.Variables(body, spec))
 	diags = diags.Append(refDiags)
 
 	terraformAttrs := map[string]cty.Value{}
@@ -158,7 +162,7 @@ func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschem
 // If the returned diagnostics contains errors then the result may be
 // incomplete, but will always be of the requested type.
 func (s *Scope) EvalExpr(expr hcl.Expression, wantType cty.Type) (cty.Value, tfdiags.Diagnostics) {
-	refs, diags := ReferencesInExpr(expr)
+	refs, diags := ReferencesInExpr(s.ParseRef, expr)
 
 	ctx, ctxDiags := s.EvalContext(refs)
 	diags = diags.Append(ctxDiags)
@@ -259,8 +263,9 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	// First we'll do static validation of the references. This catches things
 	// early that might otherwise not get caught due to unknown values being
 	// present in the scope during planning.
-	if staticDiags := s.Data.StaticValidateReferences(refs, selfAddr); staticDiags.HasErrors() {
-		diags = diags.Append(staticDiags)
+	staticDiags := s.Data.StaticValidateReferences(refs, selfAddr, s.SourceAddr)
+	diags = diags.Append(staticDiags)
+	if staticDiags.HasErrors() {
 		return ctx, diags
 	}
 
@@ -277,10 +282,13 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	wholeModules := map[string]cty.Value{}
 	inputVariables := map[string]cty.Value{}
 	localValues := map[string]cty.Value{}
+	outputValues := map[string]cty.Value{}
 	pathAttrs := map[string]cty.Value{}
 	terraformAttrs := map[string]cty.Value{}
 	countAttrs := map[string]cty.Value{}
 	forEachAttrs := map[string]cty.Value{}
+	checkBlocks := map[string]cty.Value{}
+	runBlocks := map[string]cty.Value{}
 	var self cty.Value
 
 	for _, ref := range refs {
@@ -401,6 +409,21 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			diags = diags.Append(valDiags)
 			forEachAttrs[subj.Name] = val
 
+		case addrs.OutputValue:
+			val, valDiags := normalizeRefValue(s.Data.GetOutput(subj, rng))
+			diags = diags.Append(valDiags)
+			outputValues[subj.Name] = val
+
+		case addrs.Check:
+			val, valDiags := normalizeRefValue(s.Data.GetCheckBlock(subj, rng))
+			diags = diags.Append(valDiags)
+			checkBlocks[subj.Name] = val
+
+		case addrs.Run:
+			val, valDiags := normalizeRefValue(s.Data.GetRunBlock(subj, rng))
+			diags = diags.Append(valDiags)
+			runBlocks[subj.Name] = val
+
 		default:
 			// Should never happen
 			panic(fmt.Errorf("Scope.buildEvalContext cannot handle address type %T", rawSubj))
@@ -425,6 +448,22 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	vals["terraform"] = cty.ObjectVal(terraformAttrs)
 	vals["count"] = cty.ObjectVal(countAttrs)
 	vals["each"] = cty.ObjectVal(forEachAttrs)
+
+	// Checks, outputs, and run blocks are conditionally included in the
+	// available scope, so we'll only write out their values if we actually have
+	// something for them.
+	if len(checkBlocks) > 0 {
+		vals["check"] = cty.ObjectVal(checkBlocks)
+	}
+
+	if len(outputValues) > 0 {
+		vals["output"] = cty.ObjectVal(outputValues)
+	}
+
+	if len(runBlocks) > 0 {
+		vals["run"] = cty.ObjectVal(runBlocks)
+	}
+
 	if self != cty.NilVal {
 		vals["self"] = self
 	}

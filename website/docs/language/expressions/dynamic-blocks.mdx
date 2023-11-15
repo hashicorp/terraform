@@ -44,7 +44,7 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
 }
 ```
 
-A `dynamic` block acts much like a [`for` expression](/language/expressions/for), but produces
+A `dynamic` block acts much like a [`for` expression](/terraform/language/expressions/for), but produces
 nested blocks instead of a complex typed value. It iterates over a given
 complex value, and generates a nested block for each element of that complex
 value.
@@ -84,9 +84,9 @@ nested block. If you need to declare resource instances based on a nested
 data structure or combinations of elements from multiple data structures you
 can use Terraform expressions and functions to derive a suitable value.
 For some common examples of such situations, see the
-[`flatten`](/language/functions/flatten)
+[`flatten`](/terraform/language/functions/flatten)
 and
-[`setproduct`](/language/functions/setproduct)
+[`setproduct`](/terraform/language/functions/setproduct)
 functions.
 
 ## Multi-level Nested Block Structures
@@ -151,5 +151,5 @@ nested blocks using directly-corresponding attributes from an input variable
 then that might suggest that your module is not creating a useful abstraction.
 It may be better for the calling module to define the resource itself then
 pass information about it into your module. For more information on this design
-tradeoff, see [When to Write a Module](/language/modules/develop#when-to-write-a-module)
-and [Module Composition](/language/modules/develop/composition).
+tradeoff, see [When to Write a Module](/terraform/language/modules/develop#when-to-write-a-module)
+and [Module Composition](/terraform/language/modules/develop/composition).

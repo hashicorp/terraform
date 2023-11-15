@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -22,6 +25,14 @@ import (
 
 const (
 	stdinArg = "-"
+)
+
+var (
+	fmtSupportedExts = []string{
+		".tf",
+		".tfvars",
+		".tftest.hcl",
+	}
 )
 
 // FmtCommand is a Command implementation that rewrites Terraform config
@@ -55,11 +66,6 @@ func (c *FmtCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) > 1 {
-		c.Ui.Error("The fmt command expects at most one argument.")
-		cmdFlags.Usage()
-		return 1
-	}
 
 	var paths []string
 	if len(args) == 0 {
@@ -68,7 +74,7 @@ func (c *FmtCommand) Run(args []string) int {
 		c.list = false
 		c.write = false
 	} else {
-		paths = []string{args[0]}
+		paths = args
 	}
 
 	var output io.Writer
@@ -129,21 +135,31 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 			dirDiags := c.processDir(path, stdout)
 			diags = diags.Append(dirDiags)
 		} else {
-			switch filepath.Ext(path) {
-			case ".tf", ".tfvars":
-				f, err := os.Open(path)
-				if err != nil {
-					// Open does not produce error messages that are end-user-appropriate,
-					// so we'll need to simplify here.
-					diags = diags.Append(fmt.Errorf("Failed to read file %s", path))
-					continue
-				}
+			fmtd := false
+			for _, ext := range fmtSupportedExts {
+				if strings.HasSuffix(path, ext) {
+					f, err := os.Open(path)
+					if err != nil {
+						// Open does not produce error messages that are end-user-appropriate,
+						// so we'll need to simplify here.
+						diags = diags.Append(fmt.Errorf("Failed to read file %s", path))
+						continue
+					}
 
-				fileDiags := c.processFile(c.normalizePath(path), f, stdout, false)
-				diags = diags.Append(fileDiags)
-				f.Close()
-			default:
-				diags = diags.Append(fmt.Errorf("Only .tf and .tfvars files can be processed with terraform fmt"))
+					fileDiags := c.processFile(c.normalizePath(path), f, stdout, false)
+					diags = diags.Append(fileDiags)
+					f.Close()
+
+					// Take note that we processed the file.
+					fmtd = true
+
+					// Don't check the remaining extensions.
+					break
+				}
+			}
+
+			if !fmtd {
+				diags = diags.Append(fmt.Errorf("Only .tf, .tfvars, and .tftest.hcl files can be processed with terraform fmt"))
 				continue
 			}
 		}
@@ -246,20 +262,23 @@ func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnosti
 			continue
 		}
 
-		ext := filepath.Ext(name)
-		switch ext {
-		case ".tf", ".tfvars":
-			f, err := os.Open(subPath)
-			if err != nil {
-				// Open does not produce error messages that are end-user-appropriate,
-				// so we'll need to simplify here.
-				diags = diags.Append(fmt.Errorf("Failed to read file %s", subPath))
-				continue
-			}
+		for _, ext := range fmtSupportedExts {
+			if strings.HasSuffix(name, ext) {
+				f, err := os.Open(subPath)
+				if err != nil {
+					// Open does not produce error messages that are end-user-appropriate,
+					// so we'll need to simplify here.
+					diags = diags.Append(fmt.Errorf("Failed to read file %s", subPath))
+					continue
+				}
 
-			fileDiags := c.processFile(c.normalizePath(subPath), f, stdout, false)
-			diags = diags.Append(fileDiags)
-			f.Close()
+				fileDiags := c.processFile(c.normalizePath(subPath), f, stdout, false)
+				diags = diags.Append(fileDiags)
+				f.Close()
+
+				// Don't need to check the remaining extensions.
+				break
+			}
 		}
 	}
 
@@ -528,15 +547,18 @@ func (c *FmtCommand) trimNewlines(tokens hclwrite.Tokens) hclwrite.Tokens {
 
 func (c *FmtCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] fmt [options] [TARGET]
+Usage: terraform [global options] fmt [options] [target...]
 
-  Rewrites all Terraform configuration files to a canonical format. Both
-  configuration files (.tf) and variables files (.tfvars) are updated.
-  JSON files (.tf.json or .tfvars.json) are not modified.
+  Rewrites all Terraform configuration files to a canonical format. All
+  configuration files (.tf), variables files (.tfvars), and testing files 
+  (.tftest.hcl) are updated. JSON files (.tf.json, .tfvars.json, or 
+  .tftest.json) are not modified.
 
-  If TARGET is not specified, the command uses the current working directory.
-  If TARGET is a file, the command only uses the specified file. If TARGET
-  is "-" then the command reads from STDIN.
+  By default, fmt scans the current directory for configuration files. If you
+  provide a directory for the target argument, then fmt will scan that
+  directory instead. If you provide a file, then fmt will process just that
+  file. If you provide a single dash ("-"), then fmt will read from standard
+  input (STDIN).
 
   The content must be in the Terraform language native syntax; JSON is not
   supported.

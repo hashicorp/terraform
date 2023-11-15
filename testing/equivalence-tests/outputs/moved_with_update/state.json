@@ -1,0 +1,26 @@
+{
+  "format_version": "1.0",
+  "values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_simple_resource.moved",
+          "mode": "managed",
+          "name": "moved",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "schema_version": 0,
+          "sensitive_values": {},
+          "type": "tfcoremock_simple_resource",
+          "values": {
+            "bool": null,
+            "float": null,
+            "id": "7da63aeb-f908-a112-9886-f29a0b0bd4ad",
+            "integer": null,
+            "number": null,
+            "string": "Hello, change!"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package local
 
 import (
@@ -24,7 +27,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -72,11 +74,55 @@ test_instance.foo:
 		t.Fatalf("unexpected error output:\n%s", errOutput)
 	}
 }
+func TestLocal_applyCheck(t *testing.T) {
+	b := TestLocal(t)
+
+	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+		"id":  cty.StringVal("yes"),
+		"ami": cty.StringVal("bar"),
+	})}
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply-check")
+	defer configCleanup()
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatal("operation failed")
+	}
+
+	if p.ReadResourceCalled {
+		t.Fatal("ReadResource should not be called")
+	}
+
+	if !p.PlanResourceChangeCalled {
+		t.Fatal("diff should be called")
+	}
+
+	if !p.ApplyResourceChangeCalled {
+		t.Fatal("apply should be called")
+	}
+
+	d := done(t)
+	if errOutput := d.Stderr(); errOutput != "" {
+		t.Fatalf("unexpected error output:\n%s", errOutput)
+	}
+
+	if stdOutput := d.Stdout(); strings.Contains(stdOutput, "Check block assertion known after apply") {
+		// As we are running an auto approved plan the warning that was
+		// generated during the plan should have been hidden.
+		t.Fatalf("std output contained unexpected check output:\n%s", stdOutput)
+	}
+}
 
 func TestLocal_applyEmptyDir(t *testing.T) {
 	b := TestLocal(t)
 
-	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
+	p := TestLocalProvider(t, b, "test", providers.ProviderSchema{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/empty")
@@ -110,7 +156,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 	b := TestLocal(t)
 
-	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
+	p := TestLocalProvider(t, b, "test", providers.ProviderSchema{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{}
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/empty")
@@ -140,12 +186,14 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 func TestLocal_applyError(t *testing.T) {
 	b := TestLocal(t)
 
-	schema := &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	schema := providers.ProviderSchema{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"ami": {Type: cty.String, Optional: true},
-					"id":  {Type: cty.String, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"ami": {Type: cty.String, Optional: true},
+						"id":  {Type: cty.String, Computed: true},
+					},
 				},
 			},
 		},
@@ -316,7 +364,7 @@ func (s failingState) WriteState(state *states.State) error {
 func testOperationApply(t *testing.T, configDir string) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
@@ -339,13 +387,15 @@ func testOperationApply(t *testing.T, configDir string) (*backend.Operation, fun
 // applyFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/apply . This schema should be
 // assigned to a mock provider named "test".
-func applyFixtureSchema() *terraform.ProviderSchema {
-	return &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+func applyFixtureSchema() providers.ProviderSchema {
+	return providers.ProviderSchema{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"ami": {Type: cty.String, Optional: true},
-					"id":  {Type: cty.String, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"ami": {Type: cty.String, Optional: true},
+						"id":  {Type: cty.String, Computed: true},
+					},
 				},
 			},
 		},

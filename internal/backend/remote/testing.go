@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package remote
 
 import (
@@ -144,6 +147,7 @@ func testBackend(t *testing.T, obj cty.Value) (*Remote, func()) {
 	b.client.Plans = mc.Plans
 	b.client.PolicyChecks = mc.PolicyChecks
 	b.client.Runs = mc.Runs
+	b.client.RunEvents = mc.RunEvents
 	b.client.StateVersions = mc.StateVersions
 	b.client.Variables = mc.Variables
 	b.client.Workspaces = mc.Workspaces
@@ -178,11 +182,13 @@ func testLocalBackend(t *testing.T, remote *Remote) backend.Enhanced {
 	b := backendLocal.NewWithBackend(remote)
 
 	// Add a test provider to the local backend.
-	p := backendLocal.TestLocalProvider(t, b, "null", &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p := backendLocal.TestLocalProvider(t, b, "null", providers.ProviderSchema{
+		ResourceTypes: map[string]providers.Schema{
 			"null_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Computed: true},
+					},
 				},
 			},
 		},

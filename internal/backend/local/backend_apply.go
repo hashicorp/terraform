@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package local
 
 import (
@@ -5,7 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -53,7 +58,7 @@ func (b *Local) opApply(
 		op.ReportResult(runningOp, diags)
 		return
 	}
-	// the state was locked during succesfull context creation; unlock the state
+	// the state was locked during successful context creation; unlock the state
 	// when the operation completes
 	defer func() {
 		diags := op.StateLocker.Unlock()
@@ -68,6 +73,17 @@ func (b *Local) opApply(
 	// operation.
 	runningOp.State = lr.InputState
 
+	schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		op.ReportResult(runningOp, diags)
+		return
+	}
+	// stateHook uses schemas for when it periodically persists state to the
+	// persistent storage backend.
+	stateHook.Schemas = schemas
+	stateHook.PersistInterval = 20 * time.Second // arbitrary interval that's hopefully a sweet spot
+
 	var plan *plans.Plan
 	// If we weren't given a plan, then we refresh/plan
 	if op.PlanFile == nil {
@@ -76,13 +92,16 @@ func (b *Local) opApply(
 		plan, moreDiags = lr.Core.Plan(lr.Config, lr.InputState, lr.PlanOpts)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
-			op.ReportResult(runningOp, diags)
-			return
-		}
-
-		schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
+			// If Terraform Core generated a partial plan despite the errors
+			// then we'll make a best effort to render it. Terraform Core
+			// promises that if it returns a non-nil plan along with errors
+			// then the plan won't necessarily contain all of the needed
+			// actions but that any it does include will be properly-formed.
+			// plan.Errored will be true in this case, which our plan
+			// renderer can rely on to tailor its messaging.
+			if plan != nil && (len(plan.Changes.Resources) != 0 || len(plan.Changes.Outputs) != 0) {
+				op.View.Plan(plan, schemas)
+			}
 			op.ReportResult(runningOp, diags)
 			return
 		}
@@ -159,9 +178,45 @@ func (b *Local) opApply(
 				runningOp.Result = backend.OperationFailure
 				return
 			}
+		} else {
+			// If we didn't ask for confirmation from the user, and they have
+			// included any failing checks in their configuration, then they
+			// will see a very confusing output after the apply operation
+			// completes. This is because all the diagnostics from the plan
+			// operation will now be shown alongside the diagnostics from the
+			// apply operation. For check diagnostics, the plan output is
+			// irrelevant and simple noise after the same set of checks have
+			// been executed again during the apply stage. As such, we are going
+			// to remove all diagnostics marked as check diagnostics at this
+			// stage, so we will only show the user the check results from the
+			// apply operation.
+			//
+			// Note, if we did ask for approval then we would have displayed the
+			// plan check results at that point which is useful as the user can
+			// use them to make a decision about whether to apply the changes.
+			// It's just that if we didn't ask for approval then showing the
+			// user the checks from the plan alongside the checks from the apply
+			// is needlessly confusing.
+			var filteredDiags tfdiags.Diagnostics
+			for _, diag := range diags {
+				if rule, ok := addrs.DiagnosticOriginatesFromCheckRule(diag); ok && rule.Container.CheckableKind() == addrs.CheckableCheck {
+					continue
+				}
+				filteredDiags = filteredDiags.Append(diag)
+			}
+			diags = filteredDiags
 		}
 	} else {
 		plan = lr.Plan
+		if plan.Errored {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot apply incomplete plan",
+				"Terraform encountered an error when generating this plan, so it cannot be applied.",
+			))
+			op.ReportResult(runningOp, diags)
+			return
+		}
 		for _, change := range plan.Changes.Resources {
 			if change.Action != plans.NoOp {
 				op.View.PlannedChange(change)
@@ -180,7 +235,7 @@ func (b *Local) opApply(
 		defer logging.PanicHandler()
 		defer close(doneCh)
 		log.Printf("[INFO] backend/local: apply calling Apply")
-		applyState, applyDiags = lr.Core.Apply(plan, lr.Config)
+		applyState, applyDiags = lr.Core.Apply(plan, lr.Config, nil)
 	}()
 
 	if b.opWait(doneCh, stopCtx, cancelCtx, lr.Core, opState, op.View) {
@@ -198,7 +253,7 @@ func (b *Local) opApply(
 
 	// Store the final state
 	runningOp.State = applyState
-	err := statemgr.WriteAndPersist(opState, applyState)
+	err := statemgr.WriteAndPersist(opState, applyState, schemas)
 	if err != nil {
 		// Export the state file from the state manager and assign the new
 		// state. This is needed to preserve the existing serial and lineage.

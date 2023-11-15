@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package objchange
 
 import (
@@ -99,6 +102,14 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 			if plannedV.IsNull() {
 				errs = append(errs, path.NewErrorf("attribute representing a list of nested blocks must be empty to indicate no blocks, not null"))
 				continue
+			}
+
+			if configV.IsNull() {
+				// Configuration cannot decode a block into a null value, but
+				// we could be dealing with a null returned by a legacy
+				// provider and inserted via ignore_changes. Fix the value in
+				// place so the length can still be compared.
+				configV = cty.ListValEmpty(configV.Type().ElementType())
 			}
 
 			plannedL := plannedV.LengthInt()
@@ -259,11 +270,11 @@ func assertPlannedAttrValid(name string, attrS *configschema.Attribute, priorSta
 func assertPlannedValueValid(attrS *configschema.Attribute, priorV, configV, plannedV cty.Value, path cty.Path) []error {
 
 	var errs []error
-	if plannedV.RawEquals(configV) {
+	if unrefinedValue(plannedV).RawEquals(unrefinedValue(configV)) {
 		// This is the easy path: provider didn't change anything at all.
 		return errs
 	}
-	if plannedV.RawEquals(priorV) && !priorV.IsNull() && !configV.IsNull() {
+	if unrefinedValue(plannedV).RawEquals(unrefinedValue(priorV)) && !priorV.IsNull() && !configV.IsNull() {
 		// Also pretty easy: there is a prior value and the provider has
 		// returned it unchanged. This indicates that configV and plannedV
 		// are functionally equivalent and so the provider wishes to disregard
@@ -331,6 +342,11 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		errs = append(errs, path.NewErrorf("planned for existence but config wants absence"))
 		return errs
 	}
+	if !config.IsNull() && !planned.IsKnown() {
+		errs = append(errs, path.NewErrorf("planned unknown for configured value"))
+		return errs
+	}
+
 	if planned.IsNull() {
 		// No further checks possible if the planned value is null
 		return errs
@@ -347,10 +363,17 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		// both support a similar-enough API that we can treat them the
 		// same for our purposes here.
 
-		plannedL := planned.LengthInt()
-		configL := config.LengthInt()
-		if plannedL != configL {
-			errs = append(errs, path.NewErrorf("count in plan (%d) disagrees with count in config (%d)", plannedL, configL))
+		plannedL := planned.Length()
+		configL := config.Length()
+
+		// config wasn't known, then planned should be unknown too
+		if !plannedL.IsKnown() && !configL.IsKnown() {
+			return errs
+		}
+
+		lenEqual := plannedL.Equals(configL)
+		if !lenEqual.IsKnown() || lenEqual.False() {
+			errs = append(errs, path.NewErrorf("count in plan (%#v) disagrees with count in config (%#v)", plannedL, configL))
 			return errs
 		}
 		for it := planned.ElementIterator(); it.Next(); {
@@ -376,6 +399,20 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		plannedVals := map[string]cty.Value{}
 		configVals := map[string]cty.Value{}
 		priorVals := map[string]cty.Value{}
+
+		plannedL := planned.Length()
+		configL := config.Length()
+
+		// config wasn't known, then planned should be unknown too
+		if !plannedL.IsKnown() && !configL.IsKnown() {
+			return errs
+		}
+
+		lenEqual := plannedL.Equals(configL)
+		if !lenEqual.IsKnown() || lenEqual.False() {
+			errs = append(errs, path.NewErrorf("count in plan (%#v) disagrees with count in config (%#v)", plannedL, configL))
+			return errs
+		}
 
 		if !planned.IsNull() {
 			plannedVals = planned.AsValueMap()
@@ -410,10 +447,11 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		}
 
 	case configschema.NestingSet:
-		plannedL := planned.LengthInt()
-		configL := config.LengthInt()
-		if plannedL != configL {
-			errs = append(errs, path.NewErrorf("count in plan (%d) disagrees with count in config (%d)", plannedL, configL))
+		plannedL := planned.Length()
+		configL := config.Length()
+
+		if ok := plannedL.Range().Includes(configL); ok.IsKnown() && ok.False() {
+			errs = append(errs, path.NewErrorf("count in plan (%#v) disagrees with count in config (%#v)", plannedL, configL))
 			return errs
 		}
 		// Because set elements have no identifier with which to correlate
@@ -423,4 +461,23 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 	}
 
 	return errs
+}
+
+// unrefinedValue returns the given value with any unknown value refinements
+// stripped away, making it a basic unknown value with only a type constraint.
+//
+// This function also considers unknown values nested inside a known container
+// such as a collection, which unfortunately makes it relatively expensive
+// for large data structures. Over time we should transition away from using
+// this trick and prefer to use cty's Equals and value range APIs instead of
+// of using Value.RawEquals, which is primarily intended for unit test code
+// rather than real application use.
+func unrefinedValue(v cty.Value) cty.Value {
+	ret, _ := cty.Transform(v, func(p cty.Path, v cty.Value) (cty.Value, error) {
+		if !v.IsKnown() {
+			return cty.UnknownVal(v.Type()), nil
+		}
+		return v, nil
+	})
+	return ret
 }

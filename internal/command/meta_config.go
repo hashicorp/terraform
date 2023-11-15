@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -9,17 +12,18 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform-config-inspect/tfconfig"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // normalizePath normalizes a given path so that it is, if possible, relative
@@ -49,6 +53,23 @@ func (m *Meta) loadConfig(rootDir string) (*configs.Config, tfdiags.Diagnostics)
 	return config, diags
 }
 
+// loadConfigWithTests matches loadConfig, except it also loads any test files
+// into the config alongside the main configuration.
+func (m *Meta) loadConfigWithTests(rootDir, testDir string) (*configs.Config, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	rootDir = m.normalizePath(rootDir)
+
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+
+	config, hclDiags := loader.LoadConfigWithTests(rootDir, testDir)
+	diags = diags.Append(hclDiags)
+	return config, diags
+}
+
 // loadSingleModule reads configuration from the given directory and returns
 // a description of that module only, without attempting to assemble a module
 // tree for referenced child modules.
@@ -72,28 +93,20 @@ func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostic
 	return module, diags
 }
 
-// loadSingleModuleEarly is a variant of loadSingleModule that uses the special
-// "early config" loader that is more forgiving of unexpected constructs and
-// legacy syntax.
-//
-// Early-loaded config is not registered in the source code cache, so
-// diagnostics produced from it may render without source code snippets. In
-// practice this is not a big concern because the early config loader also
-// cannot generate detailed source locations, so it prefers to produce
-// diagnostics without explicit source location information and instead includes
-// approximate locations in the message text.
-//
-// Most callers should use loadConfig. This method exists to support early
-// initialization use-cases where the root module must be inspected in order
-// to determine what else needs to be installed before the full configuration
-// can be used.
-func (m *Meta) loadSingleModuleEarly(dir string) (*tfconfig.Module, tfdiags.Diagnostics) {
+// loadSingleModuleWithTests matches loadSingleModule except it also loads any
+// tests for the target module.
+func (m *Meta) loadSingleModuleWithTests(dir string, testDir string) (*configs.Module, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	dir = m.normalizePath(dir)
 
-	module, moreDiags := earlyconfig.LoadModule(dir)
-	diags = diags.Append(moreDiags)
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
 
+	module, hclDiags := loader.Parser().LoadConfigDirWithTests(dir, testDir)
+	diags = diags.Append(hclDiags)
 	return module, diags
 }
 
@@ -170,7 +183,10 @@ func (m *Meta) loadHCLFile(filename string) (hcl.Body, tfdiags.Diagnostics) {
 // can then be relayed to the end-user. The uiModuleInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
 // via a provided cli.Ui.
-func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
+func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
+	ctx, span := tracer.Start(ctx, "install modules")
+	defer span.End()
+
 	rootDir = m.normalizePath(rootDir)
 
 	err := os.MkdirAll(m.modulesDir(), os.ModePerm)
@@ -179,13 +195,15 @@ func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleI
 		return true, diags
 	}
 
-	inst := m.moduleInstaller()
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return true, diags
+	}
 
-	// Installation can be aborted by interruption signals
-	ctx, done := m.InterruptibleContext()
-	defer done()
+	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient())
 
-	_, moreDiags := inst.InstallModules(ctx, rootDir, upgrade, hooks)
+	_, moreDiags := inst.InstallModules(ctx, rootDir, testsDir, upgrade, installErrsOnly, hooks)
 	diags = diags.Append(moreDiags)
 
 	if ctx.Err() == context.Canceled {
@@ -206,13 +224,20 @@ func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleI
 // can then be relayed to the end-user. The uiModuleInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
 // via a provided cli.Ui.
-func (m *Meta) initDirFromModule(targetDir string, addr string, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
-	// Installation can be aborted by interruption signals
-	ctx, done := m.InterruptibleContext()
-	defer done()
+func (m *Meta) initDirFromModule(ctx context.Context, targetDir string, addr string, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
+	ctx, span := tracer.Start(ctx, "initialize directory from module", trace.WithAttributes(
+		attribute.String("source_addr", addr),
+	))
+	defer span.End()
+
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return true, diags
+	}
 
 	targetDir = m.normalizePath(targetDir)
-	moreDiags := initwd.DirFromModule(ctx, targetDir, m.modulesDir(), addr, m.registryClient(), hooks)
+	moreDiags := initwd.DirFromModule(ctx, loader, targetDir, m.modulesDir(), addr, m.registryClient(), hooks)
 	diags = diags.Append(moreDiags)
 	if ctx.Err() == context.Canceled {
 		m.showDiagnostics(diags)
@@ -341,13 +366,6 @@ func (m *Meta) initConfigLoader() (*configload.Loader, error) {
 		}
 	}
 	return m.configLoader, nil
-}
-
-// moduleInstaller instantiates and returns a module installer for use by
-// "terraform init" (directly or indirectly).
-func (m *Meta) moduleInstaller() *initwd.ModuleInstaller {
-	reg := m.registryClient()
-	return initwd.NewModuleInstaller(m.modulesDir(), reg)
 }
 
 // registryClient instantiates and returns a new Terraform Registry client.

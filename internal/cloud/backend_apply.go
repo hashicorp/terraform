@@ -1,13 +1,20 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package cloud
 
 import (
 	"bufio"
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 	"log"
+	"strings"
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -49,12 +56,12 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		))
 	}
 
-	if op.PlanFile != nil {
+	if op.PlanFile.IsLocal() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Applying a saved plan is currently not supported",
-			`Terraform Cloud currently requires configuration to be present and `+
-				`does not accept an existing saved plan as an argument at this time.`,
+			"Applying a saved local plan is not supported",
+			`Terraform Cloud can apply a saved cloud plan, or create a new plan when `+
+				`configuration is present. It cannot apply a saved local plan.`,
 		))
 	}
 
@@ -74,62 +81,123 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		return nil, diags.Err()
 	}
 
-	// Run the plan phase.
-	r, err := b.plan(stopCtx, cancelCtx, op, w)
+	var r *tfe.Run
+	var err error
+
+	if cp, ok := op.PlanFile.Cloud(); ok {
+		log.Printf("[TRACE] Loading saved cloud plan for apply")
+		// Check hostname first, for a more actionable error than a generic 404 later
+		if cp.Hostname != b.Hostname {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Saved plan is for a different hostname",
+				fmt.Sprintf("The given saved plan refers to a run on %s, but the currently configured Terraform Cloud or Terraform Enterprise instance is %s.", cp.Hostname, b.Hostname),
+			))
+			return r, diags.Err()
+		}
+		// Fetch the run referenced in the saved plan bookmark.
+		r, err = b.client.Runs.ReadWithOptions(stopCtx, cp.RunID, &tfe.RunReadOptions{
+			Include: []tfe.RunIncludeOpt{tfe.RunWorkspace},
+		})
+
+		if err != nil {
+			return r, err
+		}
+
+		if r.Workspace.ID != w.ID {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Saved plan is for a different workspace",
+				fmt.Sprintf("The given saved plan does not refer to a run in the current workspace (%s/%s), so it cannot currently be applied. For more details, view this run in a browser at:\n%s", w.Organization.Name, w.Name, runURL(b.Hostname, r.Workspace.Organization.Name, r.Workspace.Name, r.ID)),
+			))
+			return r, diags.Err()
+		}
+
+		if !r.Actions.IsConfirmable {
+			url := runURL(b.Hostname, b.organization, op.Workspace, r.ID)
+			return r, unusableSavedPlanError(r.Status, url)
+		}
+
+		// Since we're not calling plan(), we need to print a run header ourselves:
+		if b.CLI != nil {
+			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(applySavedHeader) + "\n"))
+			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(fmt.Sprintf(
+				runHeader, b.Hostname, b.organization, r.Workspace.Name, r.ID)) + "\n"))
+		}
+	} else {
+		log.Printf("[TRACE] Running new cloud plan for apply")
+		// Run the plan phase.
+		r, err = b.plan(stopCtx, cancelCtx, op, w)
+
+		if err != nil {
+			return r, err
+		}
+
+		// This check is also performed in the plan method to determine if
+		// the policies should be checked, but we need to check the values
+		// here again to determine if we are done and should return.
+		if !r.HasChanges || r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
+			return r, nil
+		}
+
+		// Retrieve the run to get its current status.
+		r, err = b.client.Runs.Read(stopCtx, r.ID)
+		if err != nil {
+			return r, generalError("Failed to retrieve run", err)
+		}
+
+		// Return if the run cannot be confirmed.
+		if !op.AutoApprove && !r.Actions.IsConfirmable {
+			return r, nil
+		}
+
+		mustConfirm := (op.UIIn != nil && op.UIOut != nil) && !op.AutoApprove
+
+		if mustConfirm && b.input {
+			opts := &terraform.InputOpts{Id: "approve"}
+
+			if op.PlanMode == plans.DestroyMode {
+				opts.Query = "\nDo you really want to destroy all resources in workspace \"" + op.Workspace + "\"?"
+				opts.Description = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
+					"There is no undo. Only 'yes' will be accepted to confirm."
+			} else {
+				opts.Query = "\nDo you want to perform these actions in workspace \"" + op.Workspace + "\"?"
+				opts.Description = "Terraform will perform the actions described above.\n" +
+					"Only 'yes' will be accepted to approve."
+			}
+
+			err = b.confirm(stopCtx, op, opts, r, "yes")
+			if err != nil && err != errRunApproved {
+				return r, err
+			}
+		} else if mustConfirm && !b.input {
+			return r, errApplyNeedsUIConfirmation
+		} else {
+			// If we don't need to ask for confirmation, insert a blank
+			// line to separate the ouputs.
+			if b.CLI != nil {
+				b.CLI.Output("")
+			}
+		}
+	}
+
+	// Do the apply!
+	if !op.AutoApprove && err != errRunApproved {
+		if err = b.client.Runs.Apply(stopCtx, r.ID, tfe.RunApplyOptions{}); err != nil {
+			return r, generalError("Failed to approve the apply command", err)
+		}
+	}
+
+	// Retrieve the run to get task stages.
+	// Task Stages are calculated upfront so we only need to call this once for the run.
+	taskStages, err := b.runTaskStages(stopCtx, b.client, r.ID)
 	if err != nil {
 		return r, err
 	}
 
-	// This check is also performed in the plan method to determine if
-	// the policies should be checked, but we need to check the values
-	// here again to determine if we are done and should return.
-	if !r.HasChanges || r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
-		return r, nil
-	}
-
-	// Retrieve the run to get its current status.
-	r, err = b.client.Runs.Read(stopCtx, r.ID)
-	if err != nil {
-		return r, generalError("Failed to retrieve run", err)
-	}
-
-	// Return if the run cannot be confirmed.
-	if !op.AutoApprove && !r.Actions.IsConfirmable {
-		return r, nil
-	}
-
-	mustConfirm := (op.UIIn != nil && op.UIOut != nil) && !op.AutoApprove
-
-	if mustConfirm && b.input {
-		opts := &terraform.InputOpts{Id: "approve"}
-
-		if op.PlanMode == plans.DestroyMode {
-			opts.Query = "\nDo you really want to destroy all resources in workspace \"" + op.Workspace + "\"?"
-			opts.Description = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
-				"There is no undo. Only 'yes' will be accepted to confirm."
-		} else {
-			opts.Query = "\nDo you want to perform these actions in workspace \"" + op.Workspace + "\"?"
-			opts.Description = "Terraform will perform the actions described above.\n" +
-				"Only 'yes' will be accepted to approve."
-		}
-
-		err = b.confirm(stopCtx, op, opts, r, "yes")
-		if err != nil && err != errRunApproved {
+	if stage, ok := taskStages[tfe.PreApply]; ok {
+		if err := b.waitTaskStage(stopCtx, cancelCtx, op, r, stage.ID, "Pre-apply Tasks"); err != nil {
 			return r, err
-		}
-	} else if mustConfirm && !b.input {
-		return r, errApplyNeedsUIConfirmation
-	} else {
-		// If we don't need to ask for confirmation, insert a blank
-		// line to separate the ouputs.
-		if b.CLI != nil {
-			b.CLI.Output("")
-		}
-	}
-
-	if !op.AutoApprove && err != errRunApproved {
-		if err = b.client.Runs.Apply(stopCtx, r.ID, tfe.RunApplyOptions{}); err != nil {
-			return r, generalError("Failed to approve the apply command", err)
 		}
 	}
 
@@ -138,46 +206,128 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		return r, err
 	}
 
-	logs, err := b.client.Applies.Logs(stopCtx, r.Apply.ID)
+	err = b.renderApplyLogs(stopCtx, r)
 	if err != nil {
-		return r, generalError("Failed to retrieve logs", err)
+		return r, err
 	}
-	reader := bufio.NewReaderSize(logs, 64*1024)
+
+	return r, nil
+}
+
+func (b *Cloud) renderApplyLogs(ctx context.Context, run *tfe.Run) error {
+	logs, err := b.client.Applies.Logs(ctx, run.Apply.ID)
+	if err != nil {
+		return err
+	}
 
 	if b.CLI != nil {
+		reader := bufio.NewReaderSize(logs, 64*1024)
 		skip := 0
+
 		for next := true; next; {
 			var l, line []byte
+			var err error
 
 			for isPrefix := true; isPrefix; {
 				l, isPrefix, err = reader.ReadLine()
 				if err != nil {
 					if err != io.EOF {
-						return r, generalError("Failed to read logs", err)
+						return generalError("Failed to read logs", err)
 					}
 					next = false
 				}
+
 				line = append(line, l...)
 			}
 
-			// Skip the first 3 lines to prevent duplicate output.
+			// Apply logs show the same Terraform info logs as shown in the plan logs
+			// (which contain version and os/arch information), we therefore skip to prevent duplicate output.
 			if skip < 3 {
 				skip++
 				continue
 			}
 
 			if next || len(line) > 0 {
-				b.CLI.Output(b.Colorize().Color(string(line)))
+				log := &jsonformat.JSONLog{}
+				if err := json.Unmarshal(line, log); err != nil {
+					// If we can not parse the line as JSON, we will simply
+					// print the line. This maintains backwards compatibility for
+					// users who do not wish to enable structured output in their
+					// workspace.
+					b.CLI.Output(string(line))
+					continue
+				}
+
+				if b.renderer != nil {
+					// Otherwise, we will print the log
+					err := b.renderer.RenderLog(log)
+					if err != nil {
+						return err
+					}
+				}
 			}
 		}
 	}
 
-	return r, nil
+	return nil
+}
+
+func runURL(hostname, orgName, wsName, runID string) string {
+	return fmt.Sprintf("https://%s/app/%s/%s/runs/%s", hostname, orgName, wsName, runID)
+}
+
+func unusableSavedPlanError(status tfe.RunStatus, url string) error {
+	var diags tfdiags.Diagnostics
+	var summary, reason string
+
+	switch status {
+	case tfe.RunApplied:
+		summary = "Saved plan is already applied"
+		reason = "The given plan file was already successfully applied, and cannot be applied again."
+	case tfe.RunApplying, tfe.RunApplyQueued, tfe.RunConfirmed:
+		summary = "Saved plan is already confirmed"
+		reason = "The given plan file is already being applied, and cannot be applied again."
+	case tfe.RunCanceled:
+		summary = "Saved plan is canceled"
+		reason = "The given plan file can no longer be applied because the run was canceled via the Terraform Cloud UI or API."
+	case tfe.RunDiscarded:
+		summary = "Saved plan is discarded"
+		reason = "The given plan file can no longer be applied; either another run was applied first, or a user discarded it via the Terraform Cloud UI or API."
+	case tfe.RunErrored:
+		summary = "Saved plan is errored"
+		reason = "The given plan file refers to a plan that had errors and did not complete successfully. It cannot be applied."
+	case tfe.RunPlannedAndFinished:
+		// Note: planned and finished can also indicate a plan-only run, but
+		// terraform plan can't create a saved plan for a plan-only run, so we
+		// know it's no-changes in this case.
+		summary = "Saved plan has no changes"
+		reason = "The given plan file contains no changes, so it cannot be applied."
+	case tfe.RunPolicyOverride:
+		summary = "Saved plan requires policy override"
+		reason = "The given plan file has soft policy failures, and cannot be applied until a user with appropriate permissions overrides the policy check."
+	default:
+		summary = "Saved plan cannot be applied"
+		reason = "Terraform Cloud cannot apply the given plan file. This may mean the plan and checks have not yet completed, or may indicate another problem."
+	}
+
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Error,
+		summary,
+		fmt.Sprintf("%s For more details, view this run in a browser at:\n%s", reason, url),
+	))
+	return diags.Err()
 }
 
 const applyDefaultHeader = `
 [reset][yellow]Running apply in Terraform Cloud. Output will stream here. Pressing Ctrl-C
 will cancel the remote apply if it's still pending. If the apply started it
+will stop streaming the logs, but will not stop the apply running remotely.[reset]
+
+Preparing the remote apply...
+`
+
+const applySavedHeader = `
+[reset][yellow]Running apply in Terraform Cloud. Output will stream here. Pressing Ctrl-C
 will stop streaming the logs, but will not stop the apply running remotely.[reset]
 
 Preparing the remote apply...

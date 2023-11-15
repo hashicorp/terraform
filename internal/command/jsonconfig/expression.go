@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonconfig
 
 import (
@@ -7,12 +10,13 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/blocktoattr"
-	"github.com/zclconf/go-cty/cty"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 // expression represents any unparsed expression
@@ -44,7 +48,7 @@ func marshalExpression(ex hcl.Expression) expression {
 		ret.ConstantValue = valJSON
 	}
 
-	refs, _ := lang.ReferencesInExpr(ex)
+	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, ex)
 	if len(refs) > 0 {
 		var varString []string
 		for _, ref := range refs {

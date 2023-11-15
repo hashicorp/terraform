@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package statemgr
 
 // The functions in this file are helper wrappers for common sequences of
@@ -6,6 +9,7 @@ package statemgr
 import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -44,10 +48,10 @@ func RefreshAndRead(mgr Storage) (*states.State, error) {
 // out quickly with a user-facing error. In situations where more control
 // is required, call WriteState and PersistState on the state manager directly
 // and handle their errors.
-func WriteAndPersist(mgr Storage, state *states.State) error {
+func WriteAndPersist(mgr Storage, state *states.State, schemas *terraform.Schemas) error {
 	err := mgr.WriteState(state)
 	if err != nil {
 		return err
 	}
-	return mgr.PersistState()
+	return mgr.PersistState(schemas)
 }

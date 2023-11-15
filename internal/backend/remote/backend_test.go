@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package remote
 
 import (
@@ -262,11 +265,11 @@ func TestRemote_addAndRemoveWorkspacesDefault(t *testing.T) {
 		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
 	}
 
-	if err := b.DeleteWorkspace(backend.DefaultStateName); err != nil {
+	if err := b.DeleteWorkspace(backend.DefaultStateName, true); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if err := b.DeleteWorkspace("prod"); err != backend.ErrWorkspacesNotSupported {
+	if err := b.DeleteWorkspace("prod", true); err != backend.ErrWorkspacesNotSupported {
 		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
 	}
 }
@@ -319,11 +322,11 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 		t.Fatalf("expected %#+v, got %#+v", expectedWorkspaces, states)
 	}
 
-	if err := b.DeleteWorkspace(backend.DefaultStateName); err != backend.ErrDefaultWorkspaceNotSupported {
+	if err := b.DeleteWorkspace(backend.DefaultStateName, true); err != backend.ErrDefaultWorkspaceNotSupported {
 		t.Fatalf("expected error %v, got %v", backend.ErrDefaultWorkspaceNotSupported, err)
 	}
 
-	if err := b.DeleteWorkspace(expectedA); err != nil {
+	if err := b.DeleteWorkspace(expectedA, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -337,7 +340,7 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 		t.Fatalf("expected %#+v got %#+v", expectedWorkspaces, states)
 	}
 
-	if err := b.DeleteWorkspace(expectedB); err != nil {
+	if err := b.DeleteWorkspace(expectedB, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -720,5 +723,31 @@ func TestRemote_VerifyWorkspaceTerraformVersion_ignoreFlagSet(t *testing.T) {
 	wantDetail := "The local Terraform version (0.14.0) does not match the configured version for remote workspace hashicorp/prod (0.13.5)."
 	if got := diags[0].Description().Detail; got != wantDetail {
 		t.Errorf("wrong summary: got %s, want %s", got, wantDetail)
+	}
+}
+
+func TestRemote_ServiceDiscoveryAliases(t *testing.T) {
+	s := testServer(t)
+	b := New(testDisco(s))
+
+	diag := b.Configure(cty.ObjectVal(map[string]cty.Value{
+		"hostname":     cty.NullVal(cty.String), // Forces aliasing to test server
+		"organization": cty.StringVal("hashicorp"),
+		"token":        cty.NullVal(cty.String),
+		"workspaces": cty.ObjectVal(map[string]cty.Value{
+			"name":   cty.StringVal("prod"),
+			"prefix": cty.NullVal(cty.String),
+		}),
+	}))
+	if diag.HasErrors() {
+		t.Fatalf("expected no diagnostic errors, got %s", diag.Err())
+	}
+
+	aliases, err := b.ServiceDiscoveryAliases()
+	if err != nil {
+		t.Fatalf("expected no errors, got %s", err)
+	}
+	if len(aliases) != 1 {
+		t.Fatalf("expected 1 alias but got %d", len(aliases))
 	}
 }

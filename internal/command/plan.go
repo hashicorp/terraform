@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -64,7 +67,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
 
 	// Prepare the backend with the backend-specific arguments
-	be, beDiags := c.PrepareBackend(args.State)
+	be, beDiags := c.PrepareBackend(args.State, args.ViewType)
 	diags = diags.Append(beDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -72,7 +75,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.Operation, args.OutPath)
+	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, args.Operation, args.OutPath, args.GenerateConfigPath)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -110,7 +113,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	return op.Result.ExitStatus()
 }
 
-func (c *PlanCommand) PrepareBackend(args *arguments.State) (backend.Enhanced, tfdiags.Diagnostics) {
+func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backend.Enhanced, tfdiags.Diagnostics) {
 	// FIXME: we need to apply the state arguments to the meta object here
 	// because they are later used when initializing the backend. Carving a
 	// path to pass these arguments to the functions that need them is
@@ -124,7 +127,8 @@ func (c *PlanCommand) PrepareBackend(args *arguments.State) (backend.Enhanced, t
 
 	// Load the backend
 	be, beDiags := c.Backend(&BackendOpts{
-		Config: backendConfig,
+		Config:   backendConfig,
+		ViewType: viewType,
 	})
 	diags = diags.Append(beDiags)
 	if beDiags.HasErrors() {
@@ -137,18 +141,21 @@ func (c *PlanCommand) PrepareBackend(args *arguments.State) (backend.Enhanced, t
 func (c *PlanCommand) OperationRequest(
 	be backend.Enhanced,
 	view views.Plan,
+	viewType arguments.ViewType,
 	args *arguments.Operation,
 	planOutPath string,
+	generateConfigOut string,
 ) (*backend.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Build the operation
-	opReq := c.Operation(be)
+	opReq := c.Operation(be, viewType)
 	opReq.ConfigDir = "."
 	opReq.PlanMode = args.PlanMode
 	opReq.Hooks = view.Hooks()
 	opReq.PlanRefresh = args.Refresh
 	opReq.PlanOutPath = planOutPath
+	opReq.GenerateConfigOut = generateConfigOut
 	opReq.Targets = args.Targets
 	opReq.ForceReplace = args.ForceReplace
 	opReq.Type = backend.OperationTypePlan
@@ -240,33 +247,42 @@ Plan Customization Options:
 
 Other Options:
 
-  -compact-warnings   If Terraform produces any warnings that are not
-                      accompanied by errors, shows them in a more compact form
-                      that includes only the summary messages.
+  -compact-warnings          If Terraform produces any warnings that are not
+                             accompanied by errors, shows them in a more compact
+                             form that includes only the summary messages.
 
-  -detailed-exitcode  Return detailed exit codes when the command exits. This
-                      will change the meaning of exit codes to:
-                      0 - Succeeded, diff is empty (no changes)
-                      1 - Errored
-                      2 - Succeeded, there is a diff
+  -detailed-exitcode         Return detailed exit codes when the command exits.
+                             This will change the meaning of exit codes to:
+                             0 - Succeeded, diff is empty (no changes)
+                             1 - Errored
+                             2 - Succeeded, there is a diff
 
-  -input=true         Ask for input for variables if not directly set.
+  -generate-config-out=path  (Experimental) If import blocks are present in
+                             configuration, instructs Terraform to generate HCL
+                             for any imported resources not already present. The
+                             configuration is written to a new file at PATH,
+                             which must not already exist. Terraform may still
+                             attempt to write configuration if the plan errors.
 
-  -lock=false         Don't hold a state lock during the operation. This is
-                      dangerous if others might concurrently run commands
-                      against the same workspace.
+  -input=true                Ask for input for variables if not directly set.
 
-  -lock-timeout=0s    Duration to retry a state lock.
+  -lock=false                Don't hold a state lock during the operation. This
+                             is dangerous if others might concurrently run
+                             commands against the same workspace.
 
-  -no-color           If specified, output won't contain any color.
+  -lock-timeout=0s           Duration to retry a state lock.
 
-  -out=path           Write a plan file to the given path. This can be used as
-                      input to the "apply" command.
+  -no-color                  If specified, output won't contain any color.
 
-  -parallelism=n      Limit the number of concurrent operations. Defaults to 10.
+  -out=path                  Write a plan file to the given path. This can be
+                             used as input to the "apply" command.
 
-  -state=statefile    A legacy option used for the local backend only. See the
-                      local backend's documentation for more information.
+  -parallelism=n             Limit the number of concurrent operations. Defaults
+                             to 10.
+
+  -state=statefile           A legacy option used for the local backend only.
+                             See the local backend's documentation for more
+                             information.
 `
 	return strings.TrimSpace(helpText)
 }

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -65,6 +68,9 @@ func (c *UnlockCommand) Run(args []string) int {
 		return 1
 	}
 
+	// This is a read-only operation with respect to the state contents
+	c.ignoreRemoteVersionConflict(b)
+
 	env, err := c.Workspace()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
@@ -88,7 +94,7 @@ func (c *UnlockCommand) Run(args []string) int {
 
 		desc := "Terraform will remove the lock on the remote state.\n" +
 			"This will allow local Terraform commands to modify this state, even though it\n" +
-			"may be still be in use. Only 'yes' will be accepted to confirm."
+			"may still be in use. Only 'yes' will be accepted to confirm."
 
 		v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
 			Id:          "force-unlock",

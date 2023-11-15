@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package addrs
 
 import (
@@ -112,14 +115,16 @@ func NewLegacyProvider(name string) Provider {
 	}
 }
 
-// ParseProviderSourceString parses the source attribute and returns a provider.
-// This is intended primarily to parse the FQN-like strings returned by
-// terraform-config-inspect.
+// ParseProviderSourceString parses a value of the form expected in the "source"
+// argument of a required_providers entry and returns the corresponding
+// fully-qualified provider address. This is intended primarily to parse the
+// FQN-like strings returned by terraform-config-inspect.
 //
 // The following are valid source string formats:
-// 		name
-// 		namespace/name
-// 		hostname/namespace/name
+//
+//   - name
+//   - namespace/name
+//   - hostname/namespace/name
 func ParseProviderSourceString(str string) (tfaddr.Provider, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 

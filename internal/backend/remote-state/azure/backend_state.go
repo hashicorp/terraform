@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package azure
 
 import (
@@ -58,7 +61,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 	return result, nil
 }
 
-func (b *Backend) DeleteWorkspace(name string) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 	if name == backend.DefaultStateName || name == "" {
 		return fmt.Errorf("can't delete default state")
 	}
@@ -131,7 +134,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 				err = lockUnlock(err)
 				return nil, err
 			}
-			if err := stateMgr.PersistState(); err != nil {
+			if err := stateMgr.PersistState(nil); err != nil {
 				err = lockUnlock(err)
 				return nil, err
 			}

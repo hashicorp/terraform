@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package states
 
 import (
@@ -29,7 +32,8 @@ func (s *State) DeepCopy() *State {
 		modules[k] = m.DeepCopy()
 	}
 	return &State{
-		Modules: modules,
+		Modules:      modules,
+		CheckResults: s.CheckResults.DeepCopy(),
 	}
 }
 

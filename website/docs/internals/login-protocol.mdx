@@ -8,18 +8,18 @@ description: >-
 # Server-side Login Protocol
 
 ~> **Note:** You don't need to read these docs to _use_
-[`terraform login`](/cli/commands/login).  The information below is for
+[`terraform login`](/terraform/cli/commands/login).  The information below is for
 anyone intending to implement the server side of `terraform login` in order to
 offer Terraform-native services in a third-party system.
 
 The `terraform login` command supports performing an OAuth 2.0 authorization
 request using configuration provided by the target host. You may wish to
 implement this protocol if you are producing a third-party implementation of
-any [Terraform-native services](/internals/remote-service-discovery),
+any [Terraform-native services](/terraform/internals/remote-service-discovery),
 such as a Terraform module registry.
 
 First, Terraform uses
-[remote service discovery](/internals/remote-service-discovery) to
+[remote service discovery](/terraform/internals/remote-service-discovery) to
 find the OAuth configuration for the host. The host must support the service
 name `login.v1` and define for it an object containing OAuth client
 configuration values, like this:
@@ -51,14 +51,12 @@ The properties within the discovery object are as follows:
   specific mechanism by which an OAuth server authenticates the request and
   issues an authorization token.
 
-  Terraform CLI currently only supports a single grant type:
+  Terraform CLI supports a single grant type:
 
   * `authz_code`: [authorization code grant](https://tools.ietf.org/html/rfc6749#section-4.1).
     Both the `authz` and `token` properties are required when `authz_code` is
     present.
 
-  Other grant types may be supported in future versions of Terraform CLI,
-  and may impose different requirements on the `authz` and `token` properties.
   If not specified, `grant_types` defaults to `["authz_code"]`.
 
 * `authz` (Required if needed for a given grant type): the server's
@@ -107,7 +105,7 @@ authorization errors once the token expires, after which the user can run
 
 -> **Note:** As a special case, Terraform can use a
 [Resource Owner Password Credentials Grant](https://tools.ietf.org/html/rfc6749#section-4.3)
-only when interacting with `app.terraform.io` ([Terraform Cloud](/cloud)),
+only when interacting with `app.terraform.io` ([Terraform Cloud](https://cloud.hashicorp.com/products/terraform)),
 under the recommendation in the OAuth specification to use this grant type only
 when the client and server are closely related. The `password` grant type is
 not supported for any other hostname and will be ignored.

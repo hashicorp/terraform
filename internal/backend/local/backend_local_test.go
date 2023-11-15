@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package local
 
 import (
@@ -21,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -28,7 +32,7 @@ func TestLocalRun(t *testing.T) {
 	configDir := "./testdata/empty"
 	b := TestLocal(t)
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	streams, _ := terminal.StreamsForTesting(t)
@@ -59,7 +63,7 @@ func TestLocalRun_error(t *testing.T) {
 	// should then cause LocalRun to return with the state unlocked.
 	b.Backend = backendWithStateStorageThatFailsRefresh{}
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	streams, _ := terminal.StreamsForTesting(t)
@@ -82,11 +86,46 @@ func TestLocalRun_error(t *testing.T) {
 	assertBackendStateUnlocked(t, b)
 }
 
+func TestLocalRun_cloudPlan(t *testing.T) {
+	configDir := "./testdata/apply"
+	b := TestLocal(t)
+
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+	defer configCleanup()
+
+	planPath := "./testdata/plan-bookmark/bookmark.json"
+
+	planFile, err := planfile.OpenWrapped(planPath)
+	if err != nil {
+		t.Fatalf("unexpected error reading planfile: %s", err)
+	}
+
+	streams, _ := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	stateLocker := clistate.NewLocker(0, views.NewStateLocker(arguments.ViewHuman, view))
+
+	op := &backend.Operation{
+		ConfigDir:    configDir,
+		ConfigLoader: configLoader,
+		PlanFile:     planFile,
+		Workspace:    backend.DefaultStateName,
+		StateLocker:  stateLocker,
+	}
+
+	_, _, diags := b.LocalRun(op)
+	if !diags.HasErrors() {
+		t.Fatal("unexpected success")
+	}
+
+	// LocalRun() unlocks the state on failure
+	assertBackendStateUnlocked(t, b)
+}
+
 func TestLocalRun_stalePlan(t *testing.T) {
 	configDir := "./testdata/apply"
 	b := TestLocal(t)
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	// Write an empty state file with serial 3
@@ -142,7 +181,7 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	if err := planfile.Create(planPath, planfileArgs); err != nil {
 		t.Fatalf("unexpected error writing planfile: %s", err)
 	}
-	planFile, err := planfile.Open(planPath)
+	planFile, err := planfile.OpenWrapped(planPath)
 	if err != nil {
 		t.Fatalf("unexpected error reading planfile: %s", err)
 	}
@@ -189,7 +228,7 @@ func (b backendWithStateStorageThatFailsRefresh) Configure(cty.Value) tfdiags.Di
 	return nil
 }
 
-func (b backendWithStateStorageThatFailsRefresh) DeleteWorkspace(name string) error {
+func (b backendWithStateStorageThatFailsRefresh) DeleteWorkspace(name string, force bool) error {
 	return fmt.Errorf("unimplemented")
 }
 
@@ -233,6 +272,6 @@ func (s *stateStorageThatFailsRefresh) RefreshState() error {
 	return fmt.Errorf("intentionally failing for testing purposes")
 }
 
-func (s *stateStorageThatFailsRefresh) PersistState() error {
+func (s *stateStorageThatFailsRefresh) PersistState(schemas *terraform.Schemas) error {
 	return fmt.Errorf("unimplemented")
 }

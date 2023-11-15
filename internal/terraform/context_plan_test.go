@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -2924,7 +2927,7 @@ func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
 // A common pattern in TF configs is to have a set of resources with the same
 // count and to use count.index to create correspondences between them:
 //
-//    foo_id = "${foo.bar.*.id[count.index]}"
+//	foo_id = "${foo.bar.*.id[count.index]}"
 //
 // This test is for the situation where some instances already exist and the
 // count is increased. In that case, we should see only the create diffs
@@ -4536,7 +4539,20 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 	m := testModule(t, "plan-ignore-changes-wildcard")
 	p := testProvider("aws")
-	p.PlanResourceChangeFn = testDiffFn
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		// computed attributes should not be set in config
+		id := req.Config.GetAttr("id")
+		if !id.IsNull() {
+			t.Error("computed id set in plan config")
+		}
+
+		foo := req.Config.GetAttr("foo")
+		if foo.IsNull() {
+			t.Error(`missing "foo" during plan, was set to "bar" in state and config`)
+		}
+
+		return testDiffFn(req)
+	}
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -4544,7 +4560,7 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"bar","ami":"ami-abcd1234","instance":"t2.micro","type":"aws_instance"}`),
+			AttrsJSON: []byte(`{"id":"bar","ami":"ami-abcd1234","instance":"t2.micro","type":"aws_instance","foo":"bar"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -6673,6 +6689,70 @@ resource "test_instance" "a" {
 	_, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
+	}
+}
+
+func TestContext2Plan_legacyProviderIgnoreAll(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+  lifecycle {
+    ignore_changes = all
+  }
+  data = "foo"
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":   {Type: cty.String, Computed: true},
+					"data": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		plan := req.ProposedNewState.AsValueMap()
+		// Update both the computed id and the configured data.
+		// Legacy providers expect terraform to be able to ignore these.
+
+		plan["id"] = cty.StringVal("updated")
+		plan["data"] = cty.StringVal("updated")
+		resp.PlannedState = cty.ObjectVal(plan)
+		resp.LegacyTypeSystem = true
+		return resp
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"orig","data":"orig"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Fatalf("expected NoOp plan, got %s\n", c.Action)
+		}
 	}
 }
 

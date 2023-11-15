@@ -1,0 +1,14 @@
+{
+  "import": {
+    "for_each": "[\"a\", \"b\"]",
+    "to": ["test_resource.test[wrong]"],
+    "id": "${each.value}"
+  },
+  "resource": {
+    "test_resource": {
+      "test": {
+        "for_each": {"a":"a","b":"b"}
+      }
+    }
+  }
+}

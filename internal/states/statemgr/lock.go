@@ -1,6 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package statemgr
 
-import "github.com/hashicorp/terraform/internal/states"
+import (
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terraform"
+)
 
 // LockDisabled implements State and Locker but disables state locking.
 // If State doesn't support locking, this is a no-op. This is useful for
@@ -27,8 +33,8 @@ func (s *LockDisabled) RefreshState() error {
 	return s.Inner.RefreshState()
 }
 
-func (s *LockDisabled) PersistState() error {
-	return s.Inner.PersistState()
+func (s *LockDisabled) PersistState(schemas *terraform.Schemas) error {
+	return s.Inner.PersistState(schemas)
 }
 
 func (s *LockDisabled) Lock(info *LockInfo) (string, error) {

@@ -1,0 +1,32 @@
+{
+  "values": {
+    "id": {
+      "string": "F40F2AB4-100C-4AE8-BFD0-BF332A158415"
+    },
+    "list": {
+      "list": [
+        {
+          "object": {
+            "id": {
+              "string": "3BFC1A84-023F-44FA-A8EE-EFD88E18B8F7"
+            }
+          }
+        },
+        {
+          "object": {
+            "id": {
+              "string": "6A8C6A29-D417-480A-BE19-12D7398B3178"
+            }
+          }
+        },
+        {
+          "object": {
+            "id": {
+              "string": "4B7178A8-AB9D-4FF4-8B3D-48B754DE537B"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

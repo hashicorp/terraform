@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configs
 
 import (
@@ -29,8 +32,39 @@ func (p *Parser) LoadConfigFileOverride(path string) (*File, hcl.Diagnostics) {
 	return p.loadConfigFile(path, true)
 }
 
-func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnostics) {
+// LoadTestFile reads the file at the given path and parses it as a Terraform
+// test file.
+//
+// It references the same LoadHCLFile as LoadConfigFile, so inherits the same
+// syntax selection behaviours.
+func (p *Parser) LoadTestFile(path string) (*TestFile, hcl.Diagnostics) {
+	body, diags := p.LoadHCLFile(path)
+	if body == nil {
+		return nil, diags
+	}
 
+	test, testDiags := loadTestFile(body)
+	diags = append(diags, testDiags...)
+	return test, diags
+}
+
+// LoadMockDataFile reads the file at the given path and parses it as a
+// Terraform mock data file.
+//
+// It references the same LoadHCLFile as LoadConfigFile, so inherits the same
+// syntax selection behaviours.
+func (p *Parser) LoadMockDataFile(path string) (*MockData, hcl.Diagnostics) {
+	body, diags := p.LoadHCLFile(path)
+	if body == nil {
+		return nil, diags
+	}
+
+	data, dataDiags := decodeMockDataBody(body, MockDataFileOverrideSource)
+	diags = append(diags, dataDiags...)
+	return data, diags
+}
+
+func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnostics) {
 	body, diags := p.LoadHCLFile(path)
 	if body == nil {
 		return nil, diags
@@ -149,7 +183,7 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 			}
 
 		case "data":
-			cfg, cfgDiags := decodeDataBlock(block, override)
+			cfg, cfgDiags := decodeDataBlock(block, override, false)
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.DataResources = append(file.DataResources, cfg)
@@ -160,6 +194,20 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.Moved = append(file.Moved, cfg)
+			}
+
+		case "import":
+			cfg, cfgDiags := decodeImportBlock(block)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.Import = append(file.Import, cfg)
+			}
+
+		case "check":
+			cfg, cfgDiags := decodeCheckBlock(block, override)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.Checks = append(file.Checks, cfg)
 			}
 
 		default:
@@ -251,6 +299,13 @@ var configFileSchema = &hcl.BodySchema{
 		},
 		{
 			Type: "moved",
+		},
+		{
+			Type: "import",
+		},
+		{
+			Type:       "check",
+			LabelNames: []string{"name"},
 		},
 	},
 }

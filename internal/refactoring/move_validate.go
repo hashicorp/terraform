@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package refactoring
 
 import (
@@ -50,46 +53,13 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 
 	for _, stmt := range stmts {
 		// Earlier code that constructs MoveStatement values should ensure that
-		// both stmt.From and stmt.To always belong to the same statement and
-		// thus to the same module.
-		stmtMod, fromCallSteps := stmt.From.ModuleCallTraversals()
-		_, toCallSteps := stmt.To.ModuleCallTraversals()
+		// both stmt.From and stmt.To always belong to the same statement.
+		fromMod, _ := stmt.From.ModuleCallTraversals()
 
-		modCfg := rootCfg.Descendent(stmtMod)
-		if !stmt.Implied {
-			// Implied statements can cross module boundaries because we
-			// generate them only for changing instance keys on a single
-			// resource. They happen to be generated _as if_ they were written
-			// in the root module, but the source and destination are always
-			// in the same module anyway.
-			if pkgAddr := callsThroughModulePackage(modCfg, fromCallSteps); pkgAddr != nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Cross-package move statement",
-					Detail: fmt.Sprintf(
-						"This statement declares a move from an object declared in external module package %q. Move statements can be only within a single module package.",
-						pkgAddr,
-					),
-					Subject: stmt.DeclRange.ToHCL().Ptr(),
-				})
-			}
-			if pkgAddr := callsThroughModulePackage(modCfg, toCallSteps); pkgAddr != nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Cross-package move statement",
-					Detail: fmt.Sprintf(
-						"This statement declares a move to an object declared in external module package %q. Move statements can be only within a single module package.",
-						pkgAddr,
-					),
-					Subject: stmt.DeclRange.ToHCL().Ptr(),
-				})
-			}
-		}
+		for _, fromModInst := range declaredInsts.InstancesForModule(fromMod) {
+			absFrom := stmt.From.InModuleInstance(fromModInst)
 
-		for _, modInst := range declaredInsts.InstancesForModule(stmtMod) {
-
-			absFrom := stmt.From.InModuleInstance(modInst)
-			absTo := stmt.To.InModuleInstance(modInst)
+			absTo := stmt.To.InModuleInstance(fromModInst)
 
 			if addrs.Equivalent(absFrom, absTo) {
 				diags = diags.Append(&hcl.Diagnostic{
@@ -199,6 +169,7 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 					),
 				})
 			}
+
 		}
 	}
 
@@ -369,25 +340,4 @@ func movableObjectDeclRange(addr addrs.AbsMoveable, cfg *configs.Config) (tfdiag
 		// The above cases should cover all of the AbsMoveable types
 		panic("unsupported AbsMoveable address type")
 	}
-}
-
-func callsThroughModulePackage(modCfg *configs.Config, callSteps []addrs.ModuleCall) addrs.ModuleSource {
-	var sourceAddr addrs.ModuleSource
-	current := modCfg
-	for _, step := range callSteps {
-		call := current.Module.ModuleCalls[step.Name]
-		if call == nil {
-			break
-		}
-		if call.EntersNewPackage() {
-			sourceAddr = call.SourceAddr
-		}
-		current = modCfg.Children[step.Name]
-		if current == nil {
-			// Weird to have a call but not a config, but we'll tolerate
-			// it to avoid crashing here.
-			break
-		}
-	}
-	return sourceAddr
 }

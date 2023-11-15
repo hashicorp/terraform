@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package gcs implements remote storage of state on Google Cloud Storage (GCS).
 package gcs
 
@@ -31,6 +34,7 @@ type Backend struct {
 	prefix     string
 
 	encryptionKey []byte
+	kmsKeyName    string
 }
 
 func New() backend.Backend {
@@ -70,6 +74,7 @@ func New() backend.Backend {
 				Type:     schema.TypeString,
 				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_BACKEND_IMPERSONATE_SERVICE_ACCOUNT",
 					"GOOGLE_IMPERSONATE_SERVICE_ACCOUNT",
 				}, nil),
 				Description: "The service account to impersonate for all Google API Calls",
@@ -83,10 +88,32 @@ func New() backend.Backend {
 			},
 
 			"encryption_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A 32 byte base64 encoded 'customer supplied encryption key' used to encrypt all state.",
-				Default:     "",
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_ENCRYPTION_KEY",
+				}, nil),
+				Description:   "A 32 byte base64 encoded 'customer supplied encryption key' used when reading and writing state files in the bucket.",
+				ConflictsWith: []string{"kms_encryption_key"},
+			},
+
+			"kms_encryption_key": {
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_KMS_ENCRYPTION_KEY",
+				}, nil),
+				Description:   "A Cloud KMS key ('customer managed encryption key') used when reading and writing state files in the bucket. Format should be 'projects/{{project}}/locations/{{location}}/keyRings/{{keyRing}}/cryptoKeys/{{name}}'.",
+				ConflictsWith: []string{"encryption_key"},
+			},
+
+			"storage_custom_endpoint": {
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_BACKEND_STORAGE_CUSTOM_ENDPOINT",
+					"GOOGLE_STORAGE_CUSTOM_ENDPOINT",
+				}, nil),
 			},
 		},
 	}
@@ -157,7 +184,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		if v, ok := data.GetOk("impersonate_service_account_delegates"); ok {
 			d := v.([]interface{})
 			if len(delegates) > 0 {
-				delegates = make([]string, len(d))
+				delegates = make([]string, 0, len(d))
 			}
 			for _, delegate := range d {
 				delegates = append(delegates, delegate.(string))
@@ -181,6 +208,12 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	opts = append(opts, option.WithUserAgent(httpclient.UserAgentString()))
+
+	// Custom endpoint for storage API
+	if storageEndpoint, ok := data.GetOk("storage_custom_endpoint"); ok {
+		endpoint := option.WithEndpoint(storageEndpoint.(string))
+		opts = append(opts, endpoint)
+	}
 	client, err := storage.NewClient(b.storageContext, opts...)
 	if err != nil {
 		return fmt.Errorf("storage.NewClient() failed: %v", err)
@@ -188,11 +221,8 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	b.storageClient = client
 
+	// Customer-supplied encryption
 	key := data.Get("encryption_key").(string)
-	if key == "" {
-		key = os.Getenv("GOOGLE_ENCRYPTION_KEY")
-	}
-
 	if key != "" {
 		kc, err := backend.ReadPathOrContents(key)
 		if err != nil {
@@ -210,6 +240,12 @@ func (b *Backend) configure(ctx context.Context) error {
 			return fmt.Errorf("Error decoding encryption key: %s", err)
 		}
 		b.encryptionKey = k
+	}
+
+	// Customer-managed encryption
+	kmsName := data.Get("kms_encryption_key").(string)
+	if kmsName != "" {
+		b.kmsKeyName = kmsName
 	}
 
 	return nil

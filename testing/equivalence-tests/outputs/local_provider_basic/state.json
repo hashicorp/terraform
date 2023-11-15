@@ -1,0 +1,28 @@
+{
+  "format_version": "1.0",
+  "values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "local_file.local_file",
+          "mode": "managed",
+          "name": "local_file",
+          "provider_name": "registry.terraform.io/hashicorp/local",
+          "schema_version": 0,
+          "sensitive_values": {},
+          "type": "local_file",
+          "values": {
+            "content": "{\"hello\":\"world\"}",
+            "content_base64": null,
+            "directory_permission": "0777",
+            "file_permission": "0777",
+            "filename": "output.json",
+            "id": "2248ee2fa0aaaad99178531f924bf00b4b0a8f4e",
+            "sensitive_content": null,
+            "source": null
+          }
+        }
+      ]
+    }
+  }
+}

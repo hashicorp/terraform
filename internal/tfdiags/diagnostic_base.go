@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package tfdiags
 
 // diagnosticBase can be embedded in other diagnostic structs to get

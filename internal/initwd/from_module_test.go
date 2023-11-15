@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package initwd
 
 import (
@@ -38,7 +41,9 @@ func TestDirFromModule_registry(t *testing.T) {
 	hooks := &testInstallHooks{}
 
 	reg := registry.NewClient(nil, nil)
-	diags := DirFromModule(context.Background(), dir, modsDir, "hashicorp/module-installer-acctest/aws//examples/main", reg, hooks)
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
+	diags := DirFromModule(context.Background(), loader, dir, modsDir, "hashicorp/module-installer-acctest/aws//examples/main", reg, hooks)
 	assertNoDiagnostics(t, diags)
 
 	v := version.Must(version.NewVersion("0.0.2"))
@@ -93,7 +98,7 @@ func TestDirFromModule_registry(t *testing.T) {
 		t.Fatalf("wrong installer calls\n%s", diff)
 	}
 
-	loader, err := configload.NewLoader(&configload.Config{
+	loader, err = configload.NewLoader(&configload.Config{
 		ModulesDir: modsDir,
 	})
 	if err != nil {
@@ -154,7 +159,9 @@ func TestDirFromModule_submodules(t *testing.T) {
 	}
 	modInstallDir := filepath.Join(dir, ".terraform/modules")
 
-	diags := DirFromModule(context.Background(), dir, modInstallDir, fromModuleDir, nil, hooks)
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
+	diags := DirFromModule(context.Background(), loader, dir, modInstallDir, fromModuleDir, nil, hooks)
 	assertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
 		{
@@ -173,7 +180,7 @@ func TestDirFromModule_submodules(t *testing.T) {
 		return
 	}
 
-	loader, err := configload.NewLoader(&configload.Config{
+	loader, err = configload.NewLoader(&configload.Config{
 		ModulesDir: modInstallDir,
 	})
 	if err != nil {
@@ -203,6 +210,38 @@ func TestDirFromModule_submodules(t *testing.T) {
 		gotTraces[path] = varDesc
 	})
 	assertResultDeepEqual(t, gotTraces, wantTraces)
+}
+
+// submodulesWithProvider is identical to above, except that the configuration
+// would fail to load for some reason. We still want the module to be installed
+// for use cases like testing or CDKTF, and will only emit warnings for config
+// errors.
+func TestDirFromModule_submodulesWithProvider(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/empty")
+	fromModuleDir, err := filepath.Abs("./testdata/local-module-missing-provider")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tmpDir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	hooks := &testInstallHooks{}
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
+	modInstallDir := filepath.Join(dir, ".terraform/modules")
+
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
+	diags := DirFromModule(context.Background(), loader, dir, modInstallDir, fromModuleDir, nil, hooks)
+
+	for _, d := range diags {
+		if d.Severity() != tfdiags.Warning {
+			t.Errorf("expected warning, got %v", diags.Err())
+		}
+	}
 }
 
 // TestDirFromModule_rel_submodules is similar to the test above, but the
@@ -246,7 +285,9 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 
 	modInstallDir := ".terraform/modules"
 	sourceDir := "../local-modules"
-	diags := DirFromModule(context.Background(), ".", modInstallDir, sourceDir, nil, hooks)
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
+	diags := DirFromModule(context.Background(), loader, ".", modInstallDir, sourceDir, nil, hooks)
 	assertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
 		{
@@ -265,7 +306,7 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 		return
 	}
 
-	loader, err := configload.NewLoader(&configload.Config{
+	loader, err = configload.NewLoader(&configload.Config{
 		ModulesDir: modInstallDir,
 	})
 	if err != nil {

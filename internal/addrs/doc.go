@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package addrs contains types that represent "addresses", which are
 // references to specific objects within a Terraform configuration or
 // state.

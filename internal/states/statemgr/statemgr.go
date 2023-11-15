@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package statemgr
 
 // Storage is the union of Transient and Persistent, for state managers that
@@ -19,7 +22,7 @@ type Storage interface {
 // of the implementing type that will fail at compile time if the interface
 // isn't satisfied, such as:
 //
-//     var _ statemgr.Full = (*ImplementingType)(nil)
+//	var _ statemgr.Full = (*ImplementingType)(nil)
 type Full interface {
 	Storage
 	Locker

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -72,9 +75,36 @@ type Hook interface {
 	PostRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value, newState cty.Value) (HookAction, error)
 
 	// PreImportState and PostImportState are called before and after
-	// (respectively) each state import operation for a given resource address.
+	// (respectively) each state import operation for a given resource address when
+	// using the legacy import command.
 	PreImportState(addr addrs.AbsResourceInstance, importID string) (HookAction, error)
 	PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error)
+
+	// PrePlanImport and PostPlanImport are called during a plan before and after planning to import
+	// a new resource using the configuration-driven import workflow.
+	PrePlanImport(addr addrs.AbsResourceInstance, importID string) (HookAction, error)
+	PostPlanImport(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error)
+
+	// PreApplyImport and PostApplyImport are called during an apply for each imported resource when
+	// using the configuration-driven import workflow.
+	PreApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (HookAction, error)
+	PostApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (HookAction, error)
+
+	// Stopping is called if an external signal requests that Terraform
+	// gracefully abort an operation in progress.
+	//
+	// This notification might suggest that the user wants Terraform to exit
+	// ASAP and in that case it's possible that if Terraform runs for too much
+	// longer then it'll get killed un-gracefully, and so this hook could be
+	// an opportunity to persist any transient data that would be lost under
+	// a subsequent kill signal. However, implementations must take care to do
+	// so in a way that won't cause corruption if the process _is_ killed while
+	// this hook is still running.
+	//
+	// This hook cannot control whether Terraform continues, because the
+	// graceful shutdown process is typically already running by the time this
+	// function is called.
+	Stopping()
 
 	// PostStateUpdate is called each time the state is updated. It receives
 	// a deep copy of the state, which it may therefore access freely without
@@ -138,6 +168,26 @@ func (*NilHook) PreImportState(addr addrs.AbsResourceInstance, importID string) 
 
 func (*NilHook) PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error) {
 	return HookActionContinue, nil
+}
+
+func (h *NilHook) PrePlanImport(addr addrs.AbsResourceInstance, importID string) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) PostPlanImport(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) PreApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (h *NilHook) PostApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (*NilHook) Stopping() {
+	// Does nothing at all by default
 }
 
 func (*NilHook) PostStateUpdate(new *states.State) (HookAction, error) {

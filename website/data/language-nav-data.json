@@ -7,19 +7,12 @@
     "hidden": true
   },
   {
-    "title": "Terraform v1.0 Compatibility Promises",
-    "path": "v1-compatibility-promises",
-    "hidden": true
-  },
-  {
     "title": "Files and Directories",
     "routes": [
       { "title": "Overview", "path": "files" },
       { "title": "Override Files", "path": "files/override" },
-      {
-        "title": "Dependency Lock File",
-        "path": "files/dependency-lock"
-      }
+      { "title": "Dependency Lock File", "path": "files/dependency-lock" },
+      { "title": "Test Files", "path": "files/tests" }
     ]
   },
   {
@@ -97,25 +90,12 @@
           {
             "title": "remote-exec",
             "path": "resources/provisioners/remote-exec"
-          },
-          { "divider": true },
-          {
-            "title": "chef",
-            "path": "resources/provisioners/chef"
-          },
-          {
-            "title": "habitat",
-            "path": "resources/provisioners/habitat"
-          },
-          {
-            "title": "puppet",
-            "path": "resources/provisioners/puppet"
-          },
-          {
-            "title": "salt-masterless",
-            "path": "resources/provisioners/salt-masterless"
           }
         ]
+      },
+      {
+        "title": "The <code>terraform_data</code> Resource Type",
+        "path": "resources/terraform-data"
       }
     ]
   },
@@ -231,12 +211,18 @@
             "path": "modules/develop/refactoring"
           }
         ]
-      },
-      {
-        "title": "Module Testing Experiment",
-        "path": "modules/testing-experiment",
-        "hidden": true
       }
+    ]
+  },
+  { "title": "Checks", "path": "checks" },
+  {
+      "title": "Import",
+      "routes": [
+       { "title": "Overview", "path": "import" },
+       {
+         "title": "Generating Configuration",
+         "path": "import/generating-configuration"
+       }
     ]
   },
   {
@@ -272,7 +258,7 @@
         "path": "expressions/dynamic-blocks"
       },
       {
-        "title": "Custom Condition Checks",
+        "title": "Custom Conditions",
         "path": "expressions/custom-conditions"
       },
       {
@@ -359,6 +345,10 @@
           {
             "title": "<code>startswith</code>",
             "href": "/language/functions/startswith"
+          },
+          {
+            "title": "<code>strcontains</code>",
+            "href": "/language/functions/strcontains"
           },
           {
             "title": "<code>strrev</code>",
@@ -598,8 +588,16 @@
             "href": "/language/functions/formatdate"
           },
           {
+            "title": "<code>plantimestamp</code>",
+            "href": "/language/functions/plantimestamp"
+          },
+          {
             "title": "<code>timeadd</code>",
             "href": "/language/functions/timeadd"
+          },
+          {
+            "title": "<code>timecmp</code>",
+            "href": "/language/functions/timecmp"
           },
           {
             "title": "<code>timestamp</code>",
@@ -833,6 +831,7 @@
       { "title": "one", "path": "functions/one", "hidden": true },
       { "title": "parseint", "path": "functions/parseint", "hidden": true },
       { "title": "pathexpand", "path": "functions/pathexpand", "hidden": true },
+      { "title": "plantimestamp", "path": "functions/plantimestamp", "hidden": true },
       { "title": "pow", "path": "functions/pow", "hidden": true },
       { "title": "range", "path": "functions/range", "hidden": true },
       { "title": "regex", "path": "functions/regex", "hidden": true },
@@ -861,6 +860,7 @@
       { "title": "sort", "path": "functions/sort", "hidden": true },
       { "title": "split", "path": "functions/split", "hidden": true },
       { "title": "startswith", "path": "functions/startswith", "hidden": true },
+      { "title": "strcontains", "path": "functions/strcontains", "hidden": true},
       { "title": "strrev", "path": "functions/strrev", "hidden": true },
       { "title": "substr", "path": "functions/substr", "hidden": true },
       { "title": "sum", "path": "functions/sum", "hidden": true },
@@ -880,6 +880,7 @@
         "hidden": true
       },
       { "title": "timeadd", "path": "functions/timeadd", "hidden": true },
+      { "title": "timecmp", "path": "functions/timecmp", "hidden": true },
       { "title": "timestamp", "path": "functions/timestamp", "hidden": true },
       { "title": "title", "path": "functions/title", "hidden": true },
       { "title": "tobool", "path": "functions/tobool", "hidden": true },
@@ -929,10 +930,6 @@
                 "href": "/language/settings/backends/remote"
               },
               {
-                "title": "artifactory",
-                "href": "/language/settings/backends/artifactory"
-              },
-              {
                 "title": "azurerm",
                 "href": "/language/settings/backends/azurerm"
               },
@@ -943,14 +940,6 @@
               {
                 "title": "cos",
                 "href": "/language/settings/backends/cos"
-              },
-              {
-                "title": "etcd",
-                "href": "/language/settings/backends/etcd"
-              },
-              {
-                "title": "etcdv3",
-                "href": "/language/settings/backends/etcdv3"
               },
               {
                 "title": "gcs",
@@ -965,10 +954,6 @@
                 "href": "/language/settings/backends/kubernetes"
               },
               {
-                "title": "manta",
-                "href": "/language/settings/backends/manta"
-              },
-              {
                 "title": "oss",
                 "href": "/language/settings/backends/oss"
               },
@@ -979,10 +964,6 @@
               {
                 "title": "s3",
                 "href": "/language/settings/backends/s3"
-              },
-              {
-                "title": "swift",
-                "href": "/language/settings/backends/swift"
               }
             ]
           },
@@ -995,11 +976,6 @@
             "title": "remote",
             "hidden": true,
             "path": "settings/backends/remote"
-          },
-          {
-            "title": "artifactory",
-            "hidden": true,
-            "path": "settings/backends/artifactory"
           },
           {
             "title": "azurerm",
@@ -1017,16 +993,6 @@
             "path": "settings/backends/cos"
           },
           {
-            "title": "etcd",
-            "hidden": true,
-            "path": "settings/backends/etcd"
-          },
-          {
-            "title": "etcdv3",
-            "hidden": true,
-            "path": "settings/backends/etcdv3"
-          },
-          {
             "title": "gcs",
             "hidden": true,
             "path": "settings/backends/gcs"
@@ -1042,11 +1008,6 @@
             "path": "settings/backends/kubernetes"
           },
           {
-            "title": "manta",
-            "hidden": true,
-            "path": "settings/backends/manta"
-          },
-          {
             "title": "oss",
             "hidden": true,
             "path": "settings/backends/oss"
@@ -1060,11 +1021,6 @@
             "title": "s3",
             "hidden": true,
             "path": "settings/backends/s3"
-          },
-          {
-            "title": "swift",
-            "hidden": true,
-            "path": "settings/backends/swift"
           }
         ]
       }
@@ -1096,136 +1052,15 @@
       }
     ]
   },
+  { "title": "Tests", "path": "tests" },
   {
-    "title": "Upgrade Guides",
-    "routes": [
-      { "title": "Overview", "path": "upgrade-guides" },
-      {
-        "title": "Upgrading to Terraform v1.2",
-        "path": "upgrade-guides/1-2"
-      },
-      {
-        "title": "Upgrading to Terraform v1.1",
-        "path": "upgrade-guides/1-1"
-      },
-      {
-        "title": "Upgrading to Terraform v1.0",
-        "path": "upgrade-guides/1-0"
-      },
-      {
-        "title": "v1.0 Compatibility Promises",
-        "href": "/language/v1-compatibility-promises"
-      },
-      {
-        "title": "Upgrading to Terraform v0.15",
-        "path": "upgrade-guides/0-15"
-      },
-      {
-        "title": "Upgrading to Terraform v0.14",
-        "path": "upgrade-guides/0-14"
-      },
-      {
-        "title": "Upgrading to Terraform v0.13",
-        "path": "upgrade-guides/0-13"
-      },
-      {
-        "title": "Upgrading to Terraform v0.12",
-        "path": "upgrade-guides/0-12"
-      },
-      {
-        "title": "Upgrading to Terraform v0.11",
-        "path": "upgrade-guides/0-11"
-      },
-      {
-        "title": "Upgrading to Terraform v0.10",
-        "path": "upgrade-guides/0-10"
-      },
-      {
-        "title": "Upgrading to Terraform v0.9",
-        "path": "upgrade-guides/0-9"
-      },
-      {
-        "title": "Upgrading to Terraform v0.8",
-        "path": "upgrade-guides/0-8"
-      },
-      {
-        "title": "Upgrading to Terraform v0.7",
-        "path": "upgrade-guides/0-7"
-      }
-    ]
+    "title": "Upgrading to Terraform v1.6",
+    "path": "upgrade-guides"
   },
   {
-    "title": "Historical docs: 0.11 and Older",
-    "routes": [
-      { "title": "Overview", "path": "configuration-0-11" },
-      {
-        "title": "Load Order and Semantics",
-        "path": "configuration-0-11/load"
-      },
-      {
-        "title": "Configuration Syntax",
-        "path": "configuration-0-11/syntax"
-      },
-      {
-        "title": "Interpolation Syntax",
-        "path": "configuration-0-11/interpolation"
-      },
-      {
-        "title": "Overrides",
-        "path": "configuration-0-11/override"
-      },
-      {
-        "title": "Resources",
-        "path": "configuration-0-11/resources"
-      },
-      {
-        "title": "Data Sources",
-        "path": "configuration-0-11/data-sources"
-      },
-      {
-        "title": "Providers",
-        "href": "/language/providers"
-      },
-      {
-        "title": "Variables",
-        "path": "configuration-0-11/variables"
-      },
-      {
-        "title": "Outputs",
-        "path": "configuration-0-11/outputs"
-      },
-      {
-        "title": "Local Values",
-        "path": "configuration-0-11/locals"
-      },
-      {
-        "title": "Modules",
-        "path": "configuration-0-11/modules"
-      },
-      {
-        "title": "Terraform",
-        "path": "configuration-0-11/terraform"
-      },
-      {
-        "title": "Provisioners",
-        "href": "/language/resources/provisioners"
-      },
-      {
-        "title": "Providers",
-        "path": "configuration-0-11/providers",
-        "hidden": true
-      },
-      {
-        "title": "Terraform Push (deprecated)",
-        "path": "configuration-0-11/terraform-enterprise"
-      },
-      {
-        "title": "Environment Variables",
-        "path": "configuration-0-11/environment-variables"
-      }
-    ]
+    "title": "v1.x Compatibility Promises",
+    "path": "v1-compatibility-promises"
   },
   { "divider": true },
-  { "title": "Terraform Internals", "href": "/internals" },
-  { "divider": true }
+  { "title": "Terraform Internals", "href": "/internals" }
 ]

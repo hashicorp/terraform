@@ -1,13 +1,17 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
 	"log"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // NodeRootVariable represents a root variable input.
@@ -21,6 +25,14 @@ type NodeRootVariable struct {
 	// converted or validated, and can be nil for a variable that isn't
 	// set at all.
 	RawValue *InputValue
+
+	// Planning must be set to true when building a planning graph, and must be
+	// false when building an apply graph.
+	Planning bool
+
+	// DestroyApply must be set to true when applying a destroy operation and
+	// false otherwise.
+	DestroyApply bool
 }
 
 var (
@@ -79,6 +91,14 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 		}
 	}
 
+	if n.Planning {
+		if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.Addr.InModule(addrs.RootModule)) {
+			ctx.Checks().ReportCheckableObjects(
+				n.Addr.InModule(addrs.RootModule),
+				addrs.MakeSet[addrs.Checkable](n.Addr.Absolute(addrs.RootModuleInstance)))
+		}
+	}
+
 	finalVal, moreDiags := prepareFinalInputVariableValue(
 		addr,
 		givenVal,
@@ -93,13 +113,15 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 
 	ctx.SetRootModuleArgument(addr.Variable, finalVal)
 
-	moreDiags = evalVariableValidations(
-		addrs.RootModuleInstance.InputVariable(n.Addr.Name),
-		n.Config,
-		nil, // not set for root module variables
-		ctx,
-	)
-	diags = diags.Append(moreDiags)
+	if !n.DestroyApply {
+		diags = diags.Append(evalVariableValidations(
+			addrs.RootModuleInstance.InputVariable(n.Addr.Name),
+			n.Config,
+			nil, // not set for root module variables
+			ctx,
+		))
+	}
+
 	return diags
 }
 

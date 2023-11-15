@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package cliconfig
 
 import (
@@ -246,7 +249,7 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 						diags = diags.Append(tfdiags.Sourceless(
 							tfdiags.Error,
 							"Invalid provider installation dev overrides",
-							fmt.Sprintf("The entry %q in %s is not a valid provider source string.", rawAddr, block.Pos()),
+							fmt.Sprintf("The entry %q in %s is not a valid provider source string.\n\n%s", rawAddr, block.Pos(), moreDiags.Err().Error()),
 						))
 						continue
 					}
@@ -294,9 +297,9 @@ type ProviderInstallationMethod struct {
 // different installation location types. The concrete implementations of
 // this interface are:
 //
-//     ProviderInstallationDirect:                install from the provider's origin registry
-//     ProviderInstallationFilesystemMirror(dir): install from a local filesystem mirror
-//     ProviderInstallationNetworkMirror(host):   install from a network mirror
+//   - [ProviderInstallationDirect]:                 install from the provider's origin registry
+//   - [ProviderInstallationFilesystemMirror] (dir): install from a local filesystem mirror
+//   - [ProviderInstallationNetworkMirror] (host):   install from a network mirror
 type ProviderInstallationLocation interface {
 	providerInstallationLocation()
 }

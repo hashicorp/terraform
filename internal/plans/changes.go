@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package plans
 
 import (
@@ -35,6 +38,10 @@ func NewChanges() *Changes {
 func (c *Changes) Empty() bool {
 	for _, res := range c.Resources {
 		if res.Action != NoOp || res.Moved() {
+			return false
+		}
+
+		if res.Importing != nil {
 			return false
 		}
 	}
@@ -106,7 +113,8 @@ func (c *Changes) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key st
 }
 
 // OutputValue returns the planned change for the output value with the
-//  given address, if any. Returns nil if no change is planned.
+//
+//	given address, if any. Returns nil if no change is planned.
 func (c *Changes) OutputValue(addr addrs.AbsOutputValue) *OutputChangeSrc {
 	for _, oc := range c.Outputs {
 		if oc.Addr.Equal(addr) {
@@ -279,12 +287,12 @@ func (rc *ResourceInstanceChange) Moved() bool {
 //
 // The following table shows the simplification behavior:
 //
-//     Action    Destroying?   New Action
-//     --------+-------------+-----------
-//     Create    true          NoOp
-//     Delete    false         NoOp
-//     Replace   true          Delete
-//     Replace   false         Create
+//	Action    Destroying?   New Action
+//	--------+-------------+-----------
+//	Create    true          NoOp
+//	Delete    false         NoOp
+//	Replace   true          Delete
+//	Replace   false         Create
 //
 // For any combination not in the above table, the Simplify just returns the
 // receiver as-is.
@@ -300,9 +308,11 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 				Private:      rc.Private,
 				ProviderAddr: rc.ProviderAddr,
 				Change: Change{
-					Action: Delete,
-					Before: rc.Before,
-					After:  cty.NullVal(rc.Before.Type()),
+					Action:          Delete,
+					Before:          rc.Before,
+					After:           cty.NullVal(rc.Before.Type()),
+					Importing:       rc.Importing,
+					GeneratedConfig: rc.GeneratedConfig,
 				},
 			}
 		default:
@@ -312,9 +322,11 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 				Private:      rc.Private,
 				ProviderAddr: rc.ProviderAddr,
 				Change: Change{
-					Action: NoOp,
-					Before: rc.Before,
-					After:  rc.Before,
+					Action:          NoOp,
+					Before:          rc.Before,
+					After:           rc.Before,
+					Importing:       rc.Importing,
+					GeneratedConfig: rc.GeneratedConfig,
 				},
 			}
 		}
@@ -327,9 +339,11 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 				Private:      rc.Private,
 				ProviderAddr: rc.ProviderAddr,
 				Change: Change{
-					Action: NoOp,
-					Before: rc.Before,
-					After:  rc.Before,
+					Action:          NoOp,
+					Before:          rc.Before,
+					After:           rc.Before,
+					Importing:       rc.Importing,
+					GeneratedConfig: rc.GeneratedConfig,
 				},
 			}
 		case CreateThenDelete, DeleteThenCreate:
@@ -339,9 +353,11 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 				Private:      rc.Private,
 				ProviderAddr: rc.ProviderAddr,
 				Change: Change{
-					Action: Create,
-					Before: cty.NullVal(rc.After.Type()),
-					After:  rc.After,
+					Action:          Create,
+					Before:          cty.NullVal(rc.After.Type()),
+					After:           rc.After,
+					Importing:       rc.Importing,
+					GeneratedConfig: rc.GeneratedConfig,
 				},
 			}
 		}
@@ -426,6 +442,12 @@ const (
 	// specific reasons for a particular instance to no longer be declared.
 	ResourceInstanceDeleteBecauseNoModule ResourceInstanceChangeActionReason = 'M'
 
+	// ResourceInstanceDeleteBecauseNoMoveTarget indicates that the resource
+	// address appears as the target ("to") in a moved block, but no
+	// configuration exists for that resource. According to our move rules,
+	// this combination evaluates to a deletion of the "new" resource.
+	ResourceInstanceDeleteBecauseNoMoveTarget ResourceInstanceChangeActionReason = 'A'
+
 	// ResourceInstanceReadBecauseConfigUnknown indicates that the resource
 	// must be read during apply (rather than during planning) because its
 	// configuration contains unknown values. This reason applies only to
@@ -437,6 +459,12 @@ const (
 	// depends on a managed resource instance which has its own changes
 	// pending.
 	ResourceInstanceReadBecauseDependencyPending ResourceInstanceChangeActionReason = '!'
+
+	// ResourceInstanceReadBecauseCheckNested indicates that the resource must
+	// be read during apply (as well as during planning) because it is inside
+	// a check block and when the check assertions execute we want them to use
+	// the most up-to-date data.
+	ResourceInstanceReadBecauseCheckNested ResourceInstanceChangeActionReason = '#'
 )
 
 // OutputChange describes a change to an output value.
@@ -472,6 +500,16 @@ func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
 	}, err
 }
 
+// Importing is the part of a ChangeSrc that describes the embedded import
+// action.
+//
+// The fields in here are subject to change, so downstream consumers should be
+// prepared for backwards compatibility in case the contents changes.
+type Importing struct {
+	// ID is the original ID of the imported resource.
+	ID string
+}
+
 // Change describes a single change with a given action.
 type Change struct {
 	// Action defines what kind of change is being made.
@@ -492,6 +530,19 @@ type Change struct {
 	// either as the values themselves or as nested elements within known
 	// collections/structures.
 	Before, After cty.Value
+
+	// Importing is present if the resource is being imported as part of this
+	// change.
+	//
+	// Use the simple presence of this field to detect if a ChangeSrc is to be
+	// imported, the contents of this structure may be modified going forward.
+	Importing *Importing
+
+	// GeneratedConfig contains any HCL config generated for this resource
+	// during planning, as a string. If GeneratedConfig is populated, Importing
+	// should be true. However, not all Importing changes contain generated
+	// config.
+	GeneratedConfig string
 }
 
 // Encode produces a variant of the reciever that has its change values
@@ -525,11 +576,18 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 		return nil, err
 	}
 
+	var importing *ImportingSrc
+	if c.Importing != nil {
+		importing = &ImportingSrc{ID: c.Importing.ID}
+	}
+
 	return &ChangeSrc{
-		Action:         c.Action,
-		Before:         beforeDV,
-		After:          afterDV,
-		BeforeValMarks: beforeVM,
-		AfterValMarks:  afterVM,
+		Action:          c.Action,
+		Before:          beforeDV,
+		After:           afterDV,
+		BeforeValMarks:  beforeVM,
+		AfterValMarks:   afterVM,
+		Importing:       importing,
+		GeneratedConfig: c.GeneratedConfig,
 	}, nil
 }

@@ -1,0 +1,5 @@
+{
+  "description": "basic test covering interaction between multiple blocks within a resource, while updating",
+  "include_files": [],
+  "ignore_fields": {}
+}

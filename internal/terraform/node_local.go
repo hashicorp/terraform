@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -5,12 +8,13 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // nodeExpandLocal represents a named local value in a configuration module,
@@ -58,11 +62,11 @@ func (n *nodeExpandLocal) ReferenceableAddrs() []addrs.Referenceable {
 
 // GraphNodeReferencer
 func (n *nodeExpandLocal) References() []*addrs.Reference {
-	refs, _ := lang.ReferencesInExpr(n.Config.Expr)
+	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.Config.Expr)
 	return refs
 }
 
-func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 	expander := ctx.InstanceExpander()
 	for _, module := range expander.ExpandModule(n.Module) {
@@ -73,6 +77,7 @@ func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		log.Printf("[TRACE] Expanding local: adding %s as %T", o.Addr.String(), o)
 		g.Add(o)
 	}
+	addRootNodeToGraph(&g)
 	return &g, nil
 }
 
@@ -120,7 +125,7 @@ func (n *NodeLocal) ReferenceableAddrs() []addrs.Referenceable {
 
 // GraphNodeReferencer
 func (n *NodeLocal) References() []*addrs.Reference {
-	refs, _ := lang.ReferencesInExpr(n.Config.Expr)
+	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.Config.Expr)
 	return refs
 }
 
@@ -134,7 +139,7 @@ func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Di
 
 	// We ignore diags here because any problems we might find will be found
 	// again in EvaluateExpr below.
-	refs, _ := lang.ReferencesInExpr(expr)
+	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, expr)
 	for _, ref := range refs {
 		if ref.Subject == addr {
 			diags = diags.Append(&hcl.Diagnostic{

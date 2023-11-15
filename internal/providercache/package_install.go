@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package providercache
 
 import (
@@ -55,7 +58,7 @@ func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targ
 
 	f, err := ioutil.TempFile("", "terraform-provider")
 	if err != nil {
-		return nil, fmt.Errorf("failed to open temporary file to download from %s", url)
+		return nil, fmt.Errorf("failed to open temporary file to download from %s: %w", url, err)
 	}
 	defer f.Close()
 	defer os.Remove(f.Name())
@@ -124,6 +127,14 @@ func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta,
 	}
 
 	filename := meta.Location.String()
+
+	// NOTE: We're not checking whether there's already a directory at
+	// targetDir with some files in it. Packages are supposed to be immutable
+	// and therefore we'll just be overwriting all of the existing files with
+	// their same contents unless something unusual is happening. If something
+	// unusual _is_ happening then this will produce something that doesn't
+	// match the allowed hashes and so our caller should catch that after
+	// we return if so.
 
 	err := unzip.Decompress(targetDir, filename, true, 0000)
 	if err != nil {

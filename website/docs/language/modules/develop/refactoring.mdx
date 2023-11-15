@@ -6,7 +6,7 @@ description: How to make backward-compatible changes to modules already in use.
 # Refactoring
 
 -> **Note:** Explicit refactoring declarations with `moved` blocks is available in Terraform v1.1 and later. For earlier Terraform versions or for refactoring actions too complex to express as `moved` blocks, you can
-use the [`terraform state mv` CLI command](/cli/commands/state/mv)
+use the [`terraform state mv` CLI command](/terraform/cli/commands/state/mv)
 as a separate step.
 
 In shared modules and long-lived configurations, you may eventually outgrow
@@ -23,7 +23,7 @@ When you add `moved` blocks in your configuration to record where you've
 historically moved or renamed an object, Terraform treats an existing object at
 the old address as if it now belongs to the new address.
 
-> **Hands On:** Try the [Use Configuration to Move Resources](https://learn.hashicorp.com/tutorials/terraform/move-config) tutorial on HashiCorp Learn.
+> **Hands On:** Try the [Use Configuration to Move Resources](/terraform/tutorials/configuration-language/move-config) tutorial.
 
 ## `moved` Block Syntax
 
@@ -122,7 +122,7 @@ resource "aws_instance" "a" {
 Applying this configuration would lead to Terraform creating an object
 bound to the address `aws_instance.a`.
 
-Later, you use [`for_each`](/language/meta-arguments/for_each) with this
+Later, you use [`for_each`](/terraform/language/meta-arguments/for_each) with this
 resource to systematically declare multiple instances. To preserve an object
 that was previously associated with `aws_instance.a` alone, you must add a
 `moved` block to specify which instance key the object will take in the new
@@ -261,7 +261,7 @@ Applying this configuration would cause Terraform to create objects whose
 addresses begin with `module.a`.
 
 In later module versions, you may need to use
-[`count`](/language/meta-arguments/count) with this resource to systematically
+[`count`](/terraform/language/meta-arguments/count) with this resource to systematically
 declare multiple instances. To preserve an object that was previously associated
 with `aws_instance.a` alone, you can add a `moved` block to specify which
 instance key that object will take in the new configuration:
@@ -398,13 +398,7 @@ typical rule that a parent module sees its child module as a "closed box",
 unaware of exactly which resources are declared inside it. This compromise
 assumes that all three of these modules are maintained by the same people
 and distributed together in a single
-[module package](/language/modules/sources#modules-in-package-sub-directories).
-
-To reduce [coupling](https://en.wikipedia.org/wiki/Coupling_\(computer_programming\))
-between separately-packaged modules, Terraform only allows declarations of
-moves between modules in the same package. In other words, Terraform would
-not have allowed moving into `module.x` above if the `source` address of
-that call had not been a [local path](/language/modules/sources#local-paths).
+[module package](/terraform/language/modules/sources#modules-in-package-sub-directories).
 
 Terraform resolves module references in `moved` blocks relative to the module
 instance they are defined in. For example, if the original module above were

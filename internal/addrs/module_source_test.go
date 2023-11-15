@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package addrs
 
 import (
@@ -151,6 +154,13 @@ func TestParseModuleSource(t *testing.T) {
 			input: "git::https://example.com/code/baz.git//bleep/bloop",
 			want: ModuleSourceRemote{
 				Package: ModulePackage("git::https://example.com/code/baz.git"),
+				Subdir:  "bleep/bloop",
+			},
+		},
+		"git over HTTPS, URL-style, subdir, query parameters": {
+			input: "git::https://example.com/code/baz.git//bleep/bloop?otherthing=blah",
+			want: ModuleSourceRemote{
+				Package: ModulePackage("git::https://example.com/code/baz.git?otherthing=blah"),
 				Subdir:  "bleep/bloop",
 			},
 		},
@@ -399,6 +409,56 @@ func TestModuleSourceRemoteFromRegistry(t *testing.T) {
 			t.Errorf("wrong resolved subdir\ngot:  %s\nwant: %s", got, want)
 		}
 	})
+}
+
+func TestParseModuleSourceRemote(t *testing.T) {
+
+	tests := map[string]struct {
+		input          string
+		wantString     string
+		wantForDisplay string
+		wantErr        string
+	}{
+		"git over HTTPS, URL-style, query parameters": {
+			// Query parameters should be correctly appended after the Package
+			input:          `git::https://example.com/code/baz.git?otherthing=blah`,
+			wantString:     `git::https://example.com/code/baz.git?otherthing=blah`,
+			wantForDisplay: `git::https://example.com/code/baz.git?otherthing=blah`,
+		},
+		"git over HTTPS, URL-style, subdir, query parameters": {
+			// Query parameters should be correctly appended after the Package and Subdir
+			input:          `git::https://example.com/code/baz.git//bleep/bloop?otherthing=blah`,
+			wantString:     `git::https://example.com/code/baz.git//bleep/bloop?otherthing=blah`,
+			wantForDisplay: `git::https://example.com/code/baz.git//bleep/bloop?otherthing=blah`,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			remote, err := parseModuleSourceRemote(test.input)
+
+			if test.wantErr != "" {
+				switch {
+				case err == nil:
+					t.Errorf("unexpected success\nwant error: %s", test.wantErr)
+				case err.Error() != test.wantErr:
+					t.Errorf("wrong error messages\ngot:  %s\nwant: %s", err.Error(), test.wantErr)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err.Error())
+			}
+
+			if got, want := remote.String(), test.wantString; got != want {
+				t.Errorf("wrong String() result\ngot:  %s\nwant: %s", got, want)
+			}
+			if got, want := remote.ForDisplay(), test.wantForDisplay; got != want {
+				t.Errorf("wrong ForDisplay() result\ngot:  %s\nwant: %s", got, want)
+			}
+		})
+	}
 }
 
 func TestParseModuleSourceRegistry(t *testing.T) {

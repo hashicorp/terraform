@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package funcs
 
 import (
@@ -49,9 +52,6 @@ var NonsensitiveFunc = function.New(&function.Spec{
 		return args[0].Type(), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		if args[0].IsKnown() && !args[0].HasMark(marks.Sensitive) {
-			return cty.DynamicVal, function.NewArgErrorf(0, "the given value is not sensitive, so this call is redundant")
-		}
 		v, m := args[0].Unmark()
 		delete(m, marks.Sensitive) // remove the sensitive marking
 		return v.WithMarks(m), nil

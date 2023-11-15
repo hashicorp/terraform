@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -125,9 +128,10 @@ func TestNodeAbstractResourceInstanceProvider(t *testing.T) {
 				// function. (This would not be valid for some other functions.)
 				Addr: test.Addr,
 				NodeAbstractResource: NodeAbstractResource{
-					Config: test.Config,
+					Addr:                 test.Addr.ConfigResource(),
+					Config:               test.Config,
+					storedProviderConfig: test.StoredProviderConfig,
 				},
-				storedProviderConfig: test.StoredProviderConfig,
 			}
 			got := node.Provider()
 			if got != test.Want {
@@ -167,7 +171,7 @@ func TestNodeAbstractResourceInstance_WriteResourceInstanceState(t *testing.T) {
 		},
 	}
 	ctx.ProviderProvider = mockProvider
-	ctx.ProviderSchemaSchema = mockProvider.ProviderSchema()
+	ctx.ProviderSchemaSchema = mockProvider.GetProviderSchema()
 
 	err := node.writeResourceInstanceState(ctx, obj, workingState)
 	if err != nil {

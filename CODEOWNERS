@@ -8,7 +8,7 @@
 /internal/backend/remote-state/cos               @likexian
 /internal/backend/remote-state/etcdv2            Unmaintained
 /internal/backend/remote-state/etcdv3            Unmaintained
-/internal/backend/remote-state/gcs               @hashicorp/terraform-google
+/internal/backend/remote-state/gcs               @hashicorp/terraform-google @hashicorp/terraform-ecosystem-strategic
 /internal/backend/remote-state/http              @hashicorp/terraform-core
 /internal/backend/remote-state/manta             Unmaintained
 /internal/backend/remote-state/oss               @xiaozhu36

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package statemgr
 
 import "github.com/hashicorp/terraform/internal/states"
@@ -57,7 +60,7 @@ type Reader interface {
 // since the caller may continue to modify the given state object after
 // WriteState returns.
 type Writer interface {
-	// Write state saves a transient snapshot of the given state.
+	// WriteState saves a transient snapshot of the given state.
 	//
 	// The caller must ensure that the given state object is not concurrently
 	// modified while a WriteState call is in progress. WriteState itself

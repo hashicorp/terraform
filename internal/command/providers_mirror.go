@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -71,15 +74,34 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 		}
 	}
 
+	// Installation steps can be cancelled by SIGINT and similar.
+	ctx, done := c.InterruptibleContext(c.CommandContext())
+	defer done()
+
 	config, confDiags := c.loadConfig(".")
 	diags = diags.Append(confDiags)
 	reqs, moreDiags := config.ProviderRequirements()
 	diags = diags.Append(moreDiags)
 
+	// Read lock file
+	lockedDeps, lockedDepsDiags := c.Meta.lockedDependencies()
+	diags = diags.Append(lockedDepsDiags)
+
 	// If we have any error diagnostics already then we won't proceed further.
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
+	}
+
+	// If lock file is present, validate it against configuration
+	if !lockedDeps.Empty() {
+		if errs := config.VerifyDependencySelections(lockedDeps); len(errs) > 0 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Inconsistent dependency lock file",
+				fmt.Sprintf("To update the locked dependency selections to match a changed configuration, run:\n  terraform init -upgrade\n got:%v", errs),
+			))
+		}
 	}
 
 	// Unlike other commands, this command always consults the origin registry
@@ -114,8 +136,6 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 	//   infrequently to update a mirror, so it doesn't need to optimize away
 	//   fetches of packages that might already be present.
 
-	ctx, cancel := c.InterruptibleContext()
-	defer cancel()
 	for provider, constraints := range reqs {
 		if provider.IsBuiltIn() {
 			c.Ui.Output(fmt.Sprintf("- Skipping %s because it is built in to Terraform CLI", provider.ForDisplay()))
@@ -140,7 +160,10 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 			continue
 		}
 		selected := candidates.Newest()
-		if len(constraintsStr) > 0 {
+		if !lockedDeps.Empty() {
+			selected = lockedDeps.Provider(provider).Version()
+			c.Ui.Output(fmt.Sprintf("  - Selected v%s to match dependency lock file", selected.String()))
+		} else if len(constraintsStr) > 0 {
 			c.Ui.Output(fmt.Sprintf("  - Selected v%s to meet constraints %s", selected.String(), constraintsStr))
 		} else {
 			c.Ui.Output(fmt.Sprintf("  - Selected v%s with no constraints", selected.String()))

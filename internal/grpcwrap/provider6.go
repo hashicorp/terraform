@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package grpcwrap
 
 import (
@@ -9,6 +12,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // New wraps a providers.Interface to implement a grpc ProviderServer using
@@ -24,6 +29,10 @@ func Provider6(p providers.Interface) tfplugin6.ProviderServer {
 type provider6 struct {
 	provider providers.Interface
 	schema   providers.GetProviderSchemaResponse
+}
+
+func (p *provider6) GetMetadata(_ context.Context, req *tfplugin6.GetMetadata_Request) (*tfplugin6.GetMetadata_Response, error) {
+	return nil, status.Error(codes.Unimplemented, "GetMetadata is not implemented by core")
 }
 
 func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProviderSchema_Request) (*tfplugin6.GetProviderSchema_Response, error) {
@@ -59,8 +68,9 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 		}
 	}
 
-	resp.ServerCapabilities = &tfplugin6.GetProviderSchema_ServerCapabilities{
-		PlanDestroy: p.schema.ServerCapabilities.PlanDestroy,
+	resp.ServerCapabilities = &tfplugin6.ServerCapabilities{
+		GetProviderSchemaOptional: p.schema.ServerCapabilities.GetProviderSchemaOptional,
+		PlanDestroy:               p.schema.ServerCapabilities.PlanDestroy,
 	}
 
 	// include any diagnostics from the original GetSchema call

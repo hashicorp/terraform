@@ -1,66 +1,46 @@
-## 1.3.0 (Unreleased)
-
-NEW FEATURES:
-
-* **Optional attributes for object type constraints:** When declaring an input variable whose type constraint includes an object type, you can now declare individual attributes as optional, and specify a default value to use if the caller doesn't set it. For example:
-
-    ```terraform
-    variable "with_optional_attribute" {
-      type = object({
-        a = string                # a required attribute
-        b = optional(string)      # an optional attribute
-        c = optional(number, 127) # an optional attribute with a default value
-      })
-    }
-    ```
-
-    Assigning `{ a = "foo" }` to this variable will result in the value `{ a = "foo", b = null, c = 127 }`.
-
-* Added functions: `startswith` and `endswith` allow you to check whether a given string has a specified prefix or suffix. ([#31220](https://github.com/hashicorp/terraform/issues/31220))
+## 1.7.0 (Unreleased)
 
 UPGRADE NOTES:
 
-* `terraform show -json`: Output changes now include more detail about the unknown-ness of the planned value. Previously, a planned output would be marked as either fully known or partially unknown, with the `after_unknown` field having value `false` or `true` respectively. Now outputs correctly expose the full structure of unknownness for complex values, allowing consumers of the JSON output format to determine which values in a collection are known only after apply.
+* Input validations are being restored to the state file in this version of Terraform. Due to a state interoperability issue ([#33770](https://github.com/hashicorp/terraform/issues/33770)) in earlier versions, users that require interaction between different minor series should ensure they have upgraded to the following patches:
+    * Users of Terraform prior to 1.3.0 are unaffected;
+    * Terraform 1.3 series users should upgrade to 1.3.10;
+    * Terraform 1.4 series users should upgrade to 1.4.7;
+    * Terraform 1.5 series users should upgrade to 1.5.7;
+    * Users of Terraform 1.6.0 and later are unaffected.
+ 
+  This is important for users with `terraform_remote_state` data sources reading remote state across different versions of Terraform.
+* `nonsensitive` function no longer errors when applied to values that are already not sensitive. ([#33856](https://github.com/hashicorp/terraform/issues/33856))
 
-    Consumers of the JSON output format expecting on the `after_unknown` field to be only `false` or `true` should be updated to support [the change representation](https://www.terraform.io/internals/json-format#change-representation) described in the documentation, and as was already used for resource changes. ([#31235](https://github.com/hashicorp/terraform/issues/31235))
+NEW FEATURES:
 
-ENHANCEMENTS:
+* `terraform test`: Providers, modules, resources, and data sources can now be mocked during executions of `terraform test`. The following new blocks have been introduced within `.tftest.hcl` files:
 
-* config: Optional attributes for object type constraints, as described under new features above. ([#31154](https://github.com/hashicorp/terraform/issues/31154))
-* When reporting an error message related to a function call, Terraform will now include contextual information about the signature of the function that was being called, as an aid to understanding why the call might have failed. ([#31299](https://github.com/hashicorp/terraform/issues/31299))
-* When reporting an error or warning message that isn't caused by values being unknown or marked as sensitive, Terraform will no longer mention any values having those characteristics in the contextual information presented alongside the error. Terraform will still return this information for the small subset of error messages that are specifically about unknown values or sensitive values being invalid in certain contexts. ([#31299](https://github.com/hashicorp/terraform/issues/31299))
-* The Terraform CLI now calls `PlanResourceChange` for compatible providers when destroying resource instances. ([#31179](https://github.com/hashicorp/terraform/issues/31179))
-* The AzureRM Backend now only supports MSAL (and Microsoft Graph) and no longer makes use of ADAL (and Azure Active Directory Graph) for authentication ([#31070](https://github.com/hashicorp/terraform/issues/31070))
-* The COS backend now supports global acceleration. ([#31425](https://github.com/hashicorp/terraform/issues/31425))
-* providercache: include host in provider installation error ([#31524](https://github.com/hashicorp/terraform/issues/31524))
+    * `mock_provider`: Can replace provider instances with mocked providers, allowing tests to execute in `command = apply` mode without requiring a configured cloud provider account and credentials. Terraform will create fake resources for mocked providers and maintain them in state for the lifecycle of the given test file.
+    * `override_resource`: Specific resources can be overridden so Terraform will create a fake resource with custom values instead of creating infrastructure for the overridden resource.
+    * `override_data`: Specific data sources can be overridden so data can be imported into tests without requiring real infrastructure to be created externally first.
+    * `override_module`: Specific modules can be overridden in their entirety to give greater control over the returned outputs without requiring in-depth knowledge of the module itself.
 
 BUG FIXES:
 
-* config: Terraform was not previously evaluating preconditions and postconditions during the apply phase for resource instances that didn't have any changes pending, which was incorrect because the outcome of a condition can potentially be affected by changes to _other_ objects in the configuration. Terraform will now always check the conditions for every resource instance included in a plan during the apply phase, even for resource instances that have "no-op" changes. This means that some failures that would previously have been detected only by a subsequent run will now be detected during the same run that caused them, thereby giving the feedback at the appropriate time. ([#31491](https://github.com/hashicorp/terraform/issues/31491))
-* `terraform show -json`: Fixed missing unknown markers in the encoding of partially unknown tuples and sets. ([#31236](https://github.com/hashicorp/terraform/issues/31236))
-* `terraform output` CLI help documentation is now more consistent with web-based documentation. ([#29354](https://github.com/hashicorp/terraform/issues/29354))
-* getproviders: account for occasionally missing Host header in errors ([#31542](https://github.com/hashicorp/terraform/issues/31542))
-* core: Do not create "delete" changes for nonexistent outputs ([#31471](https://github.com/hashicorp/terraform/issues/31471))
-* configload: validate implied provider names in submodules to avoid crash ([#31573](https://github.com/hashicorp/terraform/issues/31573))
+* Ignore potential remote terraform version mismatch when running force-unlock ([#28853](https://github.com/hashicorp/terraform/issues/28853))
+* Exit Dockerfile build script early on `cd` failure. ([#34128](https://github.com/hashicorp/terraform/issues/34128))
 
-EXPERIMENTS:
+ENHANCEMENTS:
 
-* This release concludes the `module_variable_optional_attrs` experiment, which started in Terraform v0.14.0. The final design of the optional attributes feature is similar to the experimental form in the previous releases, but with two major differences:
-    * The `optional` function-like modifier for declaring an optional attribute now accepts an optional second argument for specifying a default value to use when the attribute isn't set by the caller. If not specified, the default value is a null value of the appropriate type as before.
-    * The built-in `defaults` function, previously used to meet the use-case of replacing null values with default values, will not graduate to stable and has been removed. Use the second argument of `optional` inline in your type constraint to declare default values instead.
-
-    If you have any experimental modules that were participating in this experiment, you will need to remove the experiment opt-in and adopt the new syntax for declaring default values in order to migrate your existing module to the stablized version of this feature. If you are writing a shared module for others to use, we recommend declaring that your module requires Terraform v1.3.0 or later to give specific feedback when using the new feature on older Terraform versions, in place of the previous declaration to use the experimental form of this feature:
-    
-    ```hcl
-    terraform {
-      required_version = ">= 1.3.0"
-    }
-    ```
+* `terraform test`: Providers defined within test files can now reference variables from their configuration that are defined within the test file. ([#34069](https://github.com/hashicorp/terraform/issues/34069))
+* `terraform test`: Providers defined within test files can now reference outputs from run blocks. ([#34118](https://github.com/hashicorp/terraform/issues/34118))
+* `terraform test`: Terraform functions are now available within variables and provider blocks within test files. ([#34204](https://github.com/hashicorp/terraform/issues/34204))
+* `import`: `for_each` can now be used to expand the `import` block to handle multiple resource instances ([#33932](https://github.com/hashicorp/terraform/issues/33932))
 
 ## Previous Releases
 
 For information on prior major and minor releases, see their changelogs:
 
+* [v1.6](https://github.com/hashicorp/terraform/blob/v1.6/CHANGELOG.md)
+* [v1.5](https://github.com/hashicorp/terraform/blob/v1.5/CHANGELOG.md)
+* [v1.4](https://github.com/hashicorp/terraform/blob/v1.4/CHANGELOG.md)
+* [v1.3](https://github.com/hashicorp/terraform/blob/v1.3/CHANGELOG.md)
 * [v1.2](https://github.com/hashicorp/terraform/blob/v1.2/CHANGELOG.md)
 * [v1.1](https://github.com/hashicorp/terraform/blob/v1.1/CHANGELOG.md)
 * [v1.0](https://github.com/hashicorp/terraform/blob/v1.0/CHANGELOG.md)

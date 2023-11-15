@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package cliconfig
 
 import (
@@ -8,6 +11,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // This is the directory where our test fixtures are.
@@ -31,7 +35,7 @@ func TestLoadConfig(t *testing.T) {
 	}
 }
 
-func TestLoadConfig_env(t *testing.T) {
+func TestLoadConfig_envSubst(t *testing.T) {
 	defer os.Unsetenv("TFTEST")
 	os.Setenv("TFTEST", "hello")
 
@@ -53,6 +57,166 @@ func TestLoadConfig_env(t *testing.T) {
 	if !reflect.DeepEqual(c, expected) {
 		t.Fatalf("bad: %#v", c)
 	}
+}
+
+func TestLoadConfig_non_existing_file(t *testing.T) {
+	tmpDir := os.TempDir()
+	cliTmpFile := filepath.Join(tmpDir, "dev.tfrc")
+
+	os.Setenv("TF_CLI_CONFIG_FILE", cliTmpFile)
+	defer os.Unsetenv("TF_CLI_CONFIG_FILE")
+
+	c, errs := LoadConfig()
+	if errs.HasErrors() || c.Validate().HasErrors() {
+		t.Fatalf("err: %s", errs)
+	}
+
+	hasOpenFileWarn := false
+	for _, err := range errs {
+		if err.Severity() == tfdiags.Warning && err.Description().Summary == "Unable to open CLI configuration file" {
+			hasOpenFileWarn = true
+			break
+		}
+	}
+
+	if !hasOpenFileWarn {
+		t.Fatal("expecting a warning message because of nonexisting CLI configuration file")
+	}
+}
+
+func TestEnvConfig(t *testing.T) {
+	tests := map[string]struct {
+		env  map[string]string
+		want *Config
+	}{
+		"no environment variables": {
+			nil,
+			&Config{},
+		},
+		"TF_PLUGIN_CACHE_DIR=boop": {
+			map[string]string{
+				"TF_PLUGIN_CACHE_DIR": "boop",
+			},
+			&Config{
+				PluginCacheDir: "boop",
+			},
+		},
+		"TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE=anything_except_zero": {
+			map[string]string{
+				"TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE": "anything_except_zero",
+			},
+			&Config{
+				PluginCacheMayBreakDependencyLockFile: true,
+			},
+		},
+		"TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE=0": {
+			map[string]string{
+				"TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE": "0",
+			},
+			&Config{},
+		},
+		"TF_PLUGIN_CACHE_DIR and TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE": {
+			map[string]string{
+				"TF_PLUGIN_CACHE_DIR":                            "beep",
+				"TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE": "1",
+			},
+			&Config{
+				PluginCacheDir:                        "beep",
+				PluginCacheMayBreakDependencyLockFile: true,
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := envConfig(test.env)
+			want := test.want
+
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("wrong result\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestMakeEnvMap(t *testing.T) {
+	tests := map[string]struct {
+		environ []string
+		want    map[string]string
+	}{
+		"nil": {
+			nil,
+			nil,
+		},
+		"one": {
+			[]string{
+				"FOO=bar",
+			},
+			map[string]string{
+				"FOO": "bar",
+			},
+		},
+		"many": {
+			[]string{
+				"FOO=1",
+				"BAR=2",
+				"BAZ=3",
+			},
+			map[string]string{
+				"FOO": "1",
+				"BAR": "2",
+				"BAZ": "3",
+			},
+		},
+		"conflict": {
+			[]string{
+				"FOO=1",
+				"BAR=1",
+				"FOO=2",
+			},
+			map[string]string{
+				"BAR": "1",
+				"FOO": "2", // Last entry of each name wins
+			},
+		},
+		"empty_val": {
+			[]string{
+				"FOO=",
+			},
+			map[string]string{
+				"FOO": "",
+			},
+		},
+		"no_equals": {
+			[]string{
+				"FOO=bar",
+				"INVALID",
+			},
+			map[string]string{
+				"FOO": "bar",
+			},
+		},
+		"multi_equals": {
+			[]string{
+				"FOO=bar=baz=boop",
+			},
+			map[string]string{
+				"FOO": "bar=baz=boop",
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := makeEnvMap(test.environ)
+			want := test.want
+
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("wrong result\n%s", diff)
+			}
+		})
+	}
+
 }
 
 func TestLoadConfig_hosts(t *testing.T) {
@@ -284,6 +448,7 @@ func TestConfig_Merge(t *testing.T) {
 				},
 			},
 		},
+		PluginCacheMayBreakDependencyLockFile: true,
 	}
 
 	expected := &Config{
@@ -338,6 +503,7 @@ func TestConfig_Merge(t *testing.T) {
 				},
 			},
 		},
+		PluginCacheMayBreakDependencyLockFile: true,
 	}
 
 	actual := c1.Merge(c2)

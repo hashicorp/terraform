@@ -40,6 +40,27 @@
   },
   "resource_changes": [
     {
+      "address": "test_instance.test",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "foo"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
       "address": "module.child.test_instance.test",
       "module_address": "module.child",
       "mode": "managed",
@@ -53,27 +74,6 @@
         "before": null,
         "after": {
           "ami": "bar"
-        },
-        "after_unknown": {
-          "id": true
-        },
-        "before_sensitive": false,
-        "after_sensitive": {}
-      }
-    },
-    {
-      "address": "test_instance.test",
-      "mode": "managed",
-      "type": "test_instance",
-      "name": "test",
-      "provider_name": "registry.terraform.io/hashicorp/test",
-      "change": {
-        "actions": [
-          "create"
-        ],
-        "before": null,
-        "after": {
-          "ami": "foo"
         },
         "after_unknown": {
           "id": true

@@ -10,8 +10,8 @@ command line, and can expose information for other Terraform configurations to
 use. Output values are similar to return values in programming languages.
 
 > **Hands-on:** Try the [Output Data From
-> Terraform](https://learn.hashicorp.com/tutorials/terraform/outputs)
-> tutorial on HashiCorp Learn.
+> Terraform](/terraform/tutorials/configuration-language/outputs)
+> tutorial.
 
 Output values have several uses:
 
@@ -19,9 +19,9 @@ Output values have several uses:
   to a parent module.
 - A root module can use outputs to print certain values in the CLI output after
   running `terraform apply`.
-- When using [remote state](/language/state/remote), root module outputs can be
+- When using [remote state](/terraform/language/state/remote), root module outputs can be
   accessed by other configurations via a
-  [`terraform_remote_state` data source](/language/state/remote-state-data).
+  [`terraform_remote_state` data source](/terraform/language/state/remote-state-data).
 
 Resource instances managed by Terraform each export attributes whose values
 can be used elsewhere in configuration. Output values are a way to expose some
@@ -42,11 +42,11 @@ output "instance_ip_addr" {
 ```
 
 The label immediately after the `output` keyword is the name, which must be a
-valid [identifier](/language/syntax/configuration#identifiers). In a root module, this name is
+valid [identifier](/terraform/language/syntax/configuration#identifiers). In a root module, this name is
 displayed to the user; in a child module, it can be used to access the output's
 value.
 
-The `value` argument takes an [expression](/language/expressions)
+The `value` argument takes an [expression](/terraform/language/expressions)
 whose result is to be returned to the user. In this example, the expression
 refers to the `private_ip` attribute exposed by an `aws_instance` resource
 defined elsewhere in this module (not shown). Any valid expression is allowed
@@ -81,7 +81,7 @@ output "api_base_url" {
 
 Custom conditions can help capture assumptions, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
-Refer to [Custom Condition Checks](/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
+Refer to [Custom Condition Checks](/terraform/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
 
 ## Optional Arguments
 
@@ -159,7 +159,7 @@ Terraform will perform the following actions:
 
   # test_instance.x will be created
   + resource "test_instance" "x" {
-      + some_attribute    = (sensitive)
+      + some_attribute    = (sensitive value)
     }
 
 Plan: 1 to add, 0 to change, 0 to destroy.
@@ -174,10 +174,10 @@ value in the list of outputs at the end of `terraform apply`. However, the
 value could still display in the CLI output for other reasons, like if the
 value is referenced in an expression for a resource argument.
 
-Terraform will still record sensitive values in the [state](/language/state),
+Terraform will still record sensitive values in the [state](/terraform/language/state),
 and so anyone who can access the state data will have access to the sensitive
 values in cleartext. For more information, see
-[_Sensitive Data in State_](/language/state/sensitive-data).
+[_Sensitive Data in State_](/terraform/language/state/sensitive-data).
 
 <a id="depends_on"></a>
 
@@ -193,7 +193,7 @@ correctly determine the dependencies between resources defined in different
 modules.
 
 Just as with
-[resource dependencies](/language/resources/behavior#resource-dependencies),
+[resource dependencies](/terraform/language/resources/behavior#resource-dependencies),
 Terraform analyzes the `value` expression for an output value and automatically
 determines a set of dependencies, but in less-common cases there are
 dependencies that cannot be recognized implicitly. In these rare cases, the

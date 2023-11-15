@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package cloud
 
 import (
@@ -38,14 +41,14 @@ type integrationCLIOutput struct {
 
 var _ IntegrationOutputWriter = (*integrationCLIOutput)(nil) // Compile time check
 
-func (s *IntegrationContext) Poll(every func(i int) (bool, error)) error {
+func (s *IntegrationContext) Poll(backoffMinInterval float64, backoffMaxInterval float64, every func(i int) (bool, error)) error {
 	for i := 0; ; i++ {
 		select {
 		case <-s.StopContext.Done():
 			return s.StopContext.Err()
 		case <-s.CancelContext.Done():
 			return s.CancelContext.Err()
-		case <-time.After(backoff(backoffMin, backoffMax, i)):
+		case <-time.After(backoff(backoffMinInterval, backoffMaxInterval, i)):
 			// blocks for a time between min and max
 		}
 

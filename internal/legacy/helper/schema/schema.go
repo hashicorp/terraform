@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // schema is a high-level framework for easily writing new providers
 // for Terraform. Usage of schema is recommended over attempting to write
 // to the low-level plugin interfaces manually.

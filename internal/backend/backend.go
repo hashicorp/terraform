@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package backend provides interfaces that the CLI uses to interact with
 // Terraform. A backend provides the abstraction that allows the same CLI
 // to simultaneously support both local and remote operations for seamlessly
@@ -11,6 +14,7 @@ import (
 	"log"
 	"os"
 
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -109,11 +113,18 @@ type Backend interface {
 	// DeleteWorkspace cannot prevent deleting a state that is in use. It is
 	// the responsibility of the caller to hold a Lock for the state manager
 	// belonging to this workspace before calling this method.
-	DeleteWorkspace(name string) error
+	DeleteWorkspace(name string, force bool) error
 
 	// States returns a list of the names of all of the workspaces that exist
 	// in this backend.
 	Workspaces() ([]string, error)
+}
+
+// HostAlias describes a list of aliases that should be used when initializing an
+// Enhanced Backend
+type HostAlias struct {
+	From svchost.Hostname
+	To   svchost.Hostname
 }
 
 // Enhanced implements additional behavior on top of a normal backend.
@@ -133,6 +144,10 @@ type Enhanced interface {
 	// responsibility of the Backend to lock the state for the duration of the
 	// running operation.
 	Operation(context.Context, *Operation) (*RunningOperation, error)
+
+	// ServiceDiscoveryAliases returns a mapping of Alias -> Target hosts to
+	// configure.
+	ServiceDiscoveryAliases() ([]HostAlias, error)
 }
 
 // Local implements additional behavior on a Backend that allows local
@@ -255,7 +270,7 @@ type Operation struct {
 
 	// Plan is a plan that was passed as an argument. This is valid for
 	// plan and apply arguments but may not work for all backends.
-	PlanFile *planfile.Reader
+	PlanFile *planfile.WrappedPlanFile
 
 	// The options below are more self-explanatory and affect the runtime
 	// behavior of the operation.
@@ -292,6 +307,11 @@ type Operation struct {
 	// Workspace is the name of the workspace that this operation should run
 	// in, which controls which named state is used.
 	Workspace string
+
+	// GenerateConfigOut tells the operation both that it should generate config
+	// for unmatched import targets and where any generated config should be
+	// written to.
+	GenerateConfigOut string
 }
 
 // HasConfig returns true if and only if the operation has a ConfigDir value
@@ -366,8 +386,9 @@ type RunningOperation struct {
 	// operation has completed.
 	Result OperationResult
 
-	// PlanEmpty is populated after a Plan operation completes without error
-	// to note whether a plan is empty or has changes.
+	// PlanEmpty is populated after a Plan operation completes to note whether
+	// a plan is empty or has changes. This is only used in the CLI to determine
+	// the exit status because the plan value is not available at that point.
 	PlanEmpty bool
 
 	// State is the final state after the operation completed. Persisting

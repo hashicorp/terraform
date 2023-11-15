@@ -7,7 +7,7 @@ description: >-
 
 # Command: state rm
 
-The main function of [Terraform state](/language/state) is
+The main function of [Terraform state](/terraform/language/state) is
 to track the bindings between resource instance addresses in your configuration
 and the remote objects they represent. Normally Terraform automatically
 updates the state in response to actions taken when applying a plan, such as
@@ -23,13 +23,13 @@ to exist in the remote system.
 Usage: `terraform state rm [options] ADDRESS...`
 
 Terraform will search the state for any instances matching the given
-[resource address](/cli/state/resource-addressing), and remove
+[resource address](/terraform/cli/state/resource-addressing), and remove
 the record of each one so that Terraform will no longer be tracking the
 corresponding remote objects.
 
 This means that although the objects will still continue to exist in the
 remote system, a subsequent
-[`terraform plan`](/cli/commands/plan)
+[`terraform plan`](/terraform/cli/commands/plan)
 will include an action to create a new object for each of the "forgotten"
 instances. Depending on the constraints imposed by the remote system, creating
 those objects might fail if their names or other identifiers conflict with
@@ -49,15 +49,15 @@ This command also accepts the following options:
   returning an error. The duration syntax is a number followed by a time
   unit letter, such as "3s" for three seconds.
 
-For configurations using the [Terraform Cloud CLI integration](/cli/cloud) or the [`remote` backend](/language/settings/backends/remote)
+For configurations using the [Terraform Cloud CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/settings/backends/remote)
 only, `terraform state rm`
 also accepts the option
-[`-ignore-remote-version`](/cli/cloud/command-line-arguments#ignore-remote-version).
+[`-ignore-remote-version`](/terraform/cli/cloud/command-line-arguments#ignore-remote-version).
 
 For configurations using
-[the `local` state rm](/language/settings/backends/local) only,
+[the `local` state rm](/terraform/language/settings/backends/local) only,
 `terraform state rm` also accepts the legacy options
-[`-state`, `-state-out`, and `-backup`](/language/settings/backends/local#command-line-arguments).
+[`-state`, `-state-out`, and `-backup`](/terraform/language/settings/backends/local#command-line-arguments).
 
 ## Example: Remove all Instances of a Resource
 
@@ -92,7 +92,7 @@ $ terraform state rm 'module.foo'
 
 ## Example: Remove a Particular Instance of a Resource using `count`
 
-A resource defined with [the `count` meta-argument](/language/meta-arguments/count)
+A resource defined with [the `count` meta-argument](/terraform/language/meta-arguments/count)
 has multiple instances that are each identified by an integer. You can
 select a particular instance by including an explicit index in your given
 address:
@@ -107,7 +107,7 @@ The above shows the typical quoting syntax for Unix-style shells.
 
 ## Example: Remove a Particular Instance of a Resource using `for_each`
 
-A resource defined with [the `for_each` meta-argument](/language/meta-arguments/for_each)
+A resource defined with [the `for_each` meta-argument](/terraform/language/meta-arguments/for_each)
 has multiple instances that are each identified by an string. You can
 select a particular instance by including an explicit key in your given
 address.

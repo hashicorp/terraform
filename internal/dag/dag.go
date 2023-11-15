@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package dag
 
 import (
@@ -179,16 +182,18 @@ type vertexAtDepth struct {
 	Depth  int
 }
 
-// TopologicalOrder returns a topological sort of the given graph. The nodes
-// are not sorted, and any valid order may be returned. This function will
-// panic if it encounters a cycle.
+// TopologicalOrder returns a topological sort of the given graph, with source
+// vertices ordered before the targets of their edges. The nodes are not sorted,
+// and any valid order may be returned. This function will panic if it
+// encounters a cycle.
 func (g *AcyclicGraph) TopologicalOrder() []Vertex {
 	return g.topoOrder(upOrder)
 }
 
-// ReverseTopologicalOrder returns a topological sort of the given graph,
-// following each edge in reverse. The nodes are not sorted, and any valid
-// order may be returned. This function will panic if it encounters a cycle.
+// ReverseTopologicalOrder returns a topological sort of the given graph, with
+// target vertices ordered before the sources of their edges. The nodes are not
+// sorted, and any valid order may be returned. This function will panic if it
+// encounters a cycle.
 func (g *AcyclicGraph) ReverseTopologicalOrder() []Vertex {
 	return g.topoOrder(downOrder)
 }

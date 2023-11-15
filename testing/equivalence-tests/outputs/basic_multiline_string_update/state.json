@@ -1,0 +1,26 @@
+{
+  "format_version": "1.0",
+  "values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_simple_resource.multiline",
+          "mode": "managed",
+          "name": "multiline",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "schema_version": 0,
+          "sensitive_values": {},
+          "type": "tfcoremock_simple_resource",
+          "values": {
+            "bool": null,
+            "float": null,
+            "id": "69fe5233-e77a-804f-0dac-115c949540bc",
+            "integer": null,
+            "number": null,
+            "string": "one\nthree\ntwo\nfour\nsix\nseven"
+          }
+        }
+      ]
+    }
+  }
+}

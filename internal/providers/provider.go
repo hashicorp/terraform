@@ -1,8 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package providers
 
 import (
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -70,6 +74,11 @@ type Interface interface {
 	Close() error
 }
 
+// GetProviderSchemaResponse is the return type for GetProviderSchema, and
+// should only be used when handling a value for that method. The handling of
+// of schemas in any other context should always use ProviderSchema, so that
+// the in-memory representation can be more easily changed separately from the
+// RCP protocol.
 type GetProviderSchemaResponse struct {
 	// Provider is the schema for the provider itself.
 	Provider Schema
@@ -90,6 +99,17 @@ type GetProviderSchemaResponse struct {
 	ServerCapabilities ServerCapabilities
 }
 
+// Schema pairs a provider or resource schema with that schema's version.
+// This is used to be able to upgrade the schema in UpgradeResourceState.
+//
+// This describes the schema for a single object within a provider. Type
+// "Schemas" (plural) instead represents the overall collection of schemas
+// for everything within a particular provider.
+type Schema struct {
+	Version int64
+	Block   *configschema.Block
+}
+
 // ServerCapabilities allows providers to communicate extra information
 // regarding supported protocol features. This is used to indicate availability
 // of certain forward-compatible changes which may be optional in a major
@@ -98,6 +118,12 @@ type ServerCapabilities struct {
 	// PlanDestroy signals that this provider expects to receive a
 	// PlanResourceChange call for resources that are to be destroyed.
 	PlanDestroy bool
+
+	// The GetProviderSchemaOptional capability indicates that this
+	// provider does not require calling GetProviderSchema to operate
+	// normally, and the caller can used a cached copy of the provider's
+	// schema.
+	GetProviderSchemaOptional bool
 }
 
 type ValidateProviderConfigRequest struct {
