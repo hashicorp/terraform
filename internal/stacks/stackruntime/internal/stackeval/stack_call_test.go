@@ -44,6 +44,7 @@ func TestStackCallCheckInstances(t *testing.T) {
 		}
 
 		insts, diags := call.CheckInstances(ctx, InspectPhase)
+		assertNoDiags(t, diags)
 		if got, want := len(insts), 1; got != want {
 			t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, insts)
 		}
@@ -73,6 +74,7 @@ func TestStackCallCheckInstances(t *testing.T) {
 				t.Fatalf("unexpected for_each value\ngot:  %#v\nwant: %#v", got, want)
 			}
 			insts, diags := call.CheckInstances(ctx, InspectPhase)
+			assertNoDiags(t, diags)
 			if got, want := len(insts), 0; got != want {
 				t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, insts)
 			}
@@ -109,6 +111,7 @@ func TestStackCallCheckInstances(t *testing.T) {
 				t.Fatalf("unexpected for_each value\ngot:  %#v\nwant: %#v", gotForEachVal, wantForEachVal)
 			}
 			insts, diags := call.CheckInstances(ctx, InspectPhase)
+			assertNoDiags(t, diags)
 			if got, want := len(insts), 2; got != want {
 				t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, insts)
 			}

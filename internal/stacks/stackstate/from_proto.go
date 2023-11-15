@@ -213,9 +213,7 @@ func DecodeProtoResourceInstanceObject(protoObj *tfstackdata1.StateResourceInsta
 		return nil, fmt.Errorf("unsupported status %s", protoObj.Status.String())
 	}
 
-	if len(protoObj.SensitivePaths) != 0 {
-		// TODO: Deal with sensitive paths
-	}
+	// TODO: Deal with sensitive paths in protoObj.SensitivePaths
 
 	if len(protoObj.Dependencies) != 0 {
 		objSrc.Dependencies = make([]addrs.ConfigResource, len(protoObj.Dependencies))

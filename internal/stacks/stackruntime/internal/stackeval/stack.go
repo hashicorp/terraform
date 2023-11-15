@@ -460,7 +460,7 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid 'each' reference",
-					Detail:   fmt.Sprintf("The special symbol 'each' is not defined in this location. This symbol is valid only inside multi-instance blocks that use the 'for_each' argument."),
+					Detail:   "The special symbol 'each' is not defined in this location. This symbol is valid only inside multi-instance blocks that use the 'for_each' argument.",
 					Subject:  ref.SourceRange.ToHCL().Ptr(),
 				})
 				return nil, diags
@@ -471,7 +471,7 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid 'each' reference",
-					Detail:   fmt.Sprintf("The special symbol 'each' is not defined in this location. This symbol is valid only inside multi-instance blocks that use the 'for_each' argument."),
+					Detail:   "The special symbol 'each' is not defined in this location. This symbol is valid only inside multi-instance blocks that use the 'for_each' argument.",
 					Subject:  ref.SourceRange.ToHCL().Ptr(),
 				})
 				return nil, diags
@@ -482,7 +482,7 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid 'count' reference",
-					Detail:   fmt.Sprintf("The special symbol 'count' is not defined in this location. This symbol is valid only inside multi-instance blocks that use the 'count' argument."),
+					Detail:   "The special symbol 'count' is not defined in this location. This symbol is valid only inside multi-instance blocks that use the 'count' argument.",
 					Subject:  ref.SourceRange.ToHCL().Ptr(),
 				})
 				return nil, diags

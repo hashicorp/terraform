@@ -158,13 +158,13 @@ func providerConfigPathsInType(ty cty.Type, prefix cty.Path) []cty.Path {
 		ret = providerConfigPathsInType(ty.ElementType(), prefix.Index(cty.DynamicVal))
 	case ty.IsTupleType():
 		etys := ty.TupleElementTypes()
-		ret := make([]cty.Path, 0, len(etys))
+		ret = make([]cty.Path, 0, len(etys))
 		for i, ety := range etys {
 			ret = append(ret, providerConfigPathsInType(ety, prefix.IndexInt(i))...)
 		}
 	case ty.IsObjectType():
 		atys := ty.AttributeTypes()
-		ret := make([]cty.Path, 0, len(atys))
+		ret = make([]cty.Path, 0, len(atys))
 		for n, aty := range atys {
 			ret = append(ret, providerConfigPathsInType(aty, prefix.GetAttr(n))...)
 		}
