@@ -1,10 +1,11 @@
-## 1.6.4 (Unreleased)
+## 1.6.4 (November 15, 2023)
 
 ENHANCEMENTS:
-* backend/s3: Adds the parameter `endpoints.sso`` to allow overriding the AWS SSO API endpoint. ([#34195](https://github.com/hashicorp/terraform/pull/34195))
+* backend/s3: Add the parameter `endpoints.sso` to allow overriding the AWS SSO API endpoint. ([#34195](https://github.com/hashicorp/terraform/pull/34195))
 
 BUG FIXES:
 * `terraform test`: Fix bug preventing passing sensitive output values from previous run blocks as inputs to future run blocks. ([#34190](https://github.com/hashicorp/terraform/pull/34190))
+* backend/s3: Add `https_proxy` and `no_proxy` parameters to allow fully specifying proxy configuration ([#34243](https://github.com/hashicorp/terraform/pull/34243))
 
 ## 1.6.3 (November 1, 2023)
 
