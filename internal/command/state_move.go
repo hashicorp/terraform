@@ -18,12 +18,13 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// StateMvCommand is a Command implementation that shows a single resource.
-type StateMvCommand struct {
+// StateMoveCommand is a Command implementation that renames a single
+// resource in the state.
+type StateMoveCommand struct {
 	StateMeta
 }
 
-func (c *StateMvCommand) Run(args []string) int {
+func (c *StateMoveCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	// We create two metas to track the two states
 	var backupPathOut, statePathOut string
@@ -211,7 +212,7 @@ func (c *StateMvCommand) Run(args []string) int {
 			}
 
 			if stateTo.Module(addrTo) != nil {
-				c.Ui.Error(fmt.Sprintf(errStateMv, "destination module already exists"))
+				c.Ui.Error(fmt.Sprintf(errStateMove, "destination module already exists"))
 				return 1
 			}
 
@@ -406,22 +407,22 @@ func (c *StateMvCommand) Run(args []string) int {
 
 	// Write the new state
 	if err := stateToMgr.WriteState(stateTo); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		c.Ui.Error(fmt.Sprintf(errStateRemovePersist, err))
 		return 1
 	}
 	if err := stateToMgr.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		c.Ui.Error(fmt.Sprintf(errStateRemovePersist, err))
 		return 1
 	}
 
 	// Write the old state if it is different
 	if stateTo != stateFrom {
 		if err := stateFromMgr.WriteState(stateFrom); err != nil {
-			c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+			c.Ui.Error(fmt.Sprintf(errStateRemovePersist, err))
 			return 1
 		}
 		if err := stateFromMgr.PersistState(schemas); err != nil {
-			c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+			c.Ui.Error(fmt.Sprintf(errStateRemovePersist, err))
 			return 1
 		}
 	}
@@ -444,7 +445,7 @@ func (c *StateMvCommand) Run(args []string) int {
 // the ambiguity that an index-less resource address could either be a resource
 // address or a resource instance address, by making a decision about which
 // is intended based on the current state of the resource in question.
-func (c *StateMvCommand) sourceObjectAddrs(state *states.State, matched addrs.Targetable) []addrs.Targetable {
+func (c *StateMoveCommand) sourceObjectAddrs(state *states.State, matched addrs.Targetable) []addrs.Targetable {
 	var ret []addrs.Targetable
 
 	switch addr := matched.(type) {
@@ -479,7 +480,7 @@ func (c *StateMvCommand) sourceObjectAddrs(state *states.State, matched addrs.Ta
 	return ret
 }
 
-func (c *StateMvCommand) validateResourceMove(addrFrom, addrTo addrs.AbsResource) tfdiags.Diagnostics {
+func (c *StateMoveCommand) validateResourceMove(addrFrom, addrTo addrs.AbsResource) tfdiags.Diagnostics {
 	const msgInvalidRequest = "Invalid state move request"
 
 	var diags tfdiags.Diagnostics
@@ -516,7 +517,7 @@ func (c *StateMvCommand) validateResourceMove(addrFrom, addrTo addrs.AbsResource
 	return diags
 }
 
-func (c *StateMvCommand) Help() string {
+func (c *StateMoveCommand) Help() string {
 	helpText := `
 Usage: terraform [global options] state mv [options] SOURCE DESTINATION
 
@@ -557,11 +558,11 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func (c *StateMvCommand) Synopsis() string {
-	return "Move an item in the state"
+func (c *StateMoveCommand) Synopsis() string {
+	return "Move an item in the state (aliases: 'mv', 'rename')"
 }
 
-const errStateMv = `Error moving state: %s
+const errStateMove = `Error moving state: %s
 
 Please ensure your addresses and state paths are valid. No
 state was persisted. Your existing states are untouched.`

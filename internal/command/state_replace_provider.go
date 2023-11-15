@@ -21,7 +21,6 @@ import (
 // to change the provider associated with existing resources. This is only
 // likely to be useful if a provider is forked or changes its fully-qualified
 // name.
-
 type StateReplaceProviderCommand struct {
 	StateMeta
 }
@@ -181,11 +180,11 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 
 	// Write the updated state
 	if err := stateMgr.WriteState(state); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		c.Ui.Error(fmt.Sprintf(errStateRemovePersist, err))
 		return 1
 	}
 	if err := stateMgr.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		c.Ui.Error(fmt.Sprintf(errStateRemovePersist, err))
 		return 1
 	}
 

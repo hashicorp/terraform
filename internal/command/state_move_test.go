@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 )
 
-func TestStateMv(t *testing.T) {
+func TestStateMove(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -56,7 +56,7 @@ func TestStateMv(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -76,14 +76,14 @@ func TestStateMv(t *testing.T) {
 	}
 
 	// Test it is correct
-	testStateOutput(t, statePath, testStateMvOutput)
+	testStateOutput(t, statePath, testStateMoveOutput)
 
 	// Test we have backups
 	backups := testStateBackups(t, filepath.Dir(statePath))
 	if len(backups) != 1 {
 		t.Fatalf("bad: %#v", backups)
 	}
-	testStateOutput(t, backups[0], testStateMvOutputOriginal)
+	testStateOutput(t, backups[0], testStateMoveOutputOriginal)
 
 	// Change the single instance to a counted instance
 	args = []string{
@@ -153,7 +153,7 @@ func TestStateMv(t *testing.T) {
 
 }
 
-func TestStateMv_backupAndBackupOutOptionsWithNonLocalBackend(t *testing.T) {
+func TestStateMove_backupAndBackupOutOptionsWithNonLocalBackend(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -187,7 +187,7 @@ func TestStateMv_backupAndBackupOutOptionsWithNonLocalBackend(t *testing.T) {
 		p := testProvider()
 		ui := new(cli.MockUi)
 		view, _ := testView(t)
-		c := &StateMvCommand{
+		c := &StateMoveCommand{
 			StateMeta{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(p),
@@ -235,7 +235,7 @@ on a local state file only. You must specify a local state file with the
 		p := testProvider()
 		ui := new(cli.MockUi)
 		view, _ := testView(t)
-		c := &StateMvCommand{
+		c := &StateMoveCommand{
 			StateMeta{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(p),
@@ -284,7 +284,7 @@ on a local state file only. You must specify a local state file with the
 		p := testProvider()
 		ui := new(cli.MockUi)
 		view, _ := testView(t)
-		c := &StateMvCommand{
+		c := &StateMoveCommand{
 			StateMeta{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(p),
@@ -334,7 +334,7 @@ on a local state file only. You must specify a local state file with the
 		p := testProvider()
 		ui := new(cli.MockUi)
 		view, _ := testView(t)
-		c := &StateMvCommand{
+		c := &StateMoveCommand{
 			StateMeta{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(p),
@@ -355,7 +355,7 @@ on a local state file only. You must specify a local state file with the
 		}
 
 		// Test it is correct
-		testStateOutput(t, statePath, testStateMvBackupAndBackupOutOptionsWithNonLocalBackendOutput)
+		testStateOutput(t, statePath, testStateMoveBackupAndBackupOutOptionsWithNonLocalBackendOutput)
 	})
 
 	t.Run("backup-out option specified with state option", func(t *testing.T) {
@@ -374,7 +374,7 @@ on a local state file only. You must specify a local state file with the
 		p := testProvider()
 		ui := new(cli.MockUi)
 		view, _ := testView(t)
-		c := &StateMvCommand{
+		c := &StateMoveCommand{
 			StateMeta{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(p),
@@ -395,11 +395,11 @@ on a local state file only. You must specify a local state file with the
 		}
 
 		// Test it is correct
-		testStateOutput(t, statePath, testStateMvBackupAndBackupOutOptionsWithNonLocalBackendOutput)
+		testStateOutput(t, statePath, testStateMoveBackupAndBackupOutOptionsWithNonLocalBackendOutput)
 	})
 }
 
-func TestStateMv_resourceToInstance(t *testing.T) {
+func TestStateMove_resourceToInstance(t *testing.T) {
 	// A single resource (no count defined)
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -450,7 +450,7 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -488,10 +488,10 @@ test_instance.baz:
 	if len(backups) != 1 {
 		t.Fatalf("bad: %#v", backups)
 	}
-	testStateOutput(t, backups[0], testStateMvOutputOriginal)
+	testStateOutput(t, backups[0], testStateMoveOutputOriginal)
 }
 
-func TestStateMv_resourceToInstanceErr(t *testing.T) {
+func TestStateMove_resourceToInstanceErr(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -526,7 +526,7 @@ func TestStateMv_resourceToInstanceErr(t *testing.T) {
 	ui := cli.NewMockUi()
 	view, _ := testView(t)
 
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -560,7 +560,7 @@ resource.
 	}
 }
 
-func TestStateMv_resourceToInstanceErrInAutomation(t *testing.T) {
+func TestStateMove_resourceToInstanceErrInAutomation(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -594,7 +594,7 @@ func TestStateMv_resourceToInstanceErrInAutomation(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides:    metaOverridesForProvider(p),
@@ -630,7 +630,7 @@ resource.
 	}
 }
 
-func TestStateMv_instanceToResource(t *testing.T) {
+func TestStateMove_instanceToResource(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -668,7 +668,7 @@ func TestStateMv_instanceToResource(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -720,7 +720,7 @@ test_instance.foo.0:
 `)
 }
 
-func TestStateMv_instanceToNewResource(t *testing.T) {
+func TestStateMove_instanceToNewResource(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -743,7 +743,7 @@ func TestStateMv_instanceToNewResource(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -793,7 +793,7 @@ module.test:
 `)
 }
 
-func TestStateMv_differentResourceTypes(t *testing.T) {
+func TestStateMove_differentResourceTypes(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -816,7 +816,7 @@ func TestStateMv_differentResourceTypes(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -849,7 +849,7 @@ match.
 }
 
 // don't modify backend state is we supply a -state flag
-func TestStateMv_explicitWithBackend(t *testing.T) {
+func TestStateMove_explicitWithBackend(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
 	defer testChdir(t, td)()
@@ -909,7 +909,7 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 	// only modify statePath
 	p := testProvider()
 	ui = new(cli.MockUi)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -930,10 +930,10 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 	}
 
 	// Test it is correct
-	testStateOutput(t, statePath, testStateMvOutput)
+	testStateOutput(t, statePath, testStateMoveOutput)
 }
 
-func TestStateMv_backupExplicit(t *testing.T) {
+func TestStateMove_backupExplicit(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -973,7 +973,7 @@ func TestStateMv_backupExplicit(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -994,13 +994,13 @@ func TestStateMv_backupExplicit(t *testing.T) {
 	}
 
 	// Test it is correct
-	testStateOutput(t, statePath, testStateMvOutput)
+	testStateOutput(t, statePath, testStateMoveOutput)
 
 	// Test backup
-	testStateOutput(t, backupPath, testStateMvOutputOriginal)
+	testStateOutput(t, backupPath, testStateMoveOutputOriginal)
 }
 
-func TestStateMv_stateOutNew(t *testing.T) {
+func TestStateMove_stateOutNew(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -1024,7 +1024,7 @@ func TestStateMv_stateOutNew(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -1045,18 +1045,18 @@ func TestStateMv_stateOutNew(t *testing.T) {
 	}
 
 	// Test it is correct
-	testStateOutput(t, stateOutPath, testStateMvOutput_stateOut)
-	testStateOutput(t, statePath, testStateMvOutput_stateOutSrc)
+	testStateOutput(t, stateOutPath, testStateMoveOutput_stateOut)
+	testStateOutput(t, statePath, testStateMoveOutput_stateOutSrc)
 
 	// Test we have backups
 	backups := testStateBackups(t, filepath.Dir(statePath))
 	if len(backups) != 1 {
 		t.Fatalf("bad: %#v", backups)
 	}
-	testStateOutput(t, backups[0], testStateMvOutput_stateOutOriginal)
+	testStateOutput(t, backups[0], testStateMoveOutput_stateOutOriginal)
 }
 
-func TestStateMv_stateOutExisting(t *testing.T) {
+func TestStateMove_stateOutExisting(t *testing.T) {
 	stateSrc := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -1098,7 +1098,7 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -1119,30 +1119,30 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 	}
 
 	// Test it is correct
-	testStateOutput(t, stateOutPath, testStateMvExisting_stateDst)
-	testStateOutput(t, statePath, testStateMvExisting_stateSrc)
+	testStateOutput(t, stateOutPath, testStateMoveExisting_stateDst)
+	testStateOutput(t, statePath, testStateMoveExisting_stateSrc)
 
 	// Test we have backups
 	backups := testStateBackups(t, filepath.Dir(statePath))
 	if len(backups) != 1 {
 		t.Fatalf("bad: %#v", backups)
 	}
-	testStateOutput(t, backups[0], testStateMvExisting_stateSrcOriginal)
+	testStateOutput(t, backups[0], testStateMoveExisting_stateSrcOriginal)
 
 	backups = testStateBackups(t, filepath.Dir(stateOutPath))
 	if len(backups) != 1 {
 		t.Fatalf("bad: %#v", backups)
 	}
-	testStateOutput(t, backups[0], testStateMvExisting_stateDstOriginal)
+	testStateOutput(t, backups[0], testStateMoveExisting_stateDstOriginal)
 }
 
-func TestStateMv_noState(t *testing.T) {
+func TestStateMove_noState(t *testing.T) {
 	testCwd(t)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -1158,7 +1158,7 @@ func TestStateMv_noState(t *testing.T) {
 	}
 }
 
-func TestStateMv_stateOutNew_count(t *testing.T) {
+func TestStateMove_stateOutNew_count(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -1212,7 +1212,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -1233,20 +1233,20 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 	}
 
 	// Test it is correct
-	testStateOutput(t, stateOutPath, testStateMvCount_stateOut)
-	testStateOutput(t, statePath, testStateMvCount_stateOutSrc)
+	testStateOutput(t, stateOutPath, testStateMoveCount_stateOut)
+	testStateOutput(t, statePath, testStateMoveCount_stateOutSrc)
 
 	// Test we have backups
 	backups := testStateBackups(t, filepath.Dir(statePath))
 	if len(backups) != 1 {
 		t.Fatalf("bad: %#v", backups)
 	}
-	testStateOutput(t, backups[0], testStateMvCount_stateOutOriginal)
+	testStateOutput(t, backups[0], testStateMoveCount_stateOutOriginal)
 }
 
 // Modules with more than 10 resources were sorted lexically, causing the
 // indexes in the new location to change.
-func TestStateMv_stateOutNew_largeCount(t *testing.T) {
+func TestStateMove_stateOutNew_largeCount(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		// test_instance.foo has 11 instances, all the same except for their ids
 		for i := 0; i < 11; i++ {
@@ -1288,7 +1288,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -1309,18 +1309,18 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 	}
 
 	// Test it is correct
-	testStateOutput(t, stateOutPath, testStateMvLargeCount_stateOut)
-	testStateOutput(t, statePath, testStateMvLargeCount_stateOutSrc)
+	testStateOutput(t, stateOutPath, testStateMoveLargeCount_stateOut)
+	testStateOutput(t, statePath, testStateMoveLargeCount_stateOutSrc)
 
 	// Test we have backups
 	backups := testStateBackups(t, filepath.Dir(statePath))
 	if len(backups) != 1 {
 		t.Fatalf("bad: %#v", backups)
 	}
-	testStateOutput(t, backups[0], testStateMvLargeCount_stateOutOriginal)
+	testStateOutput(t, backups[0], testStateMoveLargeCount_stateOutOriginal)
 }
 
-func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
+func TestStateMove_stateOutNew_nestedModule(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -1360,7 +1360,7 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -1381,18 +1381,18 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 	}
 
 	// Test it is correct
-	testStateOutput(t, stateOutPath, testStateMvNestedModule_stateOut)
-	testStateOutput(t, statePath, testStateMvNestedModule_stateOutSrc)
+	testStateOutput(t, stateOutPath, testStateMoveNestedModule_stateOut)
+	testStateOutput(t, statePath, testStateMoveNestedModule_stateOutSrc)
 
 	// Test we have backups
 	backups := testStateBackups(t, filepath.Dir(statePath))
 	if len(backups) != 1 {
 		t.Fatalf("bad: %#v", backups)
 	}
-	testStateOutput(t, backups[0], testStateMvNestedModule_stateOutOriginal)
+	testStateOutput(t, backups[0], testStateMoveNestedModule_stateOutOriginal)
 }
 
-func TestStateMv_toNewModule(t *testing.T) {
+func TestStateMove_toNewModule(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -1418,7 +1418,7 @@ func TestStateMv_toNewModule(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -1439,15 +1439,15 @@ func TestStateMv_toNewModule(t *testing.T) {
 	}
 
 	// Test it is correct
-	testStateOutput(t, stateOutPath1, testStateMvNewModule_stateOut)
-	testStateOutput(t, statePath, testStateMvNestedModule_stateOutSrc)
+	testStateOutput(t, stateOutPath1, testStateMoveNewModule_stateOut)
+	testStateOutput(t, statePath, testStateMoveNestedModule_stateOutSrc)
 
 	// Test we have backups
 	backups := testStateBackups(t, filepath.Dir(statePath))
 	if len(backups) != 1 {
 		t.Fatalf("bad: %#v", backups)
 	}
-	testStateOutput(t, backups[0], testStateMvNewModule_stateOutOriginal)
+	testStateOutput(t, backups[0], testStateMoveNewModule_stateOutOriginal)
 
 	// now verify we can move the module itself
 	args = []string{
@@ -1459,10 +1459,10 @@ func TestStateMv_toNewModule(t *testing.T) {
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
-	testStateOutput(t, stateOutPath2, testStateMvModuleNewModule_stateOut)
+	testStateOutput(t, stateOutPath2, testStateMoveModuleNewModule_stateOut)
 }
 
-func TestStateMv_withinBackend(t *testing.T) {
+func TestStateMove_withinBackend(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unchanged"), td)
 	defer testChdir(t, td)()
@@ -1518,7 +1518,7 @@ func TestStateMv_withinBackend(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -1537,11 +1537,11 @@ func TestStateMv_withinBackend(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	testStateOutput(t, statePath, testStateMvOutput)
-	testStateOutput(t, backupPath, testStateMvOutputOriginal)
+	testStateOutput(t, statePath, testStateMoveOutput)
+	testStateOutput(t, backupPath, testStateMoveOutputOriginal)
 }
 
-func TestStateMv_fromBackendToLocal(t *testing.T) {
+func TestStateMove_fromBackendToLocal(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unchanged"), td)
 	defer testChdir(t, td)()
@@ -1589,7 +1589,7 @@ func TestStateMv_fromBackendToLocal(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -1608,16 +1608,16 @@ func TestStateMv_fromBackendToLocal(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	testStateOutput(t, statePathOut, testStateMvCount_stateOutSrc)
+	testStateOutput(t, statePathOut, testStateMoveCount_stateOutSrc)
 
 	// the backend state should be left with only baz
-	testStateOutput(t, statePath, testStateMvOriginal_backend)
+	testStateOutput(t, statePath, testStateMoveOriginal_backend)
 }
 
 // This test covers moving the only resource in a module to a new address in
 // that module, which triggers the maybePruneModule functionality. This caused
 // a panic report: https://github.com/hashicorp/terraform/issues/25520
-func TestStateMv_onlyResourceInModule(t *testing.T) {
+func TestStateMove_onlyResourceInModule(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -1637,12 +1637,12 @@ func TestStateMv_onlyResourceInModule(t *testing.T) {
 	})
 
 	statePath := testStateFile(t, state)
-	testStateOutput(t, statePath, testStateMvOnlyResourceInModule_original)
+	testStateOutput(t, statePath, testStateMoveOnlyResourceInModule_original)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -1662,31 +1662,31 @@ func TestStateMv_onlyResourceInModule(t *testing.T) {
 	}
 
 	// Test it is correct
-	testStateOutput(t, statePath, testStateMvOnlyResourceInModule_output)
+	testStateOutput(t, statePath, testStateMoveOnlyResourceInModule_output)
 
 	// Test we have backups
 	backups := testStateBackups(t, filepath.Dir(statePath))
 	if len(backups) != 1 {
 		t.Fatalf("bad: %#v", backups)
 	}
-	testStateOutput(t, backups[0], testStateMvOnlyResourceInModule_original)
+	testStateOutput(t, backups[0], testStateMoveOnlyResourceInModule_original)
 }
 
-func TestStateMvHelp(t *testing.T) {
-	c := &StateMvCommand{}
+func TestStateMoveHelp(t *testing.T) {
+	c := &StateMoveCommand{}
 	if strings.ContainsRune(c.Help(), '\t') {
 		t.Fatal("help text contains tab character, which will result in poor formatting")
 	}
 }
 
-func TestStateMvInvalidSourceAddress(t *testing.T) {
+func TestStateMoveInvalidSourceAddress(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {})
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -1707,7 +1707,7 @@ func TestStateMvInvalidSourceAddress(t *testing.T) {
 	}
 }
 
-func TestStateMv_checkRequiredVersion(t *testing.T) {
+func TestStateMove_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
@@ -1751,7 +1751,7 @@ func TestStateMv_checkRequiredVersion(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
-	c := &StateMvCommand{
+	c := &StateMoveCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -1772,7 +1772,7 @@ func TestStateMv_checkRequiredVersion(t *testing.T) {
 	}
 
 	// State is unchanged
-	testStateOutput(t, statePath, testStateMvOutputOriginal)
+	testStateOutput(t, statePath, testStateMoveOutputOriginal)
 
 	// Required version diags are correct
 	errStr := ui.ErrorWriter.String()
@@ -1784,7 +1784,7 @@ func TestStateMv_checkRequiredVersion(t *testing.T) {
 	}
 }
 
-const testStateMvOutputOriginal = `
+const testStateMoveOutputOriginal = `
 test_instance.baz:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -1800,7 +1800,7 @@ test_instance.foo:
   foo = value
 `
 
-const testStateMvOutput = `
+const testStateMoveOutput = `
 test_instance.bar:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -1813,7 +1813,7 @@ test_instance.baz:
   foo = value
 `
 
-const testStateMvBackupAndBackupOutOptionsWithNonLocalBackendOutput = `
+const testStateMoveBackupAndBackupOutOptionsWithNonLocalBackendOutput = `
 test_instance.bar:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -1821,7 +1821,7 @@ test_instance.bar:
   foo = value
 `
 
-const testStateMvCount_stateOut = `
+const testStateMoveCount_stateOut = `
 test_instance.bar.0:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -1834,7 +1834,7 @@ test_instance.bar.1:
   foo = value
 `
 
-const testStateMvCount_stateOutSrc = `
+const testStateMoveCount_stateOutSrc = `
 test_instance.bar:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -1842,7 +1842,7 @@ test_instance.bar:
   foo = value
 `
 
-const testStateMvCount_stateOutOriginal = `
+const testStateMoveCount_stateOutOriginal = `
 test_instance.bar:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -1860,7 +1860,7 @@ test_instance.foo.1:
   foo = value
 `
 
-const testStateMvLargeCount_stateOut = `
+const testStateMoveLargeCount_stateOut = `
 test_instance.bar.0:
   ID = foo0
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -1918,7 +1918,7 @@ test_instance.bar.10:
   foo = value
 `
 
-const testStateMvLargeCount_stateOutSrc = `
+const testStateMoveLargeCount_stateOutSrc = `
 test_instance.bar:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -1926,7 +1926,7 @@ test_instance.bar:
   foo = value
 `
 
-const testStateMvLargeCount_stateOutOriginal = `
+const testStateMoveLargeCount_stateOutOriginal = `
 test_instance.bar:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -1989,7 +1989,7 @@ test_instance.foo.10:
   foo = value
 `
 
-const testStateMvNestedModule_stateOut = `
+const testStateMoveNestedModule_stateOut = `
 <no state>
 module.bar.child1:
   test_instance.foo:
@@ -2005,7 +2005,7 @@ module.bar.child2:
     foo = value
 `
 
-const testStateMvNewModule_stateOut = `
+const testStateMoveNewModule_stateOut = `
 <no state>
 module.bar:
   test_instance.bar:
@@ -2015,7 +2015,7 @@ module.bar:
     foo = value
 `
 
-const testStateMvModuleNewModule_stateOut = `
+const testStateMoveModuleNewModule_stateOut = `
 <no state>
 module.foo:
   test_instance.bar:
@@ -2025,7 +2025,7 @@ module.foo:
     foo = value
 `
 
-const testStateMvNewModule_stateOutOriginal = `
+const testStateMoveNewModule_stateOutOriginal = `
 test_instance.bar:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -2033,11 +2033,11 @@ test_instance.bar:
   foo = value
 `
 
-const testStateMvNestedModule_stateOutSrc = `
+const testStateMoveNestedModule_stateOutSrc = `
 <no state>
 `
 
-const testStateMvNestedModule_stateOutOriginal = `
+const testStateMoveNestedModule_stateOutOriginal = `
 <no state>
 module.foo.child1:
   test_instance.foo:
@@ -2053,7 +2053,7 @@ module.foo.child2:
     foo = value
 `
 
-const testStateMvOutput_stateOut = `
+const testStateMoveOutput_stateOut = `
 test_instance.bar:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -2061,11 +2061,11 @@ test_instance.bar:
   foo = value
 `
 
-const testStateMvOutput_stateOutSrc = `
+const testStateMoveOutput_stateOutSrc = `
 <no state>
 `
 
-const testStateMvOutput_stateOutOriginal = `
+const testStateMoveOutput_stateOutOriginal = `
 test_instance.foo:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -2073,11 +2073,11 @@ test_instance.foo:
   foo = value
 `
 
-const testStateMvExisting_stateSrc = `
+const testStateMoveExisting_stateSrc = `
 <no state>
 `
 
-const testStateMvExisting_stateDst = `
+const testStateMoveExisting_stateDst = `
 test_instance.bar:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -2088,7 +2088,7 @@ test_instance.qux:
   provider = provider["registry.terraform.io/hashicorp/test"]
 `
 
-const testStateMvExisting_stateSrcOriginal = `
+const testStateMoveExisting_stateSrcOriginal = `
 test_instance.foo:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -2096,13 +2096,13 @@ test_instance.foo:
   foo = value
 `
 
-const testStateMvExisting_stateDstOriginal = `
+const testStateMoveExisting_stateDstOriginal = `
 test_instance.qux:
   ID = bar
   provider = provider["registry.terraform.io/hashicorp/test"]
 `
 
-const testStateMvOriginal_backend = `
+const testStateMoveOriginal_backend = `
 test_instance.baz:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/test"]
@@ -2110,7 +2110,7 @@ test_instance.baz:
   foo = value
 `
 
-const testStateMvOnlyResourceInModule_original = `
+const testStateMoveOnlyResourceInModule_original = `
 <no state>
 module.foo:
   test_instance.foo.0:
@@ -2120,7 +2120,7 @@ module.foo:
     foo = value
 `
 
-const testStateMvOnlyResourceInModule_output = `
+const testStateMoveOnlyResourceInModule_output = `
 <no state>
 module.foo:
   test_instance.bar.0:

@@ -12,7 +12,8 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
-// StatePullCommand is a Command implementation that shows a single resource.
+// StatePullCommand is a Command implementation that fetches, upgrades,
+// and emits the current state to stdout.
 type StatePullCommand struct {
 	Meta
 	StateMeta

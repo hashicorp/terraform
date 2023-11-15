@@ -129,7 +129,7 @@ Options:
 }
 
 func (c *StateListCommand) Synopsis() string {
-	return "List resources in the state"
+	return "List resources in the state (alias: 'ls')"
 }
 
 const errStateLoadingState = `Error loading the state: %[1]s

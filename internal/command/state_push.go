@@ -19,7 +19,8 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// StatePushCommand is a Command implementation that shows a single resource.
+// StatePushCommand is a Command implementation that updates state from
+// a local source.
 type StatePushCommand struct {
 	Meta
 	StateMeta

@@ -16,12 +16,13 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// StateRmCommand is a Command implementation that shows a single resource.
-type StateRmCommand struct {
+// StateMoveCommand is a Command implementation that deletes a single
+// resource from the state.
+type StateRemoveCommand struct {
 	StateMeta
 }
 
-func (c *StateRmCommand) Run(args []string) int {
+func (c *StateRemoveCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	var dryRun bool
 	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state rm")
@@ -130,11 +131,11 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	if err := stateMgr.WriteState(state); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		c.Ui.Error(fmt.Sprintf(errStateRemovePersist, err))
 		return 1
 	}
 	if err := stateMgr.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		c.Ui.Error(fmt.Sprintf(errStateRemovePersist, err))
 		return 1
 	}
 
@@ -156,7 +157,7 @@ func (c *StateRmCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *StateRmCommand) Help() string {
+func (c *StateRemoveCommand) Help() string {
 	helpText := `
 Usage: terraform [global options] state rm [options] ADDRESS...
 
@@ -198,11 +199,11 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func (c *StateRmCommand) Synopsis() string {
-	return "Remove instances from the state"
+func (c *StateRemoveCommand) Synopsis() string {
+	return "Remove instances from the state (aliases: 'rm', 'delete')"
 }
 
-const errStateRmPersist = `Error saving the state: %s
+const errStateRemovePersist = `Error saving the state: %s
 
 The state was not saved. No items were removed from the persisted
 state. No backup was created since no modification occurred. Please
