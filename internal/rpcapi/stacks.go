@@ -172,12 +172,11 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 		if providerCache == nil {
 			return status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
 		}
-	} else {
-		// NOTE: providerCache can be nil if no handle was provided, in which
-		// case the call can only use built-in providers. All code below
-		// must avoid panicking when providerCache is nil, but is allowed to
-		// return an InvalidArgument error in that case.
 	}
+	// NOTE: providerCache can be nil if no handle was provided, in which
+	// case the call can only use built-in providers. All code below
+	// must avoid panicking when providerCache is nil, but is allowed to
+	// return an InvalidArgument error in that case.
 
 	inputValues, err := externalInputValuesFromProto(req.InputValues)
 	if err != nil {
@@ -334,12 +333,11 @@ func (s *stacksServer) ApplyStackChanges(req *terraform1.ApplyStackChanges_Reque
 		if providerCache == nil {
 			return status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
 		}
-	} else {
-		// NOTE: providerCache can be nil if no handle was provided, in which
-		// case the call can only use built-in providers. All code below
-		// must avoid panicking when providerCache is nil, but is allowed to
-		// return an InvalidArgument error in that case.
 	}
+	// NOTE: providerCache can be nil if no handle was provided, in which
+	// case the call can only use built-in providers. All code below
+	// must avoid panicking when providerCache is nil, but is allowed to
+	// return an InvalidArgument error in that case.
 	// (providerFactoriesForLocks explicitly supports a nil providerCache)
 	providerFactories, err := providerFactoriesForLocks(deps, providerCache)
 	if err != nil {
@@ -470,12 +468,11 @@ func (s *stacksServer) OpenStackInspector(ctx context.Context, req *terraform1.O
 		if providerCache == nil {
 			return nil, status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
 		}
-	} else {
-		// NOTE: providerCache can be nil if no handle was provided, in which
-		// case the call can only use built-in providers. All code below
-		// must avoid panicking when providerCache is nil, but is allowed to
-		// return an InvalidArgument error in that case.
 	}
+	// NOTE: providerCache can be nil if no handle was provided, in which
+	// case the call can only use built-in providers. All code below
+	// must avoid panicking when providerCache is nil, but is allowed to
+	// return an InvalidArgument error in that case.
 	// (providerFactoriesForLocks explicitly supports a nil providerCache)
 	providerFactories, err := providerFactoriesForLocks(deps, providerCache)
 	if err != nil {

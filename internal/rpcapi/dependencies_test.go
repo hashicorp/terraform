@@ -238,6 +238,9 @@ func TestDependenciesProviderCache(t *testing.T) {
 		},
 		OverridePlatform: "os_arch",
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	seenFakeProvider := false
 	for {

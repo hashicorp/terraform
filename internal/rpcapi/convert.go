@@ -92,22 +92,6 @@ func sourcePosFromProto(protoPos *terraform1.SourcePos) tfdiags.SourcePos {
 	}
 }
 
-func dynamicTypedValuesFromProto(protoVals map[string]*terraform1.DynamicValue) (map[string]cty.Value, error) {
-	if len(protoVals) == 0 {
-		return nil, nil
-	}
-	var err error
-	ret := make(map[string]cty.Value, len(protoVals))
-	for name, protoVal := range protoVals {
-		v, moreErr := dynamicTypedValueFromProto(protoVal)
-		if moreErr != nil {
-			err = errors.Join(err, fmt.Errorf("%s: %w", name, moreErr))
-		}
-		ret[name] = v
-	}
-	return ret, err
-}
-
 func dynamicTypedValueFromProto(protoVal *terraform1.DynamicValue) (cty.Value, error) {
 	if len(protoVal.Msgpack) == 0 {
 		return cty.DynamicVal, fmt.Errorf("uses unsupported serialization format (only MessagePack is supported)")
