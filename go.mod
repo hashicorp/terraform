@@ -74,7 +74,6 @@ require (
 	github.com/nishanths/exhaustive v0.7.11
 	github.com/packer-community/winrmcp v0.0.0-20180921211025-c76d91c1e7db
 	github.com/pkg/browser v0.0.0-20201207095918-0426ae3fba23
-	github.com/pkg/errors v0.9.1
 	github.com/posener/complete v1.2.3
 	github.com/spf13/afero v1.9.3
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.588
@@ -236,6 +235,7 @@ require (
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/samber/lo v1.37.0 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
