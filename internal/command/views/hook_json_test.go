@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/zclconf/go-cty/cty"
@@ -49,7 +48,7 @@ func TestJSONHook_create(t *testing.T) {
 		}),
 	})
 
-	action, err := hook.PreApply(addr, states.CurrentGen, plans.Create, priorState, plannedNewState)
+	action, err := hook.PreApply(addr, addrs.NotDeposed, plans.Create, priorState, plannedNewState)
 	testHookReturnValues(t, action, err)
 
 	action, err = hook.PreProvisionInstanceStep(addr, "local-exec")
@@ -81,7 +80,7 @@ func TestJSONHook_create(t *testing.T) {
 	now = now.Add(2 * time.Second)
 	nowMu.Unlock()
 
-	action, err = hook.PostApply(addr, states.CurrentGen, plannedNewState, nil)
+	action, err = hook.PostApply(addr, addrs.NotDeposed, plannedNewState, nil)
 	testHookReturnValues(t, action, err)
 
 	// Shut down the progress goroutine if still active
@@ -204,7 +203,7 @@ func TestJSONHook_errors(t *testing.T) {
 		}),
 	})
 
-	action, err := hook.PreApply(addr, states.CurrentGen, plans.Delete, priorState, plannedNewState)
+	action, err := hook.PreApply(addr, addrs.NotDeposed, plans.Delete, priorState, plannedNewState)
 	testHookReturnValues(t, action, err)
 
 	provisionError := fmt.Errorf("provisioner didn't want to")
@@ -212,7 +211,7 @@ func TestJSONHook_errors(t *testing.T) {
 	testHookReturnValues(t, action, err)
 
 	applyError := fmt.Errorf("provider was sad")
-	action, err = hook.PostApply(addr, states.CurrentGen, plannedNewState, applyError)
+	action, err = hook.PostApply(addr, addrs.NotDeposed, plannedNewState, applyError)
 	testHookReturnValues(t, action, err)
 
 	// Shut down the progress goroutine
@@ -286,10 +285,10 @@ func TestJSONHook_refresh(t *testing.T) {
 		}),
 	})
 
-	action, err := hook.PreRefresh(addr, states.CurrentGen, state)
+	action, err := hook.PreRefresh(addr, addrs.NotDeposed, state)
 	testHookReturnValues(t, action, err)
 
-	action, err = hook.PostRefresh(addr, states.CurrentGen, state, state)
+	action, err = hook.PostRefresh(addr, addrs.NotDeposed, state, state)
 	testHookReturnValues(t, action, err)
 
 	wantResource := map[string]interface{}{

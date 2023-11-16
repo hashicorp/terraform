@@ -20,18 +20,30 @@ import (
 type contextPlugins struct {
 	providerFactories    map[addrs.Provider]providers.Factory
 	provisionerFactories map[string]provisioners.Factory
+
+	preloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema
 }
 
-func newContextPlugins(providerFactories map[addrs.Provider]providers.Factory, provisionerFactories map[string]provisioners.Factory) *contextPlugins {
+func newContextPlugins(
+	providerFactories map[addrs.Provider]providers.Factory,
+	provisionerFactories map[string]provisioners.Factory,
+	preloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema,
+) *contextPlugins {
 	ret := &contextPlugins{
-		providerFactories:    providerFactories,
-		provisionerFactories: provisionerFactories,
+		providerFactories:        providerFactories,
+		provisionerFactories:     provisionerFactories,
+		preloadedProviderSchemas: preloadedProviderSchemas,
 	}
 	return ret
 }
 
 func (cp *contextPlugins) HasProvider(addr addrs.Provider) bool {
 	_, ok := cp.providerFactories[addr]
+	return ok
+}
+
+func (cp *contextPlugins) HasPreloadedSchemaForProvider(addr addrs.Provider) bool {
+	_, ok := cp.preloadedProviderSchemas[addr]
 	return ok
 }
 
@@ -72,9 +84,21 @@ func (cp *contextPlugins) ProviderSchema(addr addrs.Provider) (providers.Provide
 	// This cache is only written by the provider client, and transparently
 	// used by GetProviderSchema, but we check it here because at this point we
 	// may be able to avoid spinning up the provider instance at all.
+	// We skip this if we have preloaded schemas because that suggests that
+	// our caller is not Terraform CLI and therefore it's probably inappropriate
+	// to assume that provider schemas are unique process-wide.
+	//
+	// FIXME: A global cache is inappropriate when Terraform Core is being
+	// used in a non-Terraform-CLI mode where we shouldn't assume that all
+	// calls share the same provider implementations.
 	schemas, ok := providers.SchemaCache.Get(addr)
 	if ok {
 		return schemas, nil
+	}
+
+	// We might have a non-global preloaded copy of this provider's schema.
+	if schema, ok := cp.preloadedProviderSchemas[addr]; ok {
+		return schema, nil
 	}
 
 	provider, err := cp.NewProviderInstance(addr)

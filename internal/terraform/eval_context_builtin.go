@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -60,6 +61,13 @@ type BuiltinEvalContext struct {
 	// available for use during a graph walk.
 	Plugins *contextPlugins
 
+	// ExternalProviderConfigs are pre-configured provider instances passed
+	// in by the caller, for situations like Stack components where the
+	// root module isn't designed to be planned and applied in isolation and
+	// instead expects to recieve certain provider configurations from the
+	// stack configuration.
+	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+
 	Hooks                 []Hook
 	InputValue            UIInput
 	ProviderCache         map[string]providers.Interface
@@ -74,6 +82,7 @@ type BuiltinEvalContext struct {
 	PrevRunStateValue     *states.SyncState
 	InstanceExpanderValue *instances.Expander
 	MoveResultsValue      refactoring.MoveResults
+	OverrideValues        *mocking.Overrides
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -132,6 +141,21 @@ func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig, config
 
 	key := addr.String()
 
+	if addr.Module.IsRoot() {
+		rootAddr := addrs.RootProviderConfig{
+			Provider: addr.Provider,
+			Alias:    addr.Alias,
+		}
+		if external, isExternal := ctx.ExternalProviderConfigs[rootAddr]; isExternal {
+			// External providers should always be pre-configured by the
+			// external caller, and so we'll wrap them in a type that
+			// makes operations like ConfigureProvider and Close be no-op.
+			wrapped := externalProviderWrapper{external}
+			ctx.ProviderCache[key] = wrapped
+			return wrapped, nil
+		}
+	}
+
 	p, err := ctx.Plugins.NewProviderInstance(addr.Provider)
 	if err != nil {
 		return nil, err
@@ -162,21 +186,6 @@ func (ctx *BuiltinEvalContext) Provider(addr addrs.AbsProviderConfig) providers.
 }
 
 func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (providers.ProviderSchema, error) {
-	// first see if we have already have an initialized provider to avoid
-	// re-loading it only for the schema
-	p := ctx.Provider(addr)
-	if p != nil {
-		resp := p.GetProviderSchema()
-		// convert any diagnostics here in case this is the first call
-		// FIXME: better control provider instantiation so we can be sure this
-		// won't be the first call to ProviderSchema
-		var err error
-		if resp.Diagnostics.HasErrors() {
-			err = resp.Diagnostics.ErrWithWarnings()
-		}
-		return resp, err
-	}
-
 	return ctx.Plugins.ProviderSchema(addr.Provider)
 }
 
@@ -322,7 +331,7 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	case addrs.ResourceInstance:
 		resourceAddr = sub.ContainingResource()
 		rc := sub.Absolute(ctx.Path())
-		change := ctx.Changes().GetResourceInstanceChange(rc, states.CurrentGen)
+		change := ctx.Changes().GetResourceInstanceChange(rc, addrs.NotDeposed)
 		if change != nil {
 			// we'll generate an error below if there was no change
 			changes = append(changes, change)
@@ -519,4 +528,8 @@ func (ctx *BuiltinEvalContext) InstanceExpander() *instances.Expander {
 
 func (ctx *BuiltinEvalContext) MoveResults() refactoring.MoveResults {
 	return ctx.MoveResultsValue
+}
+
+func (ctx *BuiltinEvalContext) Overrides() *mocking.Overrides {
+	return ctx.OverrideValues
 }

@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -62,7 +61,7 @@ type applyProgress struct {
 	heartbeatDone chan struct{}
 }
 
-func (h *jsonHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *jsonHook) PreApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	if action != plans.NoOp {
 		idKey, idValue := format.ObjectValueIDOrName(priorState)
 		h.view.Hook(json.NewApplyStart(addr, action, idKey, idValue))
@@ -99,7 +98,7 @@ func (h *jsonHook) applyingHeartbeat(progress applyProgress) {
 	}
 }
 
-func (h *jsonHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, err error) (terraform.HookAction, error) {
+func (h *jsonHook) PostApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, newState cty.Value, err error) (terraform.HookAction, error) {
 	key := addr.String()
 	h.applyingLock.Lock()
 	progress := h.applying[key]
@@ -155,13 +154,13 @@ func (h *jsonHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName stri
 	}
 }
 
-func (h *jsonHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value) (terraform.HookAction, error) {
+func (h *jsonHook) PreRefresh(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState cty.Value) (terraform.HookAction, error) {
 	idKey, idValue := format.ObjectValueID(priorState)
 	h.view.Hook(json.NewRefreshStart(addr, idKey, idValue))
 	return terraform.HookActionContinue, nil
 }
 
-func (h *jsonHook) PostRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value, newState cty.Value) (terraform.HookAction, error) {
+func (h *jsonHook) PostRefresh(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState cty.Value, newState cty.Value) (terraform.HookAction, error) {
 	idKey, idValue := format.ObjectValueID(newState)
 	h.view.Hook(json.NewRefreshComplete(addr, idKey, idValue))
 	return terraform.HookActionContinue, nil

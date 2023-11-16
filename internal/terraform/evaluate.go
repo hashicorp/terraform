@@ -755,7 +755,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 		instAddr := addr.Instance(key).Absolute(d.ModulePath)
 
-		change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen)
+		change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, addrs.NotDeposed)
 		if change != nil {
 			// Don't take any resources that are yet to be deleted into account.
 			// If the referenced resource is CreateBeforeDestroy, then orphaned

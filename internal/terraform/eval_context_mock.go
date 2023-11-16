@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -153,6 +154,9 @@ type MockEvalContext struct {
 
 	InstanceExpanderCalled   bool
 	InstanceExpanderExpander *instances.Expander
+
+	OverridesCalled bool
+	OverrideValues  *mocking.Overrides
 }
 
 // MockEvalContext implements EvalContext
@@ -403,4 +407,9 @@ func (c *MockEvalContext) MoveResults() refactoring.MoveResults {
 func (c *MockEvalContext) InstanceExpander() *instances.Expander {
 	c.InstanceExpanderCalled = true
 	return c.InstanceExpanderExpander
+}
+
+func (c *MockEvalContext) Overrides() *mocking.Overrides {
+	c.OverridesCalled = true
+	return c.OverrideValues
 }

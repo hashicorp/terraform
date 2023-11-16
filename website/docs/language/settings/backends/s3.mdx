@@ -161,10 +161,21 @@ The following configuration is optional:
   Valid values are `IPv4` and `IPv6`.
   Can also be set with the `AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE` environment variable.
 * `forbidden_account_ids` - (Optional) List of forbidden AWS account IDs to prevent potential destruction of a live environment. Conflicts with `allowed_account_ids`.
-* `http_proxy` - (Optional) Address of an HTTP proxy to use when accessing the AWS API. Can also be set using the `HTTP_PROXY` or `HTTPS_PROXY` environment variables.
+* `http_proxy` - (Optional) URL of a proxy to use for HTTP requests when accessing the AWS API.
+  Can also be set using the `HTTP_PROXY` or `http_proxy` environment variables.
+* `https_proxy` - (Optional) URL of a proxy to use for HTTPS requests when accessing the AWS API.
+  Can also be set using the `HTTPS_PROXY` or `https_proxy` environment variables.
 * `iam_endpoint` - (Optional, **Deprecated**) Custom endpoint URL for the AWS Identity and Access Management (IAM) API.
   Use `endpoints.iam` instead.
 * `insecure` - (Optional) Whether to explicitly allow the backend to perform "insecure" SSL requests. If omitted, the default value is `false`.
+* `no_proxy` - (Optional) Comma-separated list of hosts that should not use HTTP or HTTPS proxies.
+  Each value can be one of:
+    * A domain name
+    * An IP address
+    * A CIDR address
+    * An asterisk (`*`), to indicate that no proxying should be performed
+  Domain name and IP address values can also include a port number.
+  Can also be set using the `NO_PROXY` or `no_proxy` environment variables.
 * `max_retries` - (Optional) The maximum number of times an AWS API request is retried on retryable failure. Defaults to 5.
 * `profile` - (Optional) Name of AWS profile in AWS shared credentials file (e.g. `~/.aws/credentials`) or AWS shared configuration file (e.g. `~/.aws/config`) to use for credentials and/or configuration. This can also be sourced from the `AWS_PROFILE` environment variable.
 * `retry_mode` - (Optional) Specifies how retries are attempted. Valid values are `standard` and `adaptive`. Can also be configured using the `AWS_RETRY_MODE` environment variable or the shared config file parameter `retry_mode`.
@@ -198,6 +209,8 @@ The optional argument `endpoints` contains the following arguments:
   This can also be sourced from the environment variable `AWS_ENDPOINT_URL_IAM` or the deprecated environment variable `AWS_IAM_ENDPOINT`.
 * `s3` - (Optional) Custom endpoint URL for the AWS S3 API.
   This can also be sourced from the environment variable `AWS_ENDPOINT_URL_S3` or the deprecated environment variable `AWS_S3_ENDPOINT`.
+* `sso` - (Optional) Custom endpoint URL for the AWS IAM Identity Center (formerly known as AWS SSO) API.
+  This can also be sourced from the environment variable `AWS_ENDPOINT_URL_SSO`.
 * `sts` - (Optional) Custom endpoint URL for the AWS STS API.
   This can also be sourced from the environment variable `AWS_ENDPOINT_URL_STS` or the deprecated environment variable `AWS_STS_ENDPOINT`.
 

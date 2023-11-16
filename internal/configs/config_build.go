@@ -16,13 +16,15 @@ import (
 )
 
 // BuildConfig constructs a Config from a root module by loading all of its
-// descendent modules via the given ModuleWalker.
+// descendent modules via the given ModuleWalker. This function also side loads
+// and installs any mock data files needed by the testing framework via the
+// MockDataLoader.
 //
 // The result is a module tree that has so far only had basic module- and
 // file-level invariants validated. If the returned diagnostics contains errors,
 // the returned module tree may be incomplete but can still be used carefully
 // for static analysis.
-func BuildConfig(root *Module, walker ModuleWalker) (*Config, hcl.Diagnostics) {
+func BuildConfig(root *Module, walker ModuleWalker, loader MockDataLoader) (*Config, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	cfg := &Config{
 		Module: root,
@@ -43,7 +45,34 @@ func BuildConfig(root *Module, walker ModuleWalker) (*Config, hcl.Diagnostics) {
 	diags = append(diags, validateProviderConfigs(nil, cfg, nil)...)
 	diags = append(diags, validateProviderConfigsForTests(cfg)...)
 
+	// Final step, let's side load any external mock data into our test files.
+	diags = append(diags, installMockDataFiles(cfg, loader)...)
+
 	return cfg, diags
+}
+
+func installMockDataFiles(root *Config, loader MockDataLoader) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	for _, file := range root.Module.Tests {
+		for _, provider := range file.Providers {
+			if !provider.Mock {
+				// Don't try and process non-mocked providers.
+				continue
+			}
+
+			data, dataDiags := loader.LoadMockData(provider)
+			diags = append(diags, dataDiags...)
+			if data != nil {
+				// If we loaded some data, then merge the new data into the old
+				// data. In this case we expect and accept collisions, so we
+				// don't want the merge function warning us about them.
+				diags = append(diags, provider.MockData.Merge(data, true)...)
+			}
+		}
+	}
+
+	return diags
 }
 
 func buildTestModules(root *Config, walker ModuleWalker) hcl.Diagnostics {
@@ -317,4 +346,22 @@ func init() {
 			},
 		}
 	})
+}
+
+// MockDataLoader provides an interface similar to loading modules, except it loads
+// and returns MockData objects for the testing framework to consume.
+type MockDataLoader interface {
+	// LoadMockData accepts a path to a local directory that should contain a
+	// set of .tfmock.hcl files that contain mock data that can be consumed by
+	// a mock provider within the tewting framework.
+	LoadMockData(provider *Provider) (*MockData, hcl.Diagnostics)
+}
+
+// MockDataLoaderFunc is an implementation of MockDataLoader that wraps a
+// callback function, for more convenient use of that interface.
+type MockDataLoaderFunc func(provider *Provider) (*MockData, hcl.Diagnostics)
+
+// LoadMockData implements MockDataLoader.
+func (f MockDataLoaderFunc) LoadMockData(provider *Provider) (*MockData, hcl.Diagnostics) {
+	return f(provider)
 }

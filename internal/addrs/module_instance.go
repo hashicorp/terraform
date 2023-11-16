@@ -504,6 +504,18 @@ func (m ModuleInstance) Module() Module {
 	return ret
 }
 
+// ContainingModule returns the address of the module instance as if the last
+// step wasn't instanced. For example, it turns module.child[0] into
+// module.child and module[0].child[0] into module[0].child.
+func (m ModuleInstance) ContainingModule() ModuleInstance {
+	if len(m) == 0 {
+		return nil
+	}
+
+	ret := m.Parent()
+	return ret.Child(m[len(m)-1].Name, NoKey)
+}
+
 func (m ModuleInstance) AddrType() TargetableAddrType {
 	return ModuleInstanceAddrType
 }

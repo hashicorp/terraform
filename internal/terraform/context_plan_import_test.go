@@ -1381,3 +1381,34 @@ import {
 		}
 	}
 }
+
+func TestContext2Plan_importGenerateNone(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  for_each = []
+  to   = test_object.a
+  id   = "123"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf",
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	if len(plan.Changes.Resources) != 0 {
+		t.Fatal("expected no resource changes")
+	}
+}

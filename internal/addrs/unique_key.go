@@ -25,6 +25,6 @@ type UniqueKeyer interface {
 	UniqueKey() UniqueKey
 }
 
-func Equivalent[T UniqueKeyer](a, b T) bool {
+func Equivalent[T, U UniqueKeyer](a T, b U) bool {
 	return a.UniqueKey() == b.UniqueKey()
 }

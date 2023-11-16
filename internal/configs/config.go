@@ -191,6 +191,47 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 	return current
 }
 
+// TargetExists returns true if it's possible for the provided target to exist
+// within the configuration.
+//
+// This doesn't consider instance expansion, so we're only making sure the
+// target could exist if the instance expansion expands correctly.
+func (c *Config) TargetExists(target addrs.Targetable) bool {
+	switch target.AddrType() {
+	case addrs.ConfigResourceAddrType:
+		addr := target.(addrs.ConfigResource)
+		module := c.Descendent(addr.Module)
+		if module != nil {
+			return module.Module.ResourceByAddr(addr.Resource) != nil
+		} else {
+			return false
+		}
+	case addrs.AbsResourceInstanceAddrType:
+		addr := target.(addrs.AbsResourceInstance)
+		module := c.DescendentForInstance(addr.Module)
+		if module != nil {
+			return module.Module.ResourceByAddr(addr.Resource.Resource) != nil
+		} else {
+			return false
+		}
+	case addrs.AbsResourceAddrType:
+		addr := target.(addrs.AbsResource)
+		module := c.DescendentForInstance(addr.Module)
+		if module != nil {
+			return module.Module.ResourceByAddr(addr.Resource) != nil
+		} else {
+			return false
+		}
+	case addrs.ModuleAddrType:
+		return c.Descendent(target.(addrs.Module)) != nil
+	case addrs.ModuleInstanceAddrType:
+		return c.DescendentForInstance(target.(addrs.ModuleInstance)) != nil
+	default:
+		panic(fmt.Errorf("unrecognized targetable type: %d", target.AddrType()))
+	}
+	return true
+}
+
 // EntersNewPackage returns true if this call is to an external module, either
 // directly via a remote source address or indirectly via a registry source
 // address.
@@ -840,6 +881,128 @@ func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Pro
 		return provider.Type
 	}
 	return c.ResolveAbsProviderAddr(addr, addrs.RootModule).Provider
+}
+
+// EffectiveRequiredProviderConfigs returns a set of all of the provider
+// configurations this config's direct module expects to have passed in
+// (explicitly or implicitly) by its caller. This method only makes sense
+// to call on the object representing the root module.
+//
+// This includes both provider configurations declared explicitly using
+// configuration_aliases in the required_providers block _and_ configurations
+// that are implied to be required by declaring something that belongs to
+// an configuration for a provider even when there is no such declaration
+// inside the module itself.
+//
+// Terraform Core treats root modules differently than downstream modules in
+// that it will implicitly create empty provider configurations for any provider
+// config addresses that are implied in the configuration but not explicitly
+// configured. This function assumes those implied empty configurations don't
+// exist and so therefore any provider configuration without an explicit
+// "provider" block is a required provider config. In practice that means that
+// the answer is appropriate for downstream modules but not for root modules,
+// unless a root module is being used in a context where it is treated as if
+// a shared module, such as when directly testing a shared module or when
+// using a shared module as the root of the module tree of a stack component.
+//
+// This function assumes that the configuration is valid. It may produce under-
+// or over-constrained results if called on an invalid configuration.
+func (c *Config) EffectiveRequiredProviderConfigs() addrs.Set[addrs.RootProviderConfig] {
+	// The Terraform language has accumulated so many different ways to imply
+	// the need for a provider configuration that answering this is quite a
+	// complicated process that ends up potentially needing to visit the
+	// entire subtree of modules even though we're only actually answering
+	// about the current node's requirements. In the happy explicit case we
+	// can avoid any recursion, but that case is rare in practice.
+
+	if c == nil {
+		return nil
+	}
+
+	// We'll start by visiting all of the "provider" blocks in the module and
+	// figuring out which provider configuration address they each declare. Any
+	// configuration addresses we find here cannot be "required" provider
+	// configs because the module instantiates them itself.
+	selfConfigured := addrs.MakeSet[addrs.RootProviderConfig]()
+	for _, pc := range c.Module.ProviderConfigs {
+		localAddr := pc.Addr()
+		sourceAddr := c.Module.ProviderForLocalConfig(localAddr)
+		selfConfigured.Add(addrs.RootProviderConfig{
+			Provider: sourceAddr,
+			Alias:    localAddr.Alias,
+		})
+	}
+	ret := addrs.MakeSet[addrs.RootProviderConfig]()
+	maybeAdd := func(addr addrs.RootProviderConfig) {
+		if !selfConfigured.Has(addr) {
+			ret.Add(addr)
+		}
+	}
+	maybeAddLocal := func(addr addrs.LocalProviderConfig) {
+		// Caution: this function is only correct to use for LocalProviderConfig
+		// in the _current_ module c.Module. It will produce incorrect results
+		// if used for addresses from any child module.
+		sourceAddr := c.Module.ProviderForLocalConfig(addr)
+		maybeAdd(addrs.RootProviderConfig{
+			Provider: sourceAddr,
+			Alias:    addr.Alias,
+		})
+	}
+
+	if c.Module.ProviderRequirements != nil {
+		for _, req := range c.Module.ProviderRequirements.RequiredProviders {
+			for _, addr := range req.Aliases {
+				maybeAddLocal(addr)
+			}
+		}
+	}
+	for _, rc := range c.Module.ManagedResources {
+		maybeAddLocal(rc.ProviderConfigAddr())
+	}
+	for _, rc := range c.Module.DataResources {
+		maybeAddLocal(rc.ProviderConfigAddr())
+	}
+	for _, ic := range c.Module.Import {
+		if ic.ProviderConfigRef != nil {
+			maybeAddLocal(addrs.LocalProviderConfig{
+				LocalName: ic.ProviderConfigRef.Name,
+				Alias:     ic.ProviderConfigRef.Alias,
+			})
+		} else {
+			maybeAdd(addrs.RootProviderConfig{
+				Provider: ic.Provider,
+			})
+		}
+	}
+	for _, mc := range c.Module.ModuleCalls {
+		for _, pp := range mc.Providers {
+			maybeAddLocal(pp.InParent.Addr())
+		}
+		// If there aren't any explicitly-passed providers then
+		// the module implicitly requires a default configuration
+		// for each provider the child module mentions, since
+		// that would get implicitly passed into the child by
+		// Terraform Core.
+		// (We don't need to visit the child module at all if
+		// the call has an explicit "providers" argument, because
+		// we require that to be exhaustive when present.)
+		if len(mc.Providers) == 0 {
+			child := c.Children[mc.Name]
+			childReqs := child.EffectiveRequiredProviderConfigs()
+			for _, childReq := range childReqs {
+				if childReq.Alias != "" {
+					continue // only default provider configs are eligible for this implicit treatment
+				}
+				// We must reinterpret the child address to appear as
+				// if written in its parent (our current module).
+				maybeAdd(addrs.RootProviderConfig{
+					Provider: childReq.Provider,
+				})
+			}
+		}
+	}
+
+	return ret
 }
 
 func (c *Config) CheckCoreVersionRequirements() hcl.Diagnostics {

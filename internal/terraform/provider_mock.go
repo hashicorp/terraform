@@ -397,12 +397,13 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	p.Lock()
 	p.ApplyResourceChangeCalled = true
 	p.ApplyResourceChangeRequest = r
-	p.Unlock()
 
 	if !p.ConfigureProviderCalled {
+		p.Unlock()
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before ApplyResourceChange %q", r.TypeName))
 		return resp
 	}
+	p.Unlock()
 
 	if p.ApplyResourceChangeFn != nil {
 		return p.ApplyResourceChangeFn(r)

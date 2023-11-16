@@ -5,24 +5,12 @@ package mocking
 
 import (
 	"fmt"
-	"math/rand"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-)
-
-var (
-	// testRand and chars are used to generate random strings for the computed
-	// values.
-	//
-	// If testRand is null, then the global random is used. This allows us to
-	// seed tests for repeatable results.
-	testRand *rand.Rand
-	chars    = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
 )
 
 // PlanComputedValuesForResource accepts a target value, and populates it with
@@ -31,7 +19,7 @@ var (
 // This method basically simulates the behaviour of a plan request in a real
 // provider.
 func PlanComputedValuesForResource(original cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
-	return populateComputedValues(original, ReplacementValue{}, schema, isNull, makeUnknown)
+	return populateComputedValues(original, MockedData{}, schema, isNull, makeUnknown)
 }
 
 // ApplyComputedValuesForResource accepts a target value, and populates it
@@ -41,7 +29,7 @@ func PlanComputedValuesForResource(original cty.Value, schema *configschema.Bloc
 //
 // This method basically simulates the behaviour of an apply request in a real
 // provider.
-func ApplyComputedValuesForResource(original cty.Value, with ReplacementValue, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
+func ApplyComputedValuesForResource(original cty.Value, with MockedData, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
 	return populateComputedValues(original, with, schema, isUnknown, with.makeKnown)
 }
 
@@ -55,15 +43,15 @@ func ApplyComputedValuesForResource(original cty.Value, with ReplacementValue, s
 //
 // This method basically simulates the behaviour of a get data source request
 // in a real provider.
-func ComputedValuesForDataSource(original cty.Value, with ReplacementValue, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
+func ComputedValuesForDataSource(original cty.Value, with MockedData, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
 	return populateComputedValues(original, with, schema, isNull, with.makeKnown)
 }
 
 type processValue func(value cty.Value) bool
 
-type populateValue func(value cty.Value, with cty.Value, path cty.Path) (cty.Value, tfdiags.Diagnostics)
+type generateValue func(attribute *configschema.Attribute, with cty.Value, path cty.Path) (cty.Value, tfdiags.Diagnostics)
 
-func populateComputedValues(target cty.Value, with ReplacementValue, schema *configschema.Block, processValue processValue, populateValue populateValue) (cty.Value, tfdiags.Diagnostics) {
+func populateComputedValues(target cty.Value, with MockedData, schema *configschema.Block, processValue processValue, generateValue generateValue) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if !with.validate() {
@@ -78,6 +66,14 @@ func populateComputedValues(target cty.Value, with ReplacementValue, schema *con
 			Detail:   fmt.Sprintf("The requested replacement value must be an object type, but was %s.", with.Value.Type().FriendlyName()),
 			Subject:  with.Range.Ptr(),
 		})
+
+		// We still need to produce valid data for this. So, let's pretend we
+		// had no mocked data. We still return the error diagnostic so whatever
+		// operation was happening will still fail, but we won't cause any
+		// panics or anything.
+		with = MockedData{
+			Value: cty.NilVal,
+		}
 	}
 
 	// We're going to search for any elements within the target value that meet
@@ -85,11 +81,12 @@ func populateComputedValues(target cty.Value, with ReplacementValue, schema *con
 	// checking.
 	//
 	// We'll then replace anything that meets the criteria with the output of
-	// populateValue.
+	// generateValue.
 	//
-	// This transform should be robust (in that it should never fail), it'll
-	// populate the external diags variable with any values it should have
-	// replaced but couldn't and just return the original value.
+	// This transform should be robust (in that it should never fail), the
+	// inner call to generateValue should be robust as well so it should always
+	// return a valid value for us to use even if the embedded diagnostics
+	// return errors.
 	value, err := cty.Transform(target, func(path cty.Path, target cty.Value) (cty.Value, error) {
 
 		// Get the attribute for the current target.
@@ -105,20 +102,20 @@ func populateComputedValues(target cty.Value, with ReplacementValue, schema *con
 		if attribute.Computed && processValue(target) {
 
 			// Get the value we should be replacing target with.
-			replacement, replacementDiags := with.getReplacementSafe(path)
-			diags = diags.Append(replacementDiags)
+			data, dataDiags := with.getMockedDataForPath(path)
+			diags = diags.Append(dataDiags)
 
 			// Upstream code (in node_resource_abstract_instance.go) expects
 			// us to return a valid object (even if we have errors). That means
 			// no unknown values, no cty.NilVals, etc. So, we're going to go
-			// ahead and call populateValue with whatever getReplacementSafe
-			// gave us. getReplacementSafe is robust, so even in an error it
-			// should have given us something we can use in populateValue.
+			// ahead and call generateValue with whatever getMockedDataForPath
+			// gave us. getMockedDataForPath is robust, so even in an error it
+			// should have given us something we can use in generateValue.
 
 			// Now get the replacement value. This function should be robust in
 			// that it may return diagnostics explaining why it couldn't replace
 			// the value, but it'll still return a value for us to use.
-			value, valueDiags := populateValue(target, replacement, path)
+			value, valueDiags := generateValue(attribute, data, path)
 			diags = diags.Append(valueDiags)
 
 			// We always return a valid value, the diags are attached to the
@@ -152,30 +149,41 @@ func isUnknown(target cty.Value) bool {
 	return !target.IsKnown()
 }
 
-func makeUnknown(target, _ cty.Value, _ cty.Path) (cty.Value, tfdiags.Diagnostics) {
-	return cty.UnknownVal(target.Type()), nil
+// makeUnknown produces an unknown value for the provided attribute. This is
+// basically the output of a plan() call for a computed attribute in a mocked
+// resource.
+func makeUnknown(target *configschema.Attribute, _ cty.Value, _ cty.Path) (cty.Value, tfdiags.Diagnostics) {
+	return cty.UnknownVal(target.ImpliedType()), nil
 }
 
-// ReplacementValue is just a helper struct that wraps the think we're
-// interested in (the value) with some metadata that will make our diagnostics
-// a bit more helpful.
-type ReplacementValue struct {
+// MockedData wraps the value and the source location of the value into a single
+// struct for easy access.
+type MockedData struct {
 	Value cty.Value
 	Range hcl.Range
 }
 
-func (replacement ReplacementValue) makeKnown(target, with cty.Value, path cty.Path) (cty.Value, tfdiags.Diagnostics) {
+// makeKnown produces a valid value for the given attribute. The input value
+// can provide data for this attribute or child attributes if this attribute
+// represents an object. The input value is expected to be a representation of
+// the schema of this attribute rather than a direct value.
+func (data MockedData) makeKnown(attribute *configschema.Attribute, with cty.Value, path cty.Path) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if with != cty.NilVal {
-		// Then we have a pre-made value to replace it with. We'll make sure it
-		// is compatible with a conversion, and then just return it in place.
+		// Then we have a pre-made value to use as the basis for our value. We
+		// just need to make sure the value is of the right type.
 
-		if value, err := convert.Convert(with, target.Type()); err != nil {
+		if value, err := FillAttribute(with, attribute); err != nil {
+			var relPath cty.Path
+			if err, ok := err.(cty.PathError); ok {
+				relPath = err.Path
+			}
+
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
-				"Failed to replace target attribute",
-				fmt.Sprintf("Terraform could not replace the target type %s with the replacement value defined at %s within %s: %s.", target.Type().FriendlyName(), fmtPath(path), replacement.Range, err),
+				"Failed to compute attribute",
+				fmt.Sprintf("Terraform could not compute a value for the target type %s with the mocked data defined at %s with the attribute %q: %s.", attribute.ImpliedType().FriendlyName(), data.Range, fmtPath(append(path, relPath...)), err),
 				path))
 
 			// We still want to return a valid value here. If the conversion did
@@ -184,6 +192,7 @@ func (replacement ReplacementValue) makeKnown(target, with cty.Value, path cty.P
 			// overall operation will still fail, but we won't crash later on
 			// because of an unknown value or something.
 
+			// Fall through to the GenerateValueForAttribute call below.
 		} else {
 			// Successful conversion! We can just return the new value.
 			return value, diags
@@ -191,50 +200,16 @@ func (replacement ReplacementValue) makeKnown(target, with cty.Value, path cty.P
 	}
 
 	// Otherwise, we'll have to generate some values.
-	// We just return zero values for most of the types. The only exceptions are
-	// objects and strings. For strings, we generate 8 random alphanumeric
-	// characters. Objects need to be valid types, so we recurse through the
-	// attributes and recursively call this function to generate values for
-	// each attribute.
-
-	switch {
-	case target.Type().IsPrimitiveType():
-		switch target.Type() {
-		case cty.String:
-			return cty.StringVal(str(8)), diags
-		case cty.Number:
-			return cty.Zero, diags
-		case cty.Bool:
-			return cty.False, diags
-		default:
-			panic(fmt.Errorf("unknown primitive type: %s", target.Type().FriendlyName()))
-		}
-	case target.Type().IsListType():
-		return cty.ListValEmpty(target.Type().ElementType()), diags
-	case target.Type().IsSetType():
-		return cty.SetValEmpty(target.Type().ElementType()), diags
-	case target.Type().IsMapType():
-		return cty.MapValEmpty(target.Type().ElementType()), diags
-	case target.Type().IsObjectType():
-		children := make(map[string]cty.Value)
-		for name, attribute := range target.Type().AttributeTypes() {
-			child, childDiags := replacement.makeKnown(cty.UnknownVal(attribute), cty.NilVal, path.GetAttr(name))
-			diags = diags.Append(childDiags)
-			children[name] = child
-		}
-		return cty.ObjectVal(children), diags
-	default:
-		panic(fmt.Errorf("unknown complex type: %s", target.Type().FriendlyName()))
-	}
+	return GenerateValueForAttribute(attribute), diags
 }
 
 // We can only do replacements if the replacement value is an object type.
-func (replacement ReplacementValue) validate() bool {
-	return replacement.Value == cty.NilVal || replacement.Value.Type().IsObjectType()
+func (data MockedData) validate() bool {
+	return data.Value == cty.NilVal || data.Value.Type().IsObjectType()
 }
 
-// getReplacementSafe walks the path to find any potential replacement value for
-// a given path. We have implemented custom logic for walking the path here.
+// getMockedDataForPath walks the path to find any potential mock data for the
+// given path. We have implemented custom logic for walking the path here.
 //
 // This is to support nested block types. It's complicated to work out how to
 // replace computed values within nested types. For example, how would a user
@@ -247,13 +222,10 @@ func (replacement ReplacementValue) validate() bool {
 // What the above paragraph means is that for nested blocks and attributes,
 // users can only specify a single replacement value that will apply to all
 // the values within the nested collection.
-//
-// TODO(liamcervante): Revisit this function, is it possible and/or easy for us
-// to support specific targeting of elements in collections?
-func (replacement ReplacementValue) getReplacementSafe(path cty.Path) (cty.Value, tfdiags.Diagnostics) {
+func (data MockedData) getMockedDataForPath(path cty.Path) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if replacement.Value == cty.NilVal {
+	if data.Value == cty.NilVal {
 		return cty.NilVal, diags
 	}
 
@@ -265,7 +237,7 @@ func (replacement ReplacementValue) getReplacementSafe(path cty.Path) (cty.Value
 	// schema for this. We skip over GetIndexSteps as they'll be referring to
 	// the intermediate nested blocks and attributes that we aren't capturing
 	// within the user supplied mock values.
-	current := replacement.Value
+	current := data.Value
 	for _, step := range path {
 		switch step := step.(type) {
 		case cty.GetAttrStep:
@@ -275,15 +247,15 @@ func (replacement ReplacementValue) getReplacementSafe(path cty.Path) (cty.Value
 				// objects at every level.
 				diags = diags.Append(tfdiags.AttributeValue(
 					tfdiags.Error,
-					"Failed to replace target attribute",
-					fmt.Sprintf("Terraform expected an object type at %s within the replacement value defined at %s, but found %s.", fmtPath(currentPath), replacement.Range, current.Type().FriendlyName()),
+					"Failed to compute attribute",
+					fmt.Sprintf("Terraform expected an object type for attribute %q defined within the mocked data at %s, but found %s.", fmtPath(currentPath), data.Range, current.Type().FriendlyName()),
 					currentPath))
 
 				return cty.NilVal, diags
 			}
 
 			if !current.Type().HasAttribute(step.Name) {
-				// Then we're not providing a replacement value for this path.
+				// Then we have no mocked data for this attribute.
 				return cty.NilVal, diags
 			}
 
@@ -314,16 +286,4 @@ func fmtPath(path cty.Path) string {
 		}
 	}
 	return current
-}
-
-func str(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		if testRand != nil {
-			b[i] = chars[testRand.Intn(len(chars))]
-		} else {
-			b[i] = chars[rand.Intn(len(chars))]
-		}
-	}
-	return string(b)
 }

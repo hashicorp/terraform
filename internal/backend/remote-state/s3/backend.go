@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	awsbase "github.com/hashicorp/aws-sdk-go-base/v2"
 	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
+	"github.com/hashicorp/aws-sdk-go-base/v2/validation"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -310,8 +311,21 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 			"http_proxy": {
 				Type:        cty.String,
 				Optional:    true,
-				Description: "Address of an HTTP proxy to use when accessing the AWS API.",
+				Description: "URL of a proxy to use for HTTP requests when accessing the AWS API.",
 			},
+
+			"https_proxy": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "URL of a proxy to use for HTTPS requests when accessing the AWS API.",
+			},
+
+			"no_proxy": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Comma-separated list of hosts that should not use HTTP or HTTPS proxies.",
+			},
+
 			"insecure": {
 				Type:        cty.Bool,
 				Optional:    true,
@@ -604,6 +618,19 @@ var endpointsSchema = singleNestedAttribute{
 			},
 		},
 
+		"sso": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the IAM Identity Center (formerly known as SSO) API",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringValidURL,
+				},
+			},
+		},
+
 		"sts": stringAttribute{
 			configschema.Attribute{
 				Type:        cty.String,
@@ -885,7 +912,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	if region != "" && !boolAttr(obj, "skip_region_validation") {
-		if err := awsbase.ValidateRegion(region); err != nil {
+		if err := validation.SupportedRegion(region); err != nil {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
 				"Invalid region value",
@@ -981,6 +1008,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		Logger:                  baselog,
 		MaxRetries:              intAttrDefault(obj, "max_retries", 5),
 		Profile:                 stringAttr(obj, "profile"),
+		HTTPProxyMode:           awsbase.HTTPProxyModeLegacy,
 		Region:                  stringAttr(obj, "region"),
 		SecretKey:               stringAttr(obj, "secret_key"),
 		SkipCredsValidation:     boolAttr(obj, "skip_credentials_validation"),
@@ -1049,6 +1077,13 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		newEnvvarRetriever("AWS_IAM_ENDPOINT"),
 	); ok {
 		cfg.IamEndpoint = v
+	}
+
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("sso")),
+		newEnvvarRetriever("AWS_ENDPOINT_URL_SSO"),
+	); ok {
+		cfg.SsoEndpoint = v
 	}
 
 	if v, ok := retrieveArgument(&diags,
@@ -1147,11 +1182,18 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	if v, ok := retrieveArgument(&diags,
 		newAttributeRetriever(obj, cty.GetAttrPath("http_proxy")),
-		newEnvvarRetriever("HTTP_PROXY"),
-		newEnvvarRetriever("HTTPS_PROXY"),
 	); ok {
-		cfg.HTTPProxy = v
+		cfg.HTTPProxy = aws.String(v)
 	}
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("https_proxy")),
+	); ok {
+		cfg.HTTPSProxy = aws.String(v)
+	}
+	if val, ok := stringAttrOk(obj, "no_proxy"); ok {
+		cfg.NoProxy = val
+	}
+
 	if val, ok := boolAttrOk(obj, "insecure"); ok {
 		cfg.Insecure = val
 	}
