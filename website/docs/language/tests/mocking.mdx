@@ -203,7 +203,7 @@ terraform {
 }
 
 module "credentials" {
-  source = "./modules/credentials"
+  source = "./modules/s3_data"
 
   data_bucket_name = "my_company_bucket_name"
 }
@@ -212,8 +212,6 @@ resource "local_file" "credentials_json" {
   filename = "credentials.json"
   content = jsonencode(module.credentials.data)
 }
-
-
 ```
 
 ```hcl
@@ -223,13 +221,13 @@ variable "data_bucket_name" {
   type = string
 }
 
-data "aws_s3_bucket_object" "data_bucket" {
+data "aws_s3_object" "data_bucket" {
   bucket = var.data_bucket_name
   key = "credentials.json"
 }
 
 output "data" {
-  value = jsondecode(data.aws_s3_bucket_object.data_bucket.body)
+  value = jsondecode(data.aws_s3_object.data_bucket.body)
 }
 ```
 
@@ -240,9 +238,9 @@ Firstly, the `aws_s3_bucket_object` within the module could be overridden direct
 
 mock_provider "aws" {
   override_data {
-    target = module.credentials.data.aws_s3_bucket_object.data_bucket
+    target = module.credentials.data.aws_s3_object.data_bucket
     values = {
-      data = "{\"username\":\"username\",\"password\":\"password\"}"
+      body = "{\"username\":\"username\",\"password\":\"password\"}"
     }
   }
 }
@@ -255,13 +253,15 @@ run "test" {
 }
 ```
 
-Alternatively, the same `aws_s3_bucket_object` could be overridden within the test file itself, or within a run block. In this case, the underlying provider doesn't matter as the data source at the target address is overridden regardless of the provider. Override blocks can override resources provided by real providers.
+Alternatively, the same `aws_s3_bucket_object` could be overridden within the test file itself, or within a run block. In this case, the underlying provider doesn't matter as the data source at the target address is overridden regardless of the provider. The example still mocks the provider so this can be run without AWS credentials. Override blocks can override resources provided by real providers.
 
 ```hcl
 # main.tftest.hcl
 
+mock_provider "aws" {}
+
 override_data {
-  target = module.credentials.data.aws_s3_bucket_object.data_bucket
+  target = module.credentials.data.aws_s3_object.data_bucket
   values = {
     body = "{\"username\":\"username\",\"password\":\"password\"}"
   }
@@ -278,7 +278,7 @@ run "test_run_override" {
   # The value within this local override block takes precedence over the
   # alternate defined within the file.
   override_data {
-    target = module.credentials.data.aws_s3_bucket_object.data_bucket
+    target = module.credentials.data.aws_s3_object.data_bucket
     values = {
       body = "{\"username\":\"a_different_username\",\"password\":\"password\"}"
     }
@@ -297,6 +297,7 @@ Finally, the entire module can be overridden:
 
 ```hcl
 # main.tftest.hcl
+mock_provider "aws" {}
 
 override_module {
   target = module.credentials
