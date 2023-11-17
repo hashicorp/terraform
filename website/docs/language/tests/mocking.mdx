@@ -36,7 +36,7 @@ The following example demonstrates a configuration that creates an AWS S3 bucket
 terraform {
   required_providers {
     aws = {
-        source = "hashicorp/aws"
+      source = "hashicorp/aws"
     }
   }
 }
@@ -210,7 +210,7 @@ module "credentials" {
 
 resource "local_file" "credentials_json" {
   filename = "credentials.json"
-  content = jsonencode(module.credentials.data)
+  content  = jsonencode(module.credentials.data)
 }
 ```
 
@@ -223,7 +223,7 @@ variable "data_bucket_name" {
 
 data "aws_s3_object" "data_bucket" {
   bucket = var.data_bucket_name
-  key = "credentials.json"
+  key    = "credentials.json"
 }
 
 output "data" {
@@ -353,7 +353,7 @@ In normal execution, the AWS provider would return ARN values for the main Dynam
 ```hcl
 mock_resource "aws_dynamodb_table" {
   defaults = {
-    arn     = "aws:dynamodb:::my_table"
+    arn = "aws:dynamodb:::my_table"
     replica = {
       arn = "aws:dynamodb:::my_replica"
     }
