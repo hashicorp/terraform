@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // This file contains some hand-written type conversion helpers to complement
@@ -21,7 +22,7 @@ import (
 func ChangeTypesForPlanAction(action plans.Action) ([]ChangeType, error) {
 	switch action {
 	case plans.NoOp:
-		return nil, nil
+		return []ChangeType{ChangeType_NOOP}, nil
 	case plans.Create:
 		return []ChangeType{ChangeType_CREATE}, nil
 	case plans.Read:

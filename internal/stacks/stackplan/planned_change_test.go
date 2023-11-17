@@ -146,6 +146,7 @@ func TestPlannedChangeAsProto(t *testing.T) {
 					{
 						Description: &terraform1.PlannedChange_ChangeDescription_ComponentInstancePlanned{
 							ComponentInstancePlanned: &terraform1.PlannedChange_ComponentInstance{
+								Actions: []terraform1.ChangeType{terraform1.ChangeType_NOOP},
 								Addr: &terraform1.ComponentInstanceInStackAddr{
 									ComponentAddr:         "component.foo",
 									ComponentInstanceAddr: `component.foo["bar"]`,
