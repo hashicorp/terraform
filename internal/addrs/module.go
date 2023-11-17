@@ -66,6 +66,14 @@ func (m Module) Equal(other Module) bool {
 	return true
 }
 
+type moduleKey string
+
+func (m Module) UniqueKey() UniqueKey {
+	return moduleKey(m.String())
+}
+
+func (mk moduleKey) uniqueKeySigil() {}
+
 func (m Module) targetableSigil() {
 	// Module is targetable
 }

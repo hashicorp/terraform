@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	awsbase "github.com/hashicorp/aws-sdk-go-base/v2"
 	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
+	"github.com/hashicorp/aws-sdk-go-base/v2/validation"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -45,6 +46,7 @@ type Backend struct {
 	kmsKeyID              string
 	ddbTable              string
 	workspaceKeyPrefix    string
+	skipS3Checksum        bool
 }
 
 // ConfigSchema returns a description of the expected configuration
@@ -183,7 +185,12 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 			"skip_credentials_validation": {
 				Type:        cty.Bool,
 				Optional:    true,
-				Description: "Skip the credentials validation via STS API.",
+				Description: "Skip the credentials validation via STS API. Useful for testing and for AWS API implementations that do not have STS available.",
+			},
+			"skip_requesting_account_id": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Skip the requesting account ID. Useful for AWS API implementations that do not have the IAM, STS API, or metadata API.",
 			},
 			"skip_metadata_api_check": {
 				Type:        cty.Bool,
@@ -194,6 +201,11 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.Bool,
 				Optional:    true,
 				Description: "Skip static validation of region name.",
+			},
+			"skip_s3_checksum": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Do not include checksum when uploading S3 Objects. Useful for some S3-Compatible APIs.",
 			},
 			"sse_customer_key": {
 				Type:        cty.String,
@@ -299,8 +311,21 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 			"http_proxy": {
 				Type:        cty.String,
 				Optional:    true,
-				Description: "Address of an HTTP proxy to use when accessing the AWS API.",
+				Description: "URL of a proxy to use for HTTP requests when accessing the AWS API.",
 			},
+
+			"https_proxy": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "URL of a proxy to use for HTTPS requests when accessing the AWS API.",
+			},
+
+			"no_proxy": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Comma-separated list of hosts that should not use HTTP or HTTPS proxies.",
+			},
+
 			"insecure": {
 				Type:        cty.Bool,
 				Optional:    true,
@@ -562,7 +587,7 @@ var endpointsSchema = singleNestedAttribute{
 			},
 			validateString{
 				Validators: []stringValidator{
-					validateStringURL,
+					validateStringLegacyURL,
 				},
 			},
 		},
@@ -575,7 +600,7 @@ var endpointsSchema = singleNestedAttribute{
 			},
 			validateString{
 				Validators: []stringValidator{
-					validateStringURL,
+					validateStringLegacyURL,
 				},
 			},
 		},
@@ -588,7 +613,20 @@ var endpointsSchema = singleNestedAttribute{
 			},
 			validateString{
 				Validators: []stringValidator{
-					validateStringURL,
+					validateStringLegacyURL,
+				},
+			},
+		},
+
+		"sso": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the IAM Identity Center (formerly known as SSO) API",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringValidURL,
 				},
 			},
 		},
@@ -601,7 +639,7 @@ var endpointsSchema = singleNestedAttribute{
 			},
 			validateString{
 				Validators: []stringValidator{
-					validateStringURL,
+					validateStringLegacyURL,
 				},
 			},
 		},
@@ -764,7 +802,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 
 	endpointValidators := validateString{
 		Validators: []stringValidator{
-			validateStringURL,
+			validateStringLegacyURL,
 		},
 	}
 	for _, k := range maps.Keys(endpointFields) {
@@ -773,9 +811,15 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 			endpointValidators.ValidateAttr(val, attrPath, &diags)
 		}
 	}
+
 	if val := obj.GetAttr("ec2_metadata_service_endpoint"); !val.IsNull() {
 		attrPath := cty.GetAttrPath("ec2_metadata_service_endpoint")
-		endpointValidators.ValidateAttr(val, attrPath, &diags)
+		ec2MetadataEndpointValidators := validateString{
+			Validators: []stringValidator{
+				validateStringValidURL,
+			},
+		}
+		ec2MetadataEndpointValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
 	validateAttributesConflict(
@@ -868,7 +912,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	if region != "" && !boolAttr(obj, "skip_region_validation") {
-		if err := awsbase.ValidateRegion(region); err != nil {
+		if err := validation.SupportedRegion(region); err != nil {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
 				"Invalid region value",
@@ -892,6 +936,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.serverSideEncryption = boolAttr(obj, "encrypt")
 	b.kmsKeyID = stringAttr(obj, "kms_key_id")
 	b.ddbTable = stringAttr(obj, "dynamodb_table")
+	b.skipS3Checksum = boolAttr(obj, "skip_s3_checksum")
 
 	if _, ok := stringAttrOk(obj, "kms_key_id"); ok {
 		if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
@@ -956,17 +1001,19 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	ctx, baselog := baselogging.NewHcLogger(ctx, log)
 
 	cfg := &awsbase.Config{
-		AccessKey:              stringAttr(obj, "access_key"),
-		APNInfo:                stdUserAgentProducts(),
-		CallerDocumentationURL: "https://www.terraform.io/docs/language/settings/backends/s3.html",
-		CallerName:             "S3 Backend",
-		Logger:                 baselog,
-		MaxRetries:             intAttrDefault(obj, "max_retries", 5),
-		Profile:                stringAttr(obj, "profile"),
-		Region:                 stringAttr(obj, "region"),
-		SecretKey:              stringAttr(obj, "secret_key"),
-		SkipCredsValidation:    boolAttr(obj, "skip_credentials_validation"),
-		Token:                  stringAttr(obj, "token"),
+		AccessKey:               stringAttr(obj, "access_key"),
+		APNInfo:                 stdUserAgentProducts(),
+		CallerDocumentationURL:  "https://www.terraform.io/docs/language/settings/backends/s3.html",
+		CallerName:              "S3 Backend",
+		Logger:                  baselog,
+		MaxRetries:              intAttrDefault(obj, "max_retries", 5),
+		Profile:                 stringAttr(obj, "profile"),
+		HTTPProxyMode:           awsbase.HTTPProxyModeLegacy,
+		Region:                  stringAttr(obj, "region"),
+		SecretKey:               stringAttr(obj, "secret_key"),
+		SkipCredsValidation:     boolAttr(obj, "skip_credentials_validation"),
+		SkipRequestingAccountId: boolAttr(obj, "skip_requesting_account_id"),
+		Token:                   stringAttr(obj, "token"),
 	}
 
 	// The "legacy" authentication workflow used in aws-sdk-go-base V1 will be
@@ -1030,6 +1077,13 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		newEnvvarRetriever("AWS_IAM_ENDPOINT"),
 	); ok {
 		cfg.IamEndpoint = v
+	}
+
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("sso")),
+		newEnvvarRetriever("AWS_ENDPOINT_URL_SSO"),
+	); ok {
+		cfg.SsoEndpoint = v
 	}
 
 	if v, ok := retrieveArgument(&diags,
@@ -1128,11 +1182,18 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	if v, ok := retrieveArgument(&diags,
 		newAttributeRetriever(obj, cty.GetAttrPath("http_proxy")),
-		newEnvvarRetriever("HTTP_PROXY"),
-		newEnvvarRetriever("HTTPS_PROXY"),
 	); ok {
-		cfg.HTTPProxy = v
+		cfg.HTTPProxy = aws.String(v)
 	}
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("https_proxy")),
+	); ok {
+		cfg.HTTPSProxy = aws.String(v)
+	}
+	if val, ok := stringAttrOk(obj, "no_proxy"); ok {
+		cfg.NoProxy = val
+	}
+
 	if val, ok := boolAttrOk(obj, "insecure"); ok {
 		cfg.Insecure = val
 	}

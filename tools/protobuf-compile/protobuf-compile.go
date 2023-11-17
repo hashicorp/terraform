@@ -54,9 +54,19 @@ var protocSteps = []protocStep{
 		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "./tfplugin6.proto"},
 	},
 	{
+		"terraform1 (Terraform Core RPC API)",
+		"internal/rpcapi/terraform1",
+		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "--go_opt=Mterraform1.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1", "./terraform1.proto"},
+	},
+	{
 		"tfplan (plan file serialization)",
-		"internal/plans/internal/planproto",
+		"internal/plans/planproto",
 		[]string{"--go_out=paths=source_relative:.", "planfile.proto"},
+	},
+	{
+		"tfstackdata1 (Internal data formats for Stack state and plan)",
+		"internal/stacks/tfstackdata1",
+		[]string{"--go_out=paths=source_relative:.", "--go_opt=Mtfstackdata1.proto=github.com/hashicorp/terraform/internal/stacks/tfstackdata1", "-I.", "-I../../plans/planproto", "./tfstackdata1.proto"},
 	},
 	{
 		"cloudproto1 (cloud protocol version 1)",

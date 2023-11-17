@@ -8,7 +8,10 @@ import (
 	"log"
 	"strings"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/logging"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -73,6 +76,12 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			defer walker.ExitPath(pn.Path())
 		}
 
+		if g.checkAndApplyOverrides(ctx.Overrides(), v) {
+			// We can skip whole vertices if they are in a module that has been
+			// overridden.
+			return
+		}
+
 		// If the node is exec-able, then execute it.
 		if ev, ok := v.(GraphNodeExecutable); ok {
 			diags = diags.Append(walker.Execute(vertexCtx, ev))
@@ -135,4 +144,98 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 	}
 
 	return g.AcyclicGraph.Walk(walkFn)
+}
+
+// checkAndApplyOverrides checks if target has any data that needs to be overridden.
+//
+// If this function returns true, then the whole vertex should be skipped and
+// not executed.
+//
+// The logic for a vertex is that if it is within an overridden module then we
+// don't want to execute it. Instead, we want to just set the values on the
+// output nodes for that module directly. So if a node is a
+// GraphNodeModuleInstance we want to skip it if there is an entry in our
+// overrides data structure that either matches the module for the vertex or
+// is a parent of the module for the vertex.
+//
+// We also want to actually set the new values for any outputs, resources or
+// data sources we encounter that should be overridden.
+func (g *Graph) checkAndApplyOverrides(overrides *mocking.Overrides, target dag.Vertex) bool {
+	if overrides.Empty() {
+		return false
+	}
+
+	switch v := target.(type) {
+	case GraphNodeOverridable:
+		// For resource and data sources, we want to skip them completely if
+		// they are within an overridden module.
+		resourceInstance := v.ResourceInstanceAddr()
+		if overrides.IsOverridden(resourceInstance.Module) {
+			return true
+		}
+
+		if override, ok := overrides.GetOverrideInclProviders(resourceInstance, v.ConfigProvider()); ok {
+			v.SetOverride(override)
+			return false
+		}
+
+		if override, ok := overrides.GetOverrideInclProviders(resourceInstance.ContainingResource(), v.ConfigProvider()); ok {
+			v.SetOverride(override)
+			return false
+		}
+
+	case *NodeApplyableOutput:
+		// For outputs, we want to skip them completely if they are deeply
+		// nested within an overridden module.
+		module := v.Path()
+		if overrides.IsDeeplyOverridden(module) {
+			// If the output is deeply nested under an overridden module we want
+			// to skip
+			return true
+		}
+
+		setOverride := func(values cty.Value) {
+			key := v.Addr.OutputValue.Name
+			if values.Type().HasAttribute(key) {
+				v.override = values.GetAttr(key)
+			} else {
+				// If we don't have a value provided for an output, then we'll
+				// just set it to be null.
+				//
+				// TODO(liamcervante): Can we generate a value here? Probably
+				//   not as we don't know the type.
+				v.override = cty.NullVal(cty.DynamicPseudoType)
+			}
+		}
+
+		// Otherwise, if we are in a directly overridden module then we want to
+		// apply the overridden output values.
+		if override, ok := overrides.GetOverride(module); ok {
+			setOverride(override.Values)
+			return false
+		}
+
+		lastStepInstanced := len(module) > 0 && module[len(module)-1].InstanceKey != addrs.NoKey
+		if lastStepInstanced {
+			// Then we could have overridden all the instances of this module.
+			if override, ok := overrides.GetOverride(module.ContainingModule()); ok {
+				setOverride(override.Values)
+				return false
+			}
+		}
+
+	case GraphNodeModuleInstance:
+		// Then this node is simply in a module. It might be that this entire
+		// module has been overridden, in which case this node shouldn't
+		// execute.
+		//
+		// We checked for resources and outputs earlier, so we know this isn't
+		// anything special.
+		module := v.Path()
+		if overrides.IsOverridden(module) {
+			return true
+		}
+	}
+
+	return false
 }

@@ -35,6 +35,17 @@ type Provider struct {
 	// export this so providers don't need to be re-resolved.
 	// This same field is also added to the ProviderConfigRef struct.
 	providerType addrs.Provider
+
+	// Mock and MockData declare this provider as a "mock_provider", which means
+	// it should use the data in MockData instead of actually initialising the
+	// provider.
+	Mock     bool
+	MockData *MockData
+
+	// MockDataExternalSource is a file path pointing to the external data
+	// file for a mock provider. An empty string indicates all data should be
+	// loaded inline.
+	MockDataExternalSource string
 }
 
 func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
@@ -60,6 +71,10 @@ func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 		NameRange: block.LabelRanges[0],
 		Config:    config,
 		DeclRange: block.DefRange,
+
+		// We'll just explicitly mark real providers as not being mocks even
+		// though this is the default.
+		Mock: false,
 	}
 
 	if attr, exists := content.Attributes["alias"]; exists {

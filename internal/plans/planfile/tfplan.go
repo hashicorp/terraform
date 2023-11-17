@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/plans/internal/planproto"
+	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/version"
 )
@@ -259,6 +259,15 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 	return plan, nil
 }
 
+// ResourceChangeFromProto decodes an isolated resource instance change from
+// its representation as a protocol buffers message.
+//
+// This is used by the stackplan package, which includes planproto messages
+// in its own wire format while using a different overall container.
+func ResourceChangeFromProto(rawChange *planproto.ResourceInstanceChange) (*plans.ResourceInstanceChangeSrc, error) {
+	return resourceChangeFromTfplan(rawChange)
+}
+
 func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*plans.ResourceInstanceChangeSrc, error) {
 	if rawChange == nil {
 		// Should never happen in practice, since protobuf can't represent
@@ -360,6 +369,31 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 	return ret, nil
 }
 
+// ActionFromProto translates from the protobuf representation of change actions
+// into the "plans" package's representation, or returns an error if the
+// given action is unrecognized.
+func ActionFromProto(rawAction planproto.Action) (plans.Action, error) {
+	switch rawAction {
+	case planproto.Action_NOOP:
+		return plans.NoOp, nil
+	case planproto.Action_CREATE:
+		return plans.Create, nil
+	case planproto.Action_READ:
+		return plans.Read, nil
+	case planproto.Action_UPDATE:
+		return plans.Update, nil
+	case planproto.Action_DELETE:
+		return plans.Delete, nil
+	case planproto.Action_CREATE_THEN_DELETE:
+		return plans.CreateThenDelete, nil
+	case planproto.Action_DELETE_THEN_CREATE:
+		return plans.DeleteThenCreate, nil
+	default:
+		return plans.NoOp, fmt.Errorf("invalid change action %s", rawAction)
+	}
+
+}
+
 func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 	if rawChange == nil {
 		return nil, fmt.Errorf("change object is absent")
@@ -371,31 +405,30 @@ func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 	// depending on the change action, and then decode.
 	beforeIdx, afterIdx := -1, -1
 
-	switch rawChange.Action {
-	case planproto.Action_NOOP:
-		ret.Action = plans.NoOp
+	var err error
+	ret.Action, err = ActionFromProto(rawChange.Action)
+	if err != nil {
+		return nil, err
+	}
+
+	switch ret.Action {
+	case plans.NoOp:
 		beforeIdx = 0
 		afterIdx = 0
-	case planproto.Action_CREATE:
-		ret.Action = plans.Create
+	case plans.Create:
 		afterIdx = 0
-	case planproto.Action_READ:
-		ret.Action = plans.Read
+	case plans.Read:
 		beforeIdx = 0
 		afterIdx = 1
-	case planproto.Action_UPDATE:
-		ret.Action = plans.Update
+	case plans.Update:
 		beforeIdx = 0
 		afterIdx = 1
-	case planproto.Action_DELETE:
-		ret.Action = plans.Delete
+	case plans.Delete:
 		beforeIdx = 0
-	case planproto.Action_CREATE_THEN_DELETE:
-		ret.Action = plans.CreateThenDelete
+	case plans.CreateThenDelete:
 		beforeIdx = 0
 		afterIdx = 1
-	case planproto.Action_DELETE_THEN_CREATE:
-		ret.Action = plans.DeleteThenCreate
+	case plans.DeleteThenCreate:
 		beforeIdx = 0
 		afterIdx = 1
 	default:
@@ -675,6 +708,19 @@ func resourceAttrFromTfplan(ra *planproto.PlanResourceAttr) (globalref.ResourceA
 	return res, nil
 }
 
+// ResourceChangeToProto encodes an isolated resource instance change into
+// its representation as a protocol buffers message.
+//
+// This is used by the stackplan package, which includes planproto messages
+// in its own wire format while using a different overall container.
+func ResourceChangeToProto(change *plans.ResourceInstanceChangeSrc) (*planproto.ResourceInstanceChange, error) {
+	if change == nil {
+		// We assume this represents the absense of a change, then.
+		return nil, nil
+	}
+	return resourceChangeToTfplan(change)
+}
+
 func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto.ResourceInstanceChange, error) {
 	ret := &planproto.ResourceInstanceChange{}
 
@@ -753,6 +799,30 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 	return ret, nil
 }
 
+// ActionToProto translates from the "plans" package's representation of change
+// actions into the protobuf representation, or returns an error if the
+// given action is unrecognized.
+func ActionToProto(action plans.Action) (planproto.Action, error) {
+	switch action {
+	case plans.NoOp:
+		return planproto.Action_NOOP, nil
+	case plans.Create:
+		return planproto.Action_CREATE, nil
+	case plans.Read:
+		return planproto.Action_READ, nil
+	case plans.Update:
+		return planproto.Action_UPDATE, nil
+	case plans.Delete:
+		return planproto.Action_DELETE, nil
+	case plans.DeleteThenCreate:
+		return planproto.Action_DELETE_THEN_CREATE, nil
+	case plans.CreateThenDelete:
+		return planproto.Action_CREATE_THEN_DELETE, nil
+	default:
+		return planproto.Action_NOOP, fmt.Errorf("invalid change action %s", action)
+	}
+}
+
 func changeToTfplan(change *plans.ChangeSrc) (*planproto.Change, error) {
 	ret := &planproto.Change{}
 
@@ -778,27 +848,25 @@ func changeToTfplan(change *plans.ChangeSrc) (*planproto.Change, error) {
 	}
 	ret.GeneratedConfig = change.GeneratedConfig
 
-	switch change.Action {
-	case plans.NoOp:
-		ret.Action = planproto.Action_NOOP
+	ret.Action, err = ActionToProto(change.Action)
+	if err != nil {
+		return nil, err
+	}
+
+	switch ret.Action {
+	case planproto.Action_NOOP:
 		ret.Values = []*planproto.DynamicValue{before} // before and after should be identical
-	case plans.Create:
-		ret.Action = planproto.Action_CREATE
+	case planproto.Action_CREATE:
 		ret.Values = []*planproto.DynamicValue{after}
-	case plans.Read:
-		ret.Action = planproto.Action_READ
+	case planproto.Action_READ:
 		ret.Values = []*planproto.DynamicValue{before, after}
-	case plans.Update:
-		ret.Action = planproto.Action_UPDATE
+	case planproto.Action_UPDATE:
 		ret.Values = []*planproto.DynamicValue{before, after}
-	case plans.Delete:
-		ret.Action = planproto.Action_DELETE
+	case planproto.Action_DELETE:
 		ret.Values = []*planproto.DynamicValue{before}
-	case plans.DeleteThenCreate:
-		ret.Action = planproto.Action_DELETE_THEN_CREATE
+	case planproto.Action_DELETE_THEN_CREATE:
 		ret.Values = []*planproto.DynamicValue{before, after}
-	case plans.CreateThenDelete:
-		ret.Action = planproto.Action_CREATE_THEN_DELETE
+	case planproto.Action_CREATE_THEN_DELETE:
 		ret.Values = []*planproto.DynamicValue{before, after}
 	default:
 		return nil, fmt.Errorf("invalid change action %s", change.Action)

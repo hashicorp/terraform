@@ -17,7 +17,9 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -79,6 +81,10 @@ type PlanOpts struct {
 	// the actual graph.
 	ExternalReferences []*addrs.Reference
 
+	// Overrides provides a set of override objects that should be applied
+	// during this plan.
+	Overrides *mocking.Overrides
+
 	// ImportTargets is a list of target resources to import. These resources
 	// will be added to the plan graph.
 	ImportTargets []*ImportTarget
@@ -88,6 +94,26 @@ type PlanOpts struct {
 	//
 	// If empty, then no config will be generated.
 	GenerateConfigPath string
+
+	// ExternalProviders are clients for pre-configured providers that are
+	// treated as being passed into the root module from the caller. This
+	// is equivalent to writing a "providers" argument inside a "module"
+	// block in the Terraform language, but for the root module the caller
+	// is written in Go rather than the Terraform language.
+	//
+	// Terraform Core will NOT call ValidateProviderConfig or ConfigureProvider
+	// on any providers in this map; it's the caller's responsibility to
+	// configure these providers based on information outside the scope of
+	// the root module.
+	ExternalProviders map[addrs.RootProviderConfig]providers.Interface
+
+	// ForcePlanTimestamp, if not nil, will force the "plantimestamp" function
+	// to return the given value instead of the time when the plan operation
+	// started.
+	//
+	// This is here only to allow producing fixed results for tests. Don't
+	// use it for main code.
+	ForcePlanTimestamp *time.Time
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -130,6 +156,12 @@ func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts 
 	// otherwise we're likely to just see a bunch of other errors related to
 	// incompatibilities, which could be overwhelming for the user.
 	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	providerCfgDiags := checkExternalProviders(config, opts.ExternalProviders)
+	diags = diags.Append(providerCfgDiags)
+	if providerCfgDiags.HasErrors() {
 		return nil, diags
 	}
 
@@ -254,7 +286,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 		return plan, diags
 	}
 
-	diags = diags.Append(c.checkApplyGraph(plan, config))
+	diags = diags.Append(c.checkApplyGraph(plan, config, opts))
 
 	return plan, diags
 }
@@ -263,13 +295,13 @@ The -target option is not for routine use, and is provided only for exceptional 
 // check for any errors that may arise once the planned changes are added to
 // the graph. This allows terraform to report errors (mostly cycles) during
 // plan that would otherwise only crop up during apply
-func (c *Context) checkApplyGraph(plan *plans.Plan, config *configs.Config) tfdiags.Diagnostics {
+func (c *Context) checkApplyGraph(plan *plans.Plan, config *configs.Config, opts *PlanOpts) tfdiags.Diagnostics {
 	if plan.Changes.Empty() {
 		log.Println("[DEBUG] no planned changes, skipping apply graph check")
 		return nil
 	}
 	log.Println("[DEBUG] building apply graph to check for errors")
-	_, _, diags := c.applyGraph(plan, config, true)
+	_, _, diags := c.applyGraph(plan, config, opts.ApplyOpts(), true)
 	return diags
 }
 
@@ -560,16 +592,27 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	}
 
 	timestamp := time.Now().UTC()
+	if opts.ForcePlanTimestamp != nil {
+		// Some tests use this to produce stable results to assert against.
+		timestamp = *opts.ForcePlanTimestamp
+	}
+
+	var externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+	if opts != nil {
+		externalProviderConfigs = opts.ExternalProviders
+	}
 
 	// If we get here then we should definitely have a non-nil "graph", which
 	// we can now walk.
 	changes := plans.NewChanges()
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
-		Config:            config,
-		InputState:        prevRunState,
-		Changes:           changes,
-		MoveResults:       moveResults,
-		PlanTimeTimestamp: timestamp,
+		Config:                  config,
+		InputState:              prevRunState,
+		ExternalProviderConfigs: externalProviderConfigs,
+		Changes:                 changes,
+		MoveResults:             moveResults,
+		Overrides:               opts.Overrides,
+		PlanTimeTimestamp:       timestamp,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -620,6 +663,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		PriorState:         priorState,
 		PlannedState:       walker.State.Close(),
 		ExternalReferences: opts.ExternalReferences,
+		Overrides:          opts.Overrides,
 		Checks:             states.NewCheckResults(walker.Checks),
 		Timestamp:          timestamp,
 

@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"reflect"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	dynamodbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -59,6 +61,15 @@ func testACC(t *testing.T) {
 
 func TestBackend_impl(t *testing.T) {
 	var _ backend.Backend = new(Backend)
+}
+
+func TestBackend_InternalValidate(t *testing.T) {
+	b := New()
+
+	schema := b.ConfigSchema()
+	if err := schema.InternalValidate(); err != nil {
+		t.Fatalf("failed InternalValidate: %s", err)
+	}
 }
 
 func TestBackendConfig_original(t *testing.T) {
@@ -273,12 +284,9 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 					"dynamodb": "dynamo.test",
 				},
 			},
+			expectedEndpoint: "dynamo.test/",
 			expectedDiags: tfdiags.Diagnostics{
-				attributeErrDiag(
-					"Invalid Value",
-					`The value must be a valid URL containing at least a scheme and hostname. Had "dynamo.test"`,
-					cty.GetAttrPath("endpoints").GetAttr("dynamodb"),
-				),
+				legacyIncompleteURLDiag("dynamo.test", cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
 			},
 		},
 		"deprecated config URL": {
@@ -294,13 +302,10 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 			config: map[string]any{
 				"dynamodb_endpoint": "dynamo.test",
 			},
+			expectedEndpoint: "dynamo.test/",
 			expectedDiags: tfdiags.Diagnostics{
 				deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
-				attributeErrDiag(
-					"Invalid Value",
-					`The value must be a valid URL containing at least a scheme and hostname. Had "dynamo.test"`,
-					cty.GetAttrPath("dynamodb_endpoint"),
-				),
+				legacyIncompleteURLDiag("dynamo.test", cty.GetAttrPath("dynamodb_endpoint")),
 			},
 		},
 		"config conflict": {
@@ -418,11 +423,7 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 				},
 			},
 			expectedDiags: tfdiags.Diagnostics{
-				attributeErrDiag(
-					"Invalid Value",
-					`The value must be a valid URL containing at least a scheme and hostname. Had "iam.test"`,
-					cty.GetAttrPath("endpoints").GetAttr("iam"),
-				),
+				legacyIncompleteURLDiag("iam.test", cty.GetAttrPath("endpoints").GetAttr("iam")),
 			},
 		},
 		"deprecated config URL": {
@@ -439,11 +440,7 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 			},
 			expectedDiags: tfdiags.Diagnostics{
 				deprecatedAttrDiag(cty.GetAttrPath("iam_endpoint"), cty.GetAttrPath("endpoints").GetAttr("iam")),
-				attributeErrDiag(
-					"Invalid Value",
-					`The value must be a valid URL containing at least a scheme and hostname. Had "iam.test"`,
-					cty.GetAttrPath("iam_endpoint"),
-				),
+				legacyIncompleteURLDiag("iam.test", cty.GetAttrPath("iam_endpoint")),
 			},
 		},
 		"config conflict": {
@@ -542,12 +539,9 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 					"s3": "s3.test",
 				},
 			},
+			expectedEndpoint: "/s3.test",
 			expectedDiags: tfdiags.Diagnostics{
-				attributeErrDiag(
-					"Invalid Value",
-					`The value must be a valid URL containing at least a scheme and hostname. Had "s3.test"`,
-					cty.GetAttrPath("endpoints").GetAttr("s3"),
-				),
+				legacyIncompleteURLDiag("s3.test", cty.GetAttrPath("endpoints").GetAttr("s3")),
 			},
 		},
 		"deprecated config URL": {
@@ -563,13 +557,10 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 			config: map[string]any{
 				"endpoint": "s3.test",
 			},
+			expectedEndpoint: "/s3.test",
 			expectedDiags: tfdiags.Diagnostics{
 				deprecatedAttrDiag(cty.GetAttrPath("endpoint"), cty.GetAttrPath("endpoints").GetAttr("s3")),
-				attributeErrDiag(
-					"Invalid Value",
-					`The value must be a valid URL containing at least a scheme and hostname. Had "s3.test"`,
-					cty.GetAttrPath("endpoint"),
-				),
+				legacyIncompleteURLDiag("s3.test", cty.GetAttrPath("endpoint")),
 			},
 		},
 		"config conflict": {
@@ -1272,8 +1263,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			oldEnv := servicemocks.StashEnv()
-			defer servicemocks.PopEnv(oldEnv)
+			servicemocks.StashEnv(t)
 
 			b := New()
 
@@ -1316,8 +1306,7 @@ func TestBackendConfig_PrepareConfigWithEnvVars(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			oldEnv := servicemocks.StashEnv()
-			defer servicemocks.PopEnv(oldEnv)
+			servicemocks.StashEnv(t)
 
 			b := New()
 
@@ -1337,6 +1326,478 @@ func TestBackendConfig_PrepareConfigWithEnvVars(t *testing.T) {
 				}
 			} else if valDiags.Err() != nil {
 				t.Fatalf("expected no error, got %s", valDiags.Err())
+			}
+		})
+	}
+}
+
+type proxyCase struct {
+	url           string
+	expectedProxy string
+}
+
+func TestBackendConfig_Proxy(t *testing.T) {
+	cases := map[string]struct {
+		config               map[string]any
+		environmentVariables map[string]string
+		expectedDiags        tfdiags.Diagnostics
+		urls                 []proxyCase
+	}{
+		"no config": {
+			config: map[string]any{},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "",
+				},
+			},
+		},
+
+		"http_proxy empty string": {
+			config: map[string]any{
+				"http_proxy": "",
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "",
+				},
+			},
+		},
+
+		"http_proxy config": {
+			config: map[string]any{
+				"http_proxy": "http://http-proxy.test:1234",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Missing HTTPS Proxy",
+					fmt.Sprintf(
+						"An HTTP proxy was set but no HTTPS proxy was. Using HTTP proxy %q for HTTPS requests. This behavior may change in future versions.\n\n"+
+							"To specify no proxy for HTTPS, set the HTTPS to an empty string.",
+						"http://http-proxy.test:1234"),
+				),
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "http://http-proxy.test:1234",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "http://http-proxy.test:1234",
+				},
+			},
+		},
+
+		"https_proxy config": {
+			config: map[string]any{
+				"https_proxy": "http://https-proxy.test:1234",
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "http://https-proxy.test:1234",
+				},
+			},
+		},
+
+		"http_proxy config https_proxy config": {
+			config: map[string]any{
+				"http_proxy":  "http://http-proxy.test:1234",
+				"https_proxy": "http://https-proxy.test:1234",
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "http://http-proxy.test:1234",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "http://https-proxy.test:1234",
+				},
+			},
+		},
+
+		"http_proxy config https_proxy config empty string": {
+			config: map[string]any{
+				"http_proxy":  "http://http-proxy.test:1234",
+				"https_proxy": "",
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "http://http-proxy.test:1234",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "",
+				},
+			},
+		},
+
+		"https_proxy config http_proxy config empty string": {
+			config: map[string]any{
+				"http_proxy":  "",
+				"https_proxy": "http://https-proxy.test:1234",
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "http://https-proxy.test:1234",
+				},
+			},
+		},
+
+		"http_proxy config https_proxy config no_proxy config": {
+			config: map[string]any{
+				"http_proxy":  "http://http-proxy.test:1234",
+				"https_proxy": "http://https-proxy.test:1234",
+				"no_proxy":    "dont-proxy.test",
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "http://http-proxy.test:1234",
+				},
+				{
+					url:           "http://dont-proxy.test",
+					expectedProxy: "",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "http://https-proxy.test:1234",
+				},
+				{
+					url:           "https://dont-proxy.test",
+					expectedProxy: "",
+				},
+			},
+		},
+
+		"HTTP_PROXY envvar": {
+			config: map[string]any{},
+			environmentVariables: map[string]string{
+				"HTTP_PROXY": "http://http-proxy.test:1234",
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "http://http-proxy.test:1234",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "",
+				},
+			},
+		},
+
+		"http_proxy envvar": {
+			config: map[string]any{},
+			environmentVariables: map[string]string{
+				"http_proxy": "http://http-proxy.test:1234",
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "http://http-proxy.test:1234",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "",
+				},
+			},
+		},
+
+		"HTTPS_PROXY envvar": {
+			config: map[string]any{},
+			environmentVariables: map[string]string{
+				"HTTPS_PROXY": "http://https-proxy.test:1234",
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "http://https-proxy.test:1234",
+				},
+			},
+		},
+
+		"https_proxy envvar": {
+			config: map[string]any{},
+			environmentVariables: map[string]string{
+				"https_proxy": "http://https-proxy.test:1234",
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "http://https-proxy.test:1234",
+				},
+			},
+		},
+
+		"http_proxy config HTTPS_PROXY envvar": {
+			config: map[string]any{
+				"http_proxy": "http://http-proxy.test:1234",
+			},
+			environmentVariables: map[string]string{
+				"HTTPS_PROXY": "http://https-proxy.test:1234",
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "http://http-proxy.test:1234",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "http://https-proxy.test:1234",
+				},
+			},
+		},
+
+		"http_proxy config https_proxy envvar": {
+			config: map[string]any{
+				"http_proxy": "http://http-proxy.test:1234",
+			},
+			environmentVariables: map[string]string{
+				"https_proxy": "http://https-proxy.test:1234",
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "http://http-proxy.test:1234",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "http://https-proxy.test:1234",
+				},
+			},
+		},
+
+		"http_proxy config NO_PROXY envvar": {
+			config: map[string]any{
+				"http_proxy": "http://http-proxy.test:1234",
+			},
+			environmentVariables: map[string]string{
+				"NO_PROXY": "dont-proxy.test",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Missing HTTPS Proxy",
+					fmt.Sprintf(
+						"An HTTP proxy was set but no HTTPS proxy was. Using HTTP proxy %q for HTTPS requests. This behavior may change in future versions.\n\n"+
+							"To specify no proxy for HTTPS, set the HTTPS to an empty string.",
+						"http://http-proxy.test:1234"),
+				),
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "http://http-proxy.test:1234",
+				},
+				{
+					url:           "http://dont-proxy.test",
+					expectedProxy: "",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "http://http-proxy.test:1234",
+				},
+				{
+					url:           "https://dont-proxy.test",
+					expectedProxy: "",
+				},
+			},
+		},
+
+		"http_proxy config no_proxy envvar": {
+			config: map[string]any{
+				"http_proxy": "http://http-proxy.test:1234",
+			},
+			environmentVariables: map[string]string{
+				"no_proxy": "dont-proxy.test",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Missing HTTPS Proxy",
+					fmt.Sprintf(
+						"An HTTP proxy was set but no HTTPS proxy was. Using HTTP proxy %q for HTTPS requests. This behavior may change in future versions.\n\n"+
+							"To specify no proxy for HTTPS, set the HTTPS to an empty string.",
+						"http://http-proxy.test:1234"),
+				),
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "http://http-proxy.test:1234",
+				},
+				{
+					url:           "http://dont-proxy.test",
+					expectedProxy: "",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "http://http-proxy.test:1234",
+				},
+				{
+					url:           "https://dont-proxy.test",
+					expectedProxy: "",
+				},
+			},
+		},
+
+		"HTTP_PROXY envvar HTTPS_PROXY envvar NO_PROXY envvar": {
+			config: map[string]any{},
+			environmentVariables: map[string]string{
+				"HTTP_PROXY":  "http://http-proxy.test:1234",
+				"HTTPS_PROXY": "http://https-proxy.test:1234",
+				"NO_PROXY":    "dont-proxy.test",
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "http://http-proxy.test:1234",
+				},
+				{
+					url:           "http://dont-proxy.test",
+					expectedProxy: "",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "http://https-proxy.test:1234",
+				},
+				{
+					url:           "https://dont-proxy.test",
+					expectedProxy: "",
+				},
+			},
+		},
+
+		"http_proxy config overrides HTTP_PROXY envvar": {
+			config: map[string]any{
+				"http_proxy": "http://config-proxy.test:1234",
+			},
+			environmentVariables: map[string]string{
+				"HTTP_PROXY": "http://envvar-proxy.test:1234",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Missing HTTPS Proxy",
+					fmt.Sprintf(
+						"An HTTP proxy was set but no HTTPS proxy was. Using HTTP proxy %q for HTTPS requests. This behavior may change in future versions.\n\n"+
+							"To specify no proxy for HTTPS, set the HTTPS to an empty string.",
+						"http://config-proxy.test:1234"),
+				),
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "http://config-proxy.test:1234",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "http://config-proxy.test:1234",
+				},
+			},
+		},
+
+		"https_proxy config overrides HTTPS_PROXY envvar": {
+			config: map[string]any{
+				"https_proxy": "http://config-proxy.test:1234",
+			},
+			environmentVariables: map[string]string{
+				"HTTPS_PROXY": "http://envvar-proxy.test:1234",
+			},
+			urls: []proxyCase{
+				{
+					url:           "http://example.com",
+					expectedProxy: "",
+				},
+				{
+					url:           "https://example.com",
+					expectedProxy: "http://config-proxy.test:1234",
+				},
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			config := map[string]any{
+				"region":                      "us-west-2",
+				"bucket":                      "tf-test",
+				"key":                         "state",
+				"skip_credentials_validation": true,
+				"skip_requesting_account_id":  true,
+				"access_key":                  servicemocks.MockStaticAccessKey,
+				"secret_key":                  servicemocks.MockStaticSecretKey,
+			}
+
+			for k, v := range tc.environmentVariables {
+				t.Setenv(k, v)
+			}
+
+			maps.Copy(config, tc.config)
+
+			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+			b := raw.(*Backend)
+
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+
+			client := b.awsConfig.HTTPClient
+			bClient, ok := client.(*awshttp.BuildableClient)
+			if !ok {
+				t.Fatalf("expected awshttp.BuildableClient, got %T", client)
+			}
+			transport := bClient.GetTransport()
+			proxyF := transport.Proxy
+
+			for _, url := range tc.urls {
+				req, _ := http.NewRequest("GET", url.url, nil)
+				pUrl, err := proxyF(req)
+				if err != nil {
+					t.Fatalf("unexpected error: %s", err)
+				}
+				if url.expectedProxy != "" {
+					if pUrl == nil {
+						t.Errorf("expected proxy for %q, got none", url.url)
+					} else if pUrl.String() != url.expectedProxy {
+						t.Errorf("expected proxy %q for %q, got %q", url.expectedProxy, url.url, pUrl.String())
+					}
+				} else {
+					if pUrl != nil {
+						t.Errorf("expected no proxy for %q, got %q", url.url, pUrl.String())
+					}
+				}
 			}
 		})
 	}

@@ -51,9 +51,15 @@ type TestFile struct {
 	// Providers defines a set of providers that are available to run blocks
 	// within this test file.
 	//
+	// Some or all of these providers may be mocked providers.
+	//
 	// If empty, tests should use the default providers for the module under
 	// test.
 	Providers map[string]*Provider
+
+	// Overrides contains any specific overrides that should be applied for this
+	// test outside any mock providers.
+	Overrides addrs.Map[addrs.Targetable, *Override]
 
 	// Runs defines the sequential list of run blocks that should be executed in
 	// order.
@@ -87,6 +93,10 @@ type TestRun struct {
 	// Any variables specified locally that clash with the global variables will
 	// take precedence over the global definition.
 	Variables map[string]hcl.Expression
+
+	// Overrides contains any specific overrides that should be applied for this
+	// run block only outside any mock providers or overrides from the file.
+	Overrides addrs.Map[addrs.Targetable, *Override]
 
 	// Providers specifies the set of providers that should be loaded into the
 	// module for this run block.
@@ -127,13 +137,83 @@ type TestRun struct {
 	DeclRange          hcl.Range
 }
 
-// Validate does a very simple and cursory check across the run block to look
+// Validate does a very simple and cursory check across the test file to look
 // for simple issues we can highlight early on.
-func (run *TestRun) Validate() tfdiags.Diagnostics {
+//
+// This function only returns warnings in the diagnostics. Callers of this
+// function usually do not validate the returned diagnostics as a result. If
+// you change this function, make sure to update the callers as well.
+func (file *TestFile) Validate(config *Config) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	// For now, we only want to make sure all the ExpectFailure references are
-	// the correct kind of reference.
+	for _, provider := range file.Providers {
+		if !provider.Mock {
+			continue
+		}
+
+		for _, elem := range provider.MockData.Overrides.Elems {
+			if elem.Value.Source != MockProviderOverrideSource {
+				// Only check overrides that are defined directly within the
+				// mock provider block of this file. This is a safety check
+				// against any override blocks loaded from a dedicated data
+				// file, for these we won't raise warnings if they target
+				// resources that don't exist.
+				continue
+			}
+
+			if !file.canTarget(config, elem.Key) {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Invalid override target",
+					Detail:   fmt.Sprintf("The override target %s does not exist within the configuration under test. This could indicate a typo in the target address or an unnecessary override.", elem.Key),
+					Subject:  elem.Value.TargetRange.Ptr(),
+				})
+			}
+		}
+	}
+
+	for _, elem := range file.Overrides.Elems {
+		if !file.canTarget(config, elem.Key) {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Invalid override target",
+				Detail:   fmt.Sprintf("The override target %s does not exist within the configuration under test. This could indicate a typo in the target address or an unnecessary override.", elem.Key),
+				Subject:  elem.Value.TargetRange.Ptr(),
+			})
+		}
+	}
+
+	return diags
+}
+
+// canTarget is a helper function, that just checks all the available
+// configurations to make sure at least one contains the specified target.
+func (file *TestFile) canTarget(config *Config, target addrs.Targetable) bool {
+	// If the target is in the main configuration, then easy.
+	if config.TargetExists(target) {
+		return true
+	}
+
+	// But, we could be targeting something in configuration loaded by one of
+	// the run blocks.
+	for _, run := range file.Runs {
+		if run.Module != nil {
+			if run.ConfigUnderTest.TargetExists(target) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// Validate does a very simple and cursory check across the run block to look
+// for simple issues we can highlight early on.
+func (run *TestRun) Validate(config *Config) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// First, we want to make sure all the ExpectFailure references are the
+	// correct kind of reference.
 	for _, traversal := range run.ExpectFailures {
 
 		reference, refDiags := addrs.ParseRefFromTestingScope(traversal)
@@ -155,6 +235,19 @@ func (run *TestRun) Validate() tfdiags.Diagnostics {
 			})
 		}
 
+	}
+
+	// All the overrides defined within a run block should target an existing
+	// configuration block.
+	for _, elem := range run.Overrides.Elems {
+		if !config.TargetExists(elem.Key) {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Invalid override target",
+				Detail:   fmt.Sprintf("The override target %s does not exist within the configuration under test. This could indicate a typo in the target address or an unnecessary override.", elem.Key),
+				Subject:  elem.Value.TargetRange.Ptr(),
+			})
+		}
 	}
 
 	return diags
@@ -181,7 +274,7 @@ type TestRunOptions struct {
 	// Refresh is analogous to the -refresh=false Terraform plan option.
 	Refresh bool
 
-	// Replace is analogous to the -refresh=ADDRESS Terraform plan option.
+	// Replace is analogous to the -replace=ADDRESS Terraform plan option.
 	Replace []hcl.Traversal
 
 	// Target is analogous to the -target=ADDRESS Terraform plan option.
@@ -198,6 +291,7 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 
 	tf := TestFile{
 		Providers: make(map[string]*Provider),
+		Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
 	}
 
 	runBlockNames := make(map[string]hcl.Range)
@@ -245,7 +339,84 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 			provider, providerDiags := decodeProviderBlock(block)
 			diags = append(diags, providerDiags...)
 			if provider != nil {
-				tf.Providers[provider.moduleUniqueKey()] = provider
+				key := provider.moduleUniqueKey()
+				if previous, exists := tf.Providers[key]; exists {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate provider block",
+						Detail:   fmt.Sprintf("A provider for %s is already defined at %s.", key, previous.NameRange),
+						Subject:  provider.DeclRange.Ptr(),
+					})
+					continue
+				}
+				tf.Providers[key] = provider
+			}
+		case "mock_provider":
+			provider, providerDiags := decodeMockProviderBlock(block)
+			diags = append(diags, providerDiags...)
+			if provider != nil {
+				key := provider.moduleUniqueKey()
+				if previous, exists := tf.Providers[key]; exists {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate provider block",
+						Detail:   fmt.Sprintf("A provider for %s is already defined at %s.", key, previous.NameRange),
+						Subject:  provider.DeclRange.Ptr(),
+					})
+					continue
+				}
+				tf.Providers[key] = provider
+			}
+		case "override_resource":
+			override, overrideDiags := decodeOverrideResourceBlock(block, TestFileOverrideSource)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := tf.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_resource block",
+						Detail:   fmt.Sprintf("An override_resource block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				tf.Overrides.Put(subject, override)
+			}
+		case "override_data":
+			override, overrideDiags := decodeOverrideDataBlock(block, TestFileOverrideSource)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := tf.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_data block",
+						Detail:   fmt.Sprintf("An override_data block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				tf.Overrides.Put(subject, override)
+			}
+		case "override_module":
+			override, overrideDiags := decodeOverrideModuleBlock(block, TestFileOverrideSource)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := tf.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_module block",
+						Detail:   fmt.Sprintf("An override_module block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				tf.Overrides.Put(subject, override)
 			}
 		}
 	}
@@ -260,6 +431,8 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 	diags = append(diags, contentDiags...)
 
 	r := TestRun{
+		Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+
 		Name:          block.Labels[0],
 		NameDeclRange: block.LabelRanges[0],
 		DeclRange:     block.DefRange,
@@ -321,6 +494,57 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 			diags = append(diags, moduleDiags...)
 			if !moduleDiags.HasErrors() {
 				r.Module = module
+			}
+		case "override_resource":
+			override, overrideDiags := decodeOverrideResourceBlock(block, RunBlockOverrideSource)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := r.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_resource block",
+						Detail:   fmt.Sprintf("An override_resource block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				r.Overrides.Put(subject, override)
+			}
+		case "override_data":
+			override, overrideDiags := decodeOverrideDataBlock(block, RunBlockOverrideSource)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := r.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_data block",
+						Detail:   fmt.Sprintf("An override_data block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				r.Overrides.Put(subject, override)
+			}
+		case "override_module":
+			override, overrideDiags := decodeOverrideModuleBlock(block, RunBlockOverrideSource)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := r.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_module block",
+						Detail:   fmt.Sprintf("An override_module block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				r.Overrides.Put(subject, override)
 			}
 		}
 	}
@@ -549,7 +773,20 @@ var testFileSchema = &hcl.BodySchema{
 			LabelNames: []string{"name"},
 		},
 		{
+			Type:       "mock_provider",
+			LabelNames: []string{"name"},
+		},
+		{
 			Type: "variables",
+		},
+		{
+			Type: "override_resource",
+		},
+		{
+			Type: "override_data",
+		},
+		{
+			Type: "override_module",
 		},
 	},
 }
@@ -572,6 +809,15 @@ var testRunBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Type: "module",
+		},
+		{
+			Type: "override_resource",
+		},
+		{
+			Type: "override_data",
+		},
+		{
+			Type: "override_module",
 		},
 	},
 }

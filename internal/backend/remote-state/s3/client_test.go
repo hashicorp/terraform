@@ -7,17 +7,22 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"io"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go/middleware"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"golang.org/x/exp/maps"
 )
 
 func TestRemoteClient_impl(t *testing.T) {
@@ -382,4 +387,107 @@ func (b neverEnding) Read(p []byte) (n int, err error) {
 		p[i] = byte(b)
 	}
 	return len(p), nil
+}
+
+func TestRemoteClientSkipS3Checksum(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "testState"
+
+	testcases := map[string]struct {
+		config   map[string]any
+		expected string
+	}{
+		"default": {
+			config:   map[string]any{},
+			expected: string(s3types.ChecksumAlgorithmSha256),
+		},
+		"true": {
+			config: map[string]any{
+				"skip_s3_checksum": true,
+			},
+			expected: "",
+		},
+		"false": {
+			config: map[string]any{
+				"skip_s3_checksum": false,
+			},
+			expected: string(s3types.ChecksumAlgorithmSha256),
+		},
+	}
+
+	for name, testcase := range testcases {
+		t.Run(name, func(t *testing.T) {
+			config := map[string]interface{}{
+				"bucket": bucketName,
+				"key":    keyName,
+			}
+			maps.Copy(config, testcase.config)
+			b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+			createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
+			defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
+
+			state, err := b.StateMgr(backend.DefaultStateName)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c := state.(*remote.State).Client
+			client := c.(*RemoteClient)
+
+			s := statemgr.TestFullInitialState()
+			sf := &statefile.File{State: s}
+			var stateBuf bytes.Buffer
+			if err := statefile.Write(sf, &stateBuf); err != nil {
+				t.Fatal(err)
+			}
+
+			var checksum string
+			err = client.put(stateBuf.Bytes(), func(opts *s3.Options) {
+				opts.APIOptions = append(opts.APIOptions,
+					addRetrieveChecksumHeaderMiddleware(t, &checksum),
+					addCancelRequestMiddleware(),
+				)
+			})
+			if err == nil {
+				t.Fatal("Expected an error, got none")
+			} else if !errors.Is(err, errCancelOperation) {
+				t.Fatalf("Unexpected error: %s", err)
+			}
+
+			if a, e := checksum, testcase.expected; a != e {
+				t.Fatalf("expected %q, got %q", e, a)
+			}
+		})
+	}
+}
+
+func addRetrieveChecksumHeaderMiddleware(t *testing.T, checksum *string) func(*middleware.Stack) error {
+	return func(stack *middleware.Stack) error {
+		return stack.Finalize.Add(
+			retrieveChecksumHeaderMiddleware(t, checksum),
+			middleware.After,
+		)
+	}
+}
+
+func retrieveChecksumHeaderMiddleware(t *testing.T, checksum *string) middleware.FinalizeMiddleware {
+	return middleware.FinalizeMiddlewareFunc(
+		"Test: Retrieve Stuff",
+		func(ctx context.Context, in middleware.FinalizeInput, next middleware.FinalizeHandler) (middleware.FinalizeOutput, middleware.Metadata, error) {
+			t.Helper()
+
+			request, ok := in.Request.(*smithyhttp.Request)
+			if !ok {
+				t.Fatalf("Expected *github.com/aws/smithy-go/transport/http.Request, got %s", fullTypeName(in.Request))
+			}
+
+			*checksum = request.Header.Get("x-amz-sdk-checksum-algorithm")
+
+			return next.HandleFinalize(ctx, in)
+		})
 }

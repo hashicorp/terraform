@@ -18,6 +18,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -70,7 +71,7 @@ func TestContext2Apply_createBeforeDestroy_deposedKeyPreApply(t *testing.T) {
 		t.Logf(legacyDiffComparisonString(plan.Changes))
 	}
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	}
@@ -162,7 +163,7 @@ output "data" {
 		t.Fatal(diags.Err())
 	}
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -185,7 +186,7 @@ output "data" {
 		return resp
 	}
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -247,7 +248,7 @@ resource "test_instance" "a" {
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -355,7 +356,7 @@ resource "aws_instance" "bin" {
 		t.Fatalf("baz should depend on bam after refresh, but got %s", baz.Current.Dependencies)
 	}
 
-	state, diags = ctx.Apply(plan, m)
+	state, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -439,7 +440,7 @@ resource "test_resource" "b" {
 	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
@@ -480,7 +481,7 @@ output "out" {
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
-	state, diags := ctx.Apply(plan, m)
+	state, diags := ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
@@ -543,7 +544,7 @@ resource "test_object" "y" {
 	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
-	state, diags := ctx.Apply(plan, m)
+	state, diags := ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 
 	// FINAL PLAN:
@@ -600,7 +601,7 @@ resource "test_object" "x" {
 		t.Fatalf("plan: %s", diags.Err())
 	}
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("apply: %s", diags.Err())
 	}
@@ -615,7 +616,7 @@ func TestContext2Apply_nullableVariables(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("plan: %s", diags.Err())
 	}
-	state, diags = ctx.Apply(plan, m)
+	state, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("apply: %s", diags.Err())
 	}
@@ -678,7 +679,7 @@ resource "test_object" "s" {
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
-	state, diags := ctx.Apply(plan, m)
+	state, diags := ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 
 	// destroy only a single instance not included in the moved statements
@@ -741,7 +742,7 @@ resource "test_object" "b" {
 	testObjA := plan.PriorState.Modules[""].Resources["test_object.a"].Instances[addrs.NoKey].Current
 	testObjA.Dependencies = append(testObjA.Dependencies, mustResourceInstanceAddr("test_object.b").ContainingResource().Config())
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	if !diags.HasErrors() {
 		t.Fatal("expected cycle error from apply")
 	}
@@ -827,7 +828,7 @@ resource "test_resource" "c" {
 			resp.NewState = cty.ObjectVal(m)
 			return resp
 		}
-		state, diags := ctx.Apply(plan, m)
+		state, diags := ctx.Apply(plan, m, nil)
 		assertNoErrors(t, diags)
 
 		wantResourceAttrs := map[string]struct{ value, output string }{
@@ -883,7 +884,7 @@ resource "test_resource" "c" {
 			resp.NewState = cty.ObjectVal(m)
 			return resp
 		}
-		state, diags := ctx.Apply(plan, m)
+		state, diags := ctx.Apply(plan, m, nil)
 		if !diags.HasErrors() {
 			t.Fatal("succeeded; want errors")
 		}
@@ -988,7 +989,7 @@ func TestContext2Apply_outputValuePrecondition(t *testing.T) {
 			}
 		}
 
-		state, diags := ctx.Apply(plan, m)
+		state, diags := ctx.Apply(plan, m, nil)
 		assertNoDiagnostics(t, diags)
 		for _, addr := range checkableObjects {
 			result := state.CheckResults.GetObjectResult(addr)
@@ -1141,7 +1142,7 @@ func TestContext2Apply_resourceConditionApplyTimeFail(t *testing.T) {
 			t.Fatalf("incorrect initial plan for instance B\nwant a 'create' change\ngot: %s", spew.Sdump(planB))
 		}
 
-		state, diags := ctx.Apply(plan, m)
+		state, diags := ctx.Apply(plan, m, nil)
 		assertNoErrors(t, diags)
 
 		stateA := state.ResourceInstance(instA)
@@ -1178,7 +1179,7 @@ func TestContext2Apply_resourceConditionApplyTimeFail(t *testing.T) {
 			t.Fatalf("incorrect initial plan for instance B\nwant a 'no-op' change\ngot: %s", spew.Sdump(planB))
 		}
 
-		_, diags = ctx.Apply(plan, m)
+		_, diags = ctx.Apply(plan, m, nil)
 		if !diags.HasErrors() {
 			t.Fatal("final apply succeeded, but should've failed with a postcondition error")
 		}
@@ -1316,7 +1317,7 @@ output "out" {
 	plan, diags := ctx.Plan(m, states.NewState(), opts)
 	assertNoErrors(t, diags)
 
-	state, diags := ctx.Apply(plan, m)
+	state, diags := ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 
 	// Resource changes which have dependencies across providers which
@@ -1440,7 +1441,7 @@ resource "test_object" "x" {
 		t.Fatalf("plan: %s", diags.Err())
 	}
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("apply: %s", diags.Err())
 	}
@@ -1485,7 +1486,7 @@ resource "test_object" "y" {
 	plan, diags := ctx.Plan(m, state, opts)
 	assertNoErrors(t, diags)
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 }
 
@@ -1567,7 +1568,7 @@ output "data" {
 	plan, diags := ctx.Plan(m, states.NewState(), opts)
 	assertNoErrors(t, diags)
 
-	state, diags := ctx.Apply(plan, m)
+	state, diags := ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 
 	// and destroy
@@ -1575,7 +1576,7 @@ output "data" {
 	plan, diags = ctx.Plan(m, state, opts)
 	assertNoErrors(t, diags)
 
-	state, diags = ctx.Apply(plan, m)
+	state, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 
 	// and destroy again with no state
@@ -1587,7 +1588,7 @@ output "data" {
 	plan, diags = ctx.Plan(m, state, opts)
 	assertNoErrors(t, diags)
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 }
 
@@ -1641,7 +1642,7 @@ output "from_resource" {
 	plan, diags := ctx.Plan(m, state, opts)
 	assertNoErrors(t, diags)
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 }
 
@@ -1697,7 +1698,7 @@ output "from_resource" {
 	plan, diags := ctx.Plan(m, state, opts)
 	assertNoErrors(t, diags)
 
-	state, diags = ctx.Apply(plan, m)
+	state, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 
 	resCheck := state.CheckResults.GetObjectResult(mustResourceInstanceAddr("test_object.x"))
@@ -1784,7 +1785,7 @@ resource "test_object" "y" {
 		return resp
 	}
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 }
 
@@ -1832,7 +1833,7 @@ output "a" {
 		Mode: plans.NormalMode,
 	})
 	assertNoErrors(t, diags)
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 }
 
@@ -1879,7 +1880,7 @@ output "null_module_test" {
 		Mode: plans.NormalMode,
 	})
 	assertNoErrors(t, diags)
-	state, diags := ctx.Apply(plan, m)
+	state, diags := ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 
 	// now destroy
@@ -1887,7 +1888,7 @@ output "null_module_test" {
 		Mode: plans.DestroyMode,
 	})
 	assertNoErrors(t, diags)
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 }
 
@@ -1954,7 +1955,7 @@ output "resources" {
 		Mode: plans.NormalMode,
 	})
 	assertNoErrors(t, diags)
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 }
 
@@ -2042,7 +2043,7 @@ resource "test_resource" "b" {
 	})
 	assertNoErrors(t, diags)
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 }
 
@@ -2085,7 +2086,7 @@ resource "unused_resource" "test" {
 		Mode: plans.DestroyMode,
 	})
 	assertNoErrors(t, diags)
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 }
 
@@ -2145,7 +2146,7 @@ import {
 	})
 	assertNoErrors(t, diags)
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 
 	if !hook.PreApplyImportCalled {
@@ -2160,6 +2161,86 @@ import {
 	}
 	if addr, wantAddr := hook.PostApplyImportAddr, mustResourceInstanceAddr("test_resource.a"); !addr.Equal(wantAddr) {
 		t.Errorf("expected addr to be %s, but was %s", wantAddr, addr)
+	}
+}
+
+func TestContext2Apply_destroySkipsVariableValidations(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "input" {
+	type = string
+
+	validation {
+        condition = var.input == "foo"
+        error_message = "bad input"
+    }
+}
+
+resource "test_object" "a" {
+	test_string = var.input
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.BuildState(func(state *states.SyncState) {
+		state.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.a"),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"test_string":"foo"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	}), &PlanOpts{
+		Mode: plans.DestroyMode,
+		SetVariables: InputValues{
+			"input": {
+				Value:       cty.StringVal("foo"),
+				SourceType:  ValueFromCLIArg,
+				SourceRange: tfdiags.SourceRange{},
+			},
+		},
+	})
+	if diags.HasErrors() {
+		t.Errorf("expected no errors, but got %s", diags)
+	}
+
+	planResult := plan.Checks.GetObjectResult(addrs.AbsInputVariableInstance{
+		Variable: addrs.InputVariable{
+			Name: "input",
+		},
+		Module: addrs.RootModuleInstance,
+	})
+
+	if planResult.Status != checks.StatusPass {
+		// Should have passed during the planning stage indicating that it did
+		// actually execute.
+		t.Errorf("expected checks to be pass but was %s", planResult.Status)
+	}
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Errorf("expected no errors, but got %s", diags)
+	}
+
+	applyResult := state.CheckResults.GetObjectResult(addrs.AbsInputVariableInstance{
+		Variable: addrs.InputVariable{
+			Name: "input",
+		},
+		Module: addrs.RootModuleInstance,
+	})
+
+	if applyResult.Status != checks.StatusUnknown {
+		// Shouldn't have made any validations here, so result should have
+		// stayed as unknown.
+		t.Errorf("expected checks to be unknown but was %s", applyResult.Status)
 	}
 }
 
@@ -2188,7 +2269,7 @@ locals {
 		t.Errorf("expected no errors, but got %s", diags)
 	}
 
-	state, diags := ctx.Apply(plan, m)
+	state, diags := ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Errorf("expected no errors, but got %s", diags)
 	}
@@ -2231,7 +2312,7 @@ locals {
 		t.Errorf("expected no errors, but got %s", diags)
 	}
 
-	state, diags := ctx.Apply(plan, m)
+	state, diags := ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Errorf("expected no errors, but got %s", diags)
 	}
@@ -2242,5 +2323,136 @@ locals {
 	module := state.RootModule()
 	if module.LocalValues["local_value"].AsString() != "foo" {
 		t.Errorf("expected local value to be \"foo\" but was \"%s\"", module.LocalValues["local_value"].AsString())
+	}
+}
+
+func TestContext2Apply_mockProvider(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+provider "test" {}
+
+data "test_object" "foo" {}
+
+resource "test_object" "foo" {
+	value = data.test_object.foo.output
+}
+`,
+	})
+
+	// Manually mark the provider config as being mocked.
+	m.Module.ProviderConfigs["test"].Mock = true
+	m.Module.ProviderConfigs["test"].MockData = &configs.MockData{
+		MockDataSources: map[string]*configs.MockResource{
+			"test_object": {
+				Mode: addrs.DataResourceMode,
+				Type: "test_object",
+				Defaults: cty.ObjectVal(map[string]cty.Value{
+					"output": cty.StringVal("expected data output"),
+				}),
+			},
+		},
+		MockResources: map[string]*configs.MockResource{
+			"test_object": {
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_object",
+				Defaults: cty.ObjectVal(map[string]cty.Value{
+					"output": cty.StringVal("expected resource output"),
+				}),
+			},
+		},
+	}
+
+	testProvider := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Type:     cty.String,
+								Required: true,
+							},
+							"output": {
+								Type:     cty.String,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
+			DataSources: map[string]providers.Schema{
+				"test_object": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"output": {
+								Type:     cty.String,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	reachedReadDataSourceFn := false
+	reachedPlanResourceChangeFn := false
+	reachedApplyResourceChangeFn := false
+	testProvider.ReadDataSourceFn = func(request providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		reachedReadDataSourceFn = true
+		cfg := request.Config.AsValueMap()
+		cfg["output"] = cty.StringVal("unexpected data output")
+		resp.State = cty.ObjectVal(cfg)
+		return resp
+	}
+	testProvider.PlanResourceChangeFn = func(request providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		reachedPlanResourceChangeFn = true
+		cfg := request.Config.AsValueMap()
+		cfg["output"] = cty.UnknownVal(cty.String)
+		resp.PlannedState = cty.ObjectVal(cfg)
+		return resp
+	}
+	testProvider.ApplyResourceChangeFn = func(request providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		reachedApplyResourceChangeFn = true
+		cfg := request.Config.AsValueMap()
+		cfg["output"] = cty.StringVal("unexpected resource output")
+		resp.NewState = cty.ObjectVal(cfg)
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("expected no errors, but got %s", diags)
+	}
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("expected no errors, but got %s", diags)
+	}
+
+	// Check we never made it to the actual provider.
+	if reachedReadDataSourceFn {
+		t.Errorf("read the data source in the provider when it should have been mocked")
+	}
+	if reachedPlanResourceChangeFn {
+		t.Errorf("planned the resource in the provider when it should have been mocked")
+	}
+	if reachedApplyResourceChangeFn {
+		t.Errorf("applied the resource in the provider when it should have been mocked")
+	}
+
+	// Check we got the right data back from our mocked provider.
+	instance := state.ResourceInstance(mustResourceInstanceAddr("test_object.foo"))
+	expected := "{\"output\":\"expected resource output\",\"value\":\"expected data output\"}"
+	if diff := cmp.Diff(string(instance.Current.AttrsJSON), expected); len(diff) > 0 {
+		t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expected, string(instance.Current.AttrsJSON), diff)
 	}
 }

@@ -53,7 +53,11 @@ directory instead. If you provide a file, then `fmt` will process just that
 file. If you provide a single dash (`-`), then `fmt` will read from standard
 input (STDIN).
 
-The command-line flags are all optional. The following flags are available:
+
+The command-line flags are all optional. If no flag is given, `fmt` rewrites
+the Terraform configuration files to a canonical format and style.
+
+The following flags are available:
 
 * `-list=false` - Don't list the files containing formatting inconsistencies.
 * `-write=false` - Don't overwrite the input files. (This is implied by `-check` or when the input is STDIN.)

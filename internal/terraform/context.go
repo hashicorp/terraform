@@ -42,6 +42,23 @@ type ContextOpts struct {
 	Providers    map[addrs.Provider]providers.Factory
 	Provisioners map[string]provisioners.Factory
 
+	// PreloadedProviderSchemas is an optional map of provider schemas that
+	// were already loaded from providers by the caller. This is intended
+	// to avoid redundant re-fetching of schemas when the caller has already
+	// loaded them for some other reason.
+	//
+	// The preloaded schemas do not need to be exhaustive. Terraform will
+	// use a preloaded schema if available, or will load a schema directly from
+	// a provider if no preloaded schema is available.
+	//
+	// The caller MUST ensure that the given schemas exactly match those that
+	// would be returned from a running provider of the given type or else the
+	// runtime behavior is likely to be erratic.
+	//
+	// Callers must not access (read or write) the given map once it has
+	// been passed to Terraform Core using this field.
+	PreloadedProviderSchemas map[addrs.Provider]providers.ProviderSchema
+
 	UIInput UIInput
 }
 
@@ -128,7 +145,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		par = 10
 	}
 
-	plugins := newContextPlugins(opts.Providers, opts.Provisioners)
+	plugins := newContextPlugins(opts.Providers, opts.Provisioners, opts.PreloadedProviderSchemas)
 
 	log.Printf("[TRACE] terraform.NewContext: complete")
 
@@ -354,6 +371,16 @@ func (c *Context) checkConfigDependencies(config *configs.Config) tfdiags.Diagno
 	}
 	for providerAddr := range providerReqs {
 		if !c.plugins.HasProvider(providerAddr) {
+			if c.plugins.HasPreloadedSchemaForProvider(providerAddr) {
+				// If the caller provided a preloaded schema for this provider
+				// then we'll take that as a hint that the caller is intending
+				// to handle some of these pre-validation tasks itself and
+				// so we'll just optimistically assume that the caller
+				// has arranged for this to work some other way, or will
+				// return its own version of this error before calling
+				// into here if not.
+				continue
+			}
 			if !providerAddr.IsBuiltIn() {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,

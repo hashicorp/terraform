@@ -241,6 +241,14 @@ func mustReference(s string) *addrs.Reference {
 	return p
 }
 
+func mustModuleInstance(s string) addrs.ModuleInstance {
+	p, diags := addrs.ParseModuleInstanceStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return p
+}
+
 // HookRecordApplyOrder is a test hook that records the order of applies
 // by recording the PreApply event.
 type HookRecordApplyOrder struct {
@@ -255,7 +263,7 @@ type HookRecordApplyOrder struct {
 	l sync.Mutex
 }
 
-func (h *HookRecordApplyOrder) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (h *HookRecordApplyOrder) PreApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	if plannedNewState.RawEquals(priorState) {
 		return HookActionContinue, nil
 	}

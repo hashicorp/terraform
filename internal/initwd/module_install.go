@@ -17,6 +17,7 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
@@ -310,7 +311,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, mani
 		})
 	}
 
-	cfg, cDiags := configs.BuildConfig(rootMod, walker)
+	cfg, cDiags := configs.BuildConfig(rootMod, walker, configs.MockDataLoaderFunc(i.loader.LoadExternalMockData))
 	diags = diags.Append(cDiags)
 	if installErrsOnly {
 		// We can't continue if there was an error during installation, but

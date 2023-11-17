@@ -5,18 +5,21 @@ package terraform
 
 import (
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // EvalContext is the interface that is given to eval nodes to execute.
@@ -41,7 +44,7 @@ type EvalContext interface {
 	// It is an error to initialize the same provider more than once. This
 	// method will panic if the module instance address of the given provider
 	// configuration does not match the Path() of the EvalContext.
-	InitProvider(addr addrs.AbsProviderConfig) (providers.Interface, error)
+	InitProvider(addr addrs.AbsProviderConfig, configs *configs.Provider) (providers.Interface, error)
 
 	// Provider gets the provider instance with the given address (already
 	// initialized) or returns nil if the provider isn't initialized.
@@ -200,6 +203,10 @@ type EvalContext interface {
 	// thereafter, so callers must not modify the returned map or any other
 	// objects accessible through it.
 	MoveResults() refactoring.MoveResults
+
+	// Overrides contains the modules and resources we should mock as part of
+	// this execution.
+	Overrides() *mocking.Overrides
 
 	// WithPath returns a copy of the context with the internal path set to the
 	// path argument.

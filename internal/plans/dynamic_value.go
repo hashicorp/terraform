@@ -24,6 +24,12 @@ import (
 // The zero value of DynamicValue is nil, and represents the absense of a
 // value within the Go type system. This is distinct from a cty.NullVal
 // result, which represents the absense of a value within the cty type system.
+//
+// The current format for DynamicValue is cty's MessagePack encoding of the
+// value. External callers are not allowed to depend on that, but note that
+// our internal stackplan package -- its value serialization code in
+// particular -- _does_ rely on that, and so will need to be updated if we
+// switch to a different serialization in future.
 type DynamicValue []byte
 
 // NewDynamicValue creates a DynamicValue by serializing the given value

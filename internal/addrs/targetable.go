@@ -6,6 +6,8 @@ package addrs
 // Targetable is an interface implemented by all address types that can be
 // used as "targets" for selecting sub-graphs of a graph.
 type Targetable interface {
+	UniqueKeyer
+
 	targetableSigil()
 
 	// TargetContains returns true if the receiver is considered to contain
