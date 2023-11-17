@@ -111,7 +111,7 @@ The generated data depends on the type of the underlying attributes:
 
 The above rules are consistent regardless of the type of the mocked provider, so a mocked `aws` and a mocked `google` provider apply the same rules when generating data.
 
-Mocked providers only generate data for **computed** attributes, any attributes that are expected to be set in the configuration for a real provider must also be set for a mocked provider. Any optional and computed attributes will only be generated if the configuration does not already contain a value for them. An example of this is the `bucket` attribute in the `aws_s3_bucket` resource. A real AWS provider will generate a bucket name if one is not specified. A mocked AWS provider will do the same, and only generate a value if one is not already specified within the configuration.
+Mocked providers only generate data for **computed** attributes. All required resource attributes must be set when using a mocked provider, as when using a real provider. Any optional and computed attributes will only be generated if the configuration does not already contain a value for them. An example of this is the `bucket` attribute in the `aws_s3_bucket` resource. A real AWS provider will generate a bucket name if one is not specified. A mocked AWS provider will do the same, and only generate a value if one is not already specified within the configuration.
 
 ### Mock Provider data
 
@@ -361,6 +361,6 @@ mock_resource "aws_dynamodb_table" {
 }
 ```
 
-In this case, the `mock_resource` provides a specific value for ARN returned for the main table, but the ARN values returned for the replica tables are shared between all instances. It is not currently possible to specify values for specific instances within repeated blocks during `terraform test` executions.
+In this case, the `mock_resource` provides a specific value for the ARN returned for the main table, but the ARN values returned for the replica tables are shared between all instances. It is not currently possible to specify values for specific instances within repeated blocks during `terraform test` executions.
 
 The reason for this behaviour is that it is not possible for Terraform to match repeated blocks in a set between the configuration and the specified values from the mock or override block. Terraform has no way to resolve which instance within the values should apply to which instance within the configuration, so a single instance must apply to all values within the collection.
