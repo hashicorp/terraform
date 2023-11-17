@@ -182,7 +182,7 @@ For ease of consumption by callers, the plan representation includes a partial r
       //
       // If there is no special reason to note, Terraform will omit this
       // property altogether.
-      action_reason: "replace_because_tainted"
+      "action_reason": "replace_because_tainted"
     }
   ],
 
@@ -610,7 +610,14 @@ A `<change-representation>` describes the change to the indicated object.
   // replacement (for example, if the resource was tainted). Each path
   // consists of one or more steps, each of which will be a number or a
   // string.
-  "replace_paths": [["triggers"]]
+  "replace_paths": [["triggers"]],
+
+  // "importing" is present only when the object is being imported as part
+  // of this change.
+  "importing": {
+    // "id" is the import ID of the object being imported.
+    "id": "foo"
+  }
 }
 ```
 
