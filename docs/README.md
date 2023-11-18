@@ -31,6 +31,9 @@ to [the main Terraform CLI documentation](https://www.terraform.io/docs/cli/inde
   This documentation is for SDK developers, and is not necessary reading for
   those implementing a provider using the official SDK.
 
+* [Terraform Core RPC API](../internal/rpcapi/README.md): an integration point
+  for external software that needs to integrate Terraform Core functionality.
+
 * [How Terraform Uses Unicode](./unicode.md): an overview of the various
   features of Terraform that rely on Unicode and how to change those features
   to adopt new versions of Unicode.
