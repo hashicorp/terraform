@@ -8,9 +8,14 @@ to [the main Terraform CLI documentation](https://www.terraform.io/docs/cli/inde
 
 ## Terraform Core Architecture Documents
 
-* [Terraform Core Architecture Summary](./architecture.md): an overview of the
-  main components of Terraform Core and how they interact. This is the best
-  starting point if you are diving in to this codebase for the first time.
+* [Modules Runtime Architecture Summary](./architecture.md): an overview of the
+  main components of Terraform Core related to planning and applying modules.
+  This is the best starting point if you are diving in to this codebase for the
+  first time.
+
+* [Stacks Runtime Architecture Summary](../internal/stacks/README.md): an
+  overview of the main components of Terraform Core related to planning and
+  applying stack configurations.
 
 * [Resource Instance Change Lifecycle](./resource-instance-change-lifecycle.md):
   a description of the steps in validating, planning, and applying a change
