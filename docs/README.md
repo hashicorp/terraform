@@ -35,6 +35,9 @@ to [the main Terraform CLI documentation](https://www.terraform.io/docs/cli/inde
   features of Terraform that rely on Unicode and how to change those features
   to adopt new versions of Unicode.
 
+* [Deadlock-free Promises](../internal/promising/README.md): a utility package
+  used by the Terraform Stacks runtime to coordinate its concurrent work.
+
 ## Contribution Guides
 
 * [Contributing to Terraform](../.github/CONTRIBUTING.md): a complete guideline for those who want to contribute to this project.
