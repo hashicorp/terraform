@@ -263,6 +263,10 @@ func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceRespo
 	return response
 }
 
+func (m *Mock) CallFunction(request CallFunctionRequest) CallFunctionResponse {
+	return m.Provider.CallFunction(request)
+}
+
 func (m *Mock) Close() error {
 	return m.Provider.Close()
 }
