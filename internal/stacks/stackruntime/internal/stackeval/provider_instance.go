@@ -434,6 +434,10 @@ func (stubConfiguredProvider) ReadResource(req providers.ReadResourceRequest) pr
 	}
 }
 
+func (stubConfiguredProvider) CallFunction(providers.CallFunctionRequest) providers.CallFunctionResponse {
+	panic("CallFunction should not be called on stubConfiguredProvider")
+}
+
 // Stop implements providers.Interface.
 func (stubConfiguredProvider) Stop() error {
 	// This stub provider never actually does any real work, so there's nothing
