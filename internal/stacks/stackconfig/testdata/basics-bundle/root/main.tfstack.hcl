@@ -1,10 +1,11 @@
-stack "nested" {
-  source  = "example.com/awesomecorp/nested/happycloud"
-  version = "< 2.0.0"
+component "a" {
+  source = "./component"
 
   inputs = {
-    name     = var.name
-    provider = provider.null.a
+    name = var.name
+  }
+  providers = {
+    null = var.provider
   }
 }
 

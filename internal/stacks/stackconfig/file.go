@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	hcljson "github.com/hashicorp/hcl/v2/json"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -93,11 +94,12 @@ func DecodeFileBody(body hcl.Body, fileAddr sourceaddrs.FinalSource) (*File, tfd
 			)
 
 		case "stack":
-			decl, moreDiags := decodeEmbeddedStackBlock(block)
-			diags = diags.Append(moreDiags)
-			diags = diags.Append(
-				ret.Declarations.addEmbeddedStack(decl),
-			)
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid block type",
+				Detail:   "The \"stack\" block type is reserved for future versions of the Terraform stacks language.",
+				Subject:  block.TypeRange.Ptr(),
+			})
 
 		case "variable":
 			decl, moreDiags := decodeInputVariableBlock(block)

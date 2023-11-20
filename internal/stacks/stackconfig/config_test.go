@@ -4,6 +4,8 @@
 package stackconfig
 
 import (
+	"os"
+	"path"
 	"testing"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
@@ -70,4 +72,38 @@ func TestLoadConfigDirBasics(t *testing.T) {
 		})
 	})
 	// TODO: More thorough testing!
+}
+
+func TestLoadConfigDir_InvalidStacks(t *testing.T) {
+	entries, err := os.ReadDir("testdata/invalid-stacks")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedErrorMessages := map[string]string{
+		"embedded-stack": "The \"stack\" block type is reserved for future versions of the Terraform stacks language.",
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			t.Run(entry.Name(), func(t *testing.T) {
+				bundle, err := sourcebundle.OpenDir(path.Join("testdata/invalid-stacks", entry.Name()))
+				if err != nil {
+					t.Fatal(err)
+				}
+				rootAddr := sourceaddrs.MustParseSource("git::https://example.com/root.git").(sourceaddrs.RemoteSource)
+
+				_, diags := LoadConfigDir(rootAddr, bundle)
+				if !diags.HasErrors() {
+					t.Fatalf("expected errors but found none")
+				}
+
+				if expected, ok := expectedErrorMessages[entry.Name()]; ok {
+					if expected != diags[0].Description().Detail {
+						t.Errorf("expected: %s\nactual:    %s", expected, diags[0].Description().Detail)
+					}
+				}
+			})
+		}
+	}
 }
