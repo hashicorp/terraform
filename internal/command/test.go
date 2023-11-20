@@ -130,6 +130,10 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	}
 	c.variableArgs = rawFlags{items: &items}
 
+	// Collect variables for "terraform test"
+	testVariables, variableDiags := c.collectVariableValuesForTests(args.TestDirectory)
+	diags = diags.Append(variableDiags)
+
 	variables, variableDiags := c.collectVariableValues()
 	diags = diags.Append(variableDiags)
 	if variableDiags.HasErrors() {
@@ -197,6 +201,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		runner = &local.TestSuiteRunner{
 			Config:          config,
 			GlobalVariables: variables,
+			GlobalTestVariables: testVariables,
 			Opts:            opts,
 			View:            view,
 			Stopped:         false,

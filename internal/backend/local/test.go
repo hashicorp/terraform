@@ -39,6 +39,7 @@ type TestSuiteRunner struct {
 	Config *configs.Config
 
 	GlobalVariables map[string]backend.UnparsedVariableValue
+	GlobalTestVariables map[string]backend.UnparsedVariableValue
 	Opts            *terraform.ContextOpts
 
 	View views.Test
@@ -1055,26 +1056,50 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 		diags = diags.Append(valueDiags)
 	}
 
-	// Second, we'll check the run level variables.
+	// We need to also process all global variables for tests
+	for name, value := range runner.Suite.GlobalTestVariables {
+		if !relevantVariables[name] {
+			// Then this run block doesn't need this value.
+			continue
+		}
+
+		// By default, we parse global variables as HCL inputs.
+		parsingMode := configs.VariableParseHCL
+
+		cfg, exists := config.Module.Variables[name]
+		if exists {
+			// Unless we have some configuration that can actually tell us
+			// what parsing mode to use.
+			parsingMode = cfg.ParsingMode
+		}
+
+		var valueDiags tfdiags.Diagnostics
+		values[name], valueDiags = value.ParseVariableValue(parsingMode)
+		diags = diags.Append(valueDiags)
+	}
+
+	// Second, we'll check the file level variables.
+	for name, expr := range file.Config.Variables {
+		if !relevantVariables[name] {
+			continue
+		}
+
+		value, valueDiags := expr.Value(nil)
+		diags = diags.Append(valueDiags)
+
+		values[name] = &terraform.InputValue{
+			Value:       value,
+			SourceType:  terraform.ValueFromConfig,
+			SourceRange: tfdiags.SourceRangeFromHCL(expr.Range()),
+		}
+	}
+
+	// Third, we'll check the run level variables.
 
 	// This is a bit more complicated, as the run level variables can reference
 	// previously defined variables.
 
-	// Preload the available expressions, we're going to validate them when we
-	// build the context.
-	var exprs []hcl.Expression
-	for _, expr := range run.Config.Variables {
-		exprs = append(exprs, expr)
-	}
-
-	// Preformat the variables we've processed already - these will be made
-	// available to the eval context.
-	variables := make(map[string]cty.Value)
-	for name, value := range values {
-		variables[name] = value.Value
-	}
-
-	ctx, ctxDiags := hcltest.EvalContext(hcltest.TargetRunBlock, exprs, variables, runner.PriorStates)
+	ctx, ctxDiags := runner.ctx(run, file, values)
 	diags = diags.Append(ctxDiags)
 
 	var failedContext bool

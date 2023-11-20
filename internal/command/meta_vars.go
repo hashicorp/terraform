@@ -23,6 +23,38 @@ import (
 // for root module input variables.
 const VarEnvPrefix = "TF_VAR_"
 
+// collectVariableValuesForTests inspects the various places that test
+// values can come from and constructs a map ready to be passed to the
+// backend as part of a backend.Operation.
+//
+// This method returns diagnostics relating to the collection of the values,
+// but the values themselves may produce additional diagnostics when finally
+// parsed.
+func (m *Meta) collectVariableValuesForTests(testsFilePath string) (map[string]backend.UnparsedVariableValue, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ret := map[string]backend.UnparsedVariableValue{}
+
+	// We collect the variables from the ./tests directory
+	// there is no other need to process environmental variables 
+	// as this is done via collectVariableValues function
+	var testsVarsFilename string
+	if testsFilePath == "" {
+		testsVarsFilename = "tests/setup/" + DefaultVarsFilename
+	} else {
+		testsVarsFilename = testsVarsFilename + "/setup/" + DefaultVarsFilename
+	}
+	
+	if _, err := os.Stat(testsVarsFilename); err == nil {
+		moreDiags := m.addVarsFromFile(testsVarsFilename, terraform.ValueFromAutoFile, ret)
+		diags = diags.Append(moreDiags)
+	}
+
+	// Also, no need to additionally process variables from command line,
+	// as this is also done via collectVariableValues
+
+	return ret, diags
+}
+
 // collectVariableValues inspects the various places that root module input variable
 // values can come from and constructs a map ready to be passed to the
 // backend as part of a backend.Operation.
