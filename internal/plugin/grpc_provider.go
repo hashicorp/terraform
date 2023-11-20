@@ -141,6 +141,13 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		resp.DataSources[name] = convert.ProtoToProviderSchema(data)
 	}
 
+	if decls, err := convert.FunctionDeclsFromProto(protoResp.Functions); err == nil {
+		resp.Functions = decls
+	} else {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
 	if protoResp.ServerCapabilities != nil {
 		resp.ServerCapabilities.PlanDestroy = protoResp.ServerCapabilities.PlanDestroy
 		resp.ServerCapabilities.GetProviderSchemaOptional = protoResp.ServerCapabilities.GetProviderSchemaOptional
@@ -679,11 +686,74 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 }
 
 func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
-	// Protocol version 5 doesn't support provider-contributed functions,
-	// and so providers of this protocol cannot possibly declare any functions
-	// in their schemas and thus if we get in here it'd be a bug in Terraform
-	// Core trying to call a function that we didn't actually declare.
-	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("can't call provider-contributed functions via protocol version 5"))
+	logger.Trace("GRPCProvider", "CallFunction", r.FunctionName)
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	funcDecl, ok := schema.Functions[r.FunctionName]
+	// We check for various problems with the request below in the interests
+	// of robustness, just to avoid crashing while trying to encode/decode, but
+	// if we reach any of these errors then that suggests a bug in the caller,
+	// because we should catch function calls that don't match the schema at an
+	// earlier point than this.
+	if !ok {
+		// Should only get here if the caller has a bug, because we should
+		// have detected earlier any attempt to call a function that the
+		// provider didn't declare.
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("provider has no function named %q", r.FunctionName))
+		return resp
+	}
+	if len(r.Arguments) < len(funcDecl.Parameters) {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("not enough arguments for function %q", r.FunctionName))
+		return resp
+	}
+	if funcDecl.VariadicParameter == nil && len(r.Arguments) > len(funcDecl.Parameters) {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("too many arguments for function %q", r.FunctionName))
+		return resp
+	}
+	args := make([]*proto.DynamicValue, len(r.Arguments))
+	for i, argVal := range r.Arguments {
+		var paramDecl providers.FunctionParam
+		if i < len(funcDecl.Parameters) {
+			paramDecl = funcDecl.Parameters[i]
+		} else {
+			paramDecl = *funcDecl.VariadicParameter
+		}
+
+		argValRaw, err := msgpack.Marshal(argVal, paramDecl.Type)
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		args[i] = &proto.DynamicValue{
+			Msgpack: argValRaw,
+		}
+	}
+
+	protoResp, err := p.client.CallFunction(p.ctx, &proto.CallFunction_Request{
+		Name:      r.FunctionName,
+		Arguments: args,
+	})
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+
+	resultVal, err := decodeDynamicValue(protoResp.Result, funcDecl.ReturnType)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	resp.Result = resultVal
 	return resp
 }
 
