@@ -6,6 +6,7 @@ package simple
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -47,6 +48,23 @@ func Provider() providers.Interface {
 			},
 			ServerCapabilities: providers.ServerCapabilities{
 				PlanDestroy: true,
+			},
+			Functions: map[string]providers.FunctionDecl{
+				"noop": providers.FunctionDecl{
+					Parameters: []providers.FunctionParam{
+						{
+							Name:               "noop",
+							Type:               cty.DynamicPseudoType,
+							AllowNullValue:     true,
+							AllowUnknownValues: true,
+							Description:        "any value",
+							DescriptionKind:    configschema.StringPlain,
+						},
+					},
+					ReturnType:      cty.DynamicPseudoType,
+					Description:     "noop takes any single argument and returns the same value",
+					DescriptionKind: configschema.StringPlain,
+				},
 			},
 		},
 	}
@@ -137,9 +155,13 @@ func (s simple) ReadDataSource(req providers.ReadDataSourceRequest) (resp provid
 }
 
 func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
-	// Our schema doesn't include any functions, so it should be impossible
-	// to get in here.
-	panic("CallFunction on provider that didn't declare any functions")
+	if req.FunctionName != "noop" {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("CallFunction for undefined function %q", req.FunctionName))
+		return resp
+	}
+
+	resp.Result = req.Arguments[0]
+	return resp
 }
 
 func (s simple) Close() error {
