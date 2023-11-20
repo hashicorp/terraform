@@ -37,6 +37,7 @@ type TestSuiteRunner struct {
 	Config *configs.Config
 
 	GlobalVariables map[string]backend.UnparsedVariableValue
+	GlobalTestVariables map[string]backend.UnparsedVariableValue
 	Opts            *terraform.ContextOpts
 
 	View views.Test
@@ -1004,6 +1005,28 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 
 	// First, let's look at the global variables.
 	for name, value := range runner.Suite.GlobalVariables {
+		if !relevantVariables[name] {
+			// Then this run block doesn't need this value.
+			continue
+		}
+
+		// By default, we parse global variables as HCL inputs.
+		parsingMode := configs.VariableParseHCL
+
+		cfg, exists := config.Module.Variables[name]
+		if exists {
+			// Unless we have some configuration that can actually tell us
+			// what parsing mode to use.
+			parsingMode = cfg.ParsingMode
+		}
+
+		var valueDiags tfdiags.Diagnostics
+		values[name], valueDiags = value.ParseVariableValue(parsingMode)
+		diags = diags.Append(valueDiags)
+	}
+
+	// We need to also process all global variables for tests
+	for name, value := range runner.Suite.GlobalTestVariables {
 		if !relevantVariables[name] {
 			// Then this run block doesn't need this value.
 			continue
