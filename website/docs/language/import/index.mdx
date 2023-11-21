@@ -36,14 +36,14 @@ The above `import` block defines an import of the AWS instance with the ID "i-ab
 
 The `import` block has the following arguments:
  - `to` - The instance address this resource will have in your state file.
- - `id` - A string with the [import ID](#import-id) of the resource.
+ - `id` - A string with the [import ID](#import-id) of the resource, or an expression that evaluates to a string.
  - `provider` (optional) - An optional custom resource provider, see [The Resource provider Meta-Argument](/terraform/language/meta-arguments/resource-provider) for details.
 
 If you do not set the `provider` argument, Terraform attempts to import from the default provider. 
 
 ### Import ID
 
-The import block's `id` argument can be a literal string of your resource's import ID, or an expression that evaluates to a string. Terraform needs this import ID to locate the resource you want to import.
+The import block's `id` argument can be a literal string of your resource's import ID, or an expression that evaluates to a string, such as `var.instance_id`. Terraform needs this import ID to locate the resource you want to import.
 
 The import ID must be known at plan time for planning to succeed. If the value of `id` is only known after apply, `terraform plan` will fail with an error.
 
