@@ -51,6 +51,7 @@ var (
 // represents the relative form given directly in configuration.
 type ConfigMoveable interface {
 	configMoveableSigil()
+	UniqueKeyer
 }
 
 // The following are all of the possible ConfigMoveable address types:

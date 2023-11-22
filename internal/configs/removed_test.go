@@ -58,7 +58,7 @@ func TestRemovedBlock_decode(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Removed{
-				From:      mustMoveEndpointFromExpr(foo_expr),
+				From:      mustRemoveEndpointFromExpr(foo_expr),
 				Destroy:   true,
 				DeclRange: blockRange,
 			},
@@ -91,7 +91,7 @@ func TestRemovedBlock_decode(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Removed{
-				From:      mustMoveEndpointFromExpr(foo_expr),
+				From:      mustRemoveEndpointFromExpr(foo_expr),
 				Destroy:   false,
 				DeclRange: blockRange,
 			},
@@ -124,7 +124,7 @@ func TestRemovedBlock_decode(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Removed{
-				From:      mustMoveEndpointFromExpr(mod_foo_expr),
+				From:      mustRemoveEndpointFromExpr(mod_foo_expr),
 				Destroy:   true,
 				DeclRange: blockRange,
 			},
@@ -145,7 +145,7 @@ func TestRemovedBlock_decode(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Removed{
-				From:      mustMoveEndpointFromExpr(foo_expr),
+				From:      mustRemoveEndpointFromExpr(foo_expr),
 				Destroy:   true,
 				DeclRange: blockRange,
 			},
@@ -204,11 +204,11 @@ func TestRemovedBlock_decode(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Removed{
-				From:      mustMoveEndpointFromExpr(foo_index_expr),
+				From:      nil,
 				Destroy:   true,
 				DeclRange: blockRange,
 			},
-			`No`,
+			`Resource instance keys not allowed`,
 		},
 		"error: indexed module instance": {
 			&hcl.Block{
@@ -237,11 +237,11 @@ func TestRemovedBlock_decode(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Removed{
-				From:      mustMoveEndpointFromExpr(mod_foo_index_expr),
+				From:      nil,
 				Destroy:   true,
 				DeclRange: blockRange,
 			},
-			`No`,
+			`Module instance keys not allowed`,
 		},
 	}
 
@@ -265,4 +265,18 @@ func TestRemovedBlock_decode(t *testing.T) {
 			}
 		})
 	}
+}
+
+func mustRemoveEndpointFromExpr(expr hcl.Expression) *addrs.RemoveTarget {
+	traversal, hcldiags := hcl.AbsTraversalForExpr(expr)
+	if hcldiags.HasErrors() {
+		panic(hcldiags.Errs())
+	}
+
+	ep, diags := addrs.ParseRemoveTarget(traversal)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+
+	return ep
 }
