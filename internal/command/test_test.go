@@ -197,6 +197,10 @@ func TestTest(t *testing.T) {
 			expected: "5 passed, 0 failed.",
 			code:     0,
 		},
+		"dangling_data": {
+			expected: "2 passed, 0 failed.",
+			code:     0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

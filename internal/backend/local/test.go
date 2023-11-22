@@ -603,8 +603,15 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 	// we care about.
 	setVariables, _ := runner.FilterVariablesToConfig(config, variables)
 
+	// We may have data sources that depend on other run blocks which can error
+	// when read if the other run block was destroyed first. We also don't
+	// particularly care about the resources here, we just want them destroyed
+	// so reducing the potential for error in any way is a good thing.
+	skipRefresh := true
+
 	planOpts := &terraform.PlanOpts{
 		Mode:         plans.DestroyMode,
+		SkipRefresh:  skipRefresh,
 		SetVariables: setVariables,
 		Overrides:    mocking.PackageOverrides(run.Config, file.Config, config),
 	}
