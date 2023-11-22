@@ -86,5 +86,6 @@ func openTelemetryInit() error {
 	pgtr := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
 	otel.SetTextMapPropagator(pgtr)
 
-	return nil
+	return nil added new content
+
 }
