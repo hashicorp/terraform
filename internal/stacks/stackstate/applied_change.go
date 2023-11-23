@@ -106,11 +106,15 @@ func (ac *AppliedChangeResourceInstanceObject) protosForObject(addr stackaddrs.A
 		// produce this object, using exactly the same schema.
 		return nil, nil, fmt.Errorf("cannot decode new state for %s in preparation for saving it: %w", addr, err)
 	}
-	encValue, err := plans.NewDynamicValue(obj.Value, ty)
+
+	// Separate out sensitive marks from the decoded value so we can re-serialize it
+	// with MessagePack. Sensitive paths get encoded separately in the final message.
+	unmarkedValue, sensitivePaths := obj.Value.UnmarkDeepWithPaths()
+	encValue, err := plans.NewDynamicValue(unmarkedValue, ty)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot encode new state for %s in preparation for saving it: %w", addr, err)
 	}
-	protoValue := terraform1.NewDynamicValue(encValue, objSrc.AttrSensitivePaths)
+	protoValue := terraform1.NewDynamicValue(encValue, sensitivePaths)
 
 	descs = append(descs, &terraform1.AppliedChange_ChangeDescription{
 		Key: objKeyRaw,
