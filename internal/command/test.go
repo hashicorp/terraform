@@ -5,6 +5,7 @@ package command
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"time"
@@ -99,6 +100,31 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	}
 
 	view := views.NewTest(args.ViewType, c.View)
+	var junitXMLView *views.TestJUnitXMLFile
+	if args.JUnitXMLFile != "" {
+		// JUnit XML output is currently experimental, so that we can gather
+		// feedback on exactly how we should map the test results to this
+		// JUnit-oriented format before anyone starts depending on it for real.
+		if !c.AllowExperimentalFeatures {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"JUnit XML output is not available",
+				"The -junit-xml option is currently experimental and therefore available only in alpha releases of Terraform CLI.",
+			))
+			view.Diagnostics(nil, nil, diags)
+			return 1
+		}
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"JUnit XML output is experimental",
+			"The -junit-xml option is currently experimental and therefore subject to breaking changes or removal, even in patch releases.",
+		))
+		junitXMLView = views.NewTestJUnitXMLFile(args.JUnitXMLFile)
+		view = views.TestMulti{
+			view,
+			junitXMLView,
+		}
+	}
 
 	// The specified testing directory must be a relative path, and it must
 	// point to a directory that is a descendent of the configuration directory.
@@ -276,6 +302,16 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		}
 	case <-runningCtx.Done():
 		// tests finished normally with no interrupts.
+	}
+
+	if junitXMLView != nil {
+		if err := junitXMLView.Err(); err != nil {
+			testDiags = testDiags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to write JUnit XML report",
+				fmt.Sprintf("Could not write the requested JUnit XML report: %s.", err),
+			))
+		}
 	}
 
 	view.Diagnostics(nil, nil, testDiags)
