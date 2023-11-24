@@ -239,7 +239,7 @@ locals {
 }
 
 resource "aws_instance" "server" {
-  for_each = local.subnet_ids
+  for_each = locals.subnet_ids
 
   ami           = "ami-a1b2c3d4"
   instance_type = "t2.micro"
