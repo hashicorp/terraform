@@ -18,7 +18,7 @@ require (
 	github.com/apparentlymart/go-versions v1.0.1
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/aws/aws-sdk-go-v2 v1.23.1
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.3
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.5
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.11.83
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.25.1
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.42.1
