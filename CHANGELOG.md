@@ -10,7 +10,10 @@ UPGRADE NOTES:
     * Users of Terraform 1.6.0 and later are unaffected.
  
   This is important for users with `terraform_remote_state` data sources reading remote state across different versions of Terraform.
-* `nonsensitive` function no longer errors when applied to values that are already not sensitive. ([#33856](https://github.com/hashicorp/terraform/issues/33856))
+* `nonsensitive` function no longer raises an error when applied to a value that is already non-sensitive. ([#33856](https://github.com/hashicorp/terraform/issues/33856))
+* `terraform graph` now produces a simplified graph describing only relationships between resources by default, for consistency with the granularity of information returned by other commands that emphasize resources as the main interesting object type and de-emphasize the other "glue" objects that connect them.
+
+    The type of graph that earlier versions of Terraform produced by default is still available with explicit use of the `-type=plan` option, producing an approximation of the real dependency graph Terraform Core would use to construct a plan.
 
 NEW FEATURES:
 
@@ -31,6 +34,7 @@ ENHANCEMENTS:
 * `terraform test`: Providers defined within test files can now reference variables from their configuration that are defined within the test file. ([#34069](https://github.com/hashicorp/terraform/issues/34069))
 * `terraform test`: Providers defined within test files can now reference outputs from run blocks. ([#34118](https://github.com/hashicorp/terraform/issues/34118))
 * `terraform test`: Terraform functions are now available within variables and provider blocks within test files. ([#34204](https://github.com/hashicorp/terraform/issues/34204))
+* `terraform graph`: Now produces a simplified resources-only graph by default. ([#34288](https://github.com/hashicorp/terraform/pull/34288))
 * `import`: `for_each` can now be used to expand the `import` block to handle multiple resource instances ([#33932](https://github.com/hashicorp/terraform/issues/33932))
 
 ## Previous Releases
