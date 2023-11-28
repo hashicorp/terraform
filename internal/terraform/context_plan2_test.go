@@ -2898,7 +2898,7 @@ resource "test_resource" "a" {
 			resp.LegacyTypeSystem = true
 			return resp
 		}
-		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 			Mode: plans.NormalMode,
 			SetVariables: InputValues{
 				"boop": &InputValue{
@@ -2915,6 +2915,27 @@ resource "test_resource" "a" {
 		}
 		if !p.PlanResourceChangeCalled {
 			t.Errorf("Provider's PlanResourceChange wasn't called; should've been")
+		}
+
+		if !plan.Errored {
+			t.Errorf("plan is not marked as errored")
+		}
+
+		// The plan should still include a proposed change for the resource
+		// instance whose postcondition failed, since its plan is valid in
+		// isolation even though the postcondition prevents any further
+		// planning downstream. This gives the UI the option of describing
+		// the planned change as additional context alongside the error
+		// message, although it's up to the UI to decide whether and how to
+		// do that.
+		changes := plan.Changes
+		changeSrc := changes.ResourceInstance(mustResourceInstanceAddr("test_resource.a"))
+		if changeSrc != nil {
+			if got, want := changeSrc.Action, plans.Create; got != want {
+				t.Errorf("wrong proposed change action\ngot:  %s\nwant: %s", got, want)
+			}
+		} else {
+			t.Errorf("no planned change for test_resource.a")
 		}
 	})
 

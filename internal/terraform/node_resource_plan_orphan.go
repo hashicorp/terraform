@@ -162,8 +162,6 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		if diags.HasErrors() {
 			return diags
 		}
-
-		diags = diags.Append(n.checkPreventDestroy(change))
 	}
 	if diags.HasErrors() {
 		return diags
@@ -174,9 +172,21 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	// sometimes not have a reason.)
 	change.ActionReason = n.deleteActionReason(ctx)
 
+	// We intentionally write the change before the subsequent checks, because
+	// all of the checks below this point are for problems caused by the
+	// context surrounding the change, rather than the change itself, and
+	// so it's helpful to still include the valid-in-isolation change as
+	// part of the plan as additional context in our error output.
 	diags = diags.Append(n.writeChange(ctx, change, ""))
 	if diags.HasErrors() {
 		return diags
+	}
+
+	if !forget {
+		diags = diags.Append(n.checkPreventDestroy(change))
+		if diags.HasErrors() {
+			return diags
+		}
 	}
 
 	return diags.Append(n.writeResourceInstanceState(ctx, nil, workingState))

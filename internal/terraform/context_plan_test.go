@@ -1390,6 +1390,30 @@ func TestContext2Plan_preventDestroy_bad(t *testing.T) {
 		}
 		t.Fatalf("expected err would contain %q\nerr: %s", expectedErr, err)
 	}
+
+	// The plan should still include the proposal to replace the object
+	// that cannot be destroyed, since the change is valid in isolation,
+	// and this then allows Terraform CLI and Terraform Cloud to still
+	// show the problematic change that caused the error as additional
+	// context.
+	changes := plan.Changes
+	changeSrc := changes.ResourceInstance(mustResourceInstanceAddr("aws_instance.foo"))
+	if changeSrc != nil {
+		if got, want := changeSrc.Action, plans.DeleteThenCreate; got != want {
+			t.Errorf("wrong proposed change action\ngot:  %s\nwant: %s", got, want)
+		}
+		gotReqRep := changeSrc.RequiredReplace
+		if !gotReqRep.Has(cty.GetAttrPath("require_new")) {
+			t.Errorf("plan does not indicate that the require_new change forced replacement")
+		}
+	} else {
+		t.Errorf("no planned change for aws_instance.foo")
+	}
+	// The plan must also be marked as errored, so that Terraform will reject
+	// any attempts to apply the plan with the forbidden replace action.
+	if got, want := plan.Errored, true; got != want {
+		t.Errorf("plan is not marked as errored\ngot:  %#v\nwant: %#v", got, want)
+	}
 }
 
 func TestContext2Plan_preventDestroy_good(t *testing.T) {
