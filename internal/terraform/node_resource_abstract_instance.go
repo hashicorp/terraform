@@ -177,7 +177,7 @@ func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema 
 	return change, nil
 }
 
-func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.ResourceInstanceChange) error {
+func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.ResourceInstanceChange) tfdiags.Diagnostics {
 	if change == nil || n.Config == nil || n.Config.Managed == nil {
 		return nil
 	}
@@ -195,7 +195,7 @@ func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.Resourc
 			),
 			Subject: &n.Config.DeclRange,
 		})
-		return diags.Err()
+		return diags
 	}
 
 	return nil
