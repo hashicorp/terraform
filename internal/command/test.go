@@ -200,8 +200,13 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	} else {
 		runner = &local.TestSuiteRunner{
 			Config:          config,
+			// The GlobalVariables are loaded from the
+			// main configuration directory
+			// The GlobalTestVariables are loaded from the
+			// test directory
 			GlobalVariables: variables,
 			GlobalTestVariables: testVariables,
+			TestingDirectory: args.TestDirectory,
 			Opts:            opts,
 			View:            view,
 			Stopped:         false,

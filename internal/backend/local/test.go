@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"path"
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -38,8 +39,13 @@ const (
 type TestSuiteRunner struct {
 	Config *configs.Config
 
+	TestingDirectory string
+
+	// Global variables comes from the main configuration directory,
+	// and the Global Test Variables are loaded from the test director.
 	GlobalVariables map[string]backend.UnparsedVariableValue
 	GlobalTestVariables map[string]backend.UnparsedVariableValue
+
 	Opts            *terraform.ContextOpts
 
 	View views.Test
@@ -1056,26 +1062,30 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 		diags = diags.Append(valueDiags)
 	}
 
-	// We need to also process all global variables for tests
-	for name, value := range runner.Suite.GlobalTestVariables {
-		if !relevantVariables[name] {
-			// Then this run block doesn't need this value.
-			continue
+	// We need to also process all global variables for tests.
+	// If we run "terrafrom test" from the testing directory itself,
+	// the filepath.Dir(file.Name) is equal to "." so we need to extend the logic
+	if filepath.Dir(file.Name) == runner.Suite.TestingDirectory || filepath.Dir(file.Name) == "."{
+		for name, value := range runner.Suite.GlobalTestVariables {
+			if !relevantVariables[name] {
+				// Then this run block doesn't need this value.
+				continue
+			}
+
+			// By default, we parse global variables as HCL inputs.
+			parsingMode := configs.VariableParseHCL
+
+			cfg, exists := config.Module.Variables[name]
+			if exists {
+				// Unless we have some configuration that can actually tell us
+				// what parsing mode to use.
+				parsingMode = cfg.ParsingMode
+			}
+
+			var valueDiags tfdiags.Diagnostics
+			values[name], valueDiags = value.ParseVariableValue(parsingMode)
+			diags = diags.Append(valueDiags)
 		}
-
-		// By default, we parse global variables as HCL inputs.
-		parsingMode := configs.VariableParseHCL
-
-		cfg, exists := config.Module.Variables[name]
-		if exists {
-			// Unless we have some configuration that can actually tell us
-			// what parsing mode to use.
-			parsingMode = cfg.ParsingMode
-		}
-
-		var valueDiags tfdiags.Diagnostics
-		values[name], valueDiags = value.ParseVariableValue(parsingMode)
-		diags = diags.Append(valueDiags)
 	}
 
 	// Second, we'll check the file level variables.

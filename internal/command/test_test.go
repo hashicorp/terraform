@@ -189,6 +189,10 @@ func TestTest(t *testing.T) {
 			expected: "4 passed, 0 failed.",
 			code:     0,
 		},
+		"tfvars_in_test_dir": {
+			expected: "2 passed, 0 failed.",
+			code:     0,
+		},
 		"functions_available": {
 			expected: "1 passed, 0 failed.",
 			code:     0,
