@@ -286,11 +286,12 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			change.ActionReason = plans.ResourceInstanceReplaceByTriggers
 		}
 
-		diags = diags.Append(n.checkPreventDestroy(change))
-		if diags.HasErrors() {
-			return diags
-		}
-
+		// We intentionally write the change before the subsequent checks, because
+		// all of the checks below this point are for problems caused by the
+		// context surrounding the change, rather than the change itself, and
+		// so it's helpful to still include the valid-in-isolation change as
+		// part of the plan as additional context in our error output.
+		//
 		// FIXME: it is currently important that we write resource changes to
 		// the plan (n.writeChange) before we write the corresponding state
 		// (n.writeResourceInstanceState).
@@ -306,8 +307,15 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		// update these two data structures incorrectly through any objects
 		// reachable via the terraform.EvalContext API.
 		diags = diags.Append(n.writeChange(ctx, change, ""))
-
+		if diags.HasErrors() {
+			return diags
+		}
 		diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, workingState))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		diags = diags.Append(n.checkPreventDestroy(change))
 		if diags.HasErrors() {
 			return diags
 		}
