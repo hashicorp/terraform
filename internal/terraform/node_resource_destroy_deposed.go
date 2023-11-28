@@ -42,9 +42,13 @@ type NodePlanDeposedResourceInstanceObject struct {
 	// for any instances.
 	skipPlanChanges bool
 
-	// forgetTargets lists resources that should not be destroyed, only removed
+	// forgetResources lists resources that should not be destroyed, only removed
 	// from state.
-	forgetTargets []addrs.ConfigResource
+	forgetResources []addrs.ConfigResource
+
+	// forgetModules lists modules that should not be destroyed, only removed
+	// from state.
+	forgetModules []addrs.Module
 }
 
 var (
@@ -134,8 +138,13 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 
 	if !n.skipPlanChanges {
 		var forget bool
-		for _, ft := range n.forgetTargets {
+		for _, ft := range n.forgetResources {
 			if ft.Equal(n.ResourceAddr()) {
+				forget = true
+			}
+		}
+		for _, fm := range n.forgetModules {
+			if fm.Equal(n.Addr.Module.Module()) {
 				forget = true
 			}
 		}

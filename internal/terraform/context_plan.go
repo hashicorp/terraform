@@ -89,9 +89,13 @@ type PlanOpts struct {
 	// will be added to the plan graph.
 	ImportTargets []*ImportTarget
 
-	// forgetTargets is a list of target resources that Terraform
+	// forgetResources is a list of target resources that Terraform
 	// will plan to remove from state.
-	forgetTargets []addrs.ConfigResource
+	forgetResources []addrs.ConfigResource
+
+	// forgetModules is a list of target modules that Terraform will plan to
+	// remove from state.
+	forgetModules []addrs.Module
 
 	// GenerateConfigPath tells Terraform where to write any generated
 	// configuration for any ImportTargets that do not have configuration
@@ -340,7 +344,7 @@ func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts 
 		panic(fmt.Sprintf("called Context.plan with %s", opts.Mode))
 	}
 
-	opts.ImportTargets = c.findImportTargets(config, prevRunState)
+	opts.ImportTargets = c.findImportTargets(config)
 	plan, walkDiags := c.planWalk(config, prevRunState, opts)
 	diags = diags.Append(walkDiags)
 
@@ -561,9 +565,9 @@ func (c *Context) postPlanValidateMoves(config *configs.Config, stmts []refactor
 	return refactoring.ValidateMoves(stmts, config, allInsts)
 }
 
-// findImportTargets builds a list of import targets by taking the import blocks
-// in the config and filtering out any that target a resource already in state.
-func (c *Context) findImportTargets(config *configs.Config, priorState *states.State) []*ImportTarget {
+// findImportTargets builds a list of import targets from any import blocks in
+// config.
+func (c *Context) findImportTargets(config *configs.Config) []*ImportTarget {
 	var importTargets []*ImportTarget
 	for _, ic := range config.Module.Import {
 		importTargets = append(importTargets, &ImportTarget{
@@ -590,14 +594,21 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		return nil, diags
 	}
 
-	// TODO KEM: Validation could be earlier
-	// first, make sure nothing targeted by a remove block is still in config
-	removeStmts := refactoring.FindRemoveStatements(config)
-	for _, rst := range removeStmts {
+	removeStmts, diags := refactoring.FindRemoveStatements(config)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	for _, rst := range removeStmts.Values() {
 		if rst.Destroy {
 			// no-op
 		} else {
-			opts.forgetTargets = append(opts.forgetTargets, *rst.From)
+			if fr, ok := rst.From.(addrs.ConfigResource); ok {
+				opts.forgetResources = append(opts.forgetResources, fr)
+			} else if fm, ok := rst.From.(addrs.Module); ok {
+				opts.forgetModules = append(opts.forgetModules, fm)
+			} else {
+				panic("Invalid ConfigMoveable type in remove statement")
+			}
 		}
 	}
 
@@ -718,7 +729,8 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Operation:          walkPlan,
 			ExternalReferences: opts.ExternalReferences,
 			ImportTargets:      opts.ImportTargets,
-			forgetTargets:      opts.forgetTargets,
+			forgetResources:    opts.forgetResources,
+			forgetModules:      opts.forgetModules,
 			GenerateConfigPath: opts.GenerateConfigPath,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
