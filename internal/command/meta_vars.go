@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -37,15 +38,29 @@ func (m *Meta) collectVariableValuesForTests(testsFilePath string) (map[string]b
 	// We collect the variables from the ./tests directory
 	// there is no other need to process environmental variables 
 	// as this is done via collectVariableValues function
-	var testsVarsFilename string
-	if testsFilePath == "" {
-		testsVarsFilename = "tests/setup/" + DefaultVarsFilename
-	} else {
-		testsVarsFilename = testsVarsFilename + "/setup/" + DefaultVarsFilename
+	if(testsFilePath == ""){
+		diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning, 
+				"Missing test directory", 
+				"The test directory was unspecified when it should always be set. This is a bug in Terraform - please report it."))
+		return ret,diags
 	}
-	
-	if _, err := os.Stat(testsVarsFilename); err == nil {
-		moreDiags := m.addVarsFromFile(testsVarsFilename, terraform.ValueFromAutoFile, ret)
+
+	// Firstly we collect variables from .tfvars file
+	testVarsFilename := filepath.Join(testsFilePath, DefaultVarsFilename)
+	fmt.Println(testVarsFilename)
+	if _, err := os.Stat(testVarsFilename); err == nil {
+		moreDiags := m.addVarsFromFile(testVarsFilename, terraform.ValueFromAutoFile, ret)
+		diags = diags.Append(moreDiags)
+
+	}
+
+	// Then we collect variables from .tfvars.json file
+	const defaultVarsFilenameJSON = DefaultVarsFilename + ".json"
+	testVarsFilenameJSON := filepath.Join(testsFilePath, defaultVarsFilenameJSON)
+
+	if _, err := os.Stat(testVarsFilenameJSON); err == nil {
+		moreDiags := m.addVarsFromFile(testVarsFilenameJSON, terraform.ValueFromAutoFile, ret)
 		diags = diags.Append(moreDiags)
 	}
 
