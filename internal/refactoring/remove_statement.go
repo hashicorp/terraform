@@ -34,11 +34,43 @@ type RemoveStatement struct {
 // A "removed" block in a parent module overrides a removed block in a child
 // module when both target the same configuration object.
 func FindRemoveStatements(rootCfg *configs.Config) (addrs.Map[addrs.ConfigMoveable, RemoveStatement], tfdiags.Diagnostics) {
-	return findRemoveStatements(rootCfg, addrs.MakeMap[addrs.ConfigMoveable, RemoveStatement]())
+	stmts := findRemoveStatements(rootCfg, addrs.MakeMap[addrs.ConfigMoveable, RemoveStatement]())
+	diags := validateRemoveStatements(rootCfg, stmts)
+	return stmts, diags
 }
 
-func findRemoveStatements(cfg *configs.Config, into addrs.Map[addrs.ConfigMoveable, RemoveStatement]) (addrs.Map[addrs.ConfigMoveable, RemoveStatement], tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
+func validateRemoveStatements(cfg *configs.Config, stmts addrs.Map[addrs.ConfigMoveable, RemoveStatement]) (diags tfdiags.Diagnostics) {
+	for _, rst := range stmts.Keys() {
+		switch rst := rst.(type) {
+		case addrs.ConfigResource:
+			m := cfg.Descendent(rst.Module)
+			if m == nil {
+				break
+			}
+
+			if r := m.Module.ResourceByAddr(rst.Resource); r != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Removed resource still exists",
+					Detail:   fmt.Sprintf("This statement declares that %s was removed, but it is still declared in configuration.", rst),
+					Subject:  r.DeclRange.Ptr(),
+				})
+			}
+		case addrs.Module:
+			if m := cfg.Descendent(rst); m != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Removed module still exists",
+					Detail:   fmt.Sprintf("This statement declares that %s was removed, but it is still declared in configuration.", rst),
+					Subject:  m.CallRange.Ptr(),
+				})
+			}
+		}
+	}
+	return diags
+}
+
+func findRemoveStatements(cfg *configs.Config, into addrs.Map[addrs.ConfigMoveable, RemoveStatement]) addrs.Map[addrs.ConfigMoveable, RemoveStatement] {
 	for _, mc := range cfg.Module.Removed {
 		switch mc.From.ObjectKind() {
 		case addrs.RemoveTargetResource:
@@ -98,8 +130,8 @@ func findRemoveStatements(cfg *configs.Config, into addrs.Map[addrs.ConfigMoveab
 	}
 
 	for _, childCfg := range cfg.Children {
-		into, diags = findRemoveStatements(childCfg, into)
+		into = findRemoveStatements(childCfg, into)
 	}
 
-	return into, diags
+	return into
 }

@@ -4473,3 +4473,144 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 		}
 	})
 }
+
+func TestContext2Plan_removedResourceErrorStillInConfig(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {}
+
+removed {
+  from = test_object.a
+  lifecycle {
+    destroy = false
+  }
+}
+`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		ForceReplace: []addrs.AbsResourceInstance{
+			addrA,
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatalf("unexpected success; want error")
+	}
+	if got, want := diags.Err().Error(), "Removed resource still exists"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error:\ngot: %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Plan_removedModuleErrorStillInConfigNested(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "a" {
+  source = "./mod"
+}
+
+removed {
+  from = module.a.test_object.a
+  lifecycle {
+    destroy = false
+  }
+}
+`,
+
+		"mod/main.tf": `
+resource "test_object" "a" {}
+`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		ForceReplace: []addrs.AbsResourceInstance{
+			addrA,
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatalf("unexpected success; want error")
+	}
+	if got, want := diags.Err().Error(), "Removed resource still exists"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error:\ngot: %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Plan_removedModuleErrorStillInConfig(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "a" {
+  source = "./mod"
+}
+
+removed {
+  from = module.a
+  lifecycle {
+    destroy = false
+  }
+}
+`,
+
+		"mod/main.tf": `
+resource "test_object" "a" {}
+`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		ForceReplace: []addrs.AbsResourceInstance{
+			addrA,
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatalf("unexpected success; want error")
+	}
+	if got, want := diags.Err().Error(), "Removed module still exists"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error:\ngot: %s\nwant: message containing %q", got, want)
+	}
+}

@@ -116,7 +116,10 @@ func TestFindRemoveStatements(t *testing.T) {
 		}),
 	)
 
-	got := FindRemoveStatements(rootCfg)
+	got, diags := FindRemoveStatements(rootCfg)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err().Error())
+	}
 
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("wrong result\n%s", diff)
