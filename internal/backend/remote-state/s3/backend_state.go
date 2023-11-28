@@ -45,7 +45,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 	params := &s3.ListObjectsV2Input{
 		Bucket:  aws.String(b.bucketName),
 		Prefix:  aws.String(prefix),
-		MaxKeys: maxKeys,
+		MaxKeys: aws.Int32(maxKeys),
 	}
 
 	wss := []string{backend.DefaultStateName}
