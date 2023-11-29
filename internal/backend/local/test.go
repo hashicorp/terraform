@@ -42,7 +42,7 @@ type TestSuiteRunner struct {
 	TestingDirectory string
 
 	// Global variables comes from the main configuration directory,
-	// and the Global Test Variables are loaded from the test director.
+	// and the Global Test Variables are loaded from the test directory.
 	GlobalVariables map[string]backend.UnparsedVariableValue
 	GlobalTestVariables map[string]backend.UnparsedVariableValue
 
