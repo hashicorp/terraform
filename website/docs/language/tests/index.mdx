@@ -618,15 +618,11 @@ run "loader" {
 
 #### Modules Cleanup
 
-At the conclusion of a test file, Terraform attempts to destroy every resource it created during the execution of that test file. When Terraform loads alternate modules, the order in which Terraform destroys those objects in is important. For example, in the first [Modules](#modules) example, we could not destroy the resources created in the "setup" `run` block before the objects created in the "execute" `run` block, because the S3 bucket we created in the "setup" step can not be destroyed while it contains objects.
+At the conclusion of a test file, Terraform attempts to destroy every resource it created during the execution of that test file. When Terraform loads alternate modules, the order in which Terraform destroys those objects in is important. For example, in the first [Modules](#modules) example, Terraform could not destroy the resources created in the "setup" `run` block before the objects created in the "execute" `run` block, because the S3 bucket we created in the "setup" step can not be destroyed while it contains objects.
 
-Terraform destroys resources in the following order, and this order is _important_ because it affects the structure of your testing files:
+Terraform destroys resources in reverse `run` block order. In the most recent [example](#modules-state), there are three state files. One for the main state, one for the `./testing/loader` module, and one for the `./testing/setup` module. The `./testing/loader` state file would be destroyed first as it was referenced most recently by the last run block. The main state file would be destroyed second as it was referenced by the "update" `run` block. The `./testing/setup` state file would then be destroyed last.
 
-1. Resources in the main state file. Do not create resources in alternate modules that depend on resources from your main configuration.
-   - Data sources can refer to objects in your main configuration, because Terraform does not have to destroy data sources.
-2. Resources created by alternate modules in reverse `run` block order.
-
-From our [example](#modules-state), any resources created in the "verify" `run` block would be destroyed before resources created in the "setup" `run` block. Note, that in our example this doesn't particularly matter as our "verify" `run` block only loads a data source and creates no resources.
+Note, that the first two `run` blocks "setup" and "init", do nothing during the destroy operations as their state files are used by later run blocks and have already been destroyed.
 
 If you use a single setup module as an alternate module, and it executes first, or you use no alternate modules, then the order of destruction does not affect you. Anything more complex may require careful consideration to make sure the destruction of resources can complete automatically.
 
