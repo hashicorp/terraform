@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -1587,6 +1588,172 @@ func TestContext2Plan_preventDestroy_destroyPlan(t *testing.T) {
 			t.Logf(legacyDiffComparisonString(plan.Changes))
 		}
 		t.Fatalf("expected diagnostics would contain %q\nactual diags: %s", expectedErr, diags.Err())
+	}
+}
+
+func TestContext2Plan_preventRemoval_bad(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `resource "aws_instance" "foo" { require_new = "yes" }`,
+	})
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:         states.ObjectReady,
+			AttrsJSON:      []byte(`{"id":"i-abc123","type":"aws_instance"}`),
+			PreventRemoval: true,
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan(m, state, DefaultPlanOpts)
+
+	expectedErr := "aws_instance.foo .* had lifecycle.prevent_removal set"
+	matched, _ := regexp.MatchString(expectedErr, fmt.Sprintf("%s", err))
+	if !matched {
+		if plan != nil {
+			t.Logf(legacyDiffComparisonString(plan.Changes))
+		}
+		t.Fatalf("expected err would match %q\nerr: %s", expectedErr, err)
+	}
+}
+
+func TestContext2Plan_preventRemoval_countBad(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "aws_instance" "foo" {
+				count = "1"
+				current = "${count.index}"
+			}
+		`,
+	})
+	p := testProvider("aws")
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:         states.ObjectReady,
+			AttrsJSON:      []byte(`{"id":"i-abc123","type":"aws_instance"}`),
+			PreventRemoval: true,
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:         states.ObjectReady,
+			AttrsJSON:      []byte(`{"id":"i-abc345","type":"aws_instance"}`),
+			PreventRemoval: true,
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan(m, state, DefaultPlanOpts)
+
+	expectedErr := `aws_instance.foo\[1\] .* had lifecycle.prevent_removal set`
+	matched, _ := regexp.MatchString(expectedErr, fmt.Sprintf("%s", err))
+	if !matched {
+		if plan != nil {
+			t.Logf(legacyDiffComparisonString(plan.Changes))
+		}
+		t.Fatalf("expected err would contain %q\nerr: %s", expectedErr, err)
+	}
+}
+
+func TestContext2Plan_preventRemoval_destroyPlan_bad(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `resource "aws_instance" "foo" {
+			lifecycle {
+				prevent_removal = true
+			}
+		}`,
+	})
+	p := testProvider("aws")
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:         states.ObjectReady,
+			AttrsJSON:      []byte(`{"id":"i-abc123","type":"aws_instance"}`),
+			PreventRemoval: true,
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+	})
+
+	expectedErr := "aws_instance.foo .* had lifecycle.prevent_removal set"
+	matched, _ := regexp.MatchString(expectedErr, fmt.Sprintf("%s", diags.Err()))
+	if !matched {
+		if plan != nil {
+			t.Logf(legacyDiffComparisonString(plan.Changes))
+		}
+		t.Fatalf("expected diagnostics would contain %q\nactual diags: %s", expectedErr, diags.Err())
+	}
+}
+
+func TestContext2Plan_preventRemoval_destroyPlan_good1(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `resource "aws_instance" "foo" {}`,
+	})
+	p := testProvider("aws")
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:         states.ObjectReady,
+			AttrsJSON:      []byte(`{"id":"i-abc123","type":"aws_instance"}`),
+			PreventRemoval: true,
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+	})
+
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	planStr := legacyDiffComparisonString(plan.Changes)
+	if !strings.Contains(planStr, "DESTROY: aws_instance.foo") {
+		t.Fatalf("expected to destroy aws_instance.foo, got %s", planStr)
 	}
 }
 

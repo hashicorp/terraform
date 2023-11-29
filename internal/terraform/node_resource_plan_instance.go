@@ -199,6 +199,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	} else {
 		if instanceRefreshState != nil {
 			instanceRefreshState.CreateBeforeDestroy = n.Config.Managed.CreateBeforeDestroy || n.ForceCreateBeforeDestroy
+			instanceRefreshState.PreventRemoval = n.Config.Managed.PreventRemoval
 		}
 	}
 

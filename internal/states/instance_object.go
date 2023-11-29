@@ -47,6 +47,13 @@ type ResourceInstanceObject struct {
 	// destroy operations, we need to record the status to ensure a resource
 	// removed from the config will still be destroyed in the same manner.
 	CreateBeforeDestroy bool
+
+	// PreventRemoval is a lifecycle option that can be set on a resource
+	// instance to prevent it from being removed from state. This is useful
+	// for preventing a stateful resource from being removed unexpectedly,
+	// regardless of whether it is still present in configuration.
+	// This can be thought of as a stronger version of prevent_destroy.
+	PreventRemoval bool
 }
 
 // ObjectStatus represents the status of a RemoteObject.
@@ -133,6 +140,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 		Status:              o.Status,
 		Dependencies:        dependencies,
 		CreateBeforeDestroy: o.CreateBeforeDestroy,
+		PreventRemoval:      o.PreventRemoval,
 	}, nil
 }
 
