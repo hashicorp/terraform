@@ -199,8 +199,8 @@ func TestTest(t *testing.T) {
 			code:        0,
 		},
 		"dangling_data_block": {
-			expected: "2 passed, 0 failed.",
-			code:     0,
+			expectedOut: "2 passed, 0 failed.",
+			code:        0,
 		},
 	}
 	for name, tc := range tcs {
