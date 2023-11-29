@@ -2665,7 +2665,7 @@ func createS3Bucket(ctx context.Context, t *testing.T, s3Client *s3.Client, buck
 		}
 	}
 	if opts.objectLockMode != "" {
-		createBucketReq.ObjectLockEnabledForBucket = true
+		createBucketReq.ObjectLockEnabledForBucket = aws.Bool(true)
 	}
 
 	// Be clear about what we're doing in case the user needs to clean
@@ -2695,7 +2695,7 @@ func createS3Bucket(ctx context.Context, t *testing.T, s3Client *s3.Client, buck
 				ObjectLockEnabled: s3types.ObjectLockEnabledEnabled,
 				Rule: &s3types.ObjectLockRule{
 					DefaultRetention: &s3types.DefaultRetention{
-						Days: 1,
+						Days: aws.Int32(1),
 						Mode: opts.objectLockMode,
 					},
 				},
@@ -2972,7 +2972,10 @@ func retrieveEndpointURLMiddleware(t *testing.T, endpoint *string) middleware.Fi
 				t.Fatalf("Expected *github.com/aws/smithy-go/transport/http.Request, got %s", fullTypeName(in.Request))
 			}
 
-			*endpoint = request.URL.String()
+			url := request.URL
+			url.RawQuery = ""
+
+			*endpoint = url.String()
 
 			return next.HandleFinalize(ctx, in)
 		})
