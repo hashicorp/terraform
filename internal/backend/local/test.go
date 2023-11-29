@@ -1065,7 +1065,7 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 	// We need to also process all global variables for tests.
 	// If we run "terrafrom test" from the testing directory itself,
 	// the filepath.Dir(file.Name) is equal to "." so we need to extend the logic
-	if filepath.Dir(file.Name) == runner.Suite.TestingDirectory || filepath.Dir(file.Name) == "."{
+	if filepath.Dir(file.Name) == runner.Suite.TestingDirectory {
 		for name, value := range runner.Suite.GlobalTestVariables {
 			if !relevantVariables[name] {
 				// Then this run block doesn't need this value.
