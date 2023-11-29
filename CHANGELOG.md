@@ -1,5 +1,10 @@
 ## 1.6.5 (Unreleased)
 
+BUG FIXES:
+* backend/s3: Fixes parsing errors in shared config and credentials files. ([#34313](https://github.com/hashicorp/terraform/pull/34313))
+* backend/s3: Fixes error with AWS SSO when using FIPS endpoints. ([#34313](https://github.com/hashicorp/terraform/pull/34313))
+
+
 ## 1.6.4 (November 15, 2023)
 
 ENHANCEMENTS:
