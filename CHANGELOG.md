@@ -1,4 +1,4 @@
-## 1.6.5 (Unreleased)
+## 1.6.5 (November 29, 2023)
 
 BUG FIXES:
 * backend/s3: Fixes parsing errors in shared config and credentials files. ([#34313](https://github.com/hashicorp/terraform/pull/34313))
