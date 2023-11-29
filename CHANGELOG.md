@@ -23,6 +23,10 @@ NEW FEATURES:
     * `override_resource`: Specific resources can be overridden so Terraform will create a fake resource with custom values instead of creating infrastructure for the overridden resource.
     * `override_data`: Specific data sources can be overridden so data can be imported into tests without requiring real infrastructure to be created externally first.
     * `override_module`: Specific modules can be overridden in their entirety to give greater control over the returned outputs without requiring in-depth knowledge of the module itself.
+ 
+* `removed` block for refactoring modules: Module authors can now record in source code when a resource or module call has been removed from configuration, and can inform Terraform whether the corresponding object should be deleted or simply removed from state.
+  
+  This effectively provides a configuration-driven workflow to replace `terraform state rm`. Removing an object from state is a new type of action which is planned and applied like any other. The `terraform state rm` command will remain available for scenarios in which directly modifying the state file is appropriate.
 
 BUG FIXES:
 

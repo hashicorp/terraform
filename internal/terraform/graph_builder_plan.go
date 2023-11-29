@@ -81,6 +81,14 @@ type PlanGraphBuilder struct {
 	// ImportTargets are the list of resources to import.
 	ImportTargets []*ImportTarget
 
+	// forgetResources lists the resources that are to be forgotten, i.e. removed
+	// from state without destroying.
+	forgetResources []addrs.ConfigResource
+
+	// forgetModules lists the modules that are to be forgotten, i.e. removed
+	// from state without destroying.
+	forgetModules []addrs.Module
+
 	// GenerateConfig tells Terraform where to write and generated config for
 	// any import targets that do not already have configuration.
 	//
@@ -273,6 +281,8 @@ func (b *PlanGraphBuilder) initPlan() {
 			NodeAbstractResourceInstance: a,
 			skipRefresh:                  b.skipRefresh,
 			skipPlanChanges:              b.skipPlanChanges,
+			forgetResources:              b.forgetResources,
+			forgetModules:                b.forgetModules,
 		}
 	}
 
@@ -283,6 +293,8 @@ func (b *PlanGraphBuilder) initPlan() {
 
 			skipRefresh:     b.skipRefresh,
 			skipPlanChanges: b.skipPlanChanges,
+			forgetResources: b.forgetResources,
+			forgetModules:   b.forgetModules,
 		}
 	}
 }

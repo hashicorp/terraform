@@ -65,6 +65,91 @@ func ParseTarget(traversal hcl.Traversal) (*Target, tfdiags.Diagnostics) {
 	}, diags
 }
 
+// parseConfigResourceUnderModule attempts to parse the given traversal as the
+// address for a ConfigResource in the context of the given module.
+//
+// Error diagnostics are returned if the resource address contains an instance
+// key.
+func parseConfigResourceUnderModule(moduleAddr Module, remain hcl.Traversal) (ConfigResource, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	mode := ManagedResourceMode
+	if remain.RootName() == "data" {
+		mode = DataResourceMode
+		remain = remain[1:]
+	}
+
+	if len(remain) < 2 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid address",
+			Detail:   "Resource specification must include a resource type and name.",
+			Subject:  remain.SourceRange().Ptr(),
+		})
+		return ConfigResource{}, diags
+	}
+
+	var typeName, name string
+	switch tt := remain[0].(type) {
+	case hcl.TraverseRoot:
+		typeName = tt.Name
+	case hcl.TraverseAttr:
+		typeName = tt.Name
+	default:
+		switch mode {
+		case ManagedResourceMode:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid address",
+				Detail:   "A resource type name is required.",
+				Subject:  remain[0].SourceRange().Ptr(),
+			})
+		case DataResourceMode:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid address",
+				Detail:   "A data source name is required.",
+				Subject:  remain[0].SourceRange().Ptr(),
+			})
+		default:
+			panic("unknown mode")
+		}
+		return ConfigResource{}, diags
+	}
+
+	switch tt := remain[1].(type) {
+	case hcl.TraverseAttr:
+		name = tt.Name
+	default:
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid address",
+			Detail:   "A resource name is required.",
+			Subject:  remain[1].SourceRange().Ptr(),
+		})
+		return ConfigResource{}, diags
+	}
+
+	remain = remain[2:]
+	if len(remain) > 0 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Resource instance keys not allowed",
+			Detail:   "Resource address must be a resource (e.g. \"test_instance.foo\"), not a resource instance (e.g. \"test_instance.foo[1]\").",
+			Subject:  remain[0].SourceRange().Ptr(),
+		})
+		return ConfigResource{}, diags
+	}
+	return ConfigResource{
+		Module: moduleAddr,
+		Resource: Resource{
+			Mode: mode,
+			Type: typeName,
+			Name: name,
+		},
+	}, diags
+}
+
 func parseResourceInstanceUnderModule(moduleAddr ModuleInstance, remain hcl.Traversal) (AbsResourceInstance, tfdiags.Diagnostics) {
 	// Note that this helper is used as part of both ParseTarget and
 	// ParseMoveEndpoint, so its error messages should be generic

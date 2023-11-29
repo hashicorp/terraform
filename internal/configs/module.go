@@ -49,8 +49,9 @@ type Module struct {
 	ManagedResources map[string]*Resource
 	DataResources    map[string]*Resource
 
-	Moved  []*Moved
-	Import []*Import
+	Moved   []*Moved
+	Removed []*Removed
+	Import  []*Import
 
 	Checks map[string]*Check
 
@@ -88,8 +89,9 @@ type File struct {
 	ManagedResources []*Resource
 	DataResources    []*Resource
 
-	Moved  []*Moved
-	Import []*Import
+	Moved   []*Moved
+	Removed []*Removed
+	Import  []*Import
 
 	Checks []*Check
 }
@@ -420,6 +422,8 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	// runtime.)
 	m.Moved = append(m.Moved, file.Moved...)
 
+	m.Removed = append(m.Removed, file.Removed...)
+
 	for _, i := range file.Import {
 		iTo, iToOK := parseImportToStatic(i.To)
 		for _, mi := range m.Import {
@@ -662,7 +666,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 	return diags
 }
 
-// gatherProviderLocalNames is a helper function that populatesA a map of
+// gatherProviderLocalNames is a helper function that populates a map of
 // provider FQNs -> provider local names. This information is useful for
 // user-facing output, which should include both the FQN and LocalName. It must
 // only be populated after the module has been parsed.

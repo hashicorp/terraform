@@ -12642,6 +12642,9 @@ func TestContext2Apply_errorRestorePrivateData(t *testing.T) {
 	}
 
 	state, _ = ctx.Apply(plan, m, nil)
+	if state.Empty() {
+		t.Fatal("no state at all")
+	}
 	if string(state.ResourceInstance(addr).Current.Private) != "private" {
 		t.Fatal("missing private data in state")
 	}
@@ -12687,6 +12690,9 @@ func TestContext2Apply_errorRestoreStatus(t *testing.T) {
 	}
 
 	state, diags = ctx.Apply(plan, m, nil)
+	if state.Empty() {
+		t.Fatal("no state at all")
+	}
 
 	errString := diags.ErrWithWarnings().Error()
 	if !strings.Contains(errString, "oops") || !strings.Contains(errString, "warned") {
