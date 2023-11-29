@@ -867,8 +867,6 @@ func (runner *TestFileRunner) wait(ctx *terraform.Context, runningCtx context.Co
 }
 
 func (runner *TestFileRunner) cleanup(file *moduletest.File) {
-	var diags tfdiags.Diagnostics
-
 	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
 
 	if runner.Suite.Cancelled {
@@ -877,47 +875,8 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 		return
 	}
 
-	// First, we'll clean up the main state.
-	main := runner.RelevantStates[MainStateIdentifier]
-
-	updated := main.State
-	if main.Run == nil {
-		if !main.State.Empty() {
-			log.Printf("[ERROR] TestFileRunner: found inconsistent run block and state file in %s", file.Name)
-			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name)))
-		}
-	} else {
-		reset, configDiags := configtest.TransformConfigForTest(runner.Suite.Config, main.Run, file, runner.globalVariables, runner.PriorStates, runner.Suite.configProviders[MainStateIdentifier])
-		diags = diags.Append(configDiags)
-
-		if !configDiags.HasErrors() {
-			var destroyDiags tfdiags.Diagnostics
-			updated, destroyDiags = runner.destroy(runner.Suite.Config, main.State, main.Run, file)
-			diags = diags.Append(destroyDiags)
-		}
-
-		reset()
-	}
-
-	if !updated.Empty() {
-		// Then we failed to adequately clean up the state, so mark success
-		// as false.
-		file.Status = moduletest.Error
-	}
-	runner.Suite.View.DestroySummary(diags, main.Run, file, updated)
-
-	if runner.Suite.Cancelled {
-		// In case things were cancelled during the last execution.
-		return
-	}
-
 	var states []*TestFileState
 	for key, state := range runner.RelevantStates {
-		if key == MainStateIdentifier {
-			// We processed the main state above.
-			continue
-		}
-
 		if state.Run == nil {
 			if state.State.Empty() {
 				// We can see a run block being empty when the state is empty if
@@ -962,13 +921,22 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 
 		var diags tfdiags.Diagnostics
 
-		reset, configDiags := configtest.TransformConfigForTest(state.Run.Config.ConfigUnderTest, state.Run, file, runner.globalVariables, runner.PriorStates, runner.Suite.configProviders[state.Run.Config.Module.Source.String()])
+		config := runner.Suite.Config
+		key := MainStateIdentifier
+
+		if state.Run.Config.Module != nil {
+			// Then this state was produced by an alternate module.
+			config = state.Run.Config.ConfigUnderTest
+			key = state.Run.Config.Module.Source.String()
+		}
+
+		reset, configDiags := configtest.TransformConfigForTest(config, state.Run, file, runner.globalVariables, runner.PriorStates, runner.Suite.configProviders[key])
 		diags = diags.Append(configDiags)
 
 		updated := state.State
 		if !diags.HasErrors() {
 			var destroyDiags tfdiags.Diagnostics
-			updated, destroyDiags = runner.destroy(state.Run.Config.ConfigUnderTest, state.State, state.Run, file)
+			updated, destroyDiags = runner.destroy(config, state.State, state.Run, file)
 			diags = diags.Append(destroyDiags)
 		}
 

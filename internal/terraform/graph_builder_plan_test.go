@@ -56,6 +56,40 @@ func TestPlanGraphBuilder(t *testing.T) {
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("wrong result\n%s", diff)
 	}
+
+	// We should also be able to derive a graph of the relationships between
+	// just the resource addresses, taking into account indirect dependencies
+	// through nodes that don't represent resources.
+	t.Run("ResourceGraph", func(t *testing.T) {
+		resAddrGraph := g.ResourceGraph()
+		got := strings.TrimSpace(resAddrGraph.StringForComparison())
+		want := strings.TrimSpace(`
+aws_instance.web
+  aws_security_group.firewall
+aws_load_balancer.weblb
+  aws_instance.web
+aws_security_group.firewall
+  openstack_floating_ip.random
+openstack_floating_ip.random
+`)
+		// HINT: aws_security_group.firewall depends on openstack_floating_ip.random
+		// because the aws provider configuration refers to it, and all of the
+		// aws_-prefixed resource types depend on their provider configuration.
+		// We collapse these indirect deps into direct deps as part of lowering
+		// into a graph of just resources.
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Fatalf("wrong result\n%s", diff)
+		}
+
+		// Building the resource graph should not have damaged the original graph.
+		{
+			got := strings.TrimSpace(g.String())
+			want := strings.TrimSpace(testPlanGraphBuilderStr)
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Fatalf("g.ResourceGraph has changed g (should not have modified it)\n%s", diff)
+			}
+		}
+	})
 }
 
 func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {

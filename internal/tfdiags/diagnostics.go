@@ -110,6 +110,17 @@ func (diags Diagnostics) HasErrors() bool {
 	return false
 }
 
+// HasWarnings returns true if any of the diagnostics in the list have
+// a severity of Warning.
+func (diags Diagnostics) HasWarnings() bool {
+	for _, diag := range diags {
+		if diag.Severity() == Warning {
+			return true
+		}
+	}
+	return false
+}
+
 // ForRPC returns a version of the receiver that has been simplified so that
 // it is friendly to RPC protocols.
 //

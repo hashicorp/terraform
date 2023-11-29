@@ -11,7 +11,7 @@ package addrs
 // Note that AbsMoveable represents an absolute address relative to the root
 // of the configuration, which is different than the direct representation
 // of these in configuration where the author gives an address relative to
-// the current module where the address is defined. The type MoveEndpoint
+// the current module where the address is defined.
 type AbsMoveable interface {
 	absMoveableSigil()
 	UniqueKeyer
@@ -44,16 +44,17 @@ var (
 // the configuration, rather than an instance of that object created by
 // module expansion.
 //
-// Note that ConfigMovable represents an absolute address relative to the root
+// Note that ConfigMoveable represents an absolute address relative to the root
 // of the configuration, which is different than the direct representation
 // of these in configuration where the author gives an address relative to
 // the current module where the address is defined. The type MoveEndpoint
 // represents the relative form given directly in configuration.
 type ConfigMoveable interface {
 	configMoveableSigil()
+	UniqueKeyer
 }
 
-// The following are all of the possible ConfigMovable address types:
+// The following are all of the possible ConfigMoveable address types:
 var (
 	_ ConfigMoveable = ConfigResource{}
 	_ ConfigMoveable = Module(nil)

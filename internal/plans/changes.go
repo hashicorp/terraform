@@ -525,6 +525,7 @@ type Change struct {
 	//              value after update.
 	//     Replace  As with Update.
 	//     Delete   Before is the value prior to delete, and After is always nil.
+	//     Forget   As with Delete.
 	//
 	// Unknown values may appear anywhere within the Before and After values,
 	// either as the values themselves or as nested elements within known

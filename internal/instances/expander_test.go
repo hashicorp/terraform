@@ -499,6 +499,154 @@ func TestExpander(t *testing.T) {
 	})
 }
 
+func TestExpanderWithUnknowns(t *testing.T) {
+	t.Run("resource in root module with unknown for_each", func(t *testing.T) {
+		resourceAddr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test",
+			Name: "foo",
+		}
+		ex := NewExpander()
+		ex.SetResourceForEachUnknown(addrs.RootModuleInstance, resourceAddr)
+
+		got := ex.ExpandModuleResource(addrs.RootModule, resourceAddr)
+		if len(got) != 0 {
+			t.Errorf("unexpected known addresses: %#v", got)
+		}
+	})
+	t.Run("resource in root module with unknown count", func(t *testing.T) {
+		resourceAddr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test",
+			Name: "foo",
+		}
+		ex := NewExpander()
+		ex.SetResourceCountUnknown(addrs.RootModuleInstance, resourceAddr)
+
+		got := ex.ExpandModuleResource(addrs.RootModule, resourceAddr)
+		if len(got) != 0 {
+			t.Errorf("unexpected known addresses: %#v", got)
+		}
+	})
+	t.Run("module with unknown for_each", func(t *testing.T) {
+		moduleCallAddr := addrs.ModuleCall{Name: "foo"}
+		ex := NewExpander()
+		ex.SetModuleForEachUnknown(addrs.RootModuleInstance, moduleCallAddr)
+
+		got := ex.ExpandModule(addrs.Module{moduleCallAddr.Name})
+		if len(got) != 0 {
+			t.Errorf("unexpected known addresses: %#v", got)
+		}
+
+		gotUnknown := ex.UnknownModuleInstances(addrs.Module{moduleCallAddr.Name})
+		if len(gotUnknown) != 1 {
+			t.Errorf("unexpected unknown addresses: %#v", gotUnknown)
+		}
+		wantUnknownCall := addrs.RootModuleInstance.UnexpandedChild(moduleCallAddr)
+		if !gotUnknown.Has(wantUnknownCall) {
+			t.Errorf("unknown should have %s, but it doesn't", wantUnknownCall)
+		}
+	})
+	t.Run("module with unknown count", func(t *testing.T) {
+		moduleCallAddr := addrs.ModuleCall{Name: "foo"}
+		ex := NewExpander()
+		ex.SetModuleCountUnknown(addrs.RootModuleInstance, moduleCallAddr)
+
+		gotKnown := ex.ExpandModule(addrs.Module{moduleCallAddr.Name})
+		if len(gotKnown) != 0 {
+			t.Errorf("unexpected known addresses: %#v", gotKnown)
+		}
+
+		gotUnknown := ex.UnknownModuleInstances(addrs.Module{moduleCallAddr.Name})
+		if len(gotUnknown) != 1 {
+			t.Errorf("unexpected unknown addresses: %#v", gotUnknown)
+		}
+		wantUnknownCall := addrs.RootModuleInstance.UnexpandedChild(moduleCallAddr)
+		if !gotUnknown.Has(wantUnknownCall) {
+			t.Errorf("unknown should have %s, but it doesn't", wantUnknownCall)
+		}
+	})
+	t.Run("nested module with unknown count", func(t *testing.T) {
+		moduleCallAddr1 := addrs.ModuleCall{Name: "foo"}
+		moduleCallAddr2 := addrs.ModuleCall{Name: "bar"}
+		module1 := addrs.RootModule.Child(moduleCallAddr1.Name)
+		module2 := module1.Child(moduleCallAddr2.Name)
+		module1Inst0 := addrs.RootModuleInstance.Child("foo", addrs.IntKey(0))
+		module1Inst1 := addrs.RootModuleInstance.Child("foo", addrs.IntKey(1))
+		module1Inst2 := addrs.RootModuleInstance.Child("foo", addrs.IntKey(2))
+		ex := NewExpander()
+		ex.SetModuleCount(addrs.RootModuleInstance, moduleCallAddr1, 3)
+		ex.SetModuleCountUnknown(module1Inst0, moduleCallAddr2)
+		ex.SetModuleCount(module1Inst1, moduleCallAddr2, 1)
+		ex.SetModuleCountUnknown(module1Inst2, moduleCallAddr2)
+
+		// We'll also put some resources inside module.foo[1].module.bar[0]
+		// so that we can test requesting unknown resource instance sets.
+		resourceAddrKnownExp := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test",
+			Name: "known_expansion",
+		}
+		resourceAddrUnknownExp := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test",
+			Name: "unknown_expansion",
+		}
+		module1Inst1Module2Inst0 := module1Inst1.Child("bar", addrs.IntKey(0))
+		ex.SetResourceCount(module1Inst1Module2Inst0, resourceAddrKnownExp, 2)
+		ex.SetResourceCountUnknown(module1Inst1Module2Inst0, resourceAddrUnknownExp)
+
+		gotKnown := ex.ExpandModule(module2)
+		wantKnown := []addrs.ModuleInstance{
+			module1Inst1.Child("bar", addrs.IntKey(0)),
+		}
+		if diff := cmp.Diff(wantKnown, gotKnown); diff != "" {
+			t.Errorf("unexpected known addresses\n%s", diff)
+		}
+
+		gotUnknown := ex.UnknownModuleInstances(module2)
+		if len(gotUnknown) != 2 {
+			t.Errorf("unexpected unknown addresses: %#v", gotUnknown)
+		}
+		if wantUnknownCall := module1Inst0.UnexpandedChild(moduleCallAddr2); !gotUnknown.Has(wantUnknownCall) {
+			t.Errorf("unknown should have %s, but it doesn't", wantUnknownCall)
+		}
+		if unwantUnknownCall := module1Inst1.UnexpandedChild(moduleCallAddr2); gotUnknown.Has(unwantUnknownCall) {
+			t.Errorf("unknown should not have %s, but does", unwantUnknownCall)
+		}
+		if wantUnknownCall := module1Inst2.UnexpandedChild(moduleCallAddr2); !gotUnknown.Has(wantUnknownCall) {
+			t.Errorf("unknown should have %s, but it doesn't", wantUnknownCall)
+		}
+
+		gotKnownResource := ex.ExpandResource(module1Inst1Module2Inst0.Resource(
+			resourceAddrKnownExp.Mode, resourceAddrKnownExp.Type, resourceAddrKnownExp.Name,
+		))
+		wantKnownResource := []addrs.AbsResourceInstance{
+			mustAbsResourceInstanceAddr("module.foo[1].module.bar[0].test.known_expansion[0]"),
+			mustAbsResourceInstanceAddr("module.foo[1].module.bar[0].test.known_expansion[1]"),
+		}
+		if diff := cmp.Diff(wantKnownResource, gotKnownResource); diff != "" {
+			t.Errorf("unexpected known addresses\n%s", diff)
+		}
+
+		gotUnknownResource := ex.UnknownResourceInstances(module2.Resource(
+			resourceAddrUnknownExp.Mode, resourceAddrUnknownExp.Type, resourceAddrUnknownExp.Name,
+		))
+		if len(gotUnknownResource) != 3 {
+			t.Errorf("unexpected unknown addresses: %#v", gotUnknownResource)
+		}
+		if wantResInst := module1Inst0.UnexpandedChild(moduleCallAddr2).Resource(resourceAddrUnknownExp); !gotUnknownResource.Has(wantResInst) {
+			t.Errorf("unknown should have %s, but it doesn't", wantResInst)
+		}
+		if wantResInst := module1Inst1Module2Inst0.UnexpandedResource(resourceAddrUnknownExp); !gotUnknownResource.Has(wantResInst) {
+			t.Errorf("unknown should have %s, but it doesn't", wantResInst)
+		}
+		if wantResInst := module1Inst2.UnexpandedChild(moduleCallAddr2).Resource(resourceAddrUnknownExp); !gotUnknownResource.Has(wantResInst) {
+			t.Errorf("unknown should have %s, but it doesn't", wantResInst)
+		}
+	})
+}
+
 func mustAbsResourceInstanceAddr(str string) addrs.AbsResourceInstance {
 	addr, diags := addrs.ParseAbsResourceInstanceStr(str)
 	if diags.HasErrors() {

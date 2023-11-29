@@ -25,181 +25,186 @@ func TestTest(t *testing.T) {
 	tcs := map[string]struct {
 		override              string
 		args                  []string
-		expected              string
+		expectedOut           string
+		expectedErr           string
 		expectedResourceCount int
 		code                  int
 		skip                  bool
 	}{
 		"simple_pass": {
-			expected: "1 passed, 0 failed.",
-			code:     0,
+			expectedOut: "1 passed, 0 failed.",
+			code:        0,
 		},
 		"simple_pass_nested": {
-			expected: "1 passed, 0 failed.",
-			code:     0,
+			expectedOut: "1 passed, 0 failed.",
+			code:        0,
 		},
 		"simple_pass_nested_alternate": {
-			args:     []string{"-test-directory", "other"},
-			expected: "1 passed, 0 failed.",
-			code:     0,
+			args:        []string{"-test-directory", "other"},
+			expectedOut: "1 passed, 0 failed.",
+			code:        0,
 		},
 		"simple_pass_very_nested": {
-			args:     []string{"-test-directory", "tests/subdir"},
-			expected: "1 passed, 0 failed.",
-			code:     0,
+			args:        []string{"-test-directory", "tests/subdir"},
+			expectedOut: "1 passed, 0 failed.",
+			code:        0,
 		},
 		"simple_pass_very_nested_alternate": {
-			override: "simple_pass_very_nested",
-			args:     []string{"-test-directory", "./tests/subdir"},
-			expected: "1 passed, 0 failed.",
-			code:     0,
+			override:    "simple_pass_very_nested",
+			args:        []string{"-test-directory", "./tests/subdir"},
+			expectedOut: "1 passed, 0 failed.",
+			code:        0,
 		},
 		"simple_pass_bad_test_directory": {
-			override: "simple_pass",
-			args:     []string{"-test-directory", "../tests"},
-			expected: "Invalid testing directory",
-			code:     1,
+			override:    "simple_pass",
+			args:        []string{"-test-directory", "../tests"},
+			expectedErr: "Invalid testing directory",
+			code:        1,
 		},
 		"simple_pass_bad_test_directory_abs": {
-			override: "simple_pass",
-			args:     []string{"-test-directory", "/home/username/config/tests"},
-			expected: "Invalid testing directory",
-			code:     1,
+			override:    "simple_pass",
+			args:        []string{"-test-directory", "/home/username/config/tests"},
+			expectedErr: "Invalid testing directory",
+			code:        1,
 		},
 		"pass_with_locals": {
-			expected: "1 passed, 0 failed.",
-			code:     0,
+			expectedOut: "1 passed, 0 failed.",
+			code:        0,
 		},
 		"pass_with_outputs": {
-			expected: "1 passed, 0 failed.",
-			code:     0,
+			expectedOut: "1 passed, 0 failed.",
+			code:        0,
 		},
 		"pass_with_variables": {
-			expected: "2 passed, 0 failed.",
-			code:     0,
+			expectedOut: "2 passed, 0 failed.",
+			code:        0,
 		},
 		"plan_then_apply": {
-			expected: "2 passed, 0 failed.",
-			code:     0,
+			expectedOut: "2 passed, 0 failed.",
+			code:        0,
 		},
 		"expect_failures_checks": {
-			expected: "1 passed, 0 failed.",
-			code:     0,
+			expectedOut: "1 passed, 0 failed.",
+			code:        0,
 		},
 		"expect_failures_inputs": {
-			expected: "1 passed, 0 failed.",
-			code:     0,
+			expectedOut: "1 passed, 0 failed.",
+			code:        0,
 		},
 		"expect_failures_outputs": {
-			expected: "1 passed, 0 failed.",
-			code:     0,
+			expectedOut: "1 passed, 0 failed.",
+			code:        0,
 		},
 		"expect_failures_resources": {
-			expected: "1 passed, 0 failed.",
-			code:     0,
+			expectedOut: "1 passed, 0 failed.",
+			code:        0,
 		},
 		"multiple_files": {
-			expected: "2 passed, 0 failed",
-			code:     0,
+			expectedOut: "2 passed, 0 failed",
+			code:        0,
 		},
 		"multiple_files_with_filter": {
-			override: "multiple_files",
-			args:     []string{"-filter=one.tftest.hcl"},
-			expected: "1 passed, 0 failed",
-			code:     0,
+			override:    "multiple_files",
+			args:        []string{"-filter=one.tftest.hcl"},
+			expectedOut: "1 passed, 0 failed",
+			code:        0,
 		},
 		"variables": {
-			expected: "2 passed, 0 failed",
-			code:     0,
+			expectedOut: "2 passed, 0 failed",
+			code:        0,
 		},
 		"variables_overridden": {
-			override: "variables",
-			args:     []string{"-var=input=foo"},
-			expected: "1 passed, 1 failed",
-			code:     1,
+			override:    "variables",
+			args:        []string{"-var=input=foo"},
+			expectedOut: "1 passed, 1 failed",
+			code:        1,
 		},
 		"simple_fail": {
-			expected: "0 passed, 1 failed.",
-			code:     1,
+			expectedOut: "0 passed, 1 failed.",
+			code:        1,
 		},
 		"custom_condition_checks": {
-			expected: "0 passed, 1 failed.",
-			code:     1,
+			expectedOut: "0 passed, 1 failed.",
+			code:        1,
 		},
 		"custom_condition_inputs": {
-			expected: "0 passed, 1 failed.",
-			code:     1,
+			expectedOut: "0 passed, 1 failed.",
+			code:        1,
 		},
 		"custom_condition_outputs": {
-			expected: "0 passed, 1 failed.",
-			code:     1,
+			expectedOut: "0 passed, 1 failed.",
+			code:        1,
 		},
 		"custom_condition_resources": {
-			expected: "0 passed, 1 failed.",
-			code:     1,
+			expectedOut: "0 passed, 1 failed.",
+			code:        1,
 		},
 		"no_providers_in_main": {
-			expected: "1 passed, 0 failed",
-			code:     0,
+			expectedOut: "1 passed, 0 failed",
+			code:        0,
 		},
 		"default_variables": {
-			expected: "1 passed, 0 failed.",
-			code:     0,
+			expectedOut: "1 passed, 0 failed.",
+			code:        0,
 		},
 		"undefined_variables": {
-			expected: "1 passed, 0 failed.",
-			code:     0,
+			expectedOut: "1 passed, 0 failed.",
+			code:        0,
 		},
 		"shared_state": {
-			expected: "2 passed, 0 failed.",
-			code:     0,
+			expectedOut: "2 passed, 0 failed.",
+			code:        0,
 		},
 		"shared_state_object": {
-			expected: "2 passed, 0 failed.",
-			code:     0,
+			expectedOut: "2 passed, 0 failed.",
+			code:        0,
 		},
 		"variable_references": {
-			expected: "2 passed, 0 failed.",
-			args:     []string{"-var=global=\"triple\""},
-			code:     0,
+			expectedOut: "2 passed, 0 failed.",
+			args:        []string{"-var=global=\"triple\""},
+			code:        0,
 		},
 		"unreferenced_global_variable": {
-			override: "variable_references",
-			expected: "2 passed, 0 failed.",
+			override:    "variable_references",
+			expectedOut: "2 passed, 0 failed.",
 			// The other variable shouldn't pass validation, but it won't be
 			// referenced anywhere so should just be ignored.
 			args: []string{"-var=global=\"triple\"", "-var=other=bad"},
 			code: 0,
 		},
 		"variables_types": {
-			expected: "1 passed, 0 failed.",
-			args:     []string{"-var=number_input=0", "-var=string_input=Hello, world!", "-var=list_input=[\"Hello\",\"world\"]"},
-			code:     0,
+			expectedOut: "1 passed, 0 failed.",
+			args:        []string{"-var=number_input=0", "-var=string_input=Hello, world!", "-var=list_input=[\"Hello\",\"world\"]"},
+			code:        0,
 		},
 		"null-outputs": {
-			expected: "2 passed, 0 failed.",
-			code:     0,
+			expectedOut: "2 passed, 0 failed.",
+			code:        0,
 		},
 		"destroy_fail": {
-			expected:              "1 passed, 0 failed.",
+			expectedOut:           "1 passed, 0 failed.",
 			code:                  1,
 			expectedResourceCount: 1,
 		},
 		"default_optional_values": {
-			expected: "4 passed, 0 failed.",
-			code:     0,
+			expectedOut: "4 passed, 0 failed.",
+			code:        0,
 		},
 		"tfvars_in_test_dir": {
 			expected: "2 passed, 0 failed.",
 			code:     0,
 		},
 		"functions_available": {
-			expected: "1 passed, 0 failed.",
-			code:     0,
+			expectedOut: "1 passed, 0 failed.",
+			code:        0,
 		},
 		"mocking": {
-			expected: "5 passed, 0 failed.",
-			code:     0,
+			expectedOut: "5 passed, 0 failed.",
+			code:        0,
+		},
+		"dangling_data_block": {
+			expectedOut: "2 passed, 0 failed.",
+			code:        0,
 		},
 	}
 	for name, tc := range tcs {
@@ -254,8 +259,12 @@ func TestTest(t *testing.T) {
 				t.Errorf("expected status code %d but got %d", tc.code, code)
 			}
 
-			if !strings.Contains(output.All(), tc.expected) {
-				t.Errorf("output didn't contain expected string:\n\n%s", output.All())
+			if !strings.Contains(output.Stdout(), tc.expectedOut) {
+				t.Errorf("output didn't contain expected string:\n\n%s", output.Stdout())
+			}
+
+			if !strings.Contains(output.Stderr(), tc.expectedErr) {
+				t.Errorf("error didn't contain expected string:\n\n%s", output.Stderr())
 			}
 
 			if provider.ResourceCount() != tc.expectedResourceCount {

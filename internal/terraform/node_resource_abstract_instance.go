@@ -177,7 +177,7 @@ func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema 
 	return change, nil
 }
 
-func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.ResourceInstanceChange) error {
+func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.ResourceInstanceChange) tfdiags.Diagnostics {
 	if change == nil || n.Config == nil || n.Config.Managed == nil {
 		return nil
 	}
@@ -190,12 +190,12 @@ func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.Resourc
 			Severity: hcl.DiagError,
 			Summary:  "Instance cannot be destroyed",
 			Detail: fmt.Sprintf(
-				"Resource %s has lifecycle.prevent_destroy set, but the plan calls for this resource to be destroyed. To avoid this error and continue with the plan, either disable lifecycle.prevent_destroy or reduce the scope of the plan using the -target flag.",
+				"Resource %s has lifecycle.prevent_destroy set, but the plan calls for this resource to be destroyed. To avoid this error and continue with the plan, either disable lifecycle.prevent_destroy or reduce the scope of the plan using the -target option.",
 				n.Addr.String(),
 			),
 			Subject: &n.Config.DeclRange,
 		})
-		return diags.Err()
+		return diags
 	}
 
 	return nil
@@ -469,6 +469,53 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			After:  nullVal,
 		},
 		Private:      resp.PlannedPrivate,
+		ProviderAddr: n.ResolvedProvider,
+	}
+
+	return plan, diags
+}
+
+// planForget returns a Forget change.
+func (n *NodeAbstractResourceInstance) planForget(ctx EvalContext, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var plan *plans.ResourceInstanceChange
+
+	absAddr := n.Addr
+
+	// If there is no state or our attributes object is null then the resource
+	// is already removed.
+	if currentState == nil || currentState.Value.IsNull() {
+		// We still need to generate a NoOp change, because that allows
+		// outside consumers of the plan to distinguish between us affirming
+		// that we checked something and concluded no changes were needed
+		// vs. that something being entirely excluded e.g. due to -target.
+		noop := &plans.ResourceInstanceChange{
+			Addr:        absAddr,
+			PrevRunAddr: n.prevRunAddr(ctx),
+			DeposedKey:  deposedKey,
+			Change: plans.Change{
+				Action: plans.NoOp,
+				Before: cty.NullVal(cty.DynamicPseudoType),
+				After:  cty.NullVal(cty.DynamicPseudoType),
+			},
+			ProviderAddr: n.ResolvedProvider,
+		}
+		return noop, nil
+	}
+
+	unmarkedPriorVal, _ := currentState.Value.UnmarkDeep()
+	nullVal := cty.NullVal(unmarkedPriorVal.Type())
+
+	// Plan is always the same for a forget.
+	plan = &plans.ResourceInstanceChange{
+		Addr:        absAddr,
+		PrevRunAddr: n.prevRunAddr(ctx),
+		DeposedKey:  deposedKey,
+		Change: plans.Change{
+			Action: plans.Forget,
+			Before: currentState.Value,
+			After:  nullVal,
+		},
 		ProviderAddr: n.ResolvedProvider,
 	}
 

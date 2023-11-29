@@ -89,8 +89,17 @@ type PlanOpts struct {
 	// will be added to the plan graph.
 	ImportTargets []*ImportTarget
 
-	// GenerateConfig tells Terraform where to write any generated configuration
-	// for any ImportTargets that do not have configuration already.
+	// forgetResources is a list of target resources that Terraform
+	// will plan to remove from state.
+	forgetResources []addrs.ConfigResource
+
+	// forgetModules is a list of target modules that Terraform will plan to
+	// remove from state.
+	forgetModules []addrs.Module
+
+	// GenerateConfigPath tells Terraform where to write any generated
+	// configuration for any ImportTargets that do not have configuration
+	// already.
 	//
 	// If empty, then no config will be generated.
 	GenerateConfigPath string
@@ -335,7 +344,7 @@ func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts 
 		panic(fmt.Sprintf("called Context.plan with %s", opts.Mode))
 	}
 
-	opts.ImportTargets = c.findImportTargets(config, prevRunState)
+	opts.ImportTargets = c.findImportTargets(config)
 	plan, walkDiags := c.planWalk(config, prevRunState, opts)
 	diags = diags.Append(walkDiags)
 
@@ -556,9 +565,9 @@ func (c *Context) postPlanValidateMoves(config *configs.Config, stmts []refactor
 	return refactoring.ValidateMoves(stmts, config, allInsts)
 }
 
-// findImportTargets builds a list of import targets by taking the import blocks
-// in the config and filtering out any that target a resource already in state.
-func (c *Context) findImportTargets(config *configs.Config, priorState *states.State) []*ImportTarget {
+// findImportTargets builds a list of import targets from any import blocks in
+// config.
+func (c *Context) findImportTargets(config *configs.Config) []*ImportTarget {
 	var importTargets []*ImportTarget
 	for _, ic := range config.Module.Import {
 		importTargets = append(importTargets, &ImportTarget{
@@ -583,6 +592,24 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		// instances excluded by targeting then planning is likely to encounter
 		// strange problems that may lead to confusing error messages.
 		return nil, diags
+	}
+
+	removeStmts, diags := refactoring.FindRemoveStatements(config)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	for _, rst := range removeStmts.Values() {
+		if rst.Destroy {
+			// no-op
+		} else {
+			if fr, ok := rst.From.(addrs.ConfigResource); ok {
+				opts.forgetResources = append(opts.forgetResources, fr)
+			} else if fm, ok := rst.From.(addrs.Module); ok {
+				opts.forgetModules = append(opts.forgetModules, fm)
+			} else {
+				panic("Invalid ConfigMoveable type in remove statement")
+			}
+		}
 	}
 
 	graph, walkOp, moreDiags := c.planGraph(config, prevRunState, opts)
@@ -655,6 +682,21 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	driftedResources, driftDiags := c.driftedResources(config, prevRunState, priorState, moveResults)
 	diags = diags.Append(driftDiags)
 
+	var forgottenResources []string
+	for _, rc := range changes.Resources {
+		if rc.Action == plans.Forget {
+			// TODO KEM display resource ids
+			forgottenResources = append(forgottenResources, fmt.Sprintf(" - %s", rc.Addr))
+		}
+	}
+	if len(forgottenResources) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Some objects will no longer be managed by Terraform",
+			fmt.Sprintf("If you apply this plan, Terraform will discard its tracking information for the following objects, but it will not delete them:\n%s\n\nAfter applying this plan, Terraform will no longer manage these objects. You will need to import them into Terraform to manage them again.", strings.Join(forgottenResources, "\n")),
+		))
+	}
+
 	plan := &plans.Plan{
 		UIMode:             opts.Mode,
 		Changes:            changes,
@@ -687,6 +729,8 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Operation:          walkPlan,
 			ExternalReferences: opts.ExternalReferences,
 			ImportTargets:      opts.ImportTargets,
+			forgetResources:    opts.forgetResources,
+			forgetModules:      opts.forgetModules,
 			GenerateConfigPath: opts.GenerateConfigPath,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags

@@ -2898,7 +2898,7 @@ resource "test_resource" "a" {
 			resp.LegacyTypeSystem = true
 			return resp
 		}
-		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 			Mode: plans.NormalMode,
 			SetVariables: InputValues{
 				"boop": &InputValue{
@@ -2915,6 +2915,27 @@ resource "test_resource" "a" {
 		}
 		if !p.PlanResourceChangeCalled {
 			t.Errorf("Provider's PlanResourceChange wasn't called; should've been")
+		}
+
+		if !plan.Errored {
+			t.Errorf("plan is not marked as errored")
+		}
+
+		// The plan should still include a proposed change for the resource
+		// instance whose postcondition failed, since its plan is valid in
+		// isolation even though the postcondition prevents any further
+		// planning downstream. This gives the UI the option of describing
+		// the planned change as additional context alongside the error
+		// message, although it's up to the UI to decide whether and how to
+		// do that.
+		changes := plan.Changes
+		changeSrc := changes.ResourceInstance(mustResourceInstanceAddr("test_resource.a"))
+		if changeSrc != nil {
+			if got, want := changeSrc.Action, plans.Create; got != want {
+				t.Errorf("wrong proposed change action\ngot:  %s\nwant: %s", got, want)
+			}
+		} else {
+			t.Errorf("no planned change for test_resource.a")
 		}
 	})
 
@@ -3819,7 +3840,7 @@ output "out" {
 }
 
 // A deposed instances which no longer exists during ReadResource creates NoOp
-// change, which should not effect the plan.
+// change, which should not affect the plan.
 func TestContext2Plan_deposedNoLongerExists(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -4250,5 +4271,367 @@ locals {
 
 	if module.ResourceInstance(addr.Resource).Current.Status != states.ObjectPlanned {
 		t.Errorf("expected resource to be in planned state")
+	}
+}
+
+func TestContext2Plan_removedResourceForgetBasic(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+removed {
+  from = test_object.a
+  lifecycle {
+    destroy = false
+  }
+}
+`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		ForceReplace: []addrs.AbsResourceInstance{
+			addrA,
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	// We should have a warning, though! We'll lightly abuse the "for RPC"
+	// feature of diagnostics to get some more-readily-comparable diagnostic
+	// values.
+	gotDiags := diags.ForRPC()
+	wantDiags := tfdiags.Diagnostics{
+		tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Some objects will no longer be managed by Terraform",
+			`If you apply this plan, Terraform will discard its tracking information for the following objects, but it will not delete them:
+ - test_object.a
+
+After applying this plan, Terraform will no longer manage these objects. You will need to import them into Terraform to manage them again.`,
+		),
+	}.ForRPC()
+	if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
+		t.Errorf("wrong diagnostics\n%s", diff)
+	}
+
+	t.Run(addrA.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addrA)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addrA)
+		}
+
+		if got, want := instPlan.Addr, addrA; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.PrevRunAddr, addrA; !got.Equal(want) {
+			t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.Action, plans.Forget; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.ActionReason, plans.ResourceInstanceDeleteBecauseNoResourceConfig; got != want {
+			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+}
+
+func TestContext2Plan_removedResourceDestroyBasic(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		// block is effectively a no-op, because the resource has already been
+		// removed from config.
+		"main.tf": `
+			removed {
+				from = test_object.a
+                lifecycle {
+                  destroy = true
+                }
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		ForceReplace: []addrs.AbsResourceInstance{
+			addrA,
+		},
+	})
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diags\n%s", diags.Err().Error())
+	}
+
+	t.Run(addrA.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addrA)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addrA)
+		}
+
+		if got, want := instPlan.Addr, addrA; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.PrevRunAddr, addrA; !got.Equal(want) {
+			t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.Action, plans.Delete; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.ActionReason, plans.ResourceInstanceDeleteBecauseNoResourceConfig; got != want {
+			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+}
+
+// This test case imagines a situation in which a create_before_destroy resource
+// was replaced during the last apply. The replace partially failed: the create
+// step succeeded while the destroy step failed, so a deposed resource
+// instance remains in state.
+// Now the user has removed the "resource" block from config and replaced it
+// with a "removed" block with destroy = false.
+// In this case, the user signals their intent that any instances of the
+// resource be forgotten, not destroyed, so the correct action is Forget.
+func TestContext2Plan_removedResourceForgetDeposed(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+	deposedKey := states.DeposedKey("gone")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+removed {
+  from = test_object.a
+  lifecycle {
+    destroy = false
+  }
+}
+`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceDeposed(addrA, deposedKey, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		ForceReplace: []addrs.AbsResourceInstance{
+			addrA,
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	// We should have a warning, though! We'll lightly abuse the "for RPC"
+	// feature of diagnostics to get some more-readily-comparable diagnostic
+	// values.
+	gotDiags := diags.ForRPC()
+	wantDiags := tfdiags.Diagnostics{
+		tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Some objects will no longer be managed by Terraform",
+			`If you apply this plan, Terraform will discard its tracking information for the following objects, but it will not delete them:
+ - test_object.a
+
+After applying this plan, Terraform will no longer manage these objects. You will need to import them into Terraform to manage them again.`,
+		),
+	}.ForRPC()
+	if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
+		t.Errorf("wrong diagnostics\n%s", diff)
+	}
+
+	t.Run(addrA.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstanceDeposed(addrA, deposedKey)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addrA)
+		}
+
+		if got, want := instPlan.Addr, addrA; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.PrevRunAddr, addrA; !got.Equal(want) {
+			t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.Action, plans.Forget; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+}
+
+func TestContext2Plan_removedResourceErrorStillInConfig(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {}
+
+removed {
+  from = test_object.a
+  lifecycle {
+    destroy = false
+  }
+}
+`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		ForceReplace: []addrs.AbsResourceInstance{
+			addrA,
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatalf("unexpected success; want error")
+	}
+	if got, want := diags.Err().Error(), "Removed resource still exists"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error:\ngot: %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Plan_removedModuleErrorStillInConfigNested(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "a" {
+  source = "./mod"
+}
+
+removed {
+  from = module.a.test_object.a
+  lifecycle {
+    destroy = false
+  }
+}
+`,
+
+		"mod/main.tf": `
+resource "test_object" "a" {}
+`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		ForceReplace: []addrs.AbsResourceInstance{
+			addrA,
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatalf("unexpected success; want error")
+	}
+	if got, want := diags.Err().Error(), "Removed resource still exists"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error:\ngot: %s\nwant: message containing %q", got, want)
+	}
+}
+
+func TestContext2Plan_removedModuleErrorStillInConfig(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "a" {
+  source = "./mod"
+}
+
+removed {
+  from = module.a
+  lifecycle {
+    destroy = false
+  }
+}
+`,
+
+		"mod/main.tf": `
+resource "test_object" "a" {}
+`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		ForceReplace: []addrs.AbsResourceInstance{
+			addrA,
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatalf("unexpected success; want error")
+	}
+	if got, want := diags.Err().Error(), "Removed module still exists"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error:\ngot: %s\nwant: message containing %q", got, want)
 	}
 }

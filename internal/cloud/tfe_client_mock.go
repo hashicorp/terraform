@@ -1753,6 +1753,9 @@ func (m *MockTestRuns) Logs(ctx context.Context, moduleID tfe.RegistryModuleID, 
 	}
 
 	done := func() (bool, error) {
+		m.Lock()
+		defer m.Unlock()
+
 		tr, exists := m.TestRuns[testRunID]
 		if !exists {
 			return false, tfe.ErrResourceNotFound
@@ -1804,6 +1807,9 @@ func (m *MockTestRuns) Logs(ctx context.Context, moduleID tfe.RegistryModuleID, 
 }
 
 func (m *MockTestRuns) Cancel(ctx context.Context, moduleID tfe.RegistryModuleID, testRunID string) error {
+	m.Lock()
+	defer m.Unlock()
+
 	tr, exists := m.TestRuns[testRunID]
 	if !exists {
 		return tfe.ErrResourceNotFound

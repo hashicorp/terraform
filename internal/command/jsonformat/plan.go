@@ -403,6 +403,17 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 		default:
 			buf.WriteString(fmt.Sprintf("[bold]  # %s[reset] must be [bold][red]replaced[reset]", dispAddr))
 		}
+	case plans.CreateThenForget:
+		buf.WriteString(fmt.Sprintf("[bold] # %s[reset] must be replaced, but the existing object will not be destroyed", dispAddr))
+		buf.WriteString("\n # (destroy = false is set in the configuration)")
+	case plans.Forget:
+		if len(resource.Deposed) > 0 {
+			buf.WriteString(fmt.Sprintf("[bold] # %s[reset] will be removed from Terraform state, but [bold][red]will not be destroyed[reset]", dispAddr))
+			buf.WriteString("\n[bold] # (left over from a partially-failed replacement of this instance)")
+		} else {
+			buf.WriteString(fmt.Sprintf("[bold] # %s[reset] will no longer be managed by Terraform, but [bold][red]will not be destroyed[reset]", dispAddr))
+		}
+		buf.WriteString("\n # (destroy = false is set in the configuration)")
 	case plans.Delete:
 		switch changeCause {
 		case proposedChange:

@@ -50,8 +50,7 @@
   },
   {
     "title": "Machine Readable UI",
-    "path": "machine-readable-ui",
-    "hidden": true
+    "path": "machine-readable-ui"
   },
   {
     "title": "Archiving",

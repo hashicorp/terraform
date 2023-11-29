@@ -55,3 +55,18 @@ func (v AbsLocalValue) String() string {
 	}
 	return fmt.Sprintf("%s.%s", v.Module.String(), v.LocalValue.String())
 }
+
+func (v AbsLocalValue) UniqueKey() UniqueKey {
+	return absLocalValueKey{
+		moduleKey: v.Module.UniqueKey(),
+		valueKey:  v.LocalValue.UniqueKey(),
+	}
+}
+
+type absLocalValueKey struct {
+	moduleKey UniqueKey
+	valueKey  UniqueKey
+}
+
+// uniqueKeySigil implements UniqueKey.
+func (absLocalValueKey) uniqueKeySigil() {}
