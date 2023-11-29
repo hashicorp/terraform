@@ -1,18 +1,16 @@
 ---
 page_title: Tests - Provider Mocking
 description: >-
-  Provide mocked data for providers and resources within `terraform test`.
+  Provide mocked data for providers and resources in your tests.
 ---
 
 # Mocks
 
--> **Note:** Mocked providers and the associated syntax are available in Terraform v1.7.0 and later.
+-> **Note**: Test mocking is available in Terraform v1.7.0 and later. This feature is in beta.
 
-Prior to Terraform v1.7.0, Terraform test authors were required to initialize and configure real Terraform providers for their tests. The `command = plan` setting could be used to avoid creating real infrastructure, but providers were still required to be correctly configured with the appropriate credentials and cloud accounts.
+Terraform lets you to mock providers, resources, and data sources for your tests. This allows you to test parts of your module without creating infrastructure or requiring credentials. In a Terraform test, a mocked provider or resource will generate fake data for all computed attributes that would normally be provided by the underlying provider APIs.
 
-In Terraform v1.7.0, we launched support for mocking providers and modules, along with resources and data sources, within the Terraform test framework. Test authors can now use mock (or fake) providers, and their associated resources within their tests, requiring no credentials or associated accounts to exist. Within the context of `terraform test`, a mocked provider or resource will generate fake data for all computed attributes that would normally be provided by the underlying provider APIs.
-
-Mocking functionality can only be used within the context of the [`terraform test` language](/terraform/language/tests). Readers of the mocking documentation should be aware of the surrounding testing syntax and language features.
+Mocking functionality can only be used with the [`terraform test` language](/terraform/language/tests). Readers of this documentation should be familiar with the testing syntax and language features.
 
 In addition, the more advanced features of the mocking framework require knowledge about the following Terraform provider features:
 
@@ -22,13 +20,11 @@ In addition, the more advanced features of the mocking framework require knowled
 
 ## Mock Providers
 
-Within Terraform test files, you can use a new block type: `mock_provider`.
+In Terraform tests, you can mock a provider with the `mock_provider` block. Mock providers return the same schema as the original provider and you can pass the mocked provider to your tests in place of the matching provider. All resources and data sources retrieved by a mock provider will set the relevant values from the configuration, and generate fake data for any computed attributes.
 
-Mock providers return the same schema as the original provider and can be passed into your configuration under test in place of the matching provider. All resources and data sources retrieved by a mock provider will set the relevant values from the configuration, and generate fake data for any computed attributes.
+Mock providers can be used directly in place of traditional `provider` blocks and they share the same global namespace. During the execution of the `terraform test` command, Terraform does not distinguish between a real and a mocked provider.
 
-Mock providers can be used directly in place of traditional `provider` blocks, and they share the same global namespace. During the execution of the `terraform test` command, Terraform does not distinguish between a real and a mocked provider.
-
-The following example demonstrates a configuration that creates an AWS S3 bucket, and then uses a mocked provider in order to test the configuration without requiring an AWS account.
+The following example creates an AWS S3 bucket and then uses a mocked provider to test the configuration without requiring an AWS account.
 
 ```hcl
 # main.tf
@@ -67,11 +63,9 @@ run "sets_correct_name" {
 }
 ```
 
-The above example validates the configuration is setting the correct bucket name on the AWS S3 bucket, and we can execute the test without provisioning an AWS account and accessing credentials first.
+From the perspective of a `plan` or `apply` operation executed in a Terraform test file, the mocked provider is creating actual resources with values that match the configuration. These resources are stored in the Terraform state files that `terraform test` creates and holds in memory during test executions.
 
-From the perspective of any `plan` or `apply` operations executed within a Terraform test file, the mocked provider is creating actual resources with values that match the configuration. These resources are stored within the Terraform state files that `terraform test` creates and holds in memory during test executions.
-
-We can also interleave mocked providers and real providers within a Terraform test. In the following example we define two AWS providers, one real and one mocked. We must provide an alias to one of them, as they share the same global `aws` provider namespace. We can then use the `providers` attribute within test run blocks to customize which AWS provider is used for each run block. This behavior is the same as if we had defined two real providers, or two mocked providers, highlighting that Terraform considers mocked providers and real providers to be providers for the same set of resources.
+You can use mocked providers and real providers simulating in a Terraform test. The following example defines two AWS providers, one real and one mocked. You must provide an alias to one of them, as they share the same global `aws` provider namespace. You can then use the `providers` attribute in test `run` blocks to customize which AWS provider to use for each `run` block. 
 
 ```hcl
 # mocked_providers.tftest.hcl
@@ -97,11 +91,11 @@ run "use_mocked_provider" {
 
 ### Generated data
 
-A mocked provider will generate data for any computed attributes within referenced data sources or attributes. For example, the `arn` attribute is a unique identifier generated by AWS for most resources. A mocked `aws` provider will provide a value for this attribute in any resources it creates.
+A mocked provider will generate data for any computed attributes in referenced data sources or attributes. For example, the `arn` attribute is a unique identifier generated by AWS for most resources. A mocked `aws` provider will provide a value for this attribute in any resources it creates.
 
-> **Note**: Mocked providers do not have any information about the expected format of the computed attributes, so the generated data will rarely match any expected syntax that real providers would return for those attributes.
+-> **Note**: Mocked providers do not have any information about the expected format of the computed attributes, so the generated data will rarely match any expected syntax that real providers would return for those attributes.
 
-The generated data depends on the type of the underlying attributes:
+Mocked providers only generate data for computed attributes. All required resource attributes must be set when you use a mocked provider. If you do not provide a value for an optional computed attribute, Terraform will automatically generate one. The values that Terraform generates depends on the data type:
 
 - Numbers will be 0.
 - Booleans will be false.
@@ -109,15 +103,11 @@ The generated data depends on the type of the underlying attributes:
 - Collections, including sets, lists, and maps, will be empty collections.
 - Objects will contain all required sub-attributes generated using this same set of rules recursively.
 
-The above rules are consistent regardless of the type of the mocked provider, so a mocked `aws` and a mocked `google` provider apply the same rules when generating data.
-
-Mocked providers only generate data for **computed** attributes. All required resource attributes must be set when using a mocked provider, as when using a real provider. Any optional and computed attributes will only be generated if the configuration does not already contain a value for them. An example of this is the `bucket` attribute in the `aws_s3_bucket` resource. A real AWS provider will generate a bucket name if one is not specified. A mocked AWS provider will do the same, and only generate a value if one is not already specified within the configuration.
+An example of this is the `bucket` attribute in the `aws_s3_bucket` resource. A real AWS provider will generate a bucket name if one is not specified. A mocked AWS provider will do the same, and only generate a value if one is not already specified in the configuration.
 
 ### Mock Provider data
 
-The automatically generated data, while useful for general consumption of mocked providers, may not match data required for a specific test. You can specify specific values you want to return for targeted resources and data sources.
-
-Within a `mock_provider` block, you can write any number of `mock_resource` and `mock_data` blocks. Both accept a type argument that should match the resource or data source you want to provide values for. Both nested blocks accept a `defaults` object attribute, in which you can specify the values that should be returned for specific attributes.
+You can specify specific values for targed resources and data sources. in a `mock_provider` block, you can write any number of `mock_resource` and `mock_data` blocks. Both the `mock_resource` and `mock_data` blocks accept a type argument that should match the resource or data source you want to provide values for. They also accept a `defaults` object attribute that you can use to specify the values that should be returned for specific attributes.
 
 The following example demonstrates providing a set `arn` value for all AWS S3 bucket resources and data sources:
 
@@ -137,9 +127,9 @@ mock_provider "aws" {
 }
 ```
 
-Now, Terraform will use the supplied value for `arn` attributes within S3 buckets instead of following the generated data rules and creating a random 8 character alphanumeric string. Computed attributes not provided an explicit default will simply fall back to the generic data generation rules.
+In the above example, Terraform uses the supplied value for `arn` attributes in S3 buckets instead of generating a random string. Computed attributes not provided an explicit default will simply fall back to the generic data generation rules.
 
-You can also share mock provider data between tests by writing dedicated mock data files, and using the `source` attribute within the `mock_provider` block. Mock data files have `.tfmock.hcl` or `.tfmock.json` extensions, and can contain `mock_resource` and `mock_data` blocks as if they were defined within the `mock_provider` block directly.
+You can also share mock provider data between tests by writing dedicated mock data files and using the `source` attribute in the `mock_provider` block. Mock data files have `.tfmock.hcl` or `.tfmock.json` extension, and can contain `mock_resource` and `mock_data` blocks as if they were defined in the `mock_provider` block directly.
 
 ```hcl
 # ./testing/aws/data.tfmock.hcl
@@ -163,33 +153,29 @@ mock_provider "aws" {
 }
 ```
 
-In the above example, the `mock_resource` and `mock_data` blocks are defined within a mock data file within the relative directory `./testing/aws`. Multiple test files can then load and share the same mock provider data without copying the same definitions across all files.
+The above example defines `mock_resource` and `mock_data` blocks in a mock data file located at `./testing/aws`. You can load multiple test files and share the same mock provider data without copying the same definitions across multiple files.
 
 You can combine the `source` attribute with directly nested `mock_resource` and `mock_data` blocks. If the source location and a directly nested block describe the same resource or data source then the directly nested block takes precedence.
 
 ## Overrides
 
-In addition to mocking entire providers, you can override specific resources, data sources, and modules.
+In addition to mocking providers, you can use the following block types to override specific resources, data sources, and modules: 
 
-Terraform v1.7.0 introduced three new block types within Terraform test files:
+- `override_resource`: Override the values of a resource. Terraform does not call the underlying provider.
+- `override_data`: Override the values of a data source. Terraform does not call the underlying provider.
+- `override_module`: Override the outputs of a module. Terraform does not create any resource in the module.
 
-- `override_resource`: Override the values of a specific resource. The underlying provider will not be consulted for the overridden resource.
-- `override_data`: Override the values of a specific data source. The underlying provider will not be consulted for the overridden data source.
-- `override_module`: Override the outputs of a specific module call. Any resources within the module will not be created, and the specified outputs will be returned instead.
+All three blocks can be placed at the root level of Terraform test files and in Terraform test file `run` blocks. In addition, the `override_resource` and `override_data` blocks can be nested in `mock_provider` blocks and in Terraform mock data files. 
 
-The `override_module` block can be placed at the root level of Terraform test files and within Terraform test file run blocks.
-
-The `override_resource` and `override_data` blocks can also be placed at the root level of Terraform test files and within Terraform test file run blocks. In addition, they can be nested within `mock_provider` blocks and within Terraform mock data files.
-
-Overrides can be used alongside both real and mocked providers. In both cases, the override provides the computed values instead of the underlying provider.
+Overrides can be used with both real and mocked providers and will provide the computed values instead of the underlying provider.
 
 ### Overrides Syntax
 
-All override blocks contain a `target` attribute, which should specify the resource, data source, or module that should be overridden. The `override_module` blocks then contain an `outputs` attribute, while the `override_resource` and `override_data` blocks contain a `values` attribute.
+All override blocks contain a `target` attribute, which should specify the resource, data source, or module to override. The `override_module` blocks contain an `outputs` attribute, while the `override_resource` and `override_data` blocks contain a `values` attribute.
 
-As with the `defaults` attribute in the `mock_resource` and `mock_data` blocks, the `outputs` and `values` attributes are optional and any outputs or computed attributes not specified will be generated by the testing framework.
+The `outputs` and `values` attributes are optional and if not specified, Terraform will generate values for them automatically.
 
-The following example demonstrates using the override blocks at various different scopes and levels. There is a module that reads a file from an S3 bucket, and then the root configuration creates a local file that contains the data read from S3.
+The following example demonstrates the override blocks at various different scopes and levels. The main configuration calls the `./modules/s3_data` module to read a file from an S3 bucket, and then creates a `local_file` from the data returned from the module.
 
 ```hcl
 # main.tf
@@ -231,7 +217,7 @@ output "data" {
 }
 ```
 
-Firstly, the `aws_s3_bucket_object` within the module could be overridden directly within a mock provider. There is an `override_data` block within the `mock_provider` block, this means that the target data source will only be overridden if it is loaded by that specific mock provider.
+Firstly, you can override the `aws_s3_bucket_object` in the module directly in a mock provider. The following example defines an `override_data` block in the `mock_provider` block. In this case, Terraform will only override the target data source if the mock provider creates it.
 
 ```hcl
 # main.tftest.hcl
@@ -253,7 +239,7 @@ run "test" {
 }
 ```
 
-Alternatively, the same `aws_s3_bucket_object` could be overridden within the test file itself, or within a run block. In this case, the underlying provider doesn't matter as the data source at the target address is overridden regardless of the provider. The example still mocks the provider so this can be run without AWS credentials. Override blocks can override resources provided by real providers.
+Alternatively, you could also override the same `aws_s3_bucket_object` in the test file itself, or in a `run` block. In this case, the underlying provider doesn't matter since Terraform overrides the data source at the target address regardless of the provider. The following example still mocks the provider so that Terraform can run the test without AWS credentials. Override blocks can override resources provided by real providers.
 
 ```hcl
 # main.tftest.hcl
@@ -275,8 +261,8 @@ run "test_file_override" {
 }
 
 run "test_run_override" {
-  # The value within this local override block takes precedence over the
-  # alternate defined within the file.
+  # The value in this local override block takes precedence over the
+  # alternate defined in the file.
   override_data {
     target = module.credentials.data.aws_s3_object.data_bucket
     values = {
@@ -291,9 +277,9 @@ run "test_run_override" {
 }
 ```
 
-In the above example, the override block defined at the file level is used within the first run block. Then in the second run block, the alternative local override takes precedence over the file level override. File level overrides and run block overrides both take precedence over overrides defined within mock providers.
+In the above example, the override block defined at the file level is used in the first `run` block. Then in the second `run` block, the alternative local override takes precedence over the file level override.
 
-Finally, the entire module can be overridden:
+Finally, you can override the entire module with the `override_module` block. In the following example, Terraform overrides the entire module instead of specific resources in the module. 
 
 ```hcl
 # main.tftest.hcl
@@ -314,17 +300,13 @@ run "test" {
 }
 ```
 
-In the above example, the module is overridden in the entirety instead of the specific resources within the module. In this case, the override block is specifying `outputs` instead of `values` and the output value is specified as HCL instead of as a string as the real module is passing the data through the `jsondecode` function. As with `override_data` blocks, the `override_module` block could be specified within the run block and the same precedence rules apply.
-
-The `override_resource` blocks match the behaviour of the `override_data` blocks.
+In this case, the override block specifies `outputs` instead of `values` and the output value is specified as HCL instead of as a string as the real module is passing the data through the `jsondecode` function. As with `override_data` blocks, you can also specify the `override_module` block in the `run` block and the same precedence rules apply.
 
 ## Repeated blocks and nested attributes
 
-The examples within this page have so far focused on generating values for simple attributes. Some resources and data sources specify repeated nested attributes as computed directly, while repeated blocks within the resource may also contain computed attributes.
+Some resources and data sources specify repeated nested attributes as computed directly, while repeated blocks in the resource may also contain computed attributes. For repeated blocks and nested attributes, you cannot specify values for specific instances in the collection. Instead, you must provide a single set of values that apply for all instances in the collection.
 
-For repeated blocks and nested attributes, you cannot specify values for specific instances within the collection. Instead, you provide a single set of values that apply for all instances within the collection.
-
-As an example, consider the `aws_dynamodb_table` resource. It contains a root level computed `arn` attribute, and a set-repeated block called `replica` which also contains a computed `arn` attribute. A typical configuration might look like this:
+For example, the `aws_dynamodb_table` resource contains a root-level computed `arn` attribute as well as a set-repeated block called `replica` which also contains a computed `arn` attribute. The following is an example of a simple instance of an `aws_dynamodb_table`.
 
 ```hcl
 # main.tf
@@ -348,7 +330,7 @@ resource "aws_dynamodb_table" "my_table" {
 }
 ```
 
-In normal execution, the AWS provider would return ARN values for the main DynamoDB table and for both the specified replicas. While a `mock_resource` block can mimic this behavior, it cannot differentiate between the multiple `replica` blocks within the resource:
+Normally, the AWS provider would return ARN values for the DynamoDB table and both of the specified replicas. While a `mock_resource` block can mimic this behavior, it cannot differentiate between the multiple `replica` blocks in the resource:
 
 ```hcl
 mock_resource "aws_dynamodb_table" {
@@ -361,6 +343,4 @@ mock_resource "aws_dynamodb_table" {
 }
 ```
 
-In this case, the `mock_resource` provides a specific value for the ARN returned for the main table, but the ARN values returned for the replica tables are shared between all instances. It is not currently possible to specify values for specific instances within repeated blocks during `terraform test` executions.
-
-The reason for this behaviour is that it is not possible for Terraform to match repeated blocks in a set between the configuration and the specified values from the mock or override block. Terraform has no way to resolve which instance within the values should apply to which instance within the configuration, so a single instance must apply to all values within the collection.
+In this case, the `mock_resource` provides a specific value for the ARN of the DynamoDB table, but the ARN values returned for the replica tables are shared between all instances.
