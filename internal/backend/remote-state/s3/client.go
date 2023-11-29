@@ -142,7 +142,7 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 	}
 
 	// Pre-allocate the full buffer to avoid re-allocations and GC
-	buf := make([]byte, int(headOut.ContentLength))
+	buf := make([]byte, int(aws.ToInt64(headOut.ContentLength)))
 	w := manager.NewWriteAtBuffer(buf)
 
 	downloadInput := &s3.GetObjectInput{
