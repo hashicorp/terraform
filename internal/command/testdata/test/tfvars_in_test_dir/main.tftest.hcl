@@ -1,8 +1,3 @@
-  variables {
-    test_foo = "foo_tfvars_value"
-    test_foo_json = "foo_json_tfvars_value"
-  }
-
 run "primary" {
   assert {
     condition     = var.foo == var.test_foo
