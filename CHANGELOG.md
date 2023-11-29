@@ -41,6 +41,7 @@ ENHANCEMENTS:
 * `terraform test`: Terraform functions are now available within variables and provider blocks within test files. ([#34204](https://github.com/hashicorp/terraform/issues/34204))
 * `terraform graph`: Now produces a simplified resources-only graph by default. ([#34288](https://github.com/hashicorp/terraform/pull/34288))
 * `import`: `for_each` can now be used to expand the `import` block to handle multiple resource instances ([#33932](https://github.com/hashicorp/terraform/issues/33932))
+* If the proposed change for a resource instance is rejected either due to a `postcondition` block or a `prevent_destroy` setting, Terraform will now include that proposed change in the plan output alongside the relevant error, whereas before the error would _replace_ the proposed change in the output. ([#34312](https://github.com/hashicorp/terraform/issues/34312))
 
 ## Previous Releases
 
