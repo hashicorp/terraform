@@ -14,6 +14,7 @@ UPGRADE NOTES:
 * `terraform graph` now produces a simplified graph describing only relationships between resources by default, for consistency with the granularity of information returned by other commands that emphasize resources as the main interesting object type and de-emphasize the other "glue" objects that connect them.
 
     The type of graph that earlier versions of Terraform produced by default is still available with explicit use of the `-type=plan` option, producing an approximation of the real dependency graph Terraform Core would use to construct a plan.
+* `terraform test`: Simplify the ordering of destroy operations during test cleanup to simple reverse run block order. ([#34293](https://github.com/hashicorp/terraform/issues/34293))
 
 NEW FEATURES:
 
