@@ -1,4 +1,4 @@
-## 1.7.0 (Unreleased)
+## 1.7.0-alpha20231130 (November 30, 2023)
 
 UPGRADE NOTES:
 
