@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -59,6 +60,20 @@ func (po *PlanOpts) ApplyOpts() *ApplyOpts {
 // settings during apply, so leaving opts as nil might not be valid for
 // certain combinations of plan-time options.
 func (c *Context) Apply(plan *plans.Plan, config *configs.Config, opts *ApplyOpts) (*states.State, tfdiags.Diagnostics) {
+	state, _, diags := c.ApplyAndEval(plan, config, opts)
+	return state, diags
+}
+
+// PlanAndEval is like [Context.Apply] except that it additionally makes a
+// best effort to return a [lang.Scope] which can evaluate expressions in the
+// root module based on the content of the new state.
+//
+// The scope will be nil if the apply process doesn't complete successfully
+// enough to produce a valid evaluation scope. If the returned state is nil
+// then the scope will always be nil, but it's also possible for the scope
+// to be nil even when the state isn't, if the apply didn't complete enough for
+// the evaluation scope to produce consistent results.
+func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *ApplyOpts) (*states.State, *lang.Scope, tfdiags.Diagnostics) {
 	defer c.acquireRun("apply")()
 	var diags tfdiags.Diagnostics
 
@@ -78,7 +93,7 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config, opts *ApplyOpt
 			"Cannot apply failed plan",
 			`The given plan is incomplete due to errors during planning, and so it cannot be applied.`,
 		))
-		return nil, diags
+		return nil, nil, diags
 	}
 
 	for _, rc := range plan.Changes.Resources {
@@ -97,13 +112,13 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config, opts *ApplyOpt
 	graph, operation, moreDiags := c.applyGraph(plan, config, opts, true)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
-		return nil, diags
+		return nil, nil, diags
 	}
 
 	moreDiags = checkExternalProviders(config, opts.ExternalProviders)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
-		return nil, diags
+		return nil, nil, diags
 	}
 
 	workingState := plan.PriorState.DeepCopy()
@@ -165,7 +180,12 @@ Note that the -target option is not suitable for routine use, and is provided on
 		newState.CheckResults = plan.Checks.DeepCopy()
 	}
 
-	return newState, diags
+	// The caller also gets access to an expression evaluation scope in the
+	// root module, in case it needs to extract other information using
+	// expressions, like in "terraform console" or the test harness.
+	evalScope := evalScopeFromGraphWalk(walker, addrs.RootModuleInstance)
+
+	return newState, evalScope, diags
 }
 
 func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *ApplyOpts, validate bool) (*Graph, walkOperation, tfdiags.Diagnostics) {
