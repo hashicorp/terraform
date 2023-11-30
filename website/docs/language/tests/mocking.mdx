@@ -8,7 +8,7 @@ description: >-
 
 -> **Note**: Test mocking is available in Terraform v1.7.0 and later. This feature is in beta.
 
-Terraform lets you to mock providers, resources, and data sources for your tests. This allows you to test parts of your module without creating infrastructure or requiring credentials. In a Terraform test, a mocked provider or resource will generate fake data for all computed attributes that would normally be provided by the underlying provider APIs.
+Terraform lets you mock providers, resources, and data sources for your tests. This allows you to test parts of your module without creating infrastructure or requiring credentials. In a Terraform test, a mocked provider or resource will generate fake data for all computed attributes that would normally be provided by the underlying provider APIs.
 
 Mocking functionality can only be used with the [`terraform test` language](/terraform/language/tests). Readers of this documentation should be familiar with the testing syntax and language features.
 
@@ -107,7 +107,7 @@ An example of this is the `bucket` attribute in the `aws_s3_bucket` resource. A 
 
 ### Mock Provider data
 
-You can specify specific values for targed resources and data sources. in a `mock_provider` block, you can write any number of `mock_resource` and `mock_data` blocks. Both the `mock_resource` and `mock_data` blocks accept a type argument that should match the resource or data source you want to provide values for. They also accept a `defaults` object attribute that you can use to specify the values that should be returned for specific attributes.
+You can specify specific values for targeted resources and data sources. in a `mock_provider` block, you can write any number of `mock_resource` and `mock_data` blocks. Both the `mock_resource` and `mock_data` blocks accept a type argument that should match the resource or data source you want to provide values for. They also accept a `defaults` object attribute that you can use to specify the values that should be returned for specific attributes.
 
 The following example demonstrates providing a set `arn` value for all AWS S3 bucket resources and data sources:
 
