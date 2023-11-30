@@ -143,7 +143,7 @@ func (ctx *TestContext) Evaluate(priorContexts map[string]*TestContext) {
 		hclCtx, moreDiags := scope.EvalContext(refs)
 		diags = diags.Append(moreDiags)
 
-		errorMessage, moreDiags := evalCheckErrorMessage(rule.ErrorMessage, hclCtx)
+		errorMessage, moreDiags := lang.EvalCheckErrorMessage(rule.ErrorMessage, hclCtx)
 		diags = diags.Append(moreDiags)
 
 		runVal, hclDiags := rule.Condition.Value(hclCtx)
