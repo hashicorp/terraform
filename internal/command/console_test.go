@@ -239,3 +239,46 @@ func TestConsole_modules(t *testing.T) {
 		}
 	}
 }
+
+func TestConsole_modulesPlan(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer testChdir(t, td)()
+
+	p := applyFixtureProvider()
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+
+	c := &ConsoleCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	commands := map[string]string{
+		"test_instance.foo.ami\n": "\"bar\"\n",
+	}
+
+	// The -plan option means that we'll be evaluating expressions against
+	// a plan constructed from this configuration, instead of against its
+	// (non-existent) prior state.
+	args := []string{"-plan"}
+
+	for cmd, val := range commands {
+		var output bytes.Buffer
+		defer testStdinPipe(t, strings.NewReader(cmd))()
+		outCloser := testStdoutCapture(t, &output)
+		code := c.Run(args)
+		outCloser()
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		actual := output.String()
+		if output.String() != val {
+			t.Fatalf("bad: %q, expected %q", actual, val)
+		}
+	}
+}
