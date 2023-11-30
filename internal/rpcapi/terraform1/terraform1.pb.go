@@ -2770,6 +2770,196 @@ func (x *Schema) GetBlock() *Schema_Block {
 	return nil
 }
 
+type ProviderPackageVersions struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *ProviderPackageVersions) Reset() {
+	*x = ProviderPackageVersions{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[39]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ProviderPackageVersions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProviderPackageVersions) ProtoMessage() {}
+
+func (x *ProviderPackageVersions) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[39]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProviderPackageVersions.ProtoReflect.Descriptor instead.
+func (*ProviderPackageVersions) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{39}
+}
+
+type FetchProviderPackage struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *FetchProviderPackage) Reset() {
+	*x = FetchProviderPackage{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[40]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *FetchProviderPackage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchProviderPackage) ProtoMessage() {}
+
+func (x *FetchProviderPackage) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[40]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchProviderPackage.ProtoReflect.Descriptor instead.
+func (*FetchProviderPackage) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{40}
+}
+
+type ModulePackageVersions struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *ModulePackageVersions) Reset() {
+	*x = ModulePackageVersions{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[41]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ModulePackageVersions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModulePackageVersions) ProtoMessage() {}
+
+func (x *ModulePackageVersions) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[41]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModulePackageVersions.ProtoReflect.Descriptor instead.
+func (*ModulePackageVersions) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{41}
+}
+
+type ModulePackageSourceAddr struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *ModulePackageSourceAddr) Reset() {
+	*x = ModulePackageSourceAddr{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[42]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ModulePackageSourceAddr) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModulePackageSourceAddr) ProtoMessage() {}
+
+func (x *ModulePackageSourceAddr) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[42]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModulePackageSourceAddr.ProtoReflect.Descriptor instead.
+func (*ModulePackageSourceAddr) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{42}
+}
+
+type FetchModulePackage struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *FetchModulePackage) Reset() {
+	*x = FetchModulePackage{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[43]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *FetchModulePackage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchModulePackage) ProtoMessage() {}
+
+func (x *FetchModulePackage) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[43]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchModulePackage.ProtoReflect.Descriptor instead.
+func (*FetchModulePackage) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{43}
+}
+
 type Handshake_Request struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2781,7 +2971,7 @@ type Handshake_Request struct {
 func (x *Handshake_Request) Reset() {
 	*x = Handshake_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[39]
+		mi := &file_terraform1_proto_msgTypes[44]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2794,7 +2984,7 @@ func (x *Handshake_Request) String() string {
 func (*Handshake_Request) ProtoMessage() {}
 
 func (x *Handshake_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[39]
+	mi := &file_terraform1_proto_msgTypes[44]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2828,7 +3018,7 @@ type Handshake_Response struct {
 func (x *Handshake_Response) Reset() {
 	*x = Handshake_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[40]
+		mi := &file_terraform1_proto_msgTypes[45]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2841,7 +3031,7 @@ func (x *Handshake_Response) String() string {
 func (*Handshake_Response) ProtoMessage() {}
 
 func (x *Handshake_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[40]
+	mi := &file_terraform1_proto_msgTypes[45]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2875,7 +3065,7 @@ type OpenSourceBundle_Request struct {
 func (x *OpenSourceBundle_Request) Reset() {
 	*x = OpenSourceBundle_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[41]
+		mi := &file_terraform1_proto_msgTypes[46]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2888,7 +3078,7 @@ func (x *OpenSourceBundle_Request) String() string {
 func (*OpenSourceBundle_Request) ProtoMessage() {}
 
 func (x *OpenSourceBundle_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[41]
+	mi := &file_terraform1_proto_msgTypes[46]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2922,7 +3112,7 @@ type OpenSourceBundle_Response struct {
 func (x *OpenSourceBundle_Response) Reset() {
 	*x = OpenSourceBundle_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[42]
+		mi := &file_terraform1_proto_msgTypes[47]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2935,7 +3125,7 @@ func (x *OpenSourceBundle_Response) String() string {
 func (*OpenSourceBundle_Response) ProtoMessage() {}
 
 func (x *OpenSourceBundle_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[42]
+	mi := &file_terraform1_proto_msgTypes[47]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2969,7 +3159,7 @@ type CloseSourceBundle_Request struct {
 func (x *CloseSourceBundle_Request) Reset() {
 	*x = CloseSourceBundle_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[43]
+		mi := &file_terraform1_proto_msgTypes[48]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2982,7 +3172,7 @@ func (x *CloseSourceBundle_Request) String() string {
 func (*CloseSourceBundle_Request) ProtoMessage() {}
 
 func (x *CloseSourceBundle_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[43]
+	mi := &file_terraform1_proto_msgTypes[48]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3014,7 +3204,7 @@ type CloseSourceBundle_Response struct {
 func (x *CloseSourceBundle_Response) Reset() {
 	*x = CloseSourceBundle_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[44]
+		mi := &file_terraform1_proto_msgTypes[49]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3027,7 +3217,7 @@ func (x *CloseSourceBundle_Response) String() string {
 func (*CloseSourceBundle_Response) ProtoMessage() {}
 
 func (x *CloseSourceBundle_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[44]
+	mi := &file_terraform1_proto_msgTypes[49]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3055,7 +3245,7 @@ type OpenDependencyLockFile_Request struct {
 func (x *OpenDependencyLockFile_Request) Reset() {
 	*x = OpenDependencyLockFile_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[45]
+		mi := &file_terraform1_proto_msgTypes[50]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3068,7 +3258,7 @@ func (x *OpenDependencyLockFile_Request) String() string {
 func (*OpenDependencyLockFile_Request) ProtoMessage() {}
 
 func (x *OpenDependencyLockFile_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[45]
+	mi := &file_terraform1_proto_msgTypes[50]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3110,7 +3300,7 @@ type OpenDependencyLockFile_Response struct {
 func (x *OpenDependencyLockFile_Response) Reset() {
 	*x = OpenDependencyLockFile_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[46]
+		mi := &file_terraform1_proto_msgTypes[51]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3123,7 +3313,7 @@ func (x *OpenDependencyLockFile_Response) String() string {
 func (*OpenDependencyLockFile_Response) ProtoMessage() {}
 
 func (x *OpenDependencyLockFile_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[46]
+	mi := &file_terraform1_proto_msgTypes[51]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3170,7 +3360,7 @@ type CreateDependencyLocks_Request struct {
 func (x *CreateDependencyLocks_Request) Reset() {
 	*x = CreateDependencyLocks_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[47]
+		mi := &file_terraform1_proto_msgTypes[52]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3183,7 +3373,7 @@ func (x *CreateDependencyLocks_Request) String() string {
 func (*CreateDependencyLocks_Request) ProtoMessage() {}
 
 func (x *CreateDependencyLocks_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[47]
+	mi := &file_terraform1_proto_msgTypes[52]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3217,7 +3407,7 @@ type CreateDependencyLocks_Response struct {
 func (x *CreateDependencyLocks_Response) Reset() {
 	*x = CreateDependencyLocks_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[48]
+		mi := &file_terraform1_proto_msgTypes[53]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3230,7 +3420,7 @@ func (x *CreateDependencyLocks_Response) String() string {
 func (*CreateDependencyLocks_Response) ProtoMessage() {}
 
 func (x *CreateDependencyLocks_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[48]
+	mi := &file_terraform1_proto_msgTypes[53]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3264,7 +3454,7 @@ type CloseDependencyLocks_Request struct {
 func (x *CloseDependencyLocks_Request) Reset() {
 	*x = CloseDependencyLocks_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[49]
+		mi := &file_terraform1_proto_msgTypes[54]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3277,7 +3467,7 @@ func (x *CloseDependencyLocks_Request) String() string {
 func (*CloseDependencyLocks_Request) ProtoMessage() {}
 
 func (x *CloseDependencyLocks_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[49]
+	mi := &file_terraform1_proto_msgTypes[54]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3309,7 +3499,7 @@ type CloseDependencyLocks_Response struct {
 func (x *CloseDependencyLocks_Response) Reset() {
 	*x = CloseDependencyLocks_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[50]
+		mi := &file_terraform1_proto_msgTypes[55]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3322,7 +3512,7 @@ func (x *CloseDependencyLocks_Response) String() string {
 func (*CloseDependencyLocks_Response) ProtoMessage() {}
 
 func (x *CloseDependencyLocks_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[50]
+	mi := &file_terraform1_proto_msgTypes[55]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3349,7 +3539,7 @@ type GetLockedProviderDependencies_Request struct {
 func (x *GetLockedProviderDependencies_Request) Reset() {
 	*x = GetLockedProviderDependencies_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[51]
+		mi := &file_terraform1_proto_msgTypes[56]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3362,7 +3552,7 @@ func (x *GetLockedProviderDependencies_Request) String() string {
 func (*GetLockedProviderDependencies_Request) ProtoMessage() {}
 
 func (x *GetLockedProviderDependencies_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[51]
+	mi := &file_terraform1_proto_msgTypes[56]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3396,7 +3586,7 @@ type GetLockedProviderDependencies_Response struct {
 func (x *GetLockedProviderDependencies_Response) Reset() {
 	*x = GetLockedProviderDependencies_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[52]
+		mi := &file_terraform1_proto_msgTypes[57]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3409,7 +3599,7 @@ func (x *GetLockedProviderDependencies_Response) String() string {
 func (*GetLockedProviderDependencies_Response) ProtoMessage() {}
 
 func (x *GetLockedProviderDependencies_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[52]
+	mi := &file_terraform1_proto_msgTypes[57]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3454,7 +3644,7 @@ type BuildProviderPluginCache_Request struct {
 func (x *BuildProviderPluginCache_Request) Reset() {
 	*x = BuildProviderPluginCache_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[53]
+		mi := &file_terraform1_proto_msgTypes[58]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3467,7 +3657,7 @@ func (x *BuildProviderPluginCache_Request) String() string {
 func (*BuildProviderPluginCache_Request) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[53]
+	mi := &file_terraform1_proto_msgTypes[58]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3533,7 +3723,7 @@ type BuildProviderPluginCache_Event struct {
 func (x *BuildProviderPluginCache_Event) Reset() {
 	*x = BuildProviderPluginCache_Event{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[54]
+		mi := &file_terraform1_proto_msgTypes[59]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3546,7 +3736,7 @@ func (x *BuildProviderPluginCache_Event) String() string {
 func (*BuildProviderPluginCache_Event) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[54]
+	mi := &file_terraform1_proto_msgTypes[59]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3708,7 +3898,7 @@ type BuildProviderPluginCache_Request_InstallMethod struct {
 func (x *BuildProviderPluginCache_Request_InstallMethod) Reset() {
 	*x = BuildProviderPluginCache_Request_InstallMethod{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[55]
+		mi := &file_terraform1_proto_msgTypes[60]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3721,7 +3911,7 @@ func (x *BuildProviderPluginCache_Request_InstallMethod) String() string {
 func (*BuildProviderPluginCache_Request_InstallMethod) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Request_InstallMethod) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[55]
+	mi := &file_terraform1_proto_msgTypes[60]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3815,7 +4005,7 @@ type BuildProviderPluginCache_Event_Pending struct {
 func (x *BuildProviderPluginCache_Event_Pending) Reset() {
 	*x = BuildProviderPluginCache_Event_Pending{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[56]
+		mi := &file_terraform1_proto_msgTypes[61]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3828,7 +4018,7 @@ func (x *BuildProviderPluginCache_Event_Pending) String() string {
 func (*BuildProviderPluginCache_Event_Pending) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_Pending) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[56]
+	mi := &file_terraform1_proto_msgTypes[61]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3863,7 +4053,7 @@ type BuildProviderPluginCache_Event_ProviderConstraints struct {
 func (x *BuildProviderPluginCache_Event_ProviderConstraints) Reset() {
 	*x = BuildProviderPluginCache_Event_ProviderConstraints{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[57]
+		mi := &file_terraform1_proto_msgTypes[62]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3876,7 +4066,7 @@ func (x *BuildProviderPluginCache_Event_ProviderConstraints) String() string {
 func (*BuildProviderPluginCache_Event_ProviderConstraints) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_ProviderConstraints) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[57]
+	mi := &file_terraform1_proto_msgTypes[62]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3918,7 +4108,7 @@ type BuildProviderPluginCache_Event_ProviderVersion struct {
 func (x *BuildProviderPluginCache_Event_ProviderVersion) Reset() {
 	*x = BuildProviderPluginCache_Event_ProviderVersion{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[58]
+		mi := &file_terraform1_proto_msgTypes[63]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3931,7 +4121,7 @@ func (x *BuildProviderPluginCache_Event_ProviderVersion) String() string {
 func (*BuildProviderPluginCache_Event_ProviderVersion) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_ProviderVersion) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[58]
+	mi := &file_terraform1_proto_msgTypes[63]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3973,7 +4163,7 @@ type BuildProviderPluginCache_Event_ProviderWarnings struct {
 func (x *BuildProviderPluginCache_Event_ProviderWarnings) Reset() {
 	*x = BuildProviderPluginCache_Event_ProviderWarnings{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[59]
+		mi := &file_terraform1_proto_msgTypes[64]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3986,7 +4176,7 @@ func (x *BuildProviderPluginCache_Event_ProviderWarnings) String() string {
 func (*BuildProviderPluginCache_Event_ProviderWarnings) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_ProviderWarnings) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[59]
+	mi := &file_terraform1_proto_msgTypes[64]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4028,7 +4218,7 @@ type BuildProviderPluginCache_Event_FetchBegin struct {
 func (x *BuildProviderPluginCache_Event_FetchBegin) Reset() {
 	*x = BuildProviderPluginCache_Event_FetchBegin{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[60]
+		mi := &file_terraform1_proto_msgTypes[65]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4041,7 +4231,7 @@ func (x *BuildProviderPluginCache_Event_FetchBegin) String() string {
 func (*BuildProviderPluginCache_Event_FetchBegin) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_FetchBegin) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[60]
+	mi := &file_terraform1_proto_msgTypes[65]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4089,7 +4279,7 @@ type BuildProviderPluginCache_Event_FetchComplete struct {
 func (x *BuildProviderPluginCache_Event_FetchComplete) Reset() {
 	*x = BuildProviderPluginCache_Event_FetchComplete{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[61]
+		mi := &file_terraform1_proto_msgTypes[66]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4102,7 +4292,7 @@ func (x *BuildProviderPluginCache_Event_FetchComplete) String() string {
 func (*BuildProviderPluginCache_Event_FetchComplete) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_FetchComplete) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[61]
+	mi := &file_terraform1_proto_msgTypes[66]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4159,7 +4349,7 @@ type OpenProviderPluginCache_Request struct {
 func (x *OpenProviderPluginCache_Request) Reset() {
 	*x = OpenProviderPluginCache_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[62]
+		mi := &file_terraform1_proto_msgTypes[67]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4172,7 +4362,7 @@ func (x *OpenProviderPluginCache_Request) String() string {
 func (*OpenProviderPluginCache_Request) ProtoMessage() {}
 
 func (x *OpenProviderPluginCache_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[62]
+	mi := &file_terraform1_proto_msgTypes[67]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4213,7 +4403,7 @@ type OpenProviderPluginCache_Response struct {
 func (x *OpenProviderPluginCache_Response) Reset() {
 	*x = OpenProviderPluginCache_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[63]
+		mi := &file_terraform1_proto_msgTypes[68]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4226,7 +4416,7 @@ func (x *OpenProviderPluginCache_Response) String() string {
 func (*OpenProviderPluginCache_Response) ProtoMessage() {}
 
 func (x *OpenProviderPluginCache_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[63]
+	mi := &file_terraform1_proto_msgTypes[68]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4260,7 +4450,7 @@ type CloseProviderPluginCache_Request struct {
 func (x *CloseProviderPluginCache_Request) Reset() {
 	*x = CloseProviderPluginCache_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[64]
+		mi := &file_terraform1_proto_msgTypes[69]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4273,7 +4463,7 @@ func (x *CloseProviderPluginCache_Request) String() string {
 func (*CloseProviderPluginCache_Request) ProtoMessage() {}
 
 func (x *CloseProviderPluginCache_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[64]
+	mi := &file_terraform1_proto_msgTypes[69]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4305,7 +4495,7 @@ type CloseProviderPluginCache_Response struct {
 func (x *CloseProviderPluginCache_Response) Reset() {
 	*x = CloseProviderPluginCache_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[65]
+		mi := &file_terraform1_proto_msgTypes[70]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4318,7 +4508,7 @@ func (x *CloseProviderPluginCache_Response) String() string {
 func (*CloseProviderPluginCache_Response) ProtoMessage() {}
 
 func (x *CloseProviderPluginCache_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[65]
+	mi := &file_terraform1_proto_msgTypes[70]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4345,7 +4535,7 @@ type GetCachedProviders_Request struct {
 func (x *GetCachedProviders_Request) Reset() {
 	*x = GetCachedProviders_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[66]
+		mi := &file_terraform1_proto_msgTypes[71]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4358,7 +4548,7 @@ func (x *GetCachedProviders_Request) String() string {
 func (*GetCachedProviders_Request) ProtoMessage() {}
 
 func (x *GetCachedProviders_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[66]
+	mi := &file_terraform1_proto_msgTypes[71]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4392,7 +4582,7 @@ type GetCachedProviders_Response struct {
 func (x *GetCachedProviders_Response) Reset() {
 	*x = GetCachedProviders_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[67]
+		mi := &file_terraform1_proto_msgTypes[72]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4405,7 +4595,7 @@ func (x *GetCachedProviders_Response) String() string {
 func (*GetCachedProviders_Response) ProtoMessage() {}
 
 func (x *GetCachedProviders_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[67]
+	mi := &file_terraform1_proto_msgTypes[72]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4437,7 +4627,7 @@ type GetBuiltInProviders_Request struct {
 func (x *GetBuiltInProviders_Request) Reset() {
 	*x = GetBuiltInProviders_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[68]
+		mi := &file_terraform1_proto_msgTypes[73]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4450,7 +4640,7 @@ func (x *GetBuiltInProviders_Request) String() string {
 func (*GetBuiltInProviders_Request) ProtoMessage() {}
 
 func (x *GetBuiltInProviders_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[68]
+	mi := &file_terraform1_proto_msgTypes[73]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4484,7 +4674,7 @@ type GetBuiltInProviders_Response struct {
 func (x *GetBuiltInProviders_Response) Reset() {
 	*x = GetBuiltInProviders_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[69]
+		mi := &file_terraform1_proto_msgTypes[74]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4497,7 +4687,7 @@ func (x *GetBuiltInProviders_Response) String() string {
 func (*GetBuiltInProviders_Response) ProtoMessage() {}
 
 func (x *GetBuiltInProviders_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[69]
+	mi := &file_terraform1_proto_msgTypes[74]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4554,7 +4744,7 @@ type GetProviderSchema_Request struct {
 func (x *GetProviderSchema_Request) Reset() {
 	*x = GetProviderSchema_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[70]
+		mi := &file_terraform1_proto_msgTypes[75]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4567,7 +4757,7 @@ func (x *GetProviderSchema_Request) String() string {
 func (*GetProviderSchema_Request) ProtoMessage() {}
 
 func (x *GetProviderSchema_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[70]
+	mi := &file_terraform1_proto_msgTypes[75]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4615,7 +4805,7 @@ type GetProviderSchema_Response struct {
 func (x *GetProviderSchema_Response) Reset() {
 	*x = GetProviderSchema_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[71]
+		mi := &file_terraform1_proto_msgTypes[76]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4628,7 +4818,7 @@ func (x *GetProviderSchema_Response) String() string {
 func (*GetProviderSchema_Response) ProtoMessage() {}
 
 func (x *GetProviderSchema_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[71]
+	mi := &file_terraform1_proto_msgTypes[76]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4663,7 +4853,7 @@ type OpenStackConfiguration_Request struct {
 func (x *OpenStackConfiguration_Request) Reset() {
 	*x = OpenStackConfiguration_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[74]
+		mi := &file_terraform1_proto_msgTypes[79]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4676,7 +4866,7 @@ func (x *OpenStackConfiguration_Request) String() string {
 func (*OpenStackConfiguration_Request) ProtoMessage() {}
 
 func (x *OpenStackConfiguration_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[74]
+	mi := &file_terraform1_proto_msgTypes[79]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4718,7 +4908,7 @@ type OpenStackConfiguration_Response struct {
 func (x *OpenStackConfiguration_Response) Reset() {
 	*x = OpenStackConfiguration_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[75]
+		mi := &file_terraform1_proto_msgTypes[80]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4731,7 +4921,7 @@ func (x *OpenStackConfiguration_Response) String() string {
 func (*OpenStackConfiguration_Response) ProtoMessage() {}
 
 func (x *OpenStackConfiguration_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[75]
+	mi := &file_terraform1_proto_msgTypes[80]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4772,7 +4962,7 @@ type CloseStackConfiguration_Request struct {
 func (x *CloseStackConfiguration_Request) Reset() {
 	*x = CloseStackConfiguration_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[76]
+		mi := &file_terraform1_proto_msgTypes[81]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4785,7 +4975,7 @@ func (x *CloseStackConfiguration_Request) String() string {
 func (*CloseStackConfiguration_Request) ProtoMessage() {}
 
 func (x *CloseStackConfiguration_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[76]
+	mi := &file_terraform1_proto_msgTypes[81]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4817,7 +5007,7 @@ type CloseStackConfiguration_Response struct {
 func (x *CloseStackConfiguration_Response) Reset() {
 	*x = CloseStackConfiguration_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[77]
+		mi := &file_terraform1_proto_msgTypes[82]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4830,7 +5020,7 @@ func (x *CloseStackConfiguration_Response) String() string {
 func (*CloseStackConfiguration_Response) ProtoMessage() {}
 
 func (x *CloseStackConfiguration_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[77]
+	mi := &file_terraform1_proto_msgTypes[82]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4857,7 +5047,7 @@ type FindStackConfigurationComponents_Request struct {
 func (x *FindStackConfigurationComponents_Request) Reset() {
 	*x = FindStackConfigurationComponents_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[78]
+		mi := &file_terraform1_proto_msgTypes[83]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4870,7 +5060,7 @@ func (x *FindStackConfigurationComponents_Request) String() string {
 func (*FindStackConfigurationComponents_Request) ProtoMessage() {}
 
 func (x *FindStackConfigurationComponents_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[78]
+	mi := &file_terraform1_proto_msgTypes[83]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4904,7 +5094,7 @@ type FindStackConfigurationComponents_Response struct {
 func (x *FindStackConfigurationComponents_Response) Reset() {
 	*x = FindStackConfigurationComponents_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[79]
+		mi := &file_terraform1_proto_msgTypes[84]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4917,7 +5107,7 @@ func (x *FindStackConfigurationComponents_Response) String() string {
 func (*FindStackConfigurationComponents_Response) ProtoMessage() {}
 
 func (x *FindStackConfigurationComponents_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[79]
+	mi := &file_terraform1_proto_msgTypes[84]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4952,7 +5142,7 @@ type FindStackConfigurationComponents_StackConfig struct {
 func (x *FindStackConfigurationComponents_StackConfig) Reset() {
 	*x = FindStackConfigurationComponents_StackConfig{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[80]
+		mi := &file_terraform1_proto_msgTypes[85]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4965,7 +5155,7 @@ func (x *FindStackConfigurationComponents_StackConfig) String() string {
 func (*FindStackConfigurationComponents_StackConfig) ProtoMessage() {}
 
 func (x *FindStackConfigurationComponents_StackConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[80]
+	mi := &file_terraform1_proto_msgTypes[85]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5008,7 +5198,7 @@ type FindStackConfigurationComponents_EmbeddedStack struct {
 func (x *FindStackConfigurationComponents_EmbeddedStack) Reset() {
 	*x = FindStackConfigurationComponents_EmbeddedStack{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[81]
+		mi := &file_terraform1_proto_msgTypes[86]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5021,7 +5211,7 @@ func (x *FindStackConfigurationComponents_EmbeddedStack) String() string {
 func (*FindStackConfigurationComponents_EmbeddedStack) ProtoMessage() {}
 
 func (x *FindStackConfigurationComponents_EmbeddedStack) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[81]
+	mi := &file_terraform1_proto_msgTypes[86]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5070,7 +5260,7 @@ type FindStackConfigurationComponents_Component struct {
 func (x *FindStackConfigurationComponents_Component) Reset() {
 	*x = FindStackConfigurationComponents_Component{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[82]
+		mi := &file_terraform1_proto_msgTypes[87]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5083,7 +5273,7 @@ func (x *FindStackConfigurationComponents_Component) String() string {
 func (*FindStackConfigurationComponents_Component) ProtoMessage() {}
 
 func (x *FindStackConfigurationComponents_Component) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[82]
+	mi := &file_terraform1_proto_msgTypes[87]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5129,7 +5319,7 @@ type PlanStackChanges_Request struct {
 func (x *PlanStackChanges_Request) Reset() {
 	*x = PlanStackChanges_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[85]
+		mi := &file_terraform1_proto_msgTypes[90]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5142,7 +5332,7 @@ func (x *PlanStackChanges_Request) String() string {
 func (*PlanStackChanges_Request) ProtoMessage() {}
 
 func (x *PlanStackChanges_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[85]
+	mi := &file_terraform1_proto_msgTypes[90]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5216,7 +5406,7 @@ type PlanStackChanges_Event struct {
 func (x *PlanStackChanges_Event) Reset() {
 	*x = PlanStackChanges_Event{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[86]
+		mi := &file_terraform1_proto_msgTypes[91]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5229,7 +5419,7 @@ func (x *PlanStackChanges_Event) String() string {
 func (*PlanStackChanges_Event) ProtoMessage() {}
 
 func (x *PlanStackChanges_Event) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[86]
+	mi := &file_terraform1_proto_msgTypes[91]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5326,7 +5516,7 @@ type ApplyStackChanges_Request struct {
 func (x *ApplyStackChanges_Request) Reset() {
 	*x = ApplyStackChanges_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[89]
+		mi := &file_terraform1_proto_msgTypes[94]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5339,7 +5529,7 @@ func (x *ApplyStackChanges_Request) String() string {
 func (*ApplyStackChanges_Request) ProtoMessage() {}
 
 func (x *ApplyStackChanges_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[89]
+	mi := &file_terraform1_proto_msgTypes[94]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5406,7 +5596,7 @@ type ApplyStackChanges_Event struct {
 func (x *ApplyStackChanges_Event) Reset() {
 	*x = ApplyStackChanges_Event{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[90]
+		mi := &file_terraform1_proto_msgTypes[95]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5419,7 +5609,7 @@ func (x *ApplyStackChanges_Event) String() string {
 func (*ApplyStackChanges_Event) ProtoMessage() {}
 
 func (x *ApplyStackChanges_Event) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[90]
+	mi := &file_terraform1_proto_msgTypes[95]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5500,7 +5690,7 @@ type OpenStackInspector_Request struct {
 func (x *OpenStackInspector_Request) Reset() {
 	*x = OpenStackInspector_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[91]
+		mi := &file_terraform1_proto_msgTypes[96]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5513,7 +5703,7 @@ func (x *OpenStackInspector_Request) String() string {
 func (*OpenStackInspector_Request) ProtoMessage() {}
 
 func (x *OpenStackInspector_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[91]
+	mi := &file_terraform1_proto_msgTypes[96]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5576,7 +5766,7 @@ type OpenStackInspector_Response struct {
 func (x *OpenStackInspector_Response) Reset() {
 	*x = OpenStackInspector_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[92]
+		mi := &file_terraform1_proto_msgTypes[97]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5589,7 +5779,7 @@ func (x *OpenStackInspector_Response) String() string {
 func (*OpenStackInspector_Response) ProtoMessage() {}
 
 func (x *OpenStackInspector_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[92]
+	mi := &file_terraform1_proto_msgTypes[97]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5632,7 +5822,7 @@ type InspectExpressionResult_Request struct {
 func (x *InspectExpressionResult_Request) Reset() {
 	*x = InspectExpressionResult_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[95]
+		mi := &file_terraform1_proto_msgTypes[100]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5645,7 +5835,7 @@ func (x *InspectExpressionResult_Request) String() string {
 func (*InspectExpressionResult_Request) ProtoMessage() {}
 
 func (x *InspectExpressionResult_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[95]
+	mi := &file_terraform1_proto_msgTypes[100]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5700,7 +5890,7 @@ type InspectExpressionResult_Response struct {
 func (x *InspectExpressionResult_Response) Reset() {
 	*x = InspectExpressionResult_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[96]
+		mi := &file_terraform1_proto_msgTypes[101]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5713,7 +5903,7 @@ func (x *InspectExpressionResult_Response) String() string {
 func (*InspectExpressionResult_Response) ProtoMessage() {}
 
 func (x *InspectExpressionResult_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[96]
+	mi := &file_terraform1_proto_msgTypes[101]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5759,7 +5949,7 @@ type AttributePath_Step struct {
 func (x *AttributePath_Step) Reset() {
 	*x = AttributePath_Step{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[97]
+		mi := &file_terraform1_proto_msgTypes[102]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5772,7 +5962,7 @@ func (x *AttributePath_Step) String() string {
 func (*AttributePath_Step) ProtoMessage() {}
 
 func (x *AttributePath_Step) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[97]
+	mi := &file_terraform1_proto_msgTypes[102]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5867,7 +6057,7 @@ type PlannedChange_ChangeDescription struct {
 func (x *PlannedChange_ChangeDescription) Reset() {
 	*x = PlannedChange_ChangeDescription{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[98]
+		mi := &file_terraform1_proto_msgTypes[103]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5880,7 +6070,7 @@ func (x *PlannedChange_ChangeDescription) String() string {
 func (*PlannedChange_ChangeDescription) ProtoMessage() {}
 
 func (x *PlannedChange_ChangeDescription) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[98]
+	mi := &file_terraform1_proto_msgTypes[103]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5982,7 +6172,7 @@ type PlannedChange_ComponentInstance struct {
 func (x *PlannedChange_ComponentInstance) Reset() {
 	*x = PlannedChange_ComponentInstance{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[99]
+		mi := &file_terraform1_proto_msgTypes[104]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -5995,7 +6185,7 @@ func (x *PlannedChange_ComponentInstance) String() string {
 func (*PlannedChange_ComponentInstance) ProtoMessage() {}
 
 func (x *PlannedChange_ComponentInstance) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[99]
+	mi := &file_terraform1_proto_msgTypes[104]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6063,7 +6253,7 @@ type PlannedChange_ResourceInstance struct {
 func (x *PlannedChange_ResourceInstance) Reset() {
 	*x = PlannedChange_ResourceInstance{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[100]
+		mi := &file_terraform1_proto_msgTypes[105]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -6076,7 +6266,7 @@ func (x *PlannedChange_ResourceInstance) String() string {
 func (*PlannedChange_ResourceInstance) ProtoMessage() {}
 
 func (x *PlannedChange_ResourceInstance) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[100]
+	mi := &file_terraform1_proto_msgTypes[105]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6178,7 +6368,7 @@ type PlannedChange_OutputValue struct {
 func (x *PlannedChange_OutputValue) Reset() {
 	*x = PlannedChange_OutputValue{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[101]
+		mi := &file_terraform1_proto_msgTypes[106]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -6191,7 +6381,7 @@ func (x *PlannedChange_OutputValue) String() string {
 func (*PlannedChange_OutputValue) ProtoMessage() {}
 
 func (x *PlannedChange_OutputValue) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[101]
+	mi := &file_terraform1_proto_msgTypes[106]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6239,7 +6429,7 @@ type PlannedChange_ResourceInstance_Moved struct {
 func (x *PlannedChange_ResourceInstance_Moved) Reset() {
 	*x = PlannedChange_ResourceInstance_Moved{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[102]
+		mi := &file_terraform1_proto_msgTypes[107]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -6252,7 +6442,7 @@ func (x *PlannedChange_ResourceInstance_Moved) String() string {
 func (*PlannedChange_ResourceInstance_Moved) ProtoMessage() {}
 
 func (x *PlannedChange_ResourceInstance_Moved) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[102]
+	mi := &file_terraform1_proto_msgTypes[107]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6286,7 +6476,7 @@ type PlannedChange_ResourceInstance_Imported struct {
 func (x *PlannedChange_ResourceInstance_Imported) Reset() {
 	*x = PlannedChange_ResourceInstance_Imported{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[103]
+		mi := &file_terraform1_proto_msgTypes[108]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -6299,7 +6489,7 @@ func (x *PlannedChange_ResourceInstance_Imported) String() string {
 func (*PlannedChange_ResourceInstance_Imported) ProtoMessage() {}
 
 func (x *PlannedChange_ResourceInstance_Imported) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[103]
+	mi := &file_terraform1_proto_msgTypes[108]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6334,7 +6524,7 @@ type AppliedChange_RawChange struct {
 func (x *AppliedChange_RawChange) Reset() {
 	*x = AppliedChange_RawChange{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[104]
+		mi := &file_terraform1_proto_msgTypes[109]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -6347,7 +6537,7 @@ func (x *AppliedChange_RawChange) String() string {
 func (*AppliedChange_RawChange) ProtoMessage() {}
 
 func (x *AppliedChange_RawChange) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[104]
+	mi := &file_terraform1_proto_msgTypes[109]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6394,7 +6584,7 @@ type AppliedChange_ChangeDescription struct {
 func (x *AppliedChange_ChangeDescription) Reset() {
 	*x = AppliedChange_ChangeDescription{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[105]
+		mi := &file_terraform1_proto_msgTypes[110]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -6407,7 +6597,7 @@ func (x *AppliedChange_ChangeDescription) String() string {
 func (*AppliedChange_ChangeDescription) ProtoMessage() {}
 
 func (x *AppliedChange_ChangeDescription) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[105]
+	mi := &file_terraform1_proto_msgTypes[110]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6515,7 +6705,7 @@ type AppliedChange_ResourceInstance struct {
 func (x *AppliedChange_ResourceInstance) Reset() {
 	*x = AppliedChange_ResourceInstance{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[106]
+		mi := &file_terraform1_proto_msgTypes[111]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -6528,7 +6718,7 @@ func (x *AppliedChange_ResourceInstance) String() string {
 func (*AppliedChange_ResourceInstance) ProtoMessage() {}
 
 func (x *AppliedChange_ResourceInstance) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[106]
+	mi := &file_terraform1_proto_msgTypes[111]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6577,7 +6767,7 @@ type AppliedChange_OutputValue struct {
 func (x *AppliedChange_OutputValue) Reset() {
 	*x = AppliedChange_OutputValue{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[107]
+		mi := &file_terraform1_proto_msgTypes[112]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -6590,7 +6780,7 @@ func (x *AppliedChange_OutputValue) String() string {
 func (*AppliedChange_OutputValue) ProtoMessage() {}
 
 func (x *AppliedChange_OutputValue) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[107]
+	mi := &file_terraform1_proto_msgTypes[112]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6629,7 +6819,7 @@ type AppliedChange_Nothing struct {
 func (x *AppliedChange_Nothing) Reset() {
 	*x = AppliedChange_Nothing{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[108]
+		mi := &file_terraform1_proto_msgTypes[113]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -6642,7 +6832,7 @@ func (x *AppliedChange_Nothing) String() string {
 func (*AppliedChange_Nothing) ProtoMessage() {}
 
 func (x *AppliedChange_Nothing) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[108]
+	mi := &file_terraform1_proto_msgTypes[113]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6672,7 +6862,7 @@ type StackChangeProgress_ComponentInstanceStatus struct {
 func (x *StackChangeProgress_ComponentInstanceStatus) Reset() {
 	*x = StackChangeProgress_ComponentInstanceStatus{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[109]
+		mi := &file_terraform1_proto_msgTypes[114]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -6685,7 +6875,7 @@ func (x *StackChangeProgress_ComponentInstanceStatus) String() string {
 func (*StackChangeProgress_ComponentInstanceStatus) ProtoMessage() {}
 
 func (x *StackChangeProgress_ComponentInstanceStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[109]
+	mi := &file_terraform1_proto_msgTypes[114]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6729,7 +6919,7 @@ type StackChangeProgress_ResourceInstanceStatus struct {
 func (x *StackChangeProgress_ResourceInstanceStatus) Reset() {
 	*x = StackChangeProgress_ResourceInstanceStatus{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[110]
+		mi := &file_terraform1_proto_msgTypes[115]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -6742,7 +6932,7 @@ func (x *StackChangeProgress_ResourceInstanceStatus) String() string {
 func (*StackChangeProgress_ResourceInstanceStatus) ProtoMessage() {}
 
 func (x *StackChangeProgress_ResourceInstanceStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[110]
+	mi := &file_terraform1_proto_msgTypes[115]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6791,7 +6981,7 @@ type StackChangeProgress_ResourceInstancePlannedChange struct {
 func (x *StackChangeProgress_ResourceInstancePlannedChange) Reset() {
 	*x = StackChangeProgress_ResourceInstancePlannedChange{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[111]
+		mi := &file_terraform1_proto_msgTypes[116]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -6804,7 +6994,7 @@ func (x *StackChangeProgress_ResourceInstancePlannedChange) String() string {
 func (*StackChangeProgress_ResourceInstancePlannedChange) ProtoMessage() {}
 
 func (x *StackChangeProgress_ResourceInstancePlannedChange) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[111]
+	mi := &file_terraform1_proto_msgTypes[116]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6863,7 +7053,7 @@ type StackChangeProgress_ProvisionerStatus struct {
 func (x *StackChangeProgress_ProvisionerStatus) Reset() {
 	*x = StackChangeProgress_ProvisionerStatus{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[112]
+		mi := &file_terraform1_proto_msgTypes[117]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -6876,7 +7066,7 @@ func (x *StackChangeProgress_ProvisionerStatus) String() string {
 func (*StackChangeProgress_ProvisionerStatus) ProtoMessage() {}
 
 func (x *StackChangeProgress_ProvisionerStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[112]
+	mi := &file_terraform1_proto_msgTypes[117]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6928,7 +7118,7 @@ type StackChangeProgress_ProvisionerOutput struct {
 func (x *StackChangeProgress_ProvisionerOutput) Reset() {
 	*x = StackChangeProgress_ProvisionerOutput{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[113]
+		mi := &file_terraform1_proto_msgTypes[118]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -6941,7 +7131,7 @@ func (x *StackChangeProgress_ProvisionerOutput) String() string {
 func (*StackChangeProgress_ProvisionerOutput) ProtoMessage() {}
 
 func (x *StackChangeProgress_ProvisionerOutput) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[113]
+	mi := &file_terraform1_proto_msgTypes[118]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7003,7 +7193,7 @@ type StackChangeProgress_ComponentInstanceChanges struct {
 func (x *StackChangeProgress_ComponentInstanceChanges) Reset() {
 	*x = StackChangeProgress_ComponentInstanceChanges{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[114]
+		mi := &file_terraform1_proto_msgTypes[119]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -7016,7 +7206,7 @@ func (x *StackChangeProgress_ComponentInstanceChanges) String() string {
 func (*StackChangeProgress_ComponentInstanceChanges) ProtoMessage() {}
 
 func (x *StackChangeProgress_ComponentInstanceChanges) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[114]
+	mi := &file_terraform1_proto_msgTypes[119]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7088,7 +7278,7 @@ type StackChangeProgress_ComponentInstances struct {
 func (x *StackChangeProgress_ComponentInstances) Reset() {
 	*x = StackChangeProgress_ComponentInstances{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[115]
+		mi := &file_terraform1_proto_msgTypes[120]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -7101,7 +7291,7 @@ func (x *StackChangeProgress_ComponentInstances) String() string {
 func (*StackChangeProgress_ComponentInstances) ProtoMessage() {}
 
 func (x *StackChangeProgress_ComponentInstances) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[115]
+	mi := &file_terraform1_proto_msgTypes[120]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7142,7 +7332,7 @@ type StackChangeProgress_ResourceInstancePlannedChange_Moved struct {
 func (x *StackChangeProgress_ResourceInstancePlannedChange_Moved) Reset() {
 	*x = StackChangeProgress_ResourceInstancePlannedChange_Moved{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[116]
+		mi := &file_terraform1_proto_msgTypes[121]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -7155,7 +7345,7 @@ func (x *StackChangeProgress_ResourceInstancePlannedChange_Moved) String() strin
 func (*StackChangeProgress_ResourceInstancePlannedChange_Moved) ProtoMessage() {}
 
 func (x *StackChangeProgress_ResourceInstancePlannedChange_Moved) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[116]
+	mi := &file_terraform1_proto_msgTypes[121]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7189,7 +7379,7 @@ type StackChangeProgress_ResourceInstancePlannedChange_Imported struct {
 func (x *StackChangeProgress_ResourceInstancePlannedChange_Imported) Reset() {
 	*x = StackChangeProgress_ResourceInstancePlannedChange_Imported{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[117]
+		mi := &file_terraform1_proto_msgTypes[122]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -7202,7 +7392,7 @@ func (x *StackChangeProgress_ResourceInstancePlannedChange_Imported) String() st
 func (*StackChangeProgress_ResourceInstancePlannedChange_Imported) ProtoMessage() {}
 
 func (x *StackChangeProgress_ResourceInstancePlannedChange_Imported) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[117]
+	mi := &file_terraform1_proto_msgTypes[122]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7239,7 +7429,7 @@ type Schema_Block struct {
 func (x *Schema_Block) Reset() {
 	*x = Schema_Block{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[118]
+		mi := &file_terraform1_proto_msgTypes[123]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -7252,7 +7442,7 @@ func (x *Schema_Block) String() string {
 func (*Schema_Block) ProtoMessage() {}
 
 func (x *Schema_Block) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[118]
+	mi := &file_terraform1_proto_msgTypes[123]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7315,7 +7505,7 @@ type Schema_Attribute struct {
 func (x *Schema_Attribute) Reset() {
 	*x = Schema_Attribute{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[119]
+		mi := &file_terraform1_proto_msgTypes[124]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -7328,7 +7518,7 @@ func (x *Schema_Attribute) String() string {
 func (*Schema_Attribute) ProtoMessage() {}
 
 func (x *Schema_Attribute) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[119]
+	mi := &file_terraform1_proto_msgTypes[124]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7420,7 +7610,7 @@ type Schema_NestedBlock struct {
 func (x *Schema_NestedBlock) Reset() {
 	*x = Schema_NestedBlock{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[120]
+		mi := &file_terraform1_proto_msgTypes[125]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -7433,7 +7623,7 @@ func (x *Schema_NestedBlock) String() string {
 func (*Schema_NestedBlock) ProtoMessage() {}
 
 func (x *Schema_NestedBlock) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[120]
+	mi := &file_terraform1_proto_msgTypes[125]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7482,7 +7672,7 @@ type Schema_Object struct {
 func (x *Schema_Object) Reset() {
 	*x = Schema_Object{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[121]
+		mi := &file_terraform1_proto_msgTypes[126]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -7495,7 +7685,7 @@ func (x *Schema_Object) String() string {
 func (*Schema_Object) ProtoMessage() {}
 
 func (x *Schema_Object) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[121]
+	mi := &file_terraform1_proto_msgTypes[126]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7537,7 +7727,7 @@ type Schema_DocString struct {
 func (x *Schema_DocString) Reset() {
 	*x = Schema_DocString{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[122]
+		mi := &file_terraform1_proto_msgTypes[127]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -7550,7 +7740,7 @@ func (x *Schema_DocString) String() string {
 func (*Schema_DocString) ProtoMessage() {}
 
 func (x *Schema_DocString) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[122]
+	mi := &file_terraform1_proto_msgTypes[127]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7578,6 +7768,616 @@ func (x *Schema_DocString) GetFormat() Schema_DocString_Format {
 		return x.Format
 	}
 	return Schema_DocString_PLAIN
+}
+
+type ProviderPackageVersions_Request struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SourceAddr string `protobuf:"bytes,1,opt,name=source_addr,json=sourceAddr,proto3" json:"source_addr,omitempty"`
+}
+
+func (x *ProviderPackageVersions_Request) Reset() {
+	*x = ProviderPackageVersions_Request{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[128]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ProviderPackageVersions_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProviderPackageVersions_Request) ProtoMessage() {}
+
+func (x *ProviderPackageVersions_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[128]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProviderPackageVersions_Request.ProtoReflect.Descriptor instead.
+func (*ProviderPackageVersions_Request) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{39, 0}
+}
+
+func (x *ProviderPackageVersions_Request) GetSourceAddr() string {
+	if x != nil {
+		return x.SourceAddr
+	}
+	return ""
+}
+
+type ProviderPackageVersions_Response struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Versions    []string      `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
+	Diagnostics []*Diagnostic `protobuf:"bytes,2,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+}
+
+func (x *ProviderPackageVersions_Response) Reset() {
+	*x = ProviderPackageVersions_Response{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[129]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ProviderPackageVersions_Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProviderPackageVersions_Response) ProtoMessage() {}
+
+func (x *ProviderPackageVersions_Response) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[129]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProviderPackageVersions_Response.ProtoReflect.Descriptor instead.
+func (*ProviderPackageVersions_Response) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{39, 1}
+}
+
+func (x *ProviderPackageVersions_Response) GetVersions() []string {
+	if x != nil {
+		return x.Versions
+	}
+	return nil
+}
+
+func (x *ProviderPackageVersions_Response) GetDiagnostics() []*Diagnostic {
+	if x != nil {
+		return x.Diagnostics
+	}
+	return nil
+}
+
+type FetchProviderPackage_Request struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	CacheDir   string   `protobuf:"bytes,1,opt,name=cache_dir,json=cacheDir,proto3" json:"cache_dir,omitempty"`
+	SourceAddr string   `protobuf:"bytes,2,opt,name=source_addr,json=sourceAddr,proto3" json:"source_addr,omitempty"`
+	Version    string   `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	Platforms  []string `protobuf:"bytes,4,rep,name=platforms,proto3" json:"platforms,omitempty"`
+	Hashes     []string `protobuf:"bytes,5,rep,name=hashes,proto3" json:"hashes,omitempty"`
+}
+
+func (x *FetchProviderPackage_Request) Reset() {
+	*x = FetchProviderPackage_Request{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[130]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *FetchProviderPackage_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchProviderPackage_Request) ProtoMessage() {}
+
+func (x *FetchProviderPackage_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[130]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchProviderPackage_Request.ProtoReflect.Descriptor instead.
+func (*FetchProviderPackage_Request) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{40, 0}
+}
+
+func (x *FetchProviderPackage_Request) GetCacheDir() string {
+	if x != nil {
+		return x.CacheDir
+	}
+	return ""
+}
+
+func (x *FetchProviderPackage_Request) GetSourceAddr() string {
+	if x != nil {
+		return x.SourceAddr
+	}
+	return ""
+}
+
+func (x *FetchProviderPackage_Request) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *FetchProviderPackage_Request) GetPlatforms() []string {
+	if x != nil {
+		return x.Platforms
+	}
+	return nil
+}
+
+func (x *FetchProviderPackage_Request) GetHashes() []string {
+	if x != nil {
+		return x.Hashes
+	}
+	return nil
+}
+
+type FetchProviderPackage_Response struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Each requested platform will return a result in this list. The order
+	// of the returned results will match the order of the requested
+	// platforms. If the binary for a given platform could not be downloaded
+	// there will still be an entry in the results with diagnostics
+	// explaining why.
+	Results     []*FetchProviderPackage_PlatformResult `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
+	Diagnostics []*Diagnostic                          `protobuf:"bytes,2,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+}
+
+func (x *FetchProviderPackage_Response) Reset() {
+	*x = FetchProviderPackage_Response{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[131]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *FetchProviderPackage_Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchProviderPackage_Response) ProtoMessage() {}
+
+func (x *FetchProviderPackage_Response) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[131]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchProviderPackage_Response.ProtoReflect.Descriptor instead.
+func (*FetchProviderPackage_Response) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{40, 1}
+}
+
+func (x *FetchProviderPackage_Response) GetResults() []*FetchProviderPackage_PlatformResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
+func (x *FetchProviderPackage_Response) GetDiagnostics() []*Diagnostic {
+	if x != nil {
+		return x.Diagnostics
+	}
+	return nil
+}
+
+type FetchProviderPackage_PlatformResult struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Provider    *ProviderPackage `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
+	Diagnostics []*Diagnostic    `protobuf:"bytes,2,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+}
+
+func (x *FetchProviderPackage_PlatformResult) Reset() {
+	*x = FetchProviderPackage_PlatformResult{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[132]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *FetchProviderPackage_PlatformResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchProviderPackage_PlatformResult) ProtoMessage() {}
+
+func (x *FetchProviderPackage_PlatformResult) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[132]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchProviderPackage_PlatformResult.ProtoReflect.Descriptor instead.
+func (*FetchProviderPackage_PlatformResult) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{40, 2}
+}
+
+func (x *FetchProviderPackage_PlatformResult) GetProvider() *ProviderPackage {
+	if x != nil {
+		return x.Provider
+	}
+	return nil
+}
+
+func (x *FetchProviderPackage_PlatformResult) GetDiagnostics() []*Diagnostic {
+	if x != nil {
+		return x.Diagnostics
+	}
+	return nil
+}
+
+type ModulePackageVersions_Request struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SourceAddr string `protobuf:"bytes,2,opt,name=source_addr,json=sourceAddr,proto3" json:"source_addr,omitempty"`
+}
+
+func (x *ModulePackageVersions_Request) Reset() {
+	*x = ModulePackageVersions_Request{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[133]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ModulePackageVersions_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModulePackageVersions_Request) ProtoMessage() {}
+
+func (x *ModulePackageVersions_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[133]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModulePackageVersions_Request.ProtoReflect.Descriptor instead.
+func (*ModulePackageVersions_Request) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{41, 0}
+}
+
+func (x *ModulePackageVersions_Request) GetSourceAddr() string {
+	if x != nil {
+		return x.SourceAddr
+	}
+	return ""
+}
+
+type ModulePackageVersions_Response struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Versions    []string      `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
+	Diagnostics []*Diagnostic `protobuf:"bytes,2,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+}
+
+func (x *ModulePackageVersions_Response) Reset() {
+	*x = ModulePackageVersions_Response{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[134]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ModulePackageVersions_Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModulePackageVersions_Response) ProtoMessage() {}
+
+func (x *ModulePackageVersions_Response) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[134]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModulePackageVersions_Response.ProtoReflect.Descriptor instead.
+func (*ModulePackageVersions_Response) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{41, 1}
+}
+
+func (x *ModulePackageVersions_Response) GetVersions() []string {
+	if x != nil {
+		return x.Versions
+	}
+	return nil
+}
+
+func (x *ModulePackageVersions_Response) GetDiagnostics() []*Diagnostic {
+	if x != nil {
+		return x.Diagnostics
+	}
+	return nil
+}
+
+type ModulePackageSourceAddr_Request struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SourceAddr string `protobuf:"bytes,1,opt,name=source_addr,json=sourceAddr,proto3" json:"source_addr,omitempty"`
+	Version    string `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+}
+
+func (x *ModulePackageSourceAddr_Request) Reset() {
+	*x = ModulePackageSourceAddr_Request{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[135]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ModulePackageSourceAddr_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModulePackageSourceAddr_Request) ProtoMessage() {}
+
+func (x *ModulePackageSourceAddr_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[135]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModulePackageSourceAddr_Request.ProtoReflect.Descriptor instead.
+func (*ModulePackageSourceAddr_Request) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{42, 0}
+}
+
+func (x *ModulePackageSourceAddr_Request) GetSourceAddr() string {
+	if x != nil {
+		return x.SourceAddr
+	}
+	return ""
+}
+
+func (x *ModulePackageSourceAddr_Request) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+type ModulePackageSourceAddr_Response struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Url         string        `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
+	Diagnostics []*Diagnostic `protobuf:"bytes,2,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+}
+
+func (x *ModulePackageSourceAddr_Response) Reset() {
+	*x = ModulePackageSourceAddr_Response{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[136]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ModulePackageSourceAddr_Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModulePackageSourceAddr_Response) ProtoMessage() {}
+
+func (x *ModulePackageSourceAddr_Response) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[136]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModulePackageSourceAddr_Response.ProtoReflect.Descriptor instead.
+func (*ModulePackageSourceAddr_Response) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{42, 1}
+}
+
+func (x *ModulePackageSourceAddr_Response) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *ModulePackageSourceAddr_Response) GetDiagnostics() []*Diagnostic {
+	if x != nil {
+		return x.Diagnostics
+	}
+	return nil
+}
+
+type FetchModulePackage_Request struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	CacheDir string `protobuf:"bytes,1,opt,name=cache_dir,json=cacheDir,proto3" json:"cache_dir,omitempty"`
+	Url      string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+}
+
+func (x *FetchModulePackage_Request) Reset() {
+	*x = FetchModulePackage_Request{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[137]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *FetchModulePackage_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchModulePackage_Request) ProtoMessage() {}
+
+func (x *FetchModulePackage_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[137]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchModulePackage_Request.ProtoReflect.Descriptor instead.
+func (*FetchModulePackage_Request) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{43, 0}
+}
+
+func (x *FetchModulePackage_Request) GetCacheDir() string {
+	if x != nil {
+		return x.CacheDir
+	}
+	return ""
+}
+
+func (x *FetchModulePackage_Request) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+type FetchModulePackage_Response struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Diagnostics []*Diagnostic `protobuf:"bytes,1,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+}
+
+func (x *FetchModulePackage_Response) Reset() {
+	*x = FetchModulePackage_Response{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[138]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *FetchModulePackage_Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FetchModulePackage_Response) ProtoMessage() {}
+
+func (x *FetchModulePackage_Response) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[138]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FetchModulePackage_Response.ProtoReflect.Descriptor instead.
+func (*FetchModulePackage_Response) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{43, 1}
+}
+
+func (x *FetchModulePackage_Response) GetDiagnostics() []*Diagnostic {
+	if x != nil {
+		return x.Diagnostics
+	}
+	return nil
 }
 
 var File_terraform1_proto protoreflect.FileDescriptor
@@ -8599,158 +9399,265 @@ var file_terraform1_proto_rawDesc = []byte{
 	0x6f, 0x72, 0x6d, 0x61, 0x74, 0x52, 0x06, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x22, 0x21, 0x0a,
 	0x06, 0x46, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x12, 0x09, 0x0a, 0x05, 0x50, 0x4c, 0x41, 0x49, 0x4e,
 	0x10, 0x00, 0x12, 0x0c, 0x0a, 0x08, 0x4d, 0x41, 0x52, 0x4b, 0x44, 0x4f, 0x57, 0x4e, 0x10, 0x01,
-	0x2a, 0x32, 0x0a, 0x0c, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x4d, 0x6f, 0x64, 0x65,
-	0x12, 0x0b, 0x0a, 0x07, 0x55, 0x4e, 0x4b, 0x4e, 0x4f, 0x57, 0x4e, 0x10, 0x00, 0x12, 0x0b, 0x0a,
-	0x07, 0x4d, 0x41, 0x4e, 0x41, 0x47, 0x45, 0x44, 0x10, 0x01, 0x12, 0x08, 0x0a, 0x04, 0x44, 0x41,
-	0x54, 0x41, 0x10, 0x02, 0x2a, 0x35, 0x0a, 0x08, 0x50, 0x6c, 0x61, 0x6e, 0x4d, 0x6f, 0x64, 0x65,
-	0x12, 0x0a, 0x0a, 0x06, 0x4e, 0x4f, 0x52, 0x4d, 0x41, 0x4c, 0x10, 0x00, 0x12, 0x10, 0x0a, 0x0c,
-	0x52, 0x45, 0x46, 0x52, 0x45, 0x53, 0x48, 0x5f, 0x4f, 0x4e, 0x4c, 0x59, 0x10, 0x01, 0x12, 0x0b,
-	0x0a, 0x07, 0x44, 0x45, 0x53, 0x54, 0x52, 0x4f, 0x59, 0x10, 0x02, 0x2a, 0x44, 0x0a, 0x0a, 0x43,
-	0x68, 0x61, 0x6e, 0x67, 0x65, 0x54, 0x79, 0x70, 0x65, 0x12, 0x08, 0x0a, 0x04, 0x4e, 0x4f, 0x4f,
-	0x50, 0x10, 0x00, 0x12, 0x08, 0x0a, 0x04, 0x52, 0x45, 0x41, 0x44, 0x10, 0x01, 0x12, 0x0a, 0x0a,
-	0x06, 0x43, 0x52, 0x45, 0x41, 0x54, 0x45, 0x10, 0x02, 0x12, 0x0a, 0x0a, 0x06, 0x55, 0x50, 0x44,
-	0x41, 0x54, 0x45, 0x10, 0x03, 0x12, 0x0a, 0x0a, 0x06, 0x44, 0x45, 0x4c, 0x45, 0x54, 0x45, 0x10,
-	0x04, 0x32, 0x53, 0x0a, 0x05, 0x53, 0x65, 0x74, 0x75, 0x70, 0x12, 0x4a, 0x0a, 0x09, 0x48, 0x61,
-	0x6e, 0x64, 0x73, 0x68, 0x61, 0x6b, 0x65, 0x12, 0x1d, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66,
-	0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x48, 0x61, 0x6e, 0x64, 0x73, 0x68, 0x61, 0x6b, 0x65, 0x2e, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1e, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f,
-	0x72, 0x6d, 0x31, 0x2e, 0x48, 0x61, 0x6e, 0x64, 0x73, 0x68, 0x61, 0x6b, 0x65, 0x2e, 0x52, 0x65,
-	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x32, 0xc8, 0x0a, 0x0a, 0x0c, 0x44, 0x65, 0x70, 0x65, 0x6e,
-	0x64, 0x65, 0x6e, 0x63, 0x69, 0x65, 0x73, 0x12, 0x5f, 0x0a, 0x10, 0x4f, 0x70, 0x65, 0x6e, 0x53,
-	0x6f, 0x75, 0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x12, 0x24, 0x2e, 0x74, 0x65,
-	0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x6f, 0x75,
-	0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x1a, 0x25, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4f,
-	0x70, 0x65, 0x6e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x2e,
-	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x62, 0x0a, 0x11, 0x43, 0x6c, 0x6f, 0x73,
-	0x65, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x12, 0x25, 0x2e,
-	0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65,
-	0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x2e, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x1a, 0x26, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d,
-	0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x42, 0x75, 0x6e,
-	0x64, 0x6c, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x71, 0x0a, 0x16,
-	0x4f, 0x70, 0x65, 0x6e, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x79, 0x4c, 0x6f,
-	0x63, 0x6b, 0x46, 0x69, 0x6c, 0x65, 0x12, 0x2a, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f,
-	0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e,
-	0x63, 0x79, 0x4c, 0x6f, 0x63, 0x6b, 0x46, 0x69, 0x6c, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x1a, 0x2b, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e,
-	0x4f, 0x70, 0x65, 0x6e, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x79, 0x4c, 0x6f,
-	0x63, 0x6b, 0x46, 0x69, 0x6c, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
-	0x6e, 0x0a, 0x15, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65,
-	0x6e, 0x63, 0x79, 0x4c, 0x6f, 0x63, 0x6b, 0x73, 0x12, 0x29, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61,
-	0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x44, 0x65, 0x70, 0x65,
-	0x6e, 0x64, 0x65, 0x6e, 0x63, 0x79, 0x4c, 0x6f, 0x63, 0x6b, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x1a, 0x2a, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31,
-	0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63,
-	0x79, 0x4c, 0x6f, 0x63, 0x6b, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
-	0x6b, 0x0a, 0x14, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e,
-	0x63, 0x79, 0x4c, 0x6f, 0x63, 0x6b, 0x73, 0x12, 0x28, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66,
-	0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64,
+	0x22, 0xa7, 0x01, 0x0a, 0x17, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x61, 0x63,
+	0x6b, 0x61, 0x67, 0x65, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x1a, 0x2a, 0x0a, 0x07,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1f, 0x0a, 0x0b, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x73, 0x6f,
+	0x75, 0x72, 0x63, 0x65, 0x41, 0x64, 0x64, 0x72, 0x1a, 0x60, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x1a, 0x0a, 0x08, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73,
+	0x18, 0x01, 0x20, 0x03, 0x28, 0x09, 0x52, 0x08, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73,
+	0x12, 0x38, 0x0a, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73, 0x18,
+	0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x16, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72,
+	0x6d, 0x31, 0x2e, 0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x52, 0x0b, 0x64,
+	0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73, 0x22, 0xc8, 0x03, 0x0a, 0x14, 0x46,
+	0x65, 0x74, 0x63, 0x68, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x61, 0x63, 0x6b,
+	0x61, 0x67, 0x65, 0x1a, 0x97, 0x01, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12,
+	0x1b, 0x0a, 0x09, 0x63, 0x61, 0x63, 0x68, 0x65, 0x5f, 0x64, 0x69, 0x72, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x08, 0x63, 0x61, 0x63, 0x68, 0x65, 0x44, 0x69, 0x72, 0x12, 0x1f, 0x0a, 0x0b,
+	0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x0a, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x41, 0x64, 0x64, 0x72, 0x12, 0x18, 0x0a,
+	0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07,
+	0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x1c, 0x0a, 0x09, 0x70, 0x6c, 0x61, 0x74, 0x66,
+	0x6f, 0x72, 0x6d, 0x73, 0x18, 0x04, 0x20, 0x03, 0x28, 0x09, 0x52, 0x09, 0x70, 0x6c, 0x61, 0x74,
+	0x66, 0x6f, 0x72, 0x6d, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x68, 0x61, 0x73, 0x68, 0x65, 0x73, 0x18,
+	0x05, 0x20, 0x03, 0x28, 0x09, 0x52, 0x06, 0x68, 0x61, 0x73, 0x68, 0x65, 0x73, 0x1a, 0x8f, 0x01,
+	0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x49, 0x0a, 0x07, 0x72, 0x65,
+	0x73, 0x75, 0x6c, 0x74, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x2f, 0x2e, 0x74, 0x65,
+	0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x46, 0x65, 0x74, 0x63, 0x68, 0x50, 0x72,
+	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x61, 0x63, 0x6b, 0x61, 0x67, 0x65, 0x2e, 0x50, 0x6c,
+	0x61, 0x74, 0x66, 0x6f, 0x72, 0x6d, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x52, 0x07, 0x72, 0x65,
+	0x73, 0x75, 0x6c, 0x74, 0x73, 0x12, 0x38, 0x0a, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73,
+	0x74, 0x69, 0x63, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x16, 0x2e, 0x74, 0x65, 0x72,
+	0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74,
+	0x69, 0x63, 0x52, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73, 0x1a,
+	0x83, 0x01, 0x0a, 0x0e, 0x50, 0x6c, 0x61, 0x74, 0x66, 0x6f, 0x72, 0x6d, 0x52, 0x65, 0x73, 0x75,
+	0x6c, 0x74, 0x12, 0x37, 0x0a, 0x08, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d,
+	0x31, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x61, 0x63, 0x6b, 0x61, 0x67,
+	0x65, 0x52, 0x08, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x12, 0x38, 0x0a, 0x0b, 0x64,
+	0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b,
+	0x32, 0x16, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x44, 0x69,
+	0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x52, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f,
+	0x73, 0x74, 0x69, 0x63, 0x73, 0x22, 0xa5, 0x01, 0x0a, 0x15, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65,
+	0x50, 0x61, 0x63, 0x6b, 0x61, 0x67, 0x65, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x1a,
+	0x2a, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1f, 0x0a, 0x0b, 0x73, 0x6f,
+	0x75, 0x72, 0x63, 0x65, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x0a, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x41, 0x64, 0x64, 0x72, 0x1a, 0x60, 0x0a, 0x08, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x1a, 0x0a, 0x08, 0x76, 0x65, 0x72, 0x73, 0x69,
+	0x6f, 0x6e, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x09, 0x52, 0x08, 0x76, 0x65, 0x72, 0x73, 0x69,
+	0x6f, 0x6e, 0x73, 0x12, 0x38, 0x0a, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69,
+	0x63, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x16, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61,
+	0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63,
+	0x52, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73, 0x22, 0xb7, 0x01,
+	0x0a, 0x17, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x50, 0x61, 0x63, 0x6b, 0x61, 0x67, 0x65, 0x53,
+	0x6f, 0x75, 0x72, 0x63, 0x65, 0x41, 0x64, 0x64, 0x72, 0x1a, 0x44, 0x0a, 0x07, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x12, 0x1f, 0x0a, 0x0b, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x61,
+	0x64, 0x64, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x41, 0x64, 0x64, 0x72, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x1a,
+	0x56, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x75,
+	0x72, 0x6c, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x75, 0x72, 0x6c, 0x12, 0x38, 0x0a,
+	0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73, 0x18, 0x02, 0x20, 0x03,
+	0x28, 0x0b, 0x32, 0x16, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e,
+	0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x52, 0x0b, 0x64, 0x69, 0x61, 0x67,
+	0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73, 0x22, 0x94, 0x01, 0x0a, 0x12, 0x46, 0x65, 0x74, 0x63,
+	0x68, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x50, 0x61, 0x63, 0x6b, 0x61, 0x67, 0x65, 0x1a, 0x38,
+	0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1b, 0x0a, 0x09, 0x63, 0x61, 0x63,
+	0x68, 0x65, 0x5f, 0x64, 0x69, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x63, 0x61,
+	0x63, 0x68, 0x65, 0x44, 0x69, 0x72, 0x12, 0x10, 0x0a, 0x03, 0x75, 0x72, 0x6c, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x03, 0x75, 0x72, 0x6c, 0x1a, 0x44, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x38, 0x0a, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74,
+	0x69, 0x63, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x16, 0x2e, 0x74, 0x65, 0x72, 0x72,
+	0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69,
+	0x63, 0x52, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73, 0x2a, 0x32,
+	0x0a, 0x0c, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x4d, 0x6f, 0x64, 0x65, 0x12, 0x0b,
+	0x0a, 0x07, 0x55, 0x4e, 0x4b, 0x4e, 0x4f, 0x57, 0x4e, 0x10, 0x00, 0x12, 0x0b, 0x0a, 0x07, 0x4d,
+	0x41, 0x4e, 0x41, 0x47, 0x45, 0x44, 0x10, 0x01, 0x12, 0x08, 0x0a, 0x04, 0x44, 0x41, 0x54, 0x41,
+	0x10, 0x02, 0x2a, 0x35, 0x0a, 0x08, 0x50, 0x6c, 0x61, 0x6e, 0x4d, 0x6f, 0x64, 0x65, 0x12, 0x0a,
+	0x0a, 0x06, 0x4e, 0x4f, 0x52, 0x4d, 0x41, 0x4c, 0x10, 0x00, 0x12, 0x10, 0x0a, 0x0c, 0x52, 0x45,
+	0x46, 0x52, 0x45, 0x53, 0x48, 0x5f, 0x4f, 0x4e, 0x4c, 0x59, 0x10, 0x01, 0x12, 0x0b, 0x0a, 0x07,
+	0x44, 0x45, 0x53, 0x54, 0x52, 0x4f, 0x59, 0x10, 0x02, 0x2a, 0x44, 0x0a, 0x0a, 0x43, 0x68, 0x61,
+	0x6e, 0x67, 0x65, 0x54, 0x79, 0x70, 0x65, 0x12, 0x08, 0x0a, 0x04, 0x4e, 0x4f, 0x4f, 0x50, 0x10,
+	0x00, 0x12, 0x08, 0x0a, 0x04, 0x52, 0x45, 0x41, 0x44, 0x10, 0x01, 0x12, 0x0a, 0x0a, 0x06, 0x43,
+	0x52, 0x45, 0x41, 0x54, 0x45, 0x10, 0x02, 0x12, 0x0a, 0x0a, 0x06, 0x55, 0x50, 0x44, 0x41, 0x54,
+	0x45, 0x10, 0x03, 0x12, 0x0a, 0x0a, 0x06, 0x44, 0x45, 0x4c, 0x45, 0x54, 0x45, 0x10, 0x04, 0x32,
+	0x53, 0x0a, 0x05, 0x53, 0x65, 0x74, 0x75, 0x70, 0x12, 0x4a, 0x0a, 0x09, 0x48, 0x61, 0x6e, 0x64,
+	0x73, 0x68, 0x61, 0x6b, 0x65, 0x12, 0x1d, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72,
+	0x6d, 0x31, 0x2e, 0x48, 0x61, 0x6e, 0x64, 0x73, 0x68, 0x61, 0x6b, 0x65, 0x2e, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x1a, 0x1e, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d,
+	0x31, 0x2e, 0x48, 0x61, 0x6e, 0x64, 0x73, 0x68, 0x61, 0x6b, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x32, 0xc8, 0x0a, 0x0a, 0x0c, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65,
+	0x6e, 0x63, 0x69, 0x65, 0x73, 0x12, 0x5f, 0x0a, 0x10, 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x6f, 0x75,
+	0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x12, 0x24, 0x2e, 0x74, 0x65, 0x72, 0x72,
+	0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
+	0x25, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65,
+	0x6e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x2e, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x62, 0x0a, 0x11, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x53,
+	0x6f, 0x75, 0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x12, 0x25, 0x2e, 0x74, 0x65,
+	0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x53, 0x6f,
+	0x75, 0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x26, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e,
+	0x43, 0x6c, 0x6f, 0x73, 0x65, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c,
+	0x65, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x71, 0x0a, 0x16, 0x4f, 0x70,
+	0x65, 0x6e, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x79, 0x4c, 0x6f, 0x63, 0x6b,
+	0x46, 0x69, 0x6c, 0x65, 0x12, 0x2a, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d,
+	0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x79,
+	0x4c, 0x6f, 0x63, 0x6b, 0x46, 0x69, 0x6c, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x1a, 0x2b, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70,
+	0x65, 0x6e, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x79, 0x4c, 0x6f, 0x63, 0x6b,
+	0x46, 0x69, 0x6c, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x6e, 0x0a,
+	0x15, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63,
+	0x79, 0x4c, 0x6f, 0x63, 0x6b, 0x73, 0x12, 0x29, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f,
+	0x72, 0x6d, 0x31, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64,
 	0x65, 0x6e, 0x63, 0x79, 0x4c, 0x6f, 0x63, 0x6b, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x1a, 0x29, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43,
-	0x6c, 0x6f, 0x73, 0x65, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x79, 0x4c, 0x6f,
-	0x63, 0x6b, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x86, 0x01, 0x0a,
-	0x1d, 0x47, 0x65, 0x74, 0x4c, 0x6f, 0x63, 0x6b, 0x65, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64,
-	0x65, 0x72, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x69, 0x65, 0x73, 0x12, 0x31,
-	0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x4c,
-	0x6f, 0x63, 0x6b, 0x65, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x44, 0x65, 0x70,
-	0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x69, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x1a, 0x32, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x47,
+	0x74, 0x1a, 0x2a, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43,
+	0x72, 0x65, 0x61, 0x74, 0x65, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x79, 0x4c,
+	0x6f, 0x63, 0x6b, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x6b, 0x0a,
+	0x14, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x79,
+	0x4c, 0x6f, 0x63, 0x6b, 0x73, 0x12, 0x28, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72,
+	0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e,
+	0x63, 0x79, 0x4c, 0x6f, 0x63, 0x6b, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
+	0x29, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f,
+	0x73, 0x65, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x79, 0x4c, 0x6f, 0x63, 0x6b,
+	0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x86, 0x01, 0x0a, 0x1d, 0x47,
 	0x65, 0x74, 0x4c, 0x6f, 0x63, 0x6b, 0x65, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72,
-	0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x69, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x73,
-	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x76, 0x0a, 0x18, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x50, 0x72,
-	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68,
-	0x65, 0x12, 0x2c, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42,
-	0x75, 0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67,
-	0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
-	0x2a, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75, 0x69,
-	0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e,
-	0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x30, 0x01, 0x12, 0x74, 0x0a,
-	0x17, 0x4f, 0x70, 0x65, 0x6e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75,
-	0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x12, 0x2b, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61,
-	0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64,
-	0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2c, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72,
-	0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50,
-	0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x12, 0x77, 0x0a, 0x18, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x50, 0x72, 0x6f, 0x76,
+	0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x69, 0x65, 0x73, 0x12, 0x31, 0x2e, 0x74,
+	0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x4c, 0x6f, 0x63,
+	0x6b, 0x65, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x44, 0x65, 0x70, 0x65, 0x6e,
+	0x64, 0x65, 0x6e, 0x63, 0x69, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
+	0x32, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x47, 0x65, 0x74,
+	0x4c, 0x6f, 0x63, 0x6b, 0x65, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x44, 0x65,
+	0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x69, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x12, 0x76, 0x0a, 0x18, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76,
 	0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x12,
-	0x2c, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f,
-	0x73, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e,
-	0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2d, 0x2e,
+	0x2c, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75, 0x69,
+	0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e,
+	0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2a, 0x2e,
+	0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64,
+	0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61,
+	0x63, 0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x30, 0x01, 0x12, 0x74, 0x0a, 0x17, 0x4f,
+	0x70, 0x65, 0x6e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69,
+	0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x12, 0x2b, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f,
+	0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72,
+	0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x1a, 0x2c, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31,
+	0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75,
+	0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x12, 0x77, 0x0a, 0x18, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64,
+	0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x12, 0x2c, 0x2e,
 	0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65,
 	0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61,
-	0x63, 0x68, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x65, 0x0a, 0x12,
-	0x47, 0x65, 0x74, 0x43, 0x61, 0x63, 0x68, 0x65, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65,
-	0x72, 0x73, 0x12, 0x26, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e,
-	0x47, 0x65, 0x74, 0x43, 0x61, 0x63, 0x68, 0x65, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65,
-	0x72, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x27, 0x2e, 0x74, 0x65, 0x72,
-	0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x43, 0x61, 0x63, 0x68, 0x65,
-	0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x12, 0x68, 0x0a, 0x13, 0x47, 0x65, 0x74, 0x42, 0x75, 0x69, 0x6c, 0x74, 0x49,
-	0x6e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x12, 0x27, 0x2e, 0x74, 0x65, 0x72,
-	0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x42, 0x75, 0x69, 0x6c, 0x74,
-	0x49, 0x6e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x1a, 0x28, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31,
-	0x2e, 0x47, 0x65, 0x74, 0x42, 0x75, 0x69, 0x6c, 0x74, 0x49, 0x6e, 0x50, 0x72, 0x6f, 0x76, 0x69,
-	0x64, 0x65, 0x72, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x62, 0x0a,
-	0x11, 0x47, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x53, 0x63, 0x68, 0x65,
-	0x6d, 0x61, 0x12, 0x25, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e,
-	0x47, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x53, 0x63, 0x68, 0x65, 0x6d,
-	0x61, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x26, 0x2e, 0x74, 0x65, 0x72, 0x72,
-	0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64,
-	0x65, 0x72, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x32, 0xa3, 0x06, 0x0a, 0x06, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x73, 0x12, 0x71, 0x0a, 0x16,
-	0x4f, 0x70, 0x65, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75,
-	0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x2a, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f,
-	0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e,
-	0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x1a, 0x2b, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e,
-	0x4f, 0x70, 0x65, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75,
-	0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
-	0x74, 0x0a, 0x17, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e,
-	0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x2b, 0x2e, 0x74, 0x65, 0x72,
-	0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x53, 0x74, 0x61,
-	0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2c, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66,
-	0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43,
-	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73,
-	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x8f, 0x01, 0x0a, 0x20, 0x46, 0x69, 0x6e, 0x64, 0x53, 0x74,
-	0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e,
-	0x43, 0x6f, 0x6d, 0x70, 0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x73, 0x12, 0x34, 0x2e, 0x74, 0x65, 0x72,
-	0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x46, 0x69, 0x6e, 0x64, 0x53, 0x74, 0x61, 0x63,
-	0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x43, 0x6f,
-	0x6d, 0x70, 0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x1a, 0x35, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x46, 0x69,
-	0x6e, 0x64, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61,
-	0x74, 0x69, 0x6f, 0x6e, 0x43, 0x6f, 0x6d, 0x70, 0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x73, 0x2e, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x5e, 0x0a, 0x10, 0x50, 0x6c, 0x61, 0x6e, 0x53,
-	0x74, 0x61, 0x63, 0x6b, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x12, 0x24, 0x2e, 0x74, 0x65,
-	0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x50, 0x6c, 0x61, 0x6e, 0x53, 0x74, 0x61,
-	0x63, 0x6b, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x1a, 0x22, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x50,
-	0x6c, 0x61, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x2e,
-	0x45, 0x76, 0x65, 0x6e, 0x74, 0x30, 0x01, 0x12, 0x61, 0x0a, 0x11, 0x41, 0x70, 0x70, 0x6c, 0x79,
-	0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x12, 0x25, 0x2e, 0x74,
-	0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x41, 0x70, 0x70, 0x6c, 0x79, 0x53,
-	0x74, 0x61, 0x63, 0x6b, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x1a, 0x23, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31,
-	0x2e, 0x41, 0x70, 0x70, 0x6c, 0x79, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x68, 0x61, 0x6e, 0x67,
-	0x65, 0x73, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x30, 0x01, 0x12, 0x65, 0x0a, 0x12, 0x4f, 0x70,
-	0x65, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x49, 0x6e, 0x73, 0x70, 0x65, 0x63, 0x74, 0x6f, 0x72,
-	0x12, 0x26, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70,
-	0x65, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x49, 0x6e, 0x73, 0x70, 0x65, 0x63, 0x74, 0x6f, 0x72,
+	0x63, 0x68, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2d, 0x2e, 0x74, 0x65,
+	0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x50, 0x72,
+	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68,
+	0x65, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x65, 0x0a, 0x12, 0x47, 0x65,
+	0x74, 0x43, 0x61, 0x63, 0x68, 0x65, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73,
+	0x12, 0x26, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x47, 0x65,
+	0x74, 0x43, 0x61, 0x63, 0x68, 0x65, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73,
 	0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x27, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61,
-	0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x49,
-	0x6e, 0x73, 0x70, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x12, 0x74, 0x0a, 0x17, 0x49, 0x6e, 0x73, 0x70, 0x65, 0x63, 0x74, 0x45, 0x78, 0x70, 0x72,
-	0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x12, 0x2b, 0x2e, 0x74,
-	0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x49, 0x6e, 0x73, 0x70, 0x65, 0x63,
-	0x74, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x75, 0x6c,
-	0x74, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2c, 0x2e, 0x74, 0x65, 0x72, 0x72,
-	0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x49, 0x6e, 0x73, 0x70, 0x65, 0x63, 0x74, 0x45, 0x78,
-	0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x2e, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x43, 0x61, 0x63, 0x68, 0x65, 0x64, 0x50,
+	0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x12, 0x68, 0x0a, 0x13, 0x47, 0x65, 0x74, 0x42, 0x75, 0x69, 0x6c, 0x74, 0x49, 0x6e, 0x50,
+	0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x12, 0x27, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61,
+	0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x42, 0x75, 0x69, 0x6c, 0x74, 0x49, 0x6e,
+	0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x1a, 0x28, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x47,
+	0x65, 0x74, 0x42, 0x75, 0x69, 0x6c, 0x74, 0x49, 0x6e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65,
+	0x72, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x62, 0x0a, 0x11, 0x47,
+	0x65, 0x74, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61,
+	0x12, 0x25, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x47, 0x65,
+	0x74, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x26, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66,
+	0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72,
+	0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x32,
+	0xa3, 0x06, 0x0a, 0x06, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x73, 0x12, 0x71, 0x0a, 0x16, 0x4f, 0x70,
+	0x65, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61,
+	0x74, 0x69, 0x6f, 0x6e, 0x12, 0x2a, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d,
+	0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69,
+	0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x1a, 0x2b, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70,
+	0x65, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61,
+	0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x74, 0x0a,
+	0x17, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69,
+	0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x2b, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61,
+	0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x53, 0x74, 0x61, 0x63, 0x6b,
+	0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2c, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72,
+	0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e,
+	0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x12, 0x8f, 0x01, 0x0a, 0x20, 0x46, 0x69, 0x6e, 0x64, 0x53, 0x74, 0x61, 0x63,
+	0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x43, 0x6f,
+	0x6d, 0x70, 0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x73, 0x12, 0x34, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61,
+	0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x46, 0x69, 0x6e, 0x64, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43,
+	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x43, 0x6f, 0x6d, 0x70,
+	0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x35,
+	0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x46, 0x69, 0x6e, 0x64,
+	0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69,
+	0x6f, 0x6e, 0x43, 0x6f, 0x6d, 0x70, 0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x73, 0x2e, 0x52, 0x65, 0x73,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x5e, 0x0a, 0x10, 0x50, 0x6c, 0x61, 0x6e, 0x53, 0x74, 0x61,
+	0x63, 0x6b, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x12, 0x24, 0x2e, 0x74, 0x65, 0x72, 0x72,
+	0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x50, 0x6c, 0x61, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b,
+	0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
+	0x22, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x50, 0x6c, 0x61,
+	0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x2e, 0x45, 0x76,
+	0x65, 0x6e, 0x74, 0x30, 0x01, 0x12, 0x61, 0x0a, 0x11, 0x41, 0x70, 0x70, 0x6c, 0x79, 0x53, 0x74,
+	0x61, 0x63, 0x6b, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x12, 0x25, 0x2e, 0x74, 0x65, 0x72,
+	0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x41, 0x70, 0x70, 0x6c, 0x79, 0x53, 0x74, 0x61,
+	0x63, 0x6b, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x1a, 0x23, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x41,
+	0x70, 0x70, 0x6c, 0x79, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73,
+	0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x30, 0x01, 0x12, 0x65, 0x0a, 0x12, 0x4f, 0x70, 0x65, 0x6e,
+	0x53, 0x74, 0x61, 0x63, 0x6b, 0x49, 0x6e, 0x73, 0x70, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x12, 0x26,
+	0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e,
+	0x53, 0x74, 0x61, 0x63, 0x6b, 0x49, 0x6e, 0x73, 0x70, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x27, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f,
+	0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x49, 0x6e, 0x73,
+	0x70, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
+	0x74, 0x0a, 0x17, 0x49, 0x6e, 0x73, 0x70, 0x65, 0x63, 0x74, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73,
+	0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x12, 0x2b, 0x2e, 0x74, 0x65, 0x72,
+	0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x49, 0x6e, 0x73, 0x70, 0x65, 0x63, 0x74, 0x45,
+	0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x2e,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2c, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66,
+	0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x49, 0x6e, 0x73, 0x70, 0x65, 0x63, 0x74, 0x45, 0x78, 0x70, 0x72,
+	0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x2e, 0x52, 0x65, 0x73,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x32, 0xba, 0x04, 0x0a, 0x08, 0x50, 0x61, 0x63, 0x6b, 0x61, 0x67,
+	0x65, 0x73, 0x12, 0x74, 0x0a, 0x17, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x61,
+	0x63, 0x6b, 0x61, 0x67, 0x65, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x12, 0x2b, 0x2e,
+	0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69,
+	0x64, 0x65, 0x72, 0x50, 0x61, 0x63, 0x6b, 0x61, 0x67, 0x65, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f,
+	0x6e, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2c, 0x2e, 0x74, 0x65, 0x72,
+	0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72,
+	0x50, 0x61, 0x63, 0x6b, 0x61, 0x67, 0x65, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x2e,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x6b, 0x0a, 0x14, 0x46, 0x65, 0x74, 0x63,
+	0x68, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x61, 0x63, 0x6b, 0x61, 0x67, 0x65,
+	0x12, 0x28, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x46, 0x65,
+	0x74, 0x63, 0x68, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x61, 0x63, 0x6b, 0x61,
+	0x67, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x29, 0x2e, 0x74, 0x65, 0x72,
+	0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x46, 0x65, 0x74, 0x63, 0x68, 0x50, 0x72, 0x6f,
+	0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x61, 0x63, 0x6b, 0x61, 0x67, 0x65, 0x2e, 0x52, 0x65, 0x73,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x6e, 0x0a, 0x15, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x50,
+	0x61, 0x63, 0x6b, 0x61, 0x67, 0x65, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x12, 0x29,
+	0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4d, 0x6f, 0x64, 0x75,
+	0x6c, 0x65, 0x50, 0x61, 0x63, 0x6b, 0x61, 0x67, 0x65, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e,
+	0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2a, 0x2e, 0x74, 0x65, 0x72, 0x72,
+	0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x50, 0x61, 0x63,
+	0x6b, 0x61, 0x67, 0x65, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x2e, 0x52, 0x65, 0x73,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x74, 0x0a, 0x17, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x50,
+	0x61, 0x63, 0x6b, 0x61, 0x67, 0x65, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x41, 0x64, 0x64, 0x72,
+	0x12, 0x2b, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4d, 0x6f,
+	0x64, 0x75, 0x6c, 0x65, 0x50, 0x61, 0x63, 0x6b, 0x61, 0x67, 0x65, 0x53, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x41, 0x64, 0x64, 0x72, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2c, 0x2e,
+	0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4d, 0x6f, 0x64, 0x75, 0x6c,
+	0x65, 0x50, 0x61, 0x63, 0x6b, 0x61, 0x67, 0x65, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x41, 0x64,
+	0x64, 0x72, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x65, 0x0a, 0x12, 0x46,
+	0x65, 0x74, 0x63, 0x68, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x50, 0x61, 0x63, 0x6b, 0x61, 0x67,
+	0x65, 0x12, 0x26, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x46,
+	0x65, 0x74, 0x63, 0x68, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x50, 0x61, 0x63, 0x6b, 0x61, 0x67,
+	0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x27, 0x2e, 0x74, 0x65, 0x72, 0x72,
+	0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x46, 0x65, 0x74, 0x63, 0x68, 0x4d, 0x6f, 0x64, 0x75,
+	0x6c, 0x65, 0x50, 0x61, 0x63, 0x6b, 0x61, 0x67, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -8766,7 +9673,7 @@ func file_terraform1_proto_rawDescGZIP() []byte {
 }
 
 var file_terraform1_proto_enumTypes = make([]protoimpl.EnumInfo, 12)
-var file_terraform1_proto_msgTypes = make([]protoimpl.MessageInfo, 123)
+var file_terraform1_proto_msgTypes = make([]protoimpl.MessageInfo, 139)
 var file_terraform1_proto_goTypes = []interface{}{
 	(ResourceMode)(0), // 0: terraform1.ResourceMode
 	(PlanMode)(0),     // 1: terraform1.PlanMode
@@ -8819,138 +9726,154 @@ var file_terraform1_proto_goTypes = []interface{}{
 	(*SourceRange)(nil),                                          // 48: terraform1.SourceRange
 	(*SourcePos)(nil),                                            // 49: terraform1.SourcePos
 	(*Schema)(nil),                                               // 50: terraform1.Schema
-	(*Handshake_Request)(nil),                                    // 51: terraform1.Handshake.Request
-	(*Handshake_Response)(nil),                                   // 52: terraform1.Handshake.Response
-	(*OpenSourceBundle_Request)(nil),                             // 53: terraform1.OpenSourceBundle.Request
-	(*OpenSourceBundle_Response)(nil),                            // 54: terraform1.OpenSourceBundle.Response
-	(*CloseSourceBundle_Request)(nil),                            // 55: terraform1.CloseSourceBundle.Request
-	(*CloseSourceBundle_Response)(nil),                           // 56: terraform1.CloseSourceBundle.Response
-	(*OpenDependencyLockFile_Request)(nil),                       // 57: terraform1.OpenDependencyLockFile.Request
-	(*OpenDependencyLockFile_Response)(nil),                      // 58: terraform1.OpenDependencyLockFile.Response
-	(*CreateDependencyLocks_Request)(nil),                        // 59: terraform1.CreateDependencyLocks.Request
-	(*CreateDependencyLocks_Response)(nil),                       // 60: terraform1.CreateDependencyLocks.Response
-	(*CloseDependencyLocks_Request)(nil),                         // 61: terraform1.CloseDependencyLocks.Request
-	(*CloseDependencyLocks_Response)(nil),                        // 62: terraform1.CloseDependencyLocks.Response
-	(*GetLockedProviderDependencies_Request)(nil),                // 63: terraform1.GetLockedProviderDependencies.Request
-	(*GetLockedProviderDependencies_Response)(nil),               // 64: terraform1.GetLockedProviderDependencies.Response
-	(*BuildProviderPluginCache_Request)(nil),                     // 65: terraform1.BuildProviderPluginCache.Request
-	(*BuildProviderPluginCache_Event)(nil),                       // 66: terraform1.BuildProviderPluginCache.Event
-	(*BuildProviderPluginCache_Request_InstallMethod)(nil),       // 67: terraform1.BuildProviderPluginCache.Request.InstallMethod
-	(*BuildProviderPluginCache_Event_Pending)(nil),               // 68: terraform1.BuildProviderPluginCache.Event.Pending
-	(*BuildProviderPluginCache_Event_ProviderConstraints)(nil),   // 69: terraform1.BuildProviderPluginCache.Event.ProviderConstraints
-	(*BuildProviderPluginCache_Event_ProviderVersion)(nil),       // 70: terraform1.BuildProviderPluginCache.Event.ProviderVersion
-	(*BuildProviderPluginCache_Event_ProviderWarnings)(nil),      // 71: terraform1.BuildProviderPluginCache.Event.ProviderWarnings
-	(*BuildProviderPluginCache_Event_FetchBegin)(nil),            // 72: terraform1.BuildProviderPluginCache.Event.FetchBegin
-	(*BuildProviderPluginCache_Event_FetchComplete)(nil),         // 73: terraform1.BuildProviderPluginCache.Event.FetchComplete
-	(*OpenProviderPluginCache_Request)(nil),                      // 74: terraform1.OpenProviderPluginCache.Request
-	(*OpenProviderPluginCache_Response)(nil),                     // 75: terraform1.OpenProviderPluginCache.Response
-	(*CloseProviderPluginCache_Request)(nil),                     // 76: terraform1.CloseProviderPluginCache.Request
-	(*CloseProviderPluginCache_Response)(nil),                    // 77: terraform1.CloseProviderPluginCache.Response
-	(*GetCachedProviders_Request)(nil),                           // 78: terraform1.GetCachedProviders.Request
-	(*GetCachedProviders_Response)(nil),                          // 79: terraform1.GetCachedProviders.Response
-	(*GetBuiltInProviders_Request)(nil),                          // 80: terraform1.GetBuiltInProviders.Request
-	(*GetBuiltInProviders_Response)(nil),                         // 81: terraform1.GetBuiltInProviders.Response
-	(*GetProviderSchema_Request)(nil),                            // 82: terraform1.GetProviderSchema.Request
-	(*GetProviderSchema_Response)(nil),                           // 83: terraform1.GetProviderSchema.Response
-	nil,                                                          // 84: terraform1.ProviderSchema.ManagedResourceTypesEntry
-	nil,                                                          // 85: terraform1.ProviderSchema.DataResourceTypesEntry
-	(*OpenStackConfiguration_Request)(nil),                       // 86: terraform1.OpenStackConfiguration.Request
-	(*OpenStackConfiguration_Response)(nil),                      // 87: terraform1.OpenStackConfiguration.Response
-	(*CloseStackConfiguration_Request)(nil),                      // 88: terraform1.CloseStackConfiguration.Request
-	(*CloseStackConfiguration_Response)(nil),                     // 89: terraform1.CloseStackConfiguration.Response
-	(*FindStackConfigurationComponents_Request)(nil),             // 90: terraform1.FindStackConfigurationComponents.Request
-	(*FindStackConfigurationComponents_Response)(nil),            // 91: terraform1.FindStackConfigurationComponents.Response
-	(*FindStackConfigurationComponents_StackConfig)(nil),         // 92: terraform1.FindStackConfigurationComponents.StackConfig
-	(*FindStackConfigurationComponents_EmbeddedStack)(nil),       // 93: terraform1.FindStackConfigurationComponents.EmbeddedStack
-	(*FindStackConfigurationComponents_Component)(nil),           // 94: terraform1.FindStackConfigurationComponents.Component
-	nil,                                      // 95: terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry
-	nil,                                      // 96: terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry
-	(*PlanStackChanges_Request)(nil),         // 97: terraform1.PlanStackChanges.Request
-	(*PlanStackChanges_Event)(nil),           // 98: terraform1.PlanStackChanges.Event
-	nil,                                      // 99: terraform1.PlanStackChanges.Request.PreviousStateEntry
-	nil,                                      // 100: terraform1.PlanStackChanges.Request.InputValuesEntry
-	(*ApplyStackChanges_Request)(nil),        // 101: terraform1.ApplyStackChanges.Request
-	(*ApplyStackChanges_Event)(nil),          // 102: terraform1.ApplyStackChanges.Event
-	(*OpenStackInspector_Request)(nil),       // 103: terraform1.OpenStackInspector.Request
-	(*OpenStackInspector_Response)(nil),      // 104: terraform1.OpenStackInspector.Response
-	nil,                                      // 105: terraform1.OpenStackInspector.Request.StateEntry
-	nil,                                      // 106: terraform1.OpenStackInspector.Request.InputValuesEntry
-	(*InspectExpressionResult_Request)(nil),  // 107: terraform1.InspectExpressionResult.Request
-	(*InspectExpressionResult_Response)(nil), // 108: terraform1.InspectExpressionResult.Response
-	(*AttributePath_Step)(nil),               // 109: terraform1.AttributePath.Step
-	(*PlannedChange_ChangeDescription)(nil),  // 110: terraform1.PlannedChange.ChangeDescription
-	(*PlannedChange_ComponentInstance)(nil),  // 111: terraform1.PlannedChange.ComponentInstance
-	(*PlannedChange_ResourceInstance)(nil),   // 112: terraform1.PlannedChange.ResourceInstance
-	(*PlannedChange_OutputValue)(nil),        // 113: terraform1.PlannedChange.OutputValue
-	(*PlannedChange_ResourceInstance_Moved)(nil),                       // 114: terraform1.PlannedChange.ResourceInstance.Moved
-	(*PlannedChange_ResourceInstance_Imported)(nil),                    // 115: terraform1.PlannedChange.ResourceInstance.Imported
-	(*AppliedChange_RawChange)(nil),                                    // 116: terraform1.AppliedChange.RawChange
-	(*AppliedChange_ChangeDescription)(nil),                            // 117: terraform1.AppliedChange.ChangeDescription
-	(*AppliedChange_ResourceInstance)(nil),                             // 118: terraform1.AppliedChange.ResourceInstance
-	(*AppliedChange_OutputValue)(nil),                                  // 119: terraform1.AppliedChange.OutputValue
-	(*AppliedChange_Nothing)(nil),                                      // 120: terraform1.AppliedChange.Nothing
-	(*StackChangeProgress_ComponentInstanceStatus)(nil),                // 121: terraform1.StackChangeProgress.ComponentInstanceStatus
-	(*StackChangeProgress_ResourceInstanceStatus)(nil),                 // 122: terraform1.StackChangeProgress.ResourceInstanceStatus
-	(*StackChangeProgress_ResourceInstancePlannedChange)(nil),          // 123: terraform1.StackChangeProgress.ResourceInstancePlannedChange
-	(*StackChangeProgress_ProvisionerStatus)(nil),                      // 124: terraform1.StackChangeProgress.ProvisionerStatus
-	(*StackChangeProgress_ProvisionerOutput)(nil),                      // 125: terraform1.StackChangeProgress.ProvisionerOutput
-	(*StackChangeProgress_ComponentInstanceChanges)(nil),               // 126: terraform1.StackChangeProgress.ComponentInstanceChanges
-	(*StackChangeProgress_ComponentInstances)(nil),                     // 127: terraform1.StackChangeProgress.ComponentInstances
-	(*StackChangeProgress_ResourceInstancePlannedChange_Moved)(nil),    // 128: terraform1.StackChangeProgress.ResourceInstancePlannedChange.Moved
-	(*StackChangeProgress_ResourceInstancePlannedChange_Imported)(nil), // 129: terraform1.StackChangeProgress.ResourceInstancePlannedChange.Imported
-	(*Schema_Block)(nil),                                               // 130: terraform1.Schema.Block
-	(*Schema_Attribute)(nil),                                           // 131: terraform1.Schema.Attribute
-	(*Schema_NestedBlock)(nil),                                         // 132: terraform1.Schema.NestedBlock
-	(*Schema_Object)(nil),                                              // 133: terraform1.Schema.Object
-	(*Schema_DocString)(nil),                                           // 134: terraform1.Schema.DocString
-	(*anypb.Any)(nil),                                                  // 135: google.protobuf.Any
+	(*ProviderPackageVersions)(nil),                              // 51: terraform1.ProviderPackageVersions
+	(*FetchProviderPackage)(nil),                                 // 52: terraform1.FetchProviderPackage
+	(*ModulePackageVersions)(nil),                                // 53: terraform1.ModulePackageVersions
+	(*ModulePackageSourceAddr)(nil),                              // 54: terraform1.ModulePackageSourceAddr
+	(*FetchModulePackage)(nil),                                   // 55: terraform1.FetchModulePackage
+	(*Handshake_Request)(nil),                                    // 56: terraform1.Handshake.Request
+	(*Handshake_Response)(nil),                                   // 57: terraform1.Handshake.Response
+	(*OpenSourceBundle_Request)(nil),                             // 58: terraform1.OpenSourceBundle.Request
+	(*OpenSourceBundle_Response)(nil),                            // 59: terraform1.OpenSourceBundle.Response
+	(*CloseSourceBundle_Request)(nil),                            // 60: terraform1.CloseSourceBundle.Request
+	(*CloseSourceBundle_Response)(nil),                           // 61: terraform1.CloseSourceBundle.Response
+	(*OpenDependencyLockFile_Request)(nil),                       // 62: terraform1.OpenDependencyLockFile.Request
+	(*OpenDependencyLockFile_Response)(nil),                      // 63: terraform1.OpenDependencyLockFile.Response
+	(*CreateDependencyLocks_Request)(nil),                        // 64: terraform1.CreateDependencyLocks.Request
+	(*CreateDependencyLocks_Response)(nil),                       // 65: terraform1.CreateDependencyLocks.Response
+	(*CloseDependencyLocks_Request)(nil),                         // 66: terraform1.CloseDependencyLocks.Request
+	(*CloseDependencyLocks_Response)(nil),                        // 67: terraform1.CloseDependencyLocks.Response
+	(*GetLockedProviderDependencies_Request)(nil),                // 68: terraform1.GetLockedProviderDependencies.Request
+	(*GetLockedProviderDependencies_Response)(nil),               // 69: terraform1.GetLockedProviderDependencies.Response
+	(*BuildProviderPluginCache_Request)(nil),                     // 70: terraform1.BuildProviderPluginCache.Request
+	(*BuildProviderPluginCache_Event)(nil),                       // 71: terraform1.BuildProviderPluginCache.Event
+	(*BuildProviderPluginCache_Request_InstallMethod)(nil),       // 72: terraform1.BuildProviderPluginCache.Request.InstallMethod
+	(*BuildProviderPluginCache_Event_Pending)(nil),               // 73: terraform1.BuildProviderPluginCache.Event.Pending
+	(*BuildProviderPluginCache_Event_ProviderConstraints)(nil),   // 74: terraform1.BuildProviderPluginCache.Event.ProviderConstraints
+	(*BuildProviderPluginCache_Event_ProviderVersion)(nil),       // 75: terraform1.BuildProviderPluginCache.Event.ProviderVersion
+	(*BuildProviderPluginCache_Event_ProviderWarnings)(nil),      // 76: terraform1.BuildProviderPluginCache.Event.ProviderWarnings
+	(*BuildProviderPluginCache_Event_FetchBegin)(nil),            // 77: terraform1.BuildProviderPluginCache.Event.FetchBegin
+	(*BuildProviderPluginCache_Event_FetchComplete)(nil),         // 78: terraform1.BuildProviderPluginCache.Event.FetchComplete
+	(*OpenProviderPluginCache_Request)(nil),                      // 79: terraform1.OpenProviderPluginCache.Request
+	(*OpenProviderPluginCache_Response)(nil),                     // 80: terraform1.OpenProviderPluginCache.Response
+	(*CloseProviderPluginCache_Request)(nil),                     // 81: terraform1.CloseProviderPluginCache.Request
+	(*CloseProviderPluginCache_Response)(nil),                    // 82: terraform1.CloseProviderPluginCache.Response
+	(*GetCachedProviders_Request)(nil),                           // 83: terraform1.GetCachedProviders.Request
+	(*GetCachedProviders_Response)(nil),                          // 84: terraform1.GetCachedProviders.Response
+	(*GetBuiltInProviders_Request)(nil),                          // 85: terraform1.GetBuiltInProviders.Request
+	(*GetBuiltInProviders_Response)(nil),                         // 86: terraform1.GetBuiltInProviders.Response
+	(*GetProviderSchema_Request)(nil),                            // 87: terraform1.GetProviderSchema.Request
+	(*GetProviderSchema_Response)(nil),                           // 88: terraform1.GetProviderSchema.Response
+	nil,                                                          // 89: terraform1.ProviderSchema.ManagedResourceTypesEntry
+	nil,                                                          // 90: terraform1.ProviderSchema.DataResourceTypesEntry
+	(*OpenStackConfiguration_Request)(nil),                       // 91: terraform1.OpenStackConfiguration.Request
+	(*OpenStackConfiguration_Response)(nil),                      // 92: terraform1.OpenStackConfiguration.Response
+	(*CloseStackConfiguration_Request)(nil),                      // 93: terraform1.CloseStackConfiguration.Request
+	(*CloseStackConfiguration_Response)(nil),                     // 94: terraform1.CloseStackConfiguration.Response
+	(*FindStackConfigurationComponents_Request)(nil),             // 95: terraform1.FindStackConfigurationComponents.Request
+	(*FindStackConfigurationComponents_Response)(nil),            // 96: terraform1.FindStackConfigurationComponents.Response
+	(*FindStackConfigurationComponents_StackConfig)(nil),         // 97: terraform1.FindStackConfigurationComponents.StackConfig
+	(*FindStackConfigurationComponents_EmbeddedStack)(nil),       // 98: terraform1.FindStackConfigurationComponents.EmbeddedStack
+	(*FindStackConfigurationComponents_Component)(nil),           // 99: terraform1.FindStackConfigurationComponents.Component
+	nil,                                      // 100: terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry
+	nil,                                      // 101: terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry
+	(*PlanStackChanges_Request)(nil),         // 102: terraform1.PlanStackChanges.Request
+	(*PlanStackChanges_Event)(nil),           // 103: terraform1.PlanStackChanges.Event
+	nil,                                      // 104: terraform1.PlanStackChanges.Request.PreviousStateEntry
+	nil,                                      // 105: terraform1.PlanStackChanges.Request.InputValuesEntry
+	(*ApplyStackChanges_Request)(nil),        // 106: terraform1.ApplyStackChanges.Request
+	(*ApplyStackChanges_Event)(nil),          // 107: terraform1.ApplyStackChanges.Event
+	(*OpenStackInspector_Request)(nil),       // 108: terraform1.OpenStackInspector.Request
+	(*OpenStackInspector_Response)(nil),      // 109: terraform1.OpenStackInspector.Response
+	nil,                                      // 110: terraform1.OpenStackInspector.Request.StateEntry
+	nil,                                      // 111: terraform1.OpenStackInspector.Request.InputValuesEntry
+	(*InspectExpressionResult_Request)(nil),  // 112: terraform1.InspectExpressionResult.Request
+	(*InspectExpressionResult_Response)(nil), // 113: terraform1.InspectExpressionResult.Response
+	(*AttributePath_Step)(nil),               // 114: terraform1.AttributePath.Step
+	(*PlannedChange_ChangeDescription)(nil),  // 115: terraform1.PlannedChange.ChangeDescription
+	(*PlannedChange_ComponentInstance)(nil),  // 116: terraform1.PlannedChange.ComponentInstance
+	(*PlannedChange_ResourceInstance)(nil),   // 117: terraform1.PlannedChange.ResourceInstance
+	(*PlannedChange_OutputValue)(nil),        // 118: terraform1.PlannedChange.OutputValue
+	(*PlannedChange_ResourceInstance_Moved)(nil),                       // 119: terraform1.PlannedChange.ResourceInstance.Moved
+	(*PlannedChange_ResourceInstance_Imported)(nil),                    // 120: terraform1.PlannedChange.ResourceInstance.Imported
+	(*AppliedChange_RawChange)(nil),                                    // 121: terraform1.AppliedChange.RawChange
+	(*AppliedChange_ChangeDescription)(nil),                            // 122: terraform1.AppliedChange.ChangeDescription
+	(*AppliedChange_ResourceInstance)(nil),                             // 123: terraform1.AppliedChange.ResourceInstance
+	(*AppliedChange_OutputValue)(nil),                                  // 124: terraform1.AppliedChange.OutputValue
+	(*AppliedChange_Nothing)(nil),                                      // 125: terraform1.AppliedChange.Nothing
+	(*StackChangeProgress_ComponentInstanceStatus)(nil),                // 126: terraform1.StackChangeProgress.ComponentInstanceStatus
+	(*StackChangeProgress_ResourceInstanceStatus)(nil),                 // 127: terraform1.StackChangeProgress.ResourceInstanceStatus
+	(*StackChangeProgress_ResourceInstancePlannedChange)(nil),          // 128: terraform1.StackChangeProgress.ResourceInstancePlannedChange
+	(*StackChangeProgress_ProvisionerStatus)(nil),                      // 129: terraform1.StackChangeProgress.ProvisionerStatus
+	(*StackChangeProgress_ProvisionerOutput)(nil),                      // 130: terraform1.StackChangeProgress.ProvisionerOutput
+	(*StackChangeProgress_ComponentInstanceChanges)(nil),               // 131: terraform1.StackChangeProgress.ComponentInstanceChanges
+	(*StackChangeProgress_ComponentInstances)(nil),                     // 132: terraform1.StackChangeProgress.ComponentInstances
+	(*StackChangeProgress_ResourceInstancePlannedChange_Moved)(nil),    // 133: terraform1.StackChangeProgress.ResourceInstancePlannedChange.Moved
+	(*StackChangeProgress_ResourceInstancePlannedChange_Imported)(nil), // 134: terraform1.StackChangeProgress.ResourceInstancePlannedChange.Imported
+	(*Schema_Block)(nil),                                               // 135: terraform1.Schema.Block
+	(*Schema_Attribute)(nil),                                           // 136: terraform1.Schema.Attribute
+	(*Schema_NestedBlock)(nil),                                         // 137: terraform1.Schema.NestedBlock
+	(*Schema_Object)(nil),                                              // 138: terraform1.Schema.Object
+	(*Schema_DocString)(nil),                                           // 139: terraform1.Schema.DocString
+	(*ProviderPackageVersions_Request)(nil),                            // 140: terraform1.ProviderPackageVersions.Request
+	(*ProviderPackageVersions_Response)(nil),                           // 141: terraform1.ProviderPackageVersions.Response
+	(*FetchProviderPackage_Request)(nil),                               // 142: terraform1.FetchProviderPackage.Request
+	(*FetchProviderPackage_Response)(nil),                              // 143: terraform1.FetchProviderPackage.Response
+	(*FetchProviderPackage_PlatformResult)(nil),                        // 144: terraform1.FetchProviderPackage.PlatformResult
+	(*ModulePackageVersions_Request)(nil),                              // 145: terraform1.ModulePackageVersions.Request
+	(*ModulePackageVersions_Response)(nil),                             // 146: terraform1.ModulePackageVersions.Response
+	(*ModulePackageSourceAddr_Request)(nil),                            // 147: terraform1.ModulePackageSourceAddr.Request
+	(*ModulePackageSourceAddr_Response)(nil),                           // 148: terraform1.ModulePackageSourceAddr.Response
+	(*FetchModulePackage_Request)(nil),                                 // 149: terraform1.FetchModulePackage.Request
+	(*FetchModulePackage_Response)(nil),                                // 150: terraform1.FetchModulePackage.Response
+	(*anypb.Any)(nil),                                                  // 151: google.protobuf.Any
 }
 var file_terraform1_proto_depIdxs = []int32{
 	50,  // 0: terraform1.ProviderSchema.provider_config:type_name -> terraform1.Schema
-	84,  // 1: terraform1.ProviderSchema.managed_resource_types:type_name -> terraform1.ProviderSchema.ManagedResourceTypesEntry
-	85,  // 2: terraform1.ProviderSchema.data_resource_types:type_name -> terraform1.ProviderSchema.DataResourceTypesEntry
+	89,  // 1: terraform1.ProviderSchema.managed_resource_types:type_name -> terraform1.ProviderSchema.ManagedResourceTypesEntry
+	90,  // 2: terraform1.ProviderSchema.data_resource_types:type_name -> terraform1.ProviderSchema.DataResourceTypesEntry
 	39,  // 3: terraform1.DynamicValue.sensitive:type_name -> terraform1.AttributePath
 	36,  // 4: terraform1.DynamicValueChange.old:type_name -> terraform1.DynamicValue
 	36,  // 5: terraform1.DynamicValueChange.new:type_name -> terraform1.DynamicValue
 	36,  // 6: terraform1.DynamicValueWithSource.value:type_name -> terraform1.DynamicValue
 	48,  // 7: terraform1.DynamicValueWithSource.source_range:type_name -> terraform1.SourceRange
-	109, // 8: terraform1.AttributePath.steps:type_name -> terraform1.AttributePath.Step
-	135, // 9: terraform1.PlannedChange.raw:type_name -> google.protobuf.Any
-	110, // 10: terraform1.PlannedChange.descriptions:type_name -> terraform1.PlannedChange.ChangeDescription
-	116, // 11: terraform1.AppliedChange.raw:type_name -> terraform1.AppliedChange.RawChange
-	117, // 12: terraform1.AppliedChange.descriptions:type_name -> terraform1.AppliedChange.ChangeDescription
-	121, // 13: terraform1.StackChangeProgress.component_instance_status:type_name -> terraform1.StackChangeProgress.ComponentInstanceStatus
-	122, // 14: terraform1.StackChangeProgress.resource_instance_status:type_name -> terraform1.StackChangeProgress.ResourceInstanceStatus
-	123, // 15: terraform1.StackChangeProgress.resource_instance_planned_change:type_name -> terraform1.StackChangeProgress.ResourceInstancePlannedChange
-	124, // 16: terraform1.StackChangeProgress.provisioner_status:type_name -> terraform1.StackChangeProgress.ProvisionerStatus
-	125, // 17: terraform1.StackChangeProgress.provisioner_output:type_name -> terraform1.StackChangeProgress.ProvisionerOutput
-	126, // 18: terraform1.StackChangeProgress.component_instance_changes:type_name -> terraform1.StackChangeProgress.ComponentInstanceChanges
-	127, // 19: terraform1.StackChangeProgress.component_instances:type_name -> terraform1.StackChangeProgress.ComponentInstances
+	114, // 8: terraform1.AttributePath.steps:type_name -> terraform1.AttributePath.Step
+	151, // 9: terraform1.PlannedChange.raw:type_name -> google.protobuf.Any
+	115, // 10: terraform1.PlannedChange.descriptions:type_name -> terraform1.PlannedChange.ChangeDescription
+	121, // 11: terraform1.AppliedChange.raw:type_name -> terraform1.AppliedChange.RawChange
+	122, // 12: terraform1.AppliedChange.descriptions:type_name -> terraform1.AppliedChange.ChangeDescription
+	126, // 13: terraform1.StackChangeProgress.component_instance_status:type_name -> terraform1.StackChangeProgress.ComponentInstanceStatus
+	127, // 14: terraform1.StackChangeProgress.resource_instance_status:type_name -> terraform1.StackChangeProgress.ResourceInstanceStatus
+	128, // 15: terraform1.StackChangeProgress.resource_instance_planned_change:type_name -> terraform1.StackChangeProgress.ResourceInstancePlannedChange
+	129, // 16: terraform1.StackChangeProgress.provisioner_status:type_name -> terraform1.StackChangeProgress.ProvisionerStatus
+	130, // 17: terraform1.StackChangeProgress.provisioner_output:type_name -> terraform1.StackChangeProgress.ProvisionerOutput
+	131, // 18: terraform1.StackChangeProgress.component_instance_changes:type_name -> terraform1.StackChangeProgress.ComponentInstanceChanges
+	132, // 19: terraform1.StackChangeProgress.component_instances:type_name -> terraform1.StackChangeProgress.ComponentInstances
 	8,   // 20: terraform1.Diagnostic.severity:type_name -> terraform1.Diagnostic.Severity
 	48,  // 21: terraform1.Diagnostic.subject:type_name -> terraform1.SourceRange
 	48,  // 22: terraform1.Diagnostic.context:type_name -> terraform1.SourceRange
 	49,  // 23: terraform1.SourceRange.start:type_name -> terraform1.SourcePos
 	49,  // 24: terraform1.SourceRange.end:type_name -> terraform1.SourcePos
-	130, // 25: terraform1.Schema.block:type_name -> terraform1.Schema.Block
+	135, // 25: terraform1.Schema.block:type_name -> terraform1.Schema.Block
 	13,  // 26: terraform1.Handshake.Request.capabilities:type_name -> terraform1.ClientCapabilities
 	14,  // 27: terraform1.Handshake.Response.capabilities:type_name -> terraform1.ServerCapabilities
 	43,  // 28: terraform1.OpenDependencyLockFile.Request.source_address:type_name -> terraform1.SourceAddress
 	47,  // 29: terraform1.OpenDependencyLockFile.Response.diagnostics:type_name -> terraform1.Diagnostic
 	27,  // 30: terraform1.CreateDependencyLocks.Request.provider_selections:type_name -> terraform1.ProviderPackage
 	27,  // 31: terraform1.GetLockedProviderDependencies.Response.selected_providers:type_name -> terraform1.ProviderPackage
-	67,  // 32: terraform1.BuildProviderPluginCache.Request.installation_methods:type_name -> terraform1.BuildProviderPluginCache.Request.InstallMethod
-	68,  // 33: terraform1.BuildProviderPluginCache.Event.pending:type_name -> terraform1.BuildProviderPluginCache.Event.Pending
-	70,  // 34: terraform1.BuildProviderPluginCache.Event.already_installed:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
-	70,  // 35: terraform1.BuildProviderPluginCache.Event.built_in:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
-	69,  // 36: terraform1.BuildProviderPluginCache.Event.query_begin:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderConstraints
-	70,  // 37: terraform1.BuildProviderPluginCache.Event.query_success:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
-	71,  // 38: terraform1.BuildProviderPluginCache.Event.query_warnings:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderWarnings
-	72,  // 39: terraform1.BuildProviderPluginCache.Event.fetch_begin:type_name -> terraform1.BuildProviderPluginCache.Event.FetchBegin
-	73,  // 40: terraform1.BuildProviderPluginCache.Event.fetch_complete:type_name -> terraform1.BuildProviderPluginCache.Event.FetchComplete
+	72,  // 32: terraform1.BuildProviderPluginCache.Request.installation_methods:type_name -> terraform1.BuildProviderPluginCache.Request.InstallMethod
+	73,  // 33: terraform1.BuildProviderPluginCache.Event.pending:type_name -> terraform1.BuildProviderPluginCache.Event.Pending
+	75,  // 34: terraform1.BuildProviderPluginCache.Event.already_installed:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
+	75,  // 35: terraform1.BuildProviderPluginCache.Event.built_in:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
+	74,  // 36: terraform1.BuildProviderPluginCache.Event.query_begin:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderConstraints
+	75,  // 37: terraform1.BuildProviderPluginCache.Event.query_success:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
+	76,  // 38: terraform1.BuildProviderPluginCache.Event.query_warnings:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderWarnings
+	77,  // 39: terraform1.BuildProviderPluginCache.Event.fetch_begin:type_name -> terraform1.BuildProviderPluginCache.Event.FetchBegin
+	78,  // 40: terraform1.BuildProviderPluginCache.Event.fetch_complete:type_name -> terraform1.BuildProviderPluginCache.Event.FetchComplete
 	47,  // 41: terraform1.BuildProviderPluginCache.Event.diagnostic:type_name -> terraform1.Diagnostic
-	69,  // 42: terraform1.BuildProviderPluginCache.Event.Pending.expected:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderConstraints
-	70,  // 43: terraform1.BuildProviderPluginCache.Event.FetchBegin.provider_version:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
-	70,  // 44: terraform1.BuildProviderPluginCache.Event.FetchComplete.provider_version:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
+	74,  // 42: terraform1.BuildProviderPluginCache.Event.Pending.expected:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderConstraints
+	75,  // 43: terraform1.BuildProviderPluginCache.Event.FetchBegin.provider_version:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
+	75,  // 44: terraform1.BuildProviderPluginCache.Event.FetchComplete.provider_version:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
 	3,   // 45: terraform1.BuildProviderPluginCache.Event.FetchComplete.auth_result:type_name -> terraform1.BuildProviderPluginCache.Event.FetchComplete.AuthResult
 	27,  // 46: terraform1.GetCachedProviders.Response.available_providers:type_name -> terraform1.ProviderPackage
 	27,  // 47: terraform1.GetBuiltInProviders.Response.available_providers:type_name -> terraform1.ProviderPackage
@@ -8959,52 +9882,52 @@ var file_terraform1_proto_depIdxs = []int32{
 	50,  // 50: terraform1.ProviderSchema.DataResourceTypesEntry.value:type_name -> terraform1.Schema
 	43,  // 51: terraform1.OpenStackConfiguration.Request.source_address:type_name -> terraform1.SourceAddress
 	47,  // 52: terraform1.OpenStackConfiguration.Response.diagnostics:type_name -> terraform1.Diagnostic
-	92,  // 53: terraform1.FindStackConfigurationComponents.Response.config:type_name -> terraform1.FindStackConfigurationComponents.StackConfig
-	95,  // 54: terraform1.FindStackConfigurationComponents.StackConfig.components:type_name -> terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry
-	96,  // 55: terraform1.FindStackConfigurationComponents.StackConfig.embedded_stacks:type_name -> terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry
+	97,  // 53: terraform1.FindStackConfigurationComponents.Response.config:type_name -> terraform1.FindStackConfigurationComponents.StackConfig
+	100, // 54: terraform1.FindStackConfigurationComponents.StackConfig.components:type_name -> terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry
+	101, // 55: terraform1.FindStackConfigurationComponents.StackConfig.embedded_stacks:type_name -> terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry
 	4,   // 56: terraform1.FindStackConfigurationComponents.EmbeddedStack.instances:type_name -> terraform1.FindStackConfigurationComponents.Instances
-	92,  // 57: terraform1.FindStackConfigurationComponents.EmbeddedStack.config:type_name -> terraform1.FindStackConfigurationComponents.StackConfig
+	97,  // 57: terraform1.FindStackConfigurationComponents.EmbeddedStack.config:type_name -> terraform1.FindStackConfigurationComponents.StackConfig
 	4,   // 58: terraform1.FindStackConfigurationComponents.Component.instances:type_name -> terraform1.FindStackConfigurationComponents.Instances
-	94,  // 59: terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry.value:type_name -> terraform1.FindStackConfigurationComponents.Component
-	93,  // 60: terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry.value:type_name -> terraform1.FindStackConfigurationComponents.EmbeddedStack
+	99,  // 59: terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry.value:type_name -> terraform1.FindStackConfigurationComponents.Component
+	98,  // 60: terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry.value:type_name -> terraform1.FindStackConfigurationComponents.EmbeddedStack
 	1,   // 61: terraform1.PlanStackChanges.Request.plan_mode:type_name -> terraform1.PlanMode
-	99,  // 62: terraform1.PlanStackChanges.Request.previous_state:type_name -> terraform1.PlanStackChanges.Request.PreviousStateEntry
-	100, // 63: terraform1.PlanStackChanges.Request.input_values:type_name -> terraform1.PlanStackChanges.Request.InputValuesEntry
+	104, // 62: terraform1.PlanStackChanges.Request.previous_state:type_name -> terraform1.PlanStackChanges.Request.PreviousStateEntry
+	105, // 63: terraform1.PlanStackChanges.Request.input_values:type_name -> terraform1.PlanStackChanges.Request.InputValuesEntry
 	44,  // 64: terraform1.PlanStackChanges.Event.planned_change:type_name -> terraform1.PlannedChange
 	47,  // 65: terraform1.PlanStackChanges.Event.diagnostic:type_name -> terraform1.Diagnostic
 	46,  // 66: terraform1.PlanStackChanges.Event.progress:type_name -> terraform1.StackChangeProgress
-	135, // 67: terraform1.PlanStackChanges.Request.PreviousStateEntry.value:type_name -> google.protobuf.Any
+	151, // 67: terraform1.PlanStackChanges.Request.PreviousStateEntry.value:type_name -> google.protobuf.Any
 	38,  // 68: terraform1.PlanStackChanges.Request.InputValuesEntry.value:type_name -> terraform1.DynamicValueWithSource
-	135, // 69: terraform1.ApplyStackChanges.Request.planned_changes:type_name -> google.protobuf.Any
+	151, // 69: terraform1.ApplyStackChanges.Request.planned_changes:type_name -> google.protobuf.Any
 	45,  // 70: terraform1.ApplyStackChanges.Event.applied_change:type_name -> terraform1.AppliedChange
 	47,  // 71: terraform1.ApplyStackChanges.Event.diagnostic:type_name -> terraform1.Diagnostic
 	46,  // 72: terraform1.ApplyStackChanges.Event.progress:type_name -> terraform1.StackChangeProgress
-	105, // 73: terraform1.OpenStackInspector.Request.state:type_name -> terraform1.OpenStackInspector.Request.StateEntry
-	106, // 74: terraform1.OpenStackInspector.Request.input_values:type_name -> terraform1.OpenStackInspector.Request.InputValuesEntry
+	110, // 73: terraform1.OpenStackInspector.Request.state:type_name -> terraform1.OpenStackInspector.Request.StateEntry
+	111, // 74: terraform1.OpenStackInspector.Request.input_values:type_name -> terraform1.OpenStackInspector.Request.InputValuesEntry
 	47,  // 75: terraform1.OpenStackInspector.Response.diagnostics:type_name -> terraform1.Diagnostic
-	135, // 76: terraform1.OpenStackInspector.Request.StateEntry.value:type_name -> google.protobuf.Any
+	151, // 76: terraform1.OpenStackInspector.Request.StateEntry.value:type_name -> google.protobuf.Any
 	38,  // 77: terraform1.OpenStackInspector.Request.InputValuesEntry.value:type_name -> terraform1.DynamicValueWithSource
 	36,  // 78: terraform1.InspectExpressionResult.Response.result:type_name -> terraform1.DynamicValue
 	47,  // 79: terraform1.InspectExpressionResult.Response.diagnostics:type_name -> terraform1.Diagnostic
-	111, // 80: terraform1.PlannedChange.ChangeDescription.component_instance_planned:type_name -> terraform1.PlannedChange.ComponentInstance
-	112, // 81: terraform1.PlannedChange.ChangeDescription.resource_instance_planned:type_name -> terraform1.PlannedChange.ResourceInstance
-	113, // 82: terraform1.PlannedChange.ChangeDescription.output_value_planned:type_name -> terraform1.PlannedChange.OutputValue
+	116, // 80: terraform1.PlannedChange.ChangeDescription.component_instance_planned:type_name -> terraform1.PlannedChange.ComponentInstance
+	117, // 81: terraform1.PlannedChange.ChangeDescription.resource_instance_planned:type_name -> terraform1.PlannedChange.ResourceInstance
+	118, // 82: terraform1.PlannedChange.ChangeDescription.output_value_planned:type_name -> terraform1.PlannedChange.OutputValue
 	40,  // 83: terraform1.PlannedChange.ComponentInstance.addr:type_name -> terraform1.ComponentInstanceInStackAddr
 	2,   // 84: terraform1.PlannedChange.ComponentInstance.actions:type_name -> terraform1.ChangeType
 	42,  // 85: terraform1.PlannedChange.ResourceInstance.addr:type_name -> terraform1.ResourceInstanceObjectInStackAddr
 	2,   // 86: terraform1.PlannedChange.ResourceInstance.actions:type_name -> terraform1.ChangeType
 	37,  // 87: terraform1.PlannedChange.ResourceInstance.values:type_name -> terraform1.DynamicValueChange
-	114, // 88: terraform1.PlannedChange.ResourceInstance.moved:type_name -> terraform1.PlannedChange.ResourceInstance.Moved
-	115, // 89: terraform1.PlannedChange.ResourceInstance.imported:type_name -> terraform1.PlannedChange.ResourceInstance.Imported
+	119, // 88: terraform1.PlannedChange.ResourceInstance.moved:type_name -> terraform1.PlannedChange.ResourceInstance.Moved
+	120, // 89: terraform1.PlannedChange.ResourceInstance.imported:type_name -> terraform1.PlannedChange.ResourceInstance.Imported
 	0,   // 90: terraform1.PlannedChange.ResourceInstance.resource_mode:type_name -> terraform1.ResourceMode
 	36,  // 91: terraform1.PlannedChange.ResourceInstance.previous_run_value:type_name -> terraform1.DynamicValue
 	2,   // 92: terraform1.PlannedChange.OutputValue.actions:type_name -> terraform1.ChangeType
 	37,  // 93: terraform1.PlannedChange.OutputValue.values:type_name -> terraform1.DynamicValueChange
 	41,  // 94: terraform1.PlannedChange.ResourceInstance.Moved.prev_addr:type_name -> terraform1.ResourceInstanceInStackAddr
-	135, // 95: terraform1.AppliedChange.RawChange.value:type_name -> google.protobuf.Any
-	120, // 96: terraform1.AppliedChange.ChangeDescription.deleted:type_name -> terraform1.AppliedChange.Nothing
-	118, // 97: terraform1.AppliedChange.ChangeDescription.resource_instance:type_name -> terraform1.AppliedChange.ResourceInstance
-	119, // 98: terraform1.AppliedChange.ChangeDescription.output_value:type_name -> terraform1.AppliedChange.OutputValue
+	151, // 95: terraform1.AppliedChange.RawChange.value:type_name -> google.protobuf.Any
+	125, // 96: terraform1.AppliedChange.ChangeDescription.deleted:type_name -> terraform1.AppliedChange.Nothing
+	123, // 97: terraform1.AppliedChange.ChangeDescription.resource_instance:type_name -> terraform1.AppliedChange.ResourceInstance
+	124, // 98: terraform1.AppliedChange.ChangeDescription.output_value:type_name -> terraform1.AppliedChange.OutputValue
 	42,  // 99: terraform1.AppliedChange.ResourceInstance.addr:type_name -> terraform1.ResourceInstanceObjectInStackAddr
 	36,  // 100: terraform1.AppliedChange.ResourceInstance.new_value:type_name -> terraform1.DynamicValue
 	36,  // 101: terraform1.AppliedChange.OutputValue.new_value:type_name -> terraform1.DynamicValue
@@ -9014,68 +9937,86 @@ var file_terraform1_proto_depIdxs = []int32{
 	6,   // 105: terraform1.StackChangeProgress.ResourceInstanceStatus.status:type_name -> terraform1.StackChangeProgress.ResourceInstanceStatus.Status
 	42,  // 106: terraform1.StackChangeProgress.ResourceInstancePlannedChange.addr:type_name -> terraform1.ResourceInstanceObjectInStackAddr
 	2,   // 107: terraform1.StackChangeProgress.ResourceInstancePlannedChange.actions:type_name -> terraform1.ChangeType
-	128, // 108: terraform1.StackChangeProgress.ResourceInstancePlannedChange.moved:type_name -> terraform1.StackChangeProgress.ResourceInstancePlannedChange.Moved
-	129, // 109: terraform1.StackChangeProgress.ResourceInstancePlannedChange.imported:type_name -> terraform1.StackChangeProgress.ResourceInstancePlannedChange.Imported
+	133, // 108: terraform1.StackChangeProgress.ResourceInstancePlannedChange.moved:type_name -> terraform1.StackChangeProgress.ResourceInstancePlannedChange.Moved
+	134, // 109: terraform1.StackChangeProgress.ResourceInstancePlannedChange.imported:type_name -> terraform1.StackChangeProgress.ResourceInstancePlannedChange.Imported
 	42,  // 110: terraform1.StackChangeProgress.ProvisionerStatus.addr:type_name -> terraform1.ResourceInstanceObjectInStackAddr
-	124, // 111: terraform1.StackChangeProgress.ProvisionerStatus.status:type_name -> terraform1.StackChangeProgress.ProvisionerStatus
+	129, // 111: terraform1.StackChangeProgress.ProvisionerStatus.status:type_name -> terraform1.StackChangeProgress.ProvisionerStatus
 	42,  // 112: terraform1.StackChangeProgress.ProvisionerOutput.addr:type_name -> terraform1.ResourceInstanceObjectInStackAddr
 	40,  // 113: terraform1.StackChangeProgress.ComponentInstanceChanges.addr:type_name -> terraform1.ComponentInstanceInStackAddr
 	41,  // 114: terraform1.StackChangeProgress.ResourceInstancePlannedChange.Moved.prev_addr:type_name -> terraform1.ResourceInstanceInStackAddr
-	131, // 115: terraform1.Schema.Block.attributes:type_name -> terraform1.Schema.Attribute
-	132, // 116: terraform1.Schema.Block.block_types:type_name -> terraform1.Schema.NestedBlock
-	134, // 117: terraform1.Schema.Block.description:type_name -> terraform1.Schema.DocString
-	133, // 118: terraform1.Schema.Attribute.nested_type:type_name -> terraform1.Schema.Object
-	134, // 119: terraform1.Schema.Attribute.description:type_name -> terraform1.Schema.DocString
-	130, // 120: terraform1.Schema.NestedBlock.block:type_name -> terraform1.Schema.Block
+	136, // 115: terraform1.Schema.Block.attributes:type_name -> terraform1.Schema.Attribute
+	137, // 116: terraform1.Schema.Block.block_types:type_name -> terraform1.Schema.NestedBlock
+	139, // 117: terraform1.Schema.Block.description:type_name -> terraform1.Schema.DocString
+	138, // 118: terraform1.Schema.Attribute.nested_type:type_name -> terraform1.Schema.Object
+	139, // 119: terraform1.Schema.Attribute.description:type_name -> terraform1.Schema.DocString
+	135, // 120: terraform1.Schema.NestedBlock.block:type_name -> terraform1.Schema.Block
 	9,   // 121: terraform1.Schema.NestedBlock.nesting:type_name -> terraform1.Schema.NestedBlock.NestingMode
-	131, // 122: terraform1.Schema.Object.attributes:type_name -> terraform1.Schema.Attribute
+	136, // 122: terraform1.Schema.Object.attributes:type_name -> terraform1.Schema.Attribute
 	10,  // 123: terraform1.Schema.Object.nesting:type_name -> terraform1.Schema.Object.NestingMode
 	11,  // 124: terraform1.Schema.DocString.format:type_name -> terraform1.Schema.DocString.Format
-	51,  // 125: terraform1.Setup.Handshake:input_type -> terraform1.Handshake.Request
-	53,  // 126: terraform1.Dependencies.OpenSourceBundle:input_type -> terraform1.OpenSourceBundle.Request
-	55,  // 127: terraform1.Dependencies.CloseSourceBundle:input_type -> terraform1.CloseSourceBundle.Request
-	57,  // 128: terraform1.Dependencies.OpenDependencyLockFile:input_type -> terraform1.OpenDependencyLockFile.Request
-	59,  // 129: terraform1.Dependencies.CreateDependencyLocks:input_type -> terraform1.CreateDependencyLocks.Request
-	61,  // 130: terraform1.Dependencies.CloseDependencyLocks:input_type -> terraform1.CloseDependencyLocks.Request
-	63,  // 131: terraform1.Dependencies.GetLockedProviderDependencies:input_type -> terraform1.GetLockedProviderDependencies.Request
-	65,  // 132: terraform1.Dependencies.BuildProviderPluginCache:input_type -> terraform1.BuildProviderPluginCache.Request
-	74,  // 133: terraform1.Dependencies.OpenProviderPluginCache:input_type -> terraform1.OpenProviderPluginCache.Request
-	76,  // 134: terraform1.Dependencies.CloseProviderPluginCache:input_type -> terraform1.CloseProviderPluginCache.Request
-	78,  // 135: terraform1.Dependencies.GetCachedProviders:input_type -> terraform1.GetCachedProviders.Request
-	80,  // 136: terraform1.Dependencies.GetBuiltInProviders:input_type -> terraform1.GetBuiltInProviders.Request
-	82,  // 137: terraform1.Dependencies.GetProviderSchema:input_type -> terraform1.GetProviderSchema.Request
-	86,  // 138: terraform1.Stacks.OpenStackConfiguration:input_type -> terraform1.OpenStackConfiguration.Request
-	88,  // 139: terraform1.Stacks.CloseStackConfiguration:input_type -> terraform1.CloseStackConfiguration.Request
-	90,  // 140: terraform1.Stacks.FindStackConfigurationComponents:input_type -> terraform1.FindStackConfigurationComponents.Request
-	97,  // 141: terraform1.Stacks.PlanStackChanges:input_type -> terraform1.PlanStackChanges.Request
-	101, // 142: terraform1.Stacks.ApplyStackChanges:input_type -> terraform1.ApplyStackChanges.Request
-	103, // 143: terraform1.Stacks.OpenStackInspector:input_type -> terraform1.OpenStackInspector.Request
-	107, // 144: terraform1.Stacks.InspectExpressionResult:input_type -> terraform1.InspectExpressionResult.Request
-	52,  // 145: terraform1.Setup.Handshake:output_type -> terraform1.Handshake.Response
-	54,  // 146: terraform1.Dependencies.OpenSourceBundle:output_type -> terraform1.OpenSourceBundle.Response
-	56,  // 147: terraform1.Dependencies.CloseSourceBundle:output_type -> terraform1.CloseSourceBundle.Response
-	58,  // 148: terraform1.Dependencies.OpenDependencyLockFile:output_type -> terraform1.OpenDependencyLockFile.Response
-	60,  // 149: terraform1.Dependencies.CreateDependencyLocks:output_type -> terraform1.CreateDependencyLocks.Response
-	62,  // 150: terraform1.Dependencies.CloseDependencyLocks:output_type -> terraform1.CloseDependencyLocks.Response
-	64,  // 151: terraform1.Dependencies.GetLockedProviderDependencies:output_type -> terraform1.GetLockedProviderDependencies.Response
-	66,  // 152: terraform1.Dependencies.BuildProviderPluginCache:output_type -> terraform1.BuildProviderPluginCache.Event
-	75,  // 153: terraform1.Dependencies.OpenProviderPluginCache:output_type -> terraform1.OpenProviderPluginCache.Response
-	77,  // 154: terraform1.Dependencies.CloseProviderPluginCache:output_type -> terraform1.CloseProviderPluginCache.Response
-	79,  // 155: terraform1.Dependencies.GetCachedProviders:output_type -> terraform1.GetCachedProviders.Response
-	81,  // 156: terraform1.Dependencies.GetBuiltInProviders:output_type -> terraform1.GetBuiltInProviders.Response
-	83,  // 157: terraform1.Dependencies.GetProviderSchema:output_type -> terraform1.GetProviderSchema.Response
-	87,  // 158: terraform1.Stacks.OpenStackConfiguration:output_type -> terraform1.OpenStackConfiguration.Response
-	89,  // 159: terraform1.Stacks.CloseStackConfiguration:output_type -> terraform1.CloseStackConfiguration.Response
-	91,  // 160: terraform1.Stacks.FindStackConfigurationComponents:output_type -> terraform1.FindStackConfigurationComponents.Response
-	98,  // 161: terraform1.Stacks.PlanStackChanges:output_type -> terraform1.PlanStackChanges.Event
-	102, // 162: terraform1.Stacks.ApplyStackChanges:output_type -> terraform1.ApplyStackChanges.Event
-	104, // 163: terraform1.Stacks.OpenStackInspector:output_type -> terraform1.OpenStackInspector.Response
-	108, // 164: terraform1.Stacks.InspectExpressionResult:output_type -> terraform1.InspectExpressionResult.Response
-	145, // [145:165] is the sub-list for method output_type
-	125, // [125:145] is the sub-list for method input_type
-	125, // [125:125] is the sub-list for extension type_name
-	125, // [125:125] is the sub-list for extension extendee
-	0,   // [0:125] is the sub-list for field type_name
+	47,  // 125: terraform1.ProviderPackageVersions.Response.diagnostics:type_name -> terraform1.Diagnostic
+	144, // 126: terraform1.FetchProviderPackage.Response.results:type_name -> terraform1.FetchProviderPackage.PlatformResult
+	47,  // 127: terraform1.FetchProviderPackage.Response.diagnostics:type_name -> terraform1.Diagnostic
+	27,  // 128: terraform1.FetchProviderPackage.PlatformResult.provider:type_name -> terraform1.ProviderPackage
+	47,  // 129: terraform1.FetchProviderPackage.PlatformResult.diagnostics:type_name -> terraform1.Diagnostic
+	47,  // 130: terraform1.ModulePackageVersions.Response.diagnostics:type_name -> terraform1.Diagnostic
+	47,  // 131: terraform1.ModulePackageSourceAddr.Response.diagnostics:type_name -> terraform1.Diagnostic
+	47,  // 132: terraform1.FetchModulePackage.Response.diagnostics:type_name -> terraform1.Diagnostic
+	56,  // 133: terraform1.Setup.Handshake:input_type -> terraform1.Handshake.Request
+	58,  // 134: terraform1.Dependencies.OpenSourceBundle:input_type -> terraform1.OpenSourceBundle.Request
+	60,  // 135: terraform1.Dependencies.CloseSourceBundle:input_type -> terraform1.CloseSourceBundle.Request
+	62,  // 136: terraform1.Dependencies.OpenDependencyLockFile:input_type -> terraform1.OpenDependencyLockFile.Request
+	64,  // 137: terraform1.Dependencies.CreateDependencyLocks:input_type -> terraform1.CreateDependencyLocks.Request
+	66,  // 138: terraform1.Dependencies.CloseDependencyLocks:input_type -> terraform1.CloseDependencyLocks.Request
+	68,  // 139: terraform1.Dependencies.GetLockedProviderDependencies:input_type -> terraform1.GetLockedProviderDependencies.Request
+	70,  // 140: terraform1.Dependencies.BuildProviderPluginCache:input_type -> terraform1.BuildProviderPluginCache.Request
+	79,  // 141: terraform1.Dependencies.OpenProviderPluginCache:input_type -> terraform1.OpenProviderPluginCache.Request
+	81,  // 142: terraform1.Dependencies.CloseProviderPluginCache:input_type -> terraform1.CloseProviderPluginCache.Request
+	83,  // 143: terraform1.Dependencies.GetCachedProviders:input_type -> terraform1.GetCachedProviders.Request
+	85,  // 144: terraform1.Dependencies.GetBuiltInProviders:input_type -> terraform1.GetBuiltInProviders.Request
+	87,  // 145: terraform1.Dependencies.GetProviderSchema:input_type -> terraform1.GetProviderSchema.Request
+	91,  // 146: terraform1.Stacks.OpenStackConfiguration:input_type -> terraform1.OpenStackConfiguration.Request
+	93,  // 147: terraform1.Stacks.CloseStackConfiguration:input_type -> terraform1.CloseStackConfiguration.Request
+	95,  // 148: terraform1.Stacks.FindStackConfigurationComponents:input_type -> terraform1.FindStackConfigurationComponents.Request
+	102, // 149: terraform1.Stacks.PlanStackChanges:input_type -> terraform1.PlanStackChanges.Request
+	106, // 150: terraform1.Stacks.ApplyStackChanges:input_type -> terraform1.ApplyStackChanges.Request
+	108, // 151: terraform1.Stacks.OpenStackInspector:input_type -> terraform1.OpenStackInspector.Request
+	112, // 152: terraform1.Stacks.InspectExpressionResult:input_type -> terraform1.InspectExpressionResult.Request
+	140, // 153: terraform1.Packages.ProviderPackageVersions:input_type -> terraform1.ProviderPackageVersions.Request
+	142, // 154: terraform1.Packages.FetchProviderPackage:input_type -> terraform1.FetchProviderPackage.Request
+	145, // 155: terraform1.Packages.ModulePackageVersions:input_type -> terraform1.ModulePackageVersions.Request
+	147, // 156: terraform1.Packages.ModulePackageSourceAddr:input_type -> terraform1.ModulePackageSourceAddr.Request
+	149, // 157: terraform1.Packages.FetchModulePackage:input_type -> terraform1.FetchModulePackage.Request
+	57,  // 158: terraform1.Setup.Handshake:output_type -> terraform1.Handshake.Response
+	59,  // 159: terraform1.Dependencies.OpenSourceBundle:output_type -> terraform1.OpenSourceBundle.Response
+	61,  // 160: terraform1.Dependencies.CloseSourceBundle:output_type -> terraform1.CloseSourceBundle.Response
+	63,  // 161: terraform1.Dependencies.OpenDependencyLockFile:output_type -> terraform1.OpenDependencyLockFile.Response
+	65,  // 162: terraform1.Dependencies.CreateDependencyLocks:output_type -> terraform1.CreateDependencyLocks.Response
+	67,  // 163: terraform1.Dependencies.CloseDependencyLocks:output_type -> terraform1.CloseDependencyLocks.Response
+	69,  // 164: terraform1.Dependencies.GetLockedProviderDependencies:output_type -> terraform1.GetLockedProviderDependencies.Response
+	71,  // 165: terraform1.Dependencies.BuildProviderPluginCache:output_type -> terraform1.BuildProviderPluginCache.Event
+	80,  // 166: terraform1.Dependencies.OpenProviderPluginCache:output_type -> terraform1.OpenProviderPluginCache.Response
+	82,  // 167: terraform1.Dependencies.CloseProviderPluginCache:output_type -> terraform1.CloseProviderPluginCache.Response
+	84,  // 168: terraform1.Dependencies.GetCachedProviders:output_type -> terraform1.GetCachedProviders.Response
+	86,  // 169: terraform1.Dependencies.GetBuiltInProviders:output_type -> terraform1.GetBuiltInProviders.Response
+	88,  // 170: terraform1.Dependencies.GetProviderSchema:output_type -> terraform1.GetProviderSchema.Response
+	92,  // 171: terraform1.Stacks.OpenStackConfiguration:output_type -> terraform1.OpenStackConfiguration.Response
+	94,  // 172: terraform1.Stacks.CloseStackConfiguration:output_type -> terraform1.CloseStackConfiguration.Response
+	96,  // 173: terraform1.Stacks.FindStackConfigurationComponents:output_type -> terraform1.FindStackConfigurationComponents.Response
+	103, // 174: terraform1.Stacks.PlanStackChanges:output_type -> terraform1.PlanStackChanges.Event
+	107, // 175: terraform1.Stacks.ApplyStackChanges:output_type -> terraform1.ApplyStackChanges.Event
+	109, // 176: terraform1.Stacks.OpenStackInspector:output_type -> terraform1.OpenStackInspector.Response
+	113, // 177: terraform1.Stacks.InspectExpressionResult:output_type -> terraform1.InspectExpressionResult.Response
+	141, // 178: terraform1.Packages.ProviderPackageVersions:output_type -> terraform1.ProviderPackageVersions.Response
+	143, // 179: terraform1.Packages.FetchProviderPackage:output_type -> terraform1.FetchProviderPackage.Response
+	146, // 180: terraform1.Packages.ModulePackageVersions:output_type -> terraform1.ModulePackageVersions.Response
+	148, // 181: terraform1.Packages.ModulePackageSourceAddr:output_type -> terraform1.ModulePackageSourceAddr.Response
+	150, // 182: terraform1.Packages.FetchModulePackage:output_type -> terraform1.FetchModulePackage.Response
+	158, // [158:183] is the sub-list for method output_type
+	133, // [133:158] is the sub-list for method input_type
+	133, // [133:133] is the sub-list for extension type_name
+	133, // [133:133] is the sub-list for extension extendee
+	0,   // [0:133] is the sub-list for field type_name
 }
 
 func init() { file_terraform1_proto_init() }
@@ -9553,7 +10494,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[39].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Handshake_Request); i {
+			switch v := v.(*ProviderPackageVersions); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9565,7 +10506,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[40].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Handshake_Response); i {
+			switch v := v.(*FetchProviderPackage); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9577,7 +10518,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[41].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenSourceBundle_Request); i {
+			switch v := v.(*ModulePackageVersions); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9589,7 +10530,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[42].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenSourceBundle_Response); i {
+			switch v := v.(*ModulePackageSourceAddr); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9601,7 +10542,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[43].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseSourceBundle_Request); i {
+			switch v := v.(*FetchModulePackage); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9613,7 +10554,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[44].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseSourceBundle_Response); i {
+			switch v := v.(*Handshake_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9625,7 +10566,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[45].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenDependencyLockFile_Request); i {
+			switch v := v.(*Handshake_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9637,7 +10578,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[46].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenDependencyLockFile_Response); i {
+			switch v := v.(*OpenSourceBundle_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9649,7 +10590,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[47].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CreateDependencyLocks_Request); i {
+			switch v := v.(*OpenSourceBundle_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9661,7 +10602,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[48].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CreateDependencyLocks_Response); i {
+			switch v := v.(*CloseSourceBundle_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9673,7 +10614,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[49].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseDependencyLocks_Request); i {
+			switch v := v.(*CloseSourceBundle_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9685,7 +10626,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[50].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseDependencyLocks_Response); i {
+			switch v := v.(*OpenDependencyLockFile_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9697,7 +10638,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[51].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetLockedProviderDependencies_Request); i {
+			switch v := v.(*OpenDependencyLockFile_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9709,7 +10650,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[52].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetLockedProviderDependencies_Response); i {
+			switch v := v.(*CreateDependencyLocks_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9721,7 +10662,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[53].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BuildProviderPluginCache_Request); i {
+			switch v := v.(*CreateDependencyLocks_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9733,7 +10674,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[54].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BuildProviderPluginCache_Event); i {
+			switch v := v.(*CloseDependencyLocks_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9745,7 +10686,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[55].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BuildProviderPluginCache_Request_InstallMethod); i {
+			switch v := v.(*CloseDependencyLocks_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9757,7 +10698,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[56].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BuildProviderPluginCache_Event_Pending); i {
+			switch v := v.(*GetLockedProviderDependencies_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9769,7 +10710,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[57].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BuildProviderPluginCache_Event_ProviderConstraints); i {
+			switch v := v.(*GetLockedProviderDependencies_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9781,7 +10722,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[58].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BuildProviderPluginCache_Event_ProviderVersion); i {
+			switch v := v.(*BuildProviderPluginCache_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9793,7 +10734,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[59].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BuildProviderPluginCache_Event_ProviderWarnings); i {
+			switch v := v.(*BuildProviderPluginCache_Event); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9805,7 +10746,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[60].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BuildProviderPluginCache_Event_FetchBegin); i {
+			switch v := v.(*BuildProviderPluginCache_Request_InstallMethod); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9817,7 +10758,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[61].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BuildProviderPluginCache_Event_FetchComplete); i {
+			switch v := v.(*BuildProviderPluginCache_Event_Pending); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9829,7 +10770,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[62].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenProviderPluginCache_Request); i {
+			switch v := v.(*BuildProviderPluginCache_Event_ProviderConstraints); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9841,7 +10782,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[63].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenProviderPluginCache_Response); i {
+			switch v := v.(*BuildProviderPluginCache_Event_ProviderVersion); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9853,7 +10794,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[64].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseProviderPluginCache_Request); i {
+			switch v := v.(*BuildProviderPluginCache_Event_ProviderWarnings); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9865,7 +10806,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[65].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseProviderPluginCache_Response); i {
+			switch v := v.(*BuildProviderPluginCache_Event_FetchBegin); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9877,7 +10818,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[66].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetCachedProviders_Request); i {
+			switch v := v.(*BuildProviderPluginCache_Event_FetchComplete); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9889,7 +10830,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[67].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetCachedProviders_Response); i {
+			switch v := v.(*OpenProviderPluginCache_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9901,7 +10842,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[68].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetBuiltInProviders_Request); i {
+			switch v := v.(*OpenProviderPluginCache_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9913,7 +10854,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[69].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetBuiltInProviders_Response); i {
+			switch v := v.(*CloseProviderPluginCache_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9925,7 +10866,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[70].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetProviderSchema_Request); i {
+			switch v := v.(*CloseProviderPluginCache_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9937,7 +10878,31 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[71].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetProviderSchema_Response); i {
+			switch v := v.(*GetCachedProviders_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[72].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetCachedProviders_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[73].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetBuiltInProviders_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9949,7 +10914,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[74].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenStackConfiguration_Request); i {
+			switch v := v.(*GetBuiltInProviders_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9961,7 +10926,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[75].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenStackConfiguration_Response); i {
+			switch v := v.(*GetProviderSchema_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -9973,31 +10938,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[76].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseStackConfiguration_Request); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_terraform1_proto_msgTypes[77].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseStackConfiguration_Response); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_terraform1_proto_msgTypes[78].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FindStackConfigurationComponents_Request); i {
+			switch v := v.(*GetProviderSchema_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10009,7 +10950,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[79].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FindStackConfigurationComponents_Response); i {
+			switch v := v.(*OpenStackConfiguration_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10021,7 +10962,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[80].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FindStackConfigurationComponents_StackConfig); i {
+			switch v := v.(*OpenStackConfiguration_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10033,7 +10974,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[81].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FindStackConfigurationComponents_EmbeddedStack); i {
+			switch v := v.(*CloseStackConfiguration_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10045,7 +10986,31 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[82].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FindStackConfigurationComponents_Component); i {
+			switch v := v.(*CloseStackConfiguration_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[83].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*FindStackConfigurationComponents_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[84].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*FindStackConfigurationComponents_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10057,7 +11022,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[85].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PlanStackChanges_Request); i {
+			switch v := v.(*FindStackConfigurationComponents_StackConfig); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10069,7 +11034,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[86].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PlanStackChanges_Event); i {
+			switch v := v.(*FindStackConfigurationComponents_EmbeddedStack); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10080,8 +11045,8 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[89].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ApplyStackChanges_Request); i {
+		file_terraform1_proto_msgTypes[87].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*FindStackConfigurationComponents_Component); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10093,7 +11058,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[90].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ApplyStackChanges_Event); i {
+			switch v := v.(*PlanStackChanges_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10105,7 +11070,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[91].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenStackInspector_Request); i {
+			switch v := v.(*PlanStackChanges_Event); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10116,8 +11081,8 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[92].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenStackInspector_Response); i {
+		file_terraform1_proto_msgTypes[94].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ApplyStackChanges_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10129,7 +11094,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[95].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*InspectExpressionResult_Request); i {
+			switch v := v.(*ApplyStackChanges_Event); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10141,7 +11106,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[96].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*InspectExpressionResult_Response); i {
+			switch v := v.(*OpenStackInspector_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10153,31 +11118,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[97].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AttributePath_Step); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_terraform1_proto_msgTypes[98].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PlannedChange_ChangeDescription); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_terraform1_proto_msgTypes[99].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PlannedChange_ComponentInstance); i {
+			switch v := v.(*OpenStackInspector_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10189,7 +11130,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[100].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PlannedChange_ResourceInstance); i {
+			switch v := v.(*InspectExpressionResult_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10201,7 +11142,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[101].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PlannedChange_OutputValue); i {
+			switch v := v.(*InspectExpressionResult_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10213,7 +11154,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[102].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PlannedChange_ResourceInstance_Moved); i {
+			switch v := v.(*AttributePath_Step); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10225,7 +11166,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[103].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*PlannedChange_ResourceInstance_Imported); i {
+			switch v := v.(*PlannedChange_ChangeDescription); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10237,7 +11178,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[104].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AppliedChange_RawChange); i {
+			switch v := v.(*PlannedChange_ComponentInstance); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10249,7 +11190,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[105].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AppliedChange_ChangeDescription); i {
+			switch v := v.(*PlannedChange_ResourceInstance); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10261,7 +11202,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[106].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AppliedChange_ResourceInstance); i {
+			switch v := v.(*PlannedChange_OutputValue); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10273,7 +11214,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[107].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AppliedChange_OutputValue); i {
+			switch v := v.(*PlannedChange_ResourceInstance_Moved); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10285,7 +11226,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[108].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*AppliedChange_Nothing); i {
+			switch v := v.(*PlannedChange_ResourceInstance_Imported); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10297,7 +11238,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[109].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StackChangeProgress_ComponentInstanceStatus); i {
+			switch v := v.(*AppliedChange_RawChange); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10309,7 +11250,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[110].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StackChangeProgress_ResourceInstanceStatus); i {
+			switch v := v.(*AppliedChange_ChangeDescription); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10321,7 +11262,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[111].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StackChangeProgress_ResourceInstancePlannedChange); i {
+			switch v := v.(*AppliedChange_ResourceInstance); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10333,7 +11274,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[112].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StackChangeProgress_ProvisionerStatus); i {
+			switch v := v.(*AppliedChange_OutputValue); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10345,7 +11286,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[113].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StackChangeProgress_ProvisionerOutput); i {
+			switch v := v.(*AppliedChange_Nothing); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10357,7 +11298,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[114].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StackChangeProgress_ComponentInstanceChanges); i {
+			switch v := v.(*StackChangeProgress_ComponentInstanceStatus); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10369,7 +11310,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[115].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StackChangeProgress_ComponentInstances); i {
+			switch v := v.(*StackChangeProgress_ResourceInstanceStatus); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10381,7 +11322,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[116].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StackChangeProgress_ResourceInstancePlannedChange_Moved); i {
+			switch v := v.(*StackChangeProgress_ResourceInstancePlannedChange); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10393,7 +11334,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[117].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StackChangeProgress_ResourceInstancePlannedChange_Imported); i {
+			switch v := v.(*StackChangeProgress_ProvisionerStatus); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10405,7 +11346,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[118].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Schema_Block); i {
+			switch v := v.(*StackChangeProgress_ProvisionerOutput); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10417,7 +11358,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[119].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Schema_Attribute); i {
+			switch v := v.(*StackChangeProgress_ComponentInstanceChanges); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10429,7 +11370,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[120].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Schema_NestedBlock); i {
+			switch v := v.(*StackChangeProgress_ComponentInstances); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10441,7 +11382,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[121].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Schema_Object); i {
+			switch v := v.(*StackChangeProgress_ResourceInstancePlannedChange_Moved); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10453,7 +11394,199 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[122].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*StackChangeProgress_ResourceInstancePlannedChange_Imported); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[123].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Schema_Block); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[124].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Schema_Attribute); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[125].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Schema_NestedBlock); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[126].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Schema_Object); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[127].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Schema_DocString); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[128].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ProviderPackageVersions_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[129].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ProviderPackageVersions_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[130].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*FetchProviderPackage_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[131].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*FetchProviderPackage_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[132].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*FetchProviderPackage_PlatformResult); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[133].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ModulePackageVersions_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[134].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ModulePackageVersions_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[135].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ModulePackageSourceAddr_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[136].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ModulePackageSourceAddr_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[137].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*FetchModulePackage_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[138].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*FetchModulePackage_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -10474,7 +11607,7 @@ func file_terraform1_proto_init() {
 		(*StackChangeProgress_ComponentInstanceChanges_)(nil),
 		(*StackChangeProgress_ComponentInstances_)(nil),
 	}
-	file_terraform1_proto_msgTypes[54].OneofWrappers = []interface{}{
+	file_terraform1_proto_msgTypes[59].OneofWrappers = []interface{}{
 		(*BuildProviderPluginCache_Event_Pending_)(nil),
 		(*BuildProviderPluginCache_Event_AlreadyInstalled)(nil),
 		(*BuildProviderPluginCache_Event_BuiltIn)(nil),
@@ -10485,33 +11618,33 @@ func file_terraform1_proto_init() {
 		(*BuildProviderPluginCache_Event_FetchComplete_)(nil),
 		(*BuildProviderPluginCache_Event_Diagnostic)(nil),
 	}
-	file_terraform1_proto_msgTypes[55].OneofWrappers = []interface{}{
+	file_terraform1_proto_msgTypes[60].OneofWrappers = []interface{}{
 		(*BuildProviderPluginCache_Request_InstallMethod_Direct)(nil),
 		(*BuildProviderPluginCache_Request_InstallMethod_LocalMirrorDir)(nil),
 		(*BuildProviderPluginCache_Request_InstallMethod_NetworkMirrorUrl)(nil),
 	}
-	file_terraform1_proto_msgTypes[86].OneofWrappers = []interface{}{
+	file_terraform1_proto_msgTypes[91].OneofWrappers = []interface{}{
 		(*PlanStackChanges_Event_PlannedChange)(nil),
 		(*PlanStackChanges_Event_Diagnostic)(nil),
 		(*PlanStackChanges_Event_Progress)(nil),
 	}
-	file_terraform1_proto_msgTypes[90].OneofWrappers = []interface{}{
+	file_terraform1_proto_msgTypes[95].OneofWrappers = []interface{}{
 		(*ApplyStackChanges_Event_AppliedChange)(nil),
 		(*ApplyStackChanges_Event_Diagnostic)(nil),
 		(*ApplyStackChanges_Event_Progress)(nil),
 	}
-	file_terraform1_proto_msgTypes[97].OneofWrappers = []interface{}{
+	file_terraform1_proto_msgTypes[102].OneofWrappers = []interface{}{
 		(*AttributePath_Step_AttributeName)(nil),
 		(*AttributePath_Step_ElementKeyString)(nil),
 		(*AttributePath_Step_ElementKeyInt)(nil),
 	}
-	file_terraform1_proto_msgTypes[98].OneofWrappers = []interface{}{
+	file_terraform1_proto_msgTypes[103].OneofWrappers = []interface{}{
 		(*PlannedChange_ChangeDescription_ComponentInstancePlanned)(nil),
 		(*PlannedChange_ChangeDescription_ResourceInstancePlanned)(nil),
 		(*PlannedChange_ChangeDescription_OutputValuePlanned)(nil),
 		(*PlannedChange_ChangeDescription_PlanApplyable)(nil),
 	}
-	file_terraform1_proto_msgTypes[105].OneofWrappers = []interface{}{
+	file_terraform1_proto_msgTypes[110].OneofWrappers = []interface{}{
 		(*AppliedChange_ChangeDescription_Deleted)(nil),
 		(*AppliedChange_ChangeDescription_ResourceInstance)(nil),
 		(*AppliedChange_ChangeDescription_OutputValue)(nil),
@@ -10522,9 +11655,9 @@ func file_terraform1_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_terraform1_proto_rawDesc,
 			NumEnums:      12,
-			NumMessages:   123,
+			NumMessages:   139,
 			NumExtensions: 0,
-			NumServices:   3,
+			NumServices:   4,
 		},
 		GoTypes:           file_terraform1_proto_goTypes,
 		DependencyIndexes: file_terraform1_proto_depIdxs,
@@ -11587,5 +12720,221 @@ var _Stacks_serviceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
+	Metadata: "terraform1.proto",
+}
+
+// PackagesClient is the client API for Packages service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type PackagesClient interface {
+	ProviderPackageVersions(ctx context.Context, in *ProviderPackageVersions_Request, opts ...grpc.CallOption) (*ProviderPackageVersions_Response, error)
+	FetchProviderPackage(ctx context.Context, in *FetchProviderPackage_Request, opts ...grpc.CallOption) (*FetchProviderPackage_Response, error)
+	ModulePackageVersions(ctx context.Context, in *ModulePackageVersions_Request, opts ...grpc.CallOption) (*ModulePackageVersions_Response, error)
+	ModulePackageSourceAddr(ctx context.Context, in *ModulePackageSourceAddr_Request, opts ...grpc.CallOption) (*ModulePackageSourceAddr_Response, error)
+	FetchModulePackage(ctx context.Context, in *FetchModulePackage_Request, opts ...grpc.CallOption) (*FetchModulePackage_Response, error)
+}
+
+type packagesClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewPackagesClient(cc grpc.ClientConnInterface) PackagesClient {
+	return &packagesClient{cc}
+}
+
+func (c *packagesClient) ProviderPackageVersions(ctx context.Context, in *ProviderPackageVersions_Request, opts ...grpc.CallOption) (*ProviderPackageVersions_Response, error) {
+	out := new(ProviderPackageVersions_Response)
+	err := c.cc.Invoke(ctx, "/terraform1.Packages/ProviderPackageVersions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *packagesClient) FetchProviderPackage(ctx context.Context, in *FetchProviderPackage_Request, opts ...grpc.CallOption) (*FetchProviderPackage_Response, error) {
+	out := new(FetchProviderPackage_Response)
+	err := c.cc.Invoke(ctx, "/terraform1.Packages/FetchProviderPackage", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *packagesClient) ModulePackageVersions(ctx context.Context, in *ModulePackageVersions_Request, opts ...grpc.CallOption) (*ModulePackageVersions_Response, error) {
+	out := new(ModulePackageVersions_Response)
+	err := c.cc.Invoke(ctx, "/terraform1.Packages/ModulePackageVersions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *packagesClient) ModulePackageSourceAddr(ctx context.Context, in *ModulePackageSourceAddr_Request, opts ...grpc.CallOption) (*ModulePackageSourceAddr_Response, error) {
+	out := new(ModulePackageSourceAddr_Response)
+	err := c.cc.Invoke(ctx, "/terraform1.Packages/ModulePackageSourceAddr", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *packagesClient) FetchModulePackage(ctx context.Context, in *FetchModulePackage_Request, opts ...grpc.CallOption) (*FetchModulePackage_Response, error) {
+	out := new(FetchModulePackage_Response)
+	err := c.cc.Invoke(ctx, "/terraform1.Packages/FetchModulePackage", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// PackagesServer is the server API for Packages service.
+type PackagesServer interface {
+	ProviderPackageVersions(context.Context, *ProviderPackageVersions_Request) (*ProviderPackageVersions_Response, error)
+	FetchProviderPackage(context.Context, *FetchProviderPackage_Request) (*FetchProviderPackage_Response, error)
+	ModulePackageVersions(context.Context, *ModulePackageVersions_Request) (*ModulePackageVersions_Response, error)
+	ModulePackageSourceAddr(context.Context, *ModulePackageSourceAddr_Request) (*ModulePackageSourceAddr_Response, error)
+	FetchModulePackage(context.Context, *FetchModulePackage_Request) (*FetchModulePackage_Response, error)
+}
+
+// UnimplementedPackagesServer can be embedded to have forward compatible implementations.
+type UnimplementedPackagesServer struct {
+}
+
+func (*UnimplementedPackagesServer) ProviderPackageVersions(context.Context, *ProviderPackageVersions_Request) (*ProviderPackageVersions_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProviderPackageVersions not implemented")
+}
+func (*UnimplementedPackagesServer) FetchProviderPackage(context.Context, *FetchProviderPackage_Request) (*FetchProviderPackage_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchProviderPackage not implemented")
+}
+func (*UnimplementedPackagesServer) ModulePackageVersions(context.Context, *ModulePackageVersions_Request) (*ModulePackageVersions_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ModulePackageVersions not implemented")
+}
+func (*UnimplementedPackagesServer) ModulePackageSourceAddr(context.Context, *ModulePackageSourceAddr_Request) (*ModulePackageSourceAddr_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ModulePackageSourceAddr not implemented")
+}
+func (*UnimplementedPackagesServer) FetchModulePackage(context.Context, *FetchModulePackage_Request) (*FetchModulePackage_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FetchModulePackage not implemented")
+}
+
+func RegisterPackagesServer(s *grpc.Server, srv PackagesServer) {
+	s.RegisterService(&_Packages_serviceDesc, srv)
+}
+
+func _Packages_ProviderPackageVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProviderPackageVersions_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PackagesServer).ProviderPackageVersions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/terraform1.Packages/ProviderPackageVersions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PackagesServer).ProviderPackageVersions(ctx, req.(*ProviderPackageVersions_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Packages_FetchProviderPackage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchProviderPackage_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PackagesServer).FetchProviderPackage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/terraform1.Packages/FetchProviderPackage",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PackagesServer).FetchProviderPackage(ctx, req.(*FetchProviderPackage_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Packages_ModulePackageVersions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ModulePackageVersions_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PackagesServer).ModulePackageVersions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/terraform1.Packages/ModulePackageVersions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PackagesServer).ModulePackageVersions(ctx, req.(*ModulePackageVersions_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Packages_ModulePackageSourceAddr_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ModulePackageSourceAddr_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PackagesServer).ModulePackageSourceAddr(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/terraform1.Packages/ModulePackageSourceAddr",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PackagesServer).ModulePackageSourceAddr(ctx, req.(*ModulePackageSourceAddr_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Packages_FetchModulePackage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FetchModulePackage_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PackagesServer).FetchModulePackage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/terraform1.Packages/FetchModulePackage",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PackagesServer).FetchModulePackage(ctx, req.(*FetchModulePackage_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Packages_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "terraform1.Packages",
+	HandlerType: (*PackagesServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ProviderPackageVersions",
+			Handler:    _Packages_ProviderPackageVersions_Handler,
+		},
+		{
+			MethodName: "FetchProviderPackage",
+			Handler:    _Packages_FetchProviderPackage_Handler,
+		},
+		{
+			MethodName: "ModulePackageVersions",
+			Handler:    _Packages_ModulePackageVersions_Handler,
+		},
+		{
+			MethodName: "ModulePackageSourceAddr",
+			Handler:    _Packages_ModulePackageSourceAddr_Handler,
+		},
+		{
+			MethodName: "FetchModulePackage",
+			Handler:    _Packages_FetchModulePackage_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "terraform1.proto",
 }

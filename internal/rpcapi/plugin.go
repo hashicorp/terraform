@@ -9,9 +9,10 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"google.golang.org/grpc"
+
 	"github.com/hashicorp/terraform/internal/rpcapi/dynrpcserver"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
-	"google.golang.org/grpc"
 )
 
 type corePlugin struct {
@@ -44,6 +45,8 @@ func serverHandshake(s *grpc.Server) func(context.Context, *terraform1.ClientCap
 	terraform1.RegisterDependenciesServer(s, dependencies)
 	stacks := dynrpcserver.NewStacksStub()
 	terraform1.RegisterStacksServer(s, stacks)
+	packages := dynrpcserver.NewPackagesStub()
+	terraform1.RegisterPackagesServer(s, packages)
 
 	return func(ctx context.Context, clientCaps *terraform1.ClientCapabilities) (*terraform1.ServerCapabilities, error) {
 		// All of our servers will share a common handles table so that objects
@@ -69,6 +72,7 @@ func serverHandshake(s *grpc.Server) func(context.Context, *terraform1.ClientCap
 		// might vary based on the negotiated capabilities.
 		dependencies.ActivateRPCServer(newDependenciesServer(handles, services))
 		stacks.ActivateRPCServer(newStacksServer(handles))
+		packages.ActivateRPCServer(newPackagesServer(services))
 
 		// If the client requested any extra capabililties that we're going
 		// to honor then we should announce them in this result.
