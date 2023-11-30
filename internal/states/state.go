@@ -400,7 +400,8 @@ func (s *State) PruneResourceHusks() {
 // SyncWrapper returns a SyncState object wrapping the receiver.
 func (s *State) SyncWrapper() *SyncState {
 	return &SyncState{
-		state: s,
+		state:    s,
+		writable: true, // initially writable, becoming read-only once closed
 	}
 }
 
