@@ -16,6 +16,8 @@ UPGRADE NOTES:
     The type of graph that earlier versions of Terraform produced by default is still available with explicit use of the `-type=plan` option, producing an approximation of the real dependency graph Terraform Core would use to construct a plan.
 * `terraform test`: Simplify the ordering of destroy operations during test cleanup to simple reverse run block order. ([#34293](https://github.com/hashicorp/terraform/issues/34293))
 
+* backend/s3: The `use_legacy_workflow` argument now defaults to `false`. The backend will now search for credentials in the same order as the default provider chain in the AWS SDKs and AWS CLI. To revert to the legacy credential provider chain ordering, set this value to `true`. This argument, and the ability to use the legacy workflow, is deprecated. To encourage consistency with the AWS SDKs, this argument will be removed in a future minor version.
+
 NEW FEATURES:
 
 * `terraform test`: Providers, modules, resources, and data sources can now be mocked during executions of `terraform test`. The following new blocks have been introduced within `.tftest.hcl` files:
