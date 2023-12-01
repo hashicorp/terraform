@@ -202,6 +202,10 @@ func TestTest(t *testing.T) {
 			expectedOut: "2 passed, 0 failed.",
 			code:        0,
 		},
+		"skip_destroy_on_empty": {
+			expectedOut: "3 passed, 0 failed.",
+			code:        0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -252,15 +256,15 @@ func TestTest(t *testing.T) {
 			output := done(t)
 
 			if code != tc.code {
-				t.Errorf("expected status code %d but got %d", tc.code, code)
+				t.Errorf("expected status code %d but got %d:\n\n%s", tc.code, code, output.All())
 			}
 
 			if !strings.Contains(output.Stdout(), tc.expectedOut) {
-				t.Errorf("output didn't contain expected string:\n\n%s", output.Stdout())
+				t.Errorf("output didn't contain expected string:\n\n%s", output.All())
 			}
 
 			if !strings.Contains(output.Stderr(), tc.expectedErr) {
-				t.Errorf("error didn't contain expected string:\n\n%s", output.Stderr())
+				t.Errorf("error didn't contain expected string:\n\n%s", output.All())
 			}
 
 			if provider.ResourceCount() != tc.expectedResourceCount {

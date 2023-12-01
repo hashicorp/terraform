@@ -412,6 +412,40 @@ run "customised_providers" {
 
 > **Note:** When running tests with `command = apply`, switching providers between `run` blocks can result in failed operations and tests because resources created by one provider definition will be unusable when modified by a second.
 
+From Terraform v1.7.0, `provider` blocks can also reference test file variables and run block outputs. This means the testing framework can retrieve credentials and other setup information from one provider and use this when initializing a second.
+
+In the following example, the `vault` provider is initialized first, and then used within a setup module to extract credentials for the `aws` provider. For more information on setup modules, see [Modules](#modules).
+
+```hcl
+
+provider "vault" {
+  # ... vault configuration ...
+}
+
+provider "aws" {
+  region     = "us-east-1"
+
+  # The `aws` provider can reference the outputs of the "vault_setup" run block.
+  access_key = run.vault_setup.aws_access_key
+  secret_key = run.vault_setup.aws_secret_key
+}
+
+run "vault_setup" {
+  module {
+    # This module should only include reference to the Vault provider. Terraform
+    # will automatically work out which providers to supply based on the module
+    # configuration. The tests will error if a run block requires access to a
+    # provider that references outputs from a run block that has not executed.
+    source = "./testing/vault-setup"
+  }
+}
+
+run "use_aws_provider" {
+  # This run block can then use both the `aws` and `vault` providers, as the
+  # previous run block provided all the data required for the `aws` provider.
+}
+```
+
 ## Modules
 
 You can modify the module that a given `run` block executes.
