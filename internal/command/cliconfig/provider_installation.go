@@ -222,7 +222,7 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Invalid provider_installation method block",
-						fmt.Sprintf("The dev_overrides block at at %s must appear before all other installation methods, because development overrides always have the highest priority.", methodBlock.Pos()),
+						fmt.Sprintf("The dev_overrides block at %s must appear before all other installation methods, because development overrides always have the highest priority.", methodBlock.Pos()),
 					))
 					continue
 				}
