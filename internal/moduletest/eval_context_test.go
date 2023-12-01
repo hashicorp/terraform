@@ -1,53 +1,64 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package moduletest
 
 import (
+	"context"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	ctymsgpack "github.com/zclconf/go-cty/cty/msgpack"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestTestContext_Evaluate(t *testing.T) {
-	tcs := map[string]struct {
-		configs     map[string]string
-		state       *states.State
-		plan        *plans.Plan
-		variables   InputValues
-		provider    *MockProvider
-		priorStates map[string]func(config *configs.Config) *TestContext
+func TestEvalContext_Evaluate(t *testing.T) {
+	tests := map[string]struct {
+		configs      map[string]string
+		state        *states.State
+		plan         *plans.Plan
+		variables    terraform.InputValues
+		testOnlyVars terraform.InputValues
+		provider     *terraform.MockProvider
+		priorOutputs map[string]cty.Value
 
-		expectedDiags  []tfdiags.Description
-		expectedStatus moduletest.Status
+		expectedDiags   []tfdiags.Description
+		expectedStatus  Status
+		expectedOutputs cty.Value
 	}{
 		"basic_passing": {
 			configs: map[string]string{
 				"main.tf": `
-resource "test_resource" "a" {
-	value = "Hello, world!"
-}
-`,
+					resource "test_resource" "a" {
+						value = "Hello, world!"
+					}
+				`,
 				"main.tftest.hcl": `
-run "test_case" {
-	assert {
-		condition = test_resource.a.value == "Hello, world!"
-		error_message = "invalid value"
-	}
-}
-`,
+					run "test_case" {
+						assert {
+							condition = test_resource.a.value == "Hello, world!"
+							error_message = "invalid value"
+						}
+					}
+				`,
 			},
 			plan: &plans.Plan{
 				Changes: plans.NewChanges(),
@@ -70,7 +81,7 @@ run "test_case" {
 						Provider: addrs.NewDefaultProvider("test"),
 					})
 			}),
-			provider: &MockProvider{
+			provider: &terraform.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
@@ -86,31 +97,32 @@ run "test_case" {
 					},
 				},
 			},
-			expectedStatus: moduletest.Pass,
+			expectedStatus:  Pass,
+			expectedOutputs: cty.EmptyObjectVal,
 		},
 		"with_variables": {
 			configs: map[string]string{
 				"main.tf": `
-variable "value" {
-	type = string
-}
+					variable "value" {
+						type = string
+					}
 
-resource "test_resource" "a" {
-	value = var.value
-}
-`,
+					resource "test_resource" "a" {
+						value = var.value
+					}
+				`,
 				"main.tftest.hcl": `
-variables {
-	value = "Hello, world!"
-}
+					variables {
+						value = "Hello, world!"
+					}
 
-run "test_case" {
-	assert {
-		condition = test_resource.a.value == var.value
-		error_message = "invalid value"
-	}
-}
-`,
+					run "test_case" {
+						assert {
+							condition = test_resource.a.value == var.value
+							error_message = "invalid value"
+						}
+					}
+				`,
 			},
 			plan: &plans.Plan{
 				Changes: plans.NewChanges(),
@@ -133,12 +145,12 @@ run "test_case" {
 						Provider: addrs.NewDefaultProvider("test"),
 					})
 			}),
-			variables: InputValues{
+			variables: terraform.InputValues{
 				"value": {
 					Value: cty.StringVal("Hello, world!"),
 				},
 			},
-			provider: &MockProvider{
+			provider: &terraform.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
@@ -154,23 +166,24 @@ run "test_case" {
 					},
 				},
 			},
-			expectedStatus: moduletest.Pass,
+			expectedStatus:  Pass,
+			expectedOutputs: cty.EmptyObjectVal,
 		},
 		"basic_failing": {
 			configs: map[string]string{
 				"main.tf": `
-resource "test_resource" "a" {
-	value = "Hello, world!"
-}
-`,
+					resource "test_resource" "a" {
+						value = "Hello, world!"
+					}
+				`,
 				"main.tftest.hcl": `
-run "test_case" {
-	assert {
-		condition = test_resource.a.value == "incorrect!"
-		error_message = "invalid value"
-	}
-}
-`,
+					run "test_case" {
+						assert {
+							condition = test_resource.a.value == "incorrect!"
+							error_message = "invalid value"
+						}
+					}
+				`,
 			},
 			plan: &plans.Plan{
 				Changes: plans.NewChanges(),
@@ -193,7 +206,7 @@ run "test_case" {
 						Provider: addrs.NewDefaultProvider("test"),
 					})
 			}),
-			provider: &MockProvider{
+			provider: &terraform.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
@@ -209,7 +222,8 @@ run "test_case" {
 					},
 				},
 			},
-			expectedStatus: moduletest.Fail,
+			expectedStatus:  Fail,
+			expectedOutputs: cty.EmptyObjectVal,
 			expectedDiags: []tfdiags.Description{
 				{
 					Summary: "Test assertion failed",
@@ -220,23 +234,23 @@ run "test_case" {
 		"two_failing_assertions": {
 			configs: map[string]string{
 				"main.tf": `
-resource "test_resource" "a" {
-	value = "Hello, world!"
-}
-`,
+					resource "test_resource" "a" {
+						value = "Hello, world!"
+					}
+				`,
 				"main.tftest.hcl": `
-run "test_case" {
-	assert {
-		condition = test_resource.a.value == "incorrect!"
-		error_message = "invalid value"
-	}
+					run "test_case" {
+						assert {
+							condition = test_resource.a.value == "incorrect!"
+							error_message = "invalid value"
+						}
 
-    assert {
-        condition = test_resource.a.value == "also incorrect!"
-        error_message = "still invalid"
-    }
-}
-`,
+						assert {
+							condition = test_resource.a.value == "also incorrect!"
+							error_message = "still invalid"
+						}
+					}
+				`,
 			},
 			plan: &plans.Plan{
 				Changes: plans.NewChanges(),
@@ -259,7 +273,7 @@ run "test_case" {
 						Provider: addrs.NewDefaultProvider("test"),
 					})
 			}),
-			provider: &MockProvider{
+			provider: &terraform.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
@@ -275,7 +289,8 @@ run "test_case" {
 					},
 				},
 			},
-			expectedStatus: moduletest.Fail,
+			expectedStatus:  Fail,
+			expectedOutputs: cty.EmptyObjectVal,
 			expectedDiags: []tfdiags.Description{
 				{
 					Summary: "Test assertion failed",
@@ -290,32 +305,32 @@ run "test_case" {
 		"sensitive_variables": {
 			configs: map[string]string{
 				"main.tf": `
-variable "input" {
-  type = string
-  sensitive = true
-}
-`,
+					variable "input" {
+						type = string
+						sensitive = true
+					}
+				`,
 				"main.tftest.hcl": `
-run "test" {
-  variables {
-    input = "Hello, world!"
-  }
+					run "test" {
+						variables {
+							input = "Hello, world!"
+						}
 
-  assert {
-    condition = var.input == "Hello, world!"
-    error_message = "bad"
-  }
-}
-`,
+						assert {
+							condition = var.input == "Hello, world!"
+							error_message = "bad"
+						}
+					}
+				`,
 			},
 			plan: &plans.Plan{
 				Changes: plans.NewChanges(),
 			},
 			state: states.NewState(),
-			variables: InputValues{
-				"input": &InputValue{
+			variables: terraform.InputValues{
+				"input": &terraform.InputValue{
 					Value:      cty.StringVal("Hello, world!"),
-					SourceType: ValueFromConfig,
+					SourceType: terraform.ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "main.tftest.hcl",
 						Start:    tfdiags.SourcePos{Line: 3, Column: 13, Byte: 12},
@@ -323,39 +338,40 @@ run "test" {
 					},
 				},
 			},
-			provider:       &MockProvider{},
-			expectedStatus: moduletest.Pass,
-			expectedDiags:  []tfdiags.Description{},
+			provider:        &terraform.MockProvider{},
+			expectedStatus:  Pass,
+			expectedOutputs: cty.EmptyObjectVal,
+			expectedDiags:   []tfdiags.Description{},
 		},
 		"sensitive_variables_fail": {
 			configs: map[string]string{
 				"main.tf": `
-variable "input" {
-  type = string
-  sensitive = true
-}
-`,
+					variable "input" {
+						type = string
+						sensitive = true
+					}
+				`,
 				"main.tftest.hcl": `
-run "test" {
-  variables {
-    input = "Hello, world!"
-  }
+					run "test" {
+						variables {
+							input = "Hello, world!"
+						}
 
-  assert {
-    condition = var.input == "Hello, universe!"
-    error_message = "bad ${var.input}"
-  }
-}
-`,
+						assert {
+							condition = var.input == "Hello, universe!"
+							error_message = "bad ${var.input}"
+						}
+					}
+				`,
 			},
 			plan: &plans.Plan{
 				Changes: plans.NewChanges(),
 			},
 			state: states.NewState(),
-			variables: InputValues{
-				"input": &InputValue{
+			variables: terraform.InputValues{
+				"input": &terraform.InputValue{
 					Value:      cty.StringVal("Hello, world!"),
-					SourceType: ValueFromConfig,
+					SourceType: terraform.ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "main.tftest.hcl",
 						Start:    tfdiags.SourcePos{Line: 3, Column: 13, Byte: 12},
@@ -363,8 +379,9 @@ run "test" {
 					},
 				},
 			},
-			provider:       &MockProvider{},
-			expectedStatus: moduletest.Fail,
+			provider:        &terraform.MockProvider{},
+			expectedStatus:  Fail,
+			expectedOutputs: cty.EmptyObjectVal,
 			expectedDiags: []tfdiags.Description{
 				{
 					Summary: "Error message refers to sensitive values",
@@ -378,20 +395,20 @@ run "test" {
 		"basic_passing_with_plan": {
 			configs: map[string]string{
 				"main.tf": `
-resource "test_resource" "a" {
-	value = "Hello, world!"
-}
-`,
+					resource "test_resource" "a" {
+						value = "Hello, world!"
+					}
+				`,
 				"main.tftest.hcl": `
-run "test_case" {
-	command = plan
+					run "test_case" {
+						command = plan
 
-	assert {
-		condition = test_resource.a.value == "Hello, world!"
-		error_message = "invalid value"
-	}
-}
-`,
+						assert {
+							condition = test_resource.a.value == "Hello, world!"
+							error_message = "invalid value"
+						}
+					}
+				`,
 			},
 			state: states.BuildState(func(state *states.SyncState) {
 				state.SetResourceInstanceCurrent(
@@ -435,7 +452,7 @@ run "test_case" {
 					},
 				},
 			},
-			provider: &MockProvider{
+			provider: &terraform.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
@@ -451,25 +468,26 @@ run "test_case" {
 					},
 				},
 			},
-			expectedStatus: moduletest.Pass,
+			expectedStatus:  Pass,
+			expectedOutputs: cty.EmptyObjectVal,
 		},
 		"basic_failing_with_plan": {
 			configs: map[string]string{
 				"main.tf": `
-resource "test_resource" "a" {
-	value = "Hello, world!"
-}
-`,
+					resource "test_resource" "a" {
+						value = "Hello, world!"
+					}
+				`,
 				"main.tftest.hcl": `
-run "test_case" {
-	command = plan
+					run "test_case" {
+						command = plan
 
-	assert {
-		condition = test_resource.a.value == "incorrect!"
-		error_message = "invalid value"
-	}
-}
-`,
+						assert {
+							condition = test_resource.a.value == "incorrect!"
+							error_message = "invalid value"
+						}
+					}
+				`,
 			},
 			state: states.BuildState(func(state *states.SyncState) {
 				state.SetResourceInstanceCurrent(
@@ -513,7 +531,7 @@ run "test_case" {
 					},
 				},
 			},
-			provider: &MockProvider{
+			provider: &terraform.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
@@ -529,7 +547,8 @@ run "test_case" {
 					},
 				},
 			},
-			expectedStatus: moduletest.Fail,
+			expectedStatus:  Fail,
+			expectedOutputs: cty.EmptyObjectVal,
 			expectedDiags: []tfdiags.Description{
 				{
 					Summary: "Test assertion failed",
@@ -540,20 +559,20 @@ run "test_case" {
 		"with_prior_state": {
 			configs: map[string]string{
 				"main.tf": `
-resource "test_resource" "a" {
-	value = "Hello, world!"
-}
-`,
+					resource "test_resource" "a" {
+						value = "Hello, world!"
+					}
+				`,
 				"main.tftest.hcl": `
-run "setup" {}
+					run "setup" {}
 
-run "test_case" {
-	assert {
-		condition = test_resource.a.value == run.setup.value
-		error_message = "invalid value"
-	}
-}
-`,
+					run "test_case" {
+						assert {
+							condition = test_resource.a.value == run.setup.value
+							error_message = "invalid value"
+						}
+					}
+				`,
 			},
 			plan: &plans.Plan{
 				Changes: plans.NewChanges(),
@@ -576,38 +595,12 @@ run "test_case" {
 						Provider: addrs.NewDefaultProvider("test"),
 					})
 			}),
-			priorStates: map[string]func(config *configs.Config) *TestContext{
-				"setup": func(config *configs.Config) *TestContext {
-					return &TestContext{
-						Context: &Context{},
-						Run: &moduletest.Run{
-							Config: config.Module.Tests["main.tftest.hcl"].Runs[0],
-							Name:   "setup",
-						},
-						Config: &configs.Config{
-							Module: &configs.Module{
-								Outputs: map[string]*configs.Output{
-									"value": {
-										Name: "value",
-									},
-								},
-							},
-						},
-						Plan: &plans.Plan{
-							Changes: plans.NewChanges(),
-						},
-						State: states.BuildState(func(state *states.SyncState) {
-							state.SetOutputValue(addrs.AbsOutputValue{
-								Module: addrs.RootModuleInstance,
-								OutputValue: addrs.OutputValue{
-									Name: "value",
-								},
-							}, cty.StringVal("Hello, world!"), false)
-						}),
-					}
-				},
+			priorOutputs: map[string]cty.Value{
+				"setup": cty.ObjectVal(map[string]cty.Value{
+					"value": cty.StringVal("Hello, world!"),
+				}),
 			},
-			provider: &MockProvider{
+			provider: &terraform.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
@@ -623,37 +616,78 @@ run "test_case" {
 					},
 				},
 			},
-			expectedStatus: moduletest.Pass,
+			expectedStatus:  Pass,
+			expectedOutputs: cty.EmptyObjectVal,
+		},
+		"output_values": {
+			configs: map[string]string{
+				"main.tf": `
+					output "foo" {
+						value = "foo value"
+					}
+					output "bar" {
+						value = "bar value"
+					}
+				`,
+				"main.tftest.hcl": `
+					run "test_case" {}
+				`,
+			},
+			plan: &plans.Plan{
+				Changes: plans.NewChanges(),
+			},
+			state:          states.NewState(),
+			provider:       &terraform.MockProvider{},
+			expectedStatus: Pass,
+			expectedOutputs: cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("foo value"),
+				"bar": cty.StringVal("bar value"),
+			}),
 		},
 	}
-	for name, tc := range tcs {
+	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			config := testModuleInline(t, tc.configs)
-			ctx := testContext2(t, &ContextOpts{
+			config := testModuleInline(t, test.configs)
+
+			tfCtx, diags := terraform.NewContext(&terraform.ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
-					addrs.NewDefaultProvider("test"): testProviderFuncFixed(tc.provider),
+					addrs.NewDefaultProvider("test"): providers.FactoryFixed(test.provider),
 				},
 			})
-
-			priorStates := make(map[string]*TestContext)
-			for run, ps := range tc.priorStates {
-				priorStates[run] = ps(config)
+			if diags.HasErrors() {
+				t.Fatalf("unexpected errors from terraform.NewContext\n%s", diags.Err().Error())
 			}
 
+			// We just need a vaguely-realistic scope here, so we'll make
+			// a plan against the given config and state and use its
+			// resulting scope.
+			_, planScope, diags := tfCtx.PlanAndEval(config, test.state, &terraform.PlanOpts{
+				Mode:         plans.NormalMode,
+				SetVariables: test.variables,
+			})
+
 			file := config.Module.Tests["main.tftest.hcl"]
-			run := moduletest.Run{
+			run := &Run{
 				Config: file.Runs[len(file.Runs)-1], // We always simulate the last run block.
 				Name:   "test_case",                 // and it should be named test_case
 			}
 
-			tctx := ctx.TestContext(&run, config, tc.state, tc.plan, tc.variables)
-			tctx.Evaluate(priorStates)
-
-			if expected, actual := tc.expectedStatus, run.Status; expected != actual {
-				t.Errorf("expected status \"%s\" but got \"%s\"", expected, actual)
+			priorOutputs := make(map[addrs.Run]cty.Value, len(test.priorOutputs))
+			for name, val := range test.priorOutputs {
+				priorOutputs[addrs.Run{Name: name}] = val
 			}
 
-			compareDiagnosticsFromTestResult(t, tc.expectedDiags, run.Diagnostics)
+			testCtx := NewEvalContext(run, config.Module, planScope, test.testOnlyVars, priorOutputs)
+			gotStatus, gotOutputs, diags := testCtx.Evaluate()
+
+			if got, want := gotStatus, test.expectedStatus; got != want {
+				t.Errorf("wrong status %q; want %q", got, want)
+			}
+			if diff := cmp.Diff(gotOutputs, test.expectedOutputs, ctydebug.CmpOptions); diff != "" {
+				t.Errorf("wrong output values\n%s", diff)
+			}
+
+			compareDiagnosticsFromTestResult(t, test.expectedDiags, diags)
 		})
 	}
 }
@@ -697,4 +731,58 @@ func encodeCtyValue(t *testing.T, value cty.Value) []byte {
 		t.Fatalf("failed to marshal JSON: %s", err)
 	}
 	return data
+}
+
+// testModuleInline takes a map of path -> config strings and yields a config
+// structure with those files loaded from disk
+func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
+	t.Helper()
+
+	cfgPath := t.TempDir()
+
+	for path, configStr := range sources {
+		dir := filepath.Dir(path)
+		if dir != "." {
+			err := os.MkdirAll(filepath.Join(cfgPath, dir), os.FileMode(0777))
+			if err != nil {
+				t.Fatalf("Error creating subdir: %s", err)
+			}
+		}
+		// Write the configuration
+		cfgF, err := os.Create(filepath.Join(cfgPath, path))
+		if err != nil {
+			t.Fatalf("Error creating temporary file for config: %s", err)
+		}
+
+		_, err = io.Copy(cfgF, strings.NewReader(configStr))
+		cfgF.Close()
+		if err != nil {
+			t.Fatalf("Error creating temporary file for config: %s", err)
+		}
+	}
+
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
+
+	// Test modules usually do not refer to remote sources, and for local
+	// sources only this ultimately just records all of the module paths
+	// in a JSON file so that we can load them below.
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
+	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false, initwd.ModuleInstallHooksImpl{})
+	if instDiags.HasErrors() {
+		t.Fatal(instDiags.Err())
+	}
+
+	// Since module installer has modified the module manifest on disk, we need
+	// to refresh the cache of it in the loader.
+	if err := loader.RefreshModules(); err != nil {
+		t.Fatalf("failed to refresh modules after installation: %s", err)
+	}
+
+	config, diags := loader.LoadConfigWithTests(cfgPath, "tests")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	return config
 }
