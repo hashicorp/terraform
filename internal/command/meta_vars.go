@@ -36,19 +36,18 @@ func (m *Meta) collectVariableValuesForTests(testsFilePath string) (map[string]b
 	ret := map[string]backend.UnparsedVariableValue{}
 
 	// We collect the variables from the ./tests directory
-	// there is no other need to process environmental variables 
+	// there is no other need to process environmental variables
 	// as this is done via collectVariableValues function
-	if(testsFilePath == ""){
+	if testsFilePath == "" {
 		diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Warning, 
-				"Missing test directory", 
-				"The test directory was unspecified when it should always be set. This is a bug in Terraform - please report it."))
-		return ret,diags
+			tfdiags.Warning,
+			"Missing test directory",
+			"The test directory was unspecified when it should always be set. This is a bug in Terraform - please report it."))
+		return ret, diags
 	}
 
 	// Firstly we collect variables from .tfvars file
 	testVarsFilename := filepath.Join(testsFilePath, DefaultVarsFilename)
-	fmt.Println(testVarsFilename)
 	if _, err := os.Stat(testVarsFilename); err == nil {
 		moreDiags := m.addVarsFromFile(testVarsFilename, terraform.ValueFromAutoFile, ret)
 		diags = diags.Append(moreDiags)
