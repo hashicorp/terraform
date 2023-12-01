@@ -199,22 +199,22 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		}
 	} else {
 		runner = &local.TestSuiteRunner{
-			Config:          config,
+			Config: config,
 			// The GlobalVariables are loaded from the
 			// main configuration directory
 			// The GlobalTestVariables are loaded from the
 			// test directory
-			GlobalVariables: variables,
+			GlobalVariables:     variables,
 			GlobalTestVariables: testVariables,
-			TestingDirectory: args.TestDirectory,
-			Opts:            opts,
-			View:            view,
-			Stopped:         false,
-			Cancelled:       false,
-			StoppedCtx:      stopCtx,
-			CancelledCtx:    cancelCtx,
-			Filter:          args.Filter,
-			Verbose:         args.Verbose,
+			TestingDirectory:    args.TestDirectory,
+			Opts:                opts,
+			View:                view,
+			Stopped:             false,
+			Cancelled:           false,
+			StoppedCtx:          stopCtx,
+			CancelledCtx:        cancelCtx,
+			Filter:              args.Filter,
+			Verbose:             args.Verbose,
 		}
 	}
 
