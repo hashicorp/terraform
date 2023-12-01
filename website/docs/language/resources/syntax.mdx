@@ -111,6 +111,32 @@ any resource type to change the behavior of resources:
 - [`lifecycle`, for lifecycle customizations](/terraform/language/meta-arguments/lifecycle)
 - [`provisioner`, for taking extra actions after resource creation](/terraform/language/resources/provisioners/syntax)
 
+## Removing Resources
+
+-> **Note:** The `removed` block is available in Terraform v1.7 and later. For earlier Terraform versions, you can use the [`terraform state rm` CLI command](/terraform/cli/commands/state/rm) as a separate step.
+
+To remove a resource from Terraform, simply delete the `resource` block from your Terraform configuration.
+
+By default, after you remove the `resource` block, Terraform will plan to destroy any real infrastructure object managed by that resource.
+
+Sometimes you may wish to remove a resource from your Terraform configuration without destroying the real infrastructure object it manages. In this case, the resource will be removed from the [Terraform state](/terraform/language/state), but the real infrastructure object will not be destroyed.
+
+To declare that a resource was removed from Terraform configuration but that its managed object should not be destroyed, remove the `resource` block from your configuration and replace it with a `removed` block:
+
+```hcl
+removed {
+  from = aws_instance.example
+
+  lifecycle {
+    destroy = false
+  }
+}
+```
+
+The `from` argument is the address of the resource you want to remove, without any instance keys (such as "aws_instance.example[1]").
+
+The `lifecycle` block is required. The `destroy` argument determines whether Terraform will attempt to destroy the object managed by the resource or not. A value of `false` means that Terraform will remove the resource from state without destroying it.
+
 ## Custom Condition Checks
 
 You can use `precondition` and `postcondition` blocks to specify assumptions and guarantees about how the resource operates. The following example creates a precondition that checks whether the AMI is properly configured.
