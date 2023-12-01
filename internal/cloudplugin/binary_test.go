@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func assertResolvedBinary(t *testing.T, binary *Binary, assertCached bool) {
+func assertResolvedBinary(t *testing.T, binary *Binary, assertCached, assertOverridden bool) {
 	t.Helper()
 
 	if binary == nil {
@@ -20,6 +20,10 @@ func assertResolvedBinary(t *testing.T, binary *Binary, assertCached bool) {
 
 	if binary.ResolvedFromCache != assertCached {
 		t.Errorf("expected ResolvedFromCache to be %v, got %v", assertCached, binary.ResolvedFromCache)
+	}
+
+	if binary.ResolvedFromDevOverride != assertOverridden {
+		t.Errorf("expected ResolvedFromDevOverride to be %v, got %v", assertOverridden, binary.ResolvedFromDevOverride)
 	}
 
 	info, err := os.Stat(binary.Path)
@@ -31,8 +35,15 @@ func assertResolvedBinary(t *testing.T, binary *Binary, assertCached bool) {
 		t.Fatalf("expected non-zero file at %q", binary.Path)
 	}
 
-	if binary.ProductVersion != "0.1.0" { // from sample manifest
-		t.Errorf("expected product binary %q, got %q", "0.1.0", binary.ProductVersion)
+	var expectedVersion string
+	if assertOverridden {
+		expectedVersion = "dev"
+	} else {
+		expectedVersion = "0.1.0"
+	}
+
+	if binary.ProductVersion != expectedVersion { // from sample manifest
+		t.Errorf("expected product binary %q, got %q", expectedVersion, binary.ProductVersion)
 	}
 }
 
@@ -52,7 +63,7 @@ func TestBinaryManager_Resolve(t *testing.T) {
 	serviceURL := serverURL.JoinPath("/api/cloudplugin/v1")
 
 	tempDir := t.TempDir()
-	manager, err := NewBinaryManager(context.Background(), tempDir, serviceURL, "darwin", "amd64")
+	manager, err := NewBinaryManager(context.Background(), tempDir, "", serviceURL, "darwin", "amd64")
 	if err != nil {
 		t.Fatalf("expected no err, got: %s", err)
 	}
@@ -64,7 +75,7 @@ func TestBinaryManager_Resolve(t *testing.T) {
 		t.Fatalf("expected no err, got %s", err)
 	}
 
-	assertResolvedBinary(t, binary, false)
+	assertResolvedBinary(t, binary, false, false)
 
 	// Resolving a second time should return a cached binary
 	binary, err = manager.Resolve()
@@ -72,7 +83,7 @@ func TestBinaryManager_Resolve(t *testing.T) {
 		t.Fatalf("expected no err, got %s", err)
 	}
 
-	assertResolvedBinary(t, binary, true)
+	assertResolvedBinary(t, binary, true, false)
 
 	// Change the local binary data
 	err = os.WriteFile(filepath.Join(filepath.Dir(binary.Path), ".version"), []byte("0.0.9"), 0644)
@@ -85,5 +96,14 @@ func TestBinaryManager_Resolve(t *testing.T) {
 		t.Fatalf("expected no err, got %s", err)
 	}
 
-	assertResolvedBinary(t, binary, false)
+	assertResolvedBinary(t, binary, false, false)
+
+	// Set a dev override
+	manager.overridePath = "testdata/cloudplugin-dev"
+	binary, err = manager.Resolve()
+	if err != nil {
+		t.Fatalf("expected no err, got %s", err)
+	}
+
+	assertResolvedBinary(t, binary, false, true)
 }
