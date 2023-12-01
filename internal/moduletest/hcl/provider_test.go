@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -191,45 +190,23 @@ func TestProviderConfig(t *testing.T) {
 					}
 					return variables
 				}(),
-				AvailableRunBlocks: func() map[string]*terraform.TestContext {
-					statuses := make(map[string]*terraform.TestContext)
+				AvailableRunOutputs: func() map[addrs.Run]cty.Value {
+					outputs := make(map[addrs.Run]cty.Value)
 					for name, values := range tc.runBlockOutputs {
+						addr := addrs.Run{Name: name}
 						if values == nil {
-							statuses[name] = nil
+							outputs[addr] = cty.NilVal
 							continue
 						}
 
-						state := states.BuildState(func(state *states.SyncState) {
-							for name, value := range values {
-								state.SetOutputValue(addrs.AbsOutputValue{
-									Module: addrs.RootModuleInstance,
-									OutputValue: addrs.OutputValue{
-										Name: name,
-									},
-								}, value, false)
-							}
-						})
-
-						config := &configs.Config{
-							Module: &configs.Module{
-								Outputs: func() map[string]*configs.Output {
-									outputs := make(map[string]*configs.Output)
-									for name := range values {
-										outputs[name] = &configs.Output{
-											Name: name,
-										}
-									}
-									return outputs
-								}(),
-							},
+						attrs := make(map[string]cty.Value)
+						for name, value := range values {
+							attrs[name] = value
 						}
 
-						statuses[name] = &terraform.TestContext{
-							Config: config,
-							State:  state,
-						}
+						outputs[addr] = cty.ObjectVal(attrs)
 					}
-					return statuses
+					return outputs
 				}(),
 			}
 

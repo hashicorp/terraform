@@ -42,6 +42,10 @@ type Verbose struct {
 	Provisioners map[string]*configschema.Block
 }
 
+func (run *Run) Addr() addrs.Run {
+	return addrs.Run{Name: run.Name}
+}
+
 func (run *Run) GetTargets() ([]addrs.Targetable, tfdiags.Diagnostics) {
 	var diagnostics tfdiags.Diagnostics
 	var targets []addrs.Targetable
