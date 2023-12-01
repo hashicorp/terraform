@@ -65,13 +65,6 @@ type Evaluator struct {
 	// ensures they can be safely accessed and modified concurrently.
 	Changes *plans.ChangesSync
 
-	// AlternateStates allows callers to reference states from outside this
-	// evaluator.
-	//
-	// The main use case here is for the testing framework to call into other
-	// run blocks.
-	AlternateStates map[string]*evaluationStateData
-
 	PlanTimestamp time.Time
 }
 
@@ -1021,30 +1014,10 @@ func (d *evaluationStateData) GetCheckBlock(addr addrs.Check, rng tfdiags.Source
 }
 
 func (d *evaluationStateData) GetRunBlock(run addrs.Run, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	data, exists := d.Evaluator.AlternateStates[run.Name]
-	if !exists {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Reference to unavailable run block",
-			Detail:   fmt.Sprintf("The current test file either contains no %s, or hasn't executed it yet.", run),
-			Subject:  rng.ToHCL().Ptr(),
-		})
-		return cty.DynamicVal, diags
-	}
-
-	outputs := make(map[string]cty.Value)
-	for _, outputCfg := range data.Evaluator.Config.Module.Outputs {
-		output, outputDiags := data.GetOutput(outputCfg.Addr(), rng)
-		diags = diags.Append(outputDiags)
-		if outputDiags.HasErrors() {
-			continue
-		}
-		outputs[outputCfg.Name] = output
-	}
-
-	return cty.ObjectVal(outputs), diags
+	// We should not get here because any scope that has an [evaluationStateData]
+	// as its Data should have a reference parser that doesn't accept addrs.Run
+	// addresses.
+	panic("GetRunBlock called on non-test evaluation dataset")
 }
 
 // moduleDisplayAddr returns a string describing the given module instance

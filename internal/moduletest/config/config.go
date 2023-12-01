@@ -7,12 +7,13 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
-	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // TransformConfigForTest transforms the provided configuration ready for the
@@ -26,7 +27,7 @@ import (
 // We also return a reset function that should be called to return the
 // configuration to it's original state before the next run block or test file
 // needs to use it.
-func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *moduletest.File, availableVariables map[string]backend.UnparsedVariableValue, availableRunBlocks map[string]*terraform.TestContext, requiredProviders map[string]bool) (func(), hcl.Diagnostics) {
+func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *moduletest.File, availableVariables map[string]backend.UnparsedVariableValue, availableRunOutputs map[addrs.Run]cty.Value, requiredProviders map[string]bool) (func(), hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	// Currently, we only need to override the provider settings.
@@ -89,10 +90,10 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 				AliasRange: ref.InChild.AliasRange,
 				Version:    testProvider.Version,
 				Config: &hcltest.ProviderConfig{
-					Original:           testProvider.Config,
-					ConfigVariables:    config.Module.Variables,
-					AvailableVariables: availableVariables,
-					AvailableRunBlocks: availableRunBlocks,
+					Original:            testProvider.Config,
+					ConfigVariables:     config.Module.Variables,
+					AvailableVariables:  availableVariables,
+					AvailableRunOutputs: availableRunOutputs,
 				},
 				Mock:      testProvider.Mock,
 				MockData:  testProvider.MockData,
@@ -117,10 +118,10 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 				AliasRange: provider.AliasRange,
 				Version:    provider.Version,
 				Config: &hcltest.ProviderConfig{
-					Original:           provider.Config,
-					ConfigVariables:    config.Module.Variables,
-					AvailableVariables: availableVariables,
-					AvailableRunBlocks: availableRunBlocks,
+					Original:            provider.Config,
+					ConfigVariables:     config.Module.Variables,
+					AvailableVariables:  availableVariables,
+					AvailableRunOutputs: availableRunOutputs,
 				},
 				Mock:      provider.Mock,
 				MockData:  provider.MockData,
