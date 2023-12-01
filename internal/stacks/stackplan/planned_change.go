@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform/internal/stacks/stackutils"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -261,7 +262,7 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 				Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
 					ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
 						Addr:         terraform1.NewResourceInstanceObjectInStackAddr(rioAddr),
-						ResourceMode: resourceModeForProto(pc.ChangeSrc.Addr.Resource.Resource.Mode),
+						ResourceMode: stackutils.ResourceModeForProto(pc.ChangeSrc.Addr.Resource.Resource.Mode),
 						ResourceType: pc.ChangeSrc.Addr.Resource.Resource.Type,
 						ProviderAddr: pc.ChangeSrc.ProviderAddr.Provider.String(),
 
@@ -388,17 +389,4 @@ func (pc *PlannedChangeApplyable) PlannedChangeProto() (*terraform1.PlannedChang
 			},
 		},
 	}, nil
-}
-
-func resourceModeForProto(mode addrs.ResourceMode) terraform1.ResourceMode {
-	switch mode {
-	case addrs.ManagedResourceMode:
-		return terraform1.ResourceMode_MANAGED
-	case addrs.DataResourceMode:
-		return terraform1.ResourceMode_DATA
-	default:
-		// Should not get here, because the above should be exhaustive for
-		// all addrs.ResourceMode variants.
-		return terraform1.ResourceMode_UNKNOWN
-	}
 }

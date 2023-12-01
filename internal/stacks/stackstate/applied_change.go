@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
+	"github.com/hashicorp/terraform/internal/stacks/stackutils"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/internal/states"
 	"google.golang.org/protobuf/proto"
@@ -50,7 +51,7 @@ var _ AppliedChange = (*AppliedChangeResourceInstanceObject)(nil)
 
 // AppliedChangeProto implements AppliedChange.
 func (ac *AppliedChangeResourceInstanceObject) AppliedChangeProto() (*terraform1.AppliedChange, error) {
-	descs, raws, err := ac.protosForObject(ac.ResourceInstanceObjectAddr, ac.NewStateSrc)
+	descs, raws, err := ac.protosForObject()
 	if err != nil {
 		return nil, fmt.Errorf("encoding %s: %w", ac.ResourceInstanceObjectAddr, err)
 	}
@@ -60,9 +61,13 @@ func (ac *AppliedChangeResourceInstanceObject) AppliedChangeProto() (*terraform1
 	}, nil
 }
 
-func (ac *AppliedChangeResourceInstanceObject) protosForObject(addr stackaddrs.AbsResourceInstanceObject, objSrc *states.ResourceInstanceObjectSrc) ([]*terraform1.AppliedChange_ChangeDescription, []*terraform1.AppliedChange_RawChange, error) {
+func (ac *AppliedChangeResourceInstanceObject) protosForObject() ([]*terraform1.AppliedChange_ChangeDescription, []*terraform1.AppliedChange_RawChange, error) {
 	var descs []*terraform1.AppliedChange_ChangeDescription
 	var raws []*terraform1.AppliedChange_RawChange
+
+	var addr = ac.ResourceInstanceObjectAddr
+	var provider = ac.ProviderConfigAddr
+	var objSrc = ac.NewStateSrc
 
 	// For resource instance objects we use the same key format for both the
 	// raw and description representations, but callers MUST NOT rely on this.
@@ -120,8 +125,11 @@ func (ac *AppliedChangeResourceInstanceObject) protosForObject(addr stackaddrs.A
 		Key: objKeyRaw,
 		Description: &terraform1.AppliedChange_ChangeDescription_ResourceInstance{
 			ResourceInstance: &terraform1.AppliedChange_ResourceInstance{
-				Addr:     terraform1.NewResourceInstanceObjectInStackAddr(addr),
-				NewValue: protoValue,
+				Addr:         terraform1.NewResourceInstanceObjectInStackAddr(addr),
+				NewValue:     protoValue,
+				ResourceMode: stackutils.ResourceModeForProto(addr.Item.ResourceInstance.Resource.Resource.Mode),
+				ResourceType: addr.Item.ResourceInstance.Resource.Resource.Type,
+				ProviderAddr: provider.Provider.String(),
 			},
 		},
 	})
