@@ -201,6 +201,12 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: "2 passed, 0 failed.",
 			code:        0,
 		},
+		"auto_tfvars_in_test_dir": {
+			override:    "tfvars_in_test_dir",
+			args:        []string{"-test-directory=alternate"},
+			expectedOut: "2 passed, 0 failed.",
+			code:        0,
+		},
 		"functions_available": {
 			expectedOut: "1 passed, 0 failed.",
 			code:        0,

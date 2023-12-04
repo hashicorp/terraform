@@ -158,11 +158,17 @@ In addition to specifying variable values via test files, the Terraform `test` c
 
 You can specify values for variables across all tests with the [Command Line](/terraform/language/values/variables#variables-on-the-command-line) and with [Variable Definition Files](/terraform/language/values/variables#variable-definitions-tfvars-files).
 
+As with the main configuration direction, Terraform will automatically load any variables defined in the automatic variable files within a test directory. The automatic variable files are `terraform.tfvars`, `terraform.tfvars.json`, and any files that end with `.auto.tfvars` or `.auto.tfvars.json`.
+
+-> **Note:** Variable values loaded from the automatic variable files within a test directory will only apply to tests also defined within the same test directory. Variables defined in all other ways will apply to all tests in a given test run.
+
 This is particularly useful for using sensitive variables values and for configuring providers. Otherwise, testing files could directly expose those sensitive values.
 
 ### Variable definition precedence
 
 [Variable Definition Precedence](/terraform/language/values/variables#variable-definition-precedence) remains the same within tests, except for variable values that test files provide. The variables defined in test files take the highest precedence, overriding environment variables, variables files, or command-line input.
+
+For tests defined in a test directory, any variable values defined in automatic variable files from the test directory will override values defined in automatic variable files from the main configuration directory.
 
 ### Variable References
 

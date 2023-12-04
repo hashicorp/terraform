@@ -63,6 +63,22 @@ func (m *Meta) collectVariableValuesForTests(testsFilePath string) (map[string]b
 		diags = diags.Append(moreDiags)
 	}
 
+	// Also, load any variables from the *.auto.tfvars files.
+	if infos, err := os.ReadDir(testsFilePath); err == nil {
+		for _, info := range infos {
+			if info.IsDir() {
+				continue
+			}
+
+			if !isAutoVarFile(info.Name()) {
+				continue
+			}
+
+			moreDiags := m.addVarsFromFile(filepath.Join(testsFilePath, info.Name()), terraform.ValueFromAutoFile, ret)
+			diags = diags.Append(moreDiags)
+		}
+	}
+
 	// Also, no need to additionally process variables from command line,
 	// as this is also done via collectVariableValues
 
