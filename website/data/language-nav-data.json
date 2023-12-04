@@ -1052,7 +1052,19 @@
       }
     ]
   },
-  { "title": "Tests", "path": "tests" },
+  {
+    "title": "Tests",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "tests"
+      },
+      {
+        "title": "Mocks",
+        "path": "tests/mocking"
+      }
+    ]
+  },
   {
     "title": "Upgrading to Terraform v1.6",
     "path": "upgrade-guides"
