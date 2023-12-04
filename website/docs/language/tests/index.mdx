@@ -530,6 +530,12 @@ run "verify" {
 }
 ```
 
+-> **Note**: The `loader` module only uses data sources for resources created by the `setup` module, and does not load data sources based on the main configuration.
+
+The state for the main configuration is destroyed first when Terraform performs the cleanup operations after the test has completed. Any data sources in alternate modules based on the main configuration will likely error during the cleanup operation as they will attempt to be refreshed, and will return unavailable or not found errors as the underlying infrastructure has already been destroyed.
+
+The order of the destroy operations changed starting with the Terraform v1.7 series and tests written for future versions do not need this consideration.
+
 ### Modules state
 
 While Terraform executes a `terraform test` command, Terraform maintains at least one, but possibly many, state files within memory for each test file.
