@@ -39,6 +39,7 @@ ENHANCEMENTS:
 * `terraform test`: Providers defined within test files can now reference variables from their configuration that are defined within the test file. ([#34069](https://github.com/hashicorp/terraform/issues/34069))
 * `terraform test`: Providers defined within test files can now reference outputs from run blocks. ([#34118](https://github.com/hashicorp/terraform/issues/34118))
 * `terraform test`: Terraform functions are now available within variables and provider blocks within test files. ([#34204](https://github.com/hashicorp/terraform/issues/34204))
+* `terraform test`: Terraform will now load variables from any `terraform.tfvars` within the testing directory, and apply the variable values to tests within the same directory. ([#34341](https://github.com/hashicorp/terraform/pull/34341))
 * `terraform graph`: Now produces a simplified resources-only graph by default. ([#34288](https://github.com/hashicorp/terraform/pull/34288))
 * `terraform console`: Now supports a `-plan` option which allows evaluating expressions against the planned new state, rather than against the prior state. This provides a more complete set of values for use in console expressions, at the expense of a slower startup time due first calculating the plan. ([#34342](https://github.com/hashicorp/terraform/issues/34342))
 * `import`: `for_each` can now be used to expand the `import` block to handle multiple resource instances ([#33932](https://github.com/hashicorp/terraform/issues/33932))
