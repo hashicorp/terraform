@@ -136,54 +136,17 @@ The `run` block also applies or plans the main configuration by default, there i
 
 ## S3 Backend
 
-We updated the S3 backend in Terraform 1.6.0 so that it more closely matches the AWS provider configuration.
-As a result, the backend has new and deprecated fields.
-Refer to the [release notes](https://github.com/hashicorp/terraform/releases/tag/v1.6.0) for additional information. 
-
-The major deprecations are discussed here.
-Refer to the [S3 backend documentation](/terraform/language/settings/backends/s3) for information about all deprecations.
-
-We removed the configuration for assuming an IAM role from several top-level attributes and consolidated them into the `assume_role` attribute.
-
-The following example shows the configuration in Terraform 1.5.6 and older for assuming the IAM role `arn:aws:iam::123456789012:role/example` with a session name `example-session` and a session duration of 15 minutes:
+In Terraform 1.7.0 the S3 backend will begin phasing out the legacy credential chain evaluation order by defaulting `use_legacy_workflow` to `false` and deprecating the argument.
+This will bring the default behavior of the backend into alignment with the AWS SDKs and CLI.
+The legacy behavior can be preserved by setting this argument to `true`.
 
 ```hcl
 terraform {
   backend "s3" {
     # additional configuration omitted for brevity
-    role_arn                     = "arn:aws:iam::123456789012:role/example"
-    session_name                 = "example-session"
-    assume_role_duration_seconds = 900
+    use_legacy_workflow = true
   }
 }
 ```
 
-The configuration in Terraform 1.6.0 is:
-
-```hcl
-terraform {
-  backend "s3" {
-    # additional configuration omitted for brevity
-    assume_role = {
-      role_arn     = "arn:aws:iam::123456789012:role/example"
-      session_name = "example-session"
-      duration     = "15m"
-    }
-  }
-}
-```
-
-We removed the configuration for overriding AWS API endpoints from several top-level attributes and consolidated them into the `endpoints` attribute.
-The following endpoint attributes are now nested under the `endpoint` attribute:
-
-- `s3`
-- `dynamodb`
-- `iam`
-- `sts`
-
-The `endpoint` attribute replaces the following top-level attributes:
-
-- `endpoint` (for S3),
-- `dynamodb_endpoint`,
-- `iam_endpoint`
-- `sts_endpoint`
+In Terraform 1.8.0 this argument will be removed, and the S3 backend will always use the default AWS SDK for Go credential chain evaluation order.
