@@ -74,6 +74,14 @@ func (s *Stacks) PlanStackChanges(a0 *tf1.PlanStackChanges_Request, a1 tf1.Stack
 	return impl.PlanStackChanges(a0, a1)
 }
 
+func (s *Stacks) ValidateStackConfiguration(a0 context.Context, a1 *tf1.ValidateStackConfiguration_Request) (*tf1.ValidateStackConfiguration_Response, error) {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return nil, err
+	}
+	return impl.ValidateStackConfiguration(a0, a1)
+}
+
 func (s *Stacks) ActivateRPCServer(impl tf1.StacksServer) {
 	s.mu.Lock()
 	s.impl = impl
