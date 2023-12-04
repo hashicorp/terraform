@@ -1,5 +1,8 @@
 ## 1.6.6 (Unreleased)
 
+BUG FIXES:
+* `terraform test`: Stop attempting to destroy run blocks that have no actual infrastructure to destroy. This fixes an issue where attempts to destroy "verification" run blocks that load only data sources would fail if the underlying infrastructure referenced by the run blocks had already been destroyed. ([#34331](https://github.com/hashicorp/terraform/pull/34331))
+
 ## 1.6.5 (November 29, 2023)
 
 BUG FIXES:
