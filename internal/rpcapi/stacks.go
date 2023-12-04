@@ -96,6 +96,21 @@ func (s *stacksServer) CloseStackConfiguration(ctx context.Context, req *terrafo
 	return &terraform1.CloseStackConfiguration_Response{}, nil
 }
 
+func (s *stacksServer) ValidateStackConfiguration(ctx context.Context, req *terraform1.ValidateStackConfiguration_Request) (*terraform1.ValidateStackConfiguration_Response, error) {
+	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
+	cfg := s.handles.StackConfig(cfgHnd)
+	if cfg == nil {
+		return nil, status.Error(codes.InvalidArgument, "the given stack configuration handle is invalid")
+	}
+
+	diags := stackruntime.Validate(ctx, &stackruntime.ValidateRequest{
+		Config: cfg,
+	})
+	return &terraform1.ValidateStackConfiguration_Response{
+		Diagnostics: diagnosticsToProto(diags),
+	}, nil
+}
+
 func (s *stacksServer) FindStackConfigurationComponents(ctx context.Context, req *terraform1.FindStackConfigurationComponents_Request) (*terraform1.FindStackConfigurationComponents_Response, error) {
 	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
 	cfg := s.handles.StackConfig(cfgHnd)
