@@ -880,19 +880,31 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 			continue
 		}
 
-		if state.Run == nil {
-			if state.State.Empty() {
-				// We can see a run block being empty when the state is empty if
-				// a module was only used to execute plan commands. So this is
-				// okay, and means we have nothing to cleanup so we'll just
-				// skip it.
-				continue
+		empty := true
+		for _, module := range state.State.Modules {
+			for _, resource := range module.Resources {
+				if resource.Addr.Resource.Mode == addrs.ManagedResourceMode {
+					empty = false
+					break
+				}
 			}
+		}
+
+		if empty {
+			// The state can be empty for a run block that just executed a plan
+			// command, or a run block that only read data sources. We'll just
+			// skip empty run blocks.
+			continue
+		}
+
+		if state.Run == nil {
 			log.Printf("[ERROR] TestFileRunner: found inconsistent run block and state file in %s for module %s", file.Name, key)
 
-			// Otherwise something bad has happened, and we have no way to
-			// recover from it. This shouldn't happen in reality, but we'll
-			// print a diagnostic instead of panicking later.
+			// The state can have a nil run block if it only executed a plan
+			// command. In which case, we shouldn't have reached here as the
+			// state should also have been empty and this will have been skipped
+			// above. If we do reach here, then something has gone badly wrong
+			// and we can't really recover from it.
 
 			var diags tfdiags.Diagnostics
 			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name)))

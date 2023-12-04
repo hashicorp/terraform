@@ -189,6 +189,10 @@ func TestTest(t *testing.T) {
 			expected: "4 passed, 0 failed.",
 			code:     0,
 		},
+		"skip_destroy_on_empty": {
+			expected: "3 passed, 0 failed.",
+			code:     0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -239,7 +243,7 @@ func TestTest(t *testing.T) {
 			output := done(t)
 
 			if code != tc.code {
-				t.Errorf("expected status code %d but got %d", tc.code, code)
+				t.Errorf("expected status code %d but got %d:\n\n%s", tc.code, code, output.All())
 			}
 
 			if !strings.Contains(output.All(), tc.expected) {
