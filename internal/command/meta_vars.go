@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -22,6 +23,51 @@ import (
 // VarEnvPrefix is the prefix for environment variables that represent values
 // for root module input variables.
 const VarEnvPrefix = "TF_VAR_"
+
+// collectVariableValuesForTests inspects the various places that test
+// values can come from and constructs a map ready to be passed to the
+// backend as part of a backend.Operation.
+//
+// This method returns diagnostics relating to the collection of the values,
+// but the values themselves may produce additional diagnostics when finally
+// parsed.
+func (m *Meta) collectVariableValuesForTests(testsFilePath string) (map[string]backend.UnparsedVariableValue, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ret := map[string]backend.UnparsedVariableValue{}
+
+	// We collect the variables from the ./tests directory
+	// there is no other need to process environmental variables
+	// as this is done via collectVariableValues function
+	if testsFilePath == "" {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Missing test directory",
+			"The test directory was unspecified when it should always be set. This is a bug in Terraform - please report it."))
+		return ret, diags
+	}
+
+	// Firstly we collect variables from .tfvars file
+	testVarsFilename := filepath.Join(testsFilePath, DefaultVarsFilename)
+	if _, err := os.Stat(testVarsFilename); err == nil {
+		moreDiags := m.addVarsFromFile(testVarsFilename, terraform.ValueFromAutoFile, ret)
+		diags = diags.Append(moreDiags)
+
+	}
+
+	// Then we collect variables from .tfvars.json file
+	const defaultVarsFilenameJSON = DefaultVarsFilename + ".json"
+	testVarsFilenameJSON := filepath.Join(testsFilePath, defaultVarsFilenameJSON)
+
+	if _, err := os.Stat(testVarsFilenameJSON); err == nil {
+		moreDiags := m.addVarsFromFile(testVarsFilenameJSON, terraform.ValueFromAutoFile, ret)
+		diags = diags.Append(moreDiags)
+	}
+
+	// Also, no need to additionally process variables from command line,
+	// as this is also done via collectVariableValues
+
+	return ret, diags
+}
 
 // collectVariableValues inspects the various places that root module input variable
 // values can come from and constructs a map ready to be passed to the

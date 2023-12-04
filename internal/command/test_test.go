@@ -197,6 +197,10 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: "4 passed, 0 failed.",
 			code:        0,
 		},
+		"tfvars_in_test_dir": {
+			expectedOut: "2 passed, 0 failed.",
+			code:        0,
+		},
 		"functions_available": {
 			expectedOut: "1 passed, 0 failed.",
 			code:        0,

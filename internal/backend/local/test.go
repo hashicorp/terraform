@@ -39,8 +39,14 @@ const (
 type TestSuiteRunner struct {
 	Config *configs.Config
 
-	GlobalVariables map[string]backend.UnparsedVariableValue
-	Opts            *terraform.ContextOpts
+	TestingDirectory string
+
+	// Global variables comes from the main configuration directory,
+	// and the Global Test Variables are loaded from the test directory.
+	GlobalVariables     map[string]backend.UnparsedVariableValue
+	GlobalTestVariables map[string]backend.UnparsedVariableValue
+
+	Opts *terraform.ContextOpts
 
 	View views.Test
 
@@ -1232,6 +1238,14 @@ func (runner *TestFileRunner) initVariables(file *moduletest.File) {
 	runner.globalVariables = make(map[string]backend.UnparsedVariableValue)
 	for name, value := range runner.Suite.GlobalVariables {
 		runner.globalVariables[name] = value
+	}
+	if path.Dir(file.Name) == runner.Suite.TestingDirectory {
+		// If the file is in the testing directory, then also include any
+		// variables that are defined within the default variable file also in
+		// the test directory.
+		for name, value := range runner.Suite.GlobalTestVariables {
+			runner.globalVariables[name] = value
+		}
 	}
 	for name, expr := range file.Config.Variables {
 		runner.globalVariables[name] = unparsedTestVariableValue{expr}
