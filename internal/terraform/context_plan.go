@@ -86,18 +86,6 @@ type PlanOpts struct {
 	// during this plan.
 	Overrides *mocking.Overrides
 
-	// ImportTargets is a list of target resources to import. These resources
-	// will be added to the plan graph.
-	ImportTargets []*ImportTarget
-
-	// forgetResources is a list of target resources that Terraform
-	// will plan to remove from state.
-	forgetResources []addrs.ConfigResource
-
-	// forgetModules is a list of target modules that Terraform will plan to
-	// remove from state.
-	forgetModules []addrs.Module
-
 	// GenerateConfigPath tells Terraform where to write any generated
 	// configuration for any ImportTargets that do not have configuration
 	// already.
@@ -360,7 +348,6 @@ func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts 
 		panic(fmt.Sprintf("called Context.plan with %s", opts.Mode))
 	}
 
-	opts.ImportTargets = c.findImportTargets(config)
 	plan, evalScope, walkDiags := c.planWalk(config, prevRunState, opts)
 	diags = diags.Append(walkDiags)
 
@@ -593,6 +580,29 @@ func (c *Context) findImportTargets(config *configs.Config) []*ImportTarget {
 	return importTargets
 }
 
+// findForgetTargets builds a list of resources and a list of modules to be
+// forgotten, based on any removed blocks in config.
+func (c *Context) findForgetTargets(config *configs.Config) (forgetResources []addrs.ConfigResource, forgetModules []addrs.Module, diags tfdiags.Diagnostics) {
+	removeStmts, diags := refactoring.FindRemoveStatements(config)
+	if diags.HasErrors() {
+		return nil, nil, diags
+	}
+	for _, rst := range removeStmts.Values() {
+		if rst.Destroy {
+			// no-op
+		} else {
+			if fr, ok := rst.From.(addrs.ConfigResource); ok {
+				forgetResources = append(forgetResources, fr)
+			} else if fm, ok := rst.From.(addrs.Module); ok {
+				forgetModules = append(forgetModules, fm)
+			} else {
+				panic("Invalid ConfigMoveable type in remove statement")
+			}
+		}
+	}
+	return forgetResources, forgetModules, diags
+}
+
 func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	log.Printf("[DEBUG] Building and walking plan graph for %s", opts.Mode)
@@ -608,24 +618,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		// instances excluded by targeting then planning is likely to encounter
 		// strange problems that may lead to confusing error messages.
 		return nil, nil, diags
-	}
-
-	removeStmts, diags := refactoring.FindRemoveStatements(config)
-	if diags.HasErrors() {
-		return nil, nil, diags
-	}
-	for _, rst := range removeStmts.Values() {
-		if rst.Destroy {
-			// no-op
-		} else {
-			if fr, ok := rst.From.(addrs.ConfigResource); ok {
-				opts.forgetResources = append(opts.forgetResources, fr)
-			} else if fm, ok := rst.From.(addrs.Module); ok {
-				opts.forgetModules = append(opts.forgetModules, fm)
-			} else {
-				panic("Invalid ConfigMoveable type in remove statement")
-			}
-		}
 	}
 
 	graph, walkOp, moreDiags := c.planGraph(config, prevRunState, opts)
@@ -739,6 +731,12 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*Graph, walkOperation, tfdiags.Diagnostics) {
 	switch mode := opts.Mode; mode {
 	case plans.NormalMode:
+		// In Normal mode we need to pay attention to import and removed blocks
+		// in config so their targets can be added to the graph.
+		forgetResources, forgetModules, diags := c.findForgetTargets(config)
+		if diags.HasErrors() {
+			return nil, walkPlan, diags
+		}
 		graph, diags := (&PlanGraphBuilder{
 			Config:             config,
 			State:              prevRunState,
@@ -750,9 +748,9 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			preDestroyRefresh:  opts.PreDestroyRefresh,
 			Operation:          walkPlan,
 			ExternalReferences: opts.ExternalReferences,
-			ImportTargets:      opts.ImportTargets,
-			forgetResources:    opts.forgetResources,
-			forgetModules:      opts.forgetModules,
+			ImportTargets:      c.findImportTargets(config),
+			forgetResources:    forgetResources,
+			forgetModules:      forgetModules,
 			GenerateConfigPath: opts.GenerateConfigPath,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
