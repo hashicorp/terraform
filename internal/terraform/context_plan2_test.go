@@ -4274,6 +4274,173 @@ locals {
 	}
 }
 
+func TestContext2Plan_externalProviders(t *testing.T) {
+	// This test exercises the option for callers to pass in their own
+	// already-configured provider instances, instead of the modules runtime
+	// configuring the providers itself. This is for situations where the root
+	// module is actually a shared module and some external system is acting
+	// as the true root, such as in Stacks where the stack configuration is
+	// the root and each component is a separate module tree with external
+	// providers passed into it similar to what we're doing in this test.
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {
+				required_providers {
+					bar = {
+						source = "terraform.io/builtin/bar"
+					}
+					baz = {
+						configuration_aliases = [ baz.beep ]
+					}
+				}
+			}
+
+			resource "foo" "a" {}
+			resource "bar" "b" {}
+			resource "baz" "c" {
+				provider = baz.beep
+			}
+		`,
+	})
+
+	mustNotConfigure := func(providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+		return providers.ConfigureProviderResponse{
+			Diagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Pre-configured provider was reconfigured by the modules runtime",
+					"An externally-configured provider should not have its ConfigureProvider function called during planning.",
+				),
+			},
+		}
+	}
+
+	fooAddr := addrs.MustParseProviderSourceString("hashicorp/foo")
+	fooConfigAddr := addrs.RootProviderConfig{
+		Provider: fooAddr,
+	}
+	fooProvider := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						// We have a required argument here just so that the
+						// plan will fail if the runtime erroneously tries
+						// to prepare a configuration for this provider;
+						// in the absense of an external provider instance
+						// the runtime would behave as if there were an empty
+						// provider "foo" block and try to decode its synthetic
+						// empty body against this schema, but that should not
+						// happen if we're assuming the provider is already
+						// configured by an external caller.
+						"reqd": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+			},
+			ResourceTypes: map[string]providers.Schema{
+				"foo": {
+					Block: &configschema.Block{},
+				},
+			},
+		},
+		ConfigureProviderFn: mustNotConfigure,
+	}
+	barAddr := addrs.MustParseProviderSourceString("terraform.io/builtin/bar")
+	barConfigAddr := addrs.RootProviderConfig{
+		Provider: barAddr,
+	}
+	barProvider := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"bar": {
+					Block: &configschema.Block{},
+				},
+			},
+		},
+		ConfigureProviderFn: mustNotConfigure,
+	}
+	bazAddr := addrs.MustParseProviderSourceString("hashicorp/baz")
+	bazConfigAddr := addrs.RootProviderConfig{
+		Provider: bazAddr,
+		Alias:    "beep",
+	}
+	bazProvider := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"baz": {
+					Block: &configschema.Block{},
+				},
+			},
+		},
+		ConfigureProviderFn: mustNotConfigure,
+	}
+
+	ctx, diags := NewContext(&ContextOpts{
+		PreloadedProviderSchemas: map[addrs.Provider]providers.GetProviderSchemaResponse{
+			fooAddr: *fooProvider.GetProviderSchemaResponse,
+			barAddr: *barProvider.GetProviderSchemaResponse,
+			bazAddr: *bazProvider.GetProviderSchemaResponse,
+		},
+	})
+	assertNoDiagnostics(t, diags)
+
+	// Many of the MockProvider methods check whether Configure was called and
+	// return an error if not, and so we'll set that flag ahead of time to
+	// simulate the effect of the provider being pre-configured by an external
+	// caller.
+	fooProvider.ConfigureProviderCalled = true
+	barProvider.ConfigureProviderCalled = true
+	bazProvider.ConfigureProviderCalled = true
+
+	_, diags = ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		ExternalProviders: map[addrs.RootProviderConfig]providers.Interface{
+			fooConfigAddr: fooProvider,
+			barConfigAddr: barProvider,
+			bazConfigAddr: bazProvider,
+		},
+	})
+	assertNoDiagnostics(t, diags)
+
+	// If everything has worked as intended, the Plan call should've skipped
+	// configuring and closing all of the providers, because that's the
+	// caller's job to deal with.
+	if fooProvider.GetProviderSchemaCalled {
+		t.Errorf("called GetProviderSchema for %s", fooAddr)
+	}
+	if fooProvider.CloseCalled {
+		t.Errorf("called Close for %s", fooAddr)
+	}
+	if barProvider.GetProviderSchemaCalled {
+		t.Errorf("called GetProviderSchema for %s", barAddr)
+	}
+	if barProvider.CloseCalled {
+		t.Errorf("called Close for %s", barAddr)
+	}
+	if bazProvider.GetProviderSchemaCalled {
+		t.Errorf("called GetProviderSchema for %s", bazAddr)
+	}
+	if bazProvider.CloseCalled {
+		t.Errorf("called Close for %s", bazAddr)
+	}
+
+	// However, the Plan call _should_ have asked each of the providers to
+	// plan a resource change.
+	if !fooProvider.PlanResourceChangeCalled {
+		t.Errorf("did not call PlanResourceChange for %s", fooConfigAddr)
+	}
+	if !barProvider.PlanResourceChangeCalled {
+		t.Errorf("did not call PlanResourceChange for %s", barConfigAddr)
+	}
+	if !bazProvider.PlanResourceChangeCalled {
+		t.Errorf("did not call PlanResourceChange for %s", bazConfigAddr)
+	}
+}
+
 func TestContext2Plan_removedResourceForgetBasic(t *testing.T) {
 	addrA := mustResourceInstanceAddr("test_object.a")
 	m := testModuleInline(t, map[string]string{

@@ -239,16 +239,22 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 		operation = walkDestroy
 	}
 
+	var externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+	if opts != nil {
+		externalProviderConfigs = opts.ExternalProviders
+	}
+
 	graph, moreDiags := (&ApplyGraphBuilder{
-		Config:             config,
-		Changes:            plan.Changes,
-		State:              plan.PriorState,
-		RootVariableValues: variables,
-		Plugins:            c.plugins,
-		Targets:            plan.TargetAddrs,
-		ForceReplace:       plan.ForceReplaceAddrs,
-		Operation:          operation,
-		ExternalReferences: plan.ExternalReferences,
+		Config:                  config,
+		Changes:                 plan.Changes,
+		State:                   plan.PriorState,
+		RootVariableValues:      variables,
+		ExternalProviderConfigs: externalProviderConfigs,
+		Plugins:                 c.plugins,
+		Targets:                 plan.TargetAddrs,
+		ForceReplace:            plan.ForceReplaceAddrs,
+		Operation:               operation,
+		ExternalReferences:      plan.ExternalReferences,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

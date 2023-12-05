@@ -9,12 +9,17 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type EvalOpts struct {
 	SetVariables InputValues
+
+	// ExternalProviders is a set of pre-configured provider instances with
+	// the same purpose as [PlanOpts.ExternalProviders].
+	ExternalProviders map[addrs.RootProviderConfig]providers.Interface
 }
 
 // Eval produces a scope in which expressions can be evaluated for
@@ -48,7 +53,10 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 	state = state.DeepCopy()
 	var walker *ContextGraphWalker
 
-	variables := opts.SetVariables
+	var variables InputValues
+	if opts != nil {
+		variables = opts.SetVariables
+	}
 
 	// By the time we get here, we should have values defined for all of
 	// the root module variables, even if some of them are "unknown". It's the
@@ -60,13 +68,19 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 	varDiags := checkInputVariables(config.Module.Variables, variables)
 	diags = diags.Append(varDiags)
 
+	var externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+	if opts != nil {
+		externalProviderConfigs = opts.ExternalProviders
+	}
+
 	log.Printf("[DEBUG] Building and walking 'eval' graph")
 
 	graph, moreDiags := (&EvalGraphBuilder{
-		Config:             config,
-		State:              state,
-		RootVariableValues: variables,
-		Plugins:            c.plugins,
+		Config:                  config,
+		State:                   state,
+		RootVariableValues:      variables,
+		ExternalProviderConfigs: externalProviderConfigs,
+		Plugins:                 c.plugins,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
