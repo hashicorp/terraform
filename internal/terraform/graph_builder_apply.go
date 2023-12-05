@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -33,6 +34,12 @@ type ApplyGraphBuilder struct {
 	// part of the plan object, which we must reproduce in the apply step
 	// to get a consistent result.
 	RootVariableValues InputValues
+
+	// ExternalProviderConfigs are pre-initialized root module provider
+	// configurations that the graph builder should assume will be available
+	// immediately during the subsequent plan walk, without any explicit
+	// initialization step.
+	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
 
 	// Plugins is a library of the plug-in components (providers and
 	// provisioners) available for use.
@@ -142,7 +149,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&AttachResourceConfigTransformer{Config: b.Config},
 
 		// add providers
-		transformProviders(concreteProvider, b.Config),
+		transformProviders(concreteProvider, b.Config, b.ExternalProviderConfigs),
 
 		// Remove modules no longer present in the config
 		&RemovedModuleTransformer{Config: b.Config, State: b.State},

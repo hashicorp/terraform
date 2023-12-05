@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -37,6 +38,12 @@ type EvalGraphBuilder struct {
 	// given by the caller, which we'll resolve into final values as part
 	// of the plan walk.
 	RootVariableValues InputValues
+
+	// ExternalProviderConfigs are pre-initialized root module provider
+	// configurations that the graph builder should assume will be available
+	// immediately during the subsequent plan walk, without any explicit
+	// initialization step.
+	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
 
 	// Plugins is a library of plug-in components (providers and
 	// provisioners) available for use.
@@ -81,7 +88,7 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
-		transformProviders(concreteProvider, b.Config),
+		transformProviders(concreteProvider, b.Config, b.ExternalProviderConfigs),
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.

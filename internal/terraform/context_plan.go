@@ -729,6 +729,11 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 }
 
 func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*Graph, walkOperation, tfdiags.Diagnostics) {
+	var externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+	if opts != nil {
+		externalProviderConfigs = opts.ExternalProviders
+	}
+
 	switch mode := opts.Mode; mode {
 	case plans.NormalMode:
 		// In Normal mode we need to pay attention to import and removed blocks
@@ -738,44 +743,47 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			return nil, walkPlan, diags
 		}
 		graph, diags := (&PlanGraphBuilder{
-			Config:             config,
-			State:              prevRunState,
-			RootVariableValues: opts.SetVariables,
-			Plugins:            c.plugins,
-			Targets:            opts.Targets,
-			ForceReplace:       opts.ForceReplace,
-			skipRefresh:        opts.SkipRefresh,
-			preDestroyRefresh:  opts.PreDestroyRefresh,
-			Operation:          walkPlan,
-			ExternalReferences: opts.ExternalReferences,
-			ImportTargets:      c.findImportTargets(config),
-			forgetResources:    forgetResources,
-			forgetModules:      forgetModules,
-			GenerateConfigPath: opts.GenerateConfigPath,
+			Config:                  config,
+			State:                   prevRunState,
+			RootVariableValues:      opts.SetVariables,
+			ExternalProviderConfigs: externalProviderConfigs,
+			Plugins:                 c.plugins,
+			Targets:                 opts.Targets,
+			ForceReplace:            opts.ForceReplace,
+			skipRefresh:             opts.SkipRefresh,
+			preDestroyRefresh:       opts.PreDestroyRefresh,
+			Operation:               walkPlan,
+			ExternalReferences:      opts.ExternalReferences,
+			ImportTargets:           c.findImportTargets(config),
+			forgetResources:         forgetResources,
+			forgetModules:           forgetModules,
+			GenerateConfigPath:      opts.GenerateConfigPath,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:             config,
-			State:              prevRunState,
-			RootVariableValues: opts.SetVariables,
-			Plugins:            c.plugins,
-			Targets:            opts.Targets,
-			skipRefresh:        opts.SkipRefresh,
-			skipPlanChanges:    true, // this activates "refresh only" mode.
-			Operation:          walkPlan,
-			ExternalReferences: opts.ExternalReferences,
+			Config:                  config,
+			State:                   prevRunState,
+			RootVariableValues:      opts.SetVariables,
+			ExternalProviderConfigs: externalProviderConfigs,
+			Plugins:                 c.plugins,
+			Targets:                 opts.Targets,
+			skipRefresh:             opts.SkipRefresh,
+			skipPlanChanges:         true, // this activates "refresh only" mode.
+			Operation:               walkPlan,
+			ExternalReferences:      opts.ExternalReferences,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:             config,
-			State:              prevRunState,
-			RootVariableValues: opts.SetVariables,
-			Plugins:            c.plugins,
-			Targets:            opts.Targets,
-			skipRefresh:        opts.SkipRefresh,
-			Operation:          walkPlanDestroy,
+			Config:                  config,
+			State:                   prevRunState,
+			RootVariableValues:      opts.SetVariables,
+			ExternalProviderConfigs: externalProviderConfigs,
+			Plugins:                 c.plugins,
+			Targets:                 opts.Targets,
+			skipRefresh:             opts.SkipRefresh,
+			Operation:               walkPlanDestroy,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags
 	default:
