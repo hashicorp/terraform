@@ -300,6 +300,7 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.Bool,
 				Optional:    true,
 				Description: "Use the legacy authentication workflow, preferring environment variables over backend configuration.",
+				Deprecated:  true,
 			},
 
 			"custom_ca_bundle": {
@@ -857,6 +858,15 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		cty.GetAttrPath("forbidden_account_ids"),
 	)(obj, cty.Path{}, &diags)
 
+	attrPath = cty.GetAttrPath("use_legacy_workflow")
+	if val := obj.GetAttr("use_legacy_workflow"); !val.IsNull() {
+		diags = diags.Append(attributeWarningDiag(
+			"Deprecated Parameter",
+			fmt.Sprintf(`The parameter "%s" is deprecated. The ability to override the default credential chain ordering will be removed in a future minor version.`, pathString(attrPath)),
+			attrPath,
+		))
+	}
+
 	return obj, diags
 }
 
@@ -1022,11 +1032,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	// 1.6 - Default to `true` (prefer existing behavior, "opt-out" for new behavior)
 	// 1.7 - Default to `false` (prefer new behavior, "opt-in" for legacy behavior)
 	// 1.8 - Remove argument, legacy workflow no longer supported
-	if val, ok := boolAttrOk(obj, "use_legacy_workflow"); ok {
-		cfg.UseLegacyWorkflow = val
-	} else {
-		cfg.UseLegacyWorkflow = true
-	}
+	cfg.UseLegacyWorkflow = boolAttr(obj, "use_legacy_workflow")
 
 	if val, ok := boolAttrOk(obj, "skip_metadata_api_check"); ok {
 		if val {
