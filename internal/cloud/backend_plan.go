@@ -48,6 +48,16 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 		return nil, diags.Err()
 	}
 
+	if w.VCSRepo != nil && op.PlanOutPath != "" {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Saved plans not allowed for workspaces with a VCS connection",
+			"A workspace that is connected to a VCS requires the VCS-driven workflow "+
+				"to ensure that the VCS remains the single source of truth.",
+		))
+		return nil, diags.Err()
+	}
+
 	if b.ContextOpts != nil && b.ContextOpts.Parallelism != defaultParallelism {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
