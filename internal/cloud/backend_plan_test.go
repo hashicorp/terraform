@@ -420,6 +420,53 @@ func TestCloud_planWithPath(t *testing.T) {
 	}
 }
 
+// It's not nice to apply rogue configs in vcs-connected workspaces, so the
+// backend voluntarily declines to create a run that could be applied.
+func TestCloud_planWithPathAndVCS(t *testing.T) {
+	b, bCleanup := testBackendWithTags(t)
+	defer bCleanup()
+
+	// Create a named workspace with a VCS.
+	_, err := b.client.Workspaces.Create(
+		context.Background(),
+		b.organization,
+		tfe.WorkspaceCreateOptions{
+			Name:    tfe.String("prod-vcs"),
+			VCSRepo: &tfe.VCSRepoOptions{},
+		},
+	)
+	if err != nil {
+		t.Fatalf("error creating named workspace: %v", err)
+	}
+
+	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
+	defer configCleanup()
+
+	tmpDir := t.TempDir()
+	pfPath := tmpDir + "/plan.tfplan"
+	op.PlanOutPath = pfPath
+	op.Workspace = "prod-vcs"
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	output := done(t)
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("expected plan operation to fail")
+	}
+	if !run.PlanEmpty {
+		t.Fatalf("expected plan to be empty")
+	}
+
+	errOutput := output.Stderr()
+	if !strings.Contains(errOutput, "not allowed for workspaces with a VCS") {
+		t.Fatalf("expected a VCS error, got: %v", errOutput)
+	}
+}
+
 func TestCloud_planWithoutRefresh(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
