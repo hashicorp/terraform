@@ -2483,8 +2483,7 @@ removed {
 		},
 	})
 
-	planOpts := *DefaultPlanOpts
-	plan, diags := ctx.Plan(m, state, &planOpts)
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	}
@@ -2530,8 +2529,7 @@ removed {
 		},
 	})
 
-	planOpts := *DefaultPlanOpts
-	plan, diags := ctx.Plan(m, state, &planOpts)
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	}
