@@ -49,6 +49,68 @@ The import ID must be known at plan time for planning to succeed. If the value o
 
 The identifier you use for a resource's import ID is resource-specific. You can find the required ID in the [provider documentation](https://registry.terraform.io/browse/providers) for the resource you wish to import.
 
+### Import multiple instances with `for_each`
+
+Multiple resource instances can be imported via a single `import` block using the `for_each` argument. The `for_each` argument accepts a collection to iterate over, and results in an `each` iterator in the same manner as it does for [`dynamic` blocks](/terraform/language/expressions/dynamic-blocks). The `for_each` argument must be entirely known for the import plan to succeed, and `for_each` cannot be used when [generating configuration](/terraform/language/import/generating-configuration).
+
+The resulting `each.key` and `each.value` values can be used both in the `id` expression, and within index expressions in the `to` argument. This allows the mapping of multiple instances to expanded resources:
+
+```hcl
+locals {
+  buckets = {
+    "staging" = "bucket1"
+    "uat"     = "bucket2"
+    "prod"    = "bucket3"
+  }
+}
+
+import {
+  for_each = local.buckets
+  to = aws_s3_bucket.this[each.key]
+  id = each.value
+}
+
+resource "aws_s3_bucket" "this" {
+  for_each = local.buckets
+}
+```
+
+The same process can also be used to expand the imports across multiple module instances:
+
+```hcl
+locals {
+  buckets = [
+    { 
+      group = "one"
+      key   = "bucket1"
+      id    = "one_1"
+    },
+    {
+      group = "one"
+      key   = "bucket2"
+      id    = "one_2"
+    },
+    {
+      group = "two"
+      key   = "bucket1"
+      id    = "two_1"
+    },
+    {
+      group = "one"
+      key   = "bucket2"
+      id    = "two_2"
+    },
+  ]
+}
+
+import {
+  for_each = local.buckets
+  id = each.value.id
+  to = module.group[each.value.group].aws_s3_bucket.this[each.value.key]
+}
+```
+
+
 ## Plan and apply an import
 
 Terraform processes the `import` block during the plan stage. Once a plan is approved, Terraform imports the resource into its state during the subsequent apply stage.
