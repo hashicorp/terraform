@@ -130,6 +130,10 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	}
 	c.variableArgs = rawFlags{items: &items}
 
+	// Collect variables for "terraform test"
+	testVariables, variableDiags := c.collectVariableValuesForTests(args.TestDirectory)
+	diags = diags.Append(variableDiags)
+
 	variables, variableDiags := c.collectVariableValues()
 	diags = diags.Append(variableDiags)
 	if variableDiags.HasErrors() {
@@ -195,16 +199,22 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		}
 	} else {
 		runner = &local.TestSuiteRunner{
-			Config:          config,
-			GlobalVariables: variables,
-			Opts:            opts,
-			View:            view,
-			Stopped:         false,
-			Cancelled:       false,
-			StoppedCtx:      stopCtx,
-			CancelledCtx:    cancelCtx,
-			Filter:          args.Filter,
-			Verbose:         args.Verbose,
+			Config: config,
+			// The GlobalVariables are loaded from the
+			// main configuration directory
+			// The GlobalTestVariables are loaded from the
+			// test directory
+			GlobalVariables:     variables,
+			GlobalTestVariables: testVariables,
+			TestingDirectory:    args.TestDirectory,
+			Opts:                opts,
+			View:                view,
+			Stopped:             false,
+			Cancelled:           false,
+			StoppedCtx:          stopCtx,
+			CancelledCtx:        cancelCtx,
+			Filter:              args.Filter,
+			Verbose:             args.Verbose,
 		}
 	}
 

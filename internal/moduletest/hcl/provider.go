@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 var _ hcl.Body = (*ProviderConfig)(nil)
@@ -27,9 +26,9 @@ var _ hcl.Body = (*ProviderConfig)(nil)
 type ProviderConfig struct {
 	Original hcl.Body
 
-	ConfigVariables    map[string]*configs.Variable
-	AvailableVariables map[string]backend.UnparsedVariableValue
-	AvailableRunBlocks map[string]*terraform.TestContext
+	ConfigVariables     map[string]*configs.Variable
+	AvailableVariables  map[string]backend.UnparsedVariableValue
+	AvailableRunOutputs map[addrs.Run]cty.Value
 }
 
 func (p *ProviderConfig) Content(schema *hcl.BodySchema) (*hcl.BodyContent, hcl.Diagnostics) {
@@ -53,7 +52,7 @@ func (p *ProviderConfig) PartialContent(schema *hcl.BodySchema) (*hcl.BodyConten
 		Attributes:       attrs,
 		Blocks:           p.transformBlocks(content.Blocks),
 		MissingItemRange: content.MissingItemRange,
-	}, &ProviderConfig{rest, p.ConfigVariables, p.AvailableVariables, p.AvailableRunBlocks}, diags
+	}, &ProviderConfig{rest, p.ConfigVariables, p.AvailableVariables, p.AvailableRunOutputs}, diags
 }
 
 func (p *ProviderConfig) JustAttributes() (hcl.Attributes, hcl.Diagnostics) {
@@ -108,7 +107,7 @@ func (p *ProviderConfig) transformAttributes(originals hcl.Attributes) (hcl.Attr
 		}
 	}
 
-	ctx, ctxDiags := EvalContext(TargetProvider, exprs, availableVariables, p.AvailableRunBlocks)
+	ctx, ctxDiags := EvalContext(TargetProvider, exprs, availableVariables, p.AvailableRunOutputs)
 	diags = append(diags, ctxDiags.ToHCL()...)
 	if ctxDiags.HasErrors() {
 		return nil, diags
@@ -138,7 +137,7 @@ func (p *ProviderConfig) transformBlocks(originals hcl.Blocks) hcl.Blocks {
 		blocks[name] = &hcl.Block{
 			Type:        block.Type,
 			Labels:      block.Labels,
-			Body:        &ProviderConfig{block.Body, p.ConfigVariables, p.AvailableVariables, p.AvailableRunBlocks},
+			Body:        &ProviderConfig{block.Body, p.ConfigVariables, p.AvailableVariables, p.AvailableRunOutputs},
 			DefRange:    block.DefRange,
 			TypeRange:   block.TypeRange,
 			LabelRanges: block.LabelRanges,

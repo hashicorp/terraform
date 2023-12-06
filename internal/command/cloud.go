@@ -63,8 +63,10 @@ func (c *CloudCommand) realRun(args []string, stdout, stderr io.Writer) int {
 	args = c.Meta.process(args)
 
 	diags := c.initPlugin()
+	if diags.HasWarnings() || diags.HasErrors() {
+		c.View.Diagnostics(diags)
+	}
 	if diags.HasErrors() {
-		c.Ui.Warn(diags.ErrWithWarnings().Error())
 		return ExitPluginError
 	}
 
@@ -191,7 +193,9 @@ func (c *CloudCommand) initPlugin() tfdiags.Diagnostics {
 		return diags.Append(tfdiags.Sourceless(tfdiags.Error, errorSummary, err.Error()))
 	}
 
-	bm, err := cloudplugin.NewBinaryManager(ctx, packagesPath, serviceURL, runtime.GOOS, runtime.GOARCH)
+	overridePath := os.Getenv("TF_CLOUD_PLUGIN_DEV_OVERRIDE")
+
+	bm, err := cloudplugin.NewBinaryManager(ctx, packagesPath, overridePath, serviceURL, runtime.GOOS, runtime.GOARCH)
 	if err != nil {
 		return diags.Append(tfdiags.Sourceless(tfdiags.Error, errorSummary, err.Error()))
 	}
@@ -205,9 +209,18 @@ func (c *CloudCommand) initPlugin() tfdiags.Diagnostics {
 	if version.ResolvedFromCache {
 		cacheTraceMsg = " (resolved from cache)"
 	}
+	if version.ResolvedFromDevOverride {
+		cacheTraceMsg = " (resolved from dev override)"
+		detailMsg := fmt.Sprintf("Instead of using the current released version, Terraform is loading the cloud plugin from the following location:\n\n - %s\n\nOverriding the cloud plugin location can cause unexpected behavior, and is only intended for use when developing new versions of the plugin.", version.Path)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Cloud plugin development overrides are in effect",
+			detailMsg,
+		))
+	}
 	log.Printf("[TRACE] plugin %q binary located at %q%s", version.ProductVersion, version.Path, cacheTraceMsg)
 	c.pluginBinary = version.Path
-	return nil
+	return diags
 }
 
 func (c *CloudCommand) initPackagesCache() (string, error) {

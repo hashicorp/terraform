@@ -21,7 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 
-func TestTest(t *testing.T) {
+func TestTest_Runs(t *testing.T) {
 	tcs := map[string]struct {
 		override              string
 		args                  []string
@@ -117,26 +117,32 @@ func TestTest(t *testing.T) {
 			override:    "variables",
 			args:        []string{"-var=input=foo"},
 			expectedOut: "1 passed, 1 failed",
+			expectedErr: `invalid value`,
 			code:        1,
 		},
 		"simple_fail": {
 			expectedOut: "0 passed, 1 failed.",
+			expectedErr: "invalid value",
 			code:        1,
 		},
 		"custom_condition_checks": {
 			expectedOut: "0 passed, 1 failed.",
+			expectedErr: "this really should fail",
 			code:        1,
 		},
 		"custom_condition_inputs": {
 			expectedOut: "0 passed, 1 failed.",
+			expectedErr: "this should definitely fail",
 			code:        1,
 		},
 		"custom_condition_outputs": {
 			expectedOut: "0 passed, 1 failed.",
+			expectedErr: "this should fail",
 			code:        1,
 		},
 		"custom_condition_resources": {
 			expectedOut: "0 passed, 1 failed.",
+			expectedErr: "this really should fail",
 			code:        1,
 		},
 		"no_providers_in_main": {
@@ -183,11 +189,22 @@ func TestTest(t *testing.T) {
 		},
 		"destroy_fail": {
 			expectedOut:           "1 passed, 0 failed.",
+			expectedErr:           `Terraform left the following resources in state`,
 			code:                  1,
 			expectedResourceCount: 1,
 		},
 		"default_optional_values": {
 			expectedOut: "4 passed, 0 failed.",
+			code:        0,
+		},
+		"tfvars_in_test_dir": {
+			expectedOut: "2 passed, 0 failed.",
+			code:        0,
+		},
+		"auto_tfvars_in_test_dir": {
+			override:    "tfvars_in_test_dir",
+			args:        []string{"-test-directory=alternate"},
+			expectedOut: "2 passed, 0 failed.",
 			code:        0,
 		},
 		"functions_available": {
@@ -264,7 +281,9 @@ func TestTest(t *testing.T) {
 			}
 
 			if !strings.Contains(output.Stderr(), tc.expectedErr) {
-				t.Errorf("error didn't contain expected string:\n\n%s", output.All())
+				t.Errorf("error didn't contain expected string:\n\n%s", output.Stderr())
+			} else if tc.expectedErr == "" && output.Stderr() != "" {
+				t.Errorf("unexpected stderr output\n%s", output.Stderr())
 			}
 
 			if provider.ResourceCount() != tc.expectedResourceCount {

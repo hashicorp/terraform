@@ -89,11 +89,19 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 		walker = c.graphWalker(walkEval, walkOpts)
 	}
 
+	return evalScopeFromGraphWalk(walker, moduleAddr), diags
+}
+
+// evalScopeFromGraphWalk takes a [ContextGraphWalker] that was already used
+// to run a graph walk and derives from it an evaluation scope which can
+// evaluate expressions for a given module path in whatever mode makes sense
+// for how the graph walker is configured.
+func evalScopeFromGraphWalk(walker *ContextGraphWalker, moduleAddr addrs.ModuleInstance) *lang.Scope {
 	// This is a bit weird since we don't normally evaluate outside of
 	// the context of a walk, but we'll "re-enter" our desired path here
 	// just to get hold of an EvalContext for it. ContextGraphWalker
 	// caches its contexts, so we should get hold of the context that was
 	// previously used for evaluation here, unless we skipped walking.
 	evalCtx := walker.EnterPath(moduleAddr)
-	return evalCtx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey), diags
+	return evalCtx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
 }

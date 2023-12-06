@@ -27,6 +27,7 @@ type BinaryManager struct {
 	signingKey         string
 	binaryName         string
 	cloudPluginDataDir string
+	overridePath       string
 	host               svchost.Hostname
 	client             *CloudPluginClient
 	goos               string
@@ -37,9 +38,10 @@ type BinaryManager struct {
 // Binary is a struct containing the path to an authenticated binary corresponding to
 // a backend service.
 type Binary struct {
-	Path              string
-	ProductVersion    string
-	ResolvedFromCache bool
+	Path                    string
+	ProductVersion          string
+	ResolvedFromCache       bool
+	ResolvedFromDevOverride bool
 }
 
 const (
@@ -50,7 +52,7 @@ const (
 // BinaryManager initializes a new BinaryManager to broker data between the
 // specified directory location containing cloudplugin package data and a
 // Terraform Cloud backend URL.
-func NewBinaryManager(ctx context.Context, cloudPluginDataDir string, serviceURL *url.URL, goos, arch string) (*BinaryManager, error) {
+func NewBinaryManager(ctx context.Context, cloudPluginDataDir, overridePath string, serviceURL *url.URL, goos, arch string) (*BinaryManager, error) {
 	client, err := NewCloudPluginClient(ctx, serviceURL)
 	if err != nil {
 		return nil, fmt.Errorf("could not initialize cloudplugin version manager: %w", err)
@@ -58,6 +60,7 @@ func NewBinaryManager(ctx context.Context, cloudPluginDataDir string, serviceURL
 
 	return &BinaryManager{
 		cloudPluginDataDir: cloudPluginDataDir,
+		overridePath:       overridePath,
 		host:               svchost.Hostname(serviceURL.Host),
 		client:             client,
 		binaryName:         "terraform-cloudplugin",
@@ -90,6 +93,22 @@ func (v BinaryManager) cachedVersion(version string) *string {
 // Resolve fetches, authenticates, and caches a plugin binary matching the specifications
 // and returns its location and version.
 func (v BinaryManager) Resolve() (*Binary, error) {
+	if v.overridePath != "" {
+		log.Printf("[TRACE] Using dev override for cloudplugin binary")
+		return v.resolveDev()
+	}
+	return v.resolveRelease()
+}
+
+func (v BinaryManager) resolveDev() (*Binary, error) {
+	return &Binary{
+		Path:                    v.overridePath,
+		ProductVersion:          "dev",
+		ResolvedFromDevOverride: true,
+	}, nil
+}
+
+func (v BinaryManager) resolveRelease() (*Binary, error) {
 	manifest, err := v.latestManifest(v.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("could not resolve cloudplugin version for host %q: %w", v.host.ForDisplay(), err)
