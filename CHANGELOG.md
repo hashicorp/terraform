@@ -1,4 +1,4 @@
-## 1.7.0 (Unreleased)
+## 1.7.0-beta1 (December 6, 2023)
 
 UPGRADE NOTES:
 
