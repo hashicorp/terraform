@@ -10,6 +10,7 @@ jobs:
     steps:
       - uses: dessant/lock-threads@1bf7ec25051fe7c00bdd17e6a7cf3d7bfb7dc771 # v5.0.1
         with:
+          process-only: 'issues, prs'
           github-token: ${{ github.token }}
           issue-comment: >
             I'm going to lock this issue because it has been closed for _30 days_ ⏳. This helps our maintainers find and focus on the active issues.
