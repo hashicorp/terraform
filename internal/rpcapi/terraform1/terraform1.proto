@@ -868,6 +868,7 @@ message AppliedChange {
             Nothing deleted = 4; // explicitly represents the absense of a description
             ResourceInstance resource_instance = 2;
             OutputValue output_value = 3;
+            ComponentInstance component_instance = 5;
         }
         // Field number 20000 is reserved as a field number that will
         // always be unknown to any client, to allow clients to test
@@ -903,6 +904,10 @@ message AppliedChange {
         // description of the state the remote system has been left
         // in.
         bool interim = 3;
+    }
+    message ComponentInstance {
+        string component_instance_addr = 1;
+        map<string,DynamicValue> output_values = 2;
     }
     message OutputValue {
         string name = 1;

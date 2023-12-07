@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackutils"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -37,6 +38,16 @@ type AppliedChange interface {
 // AppliedChangeResourceInstanceObject announces the result of applying changes to
 // a particular resource instance object.
 type AppliedChangeResourceInstanceObject struct {
+	// ResourceInstanceObjectAddr is the absolute address of the resource
+	// instance object within the component instance that declared it.
+	//
+	// Typically a stream of applied changes with a resource instance object
+	// will also include a separate description of the component instance
+	// that the resource instance belongs to, but that isn't guaranteed in
+	// cases where problems occur during the apply phase and so consumers
+	// should tolerate seeing a resource instance for a component instance
+	// they don't know about yet, and should behave as if that component
+	// instance had been previously announced.
 	ResourceInstanceObjectAddr stackaddrs.AbsResourceInstanceObject
 	NewStateSrc                *states.ResourceInstanceObjectSrc
 	ProviderConfigAddr         addrs.AbsProviderConfig
@@ -146,6 +157,75 @@ func (ac *AppliedChangeResourceInstanceObject) protosForObject() ([]*terraform1.
 	})
 
 	return descs, raws, nil
+}
+
+// AppliedChangeComponentInstance announces the result of applying changes to
+// an overall component instance.
+//
+// This deals with external-facing metadata about component instances, but
+// does not directly track any resource instances inside. Those are tracked
+// using individual [AppliedChangeResourceInstanceObject] objects for each.
+type AppliedChangeComponentInstance struct {
+	ComponentInstanceAddr stackaddrs.AbsComponentInstance
+
+	// OutputValues "remembers" the output values from the most recent
+	// apply of the component instance. We store this primarily for external
+	// consumption, since the stacks runtime is able to recalculate the
+	// output values based on the prior state when needed, but we do have
+	// the option of using this internally in certain special cases where it
+	// would be too expensive to recalculate.
+	//
+	// If any output values are declared as sensitive then they should be
+	// marked as such here using the usual cty marking strategy.
+	OutputValues map[addrs.OutputValue]cty.Value
+}
+
+var _ AppliedChange = (*AppliedChangeComponentInstance)(nil)
+
+// AppliedChangeProto implements AppliedChange.
+func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*terraform1.AppliedChange, error) {
+	ret := &terraform1.AppliedChange{
+		Raw:          make([]*terraform1.AppliedChange_RawChange, 0, 1),
+		Descriptions: make([]*terraform1.AppliedChange_ChangeDescription, 0, 1),
+	}
+	stateKey := statekeys.ComponentInstance{
+		ComponentInstanceAddr: ac.ComponentInstanceAddr,
+	}
+
+	rawMsg, err := tfstackdata1.ComponentInstanceResultsToTFStackData1(ac.OutputValues)
+	if err != nil {
+		return nil, fmt.Errorf("encoding raw state for %s: %w", ac.ComponentInstanceAddr, err)
+	}
+	var raw anypb.Any
+	err = anypb.MarshalFrom(&raw, rawMsg, proto.MarshalOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("encoding raw state for %s: %w", ac.ComponentInstanceAddr, err)
+	}
+
+	outputDescs := make(map[string]*terraform1.DynamicValue, len(ac.OutputValues))
+	for addr, val := range ac.OutputValues {
+		unmarkedValue, sensitivePaths := val.UnmarkDeepWithPaths()
+		encValue, err := plans.NewDynamicValue(unmarkedValue, cty.DynamicPseudoType)
+		if err != nil {
+			return nil, fmt.Errorf("encoding new state for %s in %s in preparation for saving it: %w", addr, ac.ComponentInstanceAddr, err)
+		}
+		protoValue := terraform1.NewDynamicValue(encValue, sensitivePaths)
+		outputDescs[addr.Name] = protoValue
+	}
+
+	ret.Raw = append(ret.Raw, &terraform1.AppliedChange_RawChange{
+		Key:   statekeys.String(stateKey),
+		Value: &raw,
+	})
+	ret.Descriptions = append(ret.Descriptions, &terraform1.AppliedChange_ChangeDescription{
+		Key: statekeys.String(stateKey),
+		Description: &terraform1.AppliedChange_ChangeDescription_ComponentInstance{
+			ComponentInstance: &terraform1.AppliedChange_ComponentInstance{
+				ComponentInstanceAddr: ac.ComponentInstanceAddr.String(),
+			},
+		},
+	})
+	return ret, nil
 }
 
 type AppliedChangeDiscardKeys struct {
