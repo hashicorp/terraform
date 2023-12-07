@@ -92,7 +92,7 @@ message PlanComponentInstance {
     // determined until the apply phase, so this isn't usable directly as
     // the input to subsequently applying the component plan but the final
     // input values should be a valid concretization of what's described here.
-    map<string, tfplan.DynamicValue> planned_input_values = 3;
+    map<string, DynamicValue> planned_input_values = 3;
 }
 
 // Represents a planned change to a particular resource instance within a
@@ -170,7 +170,7 @@ message PlanDiscardStateMapKeys {
 
 // Represents the existence of a particular component instance.
 //
-// This is here just to remove the ambiguity between a component instance that
+// This is here mainly to remove the ambiguity between a component instance that
 // exists but contains no resource instances vs. a component instance that
 // doesn't exist at all.
 //
@@ -181,8 +181,14 @@ message PlanDiscardStateMapKeys {
 // message of this type with a matching component instance address and with
 // all other fields unset.
 message StateComponentInstanceV1 {
-    // No details to track yet. The presence of an instance of this message
-    // at all is the signal of the component instance's existence.
+    // The component instance's output values as reported from the most recent
+    // apply action. We retain this only so that we have some values to use
+    // in cases where the values in the configuration are unavailable or
+    // insufficient, such as when we're making a destroy-mode plan and therefore
+    // the desired state would be for the component instance to cease existing
+    // but yet we still need to have _some_ output values to use when planning
+    // and applying other component instances that refer to this one.
+    map<string, DynamicValue> output_values = 1;
 }
 
 // Represents the existence of a particular resource instance object in a
@@ -226,4 +232,9 @@ message StateResourceInstanceObjectV1 {
         READY = 1;
         DAMAGED = 2; // (formerly known as "tainted")
     }
+}
+
+message DynamicValue {
+    tfplan.DynamicValue value = 1;
+    repeated tfplan.Path sensitive_paths = 2;
 }

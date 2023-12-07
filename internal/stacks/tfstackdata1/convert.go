@@ -10,6 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty/msgpack"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
@@ -51,6 +52,51 @@ func ResourceInstanceObjectStateToTFStackData1(objSrc *states.ResourceInstanceOb
 	}
 
 	return rawMsg
+}
+
+func ComponentInstanceResultsToTFStackData1(outputValues map[addrs.OutputValue]cty.Value) (*StateComponentInstanceV1, error) {
+	protoOutputs := make(map[string]*DynamicValue, len(outputValues))
+	for addr, val := range outputValues {
+		protoVal, err := DynamicValueToTFStackData1(val, cty.DynamicPseudoType)
+		if err != nil {
+			return nil, fmt.Errorf("encoding %s: %w", addr, err)
+		}
+		protoOutputs[addr.Name] = protoVal
+	}
+	return &StateComponentInstanceV1{
+		OutputValues: protoOutputs,
+	}, nil
+}
+
+func DynamicValueToTFStackData1(val cty.Value, ty cty.Type) (*DynamicValue, error) {
+	unmarkedVal, markPaths := val.UnmarkDeepWithPaths()
+
+	rawVal, err := msgpack.Marshal(unmarkedVal, ty)
+	if err != nil {
+		return nil, err
+	}
+	ret := &DynamicValue{
+		Value: &planproto.DynamicValue{
+			Msgpack: rawVal,
+		},
+	}
+	if len(markPaths) == 0 {
+		return ret, nil
+	}
+
+	ret.SensitivePaths = make([]*planproto.Path, 0, len(markPaths))
+	for _, pathMarks := range markPaths {
+		if _, isSensitive := pathMarks.Marks[marks.Sensitive]; !isSensitive {
+			// Some other kind of mark we don't know how to handle, then.
+			continue
+		}
+		path, err := planproto.NewPath(pathMarks.Path)
+		if err != nil {
+			return nil, pathMarks.Path.NewErrorf("failed to encode path: %w", err)
+		}
+		ret.SensitivePaths = append(ret.SensitivePaths, path)
+	}
+	return ret, nil
 }
 
 func Terraform1ToPlanProtoAttributePaths(paths []*terraform1.AttributePath) []*planproto.Path {

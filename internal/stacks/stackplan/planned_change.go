@@ -115,12 +115,24 @@ var _ PlannedChange = (*PlannedChangeComponentInstance)(nil)
 
 // PlannedChangeProto implements PlannedChange.
 func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.PlannedChange, error) {
-	var plannedInputValues map[string]*planproto.DynamicValue
+	var plannedInputValues map[string]*tfstackdata1.DynamicValue
 	if n := len(pc.PlannedInputValues); n != 0 {
-		plannedInputValues = make(map[string]*planproto.DynamicValue, n)
+		plannedInputValues = make(map[string]*tfstackdata1.DynamicValue, n)
 		for k, v := range pc.PlannedInputValues {
-			plannedInputValues[k] = &planproto.DynamicValue{
-				Msgpack: v,
+			plannedInputValues[k] = &tfstackdata1.DynamicValue{
+				Value: &planproto.DynamicValue{
+					Msgpack: v,
+				},
+				// FIXME: We're currently losing track of sensitivity here --
+				// or, more accurately, in the caller that's populating
+				// pc.PlannedInputValues -- but that's not _super_ important
+				// because we don't directly use these values during the
+				// apply phase anyway, and instead recalculate the input
+				// values based on updated data from other components having
+				// already been applied. These values are here only to give
+				// us something to compare against as a safety check to catch
+				// if a bug somewhere causes the values to be inconsistent
+				// between plan and apply.
 			}
 		}
 	}
