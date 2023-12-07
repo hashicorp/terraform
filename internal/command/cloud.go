@@ -77,7 +77,9 @@ func (c *CloudCommand) realRun(args []string, stdout, stderr io.Writer) int {
 		Logger:           logging.NewCloudLogger(),
 		VersionedPlugins: map[int]plugin.PluginSet{
 			1: {
-				"cloud": &cloudplugin1.GRPCCloudPlugin{},
+				"cloud": &cloudplugin1.GRPCCloudPlugin{
+					Streams: c.Streams,
+				},
 			},
 		},
 	})
@@ -105,7 +107,7 @@ func (c *CloudCommand) realRun(args []string, stdout, stderr io.Writer) int {
 		c.Ui.Error("If more than one cloudplugin versions are available, they need to be added to the cloud command. This is a bug in Terraform.")
 		return ExitRPCError
 	}
-	return cloud1.Execute(args, stdout, stderr)
+	return cloud1.Execute(args)
 }
 
 // discover the TFC/E API service URL and version constraints.
@@ -242,7 +244,7 @@ func (c *CloudCommand) initPackagesCache() (string, error) {
 // Run runs the cloud command with the given arguments.
 func (c *CloudCommand) Run(args []string) int {
 	args = c.Meta.process(args)
-	return c.realRun(args, c.Meta.Streams.Stdout.File, c.Meta.Streams.Stderr.File)
+	return c.realRun(args, c.Streams.Stdout.File, c.Streams.Stderr.File)
 }
 
 // Help returns help text for the cloud command.

@@ -5,16 +5,17 @@ package cloudplugin1
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log"
 
 	"github.com/hashicorp/terraform/internal/cloudplugin"
 	"github.com/hashicorp/terraform/internal/cloudplugin/cloudproto1"
+	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 // GRPCCloudClient is the client interface for interacting with terraform-cloudplugin
 type GRPCCloudClient struct {
+	streams *terminal.Streams
 	client  cloudproto1.CommandServiceClient
 	context context.Context
 }
@@ -24,13 +25,13 @@ var _ cloudplugin.Cloud1 = GRPCCloudClient{}
 
 // Execute sends the client Execute request and waits for the plugin to return
 // an exit code response before returning
-func (c GRPCCloudClient) Execute(args []string, stdout, stderr io.Writer) int {
+func (c GRPCCloudClient) Execute(args []string) int {
 	client, err := c.client.Execute(c.context, &cloudproto1.CommandRequest{
 		Args: args,
 	})
 
 	if err != nil {
-		fmt.Fprint(stderr, err.Error())
+		c.streams.Eprint(err.Error())
 		return 1
 	}
 
@@ -42,12 +43,12 @@ func (c GRPCCloudClient) Execute(args []string, stdout, stderr io.Writer) int {
 			log.Print("[DEBUG] received EOF from cloudplugin")
 			break
 		} else if err != nil {
-			fmt.Fprintf(stderr, "Failed to receive command response from cloudplugin: %s", err)
+			c.streams.Eprintf("Failed to receive command response from cloudplugin: %s", err)
 			return 1
 		}
 
 		if bytes := response.GetStdout(); len(bytes) > 0 {
-			written, err := fmt.Fprint(stdout, string(bytes))
+			written, err := c.streams.Print(string(bytes))
 			if err != nil {
 				log.Printf("[ERROR] Failed to write cloudplugin output to stdout: %s", err)
 				return 1
@@ -56,7 +57,7 @@ func (c GRPCCloudClient) Execute(args []string, stdout, stderr io.Writer) int {
 				log.Printf("[ERROR] Wrote %d bytes to stdout but expected to write %d", written, len(bytes))
 			}
 		} else if bytes := response.GetStderr(); len(bytes) > 0 {
-			written, err := fmt.Fprint(stderr, string(bytes))
+			written, err := c.streams.Eprint(string(bytes))
 			if err != nil {
 				log.Printf("[ERROR] Failed to write cloudplugin output to stderr: %s", err)
 				return 1
@@ -76,6 +77,6 @@ func (c GRPCCloudClient) Execute(args []string, stdout, stderr io.Writer) int {
 	}
 
 	// This should indicate a bug in the plugin
-	fmt.Fprint(stderr, "cloudplugin exited without responding with an error code")
+	c.streams.Eprint("cloudplugin exited without responding with an error code")
 	return 1
 }

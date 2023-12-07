@@ -4,21 +4,20 @@
 package cloudplugin1
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/hashicorp/terraform/internal/cloudplugin/cloudproto1"
 	"github.com/hashicorp/terraform/internal/cloudplugin/mock_cloudproto1"
+	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 var mockError = "this is a mock error"
 
-func testGRPCloudClient(t *testing.T, ctrl *gomock.Controller, client *mock_cloudproto1.MockCommandService_ExecuteClient, executeError error) *GRPCCloudClient {
+func testGRPCloudClient(t *testing.T, ctrl *gomock.Controller, client *mock_cloudproto1.MockCommandService_ExecuteClient, streams *terminal.Streams, executeError error) *GRPCCloudClient {
 	t.Helper()
 
 	if client != nil && executeError != nil {
@@ -36,34 +35,36 @@ func testGRPCloudClient(t *testing.T, ctrl *gomock.Controller, client *mock_clou
 	return &GRPCCloudClient{
 		client:  result,
 		context: context.Background(),
+		streams: streams,
 	}
 }
 
 func Test_GRPCCloudClient_ExecuteError(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	gRPCClient := testGRPCloudClient(t, ctrl, nil, errors.New(mockError))
+	testStreams, done := terminal.StreamsForTesting(t)
+	gRPCClient := testGRPCloudClient(t, ctrl, nil, testStreams, errors.New(mockError))
 
-	buffer := bytes.Buffer{}
-	exitCode := gRPCClient.Execute([]string{"example"}, io.Discard, &buffer)
+	exitCode := gRPCClient.Execute([]string{"example"})
 
 	if exitCode != 1 {
 		t.Fatalf("expected exit %d, got %d", 1, exitCode)
 	}
 
-	if buffer.String() != mockError {
-		t.Errorf("expected error %q, got %q", mockError, buffer.String())
+	errOutput := done(t).Stderr()
+	if errOutput != mockError {
+		t.Errorf("expected error %q, got %q", mockError, errOutput)
 	}
 }
 
 func Test_GRPCCloudClient_Execute_RecvError(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	testStreams, done := terminal.StreamsForTesting(t)
 	executeClient := mock_cloudproto1.NewMockCommandService_ExecuteClient(ctrl)
 	executeClient.EXPECT().Recv().Return(nil, errors.New(mockError))
 
-	gRPCClient := testGRPCloudClient(t, ctrl, executeClient, nil)
+	gRPCClient := testGRPCloudClient(t, ctrl, executeClient, testStreams, nil)
 
-	buffer := bytes.Buffer{}
-	exitCode := gRPCClient.Execute([]string{"example"}, io.Discard, &buffer)
+	exitCode := gRPCClient.Execute([]string{"example"})
 
 	if exitCode != 1 {
 		t.Fatalf("expected exit %d, got %d", 1, exitCode)
@@ -71,14 +72,16 @@ func Test_GRPCCloudClient_Execute_RecvError(t *testing.T) {
 
 	mockRecvError := fmt.Sprintf("Failed to receive command response from cloudplugin: %s", mockError)
 
-	if buffer.String() != mockRecvError {
-		t.Errorf("expected error %q, got %q", mockRecvError, buffer.String())
+	errOutput := done(t).Stderr()
+	if errOutput != mockRecvError {
+		t.Errorf("expected error %q, got %q", mockRecvError, errOutput)
 	}
 }
 
 func Test_GRPCCloudClient_Execute_Invalid_Exit(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	executeClient := mock_cloudproto1.NewMockCommandService_ExecuteClient(ctrl)
+	testStreams, _ := terminal.StreamsForTesting(t)
 
 	executeClient.EXPECT().Recv().Return(
 		&cloudproto1.CommandResponse{
@@ -88,9 +91,9 @@ func Test_GRPCCloudClient_Execute_Invalid_Exit(t *testing.T) {
 		}, nil,
 	)
 
-	gRPCClient := testGRPCloudClient(t, ctrl, executeClient, nil)
+	gRPCClient := testGRPCloudClient(t, ctrl, executeClient, testStreams, nil)
 
-	exitCode := gRPCClient.Execute([]string{"example"}, io.Discard, io.Discard)
+	exitCode := gRPCClient.Execute([]string{"example"})
 
 	if exitCode != 255 {
 		t.Fatalf("expected exit %q, got %q", 255, exitCode)
@@ -99,6 +102,7 @@ func Test_GRPCCloudClient_Execute_Invalid_Exit(t *testing.T) {
 
 func Test_GRPCCloudClient_Execute(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	testStreams, done := terminal.StreamsForTesting(t)
 	executeClient := mock_cloudproto1.NewMockCommandService_ExecuteClient(ctrl)
 
 	gomock.InOrder(
@@ -125,16 +129,16 @@ func Test_GRPCCloudClient_Execute(t *testing.T) {
 		),
 	)
 
-	gRPCClient := testGRPCloudClient(t, ctrl, executeClient, nil)
+	gRPCClient := testGRPCloudClient(t, ctrl, executeClient, testStreams, nil)
 
-	stdoutBuffer := bytes.Buffer{}
-	exitCode := gRPCClient.Execute([]string{"example"}, &stdoutBuffer, io.Discard)
+	exitCode := gRPCClient.Execute([]string{"example"})
 
 	if exitCode != 99 {
 		t.Fatalf("expected exit %q, got %q", 99, exitCode)
 	}
 
-	if stdoutBuffer.String() != "firstcall\nsecondcall\n" {
-		t.Errorf("expected output %q, got %q", "firstcall\nsecondcall\n", stdoutBuffer.String())
+	output := done(t).Stdout()
+	if output != "firstcall\nsecondcall\n" {
+		t.Errorf("expected output %q, got %q", "firstcall\nsecondcall\n", output)
 	}
 }
