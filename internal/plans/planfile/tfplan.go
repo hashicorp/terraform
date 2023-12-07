@@ -876,14 +876,7 @@ func changeToTfplan(change *plans.ChangeSrc) (*planproto.Change, error) {
 }
 
 func valueToTfplan(val plans.DynamicValue) *planproto.DynamicValue {
-	if val == nil {
-		// protobuf can't represent nil, so we'll represent it as a
-		// DynamicValue that has no serializations at all.
-		return &planproto.DynamicValue{}
-	}
-	return &planproto.DynamicValue{
-		Msgpack: []byte(val),
-	}
+	return planproto.NewPlanDynamicValue(val)
 }
 
 func pathValueMarksFromTfplan(paths []*planproto.Path, marks cty.ValueMarks) ([]cty.PathValueMarks, error) {
@@ -941,30 +934,5 @@ func pathFromTfplan(path *planproto.Path) (cty.Path, error) {
 }
 
 func pathToTfplan(path cty.Path) (*planproto.Path, error) {
-	steps := make([]*planproto.Path_Step, 0, len(path))
-	for _, step := range path {
-		switch s := step.(type) {
-		case cty.IndexStep:
-			value, err := plans.NewDynamicValue(s.Key, s.Key.Type())
-			if err != nil {
-				return nil, fmt.Errorf("Error encoding path step: %s", err)
-			}
-			steps = append(steps, &planproto.Path_Step{
-				Selector: &planproto.Path_Step_ElementKey{
-					ElementKey: valueToTfplan(value),
-				},
-			})
-		case cty.GetAttrStep:
-			steps = append(steps, &planproto.Path_Step{
-				Selector: &planproto.Path_Step_AttributeName{
-					AttributeName: s.Name,
-				},
-			})
-		default:
-			return nil, fmt.Errorf("Unsupported path step %#v (%t)", step, step)
-		}
-	}
-	return &planproto.Path{
-		Steps: steps,
-	}, nil
+	return planproto.NewPath(path)
 }
