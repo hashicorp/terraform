@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/cloudplugin"
 	"github.com/hashicorp/terraform/internal/cloudplugin/cloudproto1"
+	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 
@@ -48,7 +49,8 @@ func (c GRPCCloudClient) Execute(args []string) int {
 		}
 
 		if bytes := response.GetStdout(); len(bytes) > 0 {
-			written, err := c.streams.Print(string(bytes))
+			output := format.WordWrap(string(bytes), c.streams.Stdout.Columns())
+			written, err := c.streams.Print(output)
 			if err != nil {
 				log.Printf("[ERROR] Failed to write cloudplugin output to stdout: %s", err)
 				return 1
@@ -57,7 +59,8 @@ func (c GRPCCloudClient) Execute(args []string) int {
 				log.Printf("[ERROR] Wrote %d bytes to stdout but expected to write %d", written, len(bytes))
 			}
 		} else if bytes := response.GetStderr(); len(bytes) > 0 {
-			written, err := c.streams.Eprint(string(bytes))
+			output := format.WordWrap(string(bytes), c.streams.Stderr.Columns())
+			written, err := c.streams.Eprint(output)
 			if err != nil {
 				log.Printf("[ERROR] Failed to write cloudplugin output to stderr: %s", err)
 				return 1
