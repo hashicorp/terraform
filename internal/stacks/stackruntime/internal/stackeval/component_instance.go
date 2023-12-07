@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -1118,6 +1119,20 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 
 	if applyResult != nil {
 		newState := applyResult.FinalState
+
+		ourChange := &stackstate.AppliedChangeComponentInstance{
+			ComponentInstanceAddr: c.Addr(),
+			OutputValues:          make(map[addrs.OutputValue]cty.Value, len(newState.RootOutputValues)),
+		}
+		for name, os := range newState.RootOutputValues {
+			val := os.Value
+			if os.Sensitive {
+				val = val.Mark(marks.Sensitive)
+			}
+			ourChange.OutputValues[addrs.OutputValue{Name: name}] = val
+		}
+		changes = append(changes, ourChange)
+
 		for _, rioAddr := range applyResult.AffectedResourceInstanceObjects {
 			os := newState.ResourceInstanceObjectSrc(rioAddr)
 			var providerConfigAddr addrs.AbsProviderConfig
