@@ -850,19 +850,55 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 			return cty.DynamicVal
 		}
 
-		// During the plan phase we use the planned output changes to construct
-		// our value.
-		outputChanges := plan.Changes.Outputs
-		attrs := make(map[string]cty.Value, len(outputChanges))
-		for _, changeSrc := range outputChanges {
-			name := changeSrc.Addr.OutputValue.Name
-			change, err := changeSrc.Decode()
-			if err != nil {
-				attrs[name] = cty.DynamicVal
+		// We need to vary our behavior here slightly depending on what action
+		// we're planning to take with this overall component: normally we want
+		// to use the "planned new state"'s output values, but if we're actually
+		// planning to destroy all of the infrastructure managed by this
+		// component then the planned new state has no output values at all,
+		// so we'll use the prior state's output values instead just in case
+		// we also need to plan destroying another component instance
+		// downstream of this one which will make use of this instance's
+		// output values _before_ we destroy it.
+		//
+		// FIXME: We're using UIMode for this decision, despite its doc comment
+		// saying we shouldn't, because this behavior is an offshoot of the
+		// already-documented annoying exception to that rule where various
+		// parts of Terraform use UIMode == DestroyMode in particular to deal
+		// with necessary variations during a "full destroy". Hopefully we'll
+		// eventually find a more satisfying solution for that, in which case
+		// we should update the following to use that solution too.
+		attrs := make(map[string]cty.Value)
+		if plan.UIMode != plans.DestroyMode {
+			outputChanges := plan.Changes.Outputs
+			for _, changeSrc := range outputChanges {
+				name := changeSrc.Addr.OutputValue.Name
+				change, err := changeSrc.Decode()
+				if err != nil {
+					attrs[name] = cty.DynamicVal
+					continue
+				}
+				attrs[name] = change.After
 			}
-			attrs[name] = change.After
+		} else {
+			// The "prior state" of the plan includes any new information we
+			// learned by "refreshing" before we planned to destroy anything,
+			// and so should be as close as possible to the current
+			// (pre-destroy) state of whatever infrastructure this component
+			// instance is managing.
+			fmt.Printf("result for %s\n", c.Addr())
+			for _, os := range plan.PriorState.RootOutputValues {
+				v := os.Value
+				fmt.Printf("the output value %s has value %#v\n", os.Addr, v)
+				if os.Sensitive {
+					// For our purposes here, a static sensitive flag on the
+					// output value is indistinguishable from the value having
+					// been dynamically marked as sensitive.
+					v = v.Mark(marks.Sensitive)
+				}
+				attrs[os.Addr.OutputValue.Name] = v
+			}
+			return cty.ObjectVal(attrs)
 		}
-
 		if decl := c.call.Config(ctx).ModuleTree(ctx); decl != nil {
 			// If the plan only ran partially then we might be missing
 			// some planned changes for output values, which could
@@ -879,7 +915,6 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 				}
 			}
 		}
-
 		return cty.ObjectVal(attrs)
 
 	case ApplyPhase, InspectPhase:
