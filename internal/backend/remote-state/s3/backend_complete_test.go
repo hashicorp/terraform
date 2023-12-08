@@ -2651,6 +2651,16 @@ endpoint_url = %[2]s
 			},
 		},
 
+		"service envvar overrides service envvar legacy": {
+			Config: map[string]any{
+				"access_key": servicemocks.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+			},
+			SetEnv:              "AWS_ENDPOINT_URL_STS",
+			SetInvalidEnv:       "AWS_STS_ENDPOINT",
+			ExpectedCredentials: mockdata.MockStaticCredentials,
+		},
+
 		// Service Envvar Legacy
 
 		"service envvar legacy": {
