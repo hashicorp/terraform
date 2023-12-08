@@ -3,6 +3,7 @@
 BUG FIXES:
 * `terraform test`: Stop attempting to destroy run blocks that have no actual infrastructure to destroy. This fixes an issue where attempts to destroy "verification" run blocks that load only data sources would fail if the underlying infrastructure referenced by the run blocks had already been destroyed. ([#34331](https://github.com/hashicorp/terraform/pull/34331))
 * cloud: prevent running saved cloud plans in VCS-connected workspaces. Saved plans might be applied later, and VCS workspaces shouldn't apply configurations that don't come from their designated VCS branch.
+* core: Unmanaged plugins (mainly used by provider acceptance testing) would not have a provider address set, preventing the caching of their schemas [GH-34380]
 
 ## 1.6.5 (November 29, 2023)
 
