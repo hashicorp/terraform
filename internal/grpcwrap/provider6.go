@@ -5,6 +5,7 @@ package grpcwrap
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform/internal/plugin6/convert"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -39,6 +40,7 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 	resp := &tfplugin6.GetProviderSchema_Response{
 		ResourceSchemas:   make(map[string]*tfplugin6.Schema),
 		DataSourceSchemas: make(map[string]*tfplugin6.Schema),
+		Functions:         make(map[string]*tfplugin6.Function),
 	}
 
 	resp.Provider = &tfplugin6.Schema{
@@ -66,6 +68,12 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 			Version: dat.Version,
 			Block:   convert.ConfigSchemaToProto(dat.Block),
 		}
+	}
+	if decls, err := convert.FunctionDeclsToProto(p.schema.Functions); err == nil {
+		resp.Functions = decls
+	} else {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
 	}
 
 	resp.ServerCapabilities = &tfplugin6.ServerCapabilities{
@@ -399,8 +407,54 @@ func (p *provider6) GetFunctions(context.Context, *tfplugin6.GetFunctions_Reques
 }
 
 func (p *provider6) CallFunction(_ context.Context, req *tfplugin6.CallFunction_Request) (*tfplugin6.CallFunction_Response, error) {
-	panic("unimplemented")
-	return nil, nil
+	var err error
+	resp := &tfplugin6.CallFunction_Response{}
+
+	funcSchema := p.schema.Functions[req.Name]
+
+	var args []cty.Value
+	if len(req.Arguments) != 0 {
+		args = make([]cty.Value, len(req.Arguments))
+		for i, rawArg := range req.Arguments {
+
+			var argTy cty.Type
+			if i < len(funcSchema.Parameters) {
+				argTy = funcSchema.Parameters[i].Type
+			} else {
+				if funcSchema.VariadicParameter == nil {
+					resp.Diagnostics = convert.AppendProtoDiag(
+						resp.Diagnostics, fmt.Errorf("too many arguments for non-variadic function"),
+					)
+					return resp, nil
+				}
+				argTy = funcSchema.VariadicParameter.Type
+			}
+
+			argVal, err := decodeDynamicValue6(rawArg, argTy)
+			if err != nil {
+				resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+				return resp, nil
+			}
+			args[i] = argVal
+		}
+	}
+
+	callResp := p.provider.CallFunction(providers.CallFunctionRequest{
+		FunctionName: req.Name,
+		Arguments:    args,
+	})
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, callResp.Diagnostics)
+	if callResp.Diagnostics.HasErrors() {
+		return resp, nil
+	}
+
+	resp.Result, err = encodeDynamicValue6(callResp.Result, funcSchema.ReturnType)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	return resp, nil
 }
 
 func (p *provider6) StopProvider(context.Context, *tfplugin6.StopProvider_Request) (*tfplugin6.StopProvider_Response, error) {
