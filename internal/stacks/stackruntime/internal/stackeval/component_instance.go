@@ -885,10 +885,8 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 			// and so should be as close as possible to the current
 			// (pre-destroy) state of whatever infrastructure this component
 			// instance is managing.
-			fmt.Printf("result for %s\n", c.Addr())
 			for _, os := range plan.PriorState.RootOutputValues {
 				v := os.Value
-				fmt.Printf("the output value %s has value %#v\n", os.Addr, v)
 				if os.Sensitive {
 					// For our purposes here, a static sensitive flag on the
 					// output value is indistinguishable from the value having
