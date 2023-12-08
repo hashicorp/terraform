@@ -28,17 +28,17 @@ func AtomicRename(source, destination string) error {
 	// existing file.
 	srcPtr, err := syscall.UTF16PtrFromString(source)
 	if err != nil {
-		return &os.LinkError{"replace", source, destination, err}
+		return &os.LinkError{Op: "replace", Old: source, New: destination, Err: err}
 	}
 	destPtr, err := syscall.UTF16PtrFromString(destination)
 	if err != nil {
-		return &os.LinkError{"replace", source, destination, err}
+		return &os.LinkError{Op: "replace", Old: source, New: destination, Err: err}
 	}
 
 	flags := uint32(windows.MOVEFILE_REPLACE_EXISTING | windows.MOVEFILE_WRITE_THROUGH)
 	err = windows.MoveFileEx(srcPtr, destPtr, flags)
 	if err != nil {
-		return &os.LinkError{"replace", source, destination, err}
+		return &os.LinkError{Op: "replace", Old: source, New: destination, Err: err}
 	}
 	return nil
 }
