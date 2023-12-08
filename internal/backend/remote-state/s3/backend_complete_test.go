@@ -2419,14 +2419,17 @@ func TestStsEndpoint(t *testing.T) {
 		setInvalid
 	)
 	testcases := map[string]struct {
-		Config             map[string]any
-		SetServiceEndpoint settype
-		SetEnv             string
-		SetInvalidEnv      string
+		Config                   map[string]any
+		SetServiceEndpoint       settype
+		SetServiceEndpointLegacy settype
+		SetEnv                   string
+		SetInvalidEnv            string
 		// Use string at index 1 for valid endpoint url and index 2 for invalid endpoint url
 		ConfigFile          string
 		ExpectedCredentials aws.Credentials
 	}{
+		// Service Config
+
 		"service config": {
 			Config: map[string]any{
 				"access_key": servicemocks.MockStaticAccessKey,
@@ -2443,6 +2446,16 @@ func TestStsEndpoint(t *testing.T) {
 			},
 			SetServiceEndpoint:  setValid,
 			SetInvalidEnv:       "AWS_ENDPOINT_URL_STS",
+			ExpectedCredentials: mockdata.MockStaticCredentials,
+		},
+
+		"service config overrides service envvar legacy": {
+			Config: map[string]any{
+				"access_key": servicemocks.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+			},
+			SetServiceEndpoint:  setValid,
+			SetInvalidEnv:       "AWS_STS_ENDPOINT",
 			ExpectedCredentials: mockdata.MockStaticCredentials,
 		},
 
@@ -2496,21 +2509,95 @@ endpoint_url = %[2]s
 			},
 		},
 
+		// Service Config Legacy
+
+		"service config legacy": {
+			Config: map[string]any{
+				"access_key": servicemocks.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+			},
+			SetServiceEndpointLegacy: setValid,
+			ExpectedCredentials:      mockdata.MockStaticCredentials,
+		},
+
+		"service config legacy overrides service envvar": {
+			Config: map[string]any{
+				"access_key": servicemocks.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+			},
+			SetServiceEndpointLegacy: setValid,
+			SetInvalidEnv:            "AWS_ENDPOINT_URL_STS",
+			ExpectedCredentials:      mockdata.MockStaticCredentials,
+		},
+
+		"service config legacy overrides service envvar legacy": {
+			Config: map[string]any{
+				"access_key": servicemocks.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+			},
+			SetServiceEndpointLegacy: setValid,
+			SetInvalidEnv:            "AWS_STS_ENDPOINT",
+			ExpectedCredentials:      mockdata.MockStaticCredentials,
+		},
+
+		"service config legacy overrides base envvar": {
+			Config: map[string]any{
+				"access_key": servicemocks.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+			},
+			SetServiceEndpointLegacy: setValid,
+			SetInvalidEnv:            "AWS_ENDPOINT_URL",
+			ExpectedCredentials:      mockdata.MockStaticCredentials,
+		},
+
+		"service config legacy overrides service config_file": {
+			Config: map[string]any{
+				"profile": "default",
+			},
+			ConfigFile: `
+[default]
+aws_access_key_id = DefaultSharedCredentialsAccessKey
+aws_secret_access_key = DefaultSharedCredentialsSecretKey
+services = sts-test
+
+[services sts-test]
+sts =
+	endpoint_url = %[2]s
+`,
+			SetServiceEndpointLegacy: setValid,
+			ExpectedCredentials: aws.Credentials{
+				AccessKeyID:     "DefaultSharedCredentialsAccessKey",
+				SecretAccessKey: "DefaultSharedCredentialsSecretKey",
+				Source:          sharedConfigCredentialsProvider,
+			},
+		},
+
+		"service config legacy overrides base config_file": {
+			Config: map[string]any{
+				"profile": "default",
+			},
+			ConfigFile: `
+[default]
+aws_access_key_id = DefaultSharedCredentialsAccessKey
+aws_secret_access_key = DefaultSharedCredentialsSecretKey
+endpoint_url = %[2]s
+`,
+			SetServiceEndpointLegacy: setValid,
+			ExpectedCredentials: aws.Credentials{
+				AccessKeyID:     "DefaultSharedCredentialsAccessKey",
+				SecretAccessKey: "DefaultSharedCredentialsSecretKey",
+				Source:          sharedConfigCredentialsProvider,
+			},
+		},
+
+		// Service Envvar
+
 		"service envvar": {
 			Config: map[string]any{
 				"access_key": servicemocks.MockStaticAccessKey,
 				"secret_key": servicemocks.MockStaticSecretKey,
 			},
 			SetEnv:              "AWS_ENDPOINT_URL_STS",
-			ExpectedCredentials: mockdata.MockStaticCredentials,
-		},
-
-		"base envvar": {
-			Config: map[string]any{
-				"access_key": servicemocks.MockStaticAccessKey,
-				"secret_key": servicemocks.MockStaticSecretKey,
-			},
-			SetEnv:              "AWS_ENDPOINT_URL",
 			ExpectedCredentials: mockdata.MockStaticCredentials,
 		},
 
@@ -2523,6 +2610,109 @@ endpoint_url = %[2]s
 			SetInvalidEnv:       "AWS_ENDPOINT_URL",
 			ExpectedCredentials: mockdata.MockStaticCredentials,
 		},
+
+		"service envvar overrides service config_file": {
+			Config: map[string]any{
+				"profile": "default",
+			},
+			SetEnv: "AWS_ENDPOINT_URL_STS",
+			ConfigFile: `
+[default]
+aws_access_key_id = DefaultSharedCredentialsAccessKey
+aws_secret_access_key = DefaultSharedCredentialsSecretKey
+services = sts-test
+
+[services sts-test]
+sts =
+	endpoint_url = %[2]s
+`,
+			ExpectedCredentials: aws.Credentials{
+				AccessKeyID:     "DefaultSharedCredentialsAccessKey",
+				SecretAccessKey: "DefaultSharedCredentialsSecretKey",
+				Source:          sharedConfigCredentialsProvider,
+			},
+		},
+
+		"service envvar overrides base config_file": {
+			Config: map[string]any{
+				"profile": "default",
+			},
+			SetEnv: "AWS_ENDPOINT_URL_STS",
+			ConfigFile: `
+[default]
+aws_access_key_id = DefaultSharedCredentialsAccessKey
+aws_secret_access_key = DefaultSharedCredentialsSecretKey
+endpoint_url = %[2]s
+`,
+			ExpectedCredentials: aws.Credentials{
+				AccessKeyID:     "DefaultSharedCredentialsAccessKey",
+				SecretAccessKey: "DefaultSharedCredentialsSecretKey",
+				Source:          sharedConfigCredentialsProvider,
+			},
+		},
+
+		// Service Envvar Legacy
+
+		"service envvar legacy": {
+			Config: map[string]any{
+				"access_key": servicemocks.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+			},
+			SetEnv:              "AWS_STS_ENDPOINT",
+			ExpectedCredentials: mockdata.MockStaticCredentials,
+		},
+
+		"service envvar legacy overrides base envvar": {
+			Config: map[string]any{
+				"access_key": servicemocks.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+			},
+			SetEnv:              "AWS_STS_ENDPOINT",
+			SetInvalidEnv:       "AWS_ENDPOINT_URL",
+			ExpectedCredentials: mockdata.MockStaticCredentials,
+		},
+
+		"service envvar legacy overrides service config_file": {
+			Config: map[string]any{
+				"profile": "default",
+			},
+			SetEnv: "AWS_STS_ENDPOINT",
+			ConfigFile: `
+[default]
+aws_access_key_id = DefaultSharedCredentialsAccessKey
+aws_secret_access_key = DefaultSharedCredentialsSecretKey
+services = sts-test
+
+[services sts-test]
+sts =
+	endpoint_url = %[2]s
+`,
+			ExpectedCredentials: aws.Credentials{
+				AccessKeyID:     "DefaultSharedCredentialsAccessKey",
+				SecretAccessKey: "DefaultSharedCredentialsSecretKey",
+				Source:          sharedConfigCredentialsProvider,
+			},
+		},
+
+		"service envvar legacy overrides base config_file": {
+			Config: map[string]any{
+				"profile": "default",
+			},
+			SetEnv: "AWS_STS_ENDPOINT",
+			ConfigFile: `
+[default]
+aws_access_key_id = DefaultSharedCredentialsAccessKey
+aws_secret_access_key = DefaultSharedCredentialsSecretKey
+endpoint_url = %[2]s
+`,
+			ExpectedCredentials: aws.Credentials{
+				AccessKeyID:     "DefaultSharedCredentialsAccessKey",
+				SecretAccessKey: "DefaultSharedCredentialsSecretKey",
+				Source:          sharedConfigCredentialsProvider,
+			},
+		},
+
+		// Service Config File
 
 		"service config_file": {
 			Config: map[string]any{
@@ -2567,26 +2757,15 @@ sts =
 			},
 		},
 
-		"service envvar overrides service config_file": {
-			Config: map[string]any{
-				"profile": "default",
-			},
-			SetEnv: "AWS_ENDPOINT_URL_STS",
-			ConfigFile: `
-[default]
-aws_access_key_id = DefaultSharedCredentialsAccessKey
-aws_secret_access_key = DefaultSharedCredentialsSecretKey
-services = sts-test
+		// Base envvar
 
-[services sts-test]
-sts =
-	endpoint_url = %[2]s
-`,
-			ExpectedCredentials: aws.Credentials{
-				AccessKeyID:     "DefaultSharedCredentialsAccessKey",
-				SecretAccessKey: "DefaultSharedCredentialsSecretKey",
-				Source:          sharedConfigCredentialsProvider,
+		"base envvar": {
+			Config: map[string]any{
+				"access_key": servicemocks.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
 			},
+			SetEnv:              "AWS_ENDPOINT_URL",
+			ExpectedCredentials: mockdata.MockStaticCredentials,
 		},
 
 		"base envvar overrides service config_file": {
@@ -2645,24 +2824,6 @@ endpoint_url = %[2]s
 				Source:          sharedConfigCredentialsProvider,
 			},
 		},
-
-		"service envvar overrides base config_file": {
-			Config: map[string]any{
-				"profile": "default",
-			},
-			SetEnv: "AWS_ENDPOINT_URL_STS",
-			ConfigFile: `
-[default]
-aws_access_key_id = DefaultSharedCredentialsAccessKey
-aws_secret_access_key = DefaultSharedCredentialsSecretKey
-endpoint_url = %[2]s
-`,
-			ExpectedCredentials: aws.Credentials{
-				AccessKeyID:     "DefaultSharedCredentialsAccessKey",
-				SecretAccessKey: "DefaultSharedCredentialsSecretKey",
-				Source:          sharedConfigCredentialsProvider,
-			},
-		},
 	}
 
 	for name, testcase := range testcases {
@@ -2692,6 +2853,9 @@ endpoint_url = %[2]s
 				testcase.Config["endpoints"] = map[string]any{
 					"sts": stsEndpoint,
 				}
+			}
+			if testcase.SetServiceEndpointLegacy == setValid {
+				testcase.Config["sts_endpoint"] = stsEndpoint
 			}
 			if testcase.SetEnv != "" {
 				t.Setenv(testcase.SetEnv, stsEndpoint)
