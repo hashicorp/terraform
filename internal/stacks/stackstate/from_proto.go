@@ -71,13 +71,17 @@ func LoadFromProto(msgs map[string]*anypb.Any) (*State, error) {
 // Prefer to use [LoadFromProto] when processing user input. This function
 // cannot accept [anypb.Any] messages even though the Go compiler can't enforce
 // that at compile time.
-func LoadFromDirectProto(msgs map[statekeys.Key]protoreflect.ProtoMessage) (*State, error) {
+func LoadFromDirectProto(msgs map[string]protoreflect.ProtoMessage) (*State, error) {
 	ret := NewState()
 	ret.inputRaw = nil // this doesn't get populated by this entry point
-	for key, msg := range msgs {
+	for keyStr, msg := range msgs {
 		// The following should be equivalent to the similar loop in
 		// [LoadFromProto] except for skipping the parsing/unmarshalling
-		// steps since key and msg are already in their in-memory forms.
+		// steps since msg is already in its in-memory form.
+		key, err := statekeys.Parse(keyStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid tracking key %q: %w", keyStr, err)
+		}
 		if !statekeys.RecognizedType(key) {
 			err := handleUnrecognizedKey(key, ret)
 			if err != nil {
@@ -85,7 +89,7 @@ func LoadFromDirectProto(msgs map[statekeys.Key]protoreflect.ProtoMessage) (*Sta
 			}
 			continue
 		}
-		err := handleProtoMsg(key, msg, ret)
+		err = handleProtoMsg(key, msg, ret)
 		if err != nil {
 			return nil, err
 		}
