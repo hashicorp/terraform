@@ -877,6 +877,9 @@ message AppliedChange {
     message ResourceInstance {
         ResourceInstanceObjectInStackAddr addr = 1;
         DynamicValue new_value = 2;
+        ResourceMode resource_mode = 4;
+        string resource_type = 5;
+        string provider_addr = 6;
 
         // Sometimes Terraform needs to make changes to a resource in
         // multiple steps during the apply phase, with each step
