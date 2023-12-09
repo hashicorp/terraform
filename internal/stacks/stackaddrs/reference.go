@@ -178,3 +178,33 @@ func parseProviderRef(traversal hcl.Traversal) (ProviderConfigRef, hcl.Range, hc
 	}
 	return ProviderConfigRef{}, hcl.Range{}, nil, diags
 }
+
+func (r Reference) Absolute(stack StackInstance) AbsReference {
+	return AbsReference{
+		Stack: stack,
+		Ref:   r,
+	}
+}
+
+// AbsReference is an absolute form of [Reference] that is to be resolved
+// in the global scope of a particular stack.
+//
+// It's not meaningful to use this type for references to objects that exist
+// only in a more specific scope, such as each.key, each.value, etc, because
+// those would require additional information about exactly which object
+// they are being resolved in terms of.
+type AbsReference struct {
+	Stack StackInstance
+	Ref   Reference
+}
+
+func (r AbsReference) Target() AbsReferenceable {
+	return AbsReferenceable{
+		Stack: r.Stack,
+		Item:  r.Ref.Target,
+	}
+}
+
+func (r AbsReference) SourceRange() tfdiags.SourceRange {
+	return r.Ref.SourceRange
+}
