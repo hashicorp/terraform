@@ -23,6 +23,15 @@ type ComponentInstanceApplyResult struct {
 	// during plan, even though no external actions were taken during the
 	// apply phase.
 	AffectedResourceInstanceObjects addrs.Set[addrs.AbsResourceInstanceObject]
+
+	// Complete is set to true if the apply ran to completion successfully
+	// such that it should be safe to try to apply other component instances
+	// that are awaiting the completion of this one.
+	//
+	// If set to false, some changes may have been made but there may be
+	// some changes still pending and so other waiting component instances
+	// should not try to apply themselves at all.
+	Complete bool
 }
 
 // resourceInstanceObjectsAffectedByPlan finds an exhaustive set of addresses
