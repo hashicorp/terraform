@@ -12,6 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/marks"
@@ -1130,7 +1131,12 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 	return changes, diags
 }
 
-// CheckApply implements ApplyChecker.
+// RequiredComponents implements Applyable
+func (c *ComponentInstance) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+	return c.call.RequiredComponents(ctx)
+}
+
+// CheckApply implements Applyable.
 func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	var changes []stackstate.AppliedChange
 	var diags tfdiags.Diagnostics

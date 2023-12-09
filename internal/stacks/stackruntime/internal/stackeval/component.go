@@ -7,7 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -16,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 type Component struct {
@@ -261,6 +263,23 @@ func (c *Component) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Dia
 // plan.
 func (c *Component) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	return nil, c.checkValid(ctx, PlanPhase)
+}
+
+// References implements Referrer
+func (c *Component) References(ctx context.Context) []stackaddrs.AbsReference {
+	cfg := c.Declaration(ctx)
+	var ret []stackaddrs.Reference
+	ret = append(ret, ReferencesInExpr(ctx, cfg.ForEach)...)
+	ret = append(ret, ReferencesInExpr(ctx, cfg.Inputs)...)
+	for _, expr := range cfg.ProviderConfigs {
+		ret = append(ret, ReferencesInExpr(ctx, expr)...)
+	}
+	return makeReferencesAbsolute(ret, c.Addr().Stack)
+}
+
+// RequiredComponents implements Applyable
+func (c *Component) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+	return c.main.requiredComponentsForReferrer(ctx, c, PlanPhase)
 }
 
 // CheckApply implements ApplyChecker.

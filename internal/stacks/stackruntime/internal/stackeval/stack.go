@@ -9,7 +9,10 @@ import (
 	"sync"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -18,7 +21,6 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Stack represents an instance of a [StackConfig] after it's had its
@@ -578,7 +580,14 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 	return changes, nil
 }
 
-// CheckApply implements ApplyChecker.
+func (s *Stack) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+	// The stack itself doesn't refer to anything and so cannot require
+	// components. Its _call_ might, but that's handled over in
+	// [StackCall.RequiredComponents].
+	return collections.NewSet[stackaddrs.AbsComponent]()
+}
+
+// CheckApply implements Applyable.
 func (s *Stack) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	// TODO: We should emit an AppliedChange for each output value,
 	// reporting its final value.

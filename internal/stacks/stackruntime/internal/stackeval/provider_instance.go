@@ -9,7 +9,10 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -18,7 +21,6 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // ProviderInstance represents one instance of a provider.
@@ -285,7 +287,12 @@ func (p *ProviderInstance) PlanChanges(ctx context.Context) ([]stackplan.Planned
 	return nil, p.checkValid(ctx, PlanPhase)
 }
 
-// CheckApply implements ApplyChecker.
+// RequiredComponents implements Applyable
+func (p *ProviderInstance) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+	return p.provider.RequiredComponents(ctx)
+}
+
+// CheckApply implements Applyable.
 func (p *ProviderInstance) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	return nil, p.checkValid(ctx, ApplyPhase)
 }
