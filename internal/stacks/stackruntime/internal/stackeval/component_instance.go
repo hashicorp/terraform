@@ -606,8 +606,10 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 	// instance's plan or return at least one error diagnostic explaining why
 	// it cannot.
 	//
-	// It's okay to return a nil result if also returning at least one error,
-	// but a non-error return MUST provide a non-nil result.
+	// All return paths must include a non-nil ComponentInstanceApplyResult.
+	// If an error occurs before we even begin applying the plan then the
+	// result should report that the changes are incomplete and that the
+	// new state is exactly the previous run state.
 	//
 	// If the underlying modules runtime raises errors when asked to apply the
 	// plan, then this function should pass all of those errors through to its
@@ -616,6 +618,11 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 
 	addr := c.Addr()
 	decl := c.call.Declaration(ctx)
+
+	// This is the result to return along with any errors that prevent us from
+	// even starting the modules runtime apply phase. It reports that nothing
+	// changed at all.
+	noOpResult := c.PlaceholderApplyResultForSkippedApply(ctx, plan)
 
 	// We'll gather up our set of potentially-affected objects before we do
 	// anything else, because the modules runtime tends to mutate the objects
@@ -646,13 +653,13 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 				addr.String(),
 			),
 		))
-		return nil, diags
+		return noOpResult, diags
 	}
 
 	providerSchemas, moreDiags := c.neededProviderSchemas(ctx)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
-		return nil, diags
+		return noOpResult, diags
 	}
 
 	tfHook := &componentInstanceTerraformHook{
@@ -676,7 +683,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 			"Failed to instantiate Terraform modules runtime",
 			fmt.Sprintf("Could not load the main Terraform language runtime: %s.\n\nThis is a bug in Terraform; please report it!", err),
 		))
-		return nil, diags
+		return noOpResult, diags
 	}
 
 	// We'll need to make some light modifications to the plan to include
@@ -694,7 +701,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		// anything with it, in which case we'll just return early
 		// and assume the plan walk driver will find the diagnostics
 		// via another return path.
-		return nil, diags
+		return noOpResult, diags
 	}
 	// TODO: Check that the final input values are consistent with what
 	// we had during planning. If not, that suggests a bug elsewhere.
@@ -727,7 +734,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		modifiedPlan.VariableMarks[name] = pvm
 	}
 	if diags.HasErrors() {
-		return nil, diags
+		return noOpResult, diags
 	}
 
 	providerClients, valid := c.neededProviderClients(ctx, ApplyPhase)
@@ -738,7 +745,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 			Detail:   fmt.Sprintf("Cannot apply the plan for %s because the configured provider configuration assignments are invalid.", c.Addr()),
 			Subject:  decl.DeclRange.ToHCL().Ptr(),
 		})
-		return nil, diags
+		return noOpResult, diags
 	}
 
 	// NOTE: tfCtx.Apply tends to make changes to the given plan while it
@@ -784,9 +791,23 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		hookMore(ctx, seq, h.EndComponentInstanceApply, addr)
 	}
 
+	if newState == nil {
+		// The modules runtime returns a nil state only if an error occurs
+		// so early that it couldn't take any actions at all, and so we
+		// must assume that the state is totally unchanged in that case.
+		newState = plan.PrevRunState
+		affectedResourceInstanceObjects = nil
+	}
+
 	return &ComponentInstanceApplyResult{
 		FinalState:                      newState,
 		AffectedResourceInstanceObjects: affectedResourceInstanceObjects,
+
+		// Currently our definition of "complete" is that the apply phase
+		// didn't return any errors, since we expect the modules runtime
+		// to either perform all of the actions that were planned or
+		// return errors explaining why it cannot.
+		Complete: !diags.HasErrors(),
 	}, diags
 }
 
@@ -799,6 +820,18 @@ func (c *ComponentInstance) PlanPrevState(ctx context.Context) *states.State {
 	if ret == nil {
 		ret = states.NewState() // so caller doesn't need to worry about nil
 	}
+	return ret
+}
+
+// ApplyResult returns the result from applying a plan for this object using
+// [ApplyModuleTreePlan].
+//
+// Use the Complete field of the returned object to determine whether the
+// apply ran to completion successfully enough for dependent work to proceed.
+// If Complete is false then dependent work should not start, and instead
+// dependents should unwind their stacks in a way that describes a no-op result.
+func (c *ComponentInstance) ApplyResult(ctx context.Context) *ComponentInstanceApplyResult {
+	ret, _ := c.CheckApplyResult(ctx)
 	return ret
 }
 
@@ -818,6 +851,26 @@ func (c *ComponentInstance) CheckApplyResult(ctx context.Context) (*ComponentIns
 		))
 	}
 	return applyResult, diags
+}
+
+// PlaceholderApplyResultForSkippedApply returns a [ComponentInstanceApplyResult]
+// which describes the hypothetical result of skipping the apply phase for
+// this component instance altogether.
+//
+// It doesn't have any logic to check whether the apply _was_ actually skipped;
+// the caller that's orchestrating the changes during the apply phase must
+// decided that for itself and then choose between either calling
+// [ComponentInstance.ApplyModuleTreePlan] to apply as normal, or returning
+// the result of this function instead to explain that the apply was skipped.
+func (c *ComponentInstance) PlaceholderApplyResultForSkippedApply(ctx context.Context, plan *plans.Plan) *ComponentInstanceApplyResult {
+	// (We have this in here as a method just because it helps keep all of
+	// the logic for constructing [ComponentInstanceApplyResult] objects
+	// together in the same file, rather than having the caller synthesize
+	// a result itself only in this one special situation.)
+	return &ComponentInstanceApplyResult{
+		FinalState: plan.PrevRunState,
+		Complete:   false,
+	}
 }
 
 // ApplyResultState returns the new state resulting from applying a plan for

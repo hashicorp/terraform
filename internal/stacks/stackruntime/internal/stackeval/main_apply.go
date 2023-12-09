@@ -6,16 +6,23 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync/atomic"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/protobuf/types/known/anypb"
+
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // ApplyPlan internally instantiates a [Main] configured to apply the given
@@ -71,6 +78,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 	// with discarding the previous run state data that's no longer needed.
 	emitStateKeyDiscardEvents(ctx, discardRawKeys, discardDescKeys, outp)
 
+	log.Printf("[TRACE] stackeval.ApplyPlan starting")
 	withDiags, err := promising.MainTask(ctx, func(ctx context.Context) (withDiagnostics[*Main], error) {
 		// We'll register all of the changes we intend to make up front, so we
 		// can error rather than deadlock if something goes wrong and causes
@@ -79,11 +87,16 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 			for _, elem := range plan.Components.Elems() {
 				addr := elem.K
 				componentInstPlan := elem.V
+				action := componentInstPlan.PlannedAction
+				dependencyAddrs := componentInstPlan.Dependencies
+				dependentAddrs := componentInstPlan.Dependents
+
 				reg.RegisterComponentInstanceChange(
 					ctx, addr,
 					func(ctx context.Context, main *Main) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
 						ctx, span := tracer.Start(ctx, addr.String()+" apply")
 						defer span.End()
+						log.Printf("[TRACE] stackeval: %s preparing to apply", addr)
 
 						stack := main.Stack(ctx, addr.Stack, ApplyPhase)
 						component := stack.Component(ctx, addr.Item.Component)
@@ -100,6 +113,8 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 							// returning a placeholder value and expect the cause
 							// to be reported by some object when we do the apply
 							// checking walk below.
+							log.Printf("[ERROR] stackeval: %s has planned changes, but does not seem to be declared", addr)
+							span.SetStatus(codes.Error, "missing component instance declaration")
 							return nil, nil
 						}
 
@@ -117,10 +132,67 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 								"Inconsistent component instance plan",
 								fmt.Sprintf("The plan for %s is inconsistent with its prior state: %s.", addr, err),
 							))
+							log.Printf("[ERROR] stackeval: %s has a plan inconsistent with its prior state: %s", addr, err)
+							span.SetStatus(codes.Error, "plan is inconsistent with prior state")
 							return nil, diags
 						}
 
-						return inst.ApplyModuleTreePlan(ctx, modulesRuntimePlan)
+						var waitForComponents collections.Set[stackaddrs.AbsComponent]
+						if action == plans.Delete {
+							// If the effect of this apply will be to destroy this
+							// component instance then we need to wait for all
+							// of our dependents to be destroyed first, because
+							// we're required to outlive them.
+							//
+							// (We can assume that all of the dependents are
+							// also performing destroy plans, because we'd have
+							// rejected the configuration as invalid if a
+							// downstream component were referring to a
+							// component that's been removed from the config.)
+							waitForComponents = dependentAddrs
+						} else {
+							// For all other actions, we must wait for our
+							// dependencies to finish applying their changes.
+							waitForComponents = dependencyAddrs
+						}
+						if depCount := waitForComponents.Len(); depCount != 0 {
+							log.Printf("[TRACE] stackeval: %s waiting for its predecessors (%d) to complete", addr, depCount)
+						}
+						for _, waitComponentAddr := range waitForComponents.Elems() {
+							if stack := main.Stack(ctx, waitComponentAddr.Stack, ApplyPhase); stack != nil {
+								if component := stack.Component(ctx, waitComponentAddr.Item); component != nil {
+									span.AddEvent("awaiting predecessor", trace.WithAttributes(
+										attribute.String("component_addr", waitComponentAddr.String()),
+									))
+									success := component.ApplySuccessful(ctx)
+									if !success {
+										// If anything we're waiting on does not succeed then we can't proceed without
+										// violating the dependency invariants.
+										log.Printf("[TRACE] stackeval: %s cannot start because %s changes did not apply completely", addr, waitComponentAddr)
+										span.AddEvent("predecessor is incomplete", trace.WithAttributes(
+											attribute.String("component_addr", waitComponentAddr.String()),
+										))
+										span.SetStatus(codes.Error, "predecessors did not completely apply")
+
+										// We'll return a stub result that reports that nothing was changed, since
+										// we're not going to run our apply phase at all.
+										return inst.PlaceholderApplyResultForSkippedApply(ctx, modulesRuntimePlan), nil
+										// Since we're not calling inst.ApplyModuleTreePlan at all in this
+										// codepath, the stacks runtime will not emit any progress events for
+										// this component instance or any of the objects inside it.
+									}
+								}
+							}
+						}
+						log.Printf("[TRACE] stackeval: %s now applying", addr)
+
+						ret, diags := inst.ApplyModuleTreePlan(ctx, modulesRuntimePlan)
+						if !ret.Complete {
+							span.SetStatus(codes.Error, "apply did not complete successfully")
+						} else {
+							span.SetStatus(codes.Ok, "apply complete")
+						}
+						return ret, diags
 					},
 				)
 			}
@@ -195,6 +267,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 	if len(diags) > 0 {
 		outp.AnnounceDiagnostics(ctx, diags)
 	}
+	log.Printf("[TRACE] stackeval.ApplyPlan complete")
 
 	return main, nil
 }

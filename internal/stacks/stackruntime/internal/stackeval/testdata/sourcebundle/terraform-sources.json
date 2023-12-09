@@ -26,6 +26,10 @@
         "local": "planning"
       },
       {
+        "source": "https://testing.invalid/applying.tar.gz",
+        "local": "applying"
+      },
+      {
         "source": "https://testing.invalid/validating.tar.gz",
         "local": "validating"
       }

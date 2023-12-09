@@ -287,6 +287,28 @@ func (c *Component) CheckApply(ctx context.Context) ([]stackstate.AppliedChange,
 	return nil, c.checkValid(ctx, ApplyPhase)
 }
 
+// ApplySuccessful blocks until all instances of this component have
+// completed their apply step and returns whether the apply was successful,
+// or panics if called not during the apply phase.
+func (c *Component) ApplySuccessful(ctx context.Context) bool {
+	if !c.main.Applying() {
+		panic("ApplySuccessful when not applying")
+	}
+
+	// Apply is successful if all of our instances fully completed their
+	// apply phases.
+	for _, inst := range c.Instances(ctx, ApplyPhase) {
+		result := inst.ApplyResult(ctx)
+		if result == nil || !result.Complete {
+			return false
+		}
+	}
+
+	// If we get here then either we had no instances at all or they all
+	// applied completely, and so our aggregate result is success.
+	return true
+}
+
 func (c *Component) tracingName() string {
 	return c.Addr().String()
 }
