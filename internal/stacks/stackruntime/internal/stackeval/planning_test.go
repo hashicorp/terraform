@@ -377,12 +377,80 @@ func TestPlanning_RequiredComponents(t *testing.T) {
 	cmpOpts := collections.CmpOptions
 
 	t.Run("integrated", func(t *testing.T) {
-		_, diags := testPlan(t, main)
+		// This integration tests runs a full plan of the test configuration
+		// and checks that the resulting plan contains the expected component
+		// dependency information, without concern for exactly how that
+		// information got populated.
+		//
+		// The other subtests below check that the individual objects
+		// participating in this plan are reporting their own component
+		// dependencies correctly, and so if this integrated test fails
+		// then the simultaneous failure of one of those other tests might be
+		// a good clue as to what's broken.
+
+		plan, diags := testPlan(t, main)
 		assertNoDiagnostics(t, diags)
 
-		// TODO: Once we've got the component dependencies round-tripping
-		// through the raw plan representation, we should test that the
-		// plan is capturing the dependencies correctly.
+		componentPlans := plan.Components
+
+		tests := []struct {
+			component        stackaddrs.AbsComponent
+			wantDependencies []stackaddrs.AbsComponent
+			wantDependents   []stackaddrs.AbsComponent
+		}{
+			{
+				component:        cmpA,
+				wantDependencies: []stackaddrs.AbsComponent{},
+				wantDependents: []stackaddrs.AbsComponent{
+					cmpB,
+					cmpC,
+				},
+			},
+			{
+				component: cmpB,
+				wantDependencies: []stackaddrs.AbsComponent{
+					cmpA,
+				},
+				wantDependents: []stackaddrs.AbsComponent{
+					cmpC,
+				},
+			},
+			{
+				component: cmpC,
+				wantDependencies: []stackaddrs.AbsComponent{
+					cmpA,
+					cmpB,
+				},
+				wantDependents: []stackaddrs.AbsComponent{},
+			},
+		}
+		for _, test := range tests {
+			t.Run(test.component.String(), func(t *testing.T) {
+				instAddr := stackaddrs.AbsComponentInstance{
+					Stack: test.component.Stack,
+					Item: stackaddrs.ComponentInstance{
+						Component: test.component.Item,
+					},
+				}
+				cp := componentPlans.Get(instAddr)
+				{
+					got := cp.Dependencies
+					want := collections.NewSet[stackaddrs.AbsComponent]()
+					want.Add(test.wantDependencies...)
+					if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
+						t.Errorf("wrong dependencies\n%s", diff)
+					}
+				}
+				{
+					got := cp.Dependents
+					want := collections.NewSet[stackaddrs.AbsComponent]()
+					want.Add(test.wantDependents...)
+					if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
+						t.Errorf("wrong dependents\n%s", diff)
+					}
+				}
+			})
+		}
 	})
 
 	t.Run("component dependents", func(t *testing.T) {

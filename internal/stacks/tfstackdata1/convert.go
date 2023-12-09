@@ -99,6 +99,12 @@ func DynamicValueToTFStackData1(val cty.Value, ty cty.Type) (*DynamicValue, erro
 	return ret, nil
 }
 
+func DynamicValueFromTFStackData1(protoVal *DynamicValue, ty cty.Type) (cty.Value, error) {
+	// FIXME: Apply sensitive marks to everything in protoVal.SensitivePath
+	raw := protoVal.Value.Msgpack
+	return msgpack.Unmarshal(raw, ty)
+}
+
 func Terraform1ToPlanProtoAttributePaths(paths []*terraform1.AttributePath) []*planproto.Path {
 	if len(paths) == 0 {
 		return nil
