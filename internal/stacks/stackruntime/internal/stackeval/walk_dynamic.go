@@ -11,7 +11,7 @@ import (
 // evaluation phases, which currently includes [PlanPhase] and [ApplyPhase].
 type DynamicEvaler interface {
 	Plannable
-	ApplyChecker
+	Applyable
 }
 
 // walkDynamicObjects is a generic helper for visiting all of the "dynamic
