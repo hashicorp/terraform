@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/stacks/stackutils"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
@@ -96,6 +97,12 @@ type PlannedChangeComponentInstance struct {
 	// are tracked in their own [PlannedChange] objects.
 	Action plans.Action
 
+	// RequiredComponents is a set of the addresses of all of the components
+	// that provide infrastructure that this one's infrastructure will
+	// depend on. Any component named here must exist for the entire lifespan
+	// of this component instance.
+	RequiredComponents collections.Set[stackaddrs.AbsComponent]
+
 	// PlannedInputValues records our best approximation of the component's
 	// topmost input values during the planning phase. This could contain
 	// unknown values if one component is configured from results of another.
@@ -103,6 +110,8 @@ type PlannedChangeComponentInstance struct {
 	// but the final set of input values during apply should be consistent
 	// with what's captured here.
 	PlannedInputValues map[string]plans.DynamicValue
+
+	PlannedOutputValues map[string]cty.Value
 
 	// PlanTimestamp is the timestamp that would be returned from the
 	// "plantimestamp" function in modules inside this component. We

@@ -81,7 +81,11 @@ func TestPlanWithSingleResource(t *testing.T) {
 			),
 			Action:             plans.Create,
 			PlannedInputValues: make(map[string]plans.DynamicValue),
-			PlanTimestamp:      fakePlanTimestamp,
+			PlannedOutputValues: map[string]cty.Value{
+				"input":  cty.StringVal("hello"),
+				"output": cty.UnknownVal(cty.String),
+			},
+			PlanTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
