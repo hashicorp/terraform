@@ -101,3 +101,17 @@ func (s Set[T]) Elems() map[UniqueKey[T]]T {
 func (s Set[T]) Len() int {
 	return len(s.members)
 }
+
+// Equal returns true if the receiver and the other set both have equivalent
+// members.
+func (s Set[T]) Equal(other Set[T]) bool {
+	if s.Len() != other.Len() {
+		return false
+	}
+	for k := range s.members {
+		if _, ok := other.members[k]; !ok {
+			return false
+		}
+	}
+	return true
+}
