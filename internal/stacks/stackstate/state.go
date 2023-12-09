@@ -41,6 +41,10 @@ func NewState() *State {
 	}
 }
 
+func (s *State) HasComponentInstance(addr stackaddrs.AbsComponentInstance) bool {
+	return s.componentInstances.HasKey(addr)
+}
+
 // AllComponentInstances returns a set of addresses for all of the component
 // instances that are tracked in the state.
 //
