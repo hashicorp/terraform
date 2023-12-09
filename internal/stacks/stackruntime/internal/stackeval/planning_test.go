@@ -4,17 +4,22 @@
 package stackeval
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -320,4 +325,187 @@ func TestPlanning_DestroyMode(t *testing.T) {
 	} else {
 		t.Errorf("no plan for %s", bResourceInstAddr)
 	}
+}
+
+func TestPlanning_RequiredComponents(t *testing.T) {
+	// This test acts both as some unit tests for the component requirement
+	// analysis of various different object types and as an integration test
+	// for the overall component dependency analysis during the plan phase,
+	// ensuring that the dependency graph is reflected correctly in the
+	// resulting plan.
+
+	cfg := testStackConfig(t, "planning", "required_components")
+	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
+		PlanningMode: plans.NormalMode,
+		ProviderFactories: ProviderFactories{
+			addrs.NewBuiltInProvider("foo"): func() (providers.Interface, error) {
+				return &terraform.MockProvider{
+					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+						Provider: providers.Schema{
+							Block: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"in": {
+										Type:     cty.Map(cty.String),
+										Optional: true,
+									},
+								},
+							},
+						},
+					},
+					ConfigureProviderFn: func(cpr providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+						t.Logf("configuring the provider: %#v", cpr.Config)
+						return providers.ConfigureProviderResponse{}
+					},
+				}, nil
+			},
+		},
+	})
+
+	cmpA := stackaddrs.AbsComponent{
+		Stack: stackaddrs.RootStackInstance,
+		Item:  stackaddrs.Component{Name: "a"},
+	}
+	cmpB := stackaddrs.AbsComponent{
+		Stack: stackaddrs.RootStackInstance,
+		Item:  stackaddrs.Component{Name: "b"},
+	}
+	cmpC := stackaddrs.AbsComponent{
+		Stack: stackaddrs.RootStackInstance,
+		Item:  stackaddrs.Component{Name: "c"},
+	}
+
+	cmpOpts := collections.CmpOptions
+
+	t.Run("integrated", func(t *testing.T) {
+		_, diags := testPlan(t, main)
+		assertNoDiagnostics(t, diags)
+
+		// TODO: Once we've got the component dependencies round-tripping
+		// through the raw plan representation, we should test that the
+		// plan is capturing the dependencies correctly.
+	})
+
+	t.Run("component dependents", func(t *testing.T) {
+		ctx := context.Background()
+		promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
+			tests := []struct {
+				componentAddr    stackaddrs.AbsComponent
+				wantDependencies []stackaddrs.AbsComponent
+			}{
+				{
+					cmpA,
+					[]stackaddrs.AbsComponent{},
+				},
+				{
+					cmpB,
+					[]stackaddrs.AbsComponent{
+						cmpA,
+					},
+				},
+				{
+					cmpC,
+					[]stackaddrs.AbsComponent{
+						cmpA,
+						cmpB,
+					},
+				},
+			}
+
+			for _, test := range tests {
+				t.Run(test.componentAddr.String(), func(t *testing.T) {
+					stack := main.Stack(ctx, test.componentAddr.Stack, PlanPhase)
+					if stack == nil {
+						t.Fatalf("no declaration for %s", test.componentAddr.Stack)
+					}
+					component := stack.Component(ctx, test.componentAddr.Item)
+					if component == nil {
+						t.Fatalf("no declaration for %s", test.componentAddr)
+					}
+
+					got := component.RequiredComponents(ctx)
+					want := collections.NewSet[stackaddrs.AbsComponent]()
+					want.Add(test.wantDependencies...)
+
+					if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
+						t.Errorf("wrong result\n%s", diff)
+					}
+				})
+			}
+
+			return struct{}{}, nil
+		})
+	})
+
+	subtestInPromisingTask(t, "input variable dependents", func(ctx context.Context, t *testing.T) {
+		stack := main.Stack(ctx, stackaddrs.RootStackInstance.Child("child", addrs.NoKey), PlanPhase)
+		if stack == nil {
+			t.Fatalf("embedded stack isn't declared")
+		}
+		ivs := stack.InputVariables(ctx)
+		iv := ivs[stackaddrs.InputVariable{Name: "in"}]
+		if iv == nil {
+			t.Fatalf("input variable isn't declared")
+		}
+
+		got := iv.RequiredComponents(ctx)
+		want := collections.NewSet[stackaddrs.AbsComponent]()
+		want.Add(cmpB)
+
+		if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
+			t.Errorf("wrong result\n%s", diff)
+		}
+	})
+
+	subtestInPromisingTask(t, "output value dependents", func(ctx context.Context, t *testing.T) {
+		stack := main.MainStack(ctx)
+		ovs := stack.OutputValues(ctx)
+		ov := ovs[stackaddrs.OutputValue{Name: "out"}]
+		if ov == nil {
+			t.Fatalf("output value isn't declared")
+		}
+
+		got := ov.RequiredComponents(ctx)
+		want := collections.NewSet[stackaddrs.AbsComponent]()
+		want.Add(cmpA)
+
+		if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
+			t.Errorf("wrong result\n%s", diff)
+		}
+	})
+
+	subtestInPromisingTask(t, "embedded stack dependents", func(ctx context.Context, t *testing.T) {
+		stack := main.MainStack(ctx)
+		sc := stack.EmbeddedStackCall(ctx, stackaddrs.StackCall{Name: "child"})
+		if sc == nil {
+			t.Fatalf("embedded stack call isn't declared")
+		}
+
+		got := sc.RequiredComponents(ctx)
+		want := collections.NewSet[stackaddrs.AbsComponent]()
+		want.Add(cmpB)
+
+		if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
+			t.Errorf("wrong result\n%s", diff)
+		}
+	})
+
+	subtestInPromisingTask(t, "provider config dependents", func(ctx context.Context, t *testing.T) {
+		stack := main.MainStack(ctx)
+		pc := stack.Provider(ctx, stackaddrs.ProviderConfig{
+			Provider: addrs.NewBuiltInProvider("foo"),
+			Name:     "bar",
+		})
+		if pc == nil {
+			t.Fatalf("provider configuration isn't declared")
+		}
+
+		got := pc.RequiredComponents(ctx)
+		want := collections.NewSet[stackaddrs.AbsComponent]()
+		want.Add(cmpA)
+		want.Add(cmpB)
+
+		if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
+			t.Errorf("wrong result\n%s", diff)
+		}
+	})
 }

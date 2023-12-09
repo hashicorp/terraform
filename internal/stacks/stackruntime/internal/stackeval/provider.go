@@ -7,7 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -15,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Provider represents a provider configuration in a particular stack config.
@@ -244,6 +246,22 @@ func (p *Provider) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diag
 // PlanChanges implements Plannable.
 func (p *Provider) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	return nil, p.checkValid(ctx, PlanPhase)
+}
+
+// References implements Referrer
+func (p *Provider) References(ctx context.Context) []stackaddrs.AbsReference {
+	cfg := p.Declaration(ctx)
+	var ret []stackaddrs.Reference
+	ret = append(ret, ReferencesInExpr(ctx, cfg.ForEach)...)
+	if schema, err := p.ProviderType(ctx).Schema(ctx); err == nil {
+		ret = append(ret, ReferencesInBody(ctx, cfg.Config, schema.Provider.Block.DecoderSpec())...)
+	}
+	return makeReferencesAbsolute(ret, p.Addr().Stack)
+}
+
+// RequiredComponents implements Applyable
+func (p *Provider) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+	return p.main.requiredComponentsForReferrer(ctx, p, PlanPhase)
 }
 
 // CheckApply implements ApplyChecker.

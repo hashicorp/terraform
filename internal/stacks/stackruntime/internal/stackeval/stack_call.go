@@ -7,7 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -15,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // StackCall represents a "stack" block in a stack configuration after
@@ -253,7 +255,21 @@ func (c *StackCall) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange,
 	return nil, c.checkValid(ctx, PlanPhase)
 }
 
-// CheckApply implements ApplyChecker.
+// References implements Referrer
+func (c *StackCall) References(ctx context.Context) []stackaddrs.AbsReference {
+	cfg := c.Declaration(ctx)
+	var ret []stackaddrs.Reference
+	ret = append(ret, ReferencesInExpr(ctx, cfg.ForEach)...)
+	ret = append(ret, ReferencesInExpr(ctx, cfg.Inputs)...)
+	return makeReferencesAbsolute(ret, c.Addr().Stack)
+}
+
+// RequiredComponents implements Applyable
+func (c *StackCall) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+	return c.main.requiredComponentsForReferrer(ctx, c, PlanPhase)
+}
+
+// CheckApply implements Applyable.
 func (c *StackCall) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	return nil, c.checkValid(ctx, ApplyPhase)
 }
