@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
+	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
@@ -71,15 +72,54 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 				// should've been produced by this same version of Terraform.
 				return nil, fmt.Errorf("invalid component instance address syntax in %q", msg.ComponentInstanceAddr)
 			}
+
+			dependencies := collections.NewSet[stackaddrs.AbsComponent]()
+			for _, rawAddr := range msg.DependsOnComponentAddrs {
+				// NOTE: We're using the component _instance_ address parser
+				// here, but we really want just components, so we'll need to
+				// check afterwards to make sure we don't have an instance key.
+				addr, diags := stackaddrs.ParseAbsComponentInstanceStr(rawAddr)
+				if diags.HasErrors() {
+					return nil, fmt.Errorf("invalid component address syntax in %q", rawAddr)
+				}
+				if addr.Item.Key != addrs.NoKey {
+					return nil, fmt.Errorf("invalid component address syntax in %q: is actually a component instance address", rawAddr)
+				}
+				realAddr := stackaddrs.AbsComponent{
+					Stack: addr.Stack,
+					Item:  addr.Item.Component,
+				}
+				dependencies.Add(realAddr)
+			}
+
+			plannedAction, err := planproto.FromAction(msg.PlannedAction)
+			if err != nil {
+				return nil, fmt.Errorf("decoding plan for %s: %w", addr, err)
+			}
+
+			outputVals := make(map[addrs.OutputValue]cty.Value)
+			for name, rawVal := range msg.PlannedOutputValues {
+				v, err := tfstackdata1.DynamicValueFromTFStackData1(rawVal, cty.DynamicPseudoType)
+				if err != nil {
+					return nil, fmt.Errorf("decoding output value %q for %s: %w", name, addr, err)
+				}
+				outputVals[addrs.OutputValue{Name: name}] = v
+			}
+
 			if !ret.Components.HasKey(addr) {
 				ret.Components.Put(addr, &Component{
+					PlannedAction:       plannedAction,
+					Dependencies:        dependencies,
+					Dependents:          collections.NewSet[stackaddrs.AbsComponent](),
+					PlannedOutputValues: outputVals,
+
 					ResourceInstancePlanned:        addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.ResourceInstanceChangeSrc](),
 					ResourceInstancePriorState:     addrs.MakeMap[addrs.AbsResourceInstanceObject, *states.ResourceInstanceObjectSrc](),
 					ResourceInstanceProviderConfig: addrs.MakeMap[addrs.AbsResourceInstanceObject, addrs.AbsProviderConfig](),
 				})
 			}
 			c := ret.Components.Get(addr)
-			err := c.PlanTimestamp.UnmarshalText([]byte(msg.PlanTimestamp))
+			err = c.PlanTimestamp.UnmarshalText([]byte(msg.PlanTimestamp))
 			if err != nil {
 				return nil, fmt.Errorf("invalid plan timestamp %q for %s", msg.PlanTimestamp, addr)
 			}
@@ -169,6 +209,34 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 	// plan sequence somehow.
 	if !foundHeader {
 		return nil, fmt.Errorf("missing PlanHeader")
+	}
+
+	// Before we return we'll calculate the reverse dependency information
+	// based on the forward dependency information we loaded above.
+	for _, elem := range ret.Components.Elems() {
+		dependentInstAddr := elem.K
+		dependentAddr := stackaddrs.AbsComponent{
+			Stack: dependentInstAddr.Stack,
+			Item:  dependentInstAddr.Item.Component,
+		}
+
+		for _, dependencyAddr := range elem.V.Dependencies.Elems() {
+			// FIXME: This is very inefficient because the current data structure doesn't
+			// allow looking up all of the component instances that have a particular
+			// component. This'll be okay as long as the number of components is
+			// small, but we'll need to improve this if we ever want to support stacks
+			// with a large number of components.
+			for _, elem := range ret.Components.Elems() {
+				maybeDependencyInstAddr := elem.K
+				maybeDependencyAddr := stackaddrs.AbsComponent{
+					Stack: maybeDependencyInstAddr.Stack,
+					Item:  maybeDependencyInstAddr.Item.Component,
+				}
+				if dependencyAddr.UniqueKey() == maybeDependencyAddr.UniqueKey() {
+					elem.V.Dependents.Add(dependentAddr)
+				}
+			}
+		}
 	}
 
 	return ret, nil

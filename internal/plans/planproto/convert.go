@@ -80,3 +80,24 @@ func NewAction(action plans.Action) Action {
 		panic(fmt.Sprintf("unsupported change action %s", action))
 	}
 }
+
+func FromAction(protoAction Action) (plans.Action, error) {
+	switch protoAction {
+	case Action_NOOP:
+		return plans.NoOp, nil
+	case Action_CREATE:
+		return plans.Create, nil
+	case Action_READ:
+		return plans.Read, nil
+	case Action_UPDATE:
+		return plans.Update, nil
+	case Action_DELETE:
+		return plans.Delete, nil
+	case Action_DELETE_THEN_CREATE:
+		return plans.DeleteThenCreate, nil
+	case Action_CREATE_THEN_DELETE:
+		return plans.CreateThenDelete, nil
+	default:
+		return plans.NoOp, fmt.Errorf("unsupported action %s", protoAction)
+	}
+}

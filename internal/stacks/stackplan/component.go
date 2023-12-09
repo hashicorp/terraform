@@ -8,8 +8,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Component is a container for a set of changes that all belong to the same
@@ -19,6 +22,8 @@ import (
 // Terraform language runtime to apply all of the described changes together as
 // a single operation.
 type Component struct {
+	PlannedAction plans.Action
+
 	// ResourceInstancePlanned describes the changes that Terraform is proposing
 	// to make to try to converge the real system state with the desired state
 	// as described by the configuration.
@@ -43,6 +48,17 @@ type Component struct {
 	// timestamp", which is used only for the result of the "plantimestamp"
 	// function during apply and must not be used for any other purpose.
 	PlanTimestamp time.Time
+
+	// Dependencies is a set of addresses of other components that this one
+	// expects to exist for as long as this one exists.
+	Dependencies collections.Set[stackaddrs.AbsComponent]
+
+	// Dependents is the reverse of [Component.Dependencies], describing
+	// the other components that must be destroyed before this one could
+	// be destroyed.
+	Dependents collections.Set[stackaddrs.AbsComponent]
+
+	PlannedOutputValues map[addrs.OutputValue]cty.Value
 }
 
 // ForModulesRuntime translates the component instance plan into the form
