@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -167,7 +168,20 @@ func (v *OutputValue) PlanChanges(ctx context.Context) ([]stackplan.PlannedChang
 	return nil, v.checkValid(ctx, PlanPhase)
 }
 
-// CheckApply implements ApplyChecker.
+// References implements Referer
+func (v *OutputValue) References(ctx context.Context) []stackaddrs.AbsReference {
+	cfg := v.Declaration(ctx)
+	var ret []stackaddrs.Reference
+	ret = append(ret, ReferencesInExpr(ctx, cfg.Value)...)
+	return makeReferencesAbsolute(ret, v.Addr().Stack)
+}
+
+// RequiredComponents implements Applyable
+func (v *OutputValue) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+	return v.main.requiredComponentsForReferer(ctx, v, PlanPhase)
+}
+
+// CheckApply implements Applyable.
 func (v *OutputValue) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	return nil, v.checkValid(ctx, ApplyPhase)
 }

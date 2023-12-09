@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -190,7 +191,38 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 	}, diags
 }
 
-// CheckApply implements ApplyChecker.
+// References implements Referer
+func (v *InputVariable) References(ctx context.Context) []stackaddrs.AbsReference {
+	// The references for an input variable actually come from the
+	// call that defines it, in the parent stack.
+	addr := v.Addr()
+	if addr.Stack.IsRoot() {
+		// Variables declared in the root module can't refer to anything,
+		// because they are defined outside of the stack configuration by
+		// our caller.
+		return nil
+	}
+	stackAddr := addr.Stack
+	parentStack := v.main.StackUnchecked(ctx, stackAddr.Parent())
+	if parentStack == nil {
+		// Weird, but we'll tolerate it for robustness.
+		return nil
+	}
+	callAddr := stackAddr.Call()
+	call := parentStack.EmbeddedStackCall(ctx, callAddr.Item)
+	if call == nil {
+		// Weird, but we'll tolerate it for robustness.
+		return nil
+	}
+	return call.References(ctx)
+}
+
+// RequiredComponents implements Applyable
+func (v *InputVariable) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+	return v.main.requiredComponentsForReferer(ctx, v, PlanPhase)
+}
+
+// CheckApply implements Applyable.
 func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	return nil, v.checkValid(ctx, ApplyPhase)
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
@@ -187,7 +188,12 @@ func (c *StackCallInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 	return nil, c.checkValid(ctx, PlanPhase)
 }
 
-// CheckApply implements ApplyChecker by confirming that the input variable
+// RequiredComponents implements Applyable
+func (c *StackCallInstance) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+	return c.call.RequiredComponents(ctx)
+}
+
+// CheckApply implements Applyable by confirming that the input variable
 // values are still valid after resolving any upstream changes.
 func (c *StackCallInstance) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	return nil, c.checkValid(ctx, ApplyPhase)

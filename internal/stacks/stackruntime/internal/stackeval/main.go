@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-slug/sourcebundle"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -443,6 +444,23 @@ func (m *Main) RootVariableValue(ctx context.Context, addr stackaddrs.InputVaria
 			Value: cty.DynamicVal, // placeholder value
 		}
 	}
+}
+
+// ResolveAbsExpressionReference tries to resolve the given absolute
+// expression reference within this evaluation context.
+func (m *Main) ResolveAbsExpressionReference(ctx context.Context, ref stackaddrs.AbsReference, phase EvalPhase) (Referenceable, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	stack := m.Stack(ctx, ref.Stack, phase)
+	if stack == nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reference to undeclared stack",
+			Detail:   fmt.Sprintf("Cannot resolve reference to object in undeclared stack %s.", ref.Stack),
+			Subject:  ref.SourceRange().ToHCL().Ptr(),
+		})
+		return nil, diags
+	}
+	return stack.ResolveExpressionReference(ctx, ref.Ref)
 }
 
 // RegisterCleanup registers an arbitrary callback function to run when a
