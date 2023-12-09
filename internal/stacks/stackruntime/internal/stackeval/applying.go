@@ -27,15 +27,15 @@ type ApplyOpts struct {
 	PrevStateDescKeys collections.Set[statekeys.Key]
 }
 
-// ApplyChecker is an interface implemented by types which represent objects
+// Applyable is an interface implemented by types which represent objects
 // that can potentially produce diagnostics and object change reports during
 // the apply phase.
 //
-// Unlike [Plannable], ApplyChecker implementations do not actually apply
+// Unlike [Plannable], Applyable implementations do not actually apply
 // changes themselves. Instead, the real changes get driven separately using
 // the [ChangeExec] function (see [ApplyPlan]) and then we collect up any
 // reports to send to the caller separately using this interface.
-type ApplyChecker interface {
+type Applyable interface {
 	// CheckApply checks the receiver's apply-time result and returns zero
 	// or more applied change descriptions and zero or more diagnostics
 	// describing any problems that occured for this specific object during

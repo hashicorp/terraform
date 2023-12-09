@@ -236,7 +236,7 @@ type applyWalk = walkWithOutput[*ApplyOutput]
 // be scheduled separately or this function will either block forever or
 // return strange errors. (See [ApplyPlan] for more about how the apply phase
 // deals with changes.)
-func (m *Main) walkApplyCheckObjectChanges(ctx context.Context, walk *applyWalk, obj ApplyChecker) {
+func (m *Main) walkApplyCheckObjectChanges(ctx context.Context, walk *applyWalk, obj Applyable) {
 	walk.AsyncTask(ctx, func(ctx context.Context) {
 		ctx, span := tracer.Start(ctx, obj.tracingName()+" apply-time checks")
 		defer span.End()
