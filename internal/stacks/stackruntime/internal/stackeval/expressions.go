@@ -260,6 +260,50 @@ func EvalBody(ctx context.Context, body hcl.Body, spec hcldec.Spec, phase EvalPh
 	return val, diags
 }
 
+// ReferencesInExpr returns all of the valid references contained in the given
+// HCL expression.
+//
+// It ignores any invalid references, on the assumption that the expression
+// will eventually be evaluated and then those invalid references would be
+// reported as errors at that point.
+func ReferencesInExpr(ctx context.Context, expr hcl.Expression) []stackaddrs.Reference {
+	if expr == nil {
+		return nil
+	}
+	return referencesInTraversals(ctx, expr.Variables())
+}
+
+// ReferencesInBody returns all of the valid references contained in the given
+// HCL body.
+//
+// It ignores any invalid references, on the assumption that the body
+// will eventually be evaluated and then those invalid references would be
+// reported as errors at that point.
+func ReferencesInBody(ctx context.Context, body hcl.Body, spec hcldec.Spec) []stackaddrs.Reference {
+	if body == nil {
+		return nil
+	}
+	return referencesInTraversals(ctx, hcldec.Variables(body, spec))
+}
+
+func referencesInTraversals(ctx context.Context, traversals []hcl.Traversal) []stackaddrs.Reference {
+	if len(traversals) == 0 {
+		return nil
+	}
+	ret := make([]stackaddrs.Reference, 0, len(traversals))
+	for _, traversal := range traversals {
+		ref, _, moreDiags := stackaddrs.ParseReference(traversal)
+		if moreDiags.HasErrors() {
+			// We'll ignore any traversals that are not valid references,
+			// on the assumption that we'd catch them during a subsequent
+			// evaluation of the same expression/body/etc.
+			continue
+		}
+		ret = append(ret, ref)
+	}
+	return ret
+}
+
 // ExprResult bundles an arbitrary result value with the expression and
 // evaluation context it was derived from, allowing the recipient to
 // potentially emit additional diagnostics if the result is problematic.
