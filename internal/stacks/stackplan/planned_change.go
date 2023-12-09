@@ -152,14 +152,28 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 		planTimestampStr = pc.PlanTimestamp.Format(time.RFC3339)
 	}
 
+	componentAddrsRaw := make([]string, 0, pc.RequiredComponents.Len())
+	for _, componentAddr := range pc.RequiredComponents.Elems() {
+		componentAddrsRaw = append(componentAddrsRaw, componentAddr.String())
+	}
+
+	plannedOutputValues := make(map[string]*tfstackdata1.DynamicValue)
+	for k, v := range pc.PlannedOutputValues {
+		dv, err := tfstackdata1.DynamicValueToTFStackData1(v, cty.DynamicPseudoType)
+		if err != nil {
+			return nil, fmt.Errorf("encoding output value %q: %w", k, err)
+		}
+		plannedOutputValues[k] = dv
+	}
+
 	var raw anypb.Any
 	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanComponentInstance{
-		ComponentInstanceAddr: pc.Addr.String(),
-		PlanTimestamp:         planTimestampStr,
-		PlannedInputValues:    plannedInputValues,
-		// We don't track the action as part of the raw data because we
-		// don't actually need it to apply the change; it's only included
-		// for external consumption, such as rendering changes in the UI.
+		ComponentInstanceAddr:   pc.Addr.String(),
+		PlanTimestamp:           planTimestampStr,
+		PlannedInputValues:      plannedInputValues,
+		PlannedAction:           planproto.NewAction(pc.Action),
+		DependsOnComponentAddrs: componentAddrsRaw,
+		PlannedOutputValues:     plannedOutputValues,
 	}, proto.MarshalOptions{})
 	if err != nil {
 		return nil, err

@@ -106,6 +106,7 @@ func TestPlannedChangeAsProto(t *testing.T) {
 					mustMarshalAnyPb(&tfstackdata1.PlanComponentInstance{
 						ComponentInstanceAddr: "component.foo",
 						PlanTimestamp:         "2017-03-27T10:00:00-08:00",
+						PlannedAction:         planproto.Action_CREATE,
 					}),
 				},
 				Descriptions: []*terraform1.PlannedChange_ChangeDescription{
@@ -171,6 +172,7 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				Raw: []*anypb.Any{
 					mustMarshalAnyPb(&tfstackdata1.PlanComponentInstance{
 						ComponentInstanceAddr: `stack.a["boop"].component.foo`,
+						PlannedAction:         planproto.Action_DELETE,
 					}),
 				},
 				Descriptions: []*terraform1.PlannedChange_ChangeDescription{
