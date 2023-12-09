@@ -979,16 +979,46 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 	corePlan, moreDiags := c.CheckModuleTreePlan(ctx)
 	diags = diags.Append(moreDiags)
 	if corePlan != nil {
+		existedBefore := false
+		if prevState := c.main.PlanPrevState(); prevState != nil {
+			existedBefore = prevState.HasComponentInstance(c.Addr())
+		}
+		destroying := corePlan.UIMode == plans.DestroyMode
+		refreshOnly := corePlan.UIMode == plans.RefreshOnlyMode
+
+		var action plans.Action
+		switch {
+		case destroying:
+			action = plans.Delete
+		case refreshOnly:
+			action = plans.Read
+		case existedBefore:
+			action = plans.Update
+		default:
+			action = plans.Create
+		}
+
+		// FIXME: This is silly because we make ResultValue wrap the output
+		// values map up into an object and then just unwrap it again
+		// immediately.
+		var outputVals map[string]cty.Value
+		if resultVal := c.ResultValue(ctx, PlanPhase); resultVal.Type().IsObjectType() && resultVal.IsKnown() && !resultVal.IsNull() {
+			outputVals = make(map[string]cty.Value, resultVal.LengthInt())
+			for it := resultVal.ElementIterator(); it.Next(); {
+				k, v := it.Element()
+				outputVals[k.AsString()] = v
+			}
+		}
+
 		// We must always at least announce that the component instance exists,
 		// and that must come before any resource instance changes referring to it.
 		changes = append(changes, &stackplan.PlannedChangeComponentInstance{
 			Addr: c.Addr(),
 
-			// FIXME: Once we actually have a prior state this should vary
-			// depending on whether the same component instance existed in
-			// the prior state.
-			Action:             plans.Create,
-			PlannedInputValues: corePlan.VariableValues,
+			Action:              action,
+			RequiredComponents:  c.RequiredComponents(ctx),
+			PlannedInputValues:  corePlan.VariableValues,
+			PlannedOutputValues: outputVals,
 
 			// We must remember the plan timestamp so that the plantimestamp
 			// function can return a consistent result during a later apply phase.

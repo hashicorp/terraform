@@ -13,6 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -81,7 +82,11 @@ func TestPlanWithSingleResource(t *testing.T) {
 			),
 			Action:             plans.Create,
 			PlannedInputValues: make(map[string]plans.DynamicValue),
-			PlanTimestamp:      fakePlanTimestamp,
+			PlannedOutputValues: map[string]cty.Value{
+				"input":  cty.StringVal("hello"),
+				"output": cty.UnknownVal(cty.String),
+			},
+			PlanTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
@@ -171,7 +176,11 @@ func TestPlanWithSingleResource(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions); diff != "" {
+	cmpOptions := cmp.Options{
+		ctydebug.CmpOptions,
+		collections.CmpOptions,
+	}
+	if diff := cmp.Diff(wantChanges, gotChanges, cmpOptions); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
