@@ -338,10 +338,10 @@ object in its callback:
   which can return an arbitrary number of "planned change" objects that
   should be returned to the caller to contribute to the plan, and an arbitrary
   number of diagnostics.
-- `ApplyPhase` calls the `CheckApply` method of interface `ApplyChecker`,
+- `ApplyPhase` calls the `CheckApply` method of interface `Applyable`,
   which is responsible for collecting the results of apply actions that are
   actually scheduled elsewhere, since the runtime wants a little more control
-  over the execution of the side-effect heavy apply actions. This returns am
+  over the execution of the side-effect heavy apply actions. This returns an
   arbitrary number of "applied change" objects that each represents a
   mutation of the state, and an arbitrary number of diagnostics.
 
