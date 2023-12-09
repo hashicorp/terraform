@@ -6,10 +6,13 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync/atomic"
 
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
@@ -79,11 +82,48 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 			for _, elem := range plan.Components.Elems() {
 				addr := elem.K
 				componentInstPlan := elem.V
+				action := componentInstPlan.PlannedAction
+				dependencyAddrs := componentInstPlan.Dependencies
+				dependentAddrs := componentInstPlan.Dependents
+
 				reg.RegisterComponentInstanceChange(
 					ctx, addr,
 					func(ctx context.Context, main *Main) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
 						ctx, span := tracer.Start(ctx, addr.String()+" apply")
 						defer span.End()
+
+						var waitForComponents collections.Set[stackaddrs.AbsComponent]
+						if action == plans.Delete {
+							// If the effect of this apply will be to destroy this
+							// component instance then we need to wait for all
+							// of our dependents to be destroyed first, because
+							// we're required to outlive them.
+							waitForComponents = dependentAddrs
+						} else {
+							// For all other actions, we must wait for our
+							// dependencies to finish applying their changes.
+							waitForComponents = dependencyAddrs
+						}
+						for _, waitComponentAddr := range waitForComponents.Elems() {
+							log.Printf("[TRACE] stackeval: %s must wait for %s changes to be applied", addr, waitComponentAddr)
+							if stack := main.Stack(ctx, waitComponentAddr.Stack, ApplyPhase); stack != nil {
+								if component := stack.Component(ctx, waitComponentAddr.Item); component != nil {
+									success := component.ApplySuccessful(ctx)
+									if !success {
+										// If anything we're waiting on does not succeed then we can't proceed without
+										// violating the dependency invariants.
+										log.Printf("[TRACE] stackeval: %s cannot start because %s returned errors", addr, waitComponentAddr)
+										// FIXME: We need to propagate the signal that we ended unsuccessfully in a way
+										// that other components' ApplySuccessful can return false too. As this is
+										// currently working, indirect downstreams will probably still try to apply
+										// but then fail in a strange way because this result is incomplete.
+										return &ComponentInstanceApplyResult{}, nil
+									}
+									component.AwaitApplyComplete(ctx)
+								}
+							}
+						}
+						log.Printf("[TRACE] stackeval: %s now applying", addr)
 
 						stack := main.Stack(ctx, addr.Stack, ApplyPhase)
 						component := stack.Component(ctx, addr.Item.Component)
