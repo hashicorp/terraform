@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -114,6 +115,89 @@ func TestEvalExpr(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 	})
+}
+
+func TestReferencesInExpr(t *testing.T) {
+	tests := []struct {
+		exprSrc     string
+		wantTargets []stackaddrs.Referenceable
+	}{
+		{
+			`"hello"`,
+			[]stackaddrs.Referenceable{},
+		},
+		{
+			`var.foo`,
+			[]stackaddrs.Referenceable{
+				stackaddrs.InputVariable{
+					Name: "foo",
+				},
+			},
+		},
+		{
+			`var.foo + var.foo`,
+			[]stackaddrs.Referenceable{
+				stackaddrs.InputVariable{
+					Name: "foo",
+				},
+				stackaddrs.InputVariable{
+					Name: "foo",
+				},
+			},
+		},
+		{
+			`local.bar`,
+			[]stackaddrs.Referenceable{
+				stackaddrs.LocalValue{
+					Name: "bar",
+				},
+			},
+		},
+		{
+			`component.foo["bar"]`,
+			[]stackaddrs.Referenceable{
+				stackaddrs.Component{
+					Name: "foo",
+				},
+			},
+		},
+		{
+			`stack.foo["bar"]`,
+			[]stackaddrs.Referenceable{
+				stackaddrs.StackCall{
+					Name: "foo",
+				},
+			},
+		},
+		{
+			`provider.foo.bar["baz"]`,
+			[]stackaddrs.Referenceable{
+				stackaddrs.ProviderConfigRef{
+					ProviderLocalName: "foo",
+					Name:              "bar",
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.exprSrc, func(t *testing.T) {
+			var diags tfdiags.Diagnostics
+			expr, hclDiags := hclsyntax.ParseExpression([]byte(test.exprSrc), "", hcl.InitialPos)
+			diags = diags.Append(hclDiags)
+			assertNoDiagnostics(t, diags)
+
+			gotRefs := ReferencesInExpr(context.Background(), expr)
+			gotTargets := make([]stackaddrs.Referenceable, len(gotRefs))
+			for i, ref := range gotRefs {
+				gotTargets[i] = ref.Target
+			}
+
+			if diff := cmp.Diff(test.wantTargets, gotTargets); diff != "" {
+				t.Errorf("wrong reference targets\n%s", diff)
+			}
+		})
+	}
 }
 
 func TestEvalBody(t *testing.T) {
