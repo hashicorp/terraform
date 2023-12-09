@@ -242,7 +242,11 @@ func (aot *applyOutputTester) RawUpdatedState(t *testing.T) map[string]*anypb.An
 			t.Fatalf("failed to encode %T: %s", change, err)
 		}
 		for _, protoRaw := range protoChange.Raw {
-			msgs[protoRaw.Key] = protoRaw.Value
+			if protoRaw.Value != nil {
+				msgs[protoRaw.Key] = protoRaw.Value
+			} else {
+				delete(msgs, protoRaw.Key)
+			}
 		}
 	}
 

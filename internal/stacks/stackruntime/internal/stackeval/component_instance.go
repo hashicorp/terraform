@@ -957,7 +957,6 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 				}
 				attrs[os.Addr.OutputValue.Name] = v
 			}
-			return cty.ObjectVal(attrs)
 		}
 		if decl := c.call.Config(ctx).ModuleTree(ctx); decl != nil {
 			// If the plan only ran partially then we might be missing
@@ -974,10 +973,52 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 					attrs[name] = cty.DynamicVal
 				}
 			}
+			// In the DestroyMode case above we might also find ourselves
+			// with some remnant additional output values that have since
+			// been removed from the configuration, but yet remain in the
+			// state. Destroying with a different configuration than was
+			// most recently applied is not guaranteed to work, but we
+			// can make it more likely to work by dropping anything that
+			// isn't currently declared, since referring directly to these
+			// would be a static validation error anyway, and including
+			// them might cause aggregate operations like keys(component.foo)
+			// to produce broken results.
+			for name := range attrs {
+				_, declared := decl.Module.Outputs[name]
+				if !declared {
+					// (deleting map elements during iteration is valid in Go,
+					// unlike some other languages.)
+					delete(attrs, name)
+				}
+			}
 		}
 		return cty.ObjectVal(attrs)
 
 	case ApplyPhase, InspectPhase:
+		// As a special case, if we're applying and the planned action is
+		// to destroy then we'll just return the planned output values
+		// verbatim without waiting for anything, so that downstreams can
+		// begin their own destroy phases before we start ours.
+		if phase == ApplyPhase {
+			fullPlan := c.main.PlanBeingApplied()
+			ourPlan := fullPlan.Components.Get(c.Addr())
+			if ourPlan == nil {
+				// Weird, but we'll tolerate it.
+				return cty.DynamicVal
+			}
+			if ourPlan.PlannedAction == plans.Delete {
+				// In this case our result was already decided during the
+				// planning phase, because we can't block on anything else
+				// here to make sure we don't create a self-dependency
+				// while our downstreams are trying to destroy themselves.
+				attrs := make(map[string]cty.Value, len(ourPlan.PlannedOutputValues))
+				for addr, val := range ourPlan.PlannedOutputValues {
+					attrs[addr.Name] = val
+				}
+				return cty.ObjectVal(attrs)
+			}
+		}
+
 		var state *states.State
 		switch phase {
 		case ApplyPhase:

@@ -5,6 +5,12 @@ package stackstate
 
 import (
 	"fmt"
+	"log"
+
+	"github.com/zclconf/go-cty/cty"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
@@ -13,10 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // LoadFromProto produces a [State] object by decoding a raw state map.
@@ -41,6 +43,16 @@ func LoadFromProto(msgs map[string]*anypb.Any) (*State, error) {
 			if err != nil {
 				return nil, err
 			}
+			continue
+		}
+
+		if rawMsg == nil {
+			// This suggests a state mutation bug where a deleted object was
+			// written as a map entry without a value, as opposed to deleting
+			// the value. We tolerate this here just because otherwise it
+			// would be harder to recover once a state has been mutated
+			// incorrectly.
+			log.Panicf("[WARN] stackstate.LoadFromProto: key %s has no associated object; ignoring", rawKey)
 			continue
 		}
 

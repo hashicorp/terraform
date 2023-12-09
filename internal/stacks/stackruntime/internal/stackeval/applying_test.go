@@ -12,9 +12,9 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
+	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -154,12 +154,12 @@ func TestApply_componentOrdering(t *testing.T) {
 	// then hopefully at least one of the planning-specific tests is also
 	// failing, and will give some more clues as to what's gone wrong here.
 	if !plan.Applyable {
-		m := proto.TextMarshaler{
-			Compact:   false,
-			ExpandAny: true,
+		m := prototext.MarshalOptions{
+			Multiline: true,
+			Indent:    "  ",
 		}
 		for _, raw := range rawPlan {
-			t.Log(m.Text(raw))
+			t.Log(m.Format(raw))
 		}
 		t.Fatalf("plan is not applyable")
 	}
@@ -184,6 +184,7 @@ func TestApply_componentOrdering(t *testing.T) {
 
 	type applyResultData struct {
 		NewRawState    map[string]*anypb.Any
+		NewState       *stackstate.State
 		VisitedMarkers []string
 	}
 
@@ -225,11 +226,19 @@ func TestApply_componentOrdering(t *testing.T) {
 
 		assertNoDiagnostics(t, outpTester.Diags())
 
+		rawState := outpTester.RawUpdatedState(t)
+		state, diags := outpTester.Close(t)
+		assertNoDiagnostics(t, diags)
+
 		return applyResultData{
-			NewRawState:    outpTester.RawUpdatedState(t),
+			NewRawState:    rawState,
+			NewState:       state,
 			VisitedMarkers: visitedMarkers,
 		}, nil
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	{
 		if len(applyResult.VisitedMarkers) != 5 {
@@ -264,51 +273,128 @@ func TestApply_componentOrdering(t *testing.T) {
 	// If the initial plan and apply was successful and made its changes in
 	// the correct order, then we'll also test creating and applying a
 	// destroy-mode plan.
-	// FIXME: We can't actually do this yet, because we don't have the logic
-	// in place for handling component results correctly when destroying.
-	// We'll complete this in a future commit.
-	/*
-		t.Log("destroy plan")
-		planOutput, err = promising.MainTask(ctx, func(ctx context.Context) (*planOutputTester, error) {
-			main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
-				PlanningMode: plans.DestroyMode,
-				ProviderFactories: ProviderFactories{
-					testProviderAddr: func() (providers.Interface, error) {
-						return &terraform.MockProvider{
-							GetProviderSchemaResponse: &testProviderSchema,
-							PlanResourceChangeFn: func(prcr providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
-								return providers.PlanResourceChangeResponse{
-									PlannedState: prcr.ProposedNewState,
-								}
-							},
-						}, nil
-					},
+	t.Log("destroy plan")
+	planOutput, err = promising.MainTask(ctx, func(ctx context.Context) (*planOutputTester, error) {
+		main := NewForPlanning(cfg, applyResult.NewState, PlanOpts{
+			PlanningMode: plans.DestroyMode,
+			ProviderFactories: ProviderFactories{
+				testProviderAddr: func() (providers.Interface, error) {
+					return &terraform.MockProvider{
+						GetProviderSchemaResponse: &testProviderSchema,
+						PlanResourceChangeFn: func(prcr providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+							return providers.PlanResourceChangeResponse{
+								PlannedState: prcr.ProposedNewState,
+							}
+						},
+					}, nil
 				},
-			})
-
-			outp, outpTester := testPlanOutput(t)
-			main.PlanAll(ctx, outp)
-
-			return outpTester, nil
+			},
 		})
+
+		outp, outpTester := testPlanOutput(t)
+		main.PlanAll(ctx, outp)
+
+		return outpTester, nil
+	})
+	if err != nil {
+		t.Fatalf("planning failed: %s", err)
+	}
+
+	rawPlan = planOutput.RawChanges(t)
+	plan, diags = planOutput.Close(t)
+	assertNoDiagnostics(t, diags)
+	if !plan.Applyable {
+		m := prototext.MarshalOptions{
+			Multiline: true,
+			Indent:    "  ",
+		}
+		for _, raw := range rawPlan {
+			t.Log(m.Format(raw))
+		}
+		t.Fatalf("plan is not applyable")
+	}
+
+	// When we apply the destroy plan, the components should be visited in
+	// reverse dependency order to ensure that dependencies outlive their
+	// dependents.
+	t.Log("destroy apply")
+	applyResult, err = promising.MainTask(ctx, func(ctx context.Context) (applyResultData, error) {
+		var visitedMarkers []string
+		var visitedMarkersMu sync.Mutex
+
+		outp, outpTester := testApplyOutput(t, nil)
+
+		main, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+			ProviderFactories: ProviderFactories{
+				testProviderAddr: func() (providers.Interface, error) {
+					return &terraform.MockProvider{
+						GetProviderSchemaResponse: &testProviderSchema,
+						ApplyResourceChangeFn: func(arcr providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+							markerStr := arcr.PriorState.GetAttr("marker").AsString()
+							log.Printf("[TRACE] TestApply_componentOrdering: visiting %q", markerStr)
+							visitedMarkersMu.Lock()
+							visitedMarkers = append(visitedMarkers, markerStr)
+							visitedMarkersMu.Unlock()
+
+							return providers.ApplyResourceChangeResponse{
+								NewState: arcr.PlannedState,
+							}
+						},
+					}, nil
+				},
+			},
+		}, outp)
+		if main != nil {
+			defer main.DoCleanup(ctx)
+		}
 		if err != nil {
-			t.Fatalf("planning failed: %s", err)
+			t.Fatal(err)
 		}
 
-		rawPlan = planOutput.RawChanges(t)
-		plan, diags = planOutput.Close(t)
+		assertNoDiagnostics(t, outpTester.Diags())
+
+		rawState := outpTester.RawUpdatedState(t)
+		state, diags := outpTester.Close(t)
 		assertNoDiagnostics(t, diags)
-		if !plan.Applyable {
-			m := proto.TextMarshaler{
-				Compact:   false,
-				ExpandAny: true,
-			}
-			for _, raw := range rawPlan {
-				t.Log(m.Text(raw))
-			}
-			t.Fatalf("plan is not applyable")
+
+		return applyResultData{
+			NewRawState:    rawState,
+			NewState:       state,
+			VisitedMarkers: visitedMarkers,
+		}, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	{
+		if len(applyResult.VisitedMarkers) != 5 {
+			t.Fatalf("apply didn't visit all of the resources\n%s", spew.Sdump(applyResult.VisitedMarkers))
 		}
-	*/
+		assertSliceElementsInRelativeOrder(
+			t, applyResult.VisitedMarkers,
+			"b.i", "a",
+		)
+		assertSliceElementsInRelativeOrder(
+			t, applyResult.VisitedMarkers,
+			"b.ii", "a",
+		)
+		assertSliceElementsInRelativeOrder(
+			t, applyResult.VisitedMarkers,
+			"b.iii", "a",
+		)
+		assertSliceElementsInRelativeOrder(
+			t, applyResult.VisitedMarkers,
+			"c", "b.i",
+		)
+		assertSliceElementsInRelativeOrder(
+			t, applyResult.VisitedMarkers,
+			"c", "b.ii",
+		)
+		assertSliceElementsInRelativeOrder(
+			t, applyResult.VisitedMarkers,
+			"c", "b.iii",
+		)
+	}
 }
 
 func sliceElementsInRelativeOrder[S ~[]E, E comparable](s S, v1, v2 E) bool {
