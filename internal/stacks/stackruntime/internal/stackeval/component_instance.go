@@ -917,6 +917,30 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 		return cty.ObjectVal(attrs)
 
 	case ApplyPhase, InspectPhase:
+		// As a special case, if we're applying and the planned action is
+		// to destroy then we'll just return the planned output values
+		// verbatim without waiting for anything, so that downstreams can
+		// begin their own destroy phases before we start ours.
+		if phase == ApplyPhase {
+			fullPlan := c.main.PlanBeingApplied()
+			ourPlan := fullPlan.Components.Get(c.Addr())
+			if ourPlan == nil {
+				// Weird, but we'll tolerate it.
+				return cty.DynamicVal
+			}
+			if ourPlan.PlannedAction == plans.Delete {
+				// In this case our result was already decided during the
+				// planning phase, because we can't block on anything else
+				// here to make sure we don't create a self-dependency
+				// while our downstreams are trying to destroy themselves.
+				attrs := make(map[string]cty.Value, len(ourPlan.PlannedOutputValues))
+				for addr, val := range ourPlan.PlannedOutputValues {
+					attrs[addr.Name] = val
+				}
+				return cty.ObjectVal(attrs)
+			}
+		}
+
 		var state *states.State
 		switch phase {
 		case ApplyPhase:
