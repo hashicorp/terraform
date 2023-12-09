@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -89,6 +90,7 @@ type mainPlanning struct {
 
 type mainApplying struct {
 	opts          ApplyOpts
+	plan          *stackplan.Plan
 	rootInputVals map[stackaddrs.InputVariable]cty.Value
 	results       *ChangeExecResults
 }
@@ -126,11 +128,12 @@ func NewForPlanning(config *stackconfig.Config, prevState *stackstate.State, opt
 	}
 }
 
-func NewForApplying(config *stackconfig.Config, rootInputs map[stackaddrs.InputVariable]cty.Value, execResults *ChangeExecResults, opts ApplyOpts) *Main {
+func NewForApplying(config *stackconfig.Config, rootInputs map[stackaddrs.InputVariable]cty.Value, plan *stackplan.Plan, execResults *ChangeExecResults, opts ApplyOpts) *Main {
 	return &Main{
 		config: config,
 		applying: &mainApplying{
 			opts:          opts,
+			plan:          plan,
 			rootInputVals: rootInputs,
 			results:       execResults,
 		},
@@ -215,6 +218,15 @@ func (m *Main) ApplyChangeResults() *ChangeExecResults {
 		panic("stacks language runtime is instantiated for applying but somehow has no change results")
 	}
 	return m.applying.results
+}
+
+// PlanBeingApplied returns the plan that's currently being applied, or panics
+// if called not during an apply phase.
+func (m *Main) PlanBeingApplied() *stackplan.Plan {
+	if !m.Applying() {
+		panic("stacks language runtime is not instantiated for applying")
+	}
+	return m.applying.plan
 }
 
 // InspectingState returns the state snapshot that was provided when

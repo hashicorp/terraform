@@ -119,7 +119,6 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 										// but then fail in a strange way because this result is incomplete.
 										return &ComponentInstanceApplyResult{}, nil
 									}
-									component.AwaitApplyComplete(ctx)
 								}
 							}
 						}
@@ -166,7 +165,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 			}
 		})
 
-		main := NewForApplying(config, plan.RootInputValues, results, opts)
+		main := NewForApplying(config, plan.RootInputValues, plan, results, opts)
 		begin(ctx, main) // the change tasks registered above become runnable
 
 		// With the planned changes now in progress, we'll visit everything and
