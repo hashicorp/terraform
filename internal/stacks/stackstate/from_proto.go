@@ -7,10 +7,13 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -217,7 +220,19 @@ func DecodeProtoResourceInstanceObject(protoObj *tfstackdata1.StateResourceInsta
 		return nil, fmt.Errorf("unsupported status %s", protoObj.Status.String())
 	}
 
-	// TODO: Deal with sensitive paths in protoObj.SensitivePaths
+	paths := make([]cty.PathValueMarks, 0, len(protoObj.SensitivePaths))
+	marks := cty.NewValueMarks(marks.Sensitive)
+	for _, p := range protoObj.SensitivePaths {
+		path, err := planfile.PathFromProto(p)
+		if err != nil {
+			return nil, err
+		}
+		paths = append(paths, cty.PathValueMarks{
+			Path:  path,
+			Marks: marks,
+		})
+	}
+	objSrc.AttrSensitivePaths = paths
 
 	if len(protoObj.Dependencies) != 0 {
 		objSrc.Dependencies = make([]addrs.ConfigResource, len(protoObj.Dependencies))

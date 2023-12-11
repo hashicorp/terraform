@@ -906,6 +906,18 @@ func pathValueMarksToTfplan(pvm []cty.PathValueMarks) ([]*planproto.Path, error)
 	return ret, nil
 }
 
+// PathFromProto decodes a path to a nested attribute into a cty.Path for
+// use in tracking marked values.
+//
+// This is used by the stackstate package, which uses planproto.Path messages
+// while using a different overall container.
+func PathFromProto(path *planproto.Path) (cty.Path, error) {
+	if path == nil {
+		return nil, nil
+	}
+	return pathFromTfplan(path)
+}
+
 func pathFromTfplan(path *planproto.Path) (cty.Path, error) {
 	ret := make([]cty.PathStep, 0, len(path.Steps))
 	for _, step := range path.Steps {
