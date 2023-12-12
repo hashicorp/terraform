@@ -47,6 +47,7 @@ ENHANCEMENTS:
 * `terraform console`: Now supports a `-plan` option which allows evaluating expressions against the planned new state, rather than against the prior state. This provides a more complete set of values for use in console expressions, at the expense of a slower startup time due first calculating the plan. ([#34342](https://github.com/hashicorp/terraform/issues/34342))
 * `import`: `for_each` can now be used to expand the `import` block to handle multiple resource instances ([#33932](https://github.com/hashicorp/terraform/issues/33932))
 * If the proposed change for a resource instance is rejected either due to a `postcondition` block or a `prevent_destroy` setting, Terraform will now include that proposed change in the plan output alongside the relevant error, whereas before the error would _replace_ the proposed change in the output. ([#34312](https://github.com/hashicorp/terraform/issues/34312))
+* `.terraformignore`: improve performance when ignoring large directories ([#34400](https://github.com/hashicorp/terraform/pull/34400))
 
 ## Previous Releases
 
