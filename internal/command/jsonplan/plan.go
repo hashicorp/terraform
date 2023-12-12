@@ -87,21 +87,23 @@ type Change struct {
 	//    ["create"]
 	//    ["read"]
 	//    ["update"]
-	//    ["delete", "create"]
-	//    ["create", "delete"]
+	//    ["delete", "create"] (replace)
+	//    ["create", "delete"] (replace)
 	//    ["delete"]
 	//    ["forget"]
-	// The two "replace" actions are represented in this way to allow callers to
-	// e.g. just scan the list for "delete" to recognize all three situations
-	// where the object will be deleted, allowing for any new deletion
-	// combinations that might be added in future.
+	//    ["create", "forget"] (replace)
+	// The three "replace" actions are represented in this way to allow callers
+	// to, e.g., just scan the list for "delete" to recognize all three
+	// situations where the object will be deleted, allowing for any new
+	// deletion combinations that might be added in future.
 	Actions []string `json:"actions,omitempty"`
 
 	// Before and After are representations of the object value both before and
-	// after the action. For ["create"] and ["delete"] actions, either "before"
-	// or "after" is unset (respectively). For ["no-op"], the before and after
-	// values are identical. The "after" value will be incomplete if there are
-	// values within it that won't be known until after apply.
+	// after the action. For ["create"] and ["delete"]/["forget"] actions,
+	// either "before" or "after" is unset (respectively). For ["no-op"], the
+	// before and after values are identical. The "after" value will be
+	// incomplete if there are values within it that won't be known until after
+	// apply.
 	Before json.RawMessage `json:"before,omitempty"`
 	After  json.RawMessage `json:"after,omitempty"`
 
