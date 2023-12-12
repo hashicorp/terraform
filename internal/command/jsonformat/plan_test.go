@@ -572,19 +572,22 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 			Action: plans.Forget,
 			Mode:   addrs.ManagedResourceMode,
 			Before: cty.ObjectVal(map[string]cty.Value{
-				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-123"),
 			}),
 			After: cty.NullVal(cty.EmptyObject),
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Computed: true},
+					"id":  {Type: cty.String, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: ` # test_instance.example will no longer be managed by Terraform, but will not be destroyed
  # (destroy = false is set in the configuration)
  . resource "test_instance" "example" {
-      - id = "i-02ae66f368e8518a9" -> null
+        id  = "i-02ae66f368e8518a9"
+        # (1 unchanged attribute hidden)
     }`,
 		},
 		"forget (deposed)": {
@@ -605,7 +608,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
  # (left over from a partially-failed replacement of this instance)
  # (destroy = false is set in the configuration)
  . resource "test_instance" "example" {
-      - id = "i-02ae66f368e8518a9" -> null
+        id = "i-02ae66f368e8518a9"
     }`,
 		},
 		"create-then-forget": {
