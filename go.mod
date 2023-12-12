@@ -33,7 +33,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.3.1
-	github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.43
+	github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.45
 	github.com/hashicorp/consul/api v1.13.0
 	github.com/hashicorp/consul/sdk v0.8.0
 	github.com/hashicorp/copywrite v0.16.3
@@ -276,5 +276,3 @@ require (
 )
 
 go 1.21.5
-
-replace github.com/hashicorp/aws-sdk-go-base/v2 => github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.44.0.20231208210559-5fe101fe4327
