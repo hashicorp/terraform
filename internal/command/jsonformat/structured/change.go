@@ -94,7 +94,7 @@ type Change struct {
 // FromJsonChange unmarshals the raw []byte values in the jsonplan.Change
 // structs into generic interface{} types that can be reasoned about.
 func FromJsonChange(change jsonplan.Change, relevantAttributes attribute_path.Matcher) Change {
-	return Change{
+	ret := Change{
 		Before:             unmarshalGeneric(change.Before),
 		After:              unmarshalGeneric(change.After),
 		Unknown:            unmarshalGeneric(change.AfterUnknown),
@@ -103,6 +103,15 @@ func FromJsonChange(change jsonplan.Change, relevantAttributes attribute_path.Ma
 		ReplacePaths:       attribute_path.Parse(change.ReplacePaths, false),
 		RelevantAttributes: relevantAttributes,
 	}
+
+	// A forget-only action (i.e. ["forget"], not ["create", "forget"])
+	// should be represented as a no-op, so it does not look like we are
+	// proposing to delete the resource.
+	if len(change.Actions) == 1 && change.Actions[0] == "forget" {
+		ret = ret.AsNoOp()
+	}
+
+	return ret
 }
 
 // FromJsonResource unmarshals the raw values in the jsonstate.Resource structs
