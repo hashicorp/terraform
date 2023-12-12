@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"context"
+
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
@@ -377,4 +379,8 @@ func (c *MockEvalContext) InstanceExpander() *instances.Expander {
 func (c *MockEvalContext) Overrides() *mocking.Overrides {
 	c.OverridesCalled = true
 	return c.OverrideValues
+}
+
+func (c *MockEvalContext) Context() context.Context {
+	return context.Background()
 }

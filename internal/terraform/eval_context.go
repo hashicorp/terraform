@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"context"
+
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
@@ -25,6 +27,9 @@ import (
 
 // EvalContext is the interface that is given to eval nodes to execute.
 type EvalContext interface {
+	// Context returns the context that created this EvalContext.
+	Context() context.Context
+
 	// Stopped returns a channel that is closed when evaluation is stopped
 	// via Terraform.Context.Stop()
 	Stopped() <-chan struct{}

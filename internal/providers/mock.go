@@ -4,6 +4,7 @@
 package providers
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/zclconf/go-cty/cty"
@@ -33,20 +34,19 @@ var _ Interface = (*Mock)(nil)
 type Mock struct {
 	Provider Interface
 	Data     *configs.MockData
-
-	schema *GetProviderSchemaResponse
+	schema   *GetProviderSchemaResponse
 }
 
-func (m *Mock) GetProviderSchema() GetProviderSchemaResponse {
+func (m *Mock) GetProviderSchema(ctx context.Context) GetProviderSchemaResponse {
 	if m.schema == nil {
 		// Cache the schema, it's not changing.
-		schema := m.Provider.GetProviderSchema()
+		schema := m.Provider.GetProviderSchema(ctx)
 		m.schema = &schema
 	}
 	return *m.schema
 }
 
-func (m *Mock) ValidateProviderConfig(request ValidateProviderConfigRequest) (response ValidateProviderConfigResponse) {
+func (m *Mock) ValidateProviderConfig(ctx context.Context, request ValidateProviderConfigRequest) (response ValidateProviderConfigResponse) {
 	// The config for the mocked providers is consistent, and validated when we
 	// parse the HCL directly. So we'll just make no change here.
 	return ValidateProviderConfigResponse{
@@ -54,25 +54,25 @@ func (m *Mock) ValidateProviderConfig(request ValidateProviderConfigRequest) (re
 	}
 }
 
-func (m *Mock) ValidateResourceConfig(request ValidateResourceConfigRequest) ValidateResourceConfigResponse {
+func (m *Mock) ValidateResourceConfig(ctx context.Context, request ValidateResourceConfigRequest) ValidateResourceConfigResponse {
 	// We'll just pass this through to the underlying provider. The mock should
 	// support the same resource syntax as the original provider and we can call
 	// validate without needing to configure the provider first.
-	return m.Provider.ValidateResourceConfig(request)
+	return m.Provider.ValidateResourceConfig(ctx, request)
 }
 
-func (m *Mock) ValidateDataResourceConfig(request ValidateDataResourceConfigRequest) ValidateDataResourceConfigResponse {
+func (m *Mock) ValidateDataResourceConfig(ctx context.Context, request ValidateDataResourceConfigRequest) ValidateDataResourceConfigResponse {
 	// We'll just pass this through to the underlying provider. The mock should
 	// support the same data source syntax as the original provider and we can
 	// call validate without needing to configure the provider first.
-	return m.Provider.ValidateDataResourceConfig(request)
+	return m.Provider.ValidateDataResourceConfig(ctx, request)
 }
 
 func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) (response UpgradeResourceStateResponse) {
 	// We can't do this from a mocked provider, so we just return whatever state
 	// is in the request back unchanged.
 
-	schema := m.GetProviderSchema()
+	schema := m.GetProviderSchema(context.Background())
 	response.Diagnostics = response.Diagnostics.Append(schema.Diagnostics)
 	if schema.Diagnostics.HasErrors() {
 		// We couldn't retrieve the schema for some reason, so the mock
@@ -111,7 +111,7 @@ func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) (respon
 	return response
 }
 
-func (m *Mock) ConfigureProvider(request ConfigureProviderRequest) (response ConfigureProviderResponse) {
+func (m *Mock) ConfigureProvider(ctx context.Context, request ConfigureProviderRequest) (response ConfigureProviderResponse) {
 	// Do nothing here, we don't have anything to configure within the mocked
 	// providers. We don't want to call the original providers from here as
 	// they may try to talk to their underlying cloud providers and we
@@ -124,7 +124,7 @@ func (m *Mock) Stop() error {
 	return m.Provider.Stop()
 }
 
-func (m *Mock) ReadResource(request ReadResourceRequest) ReadResourceResponse {
+func (m *Mock) ReadResource(ctx context.Context, request ReadResourceRequest) ReadResourceResponse {
 	// For a mocked provider, reading a resource is just reading it from the
 	// state. So we'll return what we have.
 	return ReadResourceResponse{
@@ -132,7 +132,7 @@ func (m *Mock) ReadResource(request ReadResourceRequest) ReadResourceResponse {
 	}
 }
 
-func (m *Mock) PlanResourceChange(request PlanResourceChangeRequest) PlanResourceChangeResponse {
+func (m *Mock) PlanResourceChange(ctx context.Context, request PlanResourceChangeRequest) PlanResourceChangeResponse {
 	if request.ProposedNewState.IsNull() {
 		// Then we are deleting this resource - we don't need to do anything.
 		return PlanResourceChangeResponse{
@@ -147,7 +147,7 @@ func (m *Mock) PlanResourceChange(request PlanResourceChangeRequest) PlanResourc
 
 		var response PlanResourceChangeResponse
 
-		schema := m.GetProviderSchema()
+		schema := m.GetProviderSchema(ctx)
 		response.Diagnostics = response.Diagnostics.Append(schema.Diagnostics)
 		if schema.Diagnostics.HasErrors() {
 			// We couldn't retrieve the schema for some reason, so the mock
@@ -177,7 +177,7 @@ func (m *Mock) PlanResourceChange(request PlanResourceChangeRequest) PlanResourc
 	}
 }
 
-func (m *Mock) ApplyResourceChange(request ApplyResourceChangeRequest) ApplyResourceChangeResponse {
+func (m *Mock) ApplyResourceChange(ctx context.Context, request ApplyResourceChangeRequest) ApplyResourceChangeResponse {
 	switch string(request.PlannedPrivate) {
 	case "create":
 		// A new resource that we've created might have computed fields we need
@@ -185,7 +185,7 @@ func (m *Mock) ApplyResourceChange(request ApplyResourceChangeRequest) ApplyReso
 
 		var response ApplyResourceChangeResponse
 
-		schema := m.GetProviderSchema()
+		schema := m.GetProviderSchema(context.Background())
 		response.Diagnostics = response.Diagnostics.Append(schema.Diagnostics)
 		if schema.Diagnostics.HasErrors() {
 			// We couldn't retrieve the schema for some reason, so the mock
@@ -222,7 +222,7 @@ func (m *Mock) ApplyResourceChange(request ApplyResourceChangeRequest) ApplyReso
 	}
 }
 
-func (m *Mock) ImportResourceState(request ImportResourceStateRequest) (response ImportResourceStateResponse) {
+func (m *Mock) ImportResourceState(ctx context.Context, request ImportResourceStateRequest) (response ImportResourceStateResponse) {
 	// You can't import via mock providers. The users should write specific
 	// `override_resource` blocks for any resources they want to import, so we
 	// just make them think about it rather than performing a blanket import
@@ -231,10 +231,10 @@ func (m *Mock) ImportResourceState(request ImportResourceStateRequest) (response
 	return response
 }
 
-func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceResponse {
+func (m *Mock) ReadDataSource(ctx context.Context, request ReadDataSourceRequest) ReadDataSourceResponse {
 	var response ReadDataSourceResponse
 
-	schema := m.GetProviderSchema()
+	schema := m.GetProviderSchema(context.Background())
 	response.Diagnostics = response.Diagnostics.Append(schema.Diagnostics)
 	if schema.Diagnostics.HasErrors() {
 		// We couldn't retrieve the schema for some reason, so the mock

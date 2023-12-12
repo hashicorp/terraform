@@ -4,6 +4,7 @@
 package views
 
 import (
+	"context"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -134,7 +135,7 @@ func testSchemas() *terraform.Schemas {
 	provider := testProvider()
 	return &terraform.Schemas{
 		Providers: map[addrs.Provider]providers.ProviderSchema{
-			addrs.NewDefaultProvider("test"): provider.GetProviderSchema(),
+			addrs.NewDefaultProvider("test"): provider.GetProviderSchema(context.Background()),
 		},
 	}
 }

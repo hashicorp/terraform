@@ -661,7 +661,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 			// We just need a vaguely-realistic scope here, so we'll make
 			// a plan against the given config and state and use its
 			// resulting scope.
-			_, planScope, diags := tfCtx.PlanAndEval(config, test.state, &terraform.PlanOpts{
+			_, planScope, diags := tfCtx.PlanAndEval(context.Background(), config, test.state, &terraform.PlanOpts{
 				Mode:         plans.NormalMode,
 				SetVariables: test.variables,
 			})

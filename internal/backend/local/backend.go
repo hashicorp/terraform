@@ -280,9 +280,10 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	if op.View == nil {
 		panic("Operation called with nil View")
 	}
+	childCtx, span := tracer.Start(ctx, "Operation")
 
 	// Determine the function to call for our operation
-	var f func(context.Context, context.Context, *backend.Operation, *backend.RunningOperation)
+	var f func(context.Context, context.Context, context.Context, *backend.Operation, *backend.RunningOperation)
 	switch op.Type {
 	case backend.OperationTypeRefresh:
 		f = b.opRefresh
@@ -327,7 +328,8 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 		defer cancel()
 
 		defer b.opLock.Unlock()
-		f(stopCtx, cancelCtx, op, runningOp)
+		defer span.End()
+		f(childCtx, stopCtx, cancelCtx, op, runningOp)
 	}()
 
 	// Return

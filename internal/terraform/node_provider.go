@@ -63,7 +63,7 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 		return nil
 	}
 
-	schemaResp := provider.GetProviderSchema()
+	schemaResp := provider.GetProviderSchema(ctx.Context())
 	diags = diags.Append(schemaResp.Diagnostics.InConfigBody(configBody, n.Addr.String()))
 	if diags.HasErrors() {
 		return diags
@@ -91,7 +91,7 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 		Config: unmarkedConfigVal,
 	}
 
-	validateResp := provider.ValidateProviderConfig(req)
+	validateResp := provider.ValidateProviderConfig(ctx.Context(), req)
 	diags = diags.Append(validateResp.Diagnostics.InConfigBody(configBody, n.Addr.String()))
 
 	return diags
@@ -105,7 +105,7 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 
 	configBody := buildProviderConfig(ctx, n.Addr, config)
 
-	resp := provider.GetProviderSchema()
+	resp := provider.GetProviderSchema(ctx.Context())
 	diags = diags.Append(resp.Diagnostics.InConfigBody(configBody, n.Addr.String()))
 	if diags.HasErrors() {
 		return diags
@@ -140,7 +140,7 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 
 	// ValidateProviderConfig is only used for validation. We are intentionally
 	// ignoring the PreparedConfig field to maintain existing behavior.
-	validateResp := provider.ValidateProviderConfig(req)
+	validateResp := provider.ValidateProviderConfig(ctx.Context(), req)
 	diags = diags.Append(validateResp.Diagnostics.InConfigBody(configBody, n.Addr.String()))
 	if diags.HasErrors() && config == nil {
 		// If there isn't an explicit "provider" block in the configuration,

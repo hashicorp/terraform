@@ -4,6 +4,7 @@
 package jsonformat
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -157,7 +158,7 @@ func testSchemas() *terraform.Schemas {
 	provider := testProvider()
 	return &terraform.Schemas{
 		Providers: map[addrs.Provider]providers.ProviderSchema{
-			addrs.NewDefaultProvider("test"): provider.GetProviderSchema(),
+			addrs.NewDefaultProvider("test"): provider.GetProviderSchema(context.Background()),
 		},
 	}
 }

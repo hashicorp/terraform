@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -35,7 +36,7 @@ func TestNodeResourcePlanOrphanExecute(t *testing.T) {
 	)
 
 	p := simpleMockProvider()
-	p.ConfigureProvider(providers.ConfigureProviderRequest{})
+	p.ConfigureProvider(context.Background(), providers.ConfigureProviderRequest{})
 	ctx := &MockEvalContext{
 		StateState:               state.SyncWrapper(),
 		RefreshStateState:        state.DeepCopy().SyncWrapper(),
@@ -98,7 +99,7 @@ func TestNodeResourcePlanOrphanExecute_alreadyDeleted(t *testing.T) {
 	changes := plans.NewChanges()
 
 	p := simpleMockProvider()
-	p.ConfigureProvider(providers.ConfigureProviderRequest{})
+	p.ConfigureProvider(context.Background(), providers.ConfigureProviderRequest{})
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["test_string"].Block.ImpliedType()),
 	}
@@ -180,7 +181,7 @@ func TestNodeResourcePlanOrphanExecute_deposed(t *testing.T) {
 	changes := plans.NewChanges()
 
 	p := simpleMockProvider()
-	p.ConfigureProvider(providers.ConfigureProviderRequest{})
+	p.ConfigureProvider(context.Background(), providers.ConfigureProviderRequest{})
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["test_string"].Block.ImpliedType()),
 	}

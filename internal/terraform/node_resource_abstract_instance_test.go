@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -171,7 +172,7 @@ func TestNodeAbstractResourceInstance_WriteResourceInstanceState(t *testing.T) {
 		},
 	}
 	ctx.ProviderProvider = mockProvider
-	ctx.ProviderSchemaSchema = mockProvider.GetProviderSchema()
+	ctx.ProviderSchemaSchema = mockProvider.GetProviderSchema(context.Background())
 
 	err := node.writeResourceInstanceState(ctx, obj, workingState)
 	if err != nil {

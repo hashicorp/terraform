@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"sort"
@@ -129,8 +130,10 @@ type PlanOpts struct {
 // planned so far, which is not safe to apply but could potentially be used
 // by the UI layer to give extra context to support understanding of the
 // returned error messages.
-func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
-	plan, _, diags := c.PlanAndEval(config, prevRunState, opts)
+func (c *Context) Plan(ctx context.Context, config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
+	planCtx, span := tracer.Start(ctx, "Plan")
+	defer span.End()
+	plan, _, diags := c.PlanAndEval(planCtx, config, prevRunState, opts)
 	return plan, diags
 }
 
@@ -143,7 +146,7 @@ func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts 
 // then the scope will always be nil, but it's also possible for the scope
 // to be nil even when the plan isn't, if the plan is not complete enough for
 // the evaluation scope to produce consistent results.
-func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
+func (c *Context) PlanAndEval(ctx context.Context, config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
 	defer c.acquireRun("plan")()
 	var diags tfdiags.Diagnostics
 
@@ -237,11 +240,11 @@ The -target option is not for routine use, and is provided only for exceptional 
 	var evalScope *lang.Scope
 	switch opts.Mode {
 	case plans.NormalMode:
-		plan, evalScope, planDiags = c.plan(config, prevRunState, opts)
+		plan, evalScope, planDiags = c.plan(ctx, config, prevRunState, opts)
 	case plans.DestroyMode:
-		plan, evalScope, planDiags = c.destroyPlan(config, prevRunState, opts)
+		plan, evalScope, planDiags = c.destroyPlan(ctx, config, prevRunState, opts)
 	case plans.RefreshOnlyMode:
-		plan, evalScope, planDiags = c.refreshOnlyPlan(config, prevRunState, opts)
+		plan, evalScope, planDiags = c.refreshOnlyPlan(ctx, config, prevRunState, opts)
 	default:
 		panic(fmt.Sprintf("unsupported plan mode %s", opts.Mode))
 	}
@@ -341,27 +344,27 @@ func SimplePlanOpts(mode plans.Mode, setVariables InputValues) *PlanOpts {
 	}
 }
 
-func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
+func (c *Context) plan(ctx context.Context, config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if opts.Mode != plans.NormalMode {
 		panic(fmt.Sprintf("called Context.plan with %s", opts.Mode))
 	}
 
-	plan, evalScope, walkDiags := c.planWalk(config, prevRunState, opts)
+	plan, evalScope, walkDiags := c.planWalk(ctx, config, prevRunState, opts)
 	diags = diags.Append(walkDiags)
 
 	return plan, evalScope, diags
 }
 
-func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
+func (c *Context) refreshOnlyPlan(ctx context.Context, config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if opts.Mode != plans.RefreshOnlyMode {
 		panic(fmt.Sprintf("called Context.refreshOnlyPlan with %s", opts.Mode))
 	}
 
-	plan, evalScope, walkDiags := c.planWalk(config, prevRunState, opts)
+	plan, evalScope, walkDiags := c.planWalk(ctx, config, prevRunState, opts)
 	diags = diags.Append(walkDiags)
 	if diags.HasErrors() {
 		// Non-nil plan along with errors indicates a non-applyable partial
@@ -398,7 +401,7 @@ func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.S
 	return plan, evalScope, diags
 }
 
-func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
+func (c *Context) destroyPlan(ctx context.Context, config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if opts.Mode != plans.DestroyMode {
@@ -430,7 +433,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		// the destroy plan should take care of refreshing instances itself,
 		// where the special cases of evaluation and skipping condition checks
 		// can be done.
-		refreshPlan, _, refreshDiags := c.plan(config, prevRunState, &refreshOpts)
+		refreshPlan, _, refreshDiags := c.plan(ctx, config, prevRunState, &refreshOpts)
 		if refreshDiags.HasErrors() {
 			// NOTE: Normally we'd append diagnostics regardless of whether
 			// there are errors, just in case there are warnings we'd want to
@@ -460,7 +463,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		log.Printf("[TRACE] Context.destroyPlan: now _really_ creating a destroy plan")
 	}
 
-	destroyPlan, evalScope, walkDiags := c.planWalk(config, priorState, opts)
+	destroyPlan, evalScope, walkDiags := c.planWalk(ctx, config, priorState, opts)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
 		// Non-nil plan along with errors indicates a non-applyable partial
@@ -603,7 +606,7 @@ func (c *Context) findForgetTargets(config *configs.Config) (forgetResources []a
 	return forgetResources, forgetModules, diags
 }
 
-func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
+func (c *Context) planWalk(ctx context.Context, config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	log.Printf("[DEBUG] Building and walking plan graph for %s", opts.Mode)
 
@@ -620,7 +623,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		return nil, nil, diags
 	}
 
-	graph, walkOp, moreDiags := c.planGraph(config, prevRunState, opts)
+	graph, walkOp, moreDiags := c.planGraph(ctx, config, prevRunState, opts)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return nil, nil, diags
@@ -640,7 +643,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	// If we get here then we should definitely have a non-nil "graph", which
 	// we can now walk.
 	changes := plans.NewChanges()
-	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
+	walker, walkDiags := c.walk(ctx, graph, walkOp, &graphWalkOpts{
 		Config:                  config,
 		InputState:              prevRunState,
 		ExternalProviderConfigs: externalProviderConfigs,
@@ -723,12 +726,14 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	// The caller also gets access to an expression evaluation scope in the
 	// root module, in case it needs to extract other information using
 	// expressions, like in "terraform console" or the test harness.
-	evalScope := evalScopeFromGraphWalk(walker, addrs.RootModuleInstance)
+	evalScope := evalScopeFromGraphWalk(ctx, walker, addrs.RootModuleInstance)
 
 	return plan, evalScope, diags
 }
 
-func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*Graph, walkOperation, tfdiags.Diagnostics) {
+func (c *Context) planGraph(ctx context.Context, config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*Graph, walkOperation, tfdiags.Diagnostics) {
+	_, span := tracer.Start(ctx, "PlanGraph")
+	defer span.End()
 	var externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
 	if opts != nil {
 		externalProviderConfigs = opts.ExternalProviders
@@ -944,7 +949,7 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 // graph, and so may change in future in order to make the result more useful
 // in that context, even if drifts away from the physical graph that Terraform
 // Core currently uses as an implementation detail of planning.
-func (c *Context) PlanGraphForUI(config *configs.Config, prevRunState *states.State, mode plans.Mode) (*Graph, tfdiags.Diagnostics) {
+func (c *Context) PlanGraphForUI(ctx context.Context, config *configs.Config, prevRunState *states.State, mode plans.Mode) (*Graph, tfdiags.Diagnostics) {
 	// For now though, this really is just the internal graph, confusing
 	// implementation details and all.
 
@@ -952,7 +957,7 @@ func (c *Context) PlanGraphForUI(config *configs.Config, prevRunState *states.St
 
 	opts := &PlanOpts{Mode: mode}
 
-	graph, _, moreDiags := c.planGraph(config, prevRunState, opts)
+	graph, _, moreDiags := c.planGraph(ctx, config, prevRunState, opts)
 	diags = diags.Append(moreDiags)
 	return graph, diags
 }

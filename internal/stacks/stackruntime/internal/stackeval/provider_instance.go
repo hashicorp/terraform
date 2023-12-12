@@ -127,7 +127,7 @@ func (p *ProviderInstance) CheckProviderArgs(ctx context.Context, phase EvalPhas
 				return cty.DynamicVal, diags
 			}
 			defer unconfClient.Close()
-			validateResp := unconfClient.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
+			validateResp := unconfClient.ValidateProviderConfig(context.Background(), providers.ValidateProviderConfigRequest{
 				Config: configVal,
 			})
 			diags = diags.Append(validateResp.Diagnostics)
@@ -231,7 +231,7 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 			// "terraform" package for non-Stacks usage and try to mimick
 			// what it does in as lightweight a way as possible.
 
-			resp := client.ConfigureProvider(providers.ConfigureProviderRequest{
+			resp := client.ConfigureProvider(ctx, providers.ConfigureProviderRequest{
 				TerraformVersion: version.SemVer.String(),
 				Config:           args,
 			})
@@ -330,7 +330,7 @@ type stubConfiguredProvider struct {
 var _ providers.Interface = stubConfiguredProvider{}
 
 // ApplyResourceChange implements providers.Interface.
-func (stubConfiguredProvider) ApplyResourceChange(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+func (stubConfiguredProvider) ApplyResourceChange(ctx context.Context, req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -353,7 +353,7 @@ func (stubConfiguredProvider) Close() error {
 }
 
 // ConfigureProvider implements providers.Interface.
-func (stubConfiguredProvider) ConfigureProvider(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+func (stubConfiguredProvider) ConfigureProvider(ctx context.Context, req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 	// This provider is used only in situations where ConfigureProvider on
 	// a real provider fails and the recipient was expecting a configured
 	// provider, so it doesn't make sense to configure it.
@@ -361,12 +361,12 @@ func (stubConfiguredProvider) ConfigureProvider(req providers.ConfigureProviderR
 }
 
 // GetProviderSchema implements providers.Interface.
-func (stubConfiguredProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
+func (stubConfiguredProvider) GetProviderSchema(context.Context) providers.GetProviderSchemaResponse {
 	return providers.GetProviderSchemaResponse{}
 }
 
 // ImportResourceState implements providers.Interface.
-func (p stubConfiguredProvider) ImportResourceState(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+func (p stubConfiguredProvider) ImportResourceState(ctx context.Context, req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
 	var diags tfdiags.Diagnostics
 	if p.unknown {
 		diags = diags.Append(tfdiags.AttributeValue(
@@ -389,7 +389,7 @@ func (p stubConfiguredProvider) ImportResourceState(req providers.ImportResource
 }
 
 // PlanResourceChange implements providers.Interface.
-func (p stubConfiguredProvider) PlanResourceChange(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+func (p stubConfiguredProvider) PlanResourceChange(ctx context.Context, req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 	if p.unknown {
 		return providers.PlanResourceChangeResponse{
 			PlannedState: cty.DynamicVal,
@@ -408,7 +408,7 @@ func (p stubConfiguredProvider) PlanResourceChange(req providers.PlanResourceCha
 }
 
 // ReadDataSource implements providers.Interface.
-func (p stubConfiguredProvider) ReadDataSource(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+func (p stubConfiguredProvider) ReadDataSource(ctx context.Context, req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 	if p.unknown {
 		return providers.ReadDataSourceResponse{
 			State: cty.DynamicVal,
@@ -427,7 +427,7 @@ func (p stubConfiguredProvider) ReadDataSource(req providers.ReadDataSourceReque
 }
 
 // ReadResource implements providers.Interface.
-func (stubConfiguredProvider) ReadResource(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+func (stubConfiguredProvider) ReadResource(ctx context.Context, req providers.ReadResourceRequest) providers.ReadResourceResponse {
 	// For this one we'll just optimistically assume that the remote object
 	// hasn't changed. In many cases we'll fail calling PlanResourceChange
 	// right afterwards anyway, and even if not we'll get another opportunity
@@ -469,7 +469,7 @@ func (p stubConfiguredProvider) UpgradeResourceState(req providers.UpgradeResour
 }
 
 // ValidateDataResourceConfig implements providers.Interface.
-func (stubConfiguredProvider) ValidateDataResourceConfig(req providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
+func (stubConfiguredProvider) ValidateDataResourceConfig(ctx context.Context, req providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
 	// We'll just optimistically assume the configuration is valid, so that
 	// we can progress to planning and return an error there instead.
 	return providers.ValidateDataResourceConfigResponse{
@@ -478,7 +478,7 @@ func (stubConfiguredProvider) ValidateDataResourceConfig(req providers.ValidateD
 }
 
 // ValidateProviderConfig implements providers.Interface.
-func (stubConfiguredProvider) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
+func (stubConfiguredProvider) ValidateProviderConfig(ctx context.Context, req providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
 	// It doesn't make sense to call this one on stubProvider, because
 	// we only use stubProvider for situations where ConfigureProvider failed
 	// on a real provider and we should already have called
@@ -490,7 +490,7 @@ func (stubConfiguredProvider) ValidateProviderConfig(req providers.ValidateProvi
 }
 
 // ValidateResourceConfig implements providers.Interface.
-func (stubConfiguredProvider) ValidateResourceConfig(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
+func (stubConfiguredProvider) ValidateResourceConfig(ctx context.Context, req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 	// We'll just optimistically assume the configuration is valid, so that
 	// we can progress to reading and return an error there instead.
 	return providers.ValidateResourceConfigResponse{

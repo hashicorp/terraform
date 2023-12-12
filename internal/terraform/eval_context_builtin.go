@@ -33,6 +33,9 @@ import (
 // BuiltinEvalContext is an EvalContext implementation that is used by
 // Terraform by default.
 type BuiltinEvalContext struct {
+	// TracingContext is the context used create tracing spans from.
+	TracingContext context.Context
+
 	// StopContext is the context used to track whether we're complete
 	StopContext context.Context
 
@@ -220,7 +223,7 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, c
 		Config:           cfg,
 	}
 
-	resp := p.ConfigureProvider(req)
+	resp := p.ConfigureProvider(ctx.Context(), req)
 	return resp.Diagnostics
 }
 
@@ -568,4 +571,8 @@ func (ctx *BuiltinEvalContext) MoveResults() refactoring.MoveResults {
 
 func (ctx *BuiltinEvalContext) Overrides() *mocking.Overrides {
 	return ctx.OverrideValues
+}
+
+func (ctx *BuiltinEvalContext) Context() context.Context {
+	return ctx.TracingContext
 }

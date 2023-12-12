@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"sync"
@@ -73,10 +74,10 @@ func TestContext2Input_provider(t *testing.T) {
 		t.Errorf("wrong description\ngot:  %q\nwant: %q", got, want)
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
-	if _, diags := ctx.Apply(plan, m, nil); diags.HasErrors() {
+	if _, diags := ctx.Apply(context.Background(), plan, m, nil); diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
@@ -144,7 +145,7 @@ func TestContext2Input_providerMulti(t *testing.T) {
 		t.Fatalf("input errors: %s", diags.Err())
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
 	providerFactory = func() (providers.Interface, error) {
@@ -159,7 +160,7 @@ func TestContext2Input_providerMulti(t *testing.T) {
 		return p, nil
 	}
 
-	if _, diags := ctx.Apply(plan, m, nil); diags.HasErrors() {
+	if _, diags := ctx.Apply(context.Background(), plan, m, nil); diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
@@ -232,10 +233,10 @@ func TestContext2Input_providerId(t *testing.T) {
 		t.Fatalf("input errors: %s", diags.Err())
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
-	if _, diags := ctx.Apply(plan, m, nil); diags.HasErrors() {
+	if _, diags := ctx.Apply(context.Background(), plan, m, nil); diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
@@ -298,7 +299,7 @@ func TestContext2Input_providerOnly(t *testing.T) {
 	// normal Input test, but we're preserving it until we have time to review
 	// and make sure this isn't inadvertently providing unique test coverage
 	// other than what it set out to test.
-	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
 		SetVariables: InputValues{
 			"foo": &InputValue{
@@ -309,7 +310,7 @@ func TestContext2Input_providerOnly(t *testing.T) {
 	})
 	assertNoErrors(t, diags)
 
-	state, err := ctx.Apply(plan, m, nil)
+	state, err := ctx.Apply(context.Background(), plan, m, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -349,7 +350,7 @@ func TestContext2Input_providerVars(t *testing.T) {
 		t.Fatalf("input errors: %s", diags.Err())
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
 		SetVariables: InputValues{
 			"foo": &InputValue{
@@ -360,7 +361,7 @@ func TestContext2Input_providerVars(t *testing.T) {
 	})
 	assertNoErrors(t, diags)
 
-	if _, diags := ctx.Apply(plan, m, nil); diags.HasErrors() {
+	if _, diags := ctx.Apply(context.Background(), plan, m, nil); diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
@@ -463,10 +464,10 @@ func TestContext2Input_dataSourceRequiresRefresh(t *testing.T) {
 	// a wrapper around plan anyway, but we're keeping it until we get a
 	// chance to review and check whether it's giving us any additional
 	// test coverage aside from what it's specifically intending to test.
-	if _, diags := ctx.Refresh(m, state, DefaultPlanOpts); diags.HasErrors() {
+	if _, diags := ctx.Refresh(context.Background(), m, state, DefaultPlanOpts); diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
-	if _, diags := ctx.Plan(m, state, DefaultPlanOpts); diags.HasErrors() {
+	if _, diags := ctx.Plan(context.Background(), m, state, DefaultPlanOpts); diags.HasErrors() {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 }

@@ -90,7 +90,7 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 		return diags
 	}
 
-	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
+	resp := provider.ImportResourceState(ctx.Context(), providers.ImportResourceStateRequest{
 		TypeName: n.Addr.Resource.Resource.Type,
 		ID:       n.ID,
 	})

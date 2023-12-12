@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -15,7 +17,7 @@ func simpleTestSchemas() *Schemas {
 
 	return &Schemas{
 		Providers: map[addrs.Provider]providers.ProviderSchema{
-			addrs.NewDefaultProvider("test"): provider.GetProviderSchema(),
+			addrs.NewDefaultProvider("test"): provider.GetProviderSchema(context.Background()),
 		},
 		Provisioners: map[string]*configschema.Block{
 			"test": provisioner.GetSchemaResponse.Provisioner,

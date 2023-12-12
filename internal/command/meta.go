@@ -475,7 +475,7 @@ func (m *Meta) RunOperation(b backend.Enhanced, opReq *backend.Operation) (*back
 		opReq.ConfigDir = m.normalizePath(opReq.ConfigDir)
 	}
 
-	op, err := b.Operation(context.Background(), opReq)
+	op, err := b.Operation(m.CommandContext(), opReq)
 	if err != nil {
 		return nil, fmt.Errorf("error starting operation: %s", err)
 	}

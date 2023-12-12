@@ -123,7 +123,7 @@ func (c *GraphCommand) Run(args []string) int {
 			// to just resource dependency relationships, assuming that in most
 			// cases the most important thing is what order we'll visit the
 			// resources in.
-			fullG, graphDiags := lr.Core.PlanGraphForUI(lr.Config, lr.InputState, plans.NormalMode)
+			fullG, graphDiags := lr.Core.PlanGraphForUI(c.CommandContext(), lr.Config, lr.InputState, plans.NormalMode)
 			diags = diags.Append(graphDiags)
 			if graphDiags.HasErrors() {
 				c.showDiagnostics(diags)
@@ -141,11 +141,11 @@ func (c *GraphCommand) Run(args []string) int {
 	var graphDiags tfdiags.Diagnostics
 	switch graphTypeStr {
 	case "plan":
-		g, graphDiags = lr.Core.PlanGraphForUI(lr.Config, lr.InputState, plans.NormalMode)
+		g, graphDiags = lr.Core.PlanGraphForUI(c.CommandContext(), lr.Config, lr.InputState, plans.NormalMode)
 	case "plan-refresh-only":
-		g, graphDiags = lr.Core.PlanGraphForUI(lr.Config, lr.InputState, plans.RefreshOnlyMode)
+		g, graphDiags = lr.Core.PlanGraphForUI(c.CommandContext(), lr.Config, lr.InputState, plans.RefreshOnlyMode)
 	case "plan-destroy":
-		g, graphDiags = lr.Core.PlanGraphForUI(lr.Config, lr.InputState, plans.DestroyMode)
+		g, graphDiags = lr.Core.PlanGraphForUI(c.CommandContext(), lr.Config, lr.InputState, plans.DestroyMode)
 	case "apply":
 		plan := lr.Plan
 

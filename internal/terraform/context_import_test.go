@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -37,7 +38,7 @@ func TestContextImport_basic(t *testing.T) {
 		},
 	}
 
-	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+	state, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
@@ -88,7 +89,7 @@ resource "aws_instance" "foo" {
 		},
 	}
 
-	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+	state, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
@@ -149,7 +150,7 @@ func TestContextImport_collision(t *testing.T) {
 		},
 	}
 
-	state, diags := ctx.Import(m, state, &ImportOpts{
+	state, diags := ctx.Import(context.Background(), m, state, &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
@@ -193,7 +194,7 @@ func TestContextImport_missingType(t *testing.T) {
 		},
 	})
 
-	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+	state, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
@@ -244,7 +245,7 @@ func TestContextImport_moduleProvider(t *testing.T) {
 		},
 	})
 
-	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+	state, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
@@ -299,7 +300,7 @@ func TestContextImport_providerModule(t *testing.T) {
 		return
 	}
 
-	_, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+	_, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
@@ -355,7 +356,7 @@ func TestContextImport_providerConfig(t *testing.T) {
 				},
 			}
 
-			state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+			state, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 				Targets: []*ImportTarget{
 					{
 						LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
@@ -415,7 +416,7 @@ func TestContextImport_providerConfigResources(t *testing.T) {
 		},
 	}
 
-	_, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+	_, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
@@ -486,7 +487,7 @@ data "aws_data_source" "bar" {
 		}),
 	}
 
-	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+	state, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
@@ -537,7 +538,7 @@ func TestContextImport_refreshNil(t *testing.T) {
 		}
 	}
 
-	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+	state, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
@@ -578,7 +579,7 @@ func TestContextImport_module(t *testing.T) {
 		},
 	}
 
-	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+	state, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
@@ -619,7 +620,7 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 		},
 	}
 
-	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+	state, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).Child("nested", addrs.NoKey).ResourceInstance(
@@ -660,7 +661,7 @@ func TestContextImport_moduleDiff(t *testing.T) {
 		},
 	}
 
-	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+	state, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
@@ -728,7 +729,7 @@ func TestContextImport_multiState(t *testing.T) {
 		},
 	})
 
-	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+	state, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
@@ -802,7 +803,7 @@ func TestContextImport_multiStateSame(t *testing.T) {
 		},
 	})
 
-	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+	state, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
@@ -896,7 +897,7 @@ resource "test_resource" "unused" {
 		},
 	})
 
-	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+	state, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
@@ -966,7 +967,7 @@ resource "test_resource" "test" {
 		},
 	})
 
-	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+	state, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
@@ -1011,7 +1012,7 @@ func TestContextImport_33572(t *testing.T) {
 		},
 	}
 
-	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+	state, diags := ctx.Import(context.Background(), m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(

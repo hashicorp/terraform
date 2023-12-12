@@ -63,7 +63,7 @@ func (pt *ProviderType) Schema(ctx context.Context) (providers.GetProviderSchema
 		}
 		defer client.Close()
 
-		ret := client.GetProviderSchema()
+		ret := client.GetProviderSchema(ctx)
 		if ret.Diagnostics.HasErrors() {
 			return providers.GetProviderSchemaResponse{}, fmt.Errorf("provider failed to return its schema")
 		}

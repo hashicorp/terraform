@@ -26,6 +26,7 @@ import (
 var testHookStopPlanApply func()
 
 func (b *Local) opApply(
+	tracingCtx context.Context,
 	stopCtx context.Context,
 	cancelCtx context.Context,
 	op *backend.Operation,
@@ -52,7 +53,7 @@ func (b *Local) opApply(
 	op.Hooks = append(op.Hooks, stateHook)
 
 	// Get our context
-	lr, _, opState, contextDiags := b.localRun(op)
+	lr, _, opState, contextDiags := b.localRun(tracingCtx, op)
 	diags = diags.Append(contextDiags)
 	if contextDiags.HasErrors() {
 		op.ReportResult(runningOp, diags)
@@ -89,7 +90,7 @@ func (b *Local) opApply(
 	if op.PlanFile == nil {
 		// Perform the plan
 		log.Printf("[INFO] backend/local: apply calling Plan")
-		plan, moreDiags = lr.Core.Plan(lr.Config, lr.InputState, lr.PlanOpts)
+		plan, moreDiags = lr.Core.Plan(tracingCtx, lr.Config, lr.InputState, lr.PlanOpts)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
 			// If Terraform Core generated a partial plan despite the errors
@@ -235,7 +236,7 @@ func (b *Local) opApply(
 		defer logging.PanicHandler()
 		defer close(doneCh)
 		log.Printf("[INFO] backend/local: apply calling Apply")
-		applyState, applyDiags = lr.Core.Apply(plan, lr.Config, nil)
+		applyState, applyDiags = lr.Core.Apply(tracingCtx, plan, lr.Config, nil)
 	}()
 
 	if b.opWait(doneCh, stopCtx, cancelCtx, lr.Core, opState, op.View) {

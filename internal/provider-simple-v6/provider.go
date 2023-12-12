@@ -5,6 +5,7 @@
 package simple
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -71,19 +72,19 @@ func Provider() providers.Interface {
 	}
 }
 
-func (s simple) GetProviderSchema() providers.GetProviderSchemaResponse {
+func (s simple) GetProviderSchema(context.Context) providers.GetProviderSchemaResponse {
 	return s.schema
 }
 
-func (s simple) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
+func (s simple) ValidateProviderConfig(ctx context.Context, req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 	return resp
 }
 
-func (s simple) ValidateResourceConfig(req providers.ValidateResourceConfigRequest) (resp providers.ValidateResourceConfigResponse) {
+func (s simple) ValidateResourceConfig(ctx context.Context, req providers.ValidateResourceConfigRequest) (resp providers.ValidateResourceConfigResponse) {
 	return resp
 }
 
-func (s simple) ValidateDataResourceConfig(req providers.ValidateDataResourceConfigRequest) (resp providers.ValidateDataResourceConfigResponse) {
+func (s simple) ValidateDataResourceConfig(ctx context.Context, req providers.ValidateDataResourceConfigRequest) (resp providers.ValidateDataResourceConfigResponse) {
 	return resp
 }
 
@@ -95,7 +96,7 @@ func (p simple) UpgradeResourceState(req providers.UpgradeResourceStateRequest) 
 	return resp
 }
 
-func (s simple) ConfigureProvider(providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+func (s simple) ConfigureProvider(context.Context, providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 	return resp
 }
 
@@ -103,13 +104,13 @@ func (s simple) Stop() error {
 	return nil
 }
 
-func (s simple) ReadResource(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+func (s simple) ReadResource(ctx context.Context, req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
 	// just return the same state we received
 	resp.NewState = req.PriorState
 	return resp
 }
 
-func (s simple) PlanResourceChange(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+func (s simple) PlanResourceChange(ctx context.Context, req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 	if req.ProposedNewState.IsNull() {
 		// destroy op
 		resp.PlannedState = req.ProposedNewState
@@ -130,7 +131,7 @@ func (s simple) PlanResourceChange(req providers.PlanResourceChangeRequest) (res
 	return resp
 }
 
-func (s simple) ApplyResourceChange(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+func (s simple) ApplyResourceChange(ctx context.Context, req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
 	if req.PlannedState.IsNull() {
 		// make sure this was transferred from the plan action
 		if string(req.PlannedPrivate) != "destroy planned" {
@@ -151,12 +152,12 @@ func (s simple) ApplyResourceChange(req providers.ApplyResourceChangeRequest) (r
 	return resp
 }
 
-func (s simple) ImportResourceState(providers.ImportResourceStateRequest) (resp providers.ImportResourceStateResponse) {
+func (s simple) ImportResourceState(context.Context, providers.ImportResourceStateRequest) (resp providers.ImportResourceStateResponse) {
 	resp.Diagnostics = resp.Diagnostics.Append(errors.New("unsupported"))
 	return resp
 }
 
-func (s simple) ReadDataSource(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+func (s simple) ReadDataSource(ctx context.Context, req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
 	m := req.Config.AsValueMap()
 	m["id"] = cty.StringVal("static_id")
 	resp.State = cty.ObjectVal(m)
