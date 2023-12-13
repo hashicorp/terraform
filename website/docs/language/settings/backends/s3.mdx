@@ -214,6 +214,13 @@ The optional argument `endpoints` contains the following arguments:
 * `sts` - (Optional) Custom endpoint URL for the AWS STS API.
   This can also be sourced from the environment variable `AWS_ENDPOINT_URL_STS` or the deprecated environment variable `AWS_STS_ENDPOINT`.
 
+The environment variable `AWS_ENDPOINT_URL` can be used to set a base endpoint URL for all services.
+
+Endpoints can also be overridden using the [AWS shared configuration file](https://docs.aws.amazon.com/sdkref/latest/guide/feature-ss-endpoints.html#ss-endpoints-config).
+Setting the parameter `endpoint_url` on a profile will set that endpoint for all services.
+To set endpoints for specific services, create a `services` section and set the `endpoint_url` parameters for each desired service.
+Endpoints set for specific services will override the base endpoint configured in the profile.
+
 #### Assume Role Configuration
 
 Assuming an IAM Role can be configured in two ways.
