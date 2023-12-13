@@ -1,3 +1,5 @@
+## 1.6.7 (Unreleased)
+
 ## 1.6.6 (December 13, 2023)
 
 BUG FIXES:
