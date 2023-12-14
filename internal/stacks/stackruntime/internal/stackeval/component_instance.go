@@ -703,8 +703,10 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 	// and let the plan file serializer worry about encoding, but we'll
 	// defer that API change for now to avoid disrupting other codepaths.
 	modifiedPlan.VariableValues = make(map[string]plans.DynamicValue, len(inputValues))
+	modifiedPlan.VariableMarks = make(map[string][]cty.PathValueMarks, len(inputValues))
 	for name, iv := range inputValues {
-		dv, err := plans.NewDynamicValue(iv.Value, cty.DynamicPseudoType)
+		val, pvm := iv.Value.UnmarkDeepWithPaths()
+		dv, err := plans.NewDynamicValue(val, cty.DynamicPseudoType)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -717,6 +719,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 			continue
 		}
 		modifiedPlan.VariableValues[name] = dv
+		modifiedPlan.VariableMarks[name] = pvm
 	}
 	if diags.HasErrors() {
 		return nil, diags
@@ -1015,10 +1018,11 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 		changes = append(changes, &stackplan.PlannedChangeComponentInstance{
 			Addr: c.Addr(),
 
-			Action:              action,
-			RequiredComponents:  c.RequiredComponents(ctx),
-			PlannedInputValues:  corePlan.VariableValues,
-			PlannedOutputValues: outputVals,
+			Action:                 action,
+			RequiredComponents:     c.RequiredComponents(ctx),
+			PlannedInputValues:     corePlan.VariableValues,
+			PlannedInputValueMarks: corePlan.VariableMarks,
+			PlannedOutputValues:    outputVals,
 
 			// We must remember the plan timestamp so that the plantimestamp
 			// function can return a consistent result during a later apply phase.

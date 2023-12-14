@@ -111,6 +111,8 @@ type PlannedChangeComponentInstance struct {
 	// with what's captured here.
 	PlannedInputValues map[string]plans.DynamicValue
 
+	PlannedInputValueMarks map[string][]cty.PathValueMarks
+
 	PlannedOutputValues map[string]cty.Value
 
 	// PlanTimestamp is the timestamp that would be returned from the
@@ -128,20 +130,21 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 	if n := len(pc.PlannedInputValues); n != 0 {
 		plannedInputValues = make(map[string]*tfstackdata1.DynamicValue, n)
 		for k, v := range pc.PlannedInputValues {
+			var sensitivePaths []*planproto.Path
+			if pvm, ok := pc.PlannedInputValueMarks[k]; ok {
+				for _, p := range pvm {
+					path, err := planproto.NewPath(p.Path)
+					if err != nil {
+						return nil, err
+					}
+					sensitivePaths = append(sensitivePaths, path)
+				}
+			}
 			plannedInputValues[k] = &tfstackdata1.DynamicValue{
 				Value: &planproto.DynamicValue{
 					Msgpack: v,
 				},
-				// FIXME: We're currently losing track of sensitivity here --
-				// or, more accurately, in the caller that's populating
-				// pc.PlannedInputValues -- but that's not _super_ important
-				// because we don't directly use these values during the
-				// apply phase anyway, and instead recalculate the input
-				// values based on updated data from other components having
-				// already been applied. These values are here only to give
-				// us something to compare against as a safety check to catch
-				// if a bug somewhere causes the values to be inconsistent
-				// between plan and apply.
+				SensitivePaths: sensitivePaths,
 			}
 		}
 	}
