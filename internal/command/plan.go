@@ -5,6 +5,7 @@ package command
 
 import (
 	"fmt"
+	"github.com/posener/complete"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/backend"
@@ -191,6 +192,32 @@ func (c *PlanCommand) GatherVariables(opReq *backend.Operation, args *arguments.
 	opReq.Variables, diags = c.collectVariableValues()
 
 	return diags
+}
+
+func (c *PlanCommand) AutocompleteArgs() complete.Predictor {
+	return complete.PredictDirs("")
+}
+
+func (c *PlanCommand) AutocompleteFlags() complete.Flags {
+	return complete.Flags{
+		"-destroy":             complete.PredictNothing,
+		"-refresh-only":        complete.PredictNothing,
+		"-refresh":             completePredictBoolean,
+		"-replace":             complete.PredictNothing,
+		"-target":              complete.PredictNothing,
+		"-var":                 complete.PredictNothing,
+		"-var-file":            complete.PredictNothing,
+		"-compact-warnings":    complete.PredictNothing,
+		"-detailed-exitcode":   complete.PredictNothing,
+		"-generate-config-out": complete.PredictNothing,
+		"-input":               completePredictBoolean,
+		"-lock":                completePredictBoolean,
+		"-lock-timeout":        complete.PredictNothing,
+		"-no-color":            complete.PredictNothing,
+		"-out":                 complete.PredictNothing,
+		"-parallelism":         complete.PredictNothing,
+		"-state":               complete.PredictNothing,
+	}
 }
 
 func (c *PlanCommand) Help() string {
