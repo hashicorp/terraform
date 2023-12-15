@@ -1156,6 +1156,7 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 		newState := applyResult.FinalState
 
 		ourChange := &stackstate.AppliedChangeComponentInstance{
+			ComponentAddr:         c.call.Addr(),
 			ComponentInstanceAddr: c.Addr(),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value, len(newState.RootOutputValues)),
 		}

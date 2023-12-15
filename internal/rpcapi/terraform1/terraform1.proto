@@ -906,6 +906,7 @@ message AppliedChange {
         bool interim = 3;
     }
     message ComponentInstance {
+        string component_addr = 3;
         string component_instance_addr = 1;
         map<string,DynamicValue> output_values = 2;
     }
