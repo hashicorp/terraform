@@ -5,8 +5,9 @@ package command
 
 import (
 	"fmt"
-	"github.com/posener/complete"
 	"strings"
+
+	"github.com/posener/complete"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
