@@ -5,6 +5,7 @@ package command
 
 import (
 	"fmt"
+	"github.com/posener/complete"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/backend"
@@ -321,6 +322,26 @@ func (c *ApplyCommand) Synopsis() string {
 	}
 
 	return "Create or update infrastructure"
+}
+
+func (c *ApplyCommand) AutocompleteArgs() complete.Predictor {
+	return complete.PredictDirs("")
+}
+
+func (c *ApplyCommand) AutocompleteFlags() complete.Flags {
+	return complete.Flags{
+		"-auto-approve":     complete.PredictNothing,
+		"-backup":           complete.PredictNothing,
+		"-compact-warnings": complete.PredictNothing,
+		"-destroy":          complete.PredictNothing,
+		"-lock":             completePredictBoolean,
+		"-lock-timeout":     complete.PredictNothing,
+		"-input":            completePredictBoolean,
+		"-no-color":         complete.PredictNothing,
+		"-parallelism":      complete.PredictNothing,
+		"-state":            complete.PredictNothing,
+		"-state-out":        complete.PredictNothing,
+	}
 }
 
 func (c *ApplyCommand) helpApply() string {
