@@ -285,6 +285,18 @@ func (m *MockConfigurationVersions) Download(ctx context.Context, cvID string) (
 	panic("not implemented")
 }
 
+func (m *MockConfigurationVersions) PermanentlyDeleteBackingData(ctx context.Context, svID string) error {
+	panic("not implemented")
+}
+
+func (m *MockConfigurationVersions) RestoreBackingData(ctx context.Context, svID string) error {
+	panic("not implemented")
+}
+
+func (m *MockConfigurationVersions) SoftDeleteBackingData(ctx context.Context, svID string) error {
+	panic("not implemented")
+}
+
 type MockCostEstimates struct {
 	client      *MockClient
 	Estimations map[string]*tfe.CostEstimate
@@ -366,6 +378,8 @@ func (m *MockCostEstimates) Logs(ctx context.Context, costEstimateID string) (io
 
 	return bytes.NewBuffer(logs), nil
 }
+
+var _ tfe.Organizations = (*MockOrganizations)(nil)
 
 type MockOrganizations struct {
 	client        *MockClient
@@ -494,6 +508,18 @@ func (m *MockOrganizations) ReadRunQueue(ctx context.Context, name string, optio
 	}
 
 	return rq, nil
+}
+
+func (m *MockOrganizations) DeleteDataRetentionPolicy(context.Context, string) error {
+	panic("not implemented")
+}
+
+func (m *MockOrganizations) ReadDataRetentionPolicy(context.Context, string) (*tfe.DataRetentionPolicy, error) {
+	panic("not implemented")
+}
+
+func (m *MockOrganizations) SetDataRetentionPolicy(ctx context.Context, organization string, options tfe.DataRetentionPolicySetOptions) (*tfe.DataRetentionPolicy, error) {
+	panic("not implemented")
 }
 
 type MockRedactedPlans struct {
@@ -1469,6 +1495,8 @@ func (m *MockRunEvents) ReadWithOptions(ctx context.Context, runEventID string, 
 	}, nil
 }
 
+var _ tfe.StateVersions = (*MockStateVersions)(nil)
+
 type MockStateVersions struct {
 	client        *MockClient
 	states        map[string][]byte
@@ -1583,6 +1611,18 @@ func (m *MockStateVersions) Download(ctx context.Context, url string) ([]byte, e
 }
 
 func (m *MockStateVersions) ListOutputs(ctx context.Context, svID string, options *tfe.StateVersionOutputsListOptions) (*tfe.StateVersionOutputsList, error) {
+	panic("not implemented")
+}
+
+func (s *MockStateVersions) SoftDeleteBackingData(ctx context.Context, svID string) error {
+	panic("not implemented")
+}
+
+func (s *MockStateVersions) RestoreBackingData(ctx context.Context, svID string) error {
+	panic("not implemented")
+}
+
+func (s *MockStateVersions) PermanentlyDeleteBackingData(ctx context.Context, svID string) error {
 	panic("not implemented")
 }
 
@@ -1884,6 +1924,8 @@ func (m *MockVariables) Update(ctx context.Context, workspaceID string, variable
 func (m *MockVariables) Delete(ctx context.Context, workspaceID string, variableID string) error {
 	panic("not implemented")
 }
+
+var _ tfe.Workspaces = (*MockWorkspaces)(nil)
 
 type MockWorkspaces struct {
 	client         *MockClient
@@ -2263,6 +2305,18 @@ func (m *MockWorkspaces) AddTags(ctx context.Context, workspaceID string, option
 }
 
 func (m *MockWorkspaces) RemoveTags(ctx context.Context, workspaceID string, options tfe.WorkspaceRemoveTagsOptions) error {
+	panic("not implemented")
+}
+
+func (s *MockWorkspaces) ReadDataRetentionPolicy(ctx context.Context, workspaceID string) (*tfe.DataRetentionPolicy, error) {
+	panic("not implemented")
+}
+
+func (s *MockWorkspaces) SetDataRetentionPolicy(ctx context.Context, workspaceID string, options tfe.DataRetentionPolicySetOptions) (*tfe.DataRetentionPolicy, error) {
+	panic("not implemented")
+}
+
+func (s *MockWorkspaces) DeleteDataRetentionPolicy(ctx context.Context, workspaceID string) error {
 	panic("not implemented")
 }
 
