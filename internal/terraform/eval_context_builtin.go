@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
-	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -49,9 +48,14 @@ type BuiltinEvalContext struct {
 	// eval context.
 	Evaluator *Evaluator
 
-	// NamedValuesValue is where we keep the values of already-evaluated input
-	// variables, local values, and output values.
-	NamedValuesValue *namedvals.State
+	// VariableValues contains the variable values across all modules. This
+	// structure is shared across the entire containing context, and so it
+	// may be accessed only when holding VariableValuesLock.
+	// The keys of the first level of VariableValues are the string
+	// representations of addrs.ModuleInstance values. The second-level keys
+	// are variable names within each module instance.
+	VariableValues     map[string]map[string]cty.Value
+	VariableValuesLock *sync.Mutex
 
 	// Plugins is a library of plugin components (providers and provisioners)
 	// available for use during a graph walk.
@@ -452,8 +456,50 @@ func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {
 	return ctx.PathValue
 }
 
-func (ctx *BuiltinEvalContext) NamedValues() *namedvals.State {
-	return ctx.NamedValuesValue
+func (ctx *BuiltinEvalContext) SetRootModuleArgument(addr addrs.InputVariable, v cty.Value) {
+	ctx.VariableValuesLock.Lock()
+	defer ctx.VariableValuesLock.Unlock()
+
+	log.Printf("[TRACE] BuiltinEvalContext: Storing final value for variable %s", addr.Absolute(addrs.RootModuleInstance))
+	key := addrs.RootModuleInstance.String()
+	args := ctx.VariableValues[key]
+	if args == nil {
+		args = make(map[string]cty.Value)
+		ctx.VariableValues[key] = args
+	}
+	args[addr.Name] = v
+}
+
+func (ctx *BuiltinEvalContext) SetModuleCallArgument(callAddr addrs.ModuleCallInstance, varAddr addrs.InputVariable, v cty.Value) {
+	ctx.VariableValuesLock.Lock()
+	defer ctx.VariableValuesLock.Unlock()
+
+	if !ctx.pathSet {
+		panic("context path not set")
+	}
+
+	childPath := callAddr.ModuleInstance(ctx.PathValue)
+	log.Printf("[TRACE] BuiltinEvalContext: Storing final value for variable %s", varAddr.Absolute(childPath))
+	key := childPath.String()
+	args := ctx.VariableValues[key]
+	if args == nil {
+		args = make(map[string]cty.Value)
+		ctx.VariableValues[key] = args
+	}
+	args[varAddr.Name] = v
+}
+
+func (ctx *BuiltinEvalContext) GetVariableValue(addr addrs.AbsInputVariableInstance) cty.Value {
+	ctx.VariableValuesLock.Lock()
+	defer ctx.VariableValuesLock.Unlock()
+
+	modKey := addr.Module.String()
+	modVars := ctx.VariableValues[modKey]
+	val, ok := modVars[addr.Variable.Name]
+	if !ok {
+		return cty.DynamicVal
+	}
+	return val
 }
 
 func (ctx *BuiltinEvalContext) Changes() *plans.ChangesSync {

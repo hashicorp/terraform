@@ -114,6 +114,8 @@ enum Action {
     DELETE = 5;
     DELETE_THEN_CREATE = 6;
     CREATE_THEN_DELETE = 7;
+    FORGET = 8;
+    CREATE_THEN_FORGET = 9;
 }
 
 // Change represents a change made to some object, transforming it from an old

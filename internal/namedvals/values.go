@@ -90,10 +90,6 @@ func (v *values[LocalType, AbsType]) GetExactResult(addr AbsType) cty.Value {
 	return v.exact.Get(addr)
 }
 
-func (v *values[LocalType, AbsType]) GetExactResults() addrs.Map[AbsType, cty.Value] {
-	return v.exact
-}
-
 func (v *values[LocalType, AbsType]) SetPlaceholderResult(addr addrs.InPartialExpandedModule[LocalType], val cty.Value) {
 	modAddr := addr.Module.Module()
 	if !v.placeholder.Has(modAddr) {

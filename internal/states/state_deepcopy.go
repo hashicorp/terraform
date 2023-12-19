@@ -31,14 +31,9 @@ func (s *State) DeepCopy() *State {
 	for k, m := range s.Modules {
 		modules[k] = m.DeepCopy()
 	}
-	outputValues := make(map[string]*OutputValue, len(s.RootOutputValues))
-	for k, v := range s.RootOutputValues {
-		outputValues[k] = v.DeepCopy()
-	}
 	return &State{
-		Modules:          modules,
-		RootOutputValues: outputValues,
-		CheckResults:     s.CheckResults.DeepCopy(),
+		Modules:      modules,
+		CheckResults: s.CheckResults.DeepCopy(),
 	}
 }
 
@@ -59,10 +54,21 @@ func (ms *Module) DeepCopy() *Module {
 	for k, r := range ms.Resources {
 		resources[k] = r.DeepCopy()
 	}
+	outputValues := make(map[string]*OutputValue, len(ms.OutputValues))
+	for k, v := range ms.OutputValues {
+		outputValues[k] = v.DeepCopy()
+	}
+	localValues := make(map[string]cty.Value, len(ms.LocalValues))
+	for k, v := range ms.LocalValues {
+		// cty.Value is immutable, so we don't need to copy these.
+		localValues[k] = v
+	}
 
 	return &Module{
-		Addr:      ms.Addr, // technically mutable, but immutable by convention
-		Resources: resources,
+		Addr:         ms.Addr, // technically mutable, but immutable by convention
+		Resources:    resources,
+		OutputValues: outputValues,
+		LocalValues:  localValues,
 	}
 }
 

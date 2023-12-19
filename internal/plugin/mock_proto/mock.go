@@ -57,26 +57,6 @@ func (mr *MockProviderClientMockRecorder) ApplyResourceChange(arg0, arg1 interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyResourceChange", reflect.TypeOf((*MockProviderClient)(nil).ApplyResourceChange), varargs...)
 }
 
-// CallFunction mocks base method.
-func (m *MockProviderClient) CallFunction(arg0 context.Context, arg1 *tfplugin5.CallFunction_Request, arg2 ...grpc.CallOption) (*tfplugin5.CallFunction_Response, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "CallFunction", varargs...)
-	ret0, _ := ret[0].(*tfplugin5.CallFunction_Response)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CallFunction indicates an expected call of CallFunction.
-func (mr *MockProviderClientMockRecorder) CallFunction(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CallFunction", reflect.TypeOf((*MockProviderClient)(nil).CallFunction), varargs...)
-}
-
 // Configure mocks base method.
 func (m *MockProviderClient) Configure(arg0 context.Context, arg1 *tfplugin5.Configure_Request, arg2 ...grpc.CallOption) (*tfplugin5.Configure_Response, error) {
 	m.ctrl.T.Helper()
@@ -95,26 +75,6 @@ func (mr *MockProviderClientMockRecorder) Configure(arg0, arg1 interface{}, arg2
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Configure", reflect.TypeOf((*MockProviderClient)(nil).Configure), varargs...)
-}
-
-// GetFunctions mocks base method.
-func (m *MockProviderClient) GetFunctions(arg0 context.Context, arg1 *tfplugin5.GetFunctions_Request, arg2 ...grpc.CallOption) (*tfplugin5.GetFunctions_Response, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0, arg1}
-	for _, a := range arg2 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetFunctions", varargs...)
-	ret0, _ := ret[0].(*tfplugin5.GetFunctions_Response)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetFunctions indicates an expected call of GetFunctions.
-func (mr *MockProviderClientMockRecorder) GetFunctions(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFunctions", reflect.TypeOf((*MockProviderClient)(nil).GetFunctions), varargs...)
 }
 
 // GetMetadata mocks base method.

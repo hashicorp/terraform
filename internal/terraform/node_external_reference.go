@@ -3,13 +3,7 @@
 
 package terraform
 
-import (
-	"fmt"
-	"sort"
-	"strings"
-
-	"github.com/hashicorp/terraform/internal/addrs"
-)
+import "github.com/hashicorp/terraform/internal/addrs"
 
 // nodeExternalReference allows external callers (such as the testing framework)
 // to provide the list of references they are making into the graph. This
@@ -37,14 +31,4 @@ func (n *nodeExternalReference) ModulePath() addrs.Module {
 // GraphNodeReferencer
 func (n *nodeExternalReference) References() []*addrs.Reference {
 	return n.ExternalReferences
-}
-
-// Name implements dag.NamedVertex
-func (n *nodeExternalReference) Name() string {
-	names := make([]string, len(n.ExternalReferences))
-	for i, ref := range n.ExternalReferences {
-		names[i] = ref.DisplayString()
-	}
-	sort.Strings(names)
-	return fmt.Sprintf("<external ref to %s>", strings.Join(names, ", "))
 }

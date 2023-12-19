@@ -201,7 +201,8 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 
 	// Set values for arguments of a child module call, for later retrieval
 	// during expression evaluation.
-	ctx.NamedValues().SetInputVariableValue(n.Addr, val)
+	_, call := n.Addr.Module.CallInstance()
+	ctx.SetModuleCallArgument(call, n.Addr.Variable, val)
 
 	// Skip evalVariableValidations during destroy operations. We still want
 	// to evaluate the variable in case it is used to initialise providers

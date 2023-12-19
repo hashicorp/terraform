@@ -8,13 +8,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
-	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -35,12 +36,12 @@ type ContextGraphWalker struct {
 	PrevRunState            *states.SyncState   // Used for safe concurrent access to state
 	Changes                 *plans.ChangesSync  // Used for safe concurrent writes to changes
 	Checks                  *checks.State       // Used for safe concurrent writes of checkable objects and their check results
-	NamedValues             *namedvals.State    // Tracks evaluation of input variables, local values, and output values
 	InstanceExpander        *instances.Expander // Tracks our gradual expansion of module and resource instances
 	Imports                 []configs.Import
 	MoveResults             refactoring.MoveResults // Read-only record of earlier processing of move statements
 	Operation               walkOperation
 	StopContext             context.Context
+	RootVariableValues      InputValues
 	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
 	Config                  *configs.Config
 	PlanTimestamp           time.Time
@@ -53,6 +54,8 @@ type ContextGraphWalker struct {
 	once               sync.Once
 	contexts           map[string]*BuiltinEvalContext
 	contextLock        sync.Mutex
+	variableValues     map[string]map[string]cty.Value
+	variableValuesLock sync.Mutex
 	providerCache      map[string]providers.Interface
 	providerSchemas    map[string]providers.ProviderSchema
 	providerLock       sync.Mutex
@@ -83,14 +86,15 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 	// so that we can safely run multiple evaluations at once across
 	// different modules.
 	evaluator := &Evaluator{
-		Meta:          w.Context.meta,
-		Config:        w.Config,
-		Operation:     w.Operation,
-		State:         w.State,
-		Changes:       w.Changes,
-		Plugins:       w.Context.plugins,
-		NamedValues:   w.NamedValues,
-		PlanTimestamp: w.PlanTimestamp,
+		Meta:               w.Context.meta,
+		Config:             w.Config,
+		Operation:          w.Operation,
+		State:              w.State,
+		Changes:            w.Changes,
+		Plugins:            w.Context.plugins,
+		VariableValues:     w.variableValues,
+		VariableValuesLock: &w.variableValuesLock,
+		PlanTimestamp:      w.PlanTimestamp,
 	}
 
 	ctx := &BuiltinEvalContext{
@@ -108,11 +112,12 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		ProvisionerLock:         &w.provisionerLock,
 		ChangesValue:            w.Changes,
 		ChecksValue:             w.Checks,
-		NamedValuesValue:        w.NamedValues,
 		StateValue:              w.State,
 		RefreshStateValue:       w.RefreshState,
 		PrevRunStateValue:       w.PrevRunState,
 		Evaluator:               evaluator,
+		VariableValues:          w.variableValues,
+		VariableValuesLock:      &w.variableValuesLock,
 		OverrideValues:          w.Overrides,
 	}
 
@@ -125,6 +130,14 @@ func (w *ContextGraphWalker) init() {
 	w.providerSchemas = make(map[string]providers.ProviderSchema)
 	w.provisionerCache = make(map[string]provisioners.Interface)
 	w.provisionerSchemas = make(map[string]*configschema.Block)
+	w.variableValues = make(map[string]map[string]cty.Value)
+
+	// Populate root module variable values. Other modules will be populated
+	// during the graph walk.
+	w.variableValues[""] = make(map[string]cty.Value)
+	for k, iv := range w.RootVariableValues {
+		w.variableValues[""][k] = iv.Value
+	}
 }
 
 func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfdiags.Diagnostics {

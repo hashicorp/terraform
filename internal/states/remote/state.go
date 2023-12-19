@@ -70,7 +70,7 @@ func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
 		state = states.NewState()
 	}
 
-	return state.RootOutputValues, nil
+	return state.RootModule().OutputValues, nil
 }
 
 // StateForMigration is part of our implementation of statemgr.Migrator.

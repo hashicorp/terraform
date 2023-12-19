@@ -868,7 +868,6 @@ message AppliedChange {
             Nothing deleted = 4; // explicitly represents the absense of a description
             ResourceInstance resource_instance = 2;
             OutputValue output_value = 3;
-            ComponentInstance component_instance = 5;
         }
         // Field number 20000 is reserved as a field number that will
         // always be unknown to any client, to allow clients to test
@@ -878,9 +877,6 @@ message AppliedChange {
     message ResourceInstance {
         ResourceInstanceObjectInStackAddr addr = 1;
         DynamicValue new_value = 2;
-        ResourceMode resource_mode = 4;
-        string resource_type = 5;
-        string provider_addr = 6;
 
         // Sometimes Terraform needs to make changes to a resource in
         // multiple steps during the apply phase, with each step
@@ -904,11 +900,6 @@ message AppliedChange {
         // description of the state the remote system has been left
         // in.
         bool interim = 3;
-    }
-    message ComponentInstance {
-        string component_addr = 3;
-        string component_instance_addr = 1;
-        map<string,DynamicValue> output_values = 2;
     }
     message OutputValue {
         string name = 1;

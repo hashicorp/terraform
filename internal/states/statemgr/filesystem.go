@@ -248,7 +248,7 @@ func (s *Filesystem) GetRootOutputValues() (map[string]*states.OutputValue, erro
 		state = states.NewState()
 	}
 
-	return state.RootOutputValues, nil
+	return state.RootModule().OutputValues, nil
 }
 
 func (s *Filesystem) refreshState() error {

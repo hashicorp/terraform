@@ -7,13 +7,10 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -74,17 +71,13 @@ func LoadFromProto(msgs map[string]*anypb.Any) (*State, error) {
 // Prefer to use [LoadFromProto] when processing user input. This function
 // cannot accept [anypb.Any] messages even though the Go compiler can't enforce
 // that at compile time.
-func LoadFromDirectProto(msgs map[string]protoreflect.ProtoMessage) (*State, error) {
+func LoadFromDirectProto(msgs map[statekeys.Key]protoreflect.ProtoMessage) (*State, error) {
 	ret := NewState()
 	ret.inputRaw = nil // this doesn't get populated by this entry point
-	for keyStr, msg := range msgs {
+	for key, msg := range msgs {
 		// The following should be equivalent to the similar loop in
 		// [LoadFromProto] except for skipping the parsing/unmarshalling
-		// steps since msg is already in its in-memory form.
-		key, err := statekeys.Parse(keyStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid tracking key %q: %w", keyStr, err)
-		}
+		// steps since key and msg are already in their in-memory forms.
 		if !statekeys.RecognizedType(key) {
 			err := handleUnrecognizedKey(key, ret)
 			if err != nil {
@@ -92,7 +85,7 @@ func LoadFromDirectProto(msgs map[string]protoreflect.ProtoMessage) (*State, err
 			}
 			continue
 		}
-		err = handleProtoMsg(key, msg, ret)
+		err := handleProtoMsg(key, msg, ret)
 		if err != nil {
 			return nil, err
 		}
@@ -220,19 +213,7 @@ func DecodeProtoResourceInstanceObject(protoObj *tfstackdata1.StateResourceInsta
 		return nil, fmt.Errorf("unsupported status %s", protoObj.Status.String())
 	}
 
-	paths := make([]cty.PathValueMarks, 0, len(protoObj.SensitivePaths))
-	marks := cty.NewValueMarks(marks.Sensitive)
-	for _, p := range protoObj.SensitivePaths {
-		path, err := planfile.PathFromProto(p)
-		if err != nil {
-			return nil, err
-		}
-		paths = append(paths, cty.PathValueMarks{
-			Path:  path,
-			Marks: marks,
-		})
-	}
-	objSrc.AttrSensitivePaths = paths
+	// TODO: Deal with sensitive paths in protoObj.SensitivePaths
 
 	if len(protoObj.Dependencies) != 0 {
 		objSrc.Dependencies = make([]addrs.ConfigResource, len(protoObj.Dependencies))

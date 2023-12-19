@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -21,7 +22,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
@@ -136,10 +136,7 @@ func TestMetaBackend_emptyWithDefaultState(t *testing.T) {
 
 	// Write some state
 	next := testState()
-	next.SetOutputValue(
-		addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
-		cty.StringVal("bar"), false,
-	)
+	next.RootModule().SetOutputValue("foo", cty.StringVal("bar"), false)
 	s.WriteState(next)
 	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -1865,10 +1862,7 @@ func TestMetaBackend_localDoesNotDeleteLocal(t *testing.T) {
 
 	// // create our local state
 	orig := states.NewState()
-	orig.SetOutputValue(
-		addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
-		cty.StringVal("bar"), false,
-	)
+	orig.Module(addrs.RootModuleInstance).SetOutputValue("foo", cty.StringVal("bar"), false)
 	testStateFileDefault(t, orig)
 
 	m := testMetaBackend(t, nil)

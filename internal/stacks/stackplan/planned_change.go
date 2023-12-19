@@ -7,8 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform/internal/stacks/stackutils"
+	version "github.com/hashicorp/go-version"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -115,24 +114,12 @@ var _ PlannedChange = (*PlannedChangeComponentInstance)(nil)
 
 // PlannedChangeProto implements PlannedChange.
 func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.PlannedChange, error) {
-	var plannedInputValues map[string]*tfstackdata1.DynamicValue
+	var plannedInputValues map[string]*planproto.DynamicValue
 	if n := len(pc.PlannedInputValues); n != 0 {
-		plannedInputValues = make(map[string]*tfstackdata1.DynamicValue, n)
+		plannedInputValues = make(map[string]*planproto.DynamicValue, n)
 		for k, v := range pc.PlannedInputValues {
-			plannedInputValues[k] = &tfstackdata1.DynamicValue{
-				Value: &planproto.DynamicValue{
-					Msgpack: v,
-				},
-				// FIXME: We're currently losing track of sensitivity here --
-				// or, more accurately, in the caller that's populating
-				// pc.PlannedInputValues -- but that's not _super_ important
-				// because we don't directly use these values during the
-				// apply phase anyway, and instead recalculate the input
-				// values based on updated data from other components having
-				// already been applied. These values are here only to give
-				// us something to compare against as a safety check to catch
-				// if a bug somewhere causes the values to be inconsistent
-				// between plan and apply.
+			plannedInputValues[k] = &planproto.DynamicValue{
+				Msgpack: v,
 			}
 		}
 	}
@@ -274,7 +261,7 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 				Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
 					ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
 						Addr:         terraform1.NewResourceInstanceObjectInStackAddr(rioAddr),
-						ResourceMode: stackutils.ResourceModeForProto(pc.ChangeSrc.Addr.Resource.Resource.Mode),
+						ResourceMode: resourceModeForProto(pc.ChangeSrc.Addr.Resource.Resource.Mode),
 						ResourceType: pc.ChangeSrc.Addr.Resource.Resource.Type,
 						ProviderAddr: pc.ChangeSrc.ProviderAddr.Provider.String(),
 
@@ -401,4 +388,17 @@ func (pc *PlannedChangeApplyable) PlannedChangeProto() (*terraform1.PlannedChang
 			},
 		},
 	}, nil
+}
+
+func resourceModeForProto(mode addrs.ResourceMode) terraform1.ResourceMode {
+	switch mode {
+	case addrs.ManagedResourceMode:
+		return terraform1.ResourceMode_MANAGED
+	case addrs.DataResourceMode:
+		return terraform1.ResourceMode_DATA
+	default:
+		// Should not get here, because the above should be exhaustive for
+		// all addrs.ResourceMode variants.
+		return terraform1.ResourceMode_UNKNOWN
+	}
 }

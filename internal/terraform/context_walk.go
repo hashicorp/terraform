@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
-	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -164,7 +163,6 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 		Overrides:               opts.Overrides,
 		PrevRunState:            prevRunState,
 		Changes:                 changes.SyncWrapper(),
-		NamedValues:             namedvals.NewState(),
 		Checks:                  checkState,
 		InstanceExpander:        instances.NewExpander(),
 		ExternalProviderConfigs: opts.ExternalProviderConfigs,

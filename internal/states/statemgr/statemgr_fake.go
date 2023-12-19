@@ -70,7 +70,7 @@ func (m *fakeFull) PersistState(schemas *terraform.Schemas) error {
 }
 
 func (m *fakeFull) GetRootOutputValues() (map[string]*states.OutputValue, error) {
-	return m.State().RootOutputValues, nil
+	return m.State().RootModule().OutputValues, nil
 }
 
 func (m *fakeFull) Lock(info *LockInfo) (string, error) {

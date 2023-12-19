@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -13,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -25,7 +25,6 @@ func TestEvaluatorGetTerraformAttr(t *testing.T) {
 		Meta: &ContextMeta{
 			Env: "foo",
 		},
-		NamedValues: namedvals.NewState(),
 	}
 	data := &evaluationStateData{
 		Evaluator: evaluator,
@@ -56,7 +55,6 @@ func TestEvaluatorGetPathAttr(t *testing.T) {
 				SourceDir: "bar/baz",
 			},
 		},
-		NamedValues: namedvals.NewState(),
 	}
 	data := &evaluationStateData{
 		Evaluator: evaluator,
@@ -157,14 +155,6 @@ func TestEvaluatorGetOutputValue(t *testing.T) {
 // This particularly tests that a sensitive attribute in config
 // results in a value that has a "sensitive" cty Mark
 func TestEvaluatorGetInputVariable(t *testing.T) {
-	namedValues := namedvals.NewState()
-	namedValues.SetInputVariableValue(
-		addrs.RootModuleInstance.InputVariable("some_var"), cty.StringVal("bar"),
-	)
-	namedValues.SetInputVariableValue(
-		addrs.RootModuleInstance.InputVariable("some_other_var"), cty.StringVal("boop").Mark(marks.Sensitive),
-	)
-
 	evaluator := &Evaluator{
 		Meta: &ContextMeta{
 			Env: "foo",
@@ -190,7 +180,13 @@ func TestEvaluatorGetInputVariable(t *testing.T) {
 				},
 			},
 		},
-		NamedValues: namedValues,
+		VariableValues: map[string]map[string]cty.Value{
+			"": {
+				"some_var":       cty.StringVal("bar"),
+				"some_other_var": cty.StringVal("boop").Mark(marks.Sensitive),
+			},
+		},
+		VariableValuesLock: &sync.Mutex{},
 	}
 
 	data := &evaluationStateData{
@@ -268,8 +264,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 				},
 			},
 		},
-		State:       stateSync,
-		NamedValues: namedvals.NewState(),
+		State: stateSync,
 		Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]providers.ProviderSchema{
 			addrs.NewDefaultProvider("test"): {
 				ResourceTypes: map[string]providers.Schema{
@@ -506,9 +501,8 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 				},
 			},
 		},
-		State:       stateSync,
-		NamedValues: namedvals.NewState(),
-		Plugins:     schemaOnlyProvidersForTesting(schemas.Providers),
+		State:   stateSync,
+		Plugins: schemaOnlyProvidersForTesting(schemas.Providers),
 	}
 
 	data := &evaluationStateData{
@@ -546,10 +540,6 @@ func TestEvaluatorGetModule(t *testing.T) {
 		)
 	}).SyncWrapper()
 	evaluator := evaluatorForModule(stateSync, plans.NewChanges().SyncWrapper())
-	evaluator.NamedValues.SetOutputValue(
-		addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{addrs.ModuleInstanceStep{Name: "mod"}}),
-		cty.StringVal("bar").Mark(marks.Sensitive),
-	)
 	data := &evaluationStateData{
 		Evaluator: evaluator,
 	}
@@ -563,7 +553,7 @@ func TestEvaluatorGetModule(t *testing.T) {
 		t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
 	}
 	if !got.RawEquals(want) {
-		t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+		t.Errorf("wrong result %#v; want %#v", got, want)
 	}
 
 	// Changes should override the state value
@@ -640,8 +630,7 @@ func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesS
 				},
 			},
 		},
-		State:       stateSync,
-		Changes:     changesSync,
-		NamedValues: namedvals.NewState(),
+		State:   stateSync,
+		Changes: changesSync,
 	}
 }

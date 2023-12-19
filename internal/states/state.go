@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // State is the top-level type of a Terraform state.
@@ -27,14 +28,6 @@ type State struct {
 	// Modules contains the state for each module. The keys in this map are
 	// an implementation detail and must not be used by outside callers.
 	Modules map[string]*Module
-
-	// OutputValues contains the state for each output value defined in the
-	// root module.
-	//
-	// Output values in other modules don't persist anywhere between runs,
-	// so Terraform Core tracks those only internally and does not expose
-	// them in any artifacts that survive between runs.
-	RootOutputValues map[string]*OutputValue
 
 	// CheckResults contains a snapshot of the statuses of checks at the
 	// end of the most recent update to the state. Callers might compare
@@ -55,8 +48,7 @@ func NewState() *State {
 	modules := map[string]*Module{}
 	modules[addrs.RootModuleInstance.String()] = NewModule(addrs.RootModuleInstance)
 	return &State{
-		Modules:          modules,
-		RootOutputValues: make(map[string]*OutputValue),
+		Modules: modules,
 	}
 }
 
@@ -76,11 +68,11 @@ func (s *State) Empty() bool {
 	if s == nil {
 		return true
 	}
-	if len(s.RootOutputValues) != 0 {
-		return false
-	}
 	for _, ms := range s.Modules {
-		if !ms.empty() {
+		if len(ms.Resources) != 0 {
+			return false
+		}
+		if len(ms.OutputValues) != 0 {
 			return false
 		}
 	}
@@ -105,6 +97,35 @@ func (s *State) ModuleInstances(addr addrs.Module) []*Module {
 		}
 	}
 	return ms
+}
+
+// ModuleOutputs returns all outputs for the given module call under the
+// parentAddr instance.
+func (s *State) ModuleOutputs(parentAddr addrs.ModuleInstance, module addrs.ModuleCall) []*OutputValue {
+	var os []*OutputValue
+	for _, m := range s.Modules {
+		// can't get outputs from the root module
+		if m.Addr.IsRoot() {
+			continue
+		}
+
+		parent, call := m.Addr.Call()
+		// make sure this is a descendent in the correct path
+		if !parentAddr.Equal(parent) {
+			continue
+		}
+
+		// and check if this is the correct child
+		if call.Name != module.Name {
+			continue
+		}
+
+		for _, o := range m.OutputValues {
+			os = append(os, o)
+		}
+	}
+
+	return os
 }
 
 // RemoveModule removes the module with the given address from the state,
@@ -287,39 +308,22 @@ func (s *State) ResourceInstanceObjectSrc(addr addrs.AbsResourceInstanceObject) 
 
 // OutputValue returns the state for the output value with the given address,
 // or nil if no such output value is tracked in the state.
-//
-// Only root module output values are tracked in the state, so this always
-// returns nil for output values in any other module.
 func (s *State) OutputValue(addr addrs.AbsOutputValue) *OutputValue {
-	if !addr.Module.IsRoot() {
+	ms := s.Module(addr.Module)
+	if ms == nil {
 		return nil
 	}
-	return s.RootOutputValues[addr.OutputValue.Name]
+	return ms.OutputValues[addr.OutputValue.Name]
 }
 
-// SetOutputValue updates the value stored for the given output value if and
-// only if it's a root module output value.
-//
-// All other output values will just be silently ignored, because we don't
-// store those here anymore. (They live in a namedvals.State object hidden
-// in the internals of Terraform Core.)
-func (s *State) SetOutputValue(addr addrs.AbsOutputValue, value cty.Value, sensitive bool) {
-	if !addr.Module.IsRoot() {
-		return
+// LocalValue returns the value of the named local value with the given address,
+// or cty.NilVal if no such value is tracked in the state.
+func (s *State) LocalValue(addr addrs.AbsLocalValue) cty.Value {
+	ms := s.Module(addr.Module)
+	if ms == nil {
+		return cty.NilVal
 	}
-	s.RootOutputValues[addr.OutputValue.Name] = &OutputValue{
-		Addr:      addr,
-		Value:     value,
-		Sensitive: sensitive,
-	}
-}
-
-// RemoveOutputValue removes the record of a previously-stored output value.
-func (s *State) RemoveOutputValue(addr addrs.AbsOutputValue) {
-	if !addr.Module.IsRoot() {
-		return
-	}
-	delete(s.RootOutputValues, addr.OutputValue.Name)
+	return ms.LocalValues[addr.LocalValue.Name]
 }
 
 // ProviderAddrs returns a list of all of the provider configuration addresses
@@ -561,6 +565,13 @@ func (s *State) MoveModuleInstance(src, dst addrs.ModuleInstance) {
 	if srcMod.Resources != nil {
 		for _, r := range srcMod.Resources {
 			r.Addr.Module = dst
+		}
+	}
+
+	// Update any OutputValues's addresses.
+	if srcMod.OutputValues != nil {
+		for _, ov := range srcMod.OutputValues {
+			ov.Addr.Module = dst
 		}
 	}
 }

@@ -717,7 +717,10 @@ module.test:
   null_resource.noop:
     ID = foo
     provider = provider["registry.terraform.io/hashicorp/null"]
-`)
+
+  Outputs:
+
+  amis_out = {eu-west-1:ami-789012 eu-west-2:ami-989484 us-west-1:ami-123456 us-west-2:ami-456789 }`)
 	if actual != expected {
 		t.Fatalf("expected: \n%s\n\ngot: \n%s\n", expected, actual)
 	}
@@ -3293,6 +3296,10 @@ module.A:
     provider = provider["registry.terraform.io/hashicorp/aws"]
     foo = bar
     type = aws_instance
+
+  Outputs:
+
+  value = foo
 module.B:
   aws_instance.bar:
     ID = foo
@@ -3598,7 +3605,7 @@ func TestContext2Apply_multiVar(t *testing.T) {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	actual := state.RootOutputValues["output"]
+	actual := state.RootModule().OutputValues["output"]
 	expected := cty.StringVal("bar0,bar1,bar2")
 	if actual == nil || actual.Value != expected {
 		t.Fatalf("wrong value\ngot:  %#v\nwant: %#v", actual.Value, expected)
@@ -3632,7 +3639,7 @@ func TestContext2Apply_multiVar(t *testing.T) {
 
 		t.Logf("End state: %s", state.String())
 
-		actual := state.RootOutputValues["output"]
+		actual := state.RootModule().OutputValues["output"]
 		if actual == nil {
 			t.Fatal("missing output")
 		}
@@ -3839,7 +3846,7 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 			},
 		}
 		got := map[string]interface{}{}
-		for k, s := range state.RootOutputValues {
+		for k, s := range state.RootModule().OutputValues {
 			got[k] = hcl2shim.ConfigValueFromHCL2(s.Value)
 		}
 		if !reflect.DeepEqual(got, want) {
@@ -3875,7 +3882,7 @@ func TestContext2Apply_multiVarOrder(t *testing.T) {
 
 	t.Logf("State: %s", state.String())
 
-	actual := state.RootOutputValues["should-be-11"]
+	actual := state.RootModule().OutputValues["should-be-11"]
 	expected := cty.StringVal("index-11")
 	if actual == nil || actual.Value != expected {
 		t.Fatalf("wrong value\ngot:  %#v\nwant: %#v", actual.Value, expected)
@@ -3906,7 +3913,7 @@ func TestContext2Apply_multiVarOrderInterp(t *testing.T) {
 
 	t.Logf("State: %s", state.String())
 
-	actual := state.RootOutputValues["should-be-11"]
+	actual := state.RootModule().OutputValues["should-be-11"]
 	expected := cty.StringVal("baz-index-11")
 	if actual == nil || actual.Value != expected {
 		t.Fatalf("wrong value\ngot:  %#v\nwant: %#v", actual.Value, expected)
@@ -4063,14 +4070,9 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
-	state.SetOutputValue(
-		addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
-		cty.StringVal("bar"), false,
-	)
-	state.SetOutputValue(
-		addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
-		cty.StringVal("baz"), false,
-	)
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetOutputValue("foo", cty.StringVal("bar"), false)
+	root.SetOutputValue("bar", cty.StringVal("baz"), false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -7156,10 +7158,7 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
-	state.SetOutputValue(
-		addrs.OutputValue{Name: "out"}.Absolute(addrs.RootModuleInstance),
-		cty.StringVal("bar"), false,
-	)
+	root.SetOutputValue("out", cty.StringVal("bar"), false)
 
 	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
 	child.SetResourceInstanceCurrent(
@@ -7218,8 +7217,8 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 	// TODO: Future refactoring may enable us to remove the output from state in
 	// this case, and that would be Just Fine - this test can be modified to
 	// expect 0 outputs.
-	if len(state.RootOutputValues) != 1 {
-		t.Fatalf("expected 1 outputs, got: %#v", state.RootOutputValues)
+	if len(mod.OutputValues) != 1 {
+		t.Fatalf("expected 1 outputs, got: %#v", mod.OutputValues)
 	}
 
 	// the module instance should remain
@@ -7522,7 +7521,6 @@ func TestContext2Apply_targetedModuleDep(t *testing.T) {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	// The output from module.child is copied into aws_instance.foo.foo
 	checkStateString(t, state, `
 aws_instance.foo:
   ID = foo
@@ -7538,7 +7536,11 @@ module.child:
     ID = foo
     provider = provider["registry.terraform.io/hashicorp/aws"]
     type = aws_instance
-`)
+
+  Outputs:
+
+  output = foo
+	`)
 }
 
 // GH-10911 untargeted outputs should not be in the graph, and therefore
@@ -7586,6 +7588,10 @@ module.child2:
     ID = foo
     provider = provider["registry.terraform.io/hashicorp/aws"]
     type = aws_instance
+
+  Outputs:
+
+  instance_id = foo
 `)
 }
 
@@ -8661,7 +8667,7 @@ func TestContext2Apply_terraformWorkspace(t *testing.T) {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	actual := state.RootOutputValues["output"]
+	actual := state.RootModule().OutputValues["output"]
 	expected := cty.StringVal("foo")
 	if actual == nil || actual.Value != expected {
 		t.Fatalf("wrong value\ngot:  %#v\nwant: %#v", actual.Value, expected)
@@ -8780,10 +8786,7 @@ func TestContext2Apply_destroyWithLocals(t *testing.T) {
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
-	state.SetOutputValue(
-		addrs.OutputValue{Name: "name"}.Absolute(addrs.RootModuleInstance),
-		cty.StringVal("test-bar"), false,
-	)
+	root.SetOutputValue("name", cty.StringVal("test-bar"), false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -9091,10 +9094,7 @@ func TestContext2Apply_plannedDestroyInterpolatedCount(t *testing.T) {
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
-	state.SetOutputValue(
-		addrs.OutputValue{Name: "out"}.Absolute(addrs.RootModuleInstance),
-		cty.ListVal([]cty.Value{cty.StringVal("foo"), cty.StringVal("foo")}), false,
-	)
+	root.SetOutputValue("out", cty.ListVal([]cty.Value{cty.StringVal("foo"), cty.StringVal("foo")}), false)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: providers,
@@ -10833,14 +10833,6 @@ module "mod2" {
   source = "./mod"
   in = module.mod1["a"].out
 }
-
-output "mod1" {
-  value = module.mod1
-}
-
-output "mod2" {
-  value = module.mod2
-}
 `,
 		"mod/main.tf": `
 resource "aws_instance" "foo" {
@@ -10878,17 +10870,16 @@ output "out" {
 	}
 
 	expected := `<no state>
-Outputs:
-
-mod1 = {a:map[out:foo] }
-mod2 = {out:foo }
-
 module.mod1["a"]:
   aws_instance.foo:
     ID = foo
     provider = provider["registry.terraform.io/hashicorp/aws"]
     foo = default
     type = aws_instance
+
+  Outputs:
+
+  out = foo
 module.mod2:
   aws_instance.foo:
     ID = foo
@@ -11326,7 +11317,7 @@ locals {
 	}
 
 	// check the output, as those can't cause an error planning the value
-	out := state.RootOutputValues["out"].Value.AsString()
+	out := state.RootModule().OutputValues["out"].Value.AsString()
 	if out != "a0" {
 		t.Fatalf(`expected output "a0", got: %q`, out)
 	}
@@ -11381,7 +11372,7 @@ locals {
 	}
 
 	// check the output, as those can't cause an error planning the value
-	out = state.RootOutputValues["out"].Value.AsString()
+	out = state.RootModule().OutputValues["out"].Value.AsString()
 	if out != "" {
 		t.Fatalf(`expected output "", got: %q`, out)
 	}
@@ -12221,7 +12212,7 @@ output "out" {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 
-	got := state.RootOutputValues["out"].Value
+	got := state.RootModule().OutputValues["out"].Value
 	want := cty.ObjectVal(map[string]cty.Value{
 		"required": cty.StringVal("boop"),
 
@@ -12280,7 +12271,7 @@ output "out" {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 
-	got := state.RootOutputValues["out"].Value
+	got := state.RootModule().OutputValues["out"].Value
 	want := cty.ObjectVal(map[string]cty.Value{
 		"required": cty.StringVal("boop"),
 
@@ -12330,7 +12321,7 @@ output "out" {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 
-	got := state.RootOutputValues["out"].Value
+	got := state.RootModule().OutputValues["out"].Value
 	// The null default value should be bound, after type converting to the
 	// full object type
 	want := cty.TupleVal([]cty.Value{cty.NullVal(cty.Object(map[string]cty.Type{
@@ -12393,7 +12384,7 @@ output "out" {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 
-	got := state.RootOutputValues["out"].Value
+	got := state.RootModule().OutputValues["out"].Value
 	want := cty.ListVal([]cty.Value{
 		cty.ObjectVal(map[string]cty.Value{
 			"a": cty.SetVal([]cty.Value{cty.StringVal("foo")}),

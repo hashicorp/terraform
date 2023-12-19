@@ -104,7 +104,7 @@ func (c *RefreshCommand) Run(rawArgs []string) int {
 	}
 
 	if op.State != nil {
-		view.Outputs(op.State.RootOutputValues)
+		view.Outputs(op.State.RootModule().OutputValues)
 	}
 
 	return op.Result.ExitStatus()

@@ -388,6 +388,10 @@ func ActionFromProto(rawAction planproto.Action) (plans.Action, error) {
 		return plans.CreateThenDelete, nil
 	case planproto.Action_DELETE_THEN_CREATE:
 		return plans.DeleteThenCreate, nil
+	case planproto.Action_FORGET:
+		return plans.Forget, nil
+	case planproto.Action_CREATE_THEN_FORGET:
+		return plans.CreateThenForget, nil
 	default:
 		return plans.NoOp, fmt.Errorf("invalid change action %s", rawAction)
 	}
@@ -429,6 +433,11 @@ func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 		beforeIdx = 0
 		afterIdx = 1
 	case plans.DeleteThenCreate:
+		beforeIdx = 0
+		afterIdx = 1
+	case plans.Forget:
+		beforeIdx = 0
+	case plans.CreateThenForget:
 		beforeIdx = 0
 		afterIdx = 1
 	default:
@@ -818,6 +827,10 @@ func ActionToProto(action plans.Action) (planproto.Action, error) {
 		return planproto.Action_DELETE_THEN_CREATE, nil
 	case plans.CreateThenDelete:
 		return planproto.Action_CREATE_THEN_DELETE, nil
+	case plans.Forget:
+		return planproto.Action_FORGET, nil
+	case plans.CreateThenForget:
+		return planproto.Action_CREATE_THEN_FORGET, nil
 	default:
 		return planproto.Action_NOOP, fmt.Errorf("invalid change action %s", action)
 	}
@@ -868,6 +881,10 @@ func changeToTfplan(change *plans.ChangeSrc) (*planproto.Change, error) {
 		ret.Values = []*planproto.DynamicValue{before, after}
 	case planproto.Action_CREATE_THEN_DELETE:
 		ret.Values = []*planproto.DynamicValue{before, after}
+	case planproto.Action_FORGET:
+		ret.Values = []*planproto.DynamicValue{before}
+	case planproto.Action_CREATE_THEN_FORGET:
+		ret.Values = []*planproto.DynamicValue{before, after}
 	default:
 		return nil, fmt.Errorf("invalid change action %s", change.Action)
 	}
@@ -876,7 +893,14 @@ func changeToTfplan(change *plans.ChangeSrc) (*planproto.Change, error) {
 }
 
 func valueToTfplan(val plans.DynamicValue) *planproto.DynamicValue {
-	return planproto.NewPlanDynamicValue(val)
+	if val == nil {
+		// protobuf can't represent nil, so we'll represent it as a
+		// DynamicValue that has no serializations at all.
+		return &planproto.DynamicValue{}
+	}
+	return &planproto.DynamicValue{
+		Msgpack: []byte(val),
+	}
 }
 
 func pathValueMarksFromTfplan(paths []*planproto.Path, marks cty.ValueMarks) ([]cty.PathValueMarks, error) {
@@ -904,18 +928,6 @@ func pathValueMarksToTfplan(pvm []cty.PathValueMarks) ([]*planproto.Path, error)
 		ret = append(ret, path)
 	}
 	return ret, nil
-}
-
-// PathFromProto decodes a path to a nested attribute into a cty.Path for
-// use in tracking marked values.
-//
-// This is used by the stackstate package, which uses planproto.Path messages
-// while using a different overall container.
-func PathFromProto(path *planproto.Path) (cty.Path, error) {
-	if path == nil {
-		return nil, nil
-	}
-	return pathFromTfplan(path)
 }
 
 func pathFromTfplan(path *planproto.Path) (cty.Path, error) {
@@ -946,5 +958,30 @@ func pathFromTfplan(path *planproto.Path) (cty.Path, error) {
 }
 
 func pathToTfplan(path cty.Path) (*planproto.Path, error) {
-	return planproto.NewPath(path)
+	steps := make([]*planproto.Path_Step, 0, len(path))
+	for _, step := range path {
+		switch s := step.(type) {
+		case cty.IndexStep:
+			value, err := plans.NewDynamicValue(s.Key, s.Key.Type())
+			if err != nil {
+				return nil, fmt.Errorf("Error encoding path step: %s", err)
+			}
+			steps = append(steps, &planproto.Path_Step{
+				Selector: &planproto.Path_Step_ElementKey{
+					ElementKey: valueToTfplan(value),
+				},
+			})
+		case cty.GetAttrStep:
+			steps = append(steps, &planproto.Path_Step{
+				Selector: &planproto.Path_Step_AttributeName{
+					AttributeName: s.Name,
+				},
+			})
+		default:
+			return nil, fmt.Errorf("Unsupported path step %#v (%t)", step, step)
+		}
+	}
+	return &planproto.Path{
+		Steps: steps,
+	}, nil
 }

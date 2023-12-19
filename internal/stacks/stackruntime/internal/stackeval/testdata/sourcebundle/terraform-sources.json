@@ -20,10 +20,6 @@
       {
         "source": "https://testing.invalid/provider.tar.gz",
         "local": "provider"
-      },
-      {
-        "source": "https://testing.invalid/planning.tar.gz",
-        "local": "planning"
       }
     ]
   }

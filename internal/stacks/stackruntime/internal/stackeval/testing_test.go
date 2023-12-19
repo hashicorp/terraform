@@ -6,8 +6,6 @@ package stackeval
 import (
 	"context"
 	"fmt"
-	"strings"
-	"sync"
 	"testing"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
@@ -15,12 +13,11 @@ import (
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
-	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // This file contains some general test utilities that many of our other
@@ -48,8 +45,7 @@ func testStackConfig(t *testing.T, collection string, subPath string) *stackconf
 	sources := testSourceBundle(t)
 	ret, diags := stackconfig.LoadConfigDir(fakeSrc, sources)
 	if diags.HasErrors() {
-		diags.Sort()
-		t.Fatalf("configuration is invalid\n%s", testFormatDiagnostics(t, diags))
+		t.Fatalf("configuration is invalid\n%s", diags.Err().Error())
 	}
 	return ret
 }
@@ -70,124 +66,13 @@ func testSourceBundle(t *testing.T) *sourcebundle.Bundle {
 	return sources
 }
 
-func testPriorState(t *testing.T, msgs map[string]protoreflect.ProtoMessage) *stackstate.State {
+func testPriorState(t *testing.T, msgs map[statekeys.Key]protoreflect.ProtoMessage) *stackstate.State {
 	t.Helper()
 	ret, err := stackstate.LoadFromDirectProto(msgs)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return ret
-}
-
-func testPlan(t *testing.T, main *Main) (*stackplan.Plan, tfdiags.Diagnostics) {
-	t.Helper()
-	outp, outpTest := testPlanOutput(t)
-	main.PlanAll(context.Background(), outp)
-	return outpTest.Close(t)
-}
-
-func testPlanOutput(t *testing.T) (PlanOutput, *planOutputTester) {
-	t.Helper()
-	tester := &planOutputTester{}
-	outp := PlanOutput{
-		AnnouncePlannedChange: func(ctx context.Context, pc stackplan.PlannedChange) {
-			tester.mu.Lock()
-			tester.planned = append(tester.planned, pc)
-			tester.mu.Unlock()
-		},
-		AnnounceDiagnostics: func(ctx context.Context, d tfdiags.Diagnostics) {
-			tester.mu.Lock()
-			tester.diags = tester.diags.Append(d)
-			tester.mu.Unlock()
-		},
-	}
-	return outp, tester
-}
-
-type planOutputTester struct {
-	planned []stackplan.PlannedChange
-	diags   tfdiags.Diagnostics
-	mu      sync.Mutex
-}
-
-func (pot *planOutputTester) Close(t *testing.T) (*stackplan.Plan, tfdiags.Diagnostics) {
-	t.Helper()
-
-	// Caller shouldn't close concurrently with other work anyway, but we'll
-	// include this just to help make things behave more consistently even when
-	// the caller is buggy.
-	pot.mu.Lock()
-	defer pot.mu.Unlock()
-
-	// We'll now round-trip all of the planned changes through the serialize
-	// and deserialize logic to approximate the effect of this plan having been
-	// saved and then reloaded during a subsequent apply phase, since
-	// the reloaded plan is a more convenient artifact to inspect in tests.
-	var msgs []*anypb.Any
-	for _, change := range pot.planned {
-		protoChange, err := change.PlannedChangeProto()
-		if err != nil {
-			t.Fatalf("failed to encode %T: %s", change, err)
-		}
-		msgs = append(msgs, protoChange.Raw...)
-	}
-	plan, err := stackplan.LoadFromProto(msgs)
-	if err != nil {
-		t.Fatalf("failed to reload saved plan: %s", err)
-	}
-	return plan, pot.diags
-}
-
-func testFormatDiagnostics(t *testing.T, diags tfdiags.Diagnostics) string {
-	t.Helper()
-	var buf strings.Builder
-	for _, diag := range diags {
-		buf.WriteString(testFormatDiagnostic(t, diag))
-		buf.WriteByte('\n')
-	}
-	return buf.String()
-}
-
-func testFormatDiagnostic(t *testing.T, diag tfdiags.Diagnostic) string {
-	t.Helper()
-
-	var buf strings.Builder
-	switch diag.Severity() {
-	case tfdiags.Error:
-		buf.WriteString("[ERROR] ")
-	case tfdiags.Warning:
-		buf.WriteString("[WARNING] ")
-	default:
-		buf.WriteString("[PROBLEM] ")
-	}
-	desc := diag.Description()
-	buf.WriteString(desc.Summary)
-	buf.WriteByte('\n')
-	if subj := diag.Source().Subject; subj != nil {
-		buf.WriteString("at " + subj.StartString() + "\n")
-	}
-	if desc.Detail != "" {
-		buf.WriteByte('\n')
-		buf.WriteString(desc.Detail)
-		buf.WriteByte('\n')
-	}
-	return buf.String()
-}
-
-func assertNoDiagnostics(t *testing.T, diags tfdiags.Diagnostics) {
-	t.Helper()
-	if len(diags) != 0 {
-		diags.Sort()
-		t.Fatalf("unexpected diagnostics\n\n%s", testFormatDiagnostics(t, diags))
-	}
-}
-
-func assertNoErrors(t *testing.T, diags tfdiags.Diagnostics) {
-	t.Helper()
-	if diags.HasErrors() {
-		diags.Sort()
-		t.Fatalf("unexpected errors\n\n%s", testFormatDiagnostics(t, diags))
-	}
 }
 
 // testEvaluator constructs a [Main] that's configured for [InspectPhase] using

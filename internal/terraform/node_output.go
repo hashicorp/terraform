@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -391,7 +390,7 @@ If you do intend to export this data, annotate the output value as sensitive by 
 			// if we're continuing, make sure the output is included, and
 			// marked as unknown. If the evaluator was able to find a type
 			// for the value in spite of the error then we'll use it.
-			n.setValue(ctx.NamedValues(), state, changes, cty.UnknownVal(val.Type()))
+			n.setValue(state, changes, cty.UnknownVal(val.Type()))
 
 			// Keep existing warnings, while converting errors to warnings.
 			// This is not meant to be the normal path, so there no need to
@@ -411,13 +410,13 @@ If you do intend to export this data, annotate the output value as sensitive by 
 		}
 		return diags
 	}
-	n.setValue(ctx.NamedValues(), state, changes, val)
+	n.setValue(state, changes, val)
 
 	// If we were able to evaluate a new value, we can update that in the
 	// refreshed state as well.
 	if state = ctx.RefreshState(); state != nil && val.IsWhollyKnown() {
 		// we only need to update the state, do not pass in the changes again
-		n.setValue(nil, state, nil, val)
+		n.setValue(state, nil, val)
 	}
 
 	return diags
@@ -473,18 +472,15 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 	before := cty.NullVal(cty.DynamicPseudoType)
 	mod := state.Module(n.Addr.Module)
 	if n.Addr.Module.IsRoot() && mod != nil {
-		s := state.Lock()
-		rootOutputs := s.RootOutputValues
-		if o, ok := rootOutputs[n.Addr.OutputValue.Name]; ok {
+		if o, ok := mod.OutputValues[n.Addr.OutputValue.Name]; ok {
 			sensitiveBefore = o.Sensitive
 			before = o.Value
 		} else {
 			// If the output was not in state, a delete change would
 			// be meaningless, so exit early.
-			state.Unlock()
 			return nil
+
 		}
-		state.Unlock()
 	}
 
 	changes := ctx.Changes()
@@ -525,7 +521,7 @@ func (n *NodeDestroyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.Dot
 	}
 }
 
-func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states.SyncState, changes *plans.ChangesSync, val cty.Value) {
+func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.ChangesSync, val cty.Value) {
 	if changes != nil && n.Planning {
 		// if this is a root module, try to get a before value from the state for
 		// the diff
@@ -537,9 +533,7 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 
 		mod := state.Module(n.Addr.Module)
 		if n.Addr.Module.IsRoot() && mod != nil {
-			s := state.Lock()
-			rootOutputs := s.RootOutputValues
-			for name, o := range rootOutputs {
+			for name, o := range mod.OutputValues {
 				if name == n.Addr.OutputValue.Name {
 					before = o.Value
 					sensitiveBefore = o.Sensitive
@@ -547,7 +541,6 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 					break
 				}
 			}
-			state.Unlock()
 		}
 
 		// We will not show the value if either the before or after are marked
@@ -613,17 +606,8 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 		return
 	}
 
-	// caller leaves namedVals nil if they've already called this function
-	// with a different state, since we only have one namedVals regardless
-	// of how many states are involved in an operation.
-	if namedVals != nil {
-		namedVals.SetOutputValue(n.Addr, val)
-	}
-
-	// The state itself doesn't represent unknown values, so we null them
-	// out here and then we'll save the real unknown value in the planned
-	// changeset, if we have one on this graph walk.
 	log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
+
 	// non-root outputs need to keep sensitive marks for evaluation, but are
 	// not serialized.
 	if n.Addr.Module.IsRoot() {

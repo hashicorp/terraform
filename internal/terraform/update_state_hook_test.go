@@ -17,10 +17,7 @@ func TestUpdateStateHook(t *testing.T) {
 	mockHook := new(MockHook)
 
 	state := states.NewState()
-	state.SetOutputValue(
-		addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
-		cty.StringVal("hello"), false,
-	)
+	state.Module(addrs.RootModuleInstance).SetLocalValue("foo", cty.StringVal("hello"))
 
 	ctx := new(MockEvalContext)
 	ctx.HookHook = mockHook
@@ -33,7 +30,7 @@ func TestUpdateStateHook(t *testing.T) {
 	if !mockHook.PostStateUpdateCalled {
 		t.Fatal("should call PostStateUpdate")
 	}
-	if mockHook.PostStateUpdateState.RootOutputValues["foo"].Value != cty.StringVal("hello") {
+	if mockHook.PostStateUpdateState.LocalValue(addrs.LocalValue{Name: "foo"}.Absolute(addrs.RootModuleInstance)) != cty.StringVal("hello") {
 		t.Fatalf("wrong state passed to hook: %s", spew.Sdump(mockHook.PostStateUpdateState))
 	}
 }
