@@ -388,6 +388,10 @@ func ActionFromProto(rawAction planproto.Action) (plans.Action, error) {
 		return plans.CreateThenDelete, nil
 	case planproto.Action_DELETE_THEN_CREATE:
 		return plans.DeleteThenCreate, nil
+	case planproto.Action_FORGET:
+		return plans.Forget, nil
+	case planproto.Action_CREATE_THEN_FORGET:
+		return plans.CreateThenForget, nil
 	default:
 		return plans.NoOp, fmt.Errorf("invalid change action %s", rawAction)
 	}
