@@ -73,7 +73,7 @@ You can use mocked providers and real providers simulating in a Terraform test. 
 provider "aws" {}
 
 mock_provider "aws" {
-  alias = fake
+  alias = "fake"
 }
 
 run "use_real_provider" {
