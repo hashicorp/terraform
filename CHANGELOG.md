@@ -1,4 +1,4 @@
-## 1.7.0-rc1 (December 20, 2023)
+## 1.7.0 (Unreleased)
 
 UPGRADE NOTES:
 
