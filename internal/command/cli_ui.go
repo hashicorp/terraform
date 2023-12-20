@@ -6,7 +6,7 @@ package command
 import (
 	"fmt"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 	"github.com/mitchellh/colorstring"
 )
 

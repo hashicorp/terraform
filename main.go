@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/apparentlymart/go-shquot/shquot"
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -26,7 +27,6 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/version"
 	"github.com/mattn/go-shellwords"
-	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 	"go.opentelemetry.io/otel/trace"
 

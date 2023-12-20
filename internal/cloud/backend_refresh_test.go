@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
