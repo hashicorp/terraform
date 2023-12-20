@@ -343,6 +343,10 @@ func (stubConfiguredProvider) ApplyResourceChange(req providers.ApplyResourceCha
 	}
 }
 
+func (stubConfiguredProvider) CallFunction(providers.CallFunctionRequest) providers.CallFunctionResponse {
+	panic("can't call functions on the stub provider")
+}
+
 // Close implements providers.Interface.
 func (stubConfiguredProvider) Close() error {
 	return nil

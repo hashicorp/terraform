@@ -44,12 +44,35 @@ func AppendProtoDiag(diags []*proto.Diagnostic, d interface{}) []*proto.Diagnost
 			Severity: proto.Diagnostic_WARNING,
 			Summary:  d,
 		})
+	case tfdiags.Diagnostic:
+		diags = append(diags, DiagnosticToProto(d))
+
+	case tfdiags.Diagnostics:
+		for _, diag := range d {
+			diags = append(diags, DiagnosticToProto(diag))
+		}
+
 	case *proto.Diagnostic:
 		diags = append(diags, d)
 	case []*proto.Diagnostic:
 		diags = append(diags, d...)
 	}
 	return diags
+}
+
+func DiagnosticToProto(diag tfdiags.Diagnostic) *proto.Diagnostic {
+	ret := &proto.Diagnostic{}
+	switch diag.Severity() {
+	case tfdiags.Error:
+		ret.Severity = proto.Diagnostic_ERROR
+	case tfdiags.Warning:
+		ret.Severity = proto.Diagnostic_WARNING
+	}
+
+	desc := diag.Description()
+	ret.Summary = desc.Summary
+	ret.Detail = desc.Detail
+	return ret
 }
 
 // ProtoToDiagnostics converts a list of proto.Diagnostics to a tf.Diagnostics.
