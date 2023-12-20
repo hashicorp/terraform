@@ -87,7 +87,9 @@ func (c *CloudCommand) realRun(args []string, stdout, stderr io.Writer) int {
 		Logger:           logging.NewCloudLogger(),
 		VersionedPlugins: map[int]plugin.PluginSet{
 			1: {
-				"cloud": &cloudplugin1.GRPCCloudPlugin{},
+				"cloud": &cloudplugin1.GRPCCloudPlugin{
+					Metadata: c.pluginConfig.ToMetadata(),
+				},
 			},
 		},
 	})
