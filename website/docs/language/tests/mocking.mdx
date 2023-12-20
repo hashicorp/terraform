@@ -53,11 +53,11 @@ mock_provider "aws" {}
 
 run "sets_correct_name" {
   variables {
-    bucket_name = "my_bucket_name"
+    bucket_name = "my-bucket-name"
   }
 
   assert {
-    condition     = aws_s3_bucket.my_bucket.bucket == "my_bucket_name"
+    condition     = aws_s3_bucket.my_bucket.bucket == "my-bucket-name"
     error_message = "incorrect bucket name"
   }
 }
@@ -73,7 +73,7 @@ You can use mocked providers and real providers simulating in a Terraform test. 
 provider "aws" {}
 
 mock_provider "aws" {
-  alias = fake
+  alias = "fake"
 }
 
 run "use_real_provider" {
