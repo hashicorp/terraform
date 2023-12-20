@@ -431,6 +431,11 @@ func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 	case plans.DeleteThenCreate:
 		beforeIdx = 0
 		afterIdx = 1
+	case plans.Forget:
+		beforeIdx = 0
+	case plans.CreateThenForget:
+		beforeIdx = 0
+		afterIdx = 1
 	default:
 		return nil, fmt.Errorf("invalid change action %s", rawChange.Action)
 	}
@@ -818,6 +823,10 @@ func ActionToProto(action plans.Action) (planproto.Action, error) {
 		return planproto.Action_DELETE_THEN_CREATE, nil
 	case plans.CreateThenDelete:
 		return planproto.Action_CREATE_THEN_DELETE, nil
+	case plans.Forget:
+		return planproto.Action_FORGET, nil
+	case plans.CreateThenForget:
+		return planproto.Action_CREATE_THEN_FORGET, nil
 	default:
 		return planproto.Action_NOOP, fmt.Errorf("invalid change action %s", action)
 	}
@@ -867,6 +876,10 @@ func changeToTfplan(change *plans.ChangeSrc) (*planproto.Change, error) {
 	case planproto.Action_DELETE_THEN_CREATE:
 		ret.Values = []*planproto.DynamicValue{before, after}
 	case planproto.Action_CREATE_THEN_DELETE:
+		ret.Values = []*planproto.DynamicValue{before, after}
+	case planproto.Action_FORGET:
+		ret.Values = []*planproto.DynamicValue{before}
+	case planproto.Action_CREATE_THEN_FORGET:
 		ret.Values = []*planproto.DynamicValue{before, after}
 	default:
 		return nil, fmt.Errorf("invalid change action %s", change.Action)
