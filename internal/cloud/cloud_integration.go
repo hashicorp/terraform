@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/mitchellh/cli"
 )
 
 // IntegrationOutputWriter is an interface used to to write output tailored for

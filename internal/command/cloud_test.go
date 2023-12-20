@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/cli"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -23,7 +24,6 @@ import (
 	backendCloud "github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/version"
-	"github.com/mitchellh/cli"
 )
 
 func newCloudPluginManifestHTTPTestServer(t *testing.T) *httptest.Server {

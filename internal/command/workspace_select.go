@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
 )
 

@@ -15,11 +15,11 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/cli"
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"

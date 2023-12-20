@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -20,7 +21,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/version"
-	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 )
 

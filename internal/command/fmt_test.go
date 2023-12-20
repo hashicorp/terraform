@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 func TestFmt_TestFiles(t *testing.T) {

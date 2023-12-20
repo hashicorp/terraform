@@ -15,10 +15,10 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/cli"
 	tfe "github.com/hashicorp/go-tfe"
 	mocks "github.com/hashicorp/go-tfe/mocks"
 	version "github.com/hashicorp/go-version"
-	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
