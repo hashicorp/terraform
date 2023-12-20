@@ -6,7 +6,7 @@ package command
 import (
 	"strings"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 // MetadataCommand is a Command implementation that just shows help for

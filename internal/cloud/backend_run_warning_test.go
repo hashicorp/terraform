@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/go-tfe"
 	tfemocks "github.com/hashicorp/go-tfe/mocks"
-	"github.com/mitchellh/cli"
 )
 
 func MockAllRunEvents(t *testing.T, client *tfe.Client) (fullRunID string, emptyRunID string) {

@@ -9,11 +9,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 // CLICommand is a command initialization callback for use with
-// github.com/mitchellh/cli, allowing Terraform's "package main" to
+// github.com/hashicorp/cli, allowing Terraform's "package main" to
 // jump straight into the RPC plugin server without any interference
 // from the usual Terraform CLI machinery in package "command", which
 // is irrelevant here because this RPC API exists to bypass the

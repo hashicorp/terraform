@@ -4,7 +4,7 @@
 package backend
 
 import (
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/internal/terminal"
