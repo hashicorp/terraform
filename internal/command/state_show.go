@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -16,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/mitchellh/cli"
 )
 
 // StateShowCommand is a Command implementation that shows a single resource.

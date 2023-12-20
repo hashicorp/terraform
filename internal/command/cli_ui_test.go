@@ -6,7 +6,7 @@ package command
 import (
 	"testing"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 func TestColorizeUi_impl(t *testing.T) {

@@ -17,9 +17,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/cli"
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -442,7 +442,7 @@ func (m *Meta) InterruptibleContext(base context.Context) (context.Context, cont
 //
 // This method is just a substitute for passing a context directly to the
 // "Run" method of a command, which we can't do because that API is owned by
-// mitchellh/cli rather than by Terraform. Use this only in situations
+// hashicorp/cli rather than by Terraform. Use this only in situations
 // comparable to the context having been passed in as an argument to Run.
 //
 // If the caller (e.g. "package main") provided a context when it instantiated

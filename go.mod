@@ -34,6 +34,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.3.1
 	github.com/hashicorp/aws-sdk-go-base/v2 v2.0.0-beta.45
+	github.com/hashicorp/cli v1.1.6
 	github.com/hashicorp/consul/api v1.13.0
 	github.com/hashicorp/consul/sdk v0.8.0
 	github.com/hashicorp/copywrite v0.16.3
@@ -60,9 +61,8 @@ require (
 	github.com/lib/pq v1.10.3
 	github.com/manicminer/hamilton v0.44.0
 	github.com/masterzen/winrm v0.0.0-20200615185753-c42b5136ff88
-	github.com/mattn/go-isatty v0.0.19
+	github.com/mattn/go-isatty v0.0.20
 	github.com/mattn/go-shellwords v1.0.4
-	github.com/mitchellh/cli v1.1.5
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/mitchellh/go-homedir v1.1.0
@@ -132,8 +132,8 @@ require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/ChrisTrenkamp/goxpath v0.0.0-20190607011252-c5096ec8773d // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/Masterminds/semver/v3 v3.1.1 // indirect
-	github.com/Masterminds/sprig/v3 v3.2.2 // indirect
+	github.com/Masterminds/semver/v3 v3.2.0 // indirect
+	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
@@ -176,7 +176,7 @@ require (
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/dylanmei/iso8601 v0.1.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.8.0 // indirect
-	github.com/fatih/color v1.15.0 // indirect
+	github.com/fatih/color v1.16.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect

@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
