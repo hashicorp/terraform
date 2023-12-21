@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
@@ -48,6 +49,24 @@ func newFunctions() *functions {
 		FormatVersion: FormatVersion,
 		Signatures:    signatures,
 	}
+}
+
+func MarshalProviderFunctions(f map[string]providers.FunctionDecl) ([]byte, error) {
+	if len(f) == 0 {
+		return nil, nil
+	}
+
+	signatures := newFunctions()
+
+	for name, v := range f {
+		signatures.Signatures[name] = marshalProviderFunction(v)
+	}
+
+	ret, err := json.Marshal(signatures)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to serialize provider functions: %w", err)
+	}
+	return ret, nil
 }
 
 func Marshal(f map[string]function.Function) ([]byte, tfdiags.Diagnostics) {
@@ -111,6 +130,25 @@ func marshalFunction(f function.Function) (*FunctionSignature, error) {
 		Parameters:        p,
 		VariadicParameter: vp,
 	}, nil
+}
+
+func marshalProviderFunction(f providers.FunctionDecl) *FunctionSignature {
+	var vp *parameter
+	if f.VariadicParameter != nil {
+		vp = marshalProviderParameter(*f.VariadicParameter)
+	}
+
+	var p []*parameter
+	if len(f.Parameters) > 0 {
+		p = marshalProviderParameters(f.Parameters)
+	}
+
+	return &FunctionSignature{
+		Description:       f.Description,
+		ReturnType:        f.ReturnType,
+		Parameters:        p,
+		VariadicParameter: vp,
+	}
 }
 
 // marshalTry returns a static function signature for the try function.
