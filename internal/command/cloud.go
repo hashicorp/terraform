@@ -5,7 +5,6 @@ package command
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -15,9 +14,9 @@ import (
 	"path"
 	"runtime"
 
+	"google.golang.org/grpc/metadata"
+
 	"github.com/hashicorp/go-plugin"
-	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/cloudplugin"
 	"github.com/hashicorp/terraform/internal/cloudplugin/cloudplugin1"
@@ -30,7 +29,12 @@ import (
 // all execution to an internal plugin.
 type CloudCommand struct {
 	Meta
+	// Path to the plugin server executable
 	pluginBinary string
+	// Service URL we can download plugin release binaries from
+	pluginService *url.URL
+	// Everything the plugin needs to build a client and Do Things
+	pluginConfig CloudPluginConfig
 }
 
 const (
@@ -45,6 +49,12 @@ const (
 	// ExitPluginError is the exit code that is returned if the plugin
 	// cannot be downloaded.
 	ExitPluginError = 98
+
+	// The regular TFC API service that the go-tfe client relies on.
+	tfeServiceID = "tfe.v2"
+	// The cloud plugin release download service that the BinaryManager relies
+	// on to fetch the plugin.
+	cloudpluginServiceID = "cloudplugin.v1"
 )
 
 var (
@@ -108,62 +118,80 @@ func (c *CloudCommand) realRun(args []string, stdout, stderr io.Writer) int {
 	return cloud1.Execute(args, stdout, stderr)
 }
 
-// discover the TFC/E API service URL and version constraints.
-func (c *CloudCommand) discover(hostname string) (*url.URL, error) {
-	hn, err := svchost.ForComparison(hostname)
-	if err != nil {
-		return nil, err
-	}
-
-	host, err := c.Services.Discover(hn)
-	if err != nil {
-		var serviceDiscoErr *disco.ErrServiceDiscoveryNetworkRequest
-
-		switch {
-		case errors.As(err, &serviceDiscoErr):
-			err = fmt.Errorf("a network issue prevented cloud configuration; %w", err)
-			return nil, err
-		default:
-			return nil, err
-		}
-	}
-
-	service, err := host.ServiceURL("cloudplugin.v1")
-	// Return the error, unless its a disco.ErrVersionNotSupported error.
-	if _, ok := err.(*disco.ErrVersionNotSupported); !ok && err != nil {
-		return nil, err
-	}
-
-	return service, err
-}
-
-func (c *CloudCommand) hostnameFromConfig() (string, error) {
+// discoverAndConfigure is an implementation detail of initPlugin. It fills in the
+// pluginService and pluginConfig fields on a CloudCommand struct.
+func (c *CloudCommand) discoverAndConfigure() tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	backendConfig, backendDiags := c.loadBackendConfig(".")
-	diags = diags.Append(backendDiags)
+	// First, spin up a Cloud backend. (Why? bc finding the info the plugin
+	// needs is hard, and the Cloud backend already knows how to do it all.)
+	backendConfig, bConfigDiags := c.loadBackendConfig(".")
+	diags = diags.Append(bConfigDiags)
 	if diags.HasErrors() {
-		return "", diags.Err()
+		return diags
 	}
-
 	b, backendDiags := c.Backend(&BackendOpts{
 		Config: backendConfig,
 	})
 	diags = diags.Append(backendDiags)
-	if backendDiags.HasErrors() {
-		return "", diags.Err()
+	if diags.HasErrors() {
+		return diags
 	}
-
-	cloudBackend, ok := b.(*cloud.Cloud)
+	cb, ok := b.(*cloud.Cloud)
 	if !ok {
-		return "", fmt.Errorf("cloud command requires that a cloud block be configured in the working directory")
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No `cloud` block found",
+			"Cloud command requires that a `cloud` block be configured in the working directory",
+		))
+		return diags
 	}
 
-	return cloudBackend.Hostname, nil
-}
+	// Ok sweet. First, re-use the cached service discovery info for this TFC
+	// instance to find our plugin service and TFE API URLs:
+	pluginService, err := cb.ServicesHost.ServiceURL(cloudpluginServiceID)
+	if err != nil {
+		return diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Cloud plugin service not found",
+			err.Error(),
+		))
+	}
+	c.pluginService = pluginService
 
-func (c *CloudCommand) hostnameFromEnv() string {
-	return os.Getenv("TF_CLOUD_HOSTNAME")
+	tfeService, err := cb.ServicesHost.ServiceURL(tfeServiceID)
+	if err != nil {
+		return diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Terraform Cloud API service not found",
+			err.Error(),
+		))
+	}
+
+	currentWorkspace, err := c.Workspace()
+	if err != nil {
+		// The only possible error here is "you set TF_WORKSPACE badly"
+		return diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Bad current workspace",
+			err.Error(),
+		))
+	}
+
+	// Now just steal everything we need so we can pass it to the plugin later.
+	c.pluginConfig = CloudPluginConfig{
+		Address:            tfeService.String(),
+		BasePath:           tfeService.Path,
+		DisplayHostname:    cb.Hostname,
+		Token:              cb.Token,
+		Organization:       cb.Organization,
+		CurrentWorkspace:   currentWorkspace,
+		WorkspaceName:      cb.WorkspaceMapping.Name,
+		WorkspaceTags:      cb.WorkspaceMapping.Tags,
+		DefaultProjectName: cb.WorkspaceMapping.Project,
+	}
+
+	return diags
 }
 
 func (c *CloudCommand) initPlugin() tfdiags.Diagnostics {
@@ -174,18 +202,10 @@ func (c *CloudCommand) initPlugin() tfdiags.Diagnostics {
 	ctx, done := c.InterruptibleContext(c.CommandContext())
 	defer done()
 
-	var hostname string
-	if hostname = c.hostnameFromEnv(); hostname == "" {
-		var err error
-		hostname, err = c.hostnameFromConfig()
-		if err != nil {
-			return diags.Append(tfdiags.Sourceless(tfdiags.Error, errorSummary, err.Error()))
-		}
-	}
-
-	serviceURL, err := c.discover(hostname)
-	if err != nil {
-		return diags.Append(tfdiags.Sourceless(tfdiags.Error, errorSummary, err.Error()))
+	// Discover service URLs, and build out the plugin config
+	diags.Append(c.discoverAndConfigure())
+	if diags.HasErrors() {
+		return diags
 	}
 
 	packagesPath, err := c.initPackagesCache()
@@ -195,7 +215,7 @@ func (c *CloudCommand) initPlugin() tfdiags.Diagnostics {
 
 	overridePath := os.Getenv("TF_CLOUD_PLUGIN_DEV_OVERRIDE")
 
-	bm, err := cloudplugin.NewBinaryManager(ctx, packagesPath, overridePath, serviceURL, runtime.GOOS, runtime.GOARCH)
+	bm, err := cloudplugin.NewBinaryManager(ctx, packagesPath, overridePath, c.pluginService, runtime.GOOS, runtime.GOARCH)
 	if err != nil {
 		return diags.Append(tfdiags.Sourceless(tfdiags.Error, errorSummary, err.Error()))
 	}
@@ -258,4 +278,43 @@ func (c *CloudCommand) Help() string {
 // Synopsis returns a short summary of the cloud command.
 func (c *CloudCommand) Synopsis() string {
 	return "Manage Terraform Cloud settings and metadata"
+}
+
+// Everything the cloud plugin needs to know to configure a client and talk to TFC.
+type CloudPluginConfig struct {
+	// Maybe someday we can use struct tags to automate grabbing these out of
+	// the metadata headers! And verify client-side that we're sending the right
+	// stuff, instead of having it all be a stringly-typed mystery ball! I want
+	// to believe in that distant shining day! 🌻 Meantime, these struct tags
+	// serve purely as docs.
+	Address          string `md:"tfc-address"`
+	BasePath         string `md:"tfc-base-path"`
+	DisplayHostname  string `md:"tfc-display-hostname"`
+	Token            string `md:"tfc-token"`
+	Organization     string `md:"tfc-organization"`
+	CurrentWorkspace string `md:"tfc-current-workspace"`
+
+	// The classic "WorkspaceMapping" attributes. I think 90% of the time we
+	// actually won't care about these, and just want the current workspace
+	// instead.
+	WorkspaceName      string   `md:"tfc-workspace-name"`
+	WorkspaceTags      []string `md:"tfc-workspace-tags"`
+	DefaultProjectName string   `md:"tfc-default-project-name"`
+}
+
+func (c CloudPluginConfig) ToMetadata() metadata.MD {
+	// First, do everything except tags the easy way
+	md := metadata.Pairs(
+		"tfc-address", c.Address,
+		"tfc-base-path", c.BasePath,
+		"tfc-display-hostname", c.DisplayHostname,
+		"tfc-token", c.Token,
+		"tfc-organization", c.Organization,
+		"tfc-current-workspace", c.CurrentWorkspace,
+		"tfc-workspace-name", c.WorkspaceName,
+		"tfc-default-project-name", c.DefaultProjectName,
+	)
+	// Then the straggler
+	md["tfc-workspace-tags"] = c.WorkspaceTags
+	return md
 }
