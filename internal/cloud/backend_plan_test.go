@@ -269,7 +269,7 @@ func TestCloud_planWithoutPermissions(t *testing.T) {
 	// Create a named workspace without permissions.
 	w, err := b.client.Workspaces.Create(
 		context.Background(),
-		b.organization,
+		b.Organization,
 		tfe.WorkspaceCreateOptions{
 			Name: tfe.String("prod"),
 		},
@@ -429,7 +429,7 @@ func TestCloud_planWithPathAndVCS(t *testing.T) {
 	// Create a named workspace with a VCS.
 	_, err := b.client.Workspaces.Create(
 		context.Background(),
-		b.organization,
+		b.Organization,
 		tfe.WorkspaceCreateOptions{
 			Name:    tfe.String("prod-vcs"),
 			VCSRepo: &tfe.VCSRepoOptions{},
@@ -827,7 +827,7 @@ func TestCloud_planWorkspaceWithoutOperations(t *testing.T) {
 	// Create a named workspace that doesn't allow operations.
 	_, err := b.client.Workspaces.Create(
 		ctx,
-		b.organization,
+		b.Organization,
 		tfe.WorkspaceCreateOptions{
 			Name: tfe.String("no-operations"),
 		},
@@ -875,7 +875,7 @@ func TestCloud_planLockTimeout(t *testing.T) {
 	ctx := context.Background()
 
 	// Retrieve the workspace used to run this operation in.
-	w, err := b.client.Workspaces.Read(ctx, b.organization, b.WorkspaceMapping.Name)
+	w, err := b.client.Workspaces.Read(ctx, b.Organization, b.WorkspaceMapping.Name)
 	if err != nil {
 		t.Fatalf("error retrieving workspace: %v", err)
 	}
@@ -998,7 +998,7 @@ func TestCloud_planWithWorkingDirectory(t *testing.T) {
 	}
 
 	// Configure the workspace to use a custom working directory.
-	_, err := b.client.Workspaces.Update(context.Background(), b.organization, b.WorkspaceMapping.Name, options)
+	_, err := b.client.Workspaces.Update(context.Background(), b.Organization, b.WorkspaceMapping.Name, options)
 	if err != nil {
 		t.Fatalf("error configuring working directory: %v", err)
 	}
@@ -1043,7 +1043,7 @@ func TestCloud_planWithWorkingDirectoryFromCurrentPath(t *testing.T) {
 	}
 
 	// Configure the workspace to use a custom working directory.
-	_, err := b.client.Workspaces.Update(context.Background(), b.organization, b.WorkspaceMapping.Name, options)
+	_, err := b.client.Workspaces.Update(context.Background(), b.Organization, b.WorkspaceMapping.Name, options)
 	if err != nil {
 		t.Fatalf("error configuring working directory: %v", err)
 	}

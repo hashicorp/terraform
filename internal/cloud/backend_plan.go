@@ -333,7 +333,7 @@ in order to capture the filesystem context the remote workspace expects:
 
 	if b.CLI != nil {
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(fmt.Sprintf(
-			runHeader, b.Hostname, b.organization, op.Workspace, r.ID)) + "\n"))
+			runHeader, b.Hostname, b.Organization, op.Workspace, r.ID)) + "\n"))
 	}
 
 	// Render any warnings that were raised during run creation
@@ -521,7 +521,7 @@ func (b *Cloud) renderPlanLogs(ctx context.Context, op *backend.Operation, run *
 		return err
 	}
 	if renderSRO || shouldGenerateConfig {
-		jsonBytes, err := readRedactedPlan(ctx, b.client.BaseURL(), b.token, run.Plan.ID)
+		jsonBytes, err := readRedactedPlan(ctx, b.client.BaseURL(), b.Token, run.Plan.ID)
 		if err != nil {
 			return generalError("Failed to read JSON plan", err)
 		}

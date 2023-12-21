@@ -283,7 +283,7 @@ func testBackend(t *testing.T, obj cty.Value, handlers map[string]func(http.Resp
 
 	// Create the organization.
 	_, err = b.client.Organizations.Create(ctx, tfe.OrganizationCreateOptions{
-		Name: tfe.String(b.organization),
+		Name: tfe.String(b.Organization),
 	})
 	if err != nil {
 		t.Fatalf("error: %v", err)
@@ -291,7 +291,7 @@ func testBackend(t *testing.T, obj cty.Value, handlers map[string]func(http.Resp
 
 	// Create the default workspace if required.
 	if b.WorkspaceMapping.Name != "" {
-		_, err = b.client.Workspaces.Create(ctx, b.organization, tfe.WorkspaceCreateOptions{
+		_, err = b.client.Workspaces.Create(ctx, b.Organization, tfe.WorkspaceCreateOptions{
 			Name: tfe.String(b.WorkspaceMapping.Name),
 		})
 		if err != nil {

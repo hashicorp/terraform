@@ -100,16 +100,16 @@ func (b *Cloud) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Ful
 			diags = diags.Append(fmt.Errorf("error finding remote workspace: %w", err))
 			return nil, nil, diags
 		}
-		w, err := b.fetchWorkspace(context.Background(), b.organization, op.Workspace)
+		w, err := b.fetchWorkspace(context.Background(), b.Organization, op.Workspace)
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("error loading workspace: %w", err))
 			return nil, nil, diags
 		}
 
 		if isLocalExecutionMode(w.ExecutionMode) {
-			log.Printf("[TRACE] skipping retrieving variables from workspace %s/%s (%s), workspace is in Local Execution mode", remoteWorkspaceName, b.organization, remoteWorkspaceID)
+			log.Printf("[TRACE] skipping retrieving variables from workspace %s/%s (%s), workspace is in Local Execution mode", remoteWorkspaceName, b.Organization, remoteWorkspaceID)
 		} else {
-			log.Printf("[TRACE] cloud: retrieving variables from workspace %s/%s (%s)", remoteWorkspaceName, b.organization, remoteWorkspaceID)
+			log.Printf("[TRACE] cloud: retrieving variables from workspace %s/%s (%s)", remoteWorkspaceName, b.Organization, remoteWorkspaceID)
 			tfeVariables, err := b.client.Variables.List(context.Background(), remoteWorkspaceID, nil)
 			if err != nil && err != tfe.ErrResourceNotFound {
 				diags = diags.Append(fmt.Errorf("error loading variables: %w", err))
@@ -165,8 +165,8 @@ func (b *Cloud) getRemoteWorkspaceName(localWorkspaceName string) string {
 func (b *Cloud) getRemoteWorkspace(ctx context.Context, localWorkspaceName string) (*tfe.Workspace, error) {
 	remoteWorkspaceName := b.getRemoteWorkspaceName(localWorkspaceName)
 
-	log.Printf("[TRACE] cloud: looking up workspace for %s/%s", b.organization, remoteWorkspaceName)
-	remoteWorkspace, err := b.client.Workspaces.Read(ctx, b.organization, remoteWorkspaceName)
+	log.Printf("[TRACE] cloud: looking up workspace for %s/%s", b.Organization, remoteWorkspaceName)
+	remoteWorkspace, err := b.client.Workspaces.Read(ctx, b.Organization, remoteWorkspaceName)
 	if err != nil {
 		return nil, err
 	}

@@ -61,7 +61,7 @@ func (b *Cloud) ShowPlanForRun(ctx context.Context, runID, runHostname string, r
 
 	// Fetch the json plan!
 	if redacted {
-		jsonBytes, err = readRedactedPlan(ctx, b.client.BaseURL(), b.token, r.Plan.ID)
+		jsonBytes, err = readRedactedPlan(ctx, b.client.BaseURL(), b.Token, r.Plan.ID)
 	} else {
 		jsonBytes, err = b.client.Plans.ReadJSONOutput(ctx, r.Plan.ID)
 	}
@@ -76,7 +76,7 @@ func (b *Cloud) ShowPlanForRun(ctx context.Context, runID, runHostname string, r
 	}
 
 	// Format a run header and footer
-	header := strings.TrimSpace(fmt.Sprintf(runHeader, b.Hostname, b.organization, r.Workspace.Name, r.ID))
+	header := strings.TrimSpace(fmt.Sprintf(runHeader, b.Hostname, b.Organization, r.Workspace.Name, r.ID))
 	footer := strings.TrimSpace(statusFooter(r.Status, r.Actions.IsConfirmable, r.Workspace.Locked))
 
 	out := &cloudplan.RemotePlanJSON{

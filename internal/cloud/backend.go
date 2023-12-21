@@ -70,11 +70,11 @@ type Cloud struct {
 	// Hostname of Terraform Cloud or Terraform Enterprise
 	Hostname string
 
-	// token for Terraform Cloud or Terraform Enterprise
-	token string
+	// Token for Terraform Cloud or Terraform Enterprise
+	Token string
 
-	// organization is the organization that contains the target workspaces.
-	organization string
+	// Organization is the Organization that contains the target workspaces.
+	Organization string
 
 	// WorkspaceMapping contains strategies for mapping CLI workspaces in the working directory
 	// to remote Terraform Cloud workspaces.
@@ -232,7 +232,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	// Use resolved config to set fields on backend (except token, see below)
 	b.Hostname = config.hostname
-	b.organization = config.organization
+	b.Organization = config.organization
 	b.WorkspaceMapping = config.workspaceMapping
 
 	// Discover the service URL to confirm that it provides the Terraform Cloud/Enterprise API
@@ -294,7 +294,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diags
 	}
 
-	b.token = token
+	b.Token = token
 
 	if b.client == nil {
 		cfg := &tfe.Config{
@@ -325,17 +325,17 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	// Check if the organization exists by reading its entitlements.
-	entitlements, err := b.client.Organizations.ReadEntitlements(context.Background(), b.organization)
+	entitlements, err := b.client.Organizations.ReadEntitlements(context.Background(), b.Organization)
 	if err != nil {
 		if err == tfe.ErrResourceNotFound {
 			err = fmt.Errorf("organization %q at host %s not found.\n\n"+
 				"Please ensure that the organization and hostname are correct "+
 				"and that your API token for %s is valid.",
-				b.organization, b.Hostname, b.Hostname)
+				b.Organization, b.Hostname, b.Hostname)
 		}
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
-			fmt.Sprintf("Failed to read organization %q at host %s", b.organization, b.Hostname),
+			fmt.Sprintf("Failed to read organization %q at host %s", b.Organization, b.Hostname),
 			fmt.Sprintf("Encountered an unexpected error while reading the "+
 				"organization settings: %s", err),
 			cty.Path{cty.GetAttrStep{Name: "organization"}},
@@ -346,7 +346,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	// If TF_WORKSPACE specifies a current workspace to use, make sure it's usable.
 	if ws, ok := os.LookupEnv("TF_WORKSPACE"); ok {
 		if ws == b.WorkspaceMapping.Name || b.WorkspaceMapping.Strategy() == WorkspaceTagsStrategy {
-			diag := b.validWorkspaceEnvVar(context.Background(), b.organization, ws)
+			diag := b.validWorkspaceEnvVar(context.Background(), b.Organization, ws)
 			if diag != nil {
 				diags = diags.Append(diag)
 				return diags
@@ -595,7 +595,7 @@ func (b *Cloud) Workspaces() ([]string, error) {
 		listOpts := &tfe.ProjectListOptions{
 			Name: b.WorkspaceMapping.Project,
 		}
-		projects, err := b.client.Projects.List(context.Background(), b.organization, listOpts)
+		projects, err := b.client.Projects.List(context.Background(), b.Organization, listOpts)
 		if err != nil && err != tfe.ErrResourceNotFound {
 			return nil, fmt.Errorf("failed to retrieve project %s: %v", listOpts.Name, err)
 		}
@@ -608,7 +608,7 @@ func (b *Cloud) Workspaces() ([]string, error) {
 	}
 
 	for {
-		wl, err := b.client.Workspaces.List(context.Background(), b.organization, options)
+		wl, err := b.client.Workspaces.List(context.Background(), b.Organization, options)
 		if err != nil {
 			return nil, err
 		}
@@ -642,7 +642,7 @@ func (b *Cloud) DeleteWorkspace(name string, force bool) error {
 		return backend.ErrWorkspacesNotSupported
 	}
 
-	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, name)
+	workspace, err := b.client.Workspaces.Read(context.Background(), b.Organization, name)
 	if err == tfe.ErrResourceNotFound {
 		return nil // If the workspace does not exist, succeed
 	}
@@ -652,7 +652,7 @@ func (b *Cloud) DeleteWorkspace(name string, force bool) error {
 	}
 
 	// Configure the remote workspace name.
-	State := &State{tfeClient: b.client, organization: b.organization, workspace: workspace, enableIntermediateSnapshots: false}
+	State := &State{tfeClient: b.client, organization: b.Organization, workspace: workspace, enableIntermediateSnapshots: false}
 	return State.Delete(force)
 }
 
@@ -668,7 +668,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		return nil, backend.ErrWorkspacesNotSupported
 	}
 
-	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, name)
+	workspace, err := b.client.Workspaces.Read(context.Background(), b.Organization, name)
 	if err != nil && err != tfe.ErrResourceNotFound {
 		return nil, fmt.Errorf("Failed to retrieve workspace %s: %v", name, err)
 	}
@@ -683,7 +683,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		listOpts := &tfe.ProjectListOptions{
 			Name: b.WorkspaceMapping.Project,
 		}
-		projects, err := b.client.Projects.List(context.Background(), b.organization, listOpts)
+		projects, err := b.client.Projects.List(context.Background(), b.Organization, listOpts)
 		if err != nil && err != tfe.ErrResourceNotFound {
 			// This is a failure to make an API request, fail to initialize
 			return nil, fmt.Errorf("Attempted to find configured project %s but was unable to.", b.WorkspaceMapping.Project)
@@ -721,8 +721,8 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 					Name: b.WorkspaceMapping.Project,
 				}
 				// didn't find project, create it instead
-				log.Printf("[TRACE] cloud: Creating Terraform Cloud project %s/%s", b.organization, b.WorkspaceMapping.Project)
-				project, err := b.client.Projects.Create(context.Background(), b.organization, createOpts)
+				log.Printf("[TRACE] cloud: Creating Terraform Cloud project %s/%s", b.Organization, b.WorkspaceMapping.Project)
+				project, err := b.client.Projects.Create(context.Background(), b.Organization, createOpts)
 				if err != nil && err != tfe.ErrResourceNotFound {
 					return nil, fmt.Errorf("failed to create project %s: %v", b.WorkspaceMapping.Project, err)
 				}
@@ -732,8 +732,8 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 
 		// Create a workspace
-		log.Printf("[TRACE] cloud: Creating Terraform Cloud workspace %s/%s", b.organization, name)
-		workspace, err = b.client.Workspaces.Create(context.Background(), b.organization, workspaceCreateOptions)
+		log.Printf("[TRACE] cloud: Creating Terraform Cloud workspace %s/%s", b.Organization, name)
+		workspace, err = b.client.Workspaces.Create(context.Background(), b.Organization, workspaceCreateOptions)
 		if err != nil {
 			return nil, fmt.Errorf("error creating workspace %s: %v", name, err)
 		}
@@ -767,7 +767,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		options := tfe.WorkspaceAddTagsOptions{
 			Tags: b.WorkspaceMapping.tfeTags(),
 		}
-		log.Printf("[TRACE] cloud: Adding tags for Terraform Cloud workspace %s/%s", b.organization, name)
+		log.Printf("[TRACE] cloud: Adding tags for Terraform Cloud workspace %s/%s", b.Organization, name)
 		err = b.client.Workspaces.AddTags(context.Background(), workspace.ID, options)
 		if err != nil {
 			return nil, fmt.Errorf("Error updating workspace %s: %v", name, err)
@@ -787,13 +787,13 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 	}
 
-	return &State{tfeClient: b.client, organization: b.organization, workspace: workspace, enableIntermediateSnapshots: false}, nil
+	return &State{tfeClient: b.client, organization: b.Organization, workspace: workspace, enableIntermediateSnapshots: false}, nil
 }
 
 // Operation implements backend.Enhanced.
 func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
 	// Retrieve the workspace for this operation.
-	w, err := b.fetchWorkspace(ctx, b.organization, op.Workspace)
+	w, err := b.fetchWorkspace(ctx, b.Organization, op.Workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -1062,7 +1062,7 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 	message := fmt.Sprintf(
 		"The local Terraform version (%s) does not meet the version requirements for remote workspace %s/%s (%s).",
 		tfversion.String(),
-		b.organization,
+		b.Organization,
 		workspace.Name,
 		remoteConstraint,
 	)
@@ -1212,7 +1212,7 @@ func (b *Cloud) validWorkspaceEnvVar(ctx context.Context, organization, workspac
 		opts.Tags = strings.Join(b.WorkspaceMapping.Tags, ",")
 
 		for {
-			wl, err := b.client.Workspaces.List(ctx, b.organization, opts)
+			wl, err := b.client.Workspaces.List(ctx, b.Organization, opts)
 			if err != nil {
 				return tfdiags.Sourceless(
 					tfdiags.Error,
