@@ -80,6 +80,11 @@ type Cloud struct {
 	// to remote Terraform Cloud workspaces.
 	WorkspaceMapping WorkspaceMapping
 
+	// ServicesHost is the full account of discovered Terraform services at the
+	// Terraform Cloud instance. It should include at least the tfe v2 API, and
+	// possibly other services.
+	ServicesHost *disco.Host
+
 	// services is used for service discovery
 	services *disco.Disco
 
@@ -235,19 +240,35 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.Organization = config.organization
 	b.WorkspaceMapping = config.workspaceMapping
 
-	// Discover the service URL to confirm that it provides the Terraform Cloud/Enterprise API
+	// Discover the service URL to confirm that it provides the Terraform
+	// Cloud/Enterprise API... and while we're at it, cache the full discovery
+	// results.
+	var tfcService *url.URL
+	var host *disco.Host
+	// We want to handle errors from URL normalization and service discovery in
+	// the same way. So we only perform each step if there wasn't a previous
+	// error, and use the same block to handle errors from anywhere in the
+	// process.
 	hostname, err := svchost.ForComparison(b.Hostname)
-
-	var service *url.URL
 	if err == nil {
-		// We want to handle the errors returned by svchost and discover in the
-		// same way. So we only execute this if there wasn't an error previously
-		// and let the block below handle an error that occurred in either
-		// place.
-		service, err = discover(hostname, b.services)
+		host, err = b.services.Discover(hostname)
+
+		if err == nil {
+			// The discovery request worked, so cache the full results.
+			b.ServicesHost = host
+
+			// Find the TFE API service URL
+			tfcService, err = host.ServiceURL(tfeServiceID)
+		} else {
+			// Network errors from Discover() can read like non-sequiters, so we wrap em.
+			var serviceDiscoErr *disco.ErrServiceDiscoveryNetworkRequest
+			if errors.As(err, &serviceDiscoErr) {
+				err = fmt.Errorf("a network issue prevented cloud configuration; %w", err)
+			}
+		}
 	}
 
-	// Check for errors before we continue.
+	// Handle any errors from URL normalization and service discovery before we continue.
 	if err != nil {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
@@ -298,8 +319,8 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	if b.client == nil {
 		cfg := &tfe.Config{
-			Address:      service.String(),
-			BasePath:     service.Path,
+			Address:      tfcService.String(),
+			BasePath:     tfcService.Path,
 			Token:        token,
 			Headers:      make(http.Header),
 			RetryLogHook: b.retryLogHook,
@@ -519,30 +540,6 @@ func resolveCloudConfig(obj cty.Value) (cloudConfig, tfdiags.Diagnostics) {
 	}
 
 	return ret, diags
-}
-
-// discover the TFC/E API service URL and version constraints.
-func discover(hostname svchost.Hostname, services *disco.Disco) (*url.URL, error) {
-	host, err := services.Discover(hostname)
-	if err != nil {
-		var serviceDiscoErr *disco.ErrServiceDiscoveryNetworkRequest
-
-		switch {
-		case errors.As(err, &serviceDiscoErr):
-			err = fmt.Errorf("a network issue prevented cloud configuration; %w", err)
-			return nil, err
-		default:
-			return nil, err
-		}
-	}
-
-	service, err := host.ServiceURL(tfeServiceID)
-	// Return the error, unless its a disco.ErrVersionNotSupported error.
-	if _, ok := err.(*disco.ErrVersionNotSupported); !ok && err != nil {
-		return nil, err
-	}
-
-	return service, err
 }
 
 // cliConfigToken returns the token for this host as configured in the credentials
