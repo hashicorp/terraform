@@ -529,7 +529,7 @@ func (p *MockProvider) CallFunction(r providers.CallFunctionRequest) providers.C
 	p.CallFunctionCalled = true
 	p.CallFunctionRequest = r
 
-	if p.ReadDataSourceFn != nil {
+	if p.CallFunctionFn != nil {
 		return p.CallFunctionFn(r)
 	}
 

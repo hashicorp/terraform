@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
@@ -67,6 +68,7 @@ type BuiltinEvalContext struct {
 	Hooks                 []Hook
 	InputValue            UIInput
 	ProviderCache         map[string]providers.Interface
+	ProviderFuncCache     map[string]providers.Interface
 	ProviderInputConfig   map[string]map[string]cty.Value
 	ProviderLock          *sync.Mutex
 	ProvisionerCache      map[string]provisioners.Interface
@@ -276,7 +278,7 @@ func (ctx *BuiltinEvalContext) ProvisionerSchema(n string) (*configschema.Block,
 	return ctx.Plugins.ProvisionerSchema(n)
 }
 
-func (ctx *BuiltinEvalContext) CloseProvisioners() error {
+func (ctx *BuiltinEvalContext) ClosePlugins() error {
 	var diags tfdiags.Diagnostics
 	ctx.ProvisionerLock.Lock()
 	defer ctx.ProvisionerLock.Unlock()
@@ -286,6 +288,17 @@ func (ctx *BuiltinEvalContext) CloseProvisioners() error {
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("provisioner.Close %s: %s", name, err))
 		}
+		delete(ctx.ProvisionerCache, name)
+	}
+
+	ctx.ProviderLock.Lock()
+	defer ctx.ProviderLock.Unlock()
+	for name, prov := range ctx.ProviderFuncCache {
+		err := prov.Close()
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("provider.Close %s: %s", name, err))
+		}
+		delete(ctx.ProviderFuncCache, name)
 	}
 
 	return diags.Err()
@@ -430,7 +443,7 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source 
 		InstanceKeyData: keyData,
 		Operation:       ctx.Evaluator.Operation,
 	}
-	scope := ctx.Evaluator.Scope(data, self, source)
+	scope := ctx.Evaluator.Scope(data, self, source, ctx.evaluationExternalFunctions())
 
 	// ctx.PathValue is the path of the module that contains whatever
 	// expression the caller will be trying to evaluate, so this will
@@ -443,6 +456,75 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source 
 		scope.SetActiveExperiments(mc.Module.ActiveExperiments)
 	}
 	return scope
+}
+
+// evaluationExternalFunctions is a helper for method EvaluationScope which
+// determines the set of external functions that should be available for
+// evaluation in this EvalContext, based on declarations in the configuration.
+func (ctx *BuiltinEvalContext) evaluationExternalFunctions() lang.ExternalFuncs {
+	// The set of functions in scope includes the functions contributed by
+	// every provider that the current module has as a requirement.
+	//
+	// We expose them under the local name for each provider that was selected
+	// by the module author.
+	ret := lang.ExternalFuncs{}
+
+	cfg := ctx.Evaluator.Config.DescendentForInstance(ctx.Path())
+	if cfg == nil {
+		// It's weird to not have a configuration by this point, but we'll
+		// tolerate it for robustness and just return no functions at all.
+		return ret
+	}
+	if cfg.Module.ProviderRequirements == nil {
+		// A module with no provider requirements can't have any
+		// provider-contributed functions.
+		return ret
+	}
+
+	reqs := cfg.Module.ProviderRequirements.RequiredProviders
+	ret.Provider = make(map[string]map[string]function.Function, len(reqs))
+	for localName, req := range reqs {
+		providerAddr := req.Type
+		funcDecls, err := ctx.Plugins.ProviderFunctionDecls(providerAddr)
+		if err != nil {
+			// If a particular provider can't return schema then we'll catch
+			// it in plenty other places where it's more reasonable for us
+			// to return an error, so here we'll just treat it as having
+			// no functions.
+			log.Printf("[WARN] Error loading schema for %s to determine its functions: %s", providerAddr, err)
+			continue
+		}
+
+		ret.Provider[localName] = make(map[string]function.Function, len(funcDecls))
+		funcs := ret.Provider[localName]
+		for name, decl := range funcDecls {
+			funcs[name] = decl.BuildFunction(name, func() (providers.Interface, error) {
+				return ctx.functionProvider(providerAddr)
+			})
+		}
+	}
+
+	return ret
+}
+
+// functionProvider fetches a running provider instance for evaluating
+// functions from the cache, or starts a new instance and adds it to the cache.
+func (ctx *BuiltinEvalContext) functionProvider(addr addrs.Provider) (providers.Interface, error) {
+	ctx.ProviderLock.Lock()
+	defer ctx.ProviderLock.Unlock()
+
+	p, ok := ctx.ProviderFuncCache[addr.String()]
+	if ok {
+		return p, nil
+	}
+
+	log.Printf("[TRACE] starting function provider instance for %s", addr)
+	p, err := ctx.Plugins.NewProviderInstance(addr)
+	if err == nil {
+		ctx.ProviderFuncCache[addr.String()] = p
+	}
+
+	return p, err
 }
 
 func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {

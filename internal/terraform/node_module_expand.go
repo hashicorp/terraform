@@ -184,8 +184,8 @@ func (n *nodeCloseModule) Execute(ctx EvalContext, op walkOperation) (diags tfdi
 	}
 
 	// If this is the root module, we are cleaning up the walk, so close
-	// any running provisioners
-	diags = diags.Append(ctx.CloseProvisioners())
+	// any running plugins
+	diags = diags.Append(ctx.ClosePlugins())
 
 	switch op {
 	case walkApply, walkDestroy:

@@ -2515,3 +2515,363 @@ resource "aws_instance" "follow" {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 }
+
+func TestContext2Validate_providerContributedFunctions(t *testing.T) {
+	mockProvider := func() *MockProvider {
+		p := testProvider("test")
+		p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+			Functions: map[string]providers.FunctionDecl{
+				"count_e": {
+					ReturnType: cty.Number,
+					Parameters: []providers.FunctionParam{
+						{
+							Name: "string",
+							Type: cty.String,
+						},
+					},
+				},
+			},
+		}
+		p.CallFunctionFn = func(req providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
+			if req.FunctionName != "count_e" {
+				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("incorrect function name %q", req.FunctionName))
+				return resp
+			}
+			if len(req.Arguments) != 1 {
+				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("wrong number of arguments %d", len(req.Arguments)))
+				return resp
+			}
+			if req.Arguments[0].Type() != cty.String {
+				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("wrong argument type %#v", req.Arguments[0].Type()))
+				return resp
+			}
+			if !req.Arguments[0].IsKnown() {
+				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("argument is unknown"))
+				return resp
+			}
+			if req.Arguments[0].IsNull() {
+				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("argument is null"))
+				return resp
+			}
+
+			str := req.Arguments[0].AsString()
+			count := strings.Count(str, "e")
+			resp.Result = cty.NumberIntVal(int64(count))
+			return resp
+		}
+		return p
+	}
+
+	t.Run("valid", func(t *testing.T) {
+		m := testModuleInline(t, map[string]string{
+			"main.tf": `
+terraform {
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+		}
+	}
+}
+locals {
+	result = provider::test::count_e("cheese")
+}
+output "result" {
+	value = local.result
+	precondition {
+		condition     = (local.result == 3)
+		error_message = "Wrong number of Es in my cheese."
+	}
+}
+`,
+		})
+
+		p := mockProvider()
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
+		diags := ctx.Validate(m)
+		if diags.HasErrors() {
+			t.Fatal(diags.ErrWithWarnings())
+		}
+
+		if !p.CallFunctionCalled {
+			t.Fatal("CallFunction was not called")
+		}
+	})
+	t.Run("wrong name", func(t *testing.T) {
+		m := testModuleInline(t, map[string]string{
+			"main.tf": `
+terraform {
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+		}
+	}
+}
+output "result" {
+	value = provider::test::cout_e("cheese")
+}
+`,
+		})
+
+		p := mockProvider()
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
+		diags := ctx.Validate(m)
+		if p.CallFunctionCalled {
+			t.Error("CallFunction was called, but should not have been")
+		}
+		if !diags.HasErrors() {
+			t.Fatal("unexpected success")
+		}
+		if got, want := diags.Err().Error(), "Call to unknown function: There is no function named \"cout_e\" in namespace provider::test::."; !strings.Contains(got, want) {
+			t.Errorf("wrong error message\nwant substring: %s\ngot: %s", want, got)
+		}
+
+	})
+	t.Run("wrong namespace", func(t *testing.T) {
+		m := testModuleInline(t, map[string]string{
+			"main.tf": `
+terraform {
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+		}
+	}
+}
+output "result" {
+	value = provider::toast::count_e("cheese")
+}
+`,
+		})
+
+		p := mockProvider()
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
+		diags := ctx.Validate(m)
+		if p.CallFunctionCalled {
+			t.Error("CallFunction was called, but should not have been")
+		}
+		if !diags.HasErrors() {
+			t.Fatal("unexpected success")
+		}
+		if got, want := diags.Err().Error(), "Call to unknown function: There are no functions in namespace \"provider::toast::\"."; !strings.Contains(got, want) {
+			t.Errorf("wrong error message\nwant substring: %s\ngot: %s", want, got)
+		}
+	})
+	t.Run("wrong argument type", func(t *testing.T) {
+		m := testModuleInline(t, map[string]string{
+			"main.tf": `
+terraform {
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+		}
+	}
+}
+output "result" {
+	value = provider::test::count_e([])
+}
+`,
+		})
+
+		p := mockProvider()
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
+		diags := ctx.Validate(m)
+		if p.CallFunctionCalled {
+			t.Error("CallFunction was called, but should not have been")
+		}
+		if !diags.HasErrors() {
+			t.Fatal("unexpected success")
+		}
+		if got, want := diags.Err().Error(), "Invalid function argument: Invalid value for \"string\" parameter: string required."; !strings.Contains(got, want) {
+			t.Errorf("wrong error message\nwant substring: %s\ngot: %s", want, got)
+		}
+	})
+	t.Run("insufficient arguments", func(t *testing.T) {
+		m := testModuleInline(t, map[string]string{
+			"main.tf": `
+terraform {
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+		}
+	}
+}
+output "result" {
+	value = provider::test::count_e()
+}
+`,
+		})
+
+		p := mockProvider()
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
+		diags := ctx.Validate(m)
+		if p.CallFunctionCalled {
+			t.Error("CallFunction was called, but should not have been")
+		}
+		if !diags.HasErrors() {
+			t.Fatal("unexpected success")
+		}
+		if got, want := diags.Err().Error(), "Not enough function arguments: Function \"provider::test::count_e\" expects 1 argument(s). Missing value for \"string\"."; !strings.Contains(got, want) {
+			t.Errorf("wrong error message\nwant substring: %s\ngot: %s", want, got)
+		}
+	})
+	t.Run("too many arguments", func(t *testing.T) {
+		m := testModuleInline(t, map[string]string{
+			"main.tf": `
+terraform {
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+		}
+	}
+}
+output "result" {
+	value = provider::test::count_e("cheese", "louise")
+}
+`,
+		})
+
+		p := mockProvider()
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
+		diags := ctx.Validate(m)
+		if p.CallFunctionCalled {
+			t.Error("CallFunction was called, but should not have been")
+		}
+		if !diags.HasErrors() {
+			t.Fatal("unexpected success")
+		}
+		if got, want := diags.Err().Error(), "Too many function arguments: Function \"provider::test::count_e\" expects only 1 argument(s)."; !strings.Contains(got, want) {
+			t.Errorf("wrong error message\nwant substring: %s\ngot: %s", want, got)
+		}
+	})
+	t.Run("unexpected null argument", func(t *testing.T) {
+		m := testModuleInline(t, map[string]string{
+			"main.tf": `
+terraform {
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+		}
+	}
+}
+output "result" {
+	value = provider::test::count_e(null)
+}
+`,
+		})
+
+		p := mockProvider()
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
+		diags := ctx.Validate(m)
+		if p.CallFunctionCalled {
+			t.Error("CallFunction was called, but should not have been")
+		}
+		if !diags.HasErrors() {
+			t.Fatal("unexpected success")
+		}
+		if got, want := diags.Err().Error(), "Invalid function argument: Invalid value for \"string\" parameter: argument must not be null."; !strings.Contains(got, want) {
+			t.Errorf("wrong error message\nwant substring: %s\ngot: %s", want, got)
+		}
+	})
+	t.Run("unhandled unknown argument", func(t *testing.T) {
+		m := testModuleInline(t, map[string]string{
+			"main.tf": `
+terraform {
+	required_providers {
+		test = {
+			source = "hashicorp/test"
+		}
+	}
+}
+output "result" {
+	value = provider::test::count_e(timestamp())
+}
+`,
+		})
+
+		p := mockProvider()
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
+		// For this case, validation should succeed without calling the
+		// function yet, because the function doesn't declare that it handles
+		// unknown values and so we must defer validation until a later phase.
+		diags := ctx.Validate(m)
+		if p.CallFunctionCalled {
+			t.Error("CallFunction was called, but should not have been")
+		}
+		if diags.HasErrors() {
+			t.Fatal(diags.ErrWithWarnings())
+		}
+	})
+	t.Run("provider not declared", func(t *testing.T) {
+		m := testModuleInline(t, map[string]string{
+			"main.tf": `
+terraform {
+	required_providers {
+		# Intentionally no declaration of local name "test" here
+	}
+}
+output "result" {
+	value = provider::test::count_e("cheese")
+}
+`,
+		})
+
+		p := mockProvider()
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
+		diags := ctx.Validate(m)
+		if p.CallFunctionCalled {
+			t.Error("CallFunction was called, but should not have been")
+		}
+		if !diags.HasErrors() {
+			t.Fatal("unexpected success")
+		}
+		// Module author must declare a provider requirement in order to
+		// import a provider's functions.
+		if got, want := diags.Err().Error(), "Call to unknown function: There are no functions in namespace \"provider::test::\"."; !strings.Contains(got, want) {
+			t.Errorf("wrong error message\nwant substring: %s\ngot: %s", want, got)
+		}
+	})
+}

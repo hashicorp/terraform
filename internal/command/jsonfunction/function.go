@@ -55,9 +55,9 @@ func Marshal(f map[string]function.Function) ([]byte, tfdiags.Diagnostics) {
 	signatures := newFunctions()
 
 	for name, v := range f {
-		if name == "can" {
+		if name == "can" || name == "core::can" {
 			signatures.Signatures[name] = marshalCan(v)
-		} else if name == "try" {
+		} else if name == "try" || name == "core::try" {
 			signatures.Signatures[name] = marshalTry(v)
 		} else {
 			signature, err := marshalFunction(v)
