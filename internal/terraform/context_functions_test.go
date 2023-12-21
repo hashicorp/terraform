@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/msgpack"
 )
 
 func TestContext2Plan_providerFunctionBasic(t *testing.T) {
@@ -72,8 +73,13 @@ output "noop_equals" {
 	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
+	expect, err := msgpack.Marshal(cty.StringVal("ok"), cty.DynamicPseudoType)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// there is exactly one output, which is a dynamically typed string
-	if !bytes.Equal([]byte("\x92\xc4\b\"string\"\xa2ok"), plan.Changes.Outputs[0].After) {
+	if !bytes.Equal(expect, plan.Changes.Outputs[0].After) {
 		t.Fatalf("got output dynamic value of %q", plan.Changes.Outputs[0].After)
 	}
 }
