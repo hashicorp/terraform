@@ -454,22 +454,6 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			// will already have been caught.
 		}
 
-		// It is invalid for any import block to have a "to" argument matching
-		// any moved block's "from" argument.
-		for _, mb := range m.Moved {
-			// FIXME: This is not correct for moved modules, and won't catch
-			// all combinations of expanded imports (though preventing
-			// collisions based on ConfigResource alone may be sufficient)
-			if mb.From.String() == i.ToResource.String() {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Cannot import to a move source",
-					Detail:   fmt.Sprintf("An import block for ID %q targets resource address %s, but this address appears in the \"from\" argument of a moved block, which is invalid. Please change the import target to a different address, such as the move target.", i.ID, i.To),
-					Subject:  &i.DeclRange,
-				})
-			}
-		}
-
 		m.Import = append(m.Import, i)
 	}
 
