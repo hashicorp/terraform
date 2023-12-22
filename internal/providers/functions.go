@@ -4,13 +4,21 @@
 package providers
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"io"
+	"sync"
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 )
+
+// functionResultsCache is a global cache to verify the pure-ness of all
+// provider implemented functions.
+var functionResultsCache = newFunctionResults()
 
 type FunctionDecl struct {
 	Parameters        []FunctionParam
@@ -49,7 +57,7 @@ type FunctionParam struct {
 // function that either retrieves already-running plugins or memoizes the
 // plugins it returns so that many calls to functions in the same provider
 // will not incur a repeated startup cost.
-func (d FunctionDecl) BuildFunction(name string, factory func() (Interface, error)) function.Function {
+func (d FunctionDecl) BuildFunction(providerAddr addrs.Provider, name string, factory func() (Interface, error)) function.Function {
 
 	var params []function.Parameter
 	var varParam *function.Parameter
@@ -115,6 +123,11 @@ func (d FunctionDecl) BuildFunction(name string, factory func() (Interface, erro
 				return cty.UnknownVal(retType), fmt.Errorf("provider returned no result and no errors")
 			}
 
+			err = functionResultsCache.checkPrior(providerAddr, name, args, resp.Result)
+			if err != nil {
+				return cty.UnknownVal(retType), err
+			}
+
 			return resp.Result, nil
 		},
 	})
@@ -139,4 +152,71 @@ func (p *FunctionParam) ctyParameter() function.Parameter {
 		// The function implementation itself must also check this.
 		AllowUnknown: p.AllowUnknownValues,
 	}
+}
+
+type priorResult struct {
+	hash [sha256.Size]byte
+	// when the result was from a current run, we keep a record of the result
+	// value to aid in debugging. Results stored in the plan will only have the
+	// hash to avoid bloating the plan with what could be many very large
+	// values.
+	value cty.Value
+}
+
+type functionResults struct {
+	mu sync.Mutex
+	// results stores the prior result from a provider function call, keyed by
+	// the hash of the function name and arguments.
+	results map[[sha256.Size]byte]priorResult
+}
+
+func newFunctionResults() *functionResults {
+	return &functionResults{
+		results: make(map[[sha256.Size]byte]priorResult),
+	}
+}
+
+// checkPrior compares the function call against any cached results, and
+// returns an error if the result does not match a prior call.
+func (f *functionResults) checkPrior(provider addrs.Provider, name string, args []cty.Value, result cty.Value) error {
+	argSum := sha256.New()
+
+	io.WriteString(argSum, provider.String())
+	io.WriteString(argSum, "|"+name)
+
+	for _, arg := range args {
+		// cty.Values have a Hash method, but it is not collision resistant. We
+		// are going to rely on the GoString formatting instead, which gives
+		// detailed results for all values.
+		io.WriteString(argSum, "|"+arg.GoString())
+	}
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	argHash := [sha256.Size]byte(argSum.Sum(nil))
+	resHash := sha256.Sum256([]byte(result.GoString()))
+
+	res, ok := f.results[argHash]
+	if !ok {
+		f.results[argHash] = priorResult{
+			hash:  resHash,
+			value: result,
+		}
+		return nil
+	}
+
+	if resHash != res.hash {
+		// The hcl package will add the necessary context around the error in
+		// the diagnostic, but we add the differing results when we can.
+		// TODO: maybe we should add a call to action, since this is a bug in
+		//       the provider.
+		if res.value != cty.NilVal {
+			return fmt.Errorf("Provider function returned an inconsistent result,\nwas: %#v,\nnow: %#v", res.value, result)
+
+		}
+		return fmt.Errorf("Provider function returned an inconsistent result.")
+	}
+
+	return nil
 }

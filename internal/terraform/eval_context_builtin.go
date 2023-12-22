@@ -498,7 +498,7 @@ func (ctx *BuiltinEvalContext) evaluationExternalFunctions() lang.ExternalFuncs 
 		ret.Provider[localName] = make(map[string]function.Function, len(funcDecls))
 		funcs := ret.Provider[localName]
 		for name, decl := range funcDecls {
-			funcs[name] = decl.BuildFunction(name, func() (providers.Interface, error) {
+			funcs[name] = decl.BuildFunction(providerAddr, name, func() (providers.Interface, error) {
 				return ctx.functionProvider(providerAddr)
 			})
 		}
