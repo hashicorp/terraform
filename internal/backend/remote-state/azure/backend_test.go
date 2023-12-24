@@ -5,6 +5,7 @@ package azure
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -366,4 +367,35 @@ func TestAccBackendServicePrincipalLocked(t *testing.T) {
 
 	backend.TestBackendStateLocksInWS(t, b1, b2, "foo")
 	backend.TestBackendStateForceUnlockInWS(t, b1, b2, "foo")
+}
+
+func TestAccBackendCMKKeyBasic(t *testing.T) {
+	testAccAzureBackend(t)
+
+	rs := acctest.RandString(4)
+	res := testResourceNames(rs, "testState")
+	res.useAzureADAuth = true
+	res.keyVaultSecretURI = fmt.Sprintf("https://acctestkv%s.vault.azure.net/secrets/%s", rs, rs)
+	armClient := buildTestClient(t, res)
+
+	ctx := context.TODO()
+	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
+	if err != nil {
+		armClient.destroyTestResources(ctx, res)
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"storage_account_name": res.storageAccountName,
+		"container_name":       res.storageContainerName,
+		"key":                  res.storageKeyName,
+		"access_key":           res.storageAccountAccessKey,
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
+		"use_azuread_auth":     true,
+		"key_vault_secret_uri": res.keyVaultSecretURI,
+	})).(*Backend)
+
+	backend.TestBackendStates(t, b)
 }
