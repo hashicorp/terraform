@@ -205,7 +205,7 @@ func (c *CloudCommand) initPlugin() tfdiags.Diagnostics {
 	defer done()
 
 	// Discover service URLs, and build out the plugin config
-	diags.Append(c.discoverAndConfigure())
+	diags = diags.Append(c.discoverAndConfigure())
 	if diags.HasErrors() {
 		return diags
 	}
