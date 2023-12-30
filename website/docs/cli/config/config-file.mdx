@@ -372,7 +372,7 @@ copy.
 If the selected plugin is not already in the cache, Terraform will download
 it into the cache first and then copy it from there into the correct location
 under your current working directory. When possible Terraform will use
-symbolic links to avoid storing a separate copy of a cached plugin in multiple
+hard links to avoid storing a separate copy of a cached plugin in multiple
 directories.
 
 The plugin cache directory _must not_ also be one of the configured or implied
