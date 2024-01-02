@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -24,6 +25,7 @@ import (
 	backendCloud "github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/version"
+	"google.golang.org/grpc/metadata"
 )
 
 func newCloudPluginManifestHTTPTestServer(t *testing.T) *httptest.Server {
@@ -203,5 +205,39 @@ func TestCloud_withENVConfig(t *testing.T) {
 	expected := "Terraform Cloud Plugin v0.1.0\n\n"
 	if output != expected {
 		t.Fatalf("the output did not equal the expected string:\n%s", cmp.Diff(expected, output))
+	}
+}
+
+func TestCloudPluginConfig_ToMetadata(t *testing.T) {
+	expected := metadata.Pairs(
+		"tfc-address", "https://app.staging.terraform.io",
+		"tfc-base-path", "/api/v2/",
+		"tfc-display-hostname", "app.staging.terraform.io",
+		"tfc-token", "not-a-legit-token",
+		"tfc-organization", "example-corp",
+		"tfc-current-workspace", "example-space",
+		"tfc-workspace-name", "example-space",
+		// Actually combining -name and -tags is an invalid scenario from
+		// Terraform's point of view, but here we're just testing that every
+		// field makes the trip safely if sent.
+		"tfc-workspace-tags", "networking",
+		// Duplicate is on purpose.
+		"tfc-workspace-tags", "platform-team",
+		"tfc-default-project-name", "production-services",
+	)
+	inputStruct := CloudPluginConfig{
+		Address:            "https://app.staging.terraform.io",
+		BasePath:           "/api/v2/",
+		DisplayHostname:    "app.staging.terraform.io",
+		Token:              "not-a-legit-token",
+		Organization:       "example-corp",
+		CurrentWorkspace:   "example-space",
+		WorkspaceName:      "example-space",
+		WorkspaceTags:      []string{"networking", "platform-team"},
+		DefaultProjectName: "production-services",
+	}
+	result := inputStruct.ToMetadata()
+	if !reflect.DeepEqual(expected, result) {
+		t.Fatalf("Expected: %#v\nGot: %#v\n", expected, result)
 	}
 }
