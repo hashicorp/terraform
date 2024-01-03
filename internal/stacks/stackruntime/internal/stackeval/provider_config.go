@@ -119,7 +119,7 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context) (cty.Value, tfdi
 			if moreDiags.HasErrors() {
 				return cty.UnknownVal(hcldec.ImpliedType(spec)), diags
 			}
-			validateResp := client.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
+			validateResp := client.ValidateProviderConfig(context.Background(), providers.ValidateProviderConfigRequest{
 				Config: configVal,
 			})
 			diags = diags.Append(validateResp.Diagnostics)

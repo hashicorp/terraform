@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
@@ -721,7 +722,7 @@ check "error" {
 				initialState = test.state
 			}
 
-			plan, diags := ctx.Plan(configs, initialState, &PlanOpts{
+			plan, diags := ctx.Plan(context.Background(), configs, initialState, &PlanOpts{
 				Mode: plans.NormalMode,
 			})
 			if validateCheckDiagnostics(t, "planning", test.planWarning, test.planError, diags) {
@@ -735,7 +736,7 @@ check "error" {
 				test.providerHook(test.provider)
 			}
 
-			state, diags := ctx.Apply(plan, configs, nil)
+			state, diags := ctx.Apply(context.Background(), plan, configs, nil)
 			if validateCheckDiagnostics(t, "apply", test.applyWarning, test.applyError, diags) {
 				return
 			}
@@ -780,7 +781,7 @@ check "check_should_not_panic" {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.BuildState(func(state *states.SyncState) {
+	plan, diags := ctx.Plan(context.Background(), m, states.BuildState(func(state *states.SyncState) {
 		state.SetResourceInstanceCurrent(
 			mustResourceInstanceAddr("module.panic_at_the_disco.test_object.object"),
 			&states.ResourceInstanceObjectSrc{
@@ -792,7 +793,7 @@ check "check_should_not_panic" {
 	}), DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
-	_, diags = ctx.Apply(plan, m, nil)
+	_, diags = ctx.Apply(context.Background(), plan, m, nil)
 	assertNoErrors(t, diags)
 }
 

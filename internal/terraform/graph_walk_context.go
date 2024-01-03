@@ -62,7 +62,7 @@ type ContextGraphWalker struct {
 	provisionerLock    sync.Mutex
 }
 
-func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
+func (w *ContextGraphWalker) EnterPath(ctx context.Context, path addrs.ModuleInstance) EvalContext {
 	w.contextLock.Lock()
 	defer w.contextLock.Unlock()
 
@@ -72,12 +72,12 @@ func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
 		return ctx
 	}
 
-	ctx := w.EvalContext().WithPath(path)
-	w.contexts[key] = ctx.(*BuiltinEvalContext)
-	return ctx
+	evalCtx := w.EvalContext(ctx).WithPath(path)
+	w.contexts[key] = evalCtx.(*BuiltinEvalContext)
+	return evalCtx
 }
 
-func (w *ContextGraphWalker) EvalContext() EvalContext {
+func (w *ContextGraphWalker) EvalContext(ctx context.Context) EvalContext {
 	w.once.Do(w.init)
 
 	// Our evaluator shares some locks with the main context and the walker
@@ -94,7 +94,8 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		PlanTimestamp: w.PlanTimestamp,
 	}
 
-	ctx := &BuiltinEvalContext{
+	evalCtx := &BuiltinEvalContext{
+		TracingContext:          ctx,
 		StopContext:             w.StopContext,
 		Hooks:                   w.Context.hooks,
 		InputValue:              w.Context.uiInput,
@@ -118,7 +119,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		OverrideValues:          w.Overrides,
 	}
 
-	return ctx
+	return evalCtx
 }
 
 func (w *ContextGraphWalker) init() {

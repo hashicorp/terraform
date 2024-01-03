@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
@@ -575,7 +576,7 @@ output "id" {
 				},
 			})
 
-			plan, diags := ctx.Plan(cfg, states.NewState(), &PlanOpts{
+			plan, diags := ctx.Plan(context.Background(), cfg, states.NewState(), &PlanOpts{
 				Mode:               plans.NormalMode,
 				Overrides:          tc.overrides,
 				GenerateConfigPath: "out.tf",
@@ -591,7 +592,7 @@ output "id" {
 				t.Fatal(diags.Err())
 			}
 
-			state, diags := ctx.Apply(plan, cfg, nil)
+			state, diags := ctx.Apply(context.Background(), plan, cfg, nil)
 			if diags.HasErrors() {
 				t.Fatal(diags.Err())
 			}
@@ -606,7 +607,7 @@ output "id" {
 				t.Fatalf("expected:\n%s\nactual:\n%s", tc.outputs.GoString(), actual.GoString())
 			}
 
-			_, diags = ctx.Plan(cfg, state, &PlanOpts{
+			_, diags = ctx.Plan(context.Background(), cfg, state, &PlanOpts{
 				Mode:      plans.RefreshOnlyMode,
 				Overrides: tc.overrides,
 			})
@@ -614,7 +615,7 @@ output "id" {
 				t.Fatal(diags.Err())
 			}
 
-			destroyPlan, diags := ctx.Plan(cfg, state, &PlanOpts{
+			destroyPlan, diags := ctx.Plan(context.Background(), cfg, state, &PlanOpts{
 				Mode:      plans.DestroyMode,
 				Overrides: tc.overrides,
 			})
@@ -622,7 +623,7 @@ output "id" {
 				t.Fatal(diags.Err())
 			}
 
-			_, diags = ctx.Apply(destroyPlan, cfg, nil)
+			_, diags = ctx.Apply(context.Background(), destroyPlan, cfg, nil)
 			if diags.HasErrors() {
 				t.Fatal(diags.Err())
 			}

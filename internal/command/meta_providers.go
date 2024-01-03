@@ -14,6 +14,9 @@ import (
 
 	plugin "github.com/hashicorp/go-plugin"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"google.golang.org/grpc"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -363,6 +366,7 @@ func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 			VersionedPlugins: tfplugin.VersionedPlugins,
 			SyncStdout:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stdout", meta.Provider)),
 			SyncStderr:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stderr", meta.Provider)),
+			GRPCDialOptions:  []grpc.DialOption{grpc.WithStatsHandler(otelgrpc.NewClientHandler())},
 		}
 
 		client := plugin.NewClient(config)
@@ -427,6 +431,7 @@ func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.Reattach
 			Reattach:         reattach,
 			SyncStdout:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stdout", provider)),
 			SyncStderr:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stderr", provider)),
+			GRPCDialOptions:  []grpc.DialOption{grpc.WithStatsHandler(otelgrpc.NewClientHandler())},
 		}
 
 		if reattach.ProtocolVersion == 0 {

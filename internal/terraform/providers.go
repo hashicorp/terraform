@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -118,7 +119,7 @@ var _ providers.Interface = externalProviderWrapper{}
 
 // ConfigureProvider does nothing because external providers are supposed to
 // be pre-configured before passing them to Terraform Core.
-func (pw externalProviderWrapper) ConfigureProvider(providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+func (pw externalProviderWrapper) ConfigureProvider(context.Context, providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 	return providers.ConfigureProviderResponse{}
 }
 

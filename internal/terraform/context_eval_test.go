@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
@@ -60,7 +61,7 @@ func TestContextEval(t *testing.T) {
 		},
 	})
 
-	scope, diags := ctx.Eval(m, states.NewState(), addrs.RootModuleInstance, &EvalOpts{
+	scope, diags := ctx.Eval(context.Background(), m, states.NewState(), addrs.RootModuleInstance, &EvalOpts{
 		SetVariables: testInputValuesUnset(m.Module.Variables),
 	})
 	if diags.HasErrors() {
@@ -129,7 +130,7 @@ output "out" {
 		},
 	})
 
-	_, diags := ctx.Eval(m, states.NewState(), addrs.RootModuleInstance, &EvalOpts{
+	_, diags := ctx.Eval(context.Background(), m, states.NewState(), addrs.RootModuleInstance, &EvalOpts{
 		SetVariables: testInputValuesUnset(m.Module.Variables),
 	})
 	assertNoErrors(t, diags)
@@ -164,7 +165,7 @@ func TestContextPlanAndEval(t *testing.T) {
 		},
 	})
 
-	plan, scope, diags := ctx.PlanAndEval(m, states.NewState(), &PlanOpts{
+	plan, scope, diags := ctx.PlanAndEval(context.Background(), m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
 		SetVariables: InputValues{
 			"a": {
@@ -266,7 +267,7 @@ func TestContextApplyAndEval(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
 		SetVariables: InputValues{
 			"a": {
@@ -309,7 +310,7 @@ func TestContextApplyAndEval(t *testing.T) {
 		t.Fatalf("plan has no PrevRunState")
 	}
 
-	finalState, scope, diags := ctx.ApplyAndEval(plan, m, nil)
+	finalState, scope, diags := ctx.ApplyAndEval(context.Background(), plan, m, nil)
 	assertNoDiagnostics(t, diags)
 	if finalState == nil {
 		t.Fatalf("no final state")

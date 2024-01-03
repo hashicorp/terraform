@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -57,7 +58,7 @@ import {
 		},
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
@@ -148,7 +149,7 @@ import {
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
-	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	plan, diags := ctx.Plan(context.Background(), m, state, DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
@@ -214,7 +215,7 @@ import {
 		},
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
@@ -280,7 +281,7 @@ import {
 		},
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
 		ForceReplace: []addrs.AbsResourceInstance{
 			addr,
@@ -356,7 +357,7 @@ import {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	_, diags := ctx.Plan(context.Background(), m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
 		ForceReplace: []addrs.AbsResourceInstance{
 			addr,
@@ -408,7 +409,7 @@ import {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	_, diags := ctx.Plan(context.Background(), m, states.NewState(), DefaultPlanOpts)
 	if !diags.HasErrors() {
 		t.Fatalf("expected error but got none")
 	}
@@ -434,7 +435,7 @@ func TestContext2Plan_importIdVariable(t *testing.T) {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	_, diags := ctx.Plan(context.Background(), m, states.NewState(), &PlanOpts{
 		SetVariables: InputValues{
 			"the_id": &InputValue{
 				// let var take its default value
@@ -467,7 +468,7 @@ func TestContext2Plan_importIdFunc(t *testing.T) {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	_, diags := ctx.Plan(context.Background(), m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -530,7 +531,7 @@ func TestContext2Plan_importIdDataSource(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	_, diags := ctx.Plan(context.Background(), m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -568,7 +569,7 @@ func TestContext2Plan_importIdModule(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	_, diags := ctx.Plan(context.Background(), m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -583,7 +584,7 @@ func TestContext2Plan_importIdInvalidNull(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	_, diags := ctx.Plan(context.Background(), m, states.NewState(), &PlanOpts{
 		SetVariables: InputValues{
 			"the_id": &InputValue{
 				Value: cty.NullVal(cty.String),
@@ -636,7 +637,7 @@ func TestContext2Plan_importIdInvalidUnknown(t *testing.T) {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	_, diags := ctx.Plan(context.Background(), m, states.NewState(), DefaultPlanOpts)
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
@@ -702,7 +703,7 @@ resource "test_object" "a" {
 		},
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), &PlanOpts{
 		Mode:               plans.NormalMode,
 		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
 	})
@@ -762,7 +763,7 @@ import {
 		},
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), &PlanOpts{
 		Mode:               plans.NormalMode,
 		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
 	})
@@ -844,7 +845,7 @@ import {
 		},
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), &PlanOpts{
 		Mode:               plans.NormalMode,
 		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
 	})
@@ -921,7 +922,7 @@ import {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	_, diags := ctx.Plan(context.Background(), m, states.NewState(), &PlanOpts{
 		Mode:               plans.NormalMode,
 		GenerateConfigPath: "generated.tf",
 	})
@@ -968,7 +969,7 @@ import {
 		},
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), &PlanOpts{
 		Mode:               plans.NormalMode,
 		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
 	})
@@ -1039,7 +1040,7 @@ import {
 		},
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
@@ -1152,7 +1153,7 @@ resource "test_object" "a" {
 		},
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
@@ -1251,7 +1252,7 @@ import {
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
-	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	plan, diags := ctx.Plan(context.Background(), m, state, DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
@@ -1351,7 +1352,7 @@ import {
 		},
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
@@ -1400,7 +1401,7 @@ import {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), &PlanOpts{
 		Mode:               plans.NormalMode,
 		GenerateConfigPath: "generated.tf",
 	})

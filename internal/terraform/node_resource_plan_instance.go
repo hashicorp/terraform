@@ -498,7 +498,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			Diagnostics: overrideDiags.InConfigBody(n.Config.Config, absAddr.String()),
 		}
 	} else {
-		resp = provider.ImportResourceState(providers.ImportResourceStateRequest{
+		resp = provider.ImportResourceState(ctx.Context(), providers.ImportResourceStateRequest{
 			TypeName: addr.Resource.Resource.Type,
 			ID:       importId,
 		})

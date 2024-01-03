@@ -17,6 +17,7 @@ import (
 )
 
 func (b *Local) opRefresh(
+	tracingCtx context.Context,
 	stopCtx context.Context,
 	cancelCtx context.Context,
 	op *backend.Operation,
@@ -48,7 +49,7 @@ func (b *Local) opRefresh(
 	op.PlanRefresh = true
 
 	// Get our context
-	lr, _, opState, contextDiags := b.localRun(op)
+	lr, _, opState, contextDiags := b.localRun(tracingCtx, op)
 	diags = diags.Append(contextDiags)
 	if contextDiags.HasErrors() {
 		op.ReportResult(runningOp, diags)
@@ -91,7 +92,7 @@ func (b *Local) opRefresh(
 	go func() {
 		defer logging.PanicHandler()
 		defer close(doneCh)
-		newState, refreshDiags = lr.Core.Refresh(lr.Config, lr.InputState, lr.PlanOpts)
+		newState, refreshDiags = lr.Core.Refresh(tracingCtx, lr.Config, lr.InputState, lr.PlanOpts)
 		log.Printf("[INFO] backend/local: refresh calling Refresh")
 	}()
 

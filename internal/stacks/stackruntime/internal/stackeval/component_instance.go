@@ -529,7 +529,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			// [ComponentInstanceRemoved] for the model of a component instance
 			// that existed in the prior state but is not currently declared
 			// in the configuration.
-			plan, moreDiags := tfCtx.Plan(moduleTree, prevState, &terraform.PlanOpts{
+			plan, moreDiags := tfCtx.Plan(context.Background(), moduleTree, prevState, &terraform.PlanOpts{
 				Mode:              stackPlanOpts.PlanningMode,
 				SetVariables:      inputValues,
 				ExternalProviders: providerClients,
@@ -736,7 +736,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 	// works, and so code after this point should not make any further use
 	// of either "modifiedPlan" or "plan" (since they share lots of the same
 	// pointers to mutable objects and so both can get modified together.)
-	newState, moreDiags := tfCtx.Apply(&modifiedPlan, moduleTree, &terraform.ApplyOpts{
+	newState, moreDiags := tfCtx.Apply(ctx, &modifiedPlan, moduleTree, &terraform.ApplyOpts{
 		ExternalProviders: providerClients,
 	})
 	diags = diags.Append(moreDiags)

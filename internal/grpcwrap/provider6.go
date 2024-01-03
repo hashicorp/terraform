@@ -23,7 +23,7 @@ import (
 func Provider6(p providers.Interface) tfplugin6.ProviderServer {
 	return &provider6{
 		provider: p,
-		schema:   p.GetProviderSchema(),
+		schema:   p.GetProviderSchema(context.Background()),
 	}
 }
 
@@ -87,7 +87,7 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 	return resp, nil
 }
 
-func (p *provider6) ValidateProviderConfig(_ context.Context, req *tfplugin6.ValidateProviderConfig_Request) (*tfplugin6.ValidateProviderConfig_Response, error) {
+func (p *provider6) ValidateProviderConfig(ctx context.Context, req *tfplugin6.ValidateProviderConfig_Request) (*tfplugin6.ValidateProviderConfig_Response, error) {
 	resp := &tfplugin6.ValidateProviderConfig_Response{}
 	ty := p.schema.Provider.Block.ImpliedType()
 
@@ -97,7 +97,7 @@ func (p *provider6) ValidateProviderConfig(_ context.Context, req *tfplugin6.Val
 		return resp, nil
 	}
 
-	prepareResp := p.provider.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
+	prepareResp := p.provider.ValidateProviderConfig(ctx, providers.ValidateProviderConfigRequest{
 		Config: configVal,
 	})
 
@@ -106,7 +106,7 @@ func (p *provider6) ValidateProviderConfig(_ context.Context, req *tfplugin6.Val
 	return resp, nil
 }
 
-func (p *provider6) ValidateResourceConfig(_ context.Context, req *tfplugin6.ValidateResourceConfig_Request) (*tfplugin6.ValidateResourceConfig_Response, error) {
+func (p *provider6) ValidateResourceConfig(ctx context.Context, req *tfplugin6.ValidateResourceConfig_Request) (*tfplugin6.ValidateResourceConfig_Response, error) {
 	resp := &tfplugin6.ValidateResourceConfig_Response{}
 	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
 
@@ -116,7 +116,7 @@ func (p *provider6) ValidateResourceConfig(_ context.Context, req *tfplugin6.Val
 		return resp, nil
 	}
 
-	validateResp := p.provider.ValidateResourceConfig(providers.ValidateResourceConfigRequest{
+	validateResp := p.provider.ValidateResourceConfig(ctx, providers.ValidateResourceConfigRequest{
 		TypeName: req.TypeName,
 		Config:   configVal,
 	})
@@ -125,7 +125,7 @@ func (p *provider6) ValidateResourceConfig(_ context.Context, req *tfplugin6.Val
 	return resp, nil
 }
 
-func (p *provider6) ValidateDataResourceConfig(_ context.Context, req *tfplugin6.ValidateDataResourceConfig_Request) (*tfplugin6.ValidateDataResourceConfig_Response, error) {
+func (p *provider6) ValidateDataResourceConfig(ctx context.Context, req *tfplugin6.ValidateDataResourceConfig_Request) (*tfplugin6.ValidateDataResourceConfig_Response, error) {
 	resp := &tfplugin6.ValidateDataResourceConfig_Response{}
 	ty := p.schema.DataSources[req.TypeName].Block.ImpliedType()
 
@@ -135,7 +135,7 @@ func (p *provider6) ValidateDataResourceConfig(_ context.Context, req *tfplugin6
 		return resp, nil
 	}
 
-	validateResp := p.provider.ValidateDataResourceConfig(providers.ValidateDataResourceConfigRequest{
+	validateResp := p.provider.ValidateDataResourceConfig(ctx, providers.ValidateDataResourceConfigRequest{
 		TypeName: req.TypeName,
 		Config:   configVal,
 	})
@@ -170,7 +170,7 @@ func (p *provider6) UpgradeResourceState(_ context.Context, req *tfplugin6.Upgra
 	return resp, nil
 }
 
-func (p *provider6) ConfigureProvider(_ context.Context, req *tfplugin6.ConfigureProvider_Request) (*tfplugin6.ConfigureProvider_Response, error) {
+func (p *provider6) ConfigureProvider(ctx context.Context, req *tfplugin6.ConfigureProvider_Request) (*tfplugin6.ConfigureProvider_Response, error) {
 	resp := &tfplugin6.ConfigureProvider_Response{}
 	ty := p.schema.Provider.Block.ImpliedType()
 
@@ -180,7 +180,7 @@ func (p *provider6) ConfigureProvider(_ context.Context, req *tfplugin6.Configur
 		return resp, nil
 	}
 
-	configureResp := p.provider.ConfigureProvider(providers.ConfigureProviderRequest{
+	configureResp := p.provider.ConfigureProvider(ctx, providers.ConfigureProviderRequest{
 		TerraformVersion: req.TerraformVersion,
 		Config:           configVal,
 	})
@@ -189,7 +189,7 @@ func (p *provider6) ConfigureProvider(_ context.Context, req *tfplugin6.Configur
 	return resp, nil
 }
 
-func (p *provider6) ReadResource(_ context.Context, req *tfplugin6.ReadResource_Request) (*tfplugin6.ReadResource_Response, error) {
+func (p *provider6) ReadResource(ctx context.Context, req *tfplugin6.ReadResource_Request) (*tfplugin6.ReadResource_Response, error) {
 	resp := &tfplugin6.ReadResource_Response{}
 	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
 
@@ -206,7 +206,7 @@ func (p *provider6) ReadResource(_ context.Context, req *tfplugin6.ReadResource_
 		return resp, nil
 	}
 
-	readResp := p.provider.ReadResource(providers.ReadResourceRequest{
+	readResp := p.provider.ReadResource(ctx, providers.ReadResourceRequest{
 		TypeName:     req.TypeName,
 		PriorState:   stateVal,
 		Private:      req.Private,
@@ -228,7 +228,7 @@ func (p *provider6) ReadResource(_ context.Context, req *tfplugin6.ReadResource_
 	return resp, nil
 }
 
-func (p *provider6) PlanResourceChange(_ context.Context, req *tfplugin6.PlanResourceChange_Request) (*tfplugin6.PlanResourceChange_Response, error) {
+func (p *provider6) PlanResourceChange(ctx context.Context, req *tfplugin6.PlanResourceChange_Request) (*tfplugin6.PlanResourceChange_Response, error) {
 	resp := &tfplugin6.PlanResourceChange_Response{}
 	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
 
@@ -257,7 +257,7 @@ func (p *provider6) PlanResourceChange(_ context.Context, req *tfplugin6.PlanRes
 		return resp, nil
 	}
 
-	planResp := p.provider.PlanResourceChange(providers.PlanResourceChangeRequest{
+	planResp := p.provider.PlanResourceChange(ctx, providers.PlanResourceChangeRequest{
 		TypeName:         req.TypeName,
 		PriorState:       priorStateVal,
 		ProposedNewState: proposedStateVal,
@@ -285,7 +285,7 @@ func (p *provider6) PlanResourceChange(_ context.Context, req *tfplugin6.PlanRes
 	return resp, nil
 }
 
-func (p *provider6) ApplyResourceChange(_ context.Context, req *tfplugin6.ApplyResourceChange_Request) (*tfplugin6.ApplyResourceChange_Response, error) {
+func (p *provider6) ApplyResourceChange(ctx context.Context, req *tfplugin6.ApplyResourceChange_Request) (*tfplugin6.ApplyResourceChange_Response, error) {
 	resp := &tfplugin6.ApplyResourceChange_Response{}
 	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
 
@@ -314,7 +314,7 @@ func (p *provider6) ApplyResourceChange(_ context.Context, req *tfplugin6.ApplyR
 		return resp, nil
 	}
 
-	applyResp := p.provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
+	applyResp := p.provider.ApplyResourceChange(ctx, providers.ApplyResourceChangeRequest{
 		TypeName:       req.TypeName,
 		PriorState:     priorStateVal,
 		PlannedState:   plannedStateVal,
@@ -338,10 +338,10 @@ func (p *provider6) ApplyResourceChange(_ context.Context, req *tfplugin6.ApplyR
 	return resp, nil
 }
 
-func (p *provider6) ImportResourceState(_ context.Context, req *tfplugin6.ImportResourceState_Request) (*tfplugin6.ImportResourceState_Response, error) {
+func (p *provider6) ImportResourceState(ctx context.Context, req *tfplugin6.ImportResourceState_Request) (*tfplugin6.ImportResourceState_Response, error) {
 	resp := &tfplugin6.ImportResourceState_Response{}
 
-	importResp := p.provider.ImportResourceState(providers.ImportResourceStateRequest{
+	importResp := p.provider.ImportResourceState(ctx, providers.ImportResourceStateRequest{
 		TypeName: req.TypeName,
 		ID:       req.Id,
 	})
@@ -365,7 +365,7 @@ func (p *provider6) ImportResourceState(_ context.Context, req *tfplugin6.Import
 	return resp, nil
 }
 
-func (p *provider6) ReadDataSource(_ context.Context, req *tfplugin6.ReadDataSource_Request) (*tfplugin6.ReadDataSource_Response, error) {
+func (p *provider6) ReadDataSource(ctx context.Context, req *tfplugin6.ReadDataSource_Request) (*tfplugin6.ReadDataSource_Response, error) {
 	resp := &tfplugin6.ReadDataSource_Response{}
 	ty := p.schema.DataSources[req.TypeName].Block.ImpliedType()
 
@@ -382,7 +382,7 @@ func (p *provider6) ReadDataSource(_ context.Context, req *tfplugin6.ReadDataSou
 		return resp, nil
 	}
 
-	readResp := p.provider.ReadDataSource(providers.ReadDataSourceRequest{
+	readResp := p.provider.ReadDataSource(ctx, providers.ReadDataSourceRequest{
 		TypeName:     req.TypeName,
 		Config:       configVal,
 		ProviderMeta: metaVal,

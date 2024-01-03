@@ -94,7 +94,7 @@ func (c *ValidateCommand) validate(dir, testDir string, noTests bool) tfdiags.Di
 			return diags
 		}
 
-		return diags.Append(tfCtx.Validate(cfg))
+		return diags.Append(tfCtx.Validate(c.CommandContext(), cfg))
 	}
 
 	diags = diags.Append(validate(cfg))

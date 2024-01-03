@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -27,7 +28,7 @@ func TestGraphNodeImportStateExecute(t *testing.T) {
 			},
 		},
 	}
-	provider.ConfigureProvider(providers.ConfigureProviderRequest{})
+	provider.ConfigureProvider(context.Background(), providers.ConfigureProviderRequest{})
 
 	ctx := &MockEvalContext{
 		StateState:       state.SyncWrapper(),
@@ -68,7 +69,7 @@ func TestGraphNodeImportStateExecute(t *testing.T) {
 func TestGraphNodeImportStateSubExecute(t *testing.T) {
 	state := states.NewState()
 	provider := testProvider("aws")
-	provider.ConfigureProvider(providers.ConfigureProviderRequest{})
+	provider.ConfigureProvider(context.Background(), providers.ConfigureProviderRequest{})
 	ctx := &MockEvalContext{
 		StateState:       state.SyncWrapper(),
 		ProviderProvider: provider,

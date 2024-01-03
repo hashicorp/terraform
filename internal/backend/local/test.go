@@ -583,7 +583,7 @@ func (runner *TestFileRunner) validate(config *configs.Config, run *moduletest.R
 		defer done()
 
 		log.Printf("[DEBUG] TestFileRunner: starting validate for %s/%s", file.Name, run.Name)
-		validateDiags = tfCtx.Validate(config)
+		validateDiags = tfCtx.Validate(context.Background(), config)
 		log.Printf("[DEBUG] TestFileRunner: completed validate for  %s/%s", file.Name, run.Name)
 	}()
 	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, nil, moduletest.Running, start)
@@ -645,7 +645,7 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 		defer done()
 
 		log.Printf("[DEBUG] TestFileRunner: starting destroy plan for %s/%s", file.Name, run.Name)
-		plan, planDiags = tfCtx.Plan(config, state, planOpts)
+		plan, planDiags = tfCtx.Plan(context.Background(), config, state, planOpts)
 		log.Printf("[DEBUG] TestFileRunner: completed destroy plan for %s/%s", file.Name, run.Name)
 	}()
 	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, nil, moduletest.TearDown, start)
@@ -708,7 +708,7 @@ func (runner *TestFileRunner) plan(tfCtx *terraform.Context, config *configs.Con
 		defer done()
 
 		log.Printf("[DEBUG] TestFileRunner: starting plan for %s/%s", file.Name, run.Name)
-		plan, planScope, planDiags = tfCtx.PlanAndEval(config, state, planOpts)
+		plan, planScope, planDiags = tfCtx.PlanAndEval(context.Background(), config, state, planOpts)
 		log.Printf("[DEBUG] TestFileRunner: completed plan for %s/%s", file.Name, run.Name)
 	}()
 	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, nil, moduletest.Running, start)
@@ -757,7 +757,7 @@ func (runner *TestFileRunner) apply(tfCtx *terraform.Context, plan *plans.Plan, 
 		defer logging.PanicHandler()
 		defer done()
 		log.Printf("[DEBUG] TestFileRunner: starting apply for %s/%s", file.Name, run.Name)
-		updated, newScope, applyDiags = tfCtx.ApplyAndEval(plan, config, nil)
+		updated, newScope, applyDiags = tfCtx.ApplyAndEval(context.Background(), plan, config, nil)
 		log.Printf("[DEBUG] TestFileRunner: completed apply for %s/%s", file.Name, run.Name)
 	}()
 	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, created, progress, start)

@@ -421,7 +421,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 			Config:   unmarkedConfigVal,
 		}
 
-		resp := provider.ValidateResourceConfig(req)
+		resp := provider.ValidateResourceConfig(ctx.Context(), req)
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
 
 	case addrs.DataResourceMode:
@@ -462,7 +462,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 			Config:   unmarkedConfigVal,
 		}
 
-		resp := provider.ValidateDataResourceConfig(req)
+		resp := provider.ValidateDataResourceConfig(ctx.Context(), req)
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
 	}
 

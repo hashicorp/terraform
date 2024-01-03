@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -109,7 +110,7 @@ func (cp *contextPlugins) ProviderSchema(addr addrs.Provider) (providers.Provide
 	}
 	defer provider.Close()
 
-	resp := provider.GetProviderSchema()
+	resp := provider.GetProviderSchema(context.Background())
 	if resp.Diagnostics.HasErrors() {
 		return resp, fmt.Errorf("failed to retrieve schema from provider %q: %s", addr, resp.Diagnostics.Err())
 	}

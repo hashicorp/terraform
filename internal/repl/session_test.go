@@ -4,6 +4,7 @@
 package repl
 
 import (
+	"context"
 	"flag"
 	"os"
 	"strings"
@@ -294,7 +295,7 @@ func testSession(t *testing.T, test testSessionTest) {
 	if state == nil {
 		state = states.NewState()
 	}
-	scope, diags := ctx.Eval(config, state, addrs.RootModuleInstance, &terraform.EvalOpts{})
+	scope, diags := ctx.Eval(context.Background(), config, state, addrs.RootModuleInstance, &terraform.EvalOpts{})
 	if diags.HasErrors() {
 		t.Fatalf("failed to create scope: %s", diags.Err())
 	}

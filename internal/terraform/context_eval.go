@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -40,7 +41,7 @@ type EvalOpts struct {
 // the returned scope may be nil. If it is not nil then it may still be used
 // to attempt expression evaluation or other analysis, but some expressions
 // may not behave as expected.
-func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr addrs.ModuleInstance, opts *EvalOpts) (*lang.Scope, tfdiags.Diagnostics) {
+func (c *Context) Eval(ctx context.Context, config *configs.Config, state *states.State, moduleAddr addrs.ModuleInstance, opts *EvalOpts) (*lang.Scope, tfdiags.Diagnostics) {
 	// This is intended for external callers such as the "terraform console"
 	// command. Internally, we create an evaluator in c.walk before walking
 	// the graph, and create scopes in ContextGraphWalker.
@@ -92,7 +93,7 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 		Config:     config,
 	}
 
-	walker, moreDiags = c.walk(graph, walkEval, walkOpts)
+	walker, moreDiags = c.walk(ctx, graph, walkEval, walkOpts)
 	diags = diags.Append(moreDiags)
 	if walker != nil {
 		diags = diags.Append(walker.NonFatalDiagnostics)
@@ -103,19 +104,19 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 		walker = c.graphWalker(walkEval, walkOpts)
 	}
 
-	return evalScopeFromGraphWalk(walker, moduleAddr), diags
+	return evalScopeFromGraphWalk(ctx, walker, moduleAddr), diags
 }
 
 // evalScopeFromGraphWalk takes a [ContextGraphWalker] that was already used
 // to run a graph walk and derives from it an evaluation scope which can
 // evaluate expressions for a given module path in whatever mode makes sense
 // for how the graph walker is configured.
-func evalScopeFromGraphWalk(walker *ContextGraphWalker, moduleAddr addrs.ModuleInstance) *lang.Scope {
+func evalScopeFromGraphWalk(ctx context.Context, walker *ContextGraphWalker, moduleAddr addrs.ModuleInstance) *lang.Scope {
 	// This is a bit weird since we don't normally evaluate outside of
 	// the context of a walk, but we'll "re-enter" our desired path here
 	// just to get hold of an EvalContext for it. ContextGraphWalker
 	// caches its contexts, so we should get hold of the context that was
 	// previously used for evaluation here, unless we skipped walking.
-	evalCtx := walker.EnterPath(moduleAddr)
+	evalCtx := walker.EnterPath(ctx, moduleAddr)
 	return evalCtx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
 }

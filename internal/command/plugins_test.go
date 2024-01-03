@@ -4,6 +4,7 @@
 package command
 
 import (
+	"context"
 	"os"
 	"reflect"
 	"testing"
@@ -39,7 +40,7 @@ func TestInternalProviders(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	schema := tfProvider.GetProviderSchema()
+	schema := tfProvider.GetProviderSchema(context.Background())
 	_, found := schema.DataSources["terraform_remote_state"]
 	if !found {
 		t.Errorf("didn't find terraform_remote_state in internal \"terraform\" provider")

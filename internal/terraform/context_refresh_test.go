@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"reflect"
 	"sort"
 	"strings"
@@ -53,7 +54,7 @@ func TestContext2Refresh(t *testing.T) {
 		NewState: readState,
 	}
 
-	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
+	s, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -132,7 +133,7 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 	schema := p.GetProviderSchemaResponse.ResourceTypes["test_instance"].Block
 	ty := schema.ImpliedType()
 
-	s, diags := ctx.Refresh(m, startingState, &PlanOpts{Mode: plans.NormalMode})
+	s, diags := ctx.Refresh(context.Background(), m, startingState, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -204,7 +205,7 @@ func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{Mode: plans.RefreshOnlyMode})
+	plan, diags := ctx.Plan(context.Background(), m, states.NewState(), &PlanOpts{Mode: plans.RefreshOnlyMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -276,7 +277,7 @@ func TestContext2Refresh_targeted(t *testing.T) {
 		}
 	}
 
-	_, diags := ctx.Refresh(m, state, &PlanOpts{
+	_, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{
 		Mode: plans.NormalMode,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
@@ -358,7 +359,7 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 		}
 	}
 
-	_, diags := ctx.Refresh(m, state, &PlanOpts{
+	_, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{
 		Mode: plans.NormalMode,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
@@ -448,7 +449,7 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 		}
 	}
 
-	_, diags := ctx.Refresh(m, state, &PlanOpts{
+	_, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{
 		Mode: plans.NormalMode,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.ResourceInstance(
@@ -495,7 +496,7 @@ func TestContext2Refresh_moduleComputedVar(t *testing.T) {
 
 	// This was failing (see GH-2188) at some point, so this test just
 	// verifies that the failure goes away.
-	if _, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode}); diags.HasErrors() {
+	if _, diags := ctx.Refresh(context.Background(), m, states.NewState(), &PlanOpts{Mode: plans.NormalMode}); diags.HasErrors() {
 		t.Fatalf("refresh errs: %s", diags.Err())
 	}
 }
@@ -518,7 +519,7 @@ func TestContext2Refresh_delete(t *testing.T) {
 		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block.ImpliedType()),
 	}
 
-	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
+	s, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -544,7 +545,7 @@ func TestContext2Refresh_ignoreUncreated(t *testing.T) {
 		}),
 	}
 
-	_, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
+	_, diags := ctx.Refresh(context.Background(), m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -569,7 +570,7 @@ func TestContext2Refresh_hook(t *testing.T) {
 		},
 	})
 
-	if _, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode}); diags.HasErrors() {
+	if _, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{Mode: plans.NormalMode}); diags.HasErrors() {
 		t.Fatalf("refresh errs: %s", diags.Err())
 	}
 	if !h.PreRefreshCalled {
@@ -614,7 +615,7 @@ func TestContext2Refresh_modules(t *testing.T) {
 		}
 	}
 
-	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
+	s, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -654,7 +655,7 @@ func TestContext2Refresh_moduleInputComputedOutput(t *testing.T) {
 		},
 	})
 
-	if _, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode}); diags.HasErrors() {
+	if _, diags := ctx.Refresh(context.Background(), m, states.NewState(), &PlanOpts{Mode: plans.NormalMode}); diags.HasErrors() {
 		t.Fatalf("refresh errs: %s", diags.Err())
 	}
 }
@@ -668,7 +669,7 @@ func TestContext2Refresh_moduleVarModule(t *testing.T) {
 		},
 	})
 
-	if _, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode}); diags.HasErrors() {
+	if _, diags := ctx.Refresh(context.Background(), m, states.NewState(), &PlanOpts{Mode: plans.NormalMode}); diags.HasErrors() {
 		t.Fatalf("refresh errs: %s", diags.Err())
 	}
 }
@@ -689,7 +690,7 @@ func TestContext2Refresh_noState(t *testing.T) {
 		}),
 	}
 
-	if _, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode}); diags.HasErrors() {
+	if _, diags := ctx.Refresh(context.Background(), m, states.NewState(), &PlanOpts{Mode: plans.NormalMode}); diags.HasErrors() {
 		t.Fatalf("refresh errs: %s", diags.Err())
 	}
 }
@@ -732,7 +733,7 @@ func TestContext2Refresh_output(t *testing.T) {
 		},
 	})
 
-	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
+	s, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -780,7 +781,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 		},
 	})
 
-	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
+	s, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -820,7 +821,7 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 		NewState: readStateVal,
 	}
 
-	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
+	s, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -876,7 +877,7 @@ func TestContext2Refresh_dataCount(t *testing.T) {
 		},
 	})
 
-	s, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
+	s, diags := ctx.Refresh(context.Background(), m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
 
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
@@ -922,7 +923,7 @@ func TestContext2Refresh_dataState(t *testing.T) {
 		}
 	}
 
-	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
+	s, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -985,7 +986,7 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 		}
 	}
 
-	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
+	s, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -1020,7 +1021,7 @@ func TestContext2Refresh_tainted(t *testing.T) {
 		}
 	}
 
-	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
+	s, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -1051,7 +1052,7 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 	})
 	assertNoDiagnostics(t, diags)
 
-	_, diags = c.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
+	_, diags = c.Refresh(context.Background(), m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
 	if !diags.HasErrors() {
 		t.Fatal("successfully refreshed; want error")
 	}
@@ -1110,7 +1111,7 @@ func TestContext2Refresh_vars(t *testing.T) {
 		}
 	}
 
-	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
+	s, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -1188,7 +1189,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 	})
 
 	testCheckDeadlock(t, func() {
-		_, err := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
+		_, err := ctx.Refresh(context.Background(), m, state, &PlanOpts{Mode: plans.NormalMode})
 		if err != nil {
 			t.Fatalf("err: %s", err.Err())
 		}
@@ -1228,7 +1229,7 @@ func TestContext2Validate(t *testing.T) {
 		},
 	})
 
-	diags := c.Validate(m)
+	diags := c.Validate(context.Background(), m)
 	if len(diags) != 0 {
 		t.Fatalf("unexpected error: %#v", diags.ErrWithWarnings())
 	}
@@ -1253,7 +1254,7 @@ aws_instance.bar:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"].foo`)
 
-	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
+	s, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1315,7 +1316,7 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 		},
 	})
 
-	state, diags := ctx.Refresh(m, s, &PlanOpts{Mode: plans.NormalMode})
+	state, diags := ctx.Refresh(context.Background(), m, s, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1397,7 +1398,7 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 		},
 	})
 
-	state, diags := ctx.Refresh(m, s, &PlanOpts{Mode: plans.NormalMode})
+	state, diags := ctx.Refresh(context.Background(), m, s, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1453,7 +1454,7 @@ data "aws_data_source" "foo" {
 		},
 	})
 
-	_, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
+	_, diags := ctx.Refresh(context.Background(), m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		// Should get this error:
 		// Unsupported attribute: This object does not have an attribute named "missing"
@@ -1501,7 +1502,7 @@ func TestContext2Refresh_dataResourceDependsOn(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
+	_, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -1545,7 +1546,7 @@ resource "aws_instance" "bar" {
 		},
 	})
 
-	state, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
+	state, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
@@ -1591,7 +1592,7 @@ func TestContext2Refresh_dataSourceOrphan(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
+	_, diags := ctx.Refresh(context.Background(), m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1676,7 +1677,7 @@ resource "test_resource" "foo" {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.RefreshOnlyMode})
+	plan, diags := ctx.Plan(context.Background(), m, state, &PlanOpts{Mode: plans.RefreshOnlyMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}

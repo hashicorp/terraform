@@ -232,7 +232,7 @@ func (c *ImportCommand) Run(args []string) int {
 	// Perform the import. Note that as you can see it is possible for this
 	// API to import more than one resource at once. For now, we only allow
 	// one while we stabilize this feature.
-	newState, importDiags := lr.Core.Import(lr.Config, lr.InputState, &terraform.ImportOpts{
+	newState, importDiags := lr.Core.Import(c.CommandContext(), lr.Config, lr.InputState, &terraform.ImportOpts{
 		Targets: []*terraform.ImportTarget{
 			{
 				LegacyAddr: addr,

@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -59,8 +60,8 @@ func (po *PlanOpts) ApplyOpts() *ApplyOpts {
 // options in [PlanOpts] when creating a plan must be echoed with equivalent
 // settings during apply, so leaving opts as nil might not be valid for
 // certain combinations of plan-time options.
-func (c *Context) Apply(plan *plans.Plan, config *configs.Config, opts *ApplyOpts) (*states.State, tfdiags.Diagnostics) {
-	state, _, diags := c.ApplyAndEval(plan, config, opts)
+func (c *Context) Apply(ctx context.Context, plan *plans.Plan, config *configs.Config, opts *ApplyOpts) (*states.State, tfdiags.Diagnostics) {
+	state, _, diags := c.ApplyAndEval(ctx, plan, config, opts)
 	return state, diags
 }
 
@@ -73,7 +74,7 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config, opts *ApplyOpt
 // then the scope will always be nil, but it's also possible for the scope
 // to be nil even when the state isn't, if the apply didn't complete enough for
 // the evaluation scope to produce consistent results.
-func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *ApplyOpts) (*states.State, *lang.Scope, tfdiags.Diagnostics) {
+func (c *Context) ApplyAndEval(ctx context.Context, plan *plans.Plan, config *configs.Config, opts *ApplyOpts) (*states.State, *lang.Scope, tfdiags.Diagnostics) {
 	defer c.acquireRun("apply")()
 	var diags tfdiags.Diagnostics
 
@@ -122,7 +123,7 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 	}
 
 	workingState := plan.PriorState.DeepCopy()
-	walker, walkDiags := c.walk(graph, operation, &graphWalkOpts{
+	walker, walkDiags := c.walk(ctx, graph, operation, &graphWalkOpts{
 		Config:                  config,
 		InputState:              workingState,
 		Changes:                 plan.Changes,
@@ -183,7 +184,7 @@ Note that the -target option is not suitable for routine use, and is provided on
 	// The caller also gets access to an expression evaluation scope in the
 	// root module, in case it needs to extract other information using
 	// expressions, like in "terraform console" or the test harness.
-	evalScope := evalScopeFromGraphWalk(walker, addrs.RootModuleInstance)
+	evalScope := evalScopeFromGraphWalk(ctx, walker, addrs.RootModuleInstance)
 
 	return newState, evalScope, diags
 }

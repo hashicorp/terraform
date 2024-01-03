@@ -127,7 +127,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	var scope *lang.Scope
 	if evalFromPlan {
 		var planDiags tfdiags.Diagnostics
-		_, scope, planDiags = lr.Core.PlanAndEval(lr.Config, lr.InputState, lr.PlanOpts)
+		_, scope, planDiags = lr.Core.PlanAndEval(c.CommandContext(), lr.Config, lr.InputState, lr.PlanOpts)
 		diags = diags.Append(planDiags)
 	} else {
 		evalOpts := &terraform.EvalOpts{}
@@ -142,7 +142,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 		// derived values (input variables, local values, output values)
 		// that are not stored in the persistent state.
 		var scopeDiags tfdiags.Diagnostics
-		scope, scopeDiags = lr.Core.Eval(lr.Config, lr.InputState, addrs.RootModuleInstance, evalOpts)
+		scope, scopeDiags = lr.Core.Eval(c.CommandContext(), lr.Config, lr.InputState, addrs.RootModuleInstance, evalOpts)
 		diags = diags.Append(scopeDiags)
 	}
 	if scope == nil {

@@ -34,12 +34,13 @@ func (b *Local) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Ful
 
 	op.StateLocker = op.StateLocker.WithContext(context.Background())
 
-	lr, _, stateMgr, diags := b.localRun(op)
+	lr, _, stateMgr, diags := b.localRun(context.Background(), op)
 	return lr, stateMgr, diags
 }
 
-func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.Snapshot, statemgr.Full, tfdiags.Diagnostics) {
+func (b *Local) localRun(ctx context.Context, op *backend.Operation) (*backend.LocalRun, *configload.Snapshot, statemgr.Full, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	_, span := tracer.Start(ctx, "localRun")
 
 	// Get the latest state.
 	log.Printf("[TRACE] backend/local: requesting state manager for workspace %q", op.Workspace)
@@ -59,6 +60,7 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 		if diags.HasErrors() {
 			diags = diags.Append(op.StateLocker.Unlock())
 		}
+		span.End()
 	}()
 
 	log.Printf("[TRACE] backend/local: reading remote state for workspace %q", op.Workspace)
@@ -130,7 +132,7 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 		// If validation is enabled, validate
 		if b.OpValidation {
 			log.Printf("[TRACE] backend/local: running validation operation")
-			validateDiags := ret.Core.Validate(ret.Config)
+			validateDiags := ret.Core.Validate(ctx, ret.Config)
 			diags = diags.Append(validateDiags)
 		}
 	}

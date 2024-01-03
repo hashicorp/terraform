@@ -4,6 +4,7 @@
 package rpcapi
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"sort"
@@ -60,7 +61,7 @@ func loadProviderSchema(providerAddr addrs.Provider, version getproviders.Versio
 		}
 	}
 
-	resp := provider.GetProviderSchema()
+	resp := provider.GetProviderSchema(context.Background())
 	return resp, nil
 }
 

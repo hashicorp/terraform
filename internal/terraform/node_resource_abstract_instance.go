@@ -424,7 +424,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 	} else {
 		// Allow the provider to check the destroy plan, and insert any
 		// necessary private data.
-		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
+		resp = provider.PlanResourceChange(ctx.Context(), providers.PlanResourceChangeRequest{
 			TypeName:         n.Addr.Resource.Resource.Type,
 			Config:           nullVal,
 			PriorState:       unmarkedPriorVal,
@@ -633,7 +633,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			NewState: priorVal,
 		}
 	} else {
-		resp = provider.ReadResource(providers.ReadResourceRequest{
+		resp = provider.ReadResource(ctx.Context(), providers.ReadResourceRequest{
 			TypeName:     n.Addr.Resource.Resource.Type,
 			PriorState:   priorVal,
 			Private:      state.Private,
@@ -827,7 +827,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	// we must unmark and use the original config, since the ignore_changes
 	// handling below needs access to the marks.
 	unmarkedConfigVal, _ := origConfigVal.UnmarkDeep()
-	validateResp := provider.ValidateResourceConfig(
+	validateResp := provider.ValidateResourceConfig(ctx.Context(),
 		providers.ValidateResourceConfigRequest{
 			TypeName: n.Addr.Resource.Resource.Type,
 			Config:   unmarkedConfigVal,
@@ -888,7 +888,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			}
 		}
 	} else {
-		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
+		resp = provider.PlanResourceChange(ctx.Context(), providers.PlanResourceChangeRequest{
 			TypeName:         n.Addr.Resource.Resource.Type,
 			Config:           unmarkedConfigVal,
 			PriorState:       unmarkedPriorVal,
@@ -1132,7 +1132,7 @@ func (n *NodeAbstractResourceInstance) plan(
 				Diagnostics:  overrideDiags,
 			}
 		} else {
-			resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
+			resp = provider.PlanResourceChange(ctx.Context(), providers.PlanResourceChangeRequest{
 				TypeName:         n.Addr.Resource.Resource.Type,
 				Config:           unmarkedConfigVal,
 				PriorState:       nullPriorVal,
@@ -1526,7 +1526,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	configVal, pvm = configVal.UnmarkDeepWithPaths()
 
 	log.Printf("[TRACE] readDataSource: Re-validating config for %s", n.Addr)
-	validateResp := provider.ValidateDataResourceConfig(
+	validateResp := provider.ValidateDataResourceConfig(ctx.Context(),
 		providers.ValidateDataResourceConfigRequest{
 			TypeName: n.Addr.ContainingResource().Resource.Type,
 			Config:   configVal,
@@ -1559,7 +1559,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 			Diagnostics: overrideDiags,
 		}
 	} else {
-		resp = provider.ReadDataSource(providers.ReadDataSourceRequest{
+		resp = provider.ReadDataSource(ctx.Context(), providers.ReadDataSourceRequest{
 			TypeName:     n.Addr.ContainingResource().Resource.Type,
 			Config:       configVal,
 			ProviderMeta: metaConfigVal,
@@ -2426,7 +2426,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			}
 		}
 	} else {
-		resp = provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
+		resp = provider.ApplyResourceChange(ctx.Context(), providers.ApplyResourceChangeRequest{
 			TypeName:       n.Addr.Resource.Resource.Type,
 			PriorState:     unmarkedBefore,
 			Config:         unmarkedConfigVal,
