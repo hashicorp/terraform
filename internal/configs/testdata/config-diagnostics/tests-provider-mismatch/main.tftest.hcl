@@ -11,7 +11,7 @@ provider "bar" {
 
 run "default_should_be_fine" {}
 
-run "bit_complicated_still_okay "{
+run "bit_complicated_still_okay" {
 
   providers = {
     foo = foo
