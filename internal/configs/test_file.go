@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getmodules"
@@ -437,6 +438,16 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 		NameDeclRange: block.LabelRanges[0],
 		DeclRange:     block.DefRange,
 	}
+
+	if !hclsyntax.ValidIdentifier(r.Name) {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid run block name",
+			Detail:   badIdentifierDetail,
+			Subject:  r.NameDeclRange.Ptr(),
+		})
+	}
+
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "assert":
