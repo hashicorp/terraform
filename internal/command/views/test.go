@@ -838,6 +838,7 @@ func junitXMLTestReport(suite *moduletest.Suite) ([]byte, error) {
 	caseName := xml.Name{Local: "testcase"}
 	nameName := xml.Name{Local: "name"}
 	testsName := xml.Name{Local: "tests"}
+	skippedName := xml.Name{Local: "skipped"}
 	failuresName := xml.Name{Local: "failures"}
 	errorsName := xml.Name{Local: "errors"}
 
@@ -850,8 +851,11 @@ func junitXMLTestReport(suite *moduletest.Suite) ([]byte, error) {
 		totalTests := len(file.Runs)
 		totalFails := 0
 		totalErrs := 0
+		totalSkipped := 0
 		for _, run := range file.Runs {
 			switch run.Status {
+			case moduletest.Skip:
+				totalSkipped++
 			case moduletest.Fail:
 				totalFails++
 			case moduletest.Error:
@@ -863,6 +867,7 @@ func junitXMLTestReport(suite *moduletest.Suite) ([]byte, error) {
 			Attr: []xml.Attr{
 				{Name: nameName, Value: file.Name},
 				{Name: testsName, Value: strconv.Itoa(totalTests)},
+				{Name: skippedName, Value: strconv.Itoa(totalSkipped)},
 				{Name: failuresName, Value: strconv.Itoa(totalFails)},
 				{Name: errorsName, Value: strconv.Itoa(totalErrs)},
 			},
@@ -877,6 +882,7 @@ func junitXMLTestReport(suite *moduletest.Suite) ([]byte, error) {
 			}
 			type TestCase struct {
 				Name    string       `xml:"name,attr"`
+				Skipped *WithMessage `xml:"skipped,omitempty"`
 				Failure *WithMessage `xml:"failure,omitempty"`
 				Error   *WithMessage `xml:"error,omitempty"`
 				Stderr  *WithMessage `xml:"system-err,omitempty"`
@@ -886,6 +892,11 @@ func junitXMLTestReport(suite *moduletest.Suite) ([]byte, error) {
 				Name: run.Name,
 			}
 			switch run.Status {
+			case moduletest.Skip:
+				testCase.Skipped = &WithMessage{
+					// FIXME: Is there something useful we could say here about
+					// why the test was skipped?
+				}
 			case moduletest.Fail:
 				testCase.Failure = &WithMessage{
 					Message: "Test run failed",
