@@ -231,6 +231,12 @@ func (m *Mock) ImportResourceState(request ImportResourceStateRequest) (response
 	return response
 }
 
+func (m *Mock) MoveResourceState(request MoveResourceStateRequest) MoveResourceStateResponse {
+	// The MoveResourceState operation happens offline, so we can just hand this
+	// off to the underlying provider.
+	return m.Provider.MoveResourceState(request)
+}
+
 func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceResponse {
 	var response ReadDataSourceResponse
 

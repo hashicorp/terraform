@@ -9,6 +9,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -18,7 +20,6 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // ProviderInstance represents one instance of a provider.
@@ -384,6 +385,29 @@ func (p stubConfiguredProvider) ImportResourceState(req providers.ImportResource
 		))
 	}
 	return providers.ImportResourceStateResponse{
+		Diagnostics: diags,
+	}
+}
+
+// MoveResourceState implements providers.Interface.
+func (p stubConfiguredProvider) MoveResourceState(req providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
+	var diags tfdiags.Diagnostics
+	if p.unknown {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Provider configuration is deferred",
+			"Cannot move an existing object to this resource because its associated provider configuration is deferred to a later operation due to unknown expansion.",
+			nil, // nil attribute path means the overall configuration block
+		))
+	} else {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Provider configuration is invalid",
+			"Cannot move an existing object to this resource because its associated provider configuration is invalid.",
+			nil, // nil attribute path means the overall configuration block
+		))
+	}
+	return providers.MoveResourceStateResponse{
 		Diagnostics: diags,
 	}
 }

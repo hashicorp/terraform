@@ -7,17 +7,18 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/plugin/convert"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/terraform/internal/plugin/convert"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfplugin5"
 )
 
-// New wraps a providers.Interface to implement a grpc ProviderServer.
+// Provider wraps a providers.Interface to implement a grpc ProviderServer.
 // This is useful for creating a test binary out of an internal provider
 // implementation.
 func Provider(p providers.Interface) tfplugin5.ProviderServer {
@@ -78,6 +79,7 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 	resp.ServerCapabilities = &tfplugin5.ServerCapabilities{
 		GetProviderSchemaOptional: p.schema.ServerCapabilities.GetProviderSchemaOptional,
 		PlanDestroy:               p.schema.ServerCapabilities.PlanDestroy,
+		MoveResourceState:         p.schema.ServerCapabilities.MoveResourceState,
 	}
 
 	// include any diagnostics from the original GetSchema call
@@ -361,6 +363,34 @@ func (p *provider) ImportResourceState(_ context.Context, req *tfplugin5.ImportR
 		})
 	}
 
+	return resp, nil
+}
+
+func (p *provider) MoveResourceState(_ context.Context, request *tfplugin5.MoveResourceState_Request) (*tfplugin5.MoveResourceState_Response, error) {
+	resp := &tfplugin5.MoveResourceState_Response{}
+
+	// We don't have a schema for the source type, so we can't decode the state
+	// value properly. Instead, we'll just decode it as a DynamicPseudoType.
+	sourceState, err := decodeDynamicValue(request.SourceState, cty.DynamicPseudoType)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	moveResp := p.provider.MoveResourceState(providers.MoveResourceStateRequest{
+		SourceProviderAddress: request.SourceProviderAddress,
+		SourceTypeName:        request.SourceTypeName,
+		SourceSchemaVersion:   request.SourceSchemaVersion,
+		SourceState:           sourceState,
+		TargetTypeName:        request.TargetTypeName,
+	})
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, moveResp.Diagnostics)
+
+	targetType := p.schema.ResourceTypes[request.TargetTypeName].Block.ImpliedType()
+	resp.TargetState, err = encodeDynamicValue(moveResp.TargetState, targetType)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+	}
 	return resp, nil
 }
 
