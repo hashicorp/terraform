@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
@@ -60,11 +61,19 @@ func (n graphNodeRoot) Name() string {
 }
 
 // CloseRootModuleTransformer is a GraphTransformer that adds a root to the graph.
-type CloseRootModuleTransformer struct{}
+type CloseRootModuleTransformer struct {
+	// ExternalReferences contains the list of references made by an external
+	// observer (such as the testing framework). We use them in here to ensure
+	// that any modules that contain outputs referenced externally are not
+	// removed because they are considered empty.
+	ExternalReferences []*addrs.Reference
+}
 
 func (t *CloseRootModuleTransformer) Transform(g *Graph) error {
 	// close the root module
-	closeRoot := &nodeCloseModule{}
+	closeRoot := &nodeCloseModule{
+		ExternalReferences: t.ExternalReferences,
+	}
 	g.Add(closeRoot)
 
 	// since this is closing the root module, make it depend on everything in

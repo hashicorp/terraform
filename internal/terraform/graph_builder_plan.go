@@ -256,7 +256,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&CloseProviderTransformer{},
 
 		// Close the root module
-		&CloseRootModuleTransformer{},
+		&CloseRootModuleTransformer{
+			ExternalReferences: b.ExternalReferences,
+		},
 
 		// Perform the transitive reduction to make our graph a bit
 		// more understandable if possible (it usually is possible).

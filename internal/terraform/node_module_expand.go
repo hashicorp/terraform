@@ -148,6 +148,11 @@ func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) (diags tfd
 // do not have a lifecycle controlled by individual graph nodes.
 type nodeCloseModule struct {
 	Addr addrs.Module
+
+	// The ExternalReferences mean the closer can keep modules in state that
+	// have no resources if they contain outputs referenced externally. They are
+	// only included by the root closer.
+	ExternalReferences []*addrs.Reference
 }
 
 var (
@@ -217,7 +222,28 @@ func (n *nodeCloseModule) Execute(ctx EvalContext, op walkOperation) (diags tfdi
 
 			// empty child modules are always removed
 			if len(mod.Resources) == 0 && !mod.Addr.IsRoot() && !overridden {
-				delete(state.Modules, modKey)
+
+				if len(mod.Addr) > 1 {
+					// Then it's a deeply nested module that external callers
+					// shouldn't have access to anyway.
+					delete(state.Modules, modKey)
+				}
+
+				// Otherwise, it might be that we want to keep this module in
+				// state if it's being referenced by the testing framework.
+				externalOutput := false
+				for _, reference := range n.ExternalReferences {
+					if call, ok := reference.Subject.(addrs.ModuleCallInstanceOutput); ok {
+						if call.Call.Call.Name == mod.Addr[0].Name && call.Call.Key == mod.Addr[0].InstanceKey {
+							externalOutput = true
+							break
+						}
+					}
+				}
+
+				if !externalOutput {
+					delete(state.Modules, modKey)
+				}
 			}
 		}
 		return nil

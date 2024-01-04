@@ -202,7 +202,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&CloseProviderTransformer{},
 
 		// close the root module
-		&CloseRootModuleTransformer{},
+		&CloseRootModuleTransformer{
+			ExternalReferences: b.ExternalReferences,
+		},
 
 		// Perform the transitive reduction to make our graph a bit
 		// more understandable if possible (it usually is possible).
