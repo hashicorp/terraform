@@ -282,23 +282,25 @@ func (c *CloudCommand) Synopsis() string {
 	return "Manage Terraform Cloud settings and metadata"
 }
 
-// Everything the cloud plugin needs to know to configure a client and talk to TFC.
+// CloudPluginConfig is everything the cloud plugin needs to know to configure a
+// client and talk to TFC.
 type CloudPluginConfig struct {
 	// Maybe someday we can use struct tags to automate grabbing these out of
 	// the metadata headers! And verify client-side that we're sending the right
 	// stuff, instead of having it all be a stringly-typed mystery ball! I want
 	// to believe in that distant shining day! 🌻 Meantime, these struct tags
 	// serve purely as docs.
-	Address          string `md:"tfc-address"`
-	BasePath         string `md:"tfc-base-path"`
-	DisplayHostname  string `md:"tfc-display-hostname"`
-	Token            string `md:"tfc-token"`
-	Organization     string `md:"tfc-organization"`
+	Address         string `md:"tfc-address"`
+	BasePath        string `md:"tfc-base-path"`
+	DisplayHostname string `md:"tfc-display-hostname"`
+	Token           string `md:"tfc-token"`
+	Organization    string `md:"tfc-organization"`
+	// The actual selected workspace
 	CurrentWorkspace string `md:"tfc-current-workspace"`
 
-	// The classic "WorkspaceMapping" attributes. I think 90% of the time we
-	// actually won't care about these, and just want the current workspace
-	// instead.
+	// The raw "WorkspaceMapping" attributes, which determine the workspaces
+	// that could be selected. Generally you want CurrentWorkspace instead, but
+	// these can potentially be useful for niche use cases.
 	WorkspaceName      string   `md:"tfc-workspace-name"`
 	WorkspaceTags      []string `md:"tfc-workspace-tags"`
 	DefaultProjectName string   `md:"tfc-default-project-name"`
