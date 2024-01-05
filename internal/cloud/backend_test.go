@@ -434,8 +434,8 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 				t.Fatalf("%s: unexpected configure result: %v", name, diags.Err())
 			}
 
-			if tc.expectedOrganization != "" && tc.expectedOrganization != b.organization {
-				t.Fatalf("%s: organization not valid: %s, expected: %s", name, b.organization, tc.expectedOrganization)
+			if tc.expectedOrganization != "" && tc.expectedOrganization != b.Organization {
+				t.Fatalf("%s: organization not valid: %s, expected: %s", name, b.Organization, tc.expectedOrganization)
 			}
 
 			if tc.expectedHostname != "" && tc.expectedHostname != b.Hostname {
@@ -675,9 +675,9 @@ func TestCloud_setUnavailableTerraformVersion(t *testing.T) {
 	// happens when a workspace gets created. This is why we can't use "name" in
 	// the backend config above, btw: if you do, testBackend() creates the default
 	// workspace before we get a chance to do anything.
-	_, err := b.client.Workspaces.Read(context.Background(), b.organization, workspaceName)
+	_, err := b.client.Workspaces.Read(context.Background(), b.Organization, workspaceName)
 	if err != tfe.ErrResourceNotFound {
-		t.Fatalf("the workspace we were about to try and create (%s/%s) already exists in the mocks somehow, so this test isn't trustworthy anymore", b.organization, workspaceName)
+		t.Fatalf("the workspace we were about to try and create (%s/%s) already exists in the mocks somehow, so this test isn't trustworthy anymore", b.Organization, workspaceName)
 	}
 
 	_, err = b.StateMgr(workspaceName)
@@ -685,7 +685,7 @@ func TestCloud_setUnavailableTerraformVersion(t *testing.T) {
 		t.Fatalf("expected no error from StateMgr, despite not being able to set remote Terraform version: %#v", err)
 	}
 	// Make sure the workspace was created:
-	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, workspaceName)
+	workspace, err := b.client.Workspaces.Read(context.Background(), b.Organization, workspaceName)
 	if err != nil {
 		t.Fatalf("b.StateMgr() didn't actually create the desired workspace")
 	}
@@ -1125,7 +1125,7 @@ func TestCloud_StateMgr_versionCheck(t *testing.T) {
 	// Terraform version
 	if _, err := b.client.Workspaces.Update(
 		context.Background(),
-		b.organization,
+		b.Organization,
 		b.WorkspaceMapping.Name,
 		tfe.WorkspaceUpdateOptions{
 			TerraformVersion: tfe.String(v0140.String()),
@@ -1142,7 +1142,7 @@ func TestCloud_StateMgr_versionCheck(t *testing.T) {
 	// Now change the remote workspace to a different Terraform version
 	if _, err := b.client.Workspaces.Update(
 		context.Background(),
-		b.organization,
+		b.Organization,
 		b.WorkspaceMapping.Name,
 		tfe.WorkspaceUpdateOptions{
 			TerraformVersion: tfe.String(v0135.String()),
@@ -1182,7 +1182,7 @@ func TestCloud_StateMgr_versionCheckLatest(t *testing.T) {
 	// Update the remote workspace to the pseudo-version "latest"
 	if _, err := b.client.Workspaces.Update(
 		context.Background(),
-		b.organization,
+		b.Organization,
 		b.WorkspaceMapping.Name,
 		tfe.WorkspaceUpdateOptions{
 			TerraformVersion: tfe.String("latest"),
@@ -1251,7 +1251,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion(t *testing.T) {
 			// specified remote version
 			if _, err := b.client.Workspaces.Update(
 				context.Background(),
-				b.organization,
+				b.Organization,
 				b.WorkspaceMapping.Name,
 				tfe.WorkspaceUpdateOptions{
 					ExecutionMode:    &tc.executionMode,
@@ -1302,7 +1302,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion_workspaceErrors(t *testing.T) {
 	// Update the mock remote workspace Terraform version to an invalid version
 	if _, err := b.client.Workspaces.Update(
 		context.Background(),
-		b.organization,
+		b.Organization,
 		b.WorkspaceMapping.Name,
 		tfe.WorkspaceUpdateOptions{
 			TerraformVersion: tfe.String("1.0.cheetarah"),
@@ -1350,7 +1350,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion_ignoreFlagSet(t *testing.T) {
 	// specified remote version
 	if _, err := b.client.Workspaces.Update(
 		context.Background(),
-		b.organization,
+		b.Organization,
 		b.WorkspaceMapping.Name,
 		tfe.WorkspaceUpdateOptions{
 			TerraformVersion: tfe.String(remote.String()),
@@ -1402,7 +1402,7 @@ func TestCloudBackend_DeleteWorkspace_SafeAndForce(t *testing.T) {
 	}
 
 	c := context.Background()
-	safeDeleteWorkspace, err := b.client.Workspaces.Read(c, b.organization, safeDeleteWorkspaceName)
+	safeDeleteWorkspace, err := b.client.Workspaces.Read(c, b.Organization, safeDeleteWorkspaceName)
 	if err != nil {
 		t.Fatalf("error fetching workspace: %v", err)
 	}
@@ -1428,7 +1428,7 @@ func TestCloudBackend_DeleteWorkspace_SafeAndForce(t *testing.T) {
 	}
 
 	// lock a workspace and then confirm that force deleting it works
-	forceDeleteWorkspace, err := b.client.Workspaces.Read(c, b.organization, forceDeleteWorkspaceName)
+	forceDeleteWorkspace, err := b.client.Workspaces.Read(c, b.Organization, forceDeleteWorkspaceName)
 	if err != nil {
 		t.Fatalf("error fetching workspace: %v", err)
 	}

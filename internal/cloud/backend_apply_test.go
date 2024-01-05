@@ -303,7 +303,7 @@ func TestCloud_applyWithoutPermissions(t *testing.T) {
 	// Create a named workspace without permissions.
 	w, err := b.client.Workspaces.Create(
 		context.Background(),
-		b.organization,
+		b.Organization,
 		tfe.WorkspaceCreateOptions{
 			Name: tfe.String("prod"),
 		},
@@ -343,7 +343,7 @@ func TestCloud_applyWithVCS(t *testing.T) {
 	// Create a named workspace with a VCS.
 	_, err := b.client.Workspaces.Create(
 		context.Background(),
-		b.organization,
+		b.Organization,
 		tfe.WorkspaceCreateOptions{
 			Name:    tfe.String("prod"),
 			VCSRepo: &tfe.VCSRepoOptions{},
@@ -455,7 +455,7 @@ func TestCloud_applyWithCloudPlan(t *testing.T) {
 	mockSROWorkspace(t, b, op.Workspace)
 
 	// Perform the plan before trying to apply it
-	ws, err := b.client.Workspaces.Read(context.Background(), b.organization, b.WorkspaceMapping.Name)
+	ws, err := b.client.Workspaces.Read(context.Background(), b.Organization, b.WorkspaceMapping.Name)
 	if err != nil {
 		t.Fatalf("Couldn't read workspace: %s", err)
 	}
@@ -877,7 +877,7 @@ func TestCloud_applyApprovedExternally(t *testing.T) {
 
 	wl, err := b.client.Workspaces.List(
 		ctx,
-		b.organization,
+		b.Organization,
 		nil,
 	)
 	if err != nil {
@@ -951,7 +951,7 @@ func TestCloud_applyDiscardedExternally(t *testing.T) {
 
 	wl, err := b.client.Workspaces.List(
 		ctx,
-		b.organization,
+		b.Organization,
 		nil,
 	)
 	if err != nil {
@@ -1012,7 +1012,7 @@ func TestCloud_applyWithAutoApprove(t *testing.T) {
 	// Create a named workspace that auto applies.
 	_, err := b.client.Workspaces.Create(
 		context.Background(),
-		b.organization,
+		b.Organization,
 		tfe.WorkspaceCreateOptions{
 			Name: tfe.String("prod"),
 		},
@@ -1128,7 +1128,7 @@ func TestCloud_applyWorkspaceWithoutOperations(t *testing.T) {
 	// Create a named workspace that doesn't allow operations.
 	_, err := b.client.Workspaces.Create(
 		ctx,
-		b.organization,
+		b.Organization,
 		tfe.WorkspaceCreateOptions{
 			Name: tfe.String("no-operations"),
 		},
@@ -1189,7 +1189,7 @@ func TestCloud_applyLockTimeout(t *testing.T) {
 	ctx := context.Background()
 
 	// Retrieve the workspace used to run this operation in.
-	w, err := b.client.Workspaces.Read(ctx, b.organization, b.WorkspaceMapping.Name)
+	w, err := b.client.Workspaces.Read(ctx, b.Organization, b.WorkspaceMapping.Name)
 	if err != nil {
 		t.Fatalf("error retrieving workspace: %v", err)
 	}
@@ -1679,7 +1679,7 @@ func TestCloud_applyPolicySoftFailAutoApprove(t *testing.T) {
 	// Create a named workspace that auto applies.
 	_, err := b.client.Workspaces.Create(
 		context.Background(),
-		b.organization,
+		b.Organization,
 		tfe.WorkspaceCreateOptions{
 			Name: tfe.String("prod"),
 		},
@@ -1870,7 +1870,7 @@ func TestCloud_applyVersionCheck(t *testing.T) {
 			// remote workspace
 			_, err := b.client.Workspaces.Update(
 				ctx,
-				b.organization,
+				b.Organization,
 				b.WorkspaceMapping.Name,
 				tfe.WorkspaceUpdateOptions{
 					ExecutionMode:    tfe.String(tc.executionMode),

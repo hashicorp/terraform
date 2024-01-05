@@ -90,7 +90,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 			}
 
 			// Retrieve the workspace used to run this operation in.
-			w, err = b.client.Workspaces.Read(stopCtx, b.organization, w.Name)
+			w, err = b.client.Workspaces.Read(stopCtx, b.Organization, w.Name)
 			if err != nil {
 				return nil, generalError("Failed to retrieve workspace", err)
 			}
@@ -170,7 +170,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 			options := tfe.ReadRunQueueOptions{}
 		search:
 			for {
-				rq, err := b.client.Organizations.ReadRunQueue(stopCtx, b.organization, options)
+				rq, err := b.client.Organizations.ReadRunQueue(stopCtx, b.Organization, options)
 				if err != nil {
 					return r, generalError("Failed to retrieve queue", err)
 				}
@@ -193,7 +193,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 			}
 
 			if position > 0 {
-				c, err := b.client.Organizations.ReadCapacity(stopCtx, b.organization)
+				c, err := b.client.Organizations.ReadCapacity(stopCtx, b.Organization)
 				if err != nil {
 					return r, generalError("Failed to retrieve capacity", err)
 				}
@@ -391,7 +391,7 @@ func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Oper
 		case tfe.PolicyHardFailed:
 			return fmt.Errorf(msgPrefix + " hard failed.")
 		case tfe.PolicySoftFailed:
-			runUrl := fmt.Sprintf(runHeader, b.Hostname, b.organization, op.Workspace, r.ID)
+			runUrl := fmt.Sprintf(runHeader, b.Hostname, b.Organization, op.Workspace, r.ID)
 
 			if op.Type == backend.OperationTypePlan || op.UIOut == nil || op.UIIn == nil ||
 				!pc.Actions.IsOverridable || !pc.Permissions.CanOverride {

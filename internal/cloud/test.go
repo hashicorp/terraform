@@ -7,15 +7,18 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/go-tfe"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/zclconf/go-cty/cty"
 
@@ -302,6 +305,24 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	}
 }
 
+// discover the TFC/E API service URL
+func discoverTfeURL(hostname svchost.Hostname, services *disco.Disco) (*url.URL, error) {
+	host, err := services.Discover(hostname)
+	if err != nil {
+		var serviceDiscoErr *disco.ErrServiceDiscoveryNetworkRequest
+
+		switch {
+		case errors.As(err, &serviceDiscoErr):
+			err = fmt.Errorf("a network issue prevented cloud configuration; %w", err)
+			return nil, err
+		default:
+			return nil, err
+		}
+	}
+
+	return host.ServiceURL(tfeServiceID)
+}
+
 func (runner *TestSuiteRunner) client(addr tfaddr.Module, id tfe.RegistryModuleID) (*tfe.Client, *tfe.RegistryModule, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -309,7 +330,7 @@ func (runner *TestSuiteRunner) client(addr tfaddr.Module, id tfe.RegistryModuleI
 	if runner.clientOverride != nil {
 		client = runner.clientOverride
 	} else {
-		service, err := discover(addr.Package.Host, runner.Services)
+		service, err := discoverTfeURL(addr.Package.Host, runner.Services)
 		if err != nil {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,

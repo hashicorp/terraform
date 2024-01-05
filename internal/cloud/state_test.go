@@ -38,7 +38,7 @@ func TestState_GetRootOutputValues(t *testing.T) {
 	b, bCleanup := testBackendWithOutputs(t)
 	defer bCleanup()
 
-	state := &State{tfeClient: b.client, organization: b.organization, workspace: &tfe.Workspace{
+	state := &State{tfeClient: b.client, organization: b.Organization, workspace: &tfe.Workspace{
 		ID: "ws-abcd",
 	}}
 	outputs, err := state.GetRootOutputValues()
