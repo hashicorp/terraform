@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"log"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
@@ -207,16 +208,65 @@ func (f *functionResults) checkPrior(provider addrs.Provider, name string, args 
 	}
 
 	if resHash != res.hash {
+		// Log the args for debugging in case the hcl context is
+		// insufficient. The error should be adequate most of the time, and
+		// could already be quite long, so we don't want to add all
+		// arguments too.
+		log.Printf("[ERROR] provider %s returned an inconsistent result for function %q with args: %#v\n", provider, name, args)
 		// The hcl package will add the necessary context around the error in
 		// the diagnostic, but we add the differing results when we can.
 		// TODO: maybe we should add a call to action, since this is a bug in
 		//       the provider.
 		if res.value != cty.NilVal {
-			return fmt.Errorf("Provider function returned an inconsistent result,\nwas: %#v,\nnow: %#v", res.value, result)
+			return fmt.Errorf("provider function returned an inconsistent result,\nwas: %#v,\nnow: %#v", res.value, result)
 
 		}
-		return fmt.Errorf("Provider function returned an inconsistent result.")
+		return fmt.Errorf("provider function returned an inconsistent result")
 	}
 
 	return nil
+}
+
+// insertHashes insert key-value pairs to the functionResults map. This is used
+// to preload stored values before any Verify calls are made.
+func (f *functionResults) insertHashes(hashes []FunctionHash) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	for _, res := range hashes {
+		f.results[[sha256.Size]byte(res.Key)] = priorResult{
+			hash: [sha256.Size]byte(res.Result),
+		}
+	}
+}
+
+// FunctionHash contains the key and result hash values from a prior function
+// call.
+type FunctionHash struct {
+	Key    []byte
+	Result []byte
+}
+
+// copy the hash values into a struct which can be recorded in the plan.
+func (f *functionResults) getHashes() []FunctionHash {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	var res []FunctionHash
+	for k, r := range f.results {
+		res = append(res, FunctionHash{Key: k[:], Result: r.hash[:]})
+	}
+	return res
+}
+
+// GetFunctionCallHashes returns the set of all stored provider function.call
+// hashes.
+func GetFunctionCallHashes() []FunctionHash {
+	return functionResultsCache.getHashes()
+}
+
+// LoadFunctionCallHashes loads saved function call hashes to validate future
+// provider function calls.
+func LoadFunctionCallHashes(hashes []FunctionHash) {
+	functionResultsCache.insertHashes(hashes)
 }

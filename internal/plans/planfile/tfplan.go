@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/version"
 )
@@ -236,6 +237,15 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			return nil, fmt.Errorf("invalid value for input variable %q: %s", name, err)
 		}
 		plan.VariableValues[name] = val
+	}
+
+	for _, hash := range rawPlan.ProviderFunctionResults {
+		plan.ProviderFunctionResults = append(plan.ProviderFunctionResults,
+			providers.FunctionHash{
+				Key:    hash.Key,
+				Result: hash.Result,
+			},
+		)
 	}
 
 	if rawBackend := rawPlan.Backend; rawBackend == nil {
@@ -654,6 +664,15 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 
 	for name, val := range plan.VariableValues {
 		rawPlan.Variables[name] = valueToTfplan(val)
+	}
+
+	for _, hash := range plan.ProviderFunctionResults {
+		rawPlan.ProviderFunctionResults = append(rawPlan.ProviderFunctionResults,
+			&planproto.ProviderFunctionCallHash{
+				Key:    hash.Key,
+				Result: hash.Result,
+			},
+		)
 	}
 
 	if plan.Backend.Type == "" || plan.Backend.Config == nil {

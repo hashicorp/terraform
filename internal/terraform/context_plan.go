@@ -706,16 +706,17 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	}
 
 	plan := &plans.Plan{
-		UIMode:             opts.Mode,
-		Changes:            changes,
-		DriftedResources:   driftedResources,
-		PrevRunState:       prevRunState,
-		PriorState:         priorState,
-		PlannedState:       walker.State.Close(),
-		ExternalReferences: opts.ExternalReferences,
-		Overrides:          opts.Overrides,
-		Checks:             states.NewCheckResults(walker.Checks),
-		Timestamp:          timestamp,
+		UIMode:                  opts.Mode,
+		Changes:                 changes,
+		DriftedResources:        driftedResources,
+		PrevRunState:            prevRunState,
+		PriorState:              priorState,
+		PlannedState:            walker.State.Close(),
+		ExternalReferences:      opts.ExternalReferences,
+		Overrides:               opts.Overrides,
+		Checks:                  states.NewCheckResults(walker.Checks),
+		Timestamp:               timestamp,
+		ProviderFunctionResults: providers.GetFunctionCallHashes(),
 
 		// Other fields get populated by Context.Plan after we return
 	}

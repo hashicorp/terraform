@@ -166,12 +166,21 @@ func TestFunctionCache(t *testing.T) {
 
 			err = results.checkPrior(test.second.provider, test.second.name, test.second.args, test.second.result)
 
-			if err != nil {
-				if test.expectErr {
-					return
-				}
+			if err != nil && !test.expectErr {
 				t.Fatal(err)
 			}
+
+			// reload the data to ensure we validate identically
+			newResults := newFunctionResults()
+			newResults.insertHashes(results.getHashes())
+
+			originalErr := err != nil
+			reloadedErr := newResults.checkPrior(test.second.provider, test.second.name, test.second.args, test.second.result) != nil
+
+			if originalErr != reloadedErr {
+				t.Fatalf("original check returned err:%t, reloaded check returned err:%t", originalErr, reloadedErr)
+			}
+
 		})
 	}
 }
