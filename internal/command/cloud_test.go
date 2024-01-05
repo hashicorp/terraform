@@ -23,6 +23,7 @@ import (
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendCloud "github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/httpclient"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -114,7 +115,7 @@ func testDisco(s *httptest.Server) *disco.Disco {
 	return d
 }
 
-func TestCloud_withBackendConfig(t *testing.T) {
+func TestCloudCommand_withBackendConfig(t *testing.T) {
 	t.Skip("To be converted to an e2e test")
 
 	server := newCloudPluginManifestHTTPTestServer(t)
@@ -146,6 +147,8 @@ func TestCloud_withBackendConfig(t *testing.T) {
 		t.Fatalf("init failed\n%s", ui.ErrorWriter)
 	}
 
+	testStreams, done := terminal.StreamsForTesting(t)
+
 	// Run the cloud command
 	ui = cli.NewMockUi()
 	c := &CloudCommand{
@@ -153,6 +156,7 @@ func TestCloud_withBackendConfig(t *testing.T) {
 			Ui:               ui,
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Services:         disco,
+			Streams:          testStreams,
 			WorkingDir:       wd,
 		},
 	}
@@ -162,7 +166,7 @@ func TestCloud_withBackendConfig(t *testing.T) {
 		t.Fatalf("expected exit 0, got %d: \n%s", code, ui.ErrorWriter.String())
 	}
 
-	output := ui.OutputWriter.String()
+	output := done(t).Stdout()
 	expected := "Terraform Cloud Plugin v0.1.0\n\n"
 	if output != expected {
 		t.Fatalf("the output did not equal the expected string:\n%s", cmp.Diff(expected, output))
@@ -183,6 +187,8 @@ func TestCloud_withENVConfig(t *testing.T) {
 	os.Setenv("TF_CLOUD_HOSTNAME", serverURL.Host)
 	defer os.Unsetenv("TF_CLOUD_HOSTNAME")
 
+	testStreams, done := terminal.StreamsForTesting(t)
+
 	// Run the cloud command
 	ui := cli.NewMockUi()
 	c := &CloudCommand{
@@ -190,6 +196,7 @@ func TestCloud_withENVConfig(t *testing.T) {
 			Ui:               ui,
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Services:         disco,
+			Streams:          testStreams,
 			WorkingDir:       wd,
 		},
 	}
@@ -199,7 +206,7 @@ func TestCloud_withENVConfig(t *testing.T) {
 		t.Fatalf("expected exit 0, got %d: \n%s", code, ui.ErrorWriter.String())
 	}
 
-	output := ui.OutputWriter.String()
+	output := done(t).Stdout()
 	expected := "Terraform Cloud Plugin v0.1.0\n\n"
 	if output != expected {
 		t.Fatalf("the output did not equal the expected string:\n%s", cmp.Diff(expected, output))
