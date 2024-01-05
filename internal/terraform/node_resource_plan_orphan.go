@@ -147,7 +147,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		}
 	}
 	for _, fm := range n.forgetModules {
-		if fm.Equal(n.Addr.Module.Module()) {
+		if fm.TargetContains(n.Addr) {
 			forget = true
 		}
 	}

@@ -4709,6 +4709,97 @@ removed {
 	}
 }
 
+func TestContext2Plan_removedModuleRemovesDeeplyNestedResources(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+removed {
+  from = module.child
+  lifecycle {
+	destroy = false
+  }
+}
+`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("module.child.test_object.a"), &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("module.child.module.grandchild.test_object.a"), &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+
+		// We'll also check it works for deeply nested deposed objects too.
+		s.SetResourceInstanceDeposed(mustResourceInstanceAddr("module.child.module.grandchild.test_object.a"), "gone", &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if diags.HasErrors() {
+		t.Errorf("expected no errors but got %s", diags.Err())
+	}
+
+	resources := []string{"module.child.test_object.a", "module.child.module.grandchild.test_object.a"}
+	for _, resource := range resources {
+		t.Run(resource, func(t *testing.T) {
+			addr := mustResourceInstanceAddr(resource)
+
+			instPlan := plan.Changes.ResourceInstance(addr)
+			if instPlan == nil {
+				t.Fatalf("no plan for %s at all", addr)
+			}
+
+			if got, want := instPlan.Addr, addr; !got.Equal(want) {
+				t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+			}
+			if got, want := instPlan.PrevRunAddr, addr; !got.Equal(want) {
+				t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+			}
+			if got, want := instPlan.Action, plans.Forget; got != want {
+				t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+			}
+			if got, want := instPlan.ActionReason, plans.ResourceInstanceDeleteBecauseNoResourceConfig; got != want {
+				t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+			}
+		})
+	}
+
+	t.Run("module.child.module.grandchild.test_object.a (deposed)", func(t *testing.T) {
+		addr := mustResourceInstanceAddr("module.child.module.grandchild.test_object.a")
+
+		instPlan := plan.Changes.ResourceInstanceDeposed(addr, "gone")
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addr)
+		}
+
+		if got, want := instPlan.Addr, addr; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.PrevRunAddr, addr; !got.Equal(want) {
+			t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.Action, plans.Forget; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+}
+
 func TestContext2Plan_removedModuleErrorStillInConfigNested(t *testing.T) {
 	addrA := mustResourceInstanceAddr("test_object.a")
 	m := testModuleInline(t, map[string]string{
