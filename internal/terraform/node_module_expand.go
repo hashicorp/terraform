@@ -222,27 +222,23 @@ func (n *nodeCloseModule) Execute(ctx EvalContext, op walkOperation) (diags tfdi
 
 			// empty child modules are always removed
 			if len(mod.Resources) == 0 && !mod.Addr.IsRoot() && !overridden {
-				removeModuleFromState := false
+				removeModuleFromState := true
 
-				if len(mod.Addr) > 1 {
-					// Then it's a deeply nested module that external callers
-					// shouldn't have access to anyway.
-					removeModuleFromState = true
-				} else {
-					// Otherwise, it might be that we want to keep this module
-					// in state if it's being referenced by the testing
-					// framework.
+				// If the module is directly beneath the root, we need to check
+				// if it has any outputs that are referenced externally. If it
+				// does, we can't remove it from the state.
+				if len(mod.Addr) == 1 {
 					for _, reference := range n.ExternalReferences {
 						if call, ok := reference.Subject.(addrs.ModuleCallInstanceOutput); ok {
 							if call.Call.Call.Name == mod.Addr[0].Name && call.Call.Key == mod.Addr[0].InstanceKey {
-								removeModuleFromState = true
+								removeModuleFromState = false
 								break
 							}
 						}
 					}
 				}
 
-				if !removeModuleFromState {
+				if removeModuleFromState {
 					delete(state.Modules, modKey)
 				}
 			}

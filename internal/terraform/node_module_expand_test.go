@@ -68,6 +68,42 @@ func TestNodeCloseModuleExecute(t *testing.T) {
 			t.Fatal("module.child was not removed from state")
 		}
 	})
+	t.Run("walkApplyNestedModules", func(t *testing.T) {
+		state := states.NewState()
+		state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+		state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey).Child("grandchild", addrs.NoKey))
+		ctx := &MockEvalContext{
+			StateState: state.SyncWrapper(),
+		}
+		node := nodeCloseModule{Addr: addrs.Module{"child"}}
+		diags := node.Execute(ctx, walkApply)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected error: %s", diags.Err())
+		}
+
+		// Since module.child has no resources, it should be removed
+		if _, ok := state.Modules["module.child"]; !ok {
+			t.Fatal("module.child should not be removed from state yet")
+		}
+		if _, ok := state.Modules["module.child.module.grandchild"]; !ok {
+			t.Fatal("module.child.module.grandchild should not be removed from state yet")
+		}
+
+		// the root module should do all the module cleanup
+		node = nodeCloseModule{Addr: addrs.RootModule}
+		diags = node.Execute(ctx, walkApply)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected error: %s", diags.Err())
+		}
+
+		// Since module.child has no resources, it should be removed
+		if _, ok := state.Modules["module.child"]; ok {
+			t.Fatal("module.child was not removed from state")
+		}
+		if _, ok := state.Modules["module.child.module.grandchild"]; ok {
+			t.Fatal("module.child.module.grandchild was not removed from state")
+		}
+	})
 	t.Run("walkApplyWithOutputs", func(t *testing.T) {
 		state := states.NewState()
 		state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
