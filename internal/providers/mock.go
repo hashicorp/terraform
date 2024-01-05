@@ -41,6 +41,23 @@ func (m *Mock) GetProviderSchema() GetProviderSchemaResponse {
 	if m.schema == nil {
 		// Cache the schema, it's not changing.
 		schema := m.Provider.GetProviderSchema()
+
+		// Override the provider schema with the constant mock provider schema.
+		// This is empty at the moment, check configs/mock_provider.go for the
+		// actual schema.
+		//
+		// The GetProviderSchemaResponse is returned by value, so it should be
+		// safe for us to modify directly, without affecting any shared state
+		// that could be in use elsewhere.
+		schema.Provider = Schema{
+			Version: schema.Provider.Version,
+			Block:   nil, // Empty - we support no blocks or attributes in mock provider configurations.
+		}
+
+		// Note, we leave the resource and data source schemas as they are since
+		// we want to be able to validate those configurations against the real
+		// provider schemas.
+
 		m.schema = &schema
 	}
 	return *m.schema
