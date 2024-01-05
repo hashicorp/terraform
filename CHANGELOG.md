@@ -38,6 +38,7 @@ BUG FIXES:
 * `terraform test`: Stop attempting to destroy run blocks that have no actual infrastructure to destroy. This fixes an issue where attempts to destroy "verification" run blocks that load only data sources would fail if the underlying infrastructure referenced by the run blocks had already been destroyed. ([#34331](https://github.com/hashicorp/terraform/pull/34331))
 * `terraform test`: Improve error message for invalid run block names. ([#34469](https://github.com/hashicorp/terraform/pull/34469))
 * `terraform test`: Fix bug where outputs in "empty" modules were not available to the assertions from Terraform test files. ([#34482](https://github.com/hashicorp/terraform/pull/34482))
+* security: update `golang.org/x/crypto` to patch CVE-2023-48795 [GH-34426]
 
 ENHANCEMENTS:
 
