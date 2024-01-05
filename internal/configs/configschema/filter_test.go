@@ -175,6 +175,12 @@ func TestFilter(t *testing.T) {
 							Nesting: NestingList,
 						},
 					},
+					"missing_attributes": {
+						NestedType: &Object{
+							Nesting: NestingList,
+						},
+						Computed: true,
+					},
 				},
 
 				BlockTypes: map[string]*NestedBlock{

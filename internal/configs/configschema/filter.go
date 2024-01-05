@@ -50,10 +50,9 @@ func (b *Block) Filter(filterAttribute FilterT[*Attribute], filterBlock FilterT[
 	for name, attrS := range b.Attributes {
 		if filterAttribute == nil || !filterAttribute(name, attrS) {
 			ret.Attributes[name] = attrS
-		}
-
-		if attrS.NestedType != nil {
-			ret.Attributes[name].NestedType = filterNestedType(attrS.NestedType, filterAttribute)
+			if attrS.NestedType != nil {
+				ret.Attributes[name].NestedType = filterNestedType(attrS.NestedType, filterAttribute)
+			}
 		}
 	}
 
