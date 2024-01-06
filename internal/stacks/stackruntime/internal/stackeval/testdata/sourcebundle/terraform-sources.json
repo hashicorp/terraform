@@ -24,6 +24,10 @@
       {
         "source": "https://testing.invalid/planning.tar.gz",
         "local": "planning"
+      },
+      {
+        "source": "https://testing.invalid/validating.tar.gz",
+        "local": "validating"
       }
     ]
   }
