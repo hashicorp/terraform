@@ -151,9 +151,68 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 				return nil, diags
 			}
 
+			// We also have a small selection of additional static validation
+			// rules that apply only to modules used within stack components.
+			diags = diags.Append(c.validateModuleTreeForStacks(configRoot))
+
 			return configRoot, diags
 		},
 	)
+}
+
+// validateModuleTreeForStacks imposes some additional validation constraints
+// on a module tree after it's been loaded by the main configuration packages.
+//
+// These rules deal with a small number of exceptions where the modules language
+// as used by stacks is a subset of the modules language from traditional
+// Terraform. Not all such exceptions are handled in this way because
+// some of them cannot be handled statically, but this is a reasonable place
+// to handle the simpler concerns and allows us to return error messages that
+// talk specifically about stacks, which would be harder to achieve if these
+// exceptions were made at a different layer.
+func (c *ComponentConfig) validateModuleTreeForStacks(startNode *configs.Config) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(c.validateModuleForStacks(startNode.Path, startNode.Module))
+	for _, childNode := range startNode.Children {
+		diags = diags.Append(c.validateModuleTreeForStacks(childNode))
+	}
+	return diags
+}
+
+func (c *ComponentConfig) validateModuleForStacks(moduleAddr addrs.Module, module *configs.Module) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// Inline provider configurations are not allowed when running under stacks,
+	// because provider configurations live in the stack configuration and
+	// then get passed in to the modules as special arguments.
+	for _, pc := range module.ProviderConfigs {
+		// We use some slightly different language for the topmost module
+		// that's being directly called from the stack configuration, because
+		// we can give some direct advice for how to correct the problem there,
+		// whereas for a nested module we assume that it's a third-party module
+		// written for much older versions of Terraform before we deprecated
+		// inline provider configurations and thus the solution is most likely
+		// to be selecting a different module that is Stacks-compatible, because
+		// removing a legacy inline provider configuration from a shared module
+		// would be a breaking change to that module.
+		if moduleAddr.IsRoot() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Inline provider configuration not allowed",
+				Detail:   "A module used as a stack component must have all of its provider configurations passed from the stack configuration, using the \"providers\" argument within the component configuration block.",
+				Subject:  pc.DeclRange.Ptr(),
+			})
+		} else {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Inline provider configuration not allowed",
+				Detail:   "This module is not compatible with Terraform Stacks, because it declares an inline provider configuration.\n\nTo be used with stacks, this module must instead accept provider configurations from its caller.",
+				Subject:  pc.DeclRange.Ptr(),
+			})
+		}
+	}
+
+	return diags
 }
 
 // InputsType returns an object type that the object representing the caller's
