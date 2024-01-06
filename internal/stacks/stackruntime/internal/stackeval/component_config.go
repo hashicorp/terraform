@@ -6,6 +6,8 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/go-slug/sourceaddrs"
@@ -96,6 +98,23 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 					Subject:  decl.SourceAddrRange.ToHCL().Ptr(),
 				})
 				return nil, diags
+			}
+
+			// Since the module config loader doesn't yet understand source
+			// bundles, any diagnostics we return from here will contain the
+			// real filesystem path of the problematic file rather than
+			// preserving the source bundle abstraction. As a compromise
+			// though, we'll make the path relative to the current working
+			// directory so at least it won't be quite so obnoxiously long
+			// when we're running in situations like a remote executor that
+			// uses a separate directory per job.
+			// FIXME: Make the module loader aware of source bundles and use
+			// source addresses in its diagnostics, etc.
+			if cwd, err := os.Getwd(); err == nil {
+				relPath, err := filepath.Rel(cwd, rootModuleDir)
+				if err == nil {
+					rootModuleDir = filepath.ToSlash(relPath)
+				}
 			}
 
 			// With rootModuleDir we can now have the configs package work
@@ -265,6 +284,23 @@ func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*conf
 			Subject:  req.SourceAddrRange.Ptr(),
 		})
 		return nil, nil, diags
+	}
+
+	// Since the module config loader doesn't yet understand source
+	// bundles, any diagnostics we return from here will contain the
+	// real filesystem path of the problematic file rather than
+	// preserving the source bundle abstraction. As a compromise
+	// though, we'll make the path relative to the current working
+	// directory so at least it won't be quite so obnoxiously long
+	// when we're running in situations like a remote executor that
+	// uses a separate directory per job.
+	// FIXME: Make the module loader aware of source bundles and use
+	// source addresses in its diagnostics, etc.
+	if cwd, err := os.Getwd(); err == nil {
+		relPath, err := filepath.Rel(cwd, moduleDir)
+		if err == nil {
+			moduleDir = filepath.ToSlash(relPath)
+		}
 	}
 
 	mod, moreDiags := w.parser.LoadConfigDir(moduleDir)
