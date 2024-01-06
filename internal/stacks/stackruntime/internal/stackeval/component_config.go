@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/spf13/afero"
 	"github.com/zclconf/go-cty/cty"
@@ -228,14 +229,23 @@ func (c *ComponentConfig) ExprReferenceValue(ctx context.Context, phase EvalPhas
 	return cty.DynamicVal
 }
 
-// Validate implements Validatable.
-func (c *ComponentConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
+func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	_, moreDiags := c.CheckModuleTree(ctx)
 	diags = diags.Append(moreDiags)
 
 	return diags
+}
+
+// Validate implements Validatable.
+func (c *ComponentConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
+	return c.checkValid(ctx, ValidatePhase)
+}
+
+// PlanChanges implements Plannable.
+func (c *ComponentConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+	return nil, c.checkValid(ctx, PlanPhase)
 }
 
 func (c *ComponentConfig) tracingName() string {
