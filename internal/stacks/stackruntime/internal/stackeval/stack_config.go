@@ -303,7 +303,7 @@ func (s *StackConfig) Components(ctx context.Context) map[stackaddrs.Component]*
 		return nil
 	}
 	ret := make(map[stackaddrs.Component]*ComponentConfig, len(s.config.Stack.Components))
-	for name := range s.config.Stack.InputVariables {
+	for name := range s.config.Stack.Components {
 		addr := stackaddrs.Component{Name: name}
 		ret[addr] = s.Component(ctx, addr)
 	}
