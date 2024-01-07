@@ -581,7 +581,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			tfdiags.Error,
 			"Cannot import non-existent remote object",
 			fmt.Sprintf(
-				"While attempting to import an existing object to %q, "+
+				"While attempting to import an existing object to \"%s\", "+
 					"the provider detected that no object exists with the given id. "+
 					"Only pre-existing objects can be imported; check that the id "+
 					"is correct and that it is associated with the provider's "+
