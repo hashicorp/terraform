@@ -22,6 +22,12 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
+const (
+	// defaultWorkspaceKeyPrefix is the default prefix for workspace storage.
+	// The colon is used to reduce the chance of name conflicts with existing objects.
+	defaultWorkspaceKeyPrefix = "env:"
+)
+
 func (b *Backend) Workspaces() ([]string, error) {
 	const maxKeys = 1000
 
