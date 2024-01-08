@@ -170,7 +170,7 @@ require (
 	github.com/cli/go-gh v1.0.0 // indirect
 	github.com/cli/safeexec v1.0.0 // indirect
 	github.com/cli/shurcooL-graphql v0.0.2 // indirect
-	github.com/cloudflare/circl v1.3.3 // indirect
+	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/coreos/go-systemd v0.0.0-20181012123002-c6f51f82210d // indirect
 	github.com/creack/pty v1.1.18 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
