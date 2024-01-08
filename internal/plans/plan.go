@@ -42,6 +42,7 @@ type Plan struct {
 	UIMode Mode
 
 	VariableValues    map[string]DynamicValue
+	VariableMarks     map[string][]cty.PathValueMarks
 	Changes           *Changes
 	DriftedResources  []*ResourceInstanceChangeSrc
 	TargetAddrs       []addrs.Targetable

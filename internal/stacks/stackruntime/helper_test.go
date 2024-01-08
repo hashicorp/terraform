@@ -110,3 +110,11 @@ func mustPlanDynamicValue(v cty.Value) plans.DynamicValue {
 	}
 	return ret
 }
+
+func mustPlanDynamicValueDynamicType(v cty.Value) plans.DynamicValue {
+	ret, err := plans.NewDynamicValue(v, cty.DynamicPseudoType)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}

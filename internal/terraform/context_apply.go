@@ -202,6 +202,9 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 			))
 			continue
 		}
+		if pvm, ok := plan.VariableMarks[name]; ok {
+			val = val.MarkWithPaths(pvm)
+		}
 
 		variables[name] = &InputValue{
 			Value:      val,

@@ -253,15 +253,25 @@ The -target option is not for routine use, and is provided only for exceptional 
 
 	// convert the variables into the format expected for the plan
 	varVals := make(map[string]plans.DynamicValue, len(opts.SetVariables))
+	varMarks := make(map[string][]cty.PathValueMarks, len(opts.SetVariables))
 	for k, iv := range opts.SetVariables {
 		if iv.Value == cty.NilVal {
 			continue // We only record values that the caller actually set
 		}
 
+		// Root variable values arriving from the traditional CLI path are
+		// unmarked, as they are directly decoded from .tfvars, CLI arguments,
+		// or the environment. However, variable values arriving from other
+		// plans (via the coordination efforts of the stacks runtime) may have
+		// gathered marks during evaluation. We must separate the value from
+		// its marks here to maintain compatibility with plans.DynamicValue,
+		// which cannot represent marks.
+		value, pvm := iv.Value.UnmarkDeepWithPaths()
+
 		// We use cty.DynamicPseudoType here so that we'll save both the
 		// value _and_ its dynamic type in the plan, so we can recover
 		// exactly the same value later.
-		dv, err := plans.NewDynamicValue(iv.Value, cty.DynamicPseudoType)
+		dv, err := plans.NewDynamicValue(value, cty.DynamicPseudoType)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -271,12 +281,16 @@ The -target option is not for routine use, and is provided only for exceptional 
 			continue
 		}
 		varVals[k] = dv
+		varMarks[k] = pvm
 	}
 
 	// insert the run-specific data from the context into the plan; variables,
 	// targets and provider SHAs.
 	if plan != nil {
 		plan.VariableValues = varVals
+		if len(varMarks) > 0 {
+			plan.VariableMarks = varMarks
+		}
 		plan.TargetAddrs = opts.Targets
 	} else if !diags.HasErrors() {
 		panic("nil plan but no errors")
