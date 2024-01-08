@@ -942,7 +942,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	)
 
 	b.acl = stringAttr(obj, "acl")
-	b.workspaceKeyPrefix = stringAttrDefault(obj, "workspace_key_prefix", "env:")
+	b.workspaceKeyPrefix = stringAttrDefault(obj, "workspace_key_prefix", defaultWorkspaceKeyPrefix)
 	b.serverSideEncryption = boolAttr(obj, "encrypt")
 	b.kmsKeyID = stringAttr(obj, "kms_key_id")
 	b.ddbTable = stringAttr(obj, "dynamodb_table")
