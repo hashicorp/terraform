@@ -833,10 +833,3 @@ func decodeDynamicValue(v *proto6.DynamicValue, ty cty.Type) (cty.Value, error) 
 	}
 	return res, err
 }
-
-func encodeDynamicValue(v cty.Value) (*proto6.DynamicValue, error) {
-	mp, err := msgpack.Marshal(v, v.Type())
-	return &proto6.DynamicValue{
-		Msgpack: mp,
-	}, err
-}
