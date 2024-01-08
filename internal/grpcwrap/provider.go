@@ -369,28 +369,25 @@ func (p *provider) ImportResourceState(_ context.Context, req *tfplugin5.ImportR
 func (p *provider) MoveResourceState(_ context.Context, request *tfplugin5.MoveResourceState_Request) (*tfplugin5.MoveResourceState_Response, error) {
 	resp := &tfplugin5.MoveResourceState_Response{}
 
-	// We don't have a schema for the source type, so we can't decode the state
-	// value properly. Instead, we'll just decode it as a DynamicPseudoType.
-	sourceState, err := decodeDynamicValue(request.SourceState, cty.DynamicPseudoType)
-	if err != nil {
-		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
-		return resp, nil
-	}
-
 	moveResp := p.provider.MoveResourceState(providers.MoveResourceStateRequest{
 		SourceProviderAddress: request.SourceProviderAddress,
 		SourceTypeName:        request.SourceTypeName,
 		SourceSchemaVersion:   request.SourceSchemaVersion,
-		SourceState:           sourceState,
+		SourceStateJSON:       request.SourceState.Json,
 		TargetTypeName:        request.TargetTypeName,
 	})
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, moveResp.Diagnostics)
+	if moveResp.Diagnostics.HasErrors() {
+		return resp, nil
+	}
 
 	targetType := p.schema.ResourceTypes[request.TargetTypeName].Block.ImpliedType()
-	resp.TargetState, err = encodeDynamicValue(moveResp.TargetState, targetType)
+	targetState, err := encodeDynamicValue(moveResp.TargetState, targetType)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
 	}
+	resp.TargetState = targetState
 	return resp, nil
 }
 

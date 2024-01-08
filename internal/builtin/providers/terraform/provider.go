@@ -131,6 +131,8 @@ func (p *Provider) ImportResourceState(req providers.ImportResourceStateRequest)
 }
 
 func (p *Provider) MoveResourceState(providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
+	// We don't expose the move_resource_state capability, so this should never
+	// be called.
 	panic("unimplemented - terraform.io/builtin/terraform does not support cross-resource moves")
 }
 

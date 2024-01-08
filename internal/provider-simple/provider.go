@@ -131,6 +131,8 @@ func (s simple) ImportResourceState(providers.ImportResourceStateRequest) (resp 
 }
 
 func (s simple) MoveResourceState(providers.MoveResourceStateRequest) (resp providers.MoveResourceStateResponse) {
+	// We don't expose the move_resource_state capability, so this should never
+	// be called.
 	resp.Diagnostics = resp.Diagnostics.Append(errors.New("unsupported"))
 	return resp
 }

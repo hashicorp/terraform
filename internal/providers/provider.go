@@ -188,12 +188,12 @@ type UpgradeResourceStateRequest struct {
 	// Version is version of the schema that created the current state.
 	Version int64
 
-	// RawStateJSON and RawStateFlatmap contiain the state that needs to be
+	// RawStateJSON and RawStateFlatmap contain the state that needs to be
 	// upgraded to match the current schema version. Because the schema is
 	// unknown, this contains only the raw data as stored in the state.
 	// RawStateJSON is the current json state encoding.
 	// RawStateFlatmap is the legacy flatmap encoding.
-	// Only on of these fields may be set for the upgrade request.
+	// Only one of these fields may be set for the upgrade request.
 	RawStateJSON    []byte
 	RawStateFlatmap map[string]string
 }
@@ -406,9 +406,14 @@ type MoveResourceStateRequest struct {
 	// resource is being moved from.
 	SourceSchemaVersion int64
 
-	// SourceState is the state of the resource that the resource is being
-	// moved.
-	SourceState cty.Value
+	// SourceStateJSON and SourceStateFlatmap contain the state of the resource
+	// that is being moved. Because the schema is unknown, this contains only
+	// the raw data as stored in the state.
+	// SourceStateJSON is the current json state encoding.
+	// SourceStateFlatmap is the legacy flatmap encoding.
+	// Only one of these fields may be set for the move request.
+	SourceStateJSON    []byte
+	SourceStateFlatmap map[string]string
 
 	// TargetTypeName is the name of the resource type that the resource is
 	// being moved to.

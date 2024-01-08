@@ -66,7 +66,7 @@ message Stop {
     message Request {
     }
     message Response {
-                string Error = 1;
+        string Error = 1;
     }
 }
 
@@ -146,6 +146,10 @@ message ServerCapabilities {
     // normally, and the caller can used a cached copy of the provider's
     // schema.
     bool get_provider_schema_optional = 2;
+
+    // The move_resource_state capability signals that a provider supports the
+    // MoveResourceState RPC.
+    bool move_resource_state = 3;
 }
 
 message Function {
@@ -230,7 +234,7 @@ service Provider {
     rpc PlanResourceChange(PlanResourceChange.Request) returns (PlanResourceChange.Response);
     rpc ApplyResourceChange(ApplyResourceChange.Request) returns (ApplyResourceChange.Response);
     rpc ImportResourceState(ImportResourceState.Request) returns (ImportResourceState.Response);
-
+    rpc MoveResourceState(MoveResourceState.Request) returns (MoveResourceState.Response);
     rpc ReadDataSource(ReadDataSource.Request) returns (ReadDataSource.Response);
 
     // GetFunctions returns the definitions of all functions.
@@ -254,7 +258,7 @@ message GetMetadata {
         repeated ResourceMetadata resources = 4;
         // functions returns metadata for any functions.
         repeated FunctionMetadata functions = 5;
-  }
+    }
 
     message FunctionMetadata {
         // name is the function name.
@@ -461,6 +465,33 @@ message ImportResourceState {
     }
 }
 
+message MoveResourceState {
+    message Request {
+        // The address of the provider the resource is being moved from.
+        string source_provider_address = 1;
+
+        // The resource type that the resource is being moved from.
+        string source_type_name = 2;
+
+        // The schema version of the resource type that the resource is being
+        // moved from.
+        int64 source_schema_version = 3;
+
+        // The raw state of the resource being moved.
+        RawState source_state = 4;
+
+        // The resource type that the resource is being moved to.
+        string target_type_name = 5;
+    }
+    message Response {
+        // The state of the resource after it has been moved.
+        DynamicValue target_state = 1;
+
+        // Any diagnostics that occurred during the move.
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
 message ReadDataSource {
     message Request {
         string type_name = 1;
@@ -511,15 +542,15 @@ message ProvisionResource {
 
 
 message GetFunctions {
-  message Request {}
+    message Request {}
 
-  message Response {
-    // functions is a mapping of function names to definitions.
-    map<string, Function> functions = 1;
+    message Response {
+        // functions is a mapping of function names to definitions.
+        map<string, Function> functions = 1;
 
-    // diagnostics is any warnings or errors.
-    repeated Diagnostic diagnostics = 2;
-  }
+        // diagnostics is any warnings or errors.
+        repeated Diagnostic diagnostics = 2;
+    }
 }
 
 message CallFunction {

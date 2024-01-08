@@ -624,24 +624,15 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 func (p *GRPCProvider) MoveResourceState(r providers.MoveResourceStateRequest) (resp providers.MoveResourceStateResponse) {
 	logger.Trace("GRPCProvider: MoveResourceState")
 
-	schema := p.GetProviderSchema()
-	if schema.Diagnostics.HasErrors() {
-		resp.Diagnostics = schema.Diagnostics
-		return resp
-	}
-
-	sourceState, err := encodeDynamicValue(r.SourceState)
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
-		return resp
-	}
-
 	protoReq := &proto6.MoveResourceState_Request{
 		SourceProviderAddress: r.SourceProviderAddress,
 		SourceTypeName:        r.SourceTypeName,
 		SourceSchemaVersion:   r.SourceSchemaVersion,
-		SourceState:           sourceState,
-		TargetTypeName:        r.TargetTypeName,
+		SourceState: &proto6.RawState{
+			Json:    r.SourceStateJSON,
+			Flatmap: r.SourceStateFlatmap,
+		},
+		TargetTypeName: r.TargetTypeName,
 	}
 
 	protoResp, err := p.client.MoveResourceState(p.ctx, protoReq)
@@ -650,10 +641,22 @@ func (p *GRPCProvider) MoveResourceState(r providers.MoveResourceStateRequest) (
 		return resp
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
 
 	targetType, ok := schema.ResourceTypes[r.TargetTypeName]
 	if !ok {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource type %q", r.TargetTypeName))
+		// We should have validated this earlier in the process, but we'll
+		// still return an error instead of crashing in case something went
+		// wrong.
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource type %q; this is a bug in Terraform - please report it", r.TargetTypeName))
 		return resp
 	}
 	resp.TargetState, err = decodeDynamicValue(protoResp.TargetState, targetType.Block.ImpliedType())
