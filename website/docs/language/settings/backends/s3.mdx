@@ -555,10 +555,10 @@ to only a single state object within an S3 bucket is shown below:
       "Action": "s3:ListBucket",
       "Resource": "arn:aws:s3:::myorg-terraform-states",
       "Condition": {
-				"StringEquals": {
-					"s3:prefix": "myapp/production/tfstate"
-				}
-			}
+        "StringEquals": {
+          "s3:prefix": "myapp/production/tfstate"
+        }
+      }
     },
     {
       "Effect": "Allow",
