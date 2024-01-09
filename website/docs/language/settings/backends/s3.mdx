@@ -5,12 +5,10 @@ description: Terraform can store state remotely in S3 and lock that state with D
 
 # S3
 
-Stores the state as a given key in a given bucket on
-[Amazon S3](https://aws.amazon.com/s3/).
-This backend also supports state locking and consistency checking via
-[Dynamo DB](https://aws.amazon.com/dynamodb/), which can be enabled by setting
-the `dynamodb_table` field to an existing DynamoDB table name.
-A single DynamoDB table can be used to lock multiple remote state files. Terraform generates key names that include the values of the `bucket` and `key` variables.
+Stores the state as a given key in a given bucket on [Amazon S3](https://aws.amazon.com/s3/).
+This backend also supports state locking and consistency checking via [Dynamo DB](https://aws.amazon.com/dynamodb/), which can be enabled by setting the `dynamodb_table` field to an existing DynamoDB table name.
+A single DynamoDB table can be used to lock multiple remote state files.
+Terraform generates key names that include the values of the `bucket` and `key` variables.
 
 ~> **Warning!** It is highly recommended that you enable
 [Bucket Versioning](https://docs.aws.amazon.com/AmazonS3/latest/userguide/manage-versioning-examples.html)
@@ -28,11 +26,9 @@ terraform {
 }
 ```
 
-This assumes we have a bucket created called `mybucket`. The
-Terraform state is written to the key `path/to/my/key`.
+This assumes we have a bucket created called `mybucket`. The Terraform state is written to the key `path/to/my/key`.
 
-Note that for the access credentials we recommend using a
-[partial configuration](/terraform/language/settings/backends/configuration#partial-configuration).
+Note that for the access credentials we recommend using a [partial configuration](/terraform/language/settings/backends/configuration#partial-configuration).
 
 ### S3 Bucket Permissions
 
