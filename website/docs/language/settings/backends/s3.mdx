@@ -310,7 +310,7 @@ terraform {
 The following configuration is required:
 
 * `bucket` - (Required) Name of the S3 Bucket.
-* `key` - (Required) Path to the state file inside the S3 Bucket. When using a non-default [workspace](/terraform/language/state/workspaces), the state path will be `/workspace_key_prefix/workspace_name/key` (see also the `workspace_key_prefix` configuration).
+* `key` - (Required) Path to the state file inside the S3 Bucket. When using a non-default [workspace](/terraform/language/state/workspaces), the state path will be `<workspace_key_prefix>/<workspace_name>/<key>` (see also the `workspace_key_prefix` configuration).
 
 The following configuration is optional:
 
