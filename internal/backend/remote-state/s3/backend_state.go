@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 
 	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -66,7 +67,11 @@ func (b *Backend) Workspaces() ([]string, error) {
 			if IsA[*s3types.NoSuchBucket](err) {
 				return nil, fmt.Errorf(errS3NoSuchBucket, b.bucketName, err)
 			}
-			return nil, fmt.Errorf("Unable to list objects in S3 bucket %q: %w", b.bucketName, err)
+			if foo, ok := As[smithy.APIError](err); b.workspaceKeyPrefix == defaultWorkspaceKeyPrefix && ok && foo.ErrorCode() == "AccessDenied" {
+				log.Warn("Unable to list non-default workspaces", "err", err.Error())
+				return wss[:1], nil
+			}
+			return nil, fmt.Errorf("Unable to list objects in S3 bucket %q with prefix %q: %w", b.bucketName, prefix, err)
 		}
 
 		for _, obj := range page.Contents {
