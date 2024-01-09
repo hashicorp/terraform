@@ -30,11 +30,11 @@ import (
 //
 // ApplyMoves expects exclusive access to the given state while it's running.
 // Don't read or write any part of the state structure until ApplyMoves returns.
-func ApplyMoves(stmts []MoveStatement, state *states.State, providers map[addrs.Provider]providers.Factory) (*states.State, MoveResults, tfdiags.Diagnostics) {
+func ApplyMoves(stmts []MoveStatement, state *states.State, providerFactory map[addrs.Provider]providers.Factory) (MoveResults, tfdiags.Diagnostics) {
 	ret := makeMoveResults()
 
 	if len(stmts) == 0 {
-		return state, ret, nil
+		return ret, nil
 	}
 
 	// The methodology here is to construct a small graph of all of the move
@@ -49,7 +49,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State, providers map[addrs.
 	// separate validation step should detect this and return an error.
 	if diags := validateMoveStatementGraph(g); diags.HasErrors() {
 		log.Printf("[ERROR] ApplyMoves: %s", diags.ErrWithWarnings())
-		return state, ret, nil
+		return ret, nil
 	}
 
 	// The graph must be reduced in order for ReverseDepthFirstWalk to work
@@ -67,7 +67,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State, providers map[addrs.
 
 	if startNodes.Len() == 0 {
 		log.Println("[TRACE] refactoring.ApplyMoves: No 'moved' statements to consider in this configuration")
-		return state, ret, nil
+		return ret, nil
 	}
 
 	log.Printf("[TRACE] refactoring.ApplyMoves: Processing 'moved' statements in the configuration\n%s", logging.Indent(g.String()))
@@ -93,13 +93,14 @@ func ApplyMoves(stmts []MoveStatement, state *states.State, providers map[addrs.
 	}
 
 	crossTypeMover := &crossTypeMover{
-		State:         state,
-		ProviderCache: providers,
+		State:             state,
+		ProviderFactories: providerFactory,
+		ProviderCache:     make(map[addrs.Provider]providers.Interface),
 	}
 
 	var diags tfdiags.Diagnostics
 
-	newState := state.SyncWrapper()
+	syncState := state.SyncWrapper()
 	for _, v := range g.ReverseTopologicalOrder() {
 		stmt := v.(*MoveStatement)
 
@@ -135,7 +136,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State, providers map[addrs.
 						}
 					}
 
-					newState.MoveModuleInstance(modAddr, newAddr)
+					syncState.MoveModuleInstance(modAddr, newAddr)
 					continue
 				}
 			case addrs.MoveEndpointResource:
@@ -167,10 +168,9 @@ func ApplyMoves(stmts []MoveStatement, state *states.State, providers map[addrs.
 						for key := range rs.Instances {
 							oldInst := rAddr.Instance(key)
 							newInst := newAddr.Instance(key)
-							diags = diags.Append(crossTypeMove.applyCrossTypeMove(stmt, oldInst, newInst, newState))
+							diags = diags.Append(crossTypeMove.applyCrossTypeMove(stmt, oldInst, newInst, syncState))
 							recordOldAddr(oldInst, newInst)
 						}
-						crossTypeMove.close()
 						state.MoveAbsResource(rAddr, newAddr)
 						continue
 					}
@@ -190,9 +190,9 @@ func ApplyMoves(stmts []MoveStatement, state *states.State, providers map[addrs.
 
 							crossTypeMove, crossTypeMoveDiags := crossTypeMover.prepareCrossTypeMove(stmt, iAddr.ContainingResource(), newAddr.ContainingResource())
 							diags = diags.Append(crossTypeMoveDiags)
-							diags = diags.Append(crossTypeMove.applyCrossTypeMove(stmt, iAddr, newAddr, newState))
+							diags = diags.Append(crossTypeMove.applyCrossTypeMove(stmt, iAddr, newAddr, syncState))
 							recordOldAddr(iAddr, newAddr)
-							newState.MoveResourceInstance(iAddr, newAddr)
+							syncState.MoveResourceInstance(iAddr, newAddr)
 							continue
 						}
 					}
@@ -202,8 +202,10 @@ func ApplyMoves(stmts []MoveStatement, state *states.State, providers map[addrs.
 			}
 		}
 	}
+	syncState.Close()
 
-	return newState.Close(), ret, diags
+	diags = diags.Append(crossTypeMover.close())
+	return ret, diags
 }
 
 // buildMoveStatementGraph constructs a dependency graph of the given move

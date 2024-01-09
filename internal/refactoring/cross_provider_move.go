@@ -16,13 +16,33 @@ import (
 // crossTypeMover is a collection of data that is needed to calculate the
 // cross-provider move state changes.
 type crossTypeMover struct {
-	State         *states.State
-	ProviderCache map[addrs.Provider]providers.Factory
+	State             *states.State
+	ProviderFactories map[addrs.Provider]providers.Factory
+	ProviderCache     map[addrs.Provider]providers.Interface
+}
+
+// close ensures the cached providers are closed.
+func (m *crossTypeMover) close() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	for _, provider := range m.ProviderCache {
+		diags = diags.Append(provider.Close())
+	}
+	return diags
 }
 
 func (m *crossTypeMover) getProvider(providers addrs.Provider) (providers.Interface, error) {
 	if provider, ok := m.ProviderCache[providers]; ok {
-		return provider()
+		return provider, nil
+	}
+
+	if factory, ok := m.ProviderFactories[providers]; ok {
+		provider, err := factory()
+		if err != nil {
+			return nil, err
+		}
+
+		m.ProviderCache[providers] = provider
+		return provider, nil
 	}
 
 	// Then we don't have a provider in the cache - this represents a bug in
@@ -97,20 +117,6 @@ type crossTypeMove struct {
 	sourceProviderAddr addrs.AbsProviderConfig
 }
 
-// close ensures the internal target provider is tidied up.
-//
-// This function is safe, so can be called even if errors were returned by the
-// function that created this crossTypeMove.
-func (move *crossTypeMove) close() {
-	if move == nil {
-		return
-	}
-
-	if move.targetProvider != nil {
-		move.targetProvider.Close()
-	}
-}
-
 // applyCrossTypeMove will update the provider states.SyncState so that value
 // at source is the result of the providers move operation. Note, that this
 // doesn't actually move the resource in the state file, it just updates the
@@ -130,13 +136,8 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 		SourceProviderAddress: move.sourceProviderAddr.Provider.String(),
 		SourceTypeName:        source.Resource.Resource.Type,
 		SourceSchemaVersion:   int64(src.SchemaVersion),
+		SourceStateJSON:       src.AttrsJSON,
 		TargetTypeName:        target.Resource.Resource.Type,
-	}
-
-	if len(src.AttrsJSON) > 0 {
-		request.SourceStateJSON = src.AttrsJSON
-	} else {
-		request.SourceStateFlatmap = src.AttrsFlat
 	}
 
 	// Second, ask the provider to transform the value into the type expected by

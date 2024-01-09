@@ -788,7 +788,7 @@ func TestApplyMoves(t *testing.T) {
 			t.Logf("resource instances in prior state:\n%s", spew.Sdump(allResourceInstanceAddrsInState(test.State)))
 
 			state := test.State.DeepCopy() // don't modify the test case in-place
-			newState, gotResults, diags := ApplyMoves(test.Stmts, state, test.Providers)
+			gotResults, diags := ApplyMoves(test.Stmts, state, test.Providers)
 
 			var actualDiags []string
 			for _, diag := range diags {
@@ -802,7 +802,7 @@ func TestApplyMoves(t *testing.T) {
 				t.Errorf("wrong results\n%s", diff)
 			}
 
-			gotInstAddrs := allResourceInstanceAddrsInState(newState)
+			gotInstAddrs := allResourceInstanceAddrsInState(state)
 			if diff := cmp.Diff(test.WantInstanceAddrs, gotInstAddrs); diff != "" {
 				t.Errorf("wrong resource instances in final state\n%s", diff)
 			}

@@ -497,7 +497,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 	return destroyPlan, evalScope, diags
 }
 
-func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState *states.State) (*states.State, []refactoring.MoveStatement, refactoring.MoveResults, tfdiags.Diagnostics) {
+func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState *states.State) ([]refactoring.MoveStatement, refactoring.MoveResults, tfdiags.Diagnostics) {
 	explicitMoveStmts := refactoring.FindMoveStatements(config)
 	implicitMoveStmts := refactoring.ImpliedMoveStatements(config, prevRunState, explicitMoveStmts)
 	var moveStmts []refactoring.MoveStatement
@@ -506,8 +506,8 @@ func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState 
 		moveStmts = append(moveStmts, explicitMoveStmts...)
 		moveStmts = append(moveStmts, implicitMoveStmts...)
 	}
-	newRunState, moveResults, diags := refactoring.ApplyMoves(moveStmts, prevRunState, c.plugins.providerFactories)
-	return newRunState, moveStmts, moveResults, diags
+	moveResults, diags := refactoring.ApplyMoves(moveStmts, prevRunState, c.plugins.providerFactories)
+	return moveStmts, moveResults, diags
 }
 
 func (c *Context) prePlanVerifyTargetedMoves(moveResults refactoring.MoveResults, targets []addrs.Targetable) tfdiags.Diagnostics {
@@ -622,12 +622,11 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	log.Printf("[DEBUG] Building and walking plan graph for %s", opts.Mode)
 
 	prevRunState = prevRunState.DeepCopy() // don't modify the caller's object when we process the moves
-	movedState, moveStmts, moveResults, moveDiags := c.prePlanFindAndApplyMoves(config, prevRunState)
+	moveStmts, moveResults, moveDiags := c.prePlanFindAndApplyMoves(config, prevRunState)
 	diags = diags.Append(moveDiags)
 	if moveDiags.HasErrors() {
 		return nil, nil, diags
 	}
-	prevRunState = movedState
 
 	// If resource targeting is in effect then it might conflict with the
 	// move result.

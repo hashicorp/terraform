@@ -242,19 +242,6 @@ func moveableObjectExists(addr addrs.AbsMoveable, in instances.Set) bool {
 	}
 }
 
-func resourceTypesDiffer(absFrom, absTo addrs.AbsMoveable) bool {
-	switch absFrom := absFrom.(type) {
-	case addrs.AbsMoveableResource:
-		// addrs.UnifyMoveEndpoints guarantees that both addresses are of the
-		// same kind, so at this point we can assume that absTo is also an
-		// addrs.AbsResourceInstance or addrs.AbsResource.
-		absTo := absTo.(addrs.AbsMoveableResource)
-		return absFrom.AffectedAbsResource().Resource.Type != absTo.AffectedAbsResource().Resource.Type
-	default:
-		return false
-	}
-}
-
 func movableObjectDeclRange(addr addrs.AbsMoveable, cfg *configs.Config) (tfdiags.SourceRange, bool) {
 	switch addr := addr.(type) {
 	case addrs.ModuleInstance:
