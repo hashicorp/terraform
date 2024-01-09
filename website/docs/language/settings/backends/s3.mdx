@@ -30,6 +30,18 @@ This assumes we have a bucket created called `mybucket`. The Terraform state is 
 
 Note that for the access credentials we recommend using a [partial configuration](/terraform/language/settings/backends/configuration#partial-configuration).
 
+## State Storage
+
+The S3 backend stores state data in an S3 object at the path set by the `key` parameter in the S3 bucket indicated by the `bucket` parameter.
+Using the example shown above, the state would be stored at the path `path/to/my/key` in the bucket `mybucket`.
+
+When using [workspaces](/terraform/language/state/workspaces), the state for the `default` workspace is stored at the location described above.
+Other workspaces are stored using the path `<workspace_key_prefix>/<workspace_name>/<key>`.
+The default workspace key prefix is `env:` and it can be configured using the parameter `workspace_key_prefix`.
+Using the example above, the state for the workspace `development` would be stored at the path `env:/development/path/to/my/key`.
+
+## Permissions Required
+
 ### S3 Bucket Permissions
 
 Terraform will need the following AWS IAM permissions on
