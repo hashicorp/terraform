@@ -477,7 +477,9 @@ message MoveResourceState {
         // moved from.
         int64 source_schema_version = 3;
 
-        // The raw state of the resource being moved.
+        // The raw state of the resource being moved. Only the json field is
+        // populated, as there should be no legacy providers using the flatmap
+        // format that support newly introduced RPCs.
         RawState source_state = 4;
 
         // The resource type that the resource is being moved to.

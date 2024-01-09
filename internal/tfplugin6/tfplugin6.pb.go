@@ -3643,7 +3643,9 @@ type MoveResourceState_Request struct {
 	// The schema version of the resource type that the resource is being
 	// moved from.
 	SourceSchemaVersion int64 `protobuf:"varint,3,opt,name=source_schema_version,json=sourceSchemaVersion,proto3" json:"source_schema_version,omitempty"`
-	// The raw state of the resource being moved.
+	// The raw state of the resource being moved. Only the json field is
+	// populated, as there should be no legacy providers using the flatmap
+	// format that support newly introduced RPCs.
 	SourceState *RawState `protobuf:"bytes,4,opt,name=source_state,json=sourceState,proto3" json:"source_state,omitempty"`
 	// The resource type that the resource is being moved to.
 	TargetTypeName string `protobuf:"bytes,5,opt,name=target_type_name,json=targetTypeName,proto3" json:"target_type_name,omitempty"`

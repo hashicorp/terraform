@@ -640,8 +640,7 @@ func (p *GRPCProvider) MoveResourceState(r providers.MoveResourceStateRequest) (
 		SourceTypeName:        r.SourceTypeName,
 		SourceSchemaVersion:   r.SourceSchemaVersion,
 		SourceState: &proto.RawState{
-			Json:    r.SourceStateJSON,
-			Flatmap: r.SourceStateFlatmap,
+			Json: r.SourceStateJSON,
 		},
 		TargetTypeName: r.TargetTypeName,
 	}

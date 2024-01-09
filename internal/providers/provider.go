@@ -406,14 +406,10 @@ type MoveResourceStateRequest struct {
 	// resource is being moved from.
 	SourceSchemaVersion int64
 
-	// SourceStateJSON and SourceStateFlatmap contain the state of the resource
-	// that is being moved. Because the schema is unknown, this contains only
-	// the raw data as stored in the state.
-	// SourceStateJSON is the current json state encoding.
-	// SourceStateFlatmap is the legacy flatmap encoding.
-	// Only one of these fields may be set for the move request.
-	SourceStateJSON    []byte
-	SourceStateFlatmap map[string]string
+	// SourceStateJSON contains the state of the resource that is being moved.
+	// Because the schema is unknown, this contains only the raw data as stored
+	// in the state.
+	SourceStateJSON []byte
 
 	// TargetTypeName is the name of the resource type that the resource is
 	// being moved to.
