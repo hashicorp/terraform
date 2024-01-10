@@ -9,11 +9,14 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 )
+
+var cmpOpts = cmpopts.IgnoreUnexported(Provider{})
 
 func TestMarshalProvider(t *testing.T) {
 	tests := []struct {
@@ -151,8 +154,8 @@ func TestMarshalProvider(t *testing.T) {
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			got := marshalProvider(test.Input)
-			if !cmp.Equal(got, test.Want) {
-				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, test.Want))
+			if !cmp.Equal(got, test.Want, cmpOpts) {
+				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, test.Want, cmpOpts))
 			}
 		})
 	}

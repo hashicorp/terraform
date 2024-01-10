@@ -19,6 +19,7 @@ type FunctionDecl struct {
 
 	Description     string
 	DescriptionKind configschema.StringKind
+	Summary         string
 }
 
 type FunctionParam struct {
