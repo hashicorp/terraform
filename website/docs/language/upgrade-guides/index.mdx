@@ -14,13 +14,32 @@ Terraform v1.7 honors the
 but there are some behavior changes outside of those promises that may affect a
 small number of users. Specifically, the following updates may require
 additional upgrade steps:
-* [Deprecated parameters for the  S3 backend](#s3-backend)
+* [Validations and checks in the state file](#validations-and-checks)
+* [Deprecated parameters for the S3 backend](#s3-backend)
 
 See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.6/CHANGELOG.md)
 for more details. If you encounter any problems during upgrading which are not
 covered this guide, please start a new topic in
 [the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core)
 to discuss it.
+
+## Validations and Checks
+
+Due to a state interoperability issue ([#33770](https://github.com/hashicorp/terraform/issues/33770), [#34014](https://github.com/hashicorp/terraform/issues/34014)) in earlier versions of Terraform, state files created by the Terraform v1.7.x series may not be compatible with the following Terraform versions:
+
+* Terraform v1.3.0 through v1.3.9
+* Terraform v1.4.0 through v1.4.6
+* Terraform v1.5.0 through v1.5.6
+
+If your v1.7.x state file contains `check` blocks or input validations, it will not be compatible with the above versions. Attempting to load a state file created by Terraform v1.7.x in one of the above versions will result in an error similar to `Error refreshing state: unsupported checkable object "var"`. This will particularly affect configurations using the `terraform_remote_state` data source to load state files created by the `v1.7.x` series.
+
+To prevent this issue, users should upgrade any usage of the affected versions to the following patch releases in the relevant minor release series before attempting to process state files created by Terraform v1.7.x:
+
+* Terraform v1.3.x series users should upgrade to v1.3.10
+* Terraform v1.4.x series users should upgrade to v1.4.7
+* Terraform v1.5.x series users should upgrade to v1.5.7
+
+Terraform versions prior to v1.3.0 and equal to or after v1.6.0 are not affected by this issue.
 
 ## S3 Backend
 
