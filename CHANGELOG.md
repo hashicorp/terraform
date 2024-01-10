@@ -39,6 +39,7 @@ BUG FIXES:
 * `terraform test`: Improve error message for invalid run block names. ([#34469](https://github.com/hashicorp/terraform/pull/34469))
 * `terraform test`: Fix bug where outputs in "empty" modules were not available to the assertions from Terraform test files. ([#34482](https://github.com/hashicorp/terraform/pull/34482))
 * security: update `golang.org/x/crypto` to patch CVE-2023-48795 [GH-34426]
+* backend/s3: No longer returns error when IAM user or role does not have access to the default workspace prefix `env:`. ([#34511](https://github.com/hashicorp/terraform/pull/34511))
 
 ENHANCEMENTS:
 
