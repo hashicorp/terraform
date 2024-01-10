@@ -126,11 +126,20 @@ func (c *httpClient) Lock(info *statemgr.LockInfo) (string, error) {
 }
 
 func (c *httpClient) Unlock(id string) error {
+	var info statemgr.LockInfo
+
 	if c.UnlockURL == nil {
 		return nil
 	}
 
-	resp, err := c.httpRequest(c.UnlockMethod, c.UnlockURL, &c.jsonLockInfo, "unlock")
+	if err := json.Unmarshal(c.jsonLockInfo, &info); err != nil {
+		return err
+	}
+
+	info.ID = id
+	jsonLockInfo := info.Marshal()
+
+	resp, err := c.httpRequest(c.UnlockMethod, c.UnlockURL, &jsonLockInfo, "unlock")
 	if err != nil {
 		return err
 	}
