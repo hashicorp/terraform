@@ -30,6 +30,9 @@ type FunctionSignature struct {
 	// of the function
 	Description string `json:"description,omitempty"`
 
+	// Summary is the optional shortened description of the function
+	Summary string `json:"summary,omitempty"`
+
 	// ReturnTypes is the ctyjson representation of the function's
 	// return types based on supplying all parameters using
 	// dynamic types. Functions can have dynamic return types.
@@ -145,6 +148,7 @@ func marshalProviderFunction(f providers.FunctionDecl) *FunctionSignature {
 
 	return &FunctionSignature{
 		Description:       f.Description,
+		Summary:           f.Summary,
 		ReturnType:        f.ReturnType,
 		Parameters:        p,
 		VariadicParameter: vp,
