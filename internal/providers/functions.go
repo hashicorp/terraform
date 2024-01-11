@@ -17,9 +17,10 @@ type FunctionDecl struct {
 	VariadicParameter *FunctionParam
 	ReturnType        cty.Type
 
-	Description     string
-	DescriptionKind configschema.StringKind
-	Summary         string
+	Description        string
+	DescriptionKind    configschema.StringKind
+	Summary            string
+	DeprecationMessage string
 }
 
 type FunctionParam struct {
