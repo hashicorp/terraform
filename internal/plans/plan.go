@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -123,6 +124,11 @@ type Plan struct {
 
 	// Timestamp is the record of truth for when the plan happened.
 	Timestamp time.Time
+
+	// ProviderFunctionResults stores hashed results from all provider
+	// function calls, so that calls during apply can be checked for
+	// consistency.
+	ProviderFunctionResults []providers.FunctionHash
 }
 
 // CanApply returns true if and only if the recieving plan includes content

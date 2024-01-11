@@ -50,16 +50,17 @@ type ContextGraphWalker struct {
 	// is in progress.
 	NonFatalDiagnostics tfdiags.Diagnostics
 
-	once               sync.Once
-	contexts           map[string]*BuiltinEvalContext
-	contextLock        sync.Mutex
-	providerCache      map[string]providers.Interface
-	providerFuncCache  map[string]providers.Interface
-	providerSchemas    map[string]providers.ProviderSchema
-	providerLock       sync.Mutex
-	provisionerCache   map[string]provisioners.Interface
-	provisionerSchemas map[string]*configschema.Block
-	provisionerLock    sync.Mutex
+	once                sync.Once
+	contexts            map[string]*BuiltinEvalContext
+	contextLock         sync.Mutex
+	providerCache       map[string]providers.Interface
+	providerFuncCache   map[string]providers.Interface
+	providerFuncResults *providers.FunctionResults
+	providerSchemas     map[string]providers.ProviderSchema
+	providerLock        sync.Mutex
+	provisionerCache    map[string]provisioners.Interface
+	provisionerSchemas  map[string]*configschema.Block
+	provisionerLock     sync.Mutex
 }
 
 func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
@@ -104,6 +105,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		MoveResultsValue:        w.MoveResults,
 		ProviderCache:           w.providerCache,
 		ProviderFuncCache:       w.providerFuncCache,
+		ProviderFuncResults:     w.providerFuncResults,
 		ProviderInputConfig:     w.Context.providerInputConfig,
 		ProviderLock:            &w.providerLock,
 		ProvisionerCache:        w.provisionerCache,

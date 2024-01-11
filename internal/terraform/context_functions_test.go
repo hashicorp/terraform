@@ -5,6 +5,8 @@ package terraform
 
 import (
 	"bytes"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -81,5 +83,144 @@ output "noop_equals" {
 	// there is exactly one output, which is a dynamically typed string
 	if !bytes.Equal(expect, plan.Changes.Outputs[0].After) {
 		t.Fatalf("got output dynamic value of %q", plan.Changes.Outputs[0].After)
+	}
+}
+
+// check that provider functions called multiple times during validate and plan
+// return consistent results
+func TestContext2Plan_providerFunctionImpurePlan(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "registry.terraform.io/hashicorp/test"
+	}
+  }
+}
+
+output "first" {
+  value = provider::test::echo("input")
+}
+
+output "second" {
+  value = provider::test::echo("input")
+}
+`,
+	})
+
+	p := new(MockProvider)
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Functions: map[string]providers.FunctionDecl{
+			"echo": providers.FunctionDecl{
+				Parameters: []providers.FunctionParam{
+					{
+						Name: "arg",
+						Type: cty.String,
+					},
+				},
+				ReturnType: cty.String,
+			},
+		},
+	}
+
+	inc := 0
+	p.CallFunctionFn = func(req providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
+		// this broken echo adds a counter to the argument
+		resp.Result = cty.StringVal(fmt.Sprintf("%s-%d", req.Arguments[0].AsString(), inc))
+		inc++
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	}
+
+	errs := diags.Err().Error()
+	if !strings.Contains(errs, "provider function returned an inconsistent result") {
+		t.Fatalf("expected error with %q, got %q", "provider function returned an inconsistent result", errs)
+	}
+	_, diags = ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	}
+
+	errs = diags.Err().Error()
+	if !strings.Contains(errs, "provider function returned an inconsistent result") {
+		t.Fatalf("expected error with %q, got %q", "provider function returned an inconsistent result", errs)
+	}
+}
+
+// check that we catch provider functions which return inconsistent results
+// during apply
+func TestContext2Plan_providerFunctionImpureApply(t *testing.T) {
+	m, snap := testModuleWithSnapshot(t, "provider-function-echo")
+
+	p := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Block: simpleTestSchema()},
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": providers.Schema{Block: simpleTestSchema()},
+			},
+			DataSources: map[string]providers.Schema{
+				"test_object": providers.Schema{Block: simpleTestSchema()},
+			},
+			Functions: map[string]providers.FunctionDecl{
+				"echo": providers.FunctionDecl{
+					Parameters: []providers.FunctionParam{
+						{
+							Name: "arg",
+							Type: cty.String,
+						},
+					},
+					ReturnType: cty.String,
+				},
+			},
+		},
+	}
+
+	inc := 0
+	p.CallFunctionFn = func(req providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
+		// this broken echo adds a counter to the argument
+		resp.Result = cty.StringVal(fmt.Sprintf("%s-%d", req.Arguments[0].AsString(), inc))
+		inc++
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	// Write / Read plan to simulate running it through a Plan file
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
+	if err != nil {
+		t.Fatalf("failed to round-trip through planfile: %s", err)
+	}
+
+	ctxOpts.Providers = map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+	}
+	ctx = testContext2(t, ctxOpts)
+
+	_, diags = ctx.Apply(plan, m, nil)
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	}
+
+	errs := diags.Err().Error()
+	if !strings.Contains(errs, "provider function returned an inconsistent result") {
+		t.Fatalf("expected error with %q, got %q", "provider function returned an inconsistent result", errs)
 	}
 }

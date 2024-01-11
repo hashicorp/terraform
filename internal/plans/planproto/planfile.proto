@@ -88,6 +88,8 @@ message Plan {
 
     // timestamp is the record of truth for when the plan happened.
     string timestamp = 21;
+
+    repeated ProviderFunctionCallHash provider_function_results = 22;
 }
 
 // Mode describes the planning mode that created the plan.
@@ -276,6 +278,14 @@ message CheckResults {
     // The results for individual objects that were declared by the
     // configuration object named in config_addr.
     repeated ObjectResult objects = 4;
+}
+
+// ProviderFunctionCallHash stores a record of a hashed function call and
+// result. This is used internally to ensure that providers return consistent
+// values between plan and apply given the same arguments.
+message ProviderFunctionCallHash {
+    bytes key = 1;
+    bytes result = 2;
 }
 
 // DynamicValue represents a value whose type is not decided until runtime,
