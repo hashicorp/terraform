@@ -1,4 +1,4 @@
-## 1.7.0-rc2 (January 11, 2024)
+## 1.7.0 (Unreleased)
 
 UPGRADE NOTES:
 
