@@ -130,6 +130,12 @@ func (p *Provider) ImportResourceState(req providers.ImportResourceStateRequest)
 	panic("unimplemented - terraform_remote_state has no resources")
 }
 
+func (p *Provider) MoveResourceState(providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
+	// We don't expose the move_resource_state capability, so this should never
+	// be called.
+	panic("unimplemented - terraform.io/builtin/terraform does not support cross-resource moves")
+}
+
 // ValidateResourceConfig is used to to validate the resource configuration values.
 func (p *Provider) ValidateResourceConfig(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 	return validateDataStoreResourceConfig(req)

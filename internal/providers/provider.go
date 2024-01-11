@@ -67,6 +67,10 @@ type Interface interface {
 	// ImportResourceState requests that the given resource be imported.
 	ImportResourceState(ImportResourceStateRequest) ImportResourceStateResponse
 
+	// MoveResourceState retrieves the updated value for a resource after it
+	// has moved resource types.
+	MoveResourceState(MoveResourceStateRequest) MoveResourceStateResponse
+
 	// ReadDataSource returns the data source's current state.
 	ReadDataSource(ReadDataSourceRequest) ReadDataSourceResponse
 
@@ -131,6 +135,10 @@ type ServerCapabilities struct {
 	// normally, and the caller can used a cached copy of the provider's
 	// schema.
 	GetProviderSchemaOptional bool
+
+	// The MoveResourceState capability indicates that this provider supports
+	// the MoveResourceState RPC.
+	MoveResourceState bool
 }
 
 type ValidateProviderConfigRequest struct {
@@ -180,12 +188,12 @@ type UpgradeResourceStateRequest struct {
 	// Version is version of the schema that created the current state.
 	Version int64
 
-	// RawStateJSON and RawStateFlatmap contiain the state that needs to be
+	// RawStateJSON and RawStateFlatmap contain the state that needs to be
 	// upgraded to match the current schema version. Because the schema is
 	// unknown, this contains only the raw data as stored in the state.
 	// RawStateJSON is the current json state encoding.
 	// RawStateFlatmap is the legacy flatmap encoding.
-	// Only on of these fields may be set for the upgrade request.
+	// Only one of these fields may be set for the upgrade request.
 	RawStateJSON    []byte
 	RawStateFlatmap map[string]string
 }
@@ -383,6 +391,38 @@ type ImportedResource struct {
 	// Private is an opaque blob that will be stored in state along with the
 	// resource. It is intended only for interpretation by the provider itself.
 	Private []byte
+}
+
+type MoveResourceStateRequest struct {
+	// SourceProviderAddress is the address of the provider that the resource
+	// is being moved from.
+	SourceProviderAddress string
+
+	// SourceTypeName is the name of the resource type that the resource is
+	// being moved from.
+	SourceTypeName string
+
+	// SourceSchemaVersion is the schema version of the resource type that the
+	// resource is being moved from.
+	SourceSchemaVersion int64
+
+	// SourceStateJSON contains the state of the resource that is being moved.
+	// Because the schema is unknown, this contains only the raw data as stored
+	// in the state.
+	SourceStateJSON []byte
+
+	// TargetTypeName is the name of the resource type that the resource is
+	// being moved to.
+	TargetTypeName string
+}
+
+type MoveResourceStateResponse struct {
+	// TargetState is the state of the resource after it has been moved to the
+	// new resource type.
+	TargetState cty.Value
+
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
 }
 
 // AsInstanceObject converts the receiving ImportedObject into a

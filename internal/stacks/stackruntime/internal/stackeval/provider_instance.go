@@ -395,6 +395,29 @@ func (p stubConfiguredProvider) ImportResourceState(req providers.ImportResource
 	}
 }
 
+// MoveResourceState implements providers.Interface.
+func (p stubConfiguredProvider) MoveResourceState(req providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
+	var diags tfdiags.Diagnostics
+	if p.unknown {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Provider configuration is deferred",
+			"Cannot move an existing object to this resource because its associated provider configuration is deferred to a later operation due to unknown expansion.",
+			nil, // nil attribute path means the overall configuration block
+		))
+	} else {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Provider configuration is invalid",
+			"Cannot move an existing object to this resource because its associated provider configuration is invalid.",
+			nil, // nil attribute path means the overall configuration block
+		))
+	}
+	return providers.MoveResourceStateResponse{
+		Diagnostics: diags,
+	}
+}
+
 // PlanResourceChange implements providers.Interface.
 func (p stubConfiguredProvider) PlanResourceChange(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 	if p.unknown {
