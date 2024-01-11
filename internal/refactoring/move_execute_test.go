@@ -15,13 +15,18 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
 func TestApplyMoves(t *testing.T) {
-	providerAddr := addrs.AbsProviderConfig{
+	barProviderAddress := addrs.AbsProviderConfig{
 		Module:   addrs.RootModule,
 		Provider: addrs.MustParseProviderSourceString("example.com/foo/bar"),
+	}
+	fooProviderAddress := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: addrs.MustParseProviderSourceString("example.com/bar/foo"),
 	}
 
 	mustParseInstAddr := func(s string) addrs.AbsResourceInstance {
@@ -38,47 +43,53 @@ func TestApplyMoves(t *testing.T) {
 		Stmts []MoveStatement
 		State *states.State
 
+		// We only need providers if we are doing a cross-resource type move
+		// so most of the test cases don't need this.
+		Providers map[addrs.Provider]providers.Factory
+
 		WantResults       MoveResults
+		WantDiags         []string
 		WantInstanceAddrs []string
 	}{
 		"no moves and empty state": {
-			[]MoveStatement{},
-			states.NewState(),
-			emptyResults,
-			nil,
+			Stmts:             []MoveStatement{},
+			State:             states.NewState(),
+			Providers:         nil,
+			WantResults:       emptyResults,
+			WantInstanceAddrs: nil,
 		},
 		"no moves": {
-			[]MoveStatement{},
-			states.BuildState(func(s *states.SyncState) {
+			Stmts: []MoveStatement{},
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("foo.from"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			emptyResults,
-			[]string{
+			WantResults: emptyResults,
+			WantInstanceAddrs: []string{
 				`foo.from`,
 			},
 		},
 		"single move of whole singleton resource": {
-			[]MoveStatement{
-				testMoveStatement(t, "", "foo.from", "foo.to"),
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "foo.from", "foo.to", &barProviderAddress),
 			},
-			states.BuildState(func(s *states.SyncState) {
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("foo.from"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			MoveResults{
+			WantResults: MoveResults{
 				Changes: addrs.MakeMap(
 					addrs.MakeMapElem(mustParseInstAddr("foo.to"), MoveSuccess{
 						From: mustParseInstAddr("foo.from"),
@@ -87,25 +98,25 @@ func TestApplyMoves(t *testing.T) {
 				),
 				Blocked: emptyResults.Blocked,
 			},
-			[]string{
+			WantInstanceAddrs: []string{
 				`foo.to`,
 			},
 		},
 		"single move of whole 'count' resource": {
-			[]MoveStatement{
-				testMoveStatement(t, "", "foo.from", "foo.to"),
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "foo.from", "foo.to", &barProviderAddress),
 			},
-			states.BuildState(func(s *states.SyncState) {
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("foo.from[0]"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			MoveResults{
+			WantResults: MoveResults{
 				Changes: addrs.MakeMap(
 					addrs.MakeMapElem(mustParseInstAddr("foo.to[0]"), MoveSuccess{
 						From: mustParseInstAddr("foo.from[0]"),
@@ -114,26 +125,26 @@ func TestApplyMoves(t *testing.T) {
 				),
 				Blocked: emptyResults.Blocked,
 			},
-			[]string{
+			WantInstanceAddrs: []string{
 				`foo.to[0]`,
 			},
 		},
 		"chained move of whole singleton resource": {
-			[]MoveStatement{
-				testMoveStatement(t, "", "foo.from", "foo.mid"),
-				testMoveStatement(t, "", "foo.mid", "foo.to"),
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "foo.from", "foo.mid", &barProviderAddress),
+				testMoveStatement(t, "", "foo.mid", "foo.to", &barProviderAddress),
 			},
-			states.BuildState(func(s *states.SyncState) {
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("foo.from"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			MoveResults{
+			WantResults: MoveResults{
 				Changes: addrs.MakeMap(
 					addrs.MakeMapElem(mustParseInstAddr("foo.to"), MoveSuccess{
 						From: mustParseInstAddr("foo.from"),
@@ -142,26 +153,26 @@ func TestApplyMoves(t *testing.T) {
 				),
 				Blocked: emptyResults.Blocked,
 			},
-			[]string{
+			WantInstanceAddrs: []string{
 				`foo.to`,
 			},
 		},
 
 		"move whole resource into module": {
-			[]MoveStatement{
-				testMoveStatement(t, "", "foo.from", "module.boo.foo.to"),
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "foo.from", "module.boo.foo.to", &barProviderAddress),
 			},
-			states.BuildState(func(s *states.SyncState) {
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("foo.from[0]"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			MoveResults{
+			WantResults: MoveResults{
 				Changes: addrs.MakeMap(
 					addrs.MakeMapElem(mustParseInstAddr("module.boo.foo.to[0]"), MoveSuccess{
 						From: mustParseInstAddr("foo.from[0]"),
@@ -170,26 +181,26 @@ func TestApplyMoves(t *testing.T) {
 				),
 				Blocked: emptyResults.Blocked,
 			},
-			[]string{
+			WantInstanceAddrs: []string{
 				`module.boo.foo.to[0]`,
 			},
 		},
 
 		"move resource instance between modules": {
-			[]MoveStatement{
-				testMoveStatement(t, "", "module.boo.foo.from[0]", "module.bar[0].foo.to[0]"),
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "module.boo.foo.from[0]", "module.bar[0].foo.to[0]", &barProviderAddress),
 			},
-			states.BuildState(func(s *states.SyncState) {
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("module.boo.foo.from[0]"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			MoveResults{
+			WantResults: MoveResults{
 				Changes: addrs.MakeMap(
 					addrs.MakeMapElem(mustParseInstAddr("module.bar[0].foo.to[0]"), MoveSuccess{
 						From: mustParseInstAddr("module.boo.foo.from[0]"),
@@ -198,23 +209,23 @@ func TestApplyMoves(t *testing.T) {
 				),
 				Blocked: emptyResults.Blocked,
 			},
-			[]string{
+			WantInstanceAddrs: []string{
 				`module.bar[0].foo.to[0]`,
 			},
 		},
 
 		"module move with child module": {
-			[]MoveStatement{
-				testMoveStatement(t, "", "module.boo", "module.bar"),
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "module.boo", "module.bar", nil),
 			},
-			states.BuildState(func(s *states.SyncState) {
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("module.boo.foo.from"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("module.boo.module.hoo.foo.from"),
@@ -222,10 +233,10 @@ func TestApplyMoves(t *testing.T) {
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			MoveResults{
+			WantResults: MoveResults{
 				Changes: addrs.MakeMap(
 					addrs.MakeMapElem(mustParseInstAddr("module.bar.foo.from"), MoveSuccess{
 						From: mustParseInstAddr("module.boo.foo.from"),
@@ -238,27 +249,27 @@ func TestApplyMoves(t *testing.T) {
 				),
 				Blocked: emptyResults.Blocked,
 			},
-			[]string{
+			WantInstanceAddrs: []string{
 				`module.bar.foo.from`,
 				`module.bar.module.hoo.foo.from`,
 			},
 		},
 
 		"move whole single module to indexed module": {
-			[]MoveStatement{
-				testMoveStatement(t, "", "module.boo", "module.bar[0]"),
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "module.boo", "module.bar[0]", nil),
 			},
-			states.BuildState(func(s *states.SyncState) {
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("module.boo.foo.from[0]"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			MoveResults{
+			WantResults: MoveResults{
 				Changes: addrs.MakeMap(
 					addrs.MakeMapElem(mustParseInstAddr("module.bar[0].foo.from[0]"), MoveSuccess{
 						From: mustParseInstAddr("module.boo.foo.from[0]"),
@@ -267,27 +278,27 @@ func TestApplyMoves(t *testing.T) {
 				),
 				Blocked: emptyResults.Blocked,
 			},
-			[]string{
+			WantInstanceAddrs: []string{
 				`module.bar[0].foo.from[0]`,
 			},
 		},
 
 		"move whole module to indexed module and move instance chained": {
-			[]MoveStatement{
-				testMoveStatement(t, "", "module.boo", "module.bar[0]"),
-				testMoveStatement(t, "bar", "foo.from[0]", "foo.to[0]"),
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "module.boo", "module.bar[0]", nil),
+				testMoveStatement(t, "bar", "foo.from[0]", "foo.to[0]", &barProviderAddress),
 			},
-			states.BuildState(func(s *states.SyncState) {
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("module.boo.foo.from[0]"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			MoveResults{
+			WantResults: MoveResults{
 				Changes: addrs.MakeMap(
 					addrs.MakeMapElem(mustParseInstAddr("module.bar[0].foo.to[0]"), MoveSuccess{
 						From: mustParseInstAddr("module.boo.foo.from[0]"),
@@ -296,27 +307,27 @@ func TestApplyMoves(t *testing.T) {
 				),
 				Blocked: emptyResults.Blocked,
 			},
-			[]string{
+			WantInstanceAddrs: []string{
 				`module.bar[0].foo.to[0]`,
 			},
 		},
 
 		"move instance to indexed module and instance chained": {
-			[]MoveStatement{
-				testMoveStatement(t, "", "module.boo.foo.from[0]", "module.bar[0].foo.from[0]"),
-				testMoveStatement(t, "bar", "foo.from[0]", "foo.to[0]"),
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "module.boo.foo.from[0]", "module.bar[0].foo.from[0]", &barProviderAddress),
+				testMoveStatement(t, "bar", "foo.from[0]", "foo.to[0]", &barProviderAddress),
 			},
-			states.BuildState(func(s *states.SyncState) {
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("module.boo.foo.from[0]"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			MoveResults{
+			WantResults: MoveResults{
 				Changes: addrs.MakeMap(
 					addrs.MakeMapElem(mustParseInstAddr("module.bar[0].foo.to[0]"), MoveSuccess{
 						From: mustParseInstAddr("module.boo.foo.from[0]"),
@@ -325,23 +336,23 @@ func TestApplyMoves(t *testing.T) {
 				),
 				Blocked: emptyResults.Blocked,
 			},
-			[]string{
+			WantInstanceAddrs: []string{
 				`module.bar[0].foo.to[0]`,
 			},
 		},
 
 		"move module instance to already-existing module instance": {
-			[]MoveStatement{
-				testMoveStatement(t, "", "module.bar[0]", "module.boo"),
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "module.bar[0]", "module.boo", nil),
 			},
-			states.BuildState(func(s *states.SyncState) {
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("module.bar[0].foo.from"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("module.boo.foo.to[0]"),
@@ -349,10 +360,10 @@ func TestApplyMoves(t *testing.T) {
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			MoveResults{
+			WantResults: MoveResults{
 				// Nothing moved, because the module.b address is already
 				// occupied by another module.
 				Changes: emptyResults.Changes,
@@ -366,24 +377,24 @@ func TestApplyMoves(t *testing.T) {
 					),
 				),
 			},
-			[]string{
+			WantInstanceAddrs: []string{
 				`module.bar[0].foo.from`,
 				`module.boo.foo.to[0]`,
 			},
 		},
 
 		"move resource to already-existing resource": {
-			[]MoveStatement{
-				testMoveStatement(t, "", "foo.from", "foo.to"),
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "foo.from", "foo.to", &barProviderAddress),
 			},
-			states.BuildState(func(s *states.SyncState) {
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("foo.from"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("foo.to"),
@@ -391,10 +402,10 @@ func TestApplyMoves(t *testing.T) {
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			MoveResults{
+			WantResults: MoveResults{
 				// Nothing moved, because the from.to address is already
 				// occupied by another resource.
 				Changes: emptyResults.Changes,
@@ -408,24 +419,24 @@ func TestApplyMoves(t *testing.T) {
 					),
 				),
 			},
-			[]string{
+			WantInstanceAddrs: []string{
 				`foo.from`,
 				`foo.to`,
 			},
 		},
 
 		"move resource instance to already-existing resource instance": {
-			[]MoveStatement{
-				testMoveStatement(t, "", "foo.from", "foo.to[0]"),
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "foo.from", "foo.to[0]", &barProviderAddress),
 			},
-			states.BuildState(func(s *states.SyncState) {
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("foo.from"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("foo.to[0]"),
@@ -433,10 +444,10 @@ func TestApplyMoves(t *testing.T) {
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			MoveResults{
+			WantResults: MoveResults{
 				// Nothing moved, because the from.to[0] address is already
 				// occupied by another resource instance.
 				Changes: emptyResults.Changes,
@@ -450,27 +461,27 @@ func TestApplyMoves(t *testing.T) {
 					),
 				),
 			},
-			[]string{
+			WantInstanceAddrs: []string{
 				`foo.from`,
 				`foo.to[0]`,
 			},
 		},
 		"move resource and containing module": {
-			[]MoveStatement{
-				testMoveStatement(t, "", "module.boo", "module.bar[0]"),
-				testMoveStatement(t, "boo", "foo.from", "foo.to"),
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "module.boo", "module.bar[0]", nil),
+				testMoveStatement(t, "boo", "foo.from", "foo.to", &barProviderAddress),
 			},
-			states.BuildState(func(s *states.SyncState) {
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("module.boo.foo.from"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			MoveResults{
+			WantResults: MoveResults{
 				Changes: addrs.MakeMap(
 					addrs.MakeMapElem(mustParseInstAddr("module.bar[0].foo.to"), MoveSuccess{
 						From: mustParseInstAddr("module.boo.foo.from"),
@@ -479,24 +490,24 @@ func TestApplyMoves(t *testing.T) {
 				),
 				Blocked: emptyResults.Blocked,
 			},
-			[]string{
+			WantInstanceAddrs: []string{
 				`module.bar[0].foo.to`,
 			},
 		},
 
 		"move module and then move resource into it": {
-			[]MoveStatement{
-				testMoveStatement(t, "", "module.bar[0]", "module.boo"),
-				testMoveStatement(t, "", "foo.from", "module.boo.foo.from"),
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "module.bar[0]", "module.boo", nil),
+				testMoveStatement(t, "", "foo.from", "module.boo.foo.from", &barProviderAddress),
 			},
-			states.BuildState(func(s *states.SyncState) {
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("module.bar[0].foo.to"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("foo.from"),
@@ -504,10 +515,10 @@ func TestApplyMoves(t *testing.T) {
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			MoveResults{
+			WantResults: MoveResults{
 				Changes: addrs.MakeMap(
 					addrs.MakeMapElem(mustParseInstAddr("module.boo.foo.from"), MoveSuccess{
 						mustParseInstAddr("foo.from"),
@@ -520,26 +531,26 @@ func TestApplyMoves(t *testing.T) {
 				),
 				Blocked: emptyResults.Blocked,
 			},
-			[]string{
+			WantInstanceAddrs: []string{
 				`module.boo.foo.from`,
 				`module.boo.foo.to`,
 			},
 		},
 
 		"move resources into module and then move module": {
-			[]MoveStatement{
-				testMoveStatement(t, "", "foo.from", "module.boo.foo.to"),
-				testMoveStatement(t, "", "bar.from", "module.boo.bar.to"),
-				testMoveStatement(t, "", "module.boo", "module.bar[0]"),
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "foo.from", "module.boo.foo.to", &barProviderAddress),
+				testMoveStatement(t, "", "bar.from", "module.boo.bar.to", &barProviderAddress),
+				testMoveStatement(t, "", "module.boo", "module.bar[0]", nil),
 			},
-			states.BuildState(func(s *states.SyncState) {
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("foo.from"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("bar.from"),
@@ -547,10 +558,10 @@ func TestApplyMoves(t *testing.T) {
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			MoveResults{
+			WantResults: MoveResults{
 				Changes: addrs.MakeMap(
 					addrs.MakeMapElem(mustParseInstAddr("module.bar[0].foo.to"), MoveSuccess{
 						mustParseInstAddr("foo.from"),
@@ -563,25 +574,25 @@ func TestApplyMoves(t *testing.T) {
 				),
 				Blocked: emptyResults.Blocked,
 			},
-			[]string{
+			WantInstanceAddrs: []string{
 				`module.bar[0].bar.to`,
 				`module.bar[0].foo.to`,
 			},
 		},
 
 		"module move collides with resource move": {
-			[]MoveStatement{
-				testMoveStatement(t, "", "module.bar[0]", "module.boo"),
-				testMoveStatement(t, "", "foo.from", "module.boo.foo.from"),
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "module.bar[0]", "module.boo", nil),
+				testMoveStatement(t, "", "foo.from", "module.boo.foo.from", &barProviderAddress),
 			},
-			states.BuildState(func(s *states.SyncState) {
+			State: states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("module.bar[0].foo.from"),
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 				s.SetResourceInstanceCurrent(
 					mustParseInstAddr("foo.from"),
@@ -589,10 +600,10 @@ func TestApplyMoves(t *testing.T) {
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
 					},
-					providerAddr,
+					barProviderAddress,
 				)
 			}),
-			MoveResults{
+			WantResults: MoveResults{
 				Changes: addrs.MakeMap(
 					addrs.MakeMapElem(mustParseInstAddr("module.boo.foo.from"), MoveSuccess{
 						mustParseInstAddr("module.bar[0].foo.from"),
@@ -609,9 +620,159 @@ func TestApplyMoves(t *testing.T) {
 					),
 				),
 			},
-			[]string{
+			WantInstanceAddrs: []string{
 				`foo.from`,
 				`module.boo.foo.from`,
+			},
+		},
+
+		"cross resource type move unsupported": {
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "foo.from", "bar.to", &barProviderAddress),
+			},
+			State: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					mustParseInstAddr("foo.from"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					barProviderAddress,
+				)
+			}),
+			Providers: map[addrs.Provider]providers.Factory{
+				barProviderAddress.Provider: func() (providers.Interface, error) {
+					return &mockProvider{
+						moveResourceState: false,
+						moveResourceError: nil,
+					}, nil
+				},
+			},
+			WantResults: MoveResults{
+				Changes: addrs.MakeMap(
+					addrs.MakeMapElem(mustParseInstAddr("bar.to"), MoveSuccess{
+						From: mustParseInstAddr("foo.from"),
+						To:   mustParseInstAddr("bar.to"),
+					}),
+				),
+				Blocked: emptyResults.Blocked,
+			},
+			WantDiags: []string{
+				"(Error) Unsupported `moved` across resource types:The provider \"example.com/foo/bar\" does not support moved operations across resource types and providers.",
+			},
+			WantInstanceAddrs: []string{
+				`bar.to`,
+			},
+		},
+		"cross resource type move errors": {
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "foo.from", "bar.to", &barProviderAddress),
+			},
+			State: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					mustParseInstAddr("foo.from"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					barProviderAddress,
+				)
+			}),
+			Providers: map[addrs.Provider]providers.Factory{
+				barProviderAddress.Provider: func() (providers.Interface, error) {
+					return &mockProvider{
+						moveResourceState: true,
+						moveResourceError: fmt.Errorf("provider can't move between those resource types"),
+					}, nil
+				},
+			},
+			WantResults: MoveResults{
+				Changes: addrs.MakeMap(
+					addrs.MakeMapElem(mustParseInstAddr("bar.to"), MoveSuccess{
+						From: mustParseInstAddr("foo.from"),
+						To:   mustParseInstAddr("bar.to"),
+					}),
+				),
+				Blocked: emptyResults.Blocked,
+			},
+			WantDiags: []string{
+				"(Error) expected error:provider can't move between those resource types",
+			},
+			WantInstanceAddrs: []string{
+				`bar.to`,
+			},
+		},
+		"cross resource type move": {
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "foo.from", "bar.to", &barProviderAddress),
+			},
+			State: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					mustParseInstAddr("foo.from"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					barProviderAddress,
+				)
+			}),
+			Providers: map[addrs.Provider]providers.Factory{
+				barProviderAddress.Provider: func() (providers.Interface, error) {
+					return &mockProvider{
+						moveResourceState: true,
+						moveResourceError: nil,
+					}, nil
+				},
+			},
+			WantResults: MoveResults{
+				Changes: addrs.MakeMap(
+					addrs.MakeMapElem(mustParseInstAddr("bar.to"), MoveSuccess{
+						From: mustParseInstAddr("foo.from"),
+						To:   mustParseInstAddr("bar.to"),
+					}),
+				),
+				Blocked: emptyResults.Blocked,
+			},
+			WantInstanceAddrs: []string{
+				`bar.to`,
+			},
+		},
+		"cross provider move": {
+			Stmts: []MoveStatement{
+				testMoveStatement(t, "", "foo.from", "bar.to", &barProviderAddress),
+			},
+			State: states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					mustParseInstAddr("foo.from"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					fooProviderAddress,
+				)
+			}),
+			Providers: map[addrs.Provider]providers.Factory{
+				barProviderAddress.Provider: func() (providers.Interface, error) {
+					return &mockProvider{
+						moveResourceState: true,
+						moveResourceError: nil,
+					}, nil
+				},
+				fooProviderAddress.Provider: func() (providers.Interface, error) {
+					return &mockProvider{}, nil
+				},
+			},
+			WantResults: MoveResults{
+				Changes: addrs.MakeMap(
+					addrs.MakeMapElem(mustParseInstAddr("bar.to"), MoveSuccess{
+						From: mustParseInstAddr("foo.from"),
+						To:   mustParseInstAddr("bar.to"),
+					}),
+				),
+				Blocked: emptyResults.Blocked,
+			},
+			WantInstanceAddrs: []string{
+				`bar.to`,
 			},
 		},
 	}
@@ -627,7 +788,15 @@ func TestApplyMoves(t *testing.T) {
 			t.Logf("resource instances in prior state:\n%s", spew.Sdump(allResourceInstanceAddrsInState(test.State)))
 
 			state := test.State.DeepCopy() // don't modify the test case in-place
-			gotResults := ApplyMoves(test.Stmts, state)
+			gotResults, diags := ApplyMoves(test.Stmts, state, test.Providers)
+
+			var actualDiags []string
+			for _, diag := range diags {
+				actualDiags = append(actualDiags, fmt.Sprintf("(%s) %s:%s", diag.Severity(), diag.Description().Summary, diag.Description().Detail))
+			}
+			if diff := cmp.Diff(test.WantDiags, actualDiags); diff != "" {
+				t.Errorf("wrong diagnostics\n%s", diff)
+			}
 
 			if diff := cmp.Diff(test.WantResults, gotResults); diff != "" {
 				t.Errorf("wrong results\n%s", diff)
@@ -641,7 +810,7 @@ func TestApplyMoves(t *testing.T) {
 	}
 }
 
-func testMoveStatement(t *testing.T, module string, from string, to string) MoveStatement {
+func testMoveStatement(t *testing.T, module string, from string, to string, provider *addrs.AbsProviderConfig) MoveStatement {
 	t.Helper()
 
 	moduleAddr := addrs.RootModule
@@ -671,12 +840,19 @@ func testMoveStatement(t *testing.T, module string, from string, to string) Move
 		t.Fatalf("incompatible endpoints")
 	}
 
-	return MoveStatement{
+	stmt := MoveStatement{
 		From: fromInModule,
 		To:   toInModule,
 
 		// DeclRange not populated because it's unimportant for our tests
 	}
+
+	if provider != nil {
+		// Only set the provider for resource type moves.
+		stmt.Provider = provider
+	}
+
+	return stmt
 }
 
 func allResourceInstanceAddrsInState(state *states.State) []string {

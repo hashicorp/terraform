@@ -497,7 +497,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 	return destroyPlan, evalScope, diags
 }
 
-func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState *states.State, targets []addrs.Targetable) ([]refactoring.MoveStatement, refactoring.MoveResults) {
+func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState *states.State) ([]refactoring.MoveStatement, refactoring.MoveResults, tfdiags.Diagnostics) {
 	explicitMoveStmts := refactoring.FindMoveStatements(config)
 	implicitMoveStmts := refactoring.ImpliedMoveStatements(config, prevRunState, explicitMoveStmts)
 	var moveStmts []refactoring.MoveStatement
@@ -506,8 +506,8 @@ func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState 
 		moveStmts = append(moveStmts, explicitMoveStmts...)
 		moveStmts = append(moveStmts, implicitMoveStmts...)
 	}
-	moveResults := refactoring.ApplyMoves(moveStmts, prevRunState)
-	return moveStmts, moveResults
+	moveResults, diags := refactoring.ApplyMoves(moveStmts, prevRunState, c.plugins.providerFactories)
+	return moveStmts, moveResults, diags
 }
 
 func (c *Context) prePlanVerifyTargetedMoves(moveResults refactoring.MoveResults, targets []addrs.Targetable) tfdiags.Diagnostics {
@@ -622,7 +622,11 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	log.Printf("[DEBUG] Building and walking plan graph for %s", opts.Mode)
 
 	prevRunState = prevRunState.DeepCopy() // don't modify the caller's object when we process the moves
-	moveStmts, moveResults := c.prePlanFindAndApplyMoves(config, prevRunState, opts.Targets)
+	moveStmts, moveResults, moveDiags := c.prePlanFindAndApplyMoves(config, prevRunState)
+	diags = diags.Append(moveDiags)
+	if moveDiags.HasErrors() {
+		return nil, nil, diags
+	}
 
 	// If resource targeting is in effect then it might conflict with the
 	// move result.
