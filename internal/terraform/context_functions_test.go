@@ -86,8 +86,8 @@ output "noop_equals" {
 	}
 }
 
-// check that provider functions called multiple times during plan return
-// consistent results
+// check that provider functions called multiple times during validate and plan
+// return consistent results
 func TestContext2Plan_providerFunctionImpurePlan(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -138,12 +138,21 @@ output "second" {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	diags := ctx.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatal("expected error")
 	}
 
 	errs := diags.Err().Error()
+	if !strings.Contains(errs, "provider function returned an inconsistent result") {
+		t.Fatalf("expected error with %q, got %q", "provider function returned an inconsistent result", errs)
+	}
+	_, diags = ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	}
+
+	errs = diags.Err().Error()
 	if !strings.Contains(errs, "provider function returned an inconsistent result") {
 		t.Fatalf("expected error with %q, got %q", "provider function returned an inconsistent result", errs)
 	}
