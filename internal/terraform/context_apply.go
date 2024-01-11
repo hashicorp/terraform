@@ -96,9 +96,6 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		return nil, nil, diags
 	}
 
-	// load any cached provider function calls so they can be validated
-	providers.LoadFunctionCallHashes(plan.ProviderFunctionResults)
-
 	for _, rc := range plan.Changes.Resources {
 		// Import is a no-op change during an apply (all the real action happens during the plan) but we'd
 		// like to show some helpful output that mirrors the way we show other changes.
@@ -139,6 +136,8 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 
 		// We also want to propagate the timestamp from the plan file.
 		PlanTimeTimestamp: plan.Timestamp,
+
+		ProviderFuncResults: providers.NewFunctionResultsTable(plan.ProviderFunctionResults),
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)

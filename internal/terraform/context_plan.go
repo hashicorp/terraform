@@ -640,6 +640,11 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	// If we get here then we should definitely have a non-nil "graph", which
 	// we can now walk.
 	changes := plans.NewChanges()
+
+	// Initialize the results table to validate provider function calls.
+	// Hold reference to this so we can store the table data in the plan file.
+	providerFuncResults := providers.NewFunctionResultsTable(nil)
+
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
 		Config:                  config,
 		InputState:              prevRunState,
@@ -648,6 +653,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		MoveResults:             moveResults,
 		Overrides:               opts.Overrides,
 		PlanTimeTimestamp:       timestamp,
+		ProviderFuncResults:     providerFuncResults,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -716,7 +722,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		Overrides:               opts.Overrides,
 		Checks:                  states.NewCheckResults(walker.Checks),
 		Timestamp:               timestamp,
-		ProviderFunctionResults: providers.GetFunctionCallHashes(),
+		ProviderFunctionResults: providerFuncResults.GetHashes(),
 
 		// Other fields get populated by Context.Plan after we return
 	}

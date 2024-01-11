@@ -61,6 +61,8 @@ type graphWalkOpts struct {
 	Overrides *mocking.Overrides
 
 	MoveResults refactoring.MoveResults
+
+	ProviderFuncResults *providers.FunctionResults
 }
 
 func (c *Context) walk(graph *Graph, operation walkOperation, opts *graphWalkOpts) (*ContextGraphWalker, tfdiags.Diagnostics) {
@@ -172,5 +174,6 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 		Operation:               operation,
 		StopContext:             c.runContext,
 		PlanTimestamp:           opts.PlanTimeTimestamp,
+		providerFuncResults:     opts.ProviderFuncResults,
 	}
 }

@@ -17,10 +17,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 )
 
-// functionResultsCache is a global cache to verify the pure-ness of all
-// provider implemented functions.
-var functionResultsCache = newFunctionResults()
-
 type FunctionDecl struct {
 	Parameters        []FunctionParam
 	VariadicParameter *FunctionParam
@@ -58,7 +54,10 @@ type FunctionParam struct {
 // function that either retrieves already-running plugins or memoizes the
 // plugins it returns so that many calls to functions in the same provider
 // will not incur a repeated startup cost.
-func (d FunctionDecl) BuildFunction(providerAddr addrs.Provider, name string, factory func() (Interface, error)) function.Function {
+//
+// The resTable argument is a shared instance of *FunctionResults, used to
+// check the result values from each function call.
+func (d FunctionDecl) BuildFunction(providerAddr addrs.Provider, name string, resTable *FunctionResults, factory func() (Interface, error)) function.Function {
 
 	var params []function.Parameter
 	var varParam *function.Parameter
@@ -124,9 +123,11 @@ func (d FunctionDecl) BuildFunction(providerAddr addrs.Provider, name string, fa
 				return cty.UnknownVal(retType), fmt.Errorf("provider returned no result and no errors")
 			}
 
-			err = functionResultsCache.checkPrior(providerAddr, name, args, resp.Result)
-			if err != nil {
-				return cty.UnknownVal(retType), err
+			if resTable != nil {
+				err = resTable.checkPrior(providerAddr, name, args, resp.Result)
+				if err != nil {
+					return cty.UnknownVal(retType), err
+				}
 			}
 
 			return resp.Result, nil
@@ -164,22 +165,28 @@ type priorResult struct {
 	value cty.Value
 }
 
-type functionResults struct {
+type FunctionResults struct {
 	mu sync.Mutex
 	// results stores the prior result from a provider function call, keyed by
 	// the hash of the function name and arguments.
 	results map[[sha256.Size]byte]priorResult
 }
 
-func newFunctionResults() *functionResults {
-	return &functionResults{
+// NewFunctionResultsTable initializes a mapping of function calls to prior
+// results used to validate provider function calls. The hashes argument is an
+// optional slice of prior result hashes used to preload the cache.
+func NewFunctionResultsTable(hashes []FunctionHash) *FunctionResults {
+	res := &FunctionResults{
 		results: make(map[[sha256.Size]byte]priorResult),
 	}
+
+	res.insertHashes(hashes)
+	return res
 }
 
 // checkPrior compares the function call against any cached results, and
 // returns an error if the result does not match a prior call.
-func (f *functionResults) checkPrior(provider addrs.Provider, name string, args []cty.Value, result cty.Value) error {
+func (f *FunctionResults) checkPrior(provider addrs.Provider, name string, args []cty.Value, result cty.Value) error {
 	argSum := sha256.New()
 
 	io.WriteString(argSum, provider.String())
@@ -229,7 +236,7 @@ func (f *functionResults) checkPrior(provider addrs.Provider, name string, args 
 
 // insertHashes insert key-value pairs to the functionResults map. This is used
 // to preload stored values before any Verify calls are made.
-func (f *functionResults) insertHashes(hashes []FunctionHash) {
+func (f *FunctionResults) insertHashes(hashes []FunctionHash) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -248,7 +255,7 @@ type FunctionHash struct {
 }
 
 // copy the hash values into a struct which can be recorded in the plan.
-func (f *functionResults) getHashes() []FunctionHash {
+func (f *FunctionResults) GetHashes() []FunctionHash {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -257,16 +264,4 @@ func (f *functionResults) getHashes() []FunctionHash {
 		res = append(res, FunctionHash{Key: k[:], Result: r.hash[:]})
 	}
 	return res
-}
-
-// GetFunctionCallHashes returns the set of all stored provider function.call
-// hashes.
-func GetFunctionCallHashes() []FunctionHash {
-	return functionResultsCache.getHashes()
-}
-
-// LoadFunctionCallHashes loads saved function call hashes to validate future
-// provider function calls.
-func LoadFunctionCallHashes(hashes []FunctionHash) {
-	functionResultsCache.insertHashes(hashes)
 }

@@ -158,7 +158,7 @@ func TestFunctionCache(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			results := newFunctionResults()
+			results := NewFunctionResultsTable(nil)
 			err := results.checkPrior(test.first.provider, test.first.name, test.first.args, test.first.result)
 			if err != nil {
 				t.Fatal("error on first call!", err)
@@ -171,8 +171,7 @@ func TestFunctionCache(t *testing.T) {
 			}
 
 			// reload the data to ensure we validate identically
-			newResults := newFunctionResults()
-			newResults.insertHashes(results.getHashes())
+			newResults := NewFunctionResultsTable(results.GetHashes())
 
 			originalErr := err != nil
 			reloadedErr := newResults.checkPrior(test.second.provider, test.second.name, test.second.args, test.second.result) != nil
