@@ -45,8 +45,10 @@ To avoid excessive repetition, we've split the complete format into several disc
 The JSON output format consists of the following objects and sub-objects:
 
 - [Providers Schema Representation](#providers-schema-representation) - the top-level object returned by `terraform providers schema -json`
-- [Schema Representation](#schema-representation) - a sub-object of providers, resources, and data sources that describes their schema
+- [Schema Representation](#schema-representation) - a sub-object of providers, resources, and data sources that describes their schema, along with function signatures
 - [Block Representation](#block-representation) - a sub-object of schemas that describes attributes and nested blocks
+- [Function Signature Representation](#function-signature-representation) - a sub-object of functions that describes parameters, the return, and additional documentation
+- [Parameter Representation](#parameter-representation) - a sub-object of function signatures that describes their type and additional documentation
 
 ## Providers Schema Representation
 
@@ -71,6 +73,20 @@ The JSON output format consists of the following objects and sub-objects:
       // data source's schema
       "data_source_schemas": {
         "example_datasource_name": <schema-representation>,
+      },
+
+      // "functions" describes the provider functions
+      "functions": {
+        // "format_version" describes the format version for the function
+        // signatures.
+        "format_version": "1.0",
+
+        // "function_signatures" describes the signatures for all
+        // available functions.
+        "function_signatures": {
+          // keys in this map are the function names, such as "abs"
+          "example_function": <function-signature-representation>
+        }
       }
     },
     "example_provider_two": { … }
@@ -147,5 +163,63 @@ A block representation contains "attributes" and "block_types" (which represent 
     "min_items": 1,
     "max_items": 3
   }
+}
+```
+
+## Function Signature Representation
+
+A function signature describes the definition of a function.
+
+```javascript
+{
+  // "summary" is a shortened English-language description of
+  // the purpose of the function in Markdown.
+  "summary": "string",
+
+  // "description" is a longer English-language description of
+  // the purpose and usage of the function in Markdown.
+  "description": "string",
+
+  // "deprecation_message" when present signals that the function is deprecated
+  // and the message contains practitioner-facing actions for the deprecation.
+  "deprecation_message": "string",
+
+  // "return_type" is a representation of a type specification
+  // that the function returns.
+  "return_type": "string",
+
+  // "parameters" is an optional list of the positional parameters
+  // that the function accepts.
+  "parameters": [
+    <parameter-representation>,
+    // ...
+  ],
+
+  // "variadic_parameter" is an optional representation of the
+  // additional arguments that the function accepts after those
+  // matching with the fixed parameters.
+  "variadic_parameter": <parameter-representation>
+}
+```
+
+## Parameter Representation
+
+A parameter representation describes a parameter to a function.
+
+```javascript
+{
+  // "name" is the internal name of the parameter
+  "name": "string",
+
+  // "description" is an optional English-language description of
+  // the purpose and usage of the parameter in Markdown.
+  "description": "string",
+
+  // "is_nullable" is true if null is acceptable value for the argument
+  "is_nullable": bool,
+
+  // "type" is a representation of a type specification
+  // that the parameter's value must conform to.
+  "type": "string"
 }
 ```
