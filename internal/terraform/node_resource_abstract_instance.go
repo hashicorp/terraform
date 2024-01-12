@@ -656,13 +656,24 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		panic("new state is cty.NilVal")
 	}
 
+	if !resp.NewState.IsWhollyKnown() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid object",
+			fmt.Sprintf(
+				"Provider %q planned an invalid value for %s during refresh: %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, absAddr, "The returned state contains unknown values",
+			),
+		))
+	}
+
 	for _, err := range resp.NewState.Type().TestConformance(schema.ImpliedType()) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q planned an invalid value for %s during refresh: %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider.Provider.String(), absAddr, tfdiags.FormatError(err),
+				n.ResolvedProvider.Provider, absAddr, tfdiags.FormatError(err),
 			),
 		))
 	}
