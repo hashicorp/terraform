@@ -15,6 +15,9 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/typeexpr"
+	"github.com/spf13/afero"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -22,8 +25,6 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/spf13/afero"
-	"github.com/zclconf/go-cty/cty"
 )
 
 type ComponentConfig struct {
@@ -353,6 +354,12 @@ func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*conf
 			Subject:  req.SourceAddrRange.Ptr(),
 		})
 		return nil, nil, diags
+	}
+
+	// If the moduleDir is relative then it's relative to the parent module's
+	// source directory, we'll make it absolute.
+	if !filepath.IsAbs(moduleDir) {
+		moduleDir = filepath.Clean(filepath.Join(req.Parent.Module.SourceDir, moduleDir))
 	}
 
 	// Since the module config loader doesn't yet understand source
