@@ -33,6 +33,11 @@ type FunctionSignature struct {
 	// Summary is the optional shortened description of the function
 	Summary string `json:"summary,omitempty"`
 
+	// DeprecationMessage is an optional message that indicates that the
+	// function should be considered deprecated and what actions should be
+	// performed by the practitioner to handle the deprecation.
+	DeprecationMessage string `json:"deprecation_message,omitempty"`
+
 	// ReturnTypes is the ctyjson representation of the function's
 	// return types based on supplying all parameters using
 	// dynamic types. Functions can have dynamic return types.
@@ -147,11 +152,12 @@ func marshalProviderFunction(f providers.FunctionDecl) *FunctionSignature {
 	}
 
 	return &FunctionSignature{
-		Description:       f.Description,
-		Summary:           f.Summary,
-		ReturnType:        f.ReturnType,
-		Parameters:        p,
-		VariadicParameter: vp,
+		Description:        f.Description,
+		Summary:            f.Summary,
+		DeprecationMessage: f.DeprecationMessage,
+		ReturnType:         f.ReturnType,
+		Parameters:         p,
+		VariadicParameter:  vp,
 	}
 }
 

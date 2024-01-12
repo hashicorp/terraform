@@ -33,6 +33,7 @@ func FunctionDeclFromProto(protoFunc *tfplugin5.Function) (providers.FunctionDec
 	ret.Description = protoFunc.Description
 	ret.DescriptionKind = schemaStringKind(protoFunc.DescriptionKind)
 	ret.Summary = protoFunc.Summary
+	ret.DeprecationMessage = protoFunc.DeprecationMessage
 
 	if err := json.Unmarshal(protoFunc.Return.Type, &ret.ReturnType); err != nil {
 		return ret, fmt.Errorf("invalid return type constraint: %s", err)
