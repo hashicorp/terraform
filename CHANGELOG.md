@@ -1,5 +1,11 @@
 ## 1.8.0 (Unreleased)
 
+EXPERIMENTS:
+
+Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
+
+* `terraform test` accepts a new option `-junit-xml=FILENAME`. If specified, and if the test configuration is valid enough to begin executing, then Terraform writes a JUnit XML test result report to the given filename, describing similar information as included in the normal test output. (#34291)
+
 ## Previous Releases
 
 For information on prior major and minor releases, see their changelogs:
