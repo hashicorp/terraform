@@ -5264,7 +5264,6 @@ resource "test_resource" "a" {
 	for _, res := range plan.Changes.Resources {
 		switch res.Addr.String() {
 		case "test_resource.a":
-			spew.Dump(res)
 			if res.Action != plans.NoOp {
 				t.Errorf("unexpected %s change for %s", res.Action, res.Addr)
 			}

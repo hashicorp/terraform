@@ -161,6 +161,15 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 		})
 		return diags
 	}
+	if !resp.TargetState.IsWhollyKnown() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider returned invalid value",
+			Detail: fmt.Sprintf("The provider %s returned an invalid value during an across type move operation: The returned state contains unknown values. This is a bug in the relevant provider; Please report it.",
+				move.targetProviderAddr),
+			Subject: stmt.DeclRange.ToHCL().Ptr(),
+		})
+	}
 
 	// Finally, we can update the source value with the new value.
 
