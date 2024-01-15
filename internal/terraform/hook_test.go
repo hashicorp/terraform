@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -37,28 +37,28 @@ type testHookCall struct {
 	InstanceID string
 }
 
-func (h *testHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (h *testHook) PreApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PreApply", addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, err error) (HookAction, error) {
+func (h *testHook) PostApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, newState cty.Value, err error) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PostApply", addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PreDiff(addr addrs.AbsResourceInstance, gen states.Generation, priorState, proposedNewState cty.Value) (HookAction, error) {
+func (h *testHook) PreDiff(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PreDiff", addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PostDiff(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (h *testHook) PostDiff(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PostDiff", addr.String()})
@@ -99,14 +99,14 @@ func (h *testHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName stri
 	h.Calls = append(h.Calls, &testHookCall{"ProvisionOutput", addr.String()})
 }
 
-func (h *testHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value) (HookAction, error) {
+func (h *testHook) PreRefresh(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState cty.Value) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PreRefresh", addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PostRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value, newState cty.Value) (HookAction, error) {
+func (h *testHook) PostRefresh(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState cty.Value, newState cty.Value) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PostRefresh", addr.String()})

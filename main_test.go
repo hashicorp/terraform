@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package main
 
@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 func TestMain_cliArgsFromEnv(t *testing.T) {
@@ -49,8 +49,8 @@ func TestMain_cliArgsFromEnv(t *testing.T) {
 		{
 			"both env var and CLI",
 			[]string{testCommandName, "foo", "bar"},
-			"-foo bar",
-			[]string{"-foo", "bar", "foo", "bar"},
+			"-foo baz",
+			[]string{"-foo", "baz", "foo", "bar"},
 			false,
 		},
 
@@ -143,7 +143,7 @@ func TestMain_cliArgsFromEnv(t *testing.T) {
 
 			// Verify
 			if !reflect.DeepEqual(testCommand.Args, tc.Expected) {
-				t.Fatalf("bad: %#v", testCommand.Args)
+				t.Fatalf("expected args %#v but got %#v", tc.Expected, testCommand.Args)
 			}
 		})
 	}

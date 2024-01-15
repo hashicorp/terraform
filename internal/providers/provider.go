@@ -1,11 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package providers
 
 import (
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -66,13 +67,25 @@ type Interface interface {
 	// ImportResourceState requests that the given resource be imported.
 	ImportResourceState(ImportResourceStateRequest) ImportResourceStateResponse
 
+	// MoveResourceState retrieves the updated value for a resource after it
+	// has moved resource types.
+	MoveResourceState(MoveResourceStateRequest) MoveResourceStateResponse
+
 	// ReadDataSource returns the data source's current state.
 	ReadDataSource(ReadDataSourceRequest) ReadDataSourceResponse
+
+	// CallFunction calls a provider-contributed function.
+	CallFunction(CallFunctionRequest) CallFunctionResponse
 
 	// Close shuts down the plugin process if applicable.
 	Close() error
 }
 
+// GetProviderSchemaResponse is the return type for GetProviderSchema, and
+// should only be used when handling a value for that method. The handling of
+// of schemas in any other context should always use ProviderSchema, so that
+// the in-memory representation can be more easily changed separately from the
+// RCP protocol.
 type GetProviderSchemaResponse struct {
 	// Provider is the schema for the provider itself.
 	Provider Schema
@@ -86,11 +99,26 @@ type GetProviderSchemaResponse struct {
 	// DataSources maps the data source name to that data source's schema.
 	DataSources map[string]Schema
 
+	// Functions maps from local function name (not including an namespace
+	// prefix) to the declaration of a function.
+	Functions map[string]FunctionDecl
+
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 
 	// ServerCapabilities lists optional features supported by the provider.
 	ServerCapabilities ServerCapabilities
+}
+
+// Schema pairs a provider or resource schema with that schema's version.
+// This is used to be able to upgrade the schema in UpgradeResourceState.
+//
+// This describes the schema for a single object within a provider. Type
+// "Schemas" (plural) instead represents the overall collection of schemas
+// for everything within a particular provider.
+type Schema struct {
+	Version int64
+	Block   *configschema.Block
 }
 
 // ServerCapabilities allows providers to communicate extra information
@@ -101,6 +129,16 @@ type ServerCapabilities struct {
 	// PlanDestroy signals that this provider expects to receive a
 	// PlanResourceChange call for resources that are to be destroyed.
 	PlanDestroy bool
+
+	// The GetProviderSchemaOptional capability indicates that this
+	// provider does not require calling GetProviderSchema to operate
+	// normally, and the caller can used a cached copy of the provider's
+	// schema.
+	GetProviderSchemaOptional bool
+
+	// The MoveResourceState capability indicates that this provider supports
+	// the MoveResourceState RPC.
+	MoveResourceState bool
 }
 
 type ValidateProviderConfigRequest struct {
@@ -150,12 +188,12 @@ type UpgradeResourceStateRequest struct {
 	// Version is version of the schema that created the current state.
 	Version int64
 
-	// RawStateJSON and RawStateFlatmap contiain the state that needs to be
+	// RawStateJSON and RawStateFlatmap contain the state that needs to be
 	// upgraded to match the current schema version. Because the schema is
 	// unknown, this contains only the raw data as stored in the state.
 	// RawStateJSON is the current json state encoding.
 	// RawStateFlatmap is the legacy flatmap encoding.
-	// Only on of these fields may be set for the upgrade request.
+	// Only one of these fields may be set for the upgrade request.
 	RawStateJSON    []byte
 	RawStateFlatmap map[string]string
 }
@@ -355,6 +393,38 @@ type ImportedResource struct {
 	Private []byte
 }
 
+type MoveResourceStateRequest struct {
+	// SourceProviderAddress is the address of the provider that the resource
+	// is being moved from.
+	SourceProviderAddress string
+
+	// SourceTypeName is the name of the resource type that the resource is
+	// being moved from.
+	SourceTypeName string
+
+	// SourceSchemaVersion is the schema version of the resource type that the
+	// resource is being moved from.
+	SourceSchemaVersion int64
+
+	// SourceStateJSON contains the state of the resource that is being moved.
+	// Because the schema is unknown, this contains only the raw data as stored
+	// in the state.
+	SourceStateJSON []byte
+
+	// TargetTypeName is the name of the resource type that the resource is
+	// being moved to.
+	TargetTypeName string
+}
+
+type MoveResourceStateResponse struct {
+	// TargetState is the state of the resource after it has been moved to the
+	// new resource type.
+	TargetState cty.Value
+
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
 // AsInstanceObject converts the receiving ImportedObject into a
 // ResourceInstanceObject that has status ObjectReady.
 //
@@ -392,5 +462,37 @@ type ReadDataSourceResponse struct {
 	State cty.Value
 
 	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
+type CallFunctionRequest struct {
+	// FunctionName is the local name of the function to call, as it was
+	// declared by the provider in its schema and without any
+	// externally-imposed namespace prefixes.
+	FunctionName string
+
+	// Arguments are the positional argument values given at the call site.
+	//
+	// Provider functions are required to behave as pure functions, and so
+	// if all of the argument values are known then two separate calls with the
+	// same arguments must always return an identical value, without performing
+	// any externally-visible side-effects.
+	Arguments []cty.Value
+}
+
+type CallFunctionResponse struct {
+	// Result is the successful result of the function call.
+	//
+	// If all of the arguments in the call were known then the result must
+	// also be known. If any arguments were unknown then the result may
+	// optionally be unknown. The type of the returned value must conform
+	// to the return type constraint for this function as declared in the
+	// provider schema.
+	//
+	// If Diagnostics contains any errors, this field will be ignored and
+	// so can be left as cty.NilVal to represent the absense of a value.
+	Result cty.Value
+
+	// Diagnostics contains any warnings or errors from the function call.
 	Diagnostics tfdiags.Diagnostics
 }

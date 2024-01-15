@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
-	"github.com/mitchellh/cli"
 
 	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )

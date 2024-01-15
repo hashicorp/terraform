@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configschema
 
 type FilterT[T any] func(string, T) bool
@@ -47,10 +50,9 @@ func (b *Block) Filter(filterAttribute FilterT[*Attribute], filterBlock FilterT[
 	for name, attrS := range b.Attributes {
 		if filterAttribute == nil || !filterAttribute(name, attrS) {
 			ret.Attributes[name] = attrS
-		}
-
-		if attrS.NestedType != nil {
-			ret.Attributes[name].NestedType = filterNestedType(attrS.NestedType, filterAttribute)
+			if attrS.NestedType != nil {
+				ret.Attributes[name].NestedType = filterNestedType(attrS.NestedType, filterAttribute)
+			}
 		}
 	}
 

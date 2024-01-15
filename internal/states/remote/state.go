@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package remote
 
@@ -70,7 +70,7 @@ func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
 		state = states.NewState()
 	}
 
-	return state.RootModule().OutputValues, nil
+	return state.RootOutputValues, nil
 }
 
 // StateForMigration is part of our implementation of statemgr.Migrator.

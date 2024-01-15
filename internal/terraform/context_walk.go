@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -7,10 +7,14 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -28,6 +32,17 @@ type graphWalkOpts struct {
 	Changes    *plans.Changes
 	Config     *configs.Config
 
+	// ExternalProviderConfigs is used for walks that make use of configured
+	// providers (e.g. plan and apply) to satisfy situations where the root
+	// module itself declares that it expects to have providers passed in
+	// from outside.
+	//
+	// This should not be populated for walks that use only unconfigured
+	// providers, such as validate. Populating it for those walks might cause
+	// strange things to happen, because our graph walking machinery doesn't
+	// always take into account what walk type it's dealing with.
+	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+
 	// PlanTimeCheckResults should be populated during the apply phase with
 	// the snapshot of check results that was generated during the plan step.
 	//
@@ -41,7 +56,13 @@ type graphWalkOpts struct {
 	// the apply phase.
 	PlanTimeTimestamp time.Time
 
+	// Overrides contains the set of overrides we should apply during this
+	// operation.
+	Overrides *mocking.Overrides
+
 	MoveResults refactoring.MoveResults
+
+	ProviderFuncResults *providers.FunctionResults
 }
 
 func (c *Context) walk(graph *Graph, operation walkOperation, opts *graphWalkOpts) (*ContextGraphWalker, tfdiags.Diagnostics) {
@@ -138,17 +159,21 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 	}
 
 	return &ContextGraphWalker{
-		Context:          c,
-		State:            state,
-		Config:           opts.Config,
-		RefreshState:     refreshState,
-		PrevRunState:     prevRunState,
-		Changes:          changes.SyncWrapper(),
-		Checks:           checkState,
-		InstanceExpander: instances.NewExpander(),
-		MoveResults:      opts.MoveResults,
-		Operation:        operation,
-		StopContext:      c.runContext,
-		PlanTimestamp:    opts.PlanTimeTimestamp,
+		Context:                 c,
+		State:                   state,
+		Config:                  opts.Config,
+		RefreshState:            refreshState,
+		Overrides:               opts.Overrides,
+		PrevRunState:            prevRunState,
+		Changes:                 changes.SyncWrapper(),
+		NamedValues:             namedvals.NewState(),
+		Checks:                  checkState,
+		InstanceExpander:        instances.NewExpander(),
+		ExternalProviderConfigs: opts.ExternalProviderConfigs,
+		MoveResults:             opts.MoveResults,
+		Operation:               operation,
+		StopContext:             c.runContext,
+		PlanTimestamp:           opts.PlanTimeTimestamp,
+		providerFuncResults:     opts.ProviderFuncResults,
 	}
 }

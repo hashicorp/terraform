@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -43,6 +44,9 @@ type NodeAbstractResourceInstance struct {
 	// During import we may generate configuration for a resource, which needs
 	// to be stored in the final change.
 	generatedConfigHCL string
+
+	// override is set by the graph itself, just before this node executes.
+	override *configs.Override
 }
 
 // NewNodeAbstractResourceInstance creates an abstract resource instance graph
@@ -135,9 +139,19 @@ func (n *NodeAbstractResourceInstance) AttachResourceState(s *states.Resource) {
 	n.storedProviderConfig = s.ProviderConfig
 }
 
+// GraphNodeOverridable
+func (n *NodeAbstractResourceInstance) ConfigProvider() addrs.AbsProviderConfig {
+	return n.ResolvedProvider
+}
+
+// GraphNodeOverridable
+func (n *NodeAbstractResourceInstance) SetOverride(override *configs.Override) {
+	n.override = override
+}
+
 // readDiff returns the planned change for a particular resource instance
 // object.
-func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema *ProviderSchema) (*plans.ResourceInstanceChange, error) {
+func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema providers.ProviderSchema) (*plans.ResourceInstanceChange, error) {
 	changes := ctx.Changes()
 	addr := n.ResourceInstanceAddr()
 
@@ -147,8 +161,7 @@ func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema 
 		return nil, fmt.Errorf("provider does not support resource type %q", addr.Resource.Resource.Type)
 	}
 
-	gen := states.CurrentGen
-	csrc := changes.GetResourceInstanceChange(addr, gen)
+	csrc := changes.GetResourceInstanceChange(addr, addrs.NotDeposed)
 	if csrc == nil {
 		log.Printf("[TRACE] readDiff: No planned change recorded for %s", n.Addr)
 		return nil, nil
@@ -164,7 +177,7 @@ func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema 
 	return change, nil
 }
 
-func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.ResourceInstanceChange) error {
+func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.ResourceInstanceChange) tfdiags.Diagnostics {
 	if change == nil || n.Config == nil || n.Config.Managed == nil {
 		return nil
 	}
@@ -177,12 +190,12 @@ func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.Resourc
 			Severity: hcl.DiagError,
 			Summary:  "Instance cannot be destroyed",
 			Detail: fmt.Sprintf(
-				"Resource %s has lifecycle.prevent_destroy set, but the plan calls for this resource to be destroyed. To avoid this error and continue with the plan, either disable lifecycle.prevent_destroy or reduce the scope of the plan using the -target flag.",
+				"Resource %s has lifecycle.prevent_destroy set, but the plan calls for this resource to be destroyed. To avoid this error and continue with the plan, either disable lifecycle.prevent_destroy or reduce the scope of the plan using the -target option.",
 				n.Addr.String(),
 			),
 			Subject: &n.Config.DeclRange,
 		})
-		return diags.Err()
+		return diags
 	}
 
 	return nil
@@ -202,7 +215,7 @@ func (n *NodeAbstractResourceInstance) preApplyHook(ctx EvalContext, change *pla
 		plannedNewState := change.After
 
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PreApply(n.Addr, change.DeposedKey.Generation(), change.Action, priorState, plannedNewState)
+			return h.PreApply(n.Addr, change.DeposedKey, change.Action, priorState, plannedNewState)
 		}))
 		if diags.HasErrors() {
 			return diags
@@ -225,7 +238,7 @@ func (n *NodeAbstractResourceInstance) postApplyHook(ctx EvalContext, state *sta
 			newState = cty.NullVal(cty.DynamicPseudoType)
 		}
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostApply(n.Addr, nil, newState, err)
+			return h.PostApply(n.Addr, addrs.NotDeposed, newState, err)
 		}))
 	}
 
@@ -323,18 +336,13 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 		return nil
 	}
 
-	if providerSchema == nil {
-		// Should never happen, unless our state object is nil
-		panic("writeResourceInstanceStateImpl used with nil ProviderSchema")
-	}
-
 	if obj != nil {
 		log.Printf("[TRACE] %s: writing state object for %s", logFuncName, absAddr)
 	} else {
 		log.Printf("[TRACE] %s: removing state object for %s", logFuncName, absAddr)
 	}
 
-	schema, currentVersion := (*providerSchema).SchemaForResourceAddr(absAddr.ContainingResource().Resource)
+	schema, currentVersion := providerSchema.SchemaForResourceAddr(absAddr.ContainingResource().Resource)
 	if schema == nil {
 		// It shouldn't be possible to get this far in any real scenario
 		// without a schema, but we might end up here in contrived tests that
@@ -404,39 +412,50 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		return plan, diags
 	}
 
-	// Allow the provider to check the destroy plan, and insert any necessary
-	// private data.
-	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
-		TypeName:         n.Addr.Resource.Resource.Type,
-		Config:           nullVal,
-		PriorState:       unmarkedPriorVal,
-		ProposedNewState: nullVal,
-		PriorPrivate:     currentState.Private,
-		ProviderMeta:     metaConfigVal,
-	})
+	var resp providers.PlanResourceChangeResponse
+	if n.override != nil {
+		// If we have an overridden value from the test framework, that means
+		// this value was created without consulting the provider previously.
+		// We can just set the planned state to deleted without consulting the
+		// provider.
+		resp = providers.PlanResourceChangeResponse{
+			PlannedState: nullVal,
+		}
+	} else {
+		// Allow the provider to check the destroy plan, and insert any
+		// necessary private data.
+		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
+			TypeName:         n.Addr.Resource.Resource.Type,
+			Config:           nullVal,
+			PriorState:       unmarkedPriorVal,
+			ProposedNewState: nullVal,
+			PriorPrivate:     currentState.Private,
+			ProviderMeta:     metaConfigVal,
+		})
 
-	// We may not have a config for all destroys, but we want to reference it in
-	// the diagnostics if we do.
-	if n.Config != nil {
-		resp.Diagnostics = resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String())
-	}
-	diags = diags.Append(resp.Diagnostics)
-	if diags.HasErrors() {
-		return plan, diags
-	}
+		// We may not have a config for all destroys, but we want to reference
+		// it in the diagnostics if we do.
+		if n.Config != nil {
+			resp.Diagnostics = resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String())
+		}
+		diags = diags.Append(resp.Diagnostics)
+		if diags.HasErrors() {
+			return plan, diags
+		}
 
-	// Check that the provider returned a null value here, since that is the
-	// only valid value for a destroy plan.
-	if !resp.PlannedState.IsNull() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced invalid plan",
-			fmt.Sprintf(
-				"Provider %q planned a non-null destroy value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider.Provider, n.Addr),
-		),
-		)
-		return plan, diags
+		// Check that the provider returned a null value here, since that is the
+		// only valid value for a destroy plan.
+		if !resp.PlannedState.IsNull() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced invalid plan",
+				fmt.Sprintf(
+					"Provider %q planned a non-null destroy value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider.Provider, n.Addr),
+			),
+			)
+			return plan, diags
+		}
 	}
 
 	// Plan is always the same for a destroy.
@@ -456,6 +475,53 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 	return plan, diags
 }
 
+// planForget returns a Forget change.
+func (n *NodeAbstractResourceInstance) planForget(ctx EvalContext, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var plan *plans.ResourceInstanceChange
+
+	absAddr := n.Addr
+
+	// If there is no state or our attributes object is null then the resource
+	// is already removed.
+	if currentState == nil || currentState.Value.IsNull() {
+		// We still need to generate a NoOp change, because that allows
+		// outside consumers of the plan to distinguish between us affirming
+		// that we checked something and concluded no changes were needed
+		// vs. that something being entirely excluded e.g. due to -target.
+		noop := &plans.ResourceInstanceChange{
+			Addr:        absAddr,
+			PrevRunAddr: n.prevRunAddr(ctx),
+			DeposedKey:  deposedKey,
+			Change: plans.Change{
+				Action: plans.NoOp,
+				Before: cty.NullVal(cty.DynamicPseudoType),
+				After:  cty.NullVal(cty.DynamicPseudoType),
+			},
+			ProviderAddr: n.ResolvedProvider,
+		}
+		return noop, nil
+	}
+
+	unmarkedPriorVal, _ := currentState.Value.UnmarkDeep()
+	nullVal := cty.NullVal(unmarkedPriorVal.Type())
+
+	// Plan is always the same for a forget.
+	plan = &plans.ResourceInstanceChange{
+		Addr:        absAddr,
+		PrevRunAddr: n.prevRunAddr(ctx),
+		DeposedKey:  deposedKey,
+		Change: plans.Change{
+			Action: plans.Forget,
+			Before: currentState.Value,
+			After:  nullVal,
+		},
+		ProviderAddr: n.ResolvedProvider,
+	}
+
+	return plan, diags
+}
+
 // writeChange saves a planned change for an instance object into the set of
 // global planned changes.
 func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plans.ResourceInstanceChange, deposedKey states.DeposedKey) error {
@@ -464,11 +530,7 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 	if change == nil {
 		// Caller sets nil to indicate that we need to remove a change from
 		// the set of changes.
-		gen := states.CurrentGen
-		if deposedKey != states.NotDeposed {
-			gen = deposedKey
-		}
-		changes.RemoveResourceInstanceChange(n.Addr, gen)
+		changes.RemoveResourceInstanceChange(n.Addr, deposedKey)
 		return nil
 	}
 
@@ -546,14 +608,9 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		return state, diags
 	}
 
-	hookGen := states.CurrentGen
-	if deposedKey != states.NotDeposed {
-		hookGen = deposedKey
-	}
-
 	// Call pre-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreRefresh(absAddr, hookGen, state.Value)
+		return h.PreRefresh(absAddr, deposedKey, state.Value)
 	}))
 	if diags.HasErrors() {
 		return state, diags
@@ -568,14 +625,21 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		priorVal, priorPaths = priorVal.UnmarkDeepWithPaths()
 	}
 
-	providerReq := providers.ReadResourceRequest{
-		TypeName:     n.Addr.Resource.Resource.Type,
-		PriorState:   priorVal,
-		Private:      state.Private,
-		ProviderMeta: metaConfigVal,
+	var resp providers.ReadResourceResponse
+	if n.override != nil {
+		// If we have an override set for this resource, we don't want to talk
+		// to the provider so we'll just return whatever was in state.
+		resp = providers.ReadResourceResponse{
+			NewState: priorVal,
+		}
+	} else {
+		resp = provider.ReadResource(providers.ReadResourceRequest{
+			TypeName:     n.Addr.Resource.Resource.Type,
+			PriorState:   priorVal,
+			Private:      state.Private,
+			ProviderMeta: metaConfigVal,
+		})
 	}
-
-	resp := provider.ReadResource(providerReq)
 	if n.Config != nil {
 		resp.Diagnostics = resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String())
 	}
@@ -592,13 +656,24 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		panic("new state is cty.NilVal")
 	}
 
+	if !resp.NewState.IsWhollyKnown() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid object",
+			fmt.Sprintf(
+				"Provider %q planned an invalid value for %s during refresh: %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, absAddr, "The returned state contains unknown values",
+			),
+		))
+	}
+
 	for _, err := range resp.NewState.Type().TestConformance(schema.ImpliedType()) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q planned an invalid value for %s during refresh: %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider.Provider.String(), absAddr, tfdiags.FormatError(err),
+				n.ResolvedProvider.Provider, absAddr, tfdiags.FormatError(err),
 			),
 		))
 	}
@@ -633,7 +708,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostRefresh(absAddr, hookGen, priorVal, ret.Value)
+		return h.PostRefresh(absAddr, deposedKey, priorVal, ret.Value)
 	}))
 	if diags.HasErrors() {
 		return ret, diags
@@ -663,10 +738,6 @@ func (n *NodeAbstractResourceInstance) plan(
 		return nil, nil, keyData, diags.Append(err)
 	}
 
-	if providerSchema == nil {
-		diags = diags.Append(fmt.Errorf("provider schema is unavailable for %s", n.Addr))
-		return nil, nil, keyData, diags
-	}
 	schema, _ := providerSchema.SchemaForResourceAddr(resource)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
@@ -801,20 +872,42 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	// Call pre-diff hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreDiff(n.Addr, states.CurrentGen, priorVal, proposedNewVal)
+		return h.PreDiff(n.Addr, addrs.NotDeposed, priorVal, proposedNewVal)
 	}))
 	if diags.HasErrors() {
 		return nil, nil, keyData, diags
 	}
 
-	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
-		TypeName:         n.Addr.Resource.Resource.Type,
-		Config:           unmarkedConfigVal,
-		PriorState:       unmarkedPriorVal,
-		ProposedNewState: proposedNewVal,
-		PriorPrivate:     priorPrivate,
-		ProviderMeta:     metaConfigVal,
-	})
+	var resp providers.PlanResourceChangeResponse
+	if n.override != nil {
+		// Then we have an override to apply for this change. But, overrides
+		// only matter when we are creating a resource for the first time as we
+		// only apply computed values.
+		if priorVal.IsNull() {
+			// Then we are actually creating something, so let's populate the
+			// computed values from our override value.
+			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, schema)
+			resp = providers.PlanResourceChangeResponse{
+				PlannedState: override,
+				Diagnostics:  overrideDiags,
+			}
+		} else {
+			// This is an update operation, and we don't actually have any
+			// computed values that need to be applied.
+			resp = providers.PlanResourceChangeResponse{
+				PlannedState: proposedNewVal,
+			}
+		}
+	} else {
+		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
+			TypeName:         n.Addr.Resource.Resource.Type,
+			Config:           unmarkedConfigVal,
+			PriorState:       unmarkedPriorVal,
+			ProposedNewState: proposedNewVal,
+			PriorPrivate:     priorPrivate,
+			ProviderMeta:     metaConfigVal,
+		})
+	}
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
 		return nil, nil, keyData, diags
@@ -1041,14 +1134,24 @@ func (n *NodeAbstractResourceInstance) plan(
 		// create a new proposed value from the null state and the config
 		proposedNewVal = objchange.ProposedNew(schema, nullPriorVal, unmarkedConfigVal)
 
-		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
-			TypeName:         n.Addr.Resource.Resource.Type,
-			Config:           unmarkedConfigVal,
-			PriorState:       nullPriorVal,
-			ProposedNewState: proposedNewVal,
-			PriorPrivate:     plannedPrivate,
-			ProviderMeta:     metaConfigVal,
-		})
+		if n.override != nil {
+			// In this case, we are always creating the resource so we don't
+			// do any validation, and just call out to the mocking library.
+			override, overrideDiags := mocking.PlanComputedValuesForResource(proposedNewVal, schema)
+			resp = providers.PlanResourceChangeResponse{
+				PlannedState: override,
+				Diagnostics:  overrideDiags,
+			}
+		} else {
+			resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
+				TypeName:         n.Addr.Resource.Resource.Type,
+				Config:           unmarkedConfigVal,
+				PriorState:       nullPriorVal,
+				ProposedNewState: proposedNewVal,
+				PriorPrivate:     plannedPrivate,
+				ProviderMeta:     metaConfigVal,
+			})
+		}
 		// We need to tread carefully here, since if there are any warnings
 		// in here they probably also came out of our previous call to
 		// PlanResourceChange above, and so we don't want to repeat them.
@@ -1123,7 +1226,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostDiff(n.Addr, states.CurrentGen, action, priorVal, plannedNewVal)
+		return h.PostDiff(n.Addr, addrs.NotDeposed, action, priorVal, plannedNewVal)
 	}))
 	if diags.HasErrors() {
 		return nil, nil, keyData, diags
@@ -1416,10 +1519,6 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	if diags.HasErrors() {
 		return newVal, diags
 	}
-	if providerSchema == nil {
-		diags = diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
-		return newVal, diags
-	}
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
@@ -1454,17 +1553,29 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	log.Printf("[TRACE] readDataSource: %s configuration is complete, so reading from provider", n.Addr)
 
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreApply(n.Addr, states.CurrentGen, plans.Read, cty.NullVal(configVal.Type()), configVal)
+		return h.PreApply(n.Addr, addrs.NotDeposed, plans.Read, cty.NullVal(configVal.Type()), configVal)
 	}))
 	if diags.HasErrors() {
 		return newVal, diags
 	}
 
-	resp := provider.ReadDataSource(providers.ReadDataSourceRequest{
-		TypeName:     n.Addr.ContainingResource().Resource.Type,
-		Config:       configVal,
-		ProviderMeta: metaConfigVal,
-	})
+	var resp providers.ReadDataSourceResponse
+	if n.override != nil {
+		override, overrideDiags := mocking.ComputedValuesForDataSource(configVal, mocking.MockedData{
+			Value: n.override.Values,
+			Range: n.override.ValuesRange,
+		}, schema)
+		resp = providers.ReadDataSourceResponse{
+			State:       override,
+			Diagnostics: overrideDiags,
+		}
+	} else {
+		resp = provider.ReadDataSource(providers.ReadDataSourceRequest{
+			TypeName:     n.Addr.ContainingResource().Resource.Type,
+			Config:       configVal,
+			ProviderMeta: metaConfigVal,
+		})
+	}
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
 		return newVal, diags
@@ -1525,7 +1636,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	}
 
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostApply(n.Addr, states.CurrentGen, newVal, diags.Err())
+		return h.PostApply(n.Addr, addrs.NotDeposed, newVal, diags.Err())
 	}))
 
 	return newVal, diags
@@ -1539,13 +1650,10 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 	if err != nil {
 		return metaConfigVal, diags.Append(err)
 	}
-	if providerSchema == nil {
-		return metaConfigVal, diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
-	}
 	if n.ProviderMetas != nil {
 		if m, ok := n.ProviderMetas[n.ResolvedProvider.Provider]; ok && m != nil {
 			// if the provider doesn't support this feature, throw an error
-			if providerSchema.ProviderMeta == nil {
+			if providerSchema.ProviderMeta.Block == nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ResolvedProvider.Provider.String()),
@@ -1554,7 +1662,7 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 				})
 			} else {
 				var configDiags tfdiags.Diagnostics
-				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta, nil, EvalDataForNoInstanceKey)
+				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta.Block, nil, EvalDataForNoInstanceKey)
 				diags = diags.Append(configDiags)
 			}
 		}
@@ -1579,9 +1687,6 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return nil, nil, keyData, diags.Append(err)
-	}
-	if providerSchema == nil {
-		return nil, nil, keyData, diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
 	}
 
 	config := *n.Config
@@ -1697,7 +1802,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 		}
 
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostDiff(n.Addr, states.CurrentGen, plans.Read, priorVal, proposedNewVal)
+			return h.PostDiff(n.Addr, addrs.NotDeposed, plans.Read, priorVal, proposedNewVal)
 		}))
 
 		return plannedChange, plannedNewState, keyData, diags
@@ -1722,6 +1827,8 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	// an apply operation.
 
 	if nested {
+		addr := check.Addr().Absolute(n.Addr.Module)
+
 		// Let's fix things up for a nested data block.
 		//
 		// A nested data block doesn't error, and creates a planned change. So,
@@ -1738,13 +1845,17 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 
 			// We still want to report the check as failed even if we are still
 			// letting it run again during the apply stage.
-			ctx.Checks().ReportCheckFailure(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, readDiags.Err().Error())
+			ctx.Checks().ReportCheckFailure(addr, addrs.CheckDataResource, 0, readDiags.Err().Error())
 		}
 
 		// Any warning or error diagnostics we'll wrap with some special checks
 		// diagnostics. This is so we can identify them later, and so they'll
 		// only report as warnings.
-		readDiags = tfdiags.AsCheckBlockDiagnostics(readDiags)
+		readDiags = tfdiags.OverrideAll(readDiags, tfdiags.Warning, func() tfdiags.DiagnosticExtraWrapper {
+			return &addrs.CheckRuleDiagnosticExtra{
+				CheckRule: addrs.NewCheckRule(addr, addrs.CheckDataResource, 0),
+			}
+		})
 
 		if !skipPlanChanges {
 			// refreshOnly plans cannot produce planned changes, so we only do
@@ -1851,10 +1962,6 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 	if err != nil {
 		return nil, keyData, diags.Append(err)
 	}
-	if providerSchema == nil {
-		return nil, keyData, diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
-	}
-
 	if planned != nil && planned.Action != plans.Read && planned.Action != plans.NoOp {
 		// If any other action gets in here then that's always a bug; this
 		// EvalNode only deals with reading.
@@ -1885,7 +1992,7 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 	diags = diags.Append(checkDiags)
 	if diags.HasErrors() {
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostApply(n.Addr, states.CurrentGen, planned.Before, diags.Err())
+			return h.PostApply(n.Addr, addrs.NotDeposed, planned.Before, diags.Err())
 		}))
 		return nil, keyData, diags // failed preconditions prevent further evaluation
 	}
@@ -1905,21 +2012,31 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 
 	newVal, readDiags := n.readDataSource(ctx, configVal)
 	if check, nested := n.nestedInCheckBlock(); nested {
+		addr := check.Addr().Absolute(n.Addr.Module)
+
 		// We're just going to jump in here and hide away any errors for nested
 		// data blocks.
 		if readDiags.HasErrors() {
-			ctx.Checks().ReportCheckFailure(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, readDiags.Err().Error())
-			diags = diags.Append(tfdiags.AsCheckBlockDiagnostics(readDiags))
+			ctx.Checks().ReportCheckFailure(addr, addrs.CheckDataResource, 0, readDiags.Err().Error())
+			diags = diags.Append(tfdiags.OverrideAll(readDiags, tfdiags.Warning, func() tfdiags.DiagnosticExtraWrapper {
+				return &addrs.CheckRuleDiagnosticExtra{
+					CheckRule: addrs.NewCheckRule(addr, addrs.CheckDataResource, 0),
+				}
+			}))
 			return nil, keyData, diags
 		}
 
 		// Even though we know there are no errors here, we still want to
 		// identify these diags has having been generated from a check block.
-		readDiags = tfdiags.AsCheckBlockDiagnostics(readDiags)
+		readDiags = tfdiags.OverrideAll(readDiags, tfdiags.Warning, func() tfdiags.DiagnosticExtraWrapper {
+			return &addrs.CheckRuleDiagnosticExtra{
+				CheckRule: addrs.NewCheckRule(addr, addrs.CheckDataResource, 0),
+			}
+		})
 
 		// If no errors, just remember to report this as a success and continue
 		// as normal.
-		ctx.Checks().ReportCheckResult(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, checks.StatusPass)
+		ctx.Checks().ReportCheckResult(addr, addrs.CheckDataResource, 0, checks.StatusPass)
 	}
 
 	diags = diags.Append(readDiags)
@@ -2300,14 +2417,35 @@ func (n *NodeAbstractResourceInstance) apply(
 		return newState, diags
 	}
 
-	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
-		TypeName:       n.Addr.Resource.Resource.Type,
-		PriorState:     unmarkedBefore,
-		Config:         unmarkedConfigVal,
-		PlannedState:   unmarkedAfter,
-		PlannedPrivate: change.Private,
-		ProviderMeta:   metaConfigVal,
-	})
+	var resp providers.ApplyResourceChangeResponse
+	if n.override != nil {
+		// As with the planning stage, we only need to worry about computed
+		// values the first time the object is created. Otherwise, we're happy
+		// to just apply whatever the user asked for.
+		if change.Action == plans.Create {
+			override, overrideDiags := mocking.ApplyComputedValuesForResource(unmarkedAfter, mocking.MockedData{
+				Value: n.override.Values,
+				Range: n.override.ValuesRange,
+			}, schema)
+			resp = providers.ApplyResourceChangeResponse{
+				NewState:    override,
+				Diagnostics: overrideDiags,
+			}
+		} else {
+			resp = providers.ApplyResourceChangeResponse{
+				NewState: unmarkedAfter,
+			}
+		}
+	} else {
+		resp = provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
+			TypeName:       n.Addr.Resource.Resource.Type,
+			PriorState:     unmarkedBefore,
+			Config:         unmarkedConfigVal,
+			PlannedState:   unmarkedAfter,
+			PlannedPrivate: change.Private,
+			ProviderMeta:   metaConfigVal,
+		})
+	}
 	applyDiags := resp.Diagnostics
 	if applyConfig != nil {
 		applyDiags = applyDiags.InConfigBody(applyConfig.Config, n.Addr.String())

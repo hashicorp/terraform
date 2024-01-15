@@ -1,42 +1,52 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/mitchellh/cli"
+	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terminal"
 )
 
-func TestGraph(t *testing.T) {
+func TestGraph_planPhase(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("graph"), td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	streams, closeStreams := terminal.StreamsForTesting(t)
 	c := &GraphCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
+			Streams:          streams,
 		},
 	}
 
-	args := []string{}
+	args := []string{"-type=plan"}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	output := ui.OutputWriter.String()
-	if !strings.Contains(output, `provider[\"registry.terraform.io/hashicorp/test\"]`) {
-		t.Fatalf("doesn't look like digraph: %s", output)
+	output := closeStreams(t)
+	if !strings.Contains(output.Stdout(), `provider[\"registry.terraform.io/hashicorp/test\"]`) {
+		t.Fatalf("doesn't look like digraph:\n%s\n\nstderr:\n%s", output.Stdout(), output.Stderr())
 	}
 }
 
@@ -58,40 +68,19 @@ func TestGraph_multipleArgs(t *testing.T) {
 	}
 }
 
-func TestGraph_noArgs(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("graph"), td)
-	defer testChdir(t, td)()
-
-	ui := new(cli.MockUi)
-	c := &GraphCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
-			Ui:               ui,
-		},
-	}
-
-	args := []string{}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
-	}
-
-	output := ui.OutputWriter.String()
-	if !strings.Contains(output, `provider[\"registry.terraform.io/hashicorp/test\"]`) {
-		t.Fatalf("doesn't look like digraph: %s", output)
-	}
-}
-
 func TestGraph_noConfig(t *testing.T) {
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
 	defer testChdir(t, td)()
 
-	ui := new(cli.MockUi)
+	streams, closeStreams := terminal.StreamsForTesting(t)
+	defer closeStreams(t)
+	ui := cli.NewMockUi()
 	c := &GraphCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
+			Streams:          streams,
 		},
 	}
 
@@ -103,7 +92,88 @@ func TestGraph_noConfig(t *testing.T) {
 	}
 }
 
-func TestGraph_plan(t *testing.T) {
+func TestGraph_resourcesOnly(t *testing.T) {
+	wd := tempWorkingDirFixture(t, "graph-interesting")
+	defer testChdir(t, wd.RootModuleDir())()
+
+	// The graph-interesting fixture has a child module, so we'll need to
+	// run the module installer just to get the working directory set up
+	// properly, as if the user has run "terraform init". This is really
+	// just building the working directory's index of module directories.
+	loader, cleanupLoader := configload.NewLoaderForTests(t)
+	t.Cleanup(cleanupLoader)
+	err := os.MkdirAll(".terraform/modules", 0700)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inst := initwd.NewModuleInstaller(".terraform/modules", loader, registry.NewClient(nil, nil))
+	_, instDiags := inst.InstallModules(context.Background(), ".", "tests", true, false, initwd.ModuleInstallHooksImpl{})
+	if instDiags.HasErrors() {
+		t.Fatal(instDiags.Err())
+	}
+
+	p := testProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"foo": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"arg": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ui := cli.NewMockUi()
+	streams, closeStreams := terminal.StreamsForTesting(t)
+	c := &GraphCommand{
+		Meta: Meta{
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("foo"): providers.FactoryFixed(p),
+				},
+			},
+			Ui:      ui,
+			Streams: streams,
+		},
+	}
+
+	// A "resources only" graph is the default behavior, with no extra arguments.
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		output := closeStreams(t)
+		t.Fatalf("unexpected error: \n%s", output.Stderr())
+	}
+
+	output := closeStreams(t)
+	gotGraph := strings.TrimSpace(output.Stdout())
+	wantGraph := strings.TrimSpace(`
+digraph G {
+  rankdir = "RL";
+  node [shape = rect, fontname = "sans-serif"];
+  "foo.bar" [label="foo.bar"];
+  "foo.baz" [label="foo.baz"];
+  "foo.boop" [label="foo.boop"];
+  subgraph "cluster_module.child" {
+    label = "module.child"
+    fontname = "sans-serif"
+    "module.child.foo.bleep" [label="foo.bleep"];
+  }
+  "foo.baz" -> "foo.bar";
+  "foo.boop" -> "module.child.foo.bleep";
+  "module.child.foo.bleep" -> "foo.bar";
+}
+`)
+	if diff := cmp.Diff(wantGraph, gotGraph); diff != "" {
+		t.Fatalf("wrong result\n%s", diff)
+	}
+}
+
+func TestGraph_applyPhaseSavedPlan(t *testing.T) {
 	testCwd(t)
 
 	plan := &plans.Plan{
@@ -140,11 +210,13 @@ func TestGraph_plan(t *testing.T) {
 
 	planPath := testPlanFile(t, configSnap, states.NewState(), plan)
 
-	ui := new(cli.MockUi)
+	streams, closeStreams := terminal.StreamsForTesting(t)
+	ui := cli.NewMockUi()
 	c := &GraphCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
+			Streams:          streams,
 		},
 	}
 
@@ -155,8 +227,8 @@ func TestGraph_plan(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	output := ui.OutputWriter.String()
-	if !strings.Contains(output, `provider[\"registry.terraform.io/hashicorp/test\"]`) {
-		t.Fatalf("doesn't look like digraph: %s", output)
+	output := closeStreams(t)
+	if !strings.Contains(output.Stdout(), `provider[\"registry.terraform.io/hashicorp/test\"]`) {
+		t.Fatalf("doesn't look like digraph:\n%s\n\nstderr:\n%s", output.Stdout(), output.Stderr())
 	}
 }

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package cloud
 
@@ -32,6 +32,11 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
+)
+
+const (
+	// HeaderSnapshotInterval is the header key that controls the snapshot interval
+	HeaderSnapshotInterval = "x-terraform-snapshot-interval"
 )
 
 // State implements the State interfaces in the state package to handle
@@ -215,7 +220,7 @@ func (s *State) PersistState(schemas *terraform.Schemas) error {
 		return fmt.Errorf("failed to read state: %w", err)
 	}
 
-	ov, err := jsonstate.MarshalOutputs(stateFile.State.RootModule().OutputValues)
+	ov, err := jsonstate.MarshalOutputs(stateFile.State.RootOutputValues)
 	if err != nil {
 		return fmt.Errorf("failed to translate outputs: %w", err)
 	}
@@ -238,6 +243,7 @@ func (s *State) PersistState(schemas *terraform.Schemas) error {
 	s.readState = s.state.DeepCopy()
 	s.readLineage = s.lineage
 	s.readSerial = s.serial
+
 	return nil
 }
 
@@ -247,7 +253,9 @@ func (s *State) ShouldPersistIntermediateState(info *local.IntermediateStatePers
 		return true
 	}
 
-	if !s.enableIntermediateSnapshots && info.RequestedPersistInterval == time.Duration(0) {
+	// This value is controlled by a x-terraform-snapshot-interval header intercepted during
+	// state-versions API responses
+	if !s.enableIntermediateSnapshots {
 		return false
 	}
 
@@ -262,15 +270,13 @@ func (s *State) ShouldPersistIntermediateState(info *local.IntermediateStatePers
 	return currentInterval >= wantInterval
 }
 
-func (s *State) uploadState(lineage string, serial uint64, isForcePush bool, state, jsonState, jsonStateOutputs []byte) error {
-	ctx := context.Background()
-
+func (s *State) uploadStateFallback(ctx context.Context, lineage string, serial uint64, isForcePush bool, state, jsonState, jsonStateOutputs []byte) error {
 	options := tfe.StateVersionCreateOptions{
 		Lineage:          tfe.String(lineage),
 		Serial:           tfe.Int64(int64(serial)),
 		MD5:              tfe.String(fmt.Sprintf("%x", md5.Sum(state))),
-		State:            tfe.String(base64.StdEncoding.EncodeToString(state)),
 		Force:            tfe.Bool(isForcePush),
+		State:            tfe.String(base64.StdEncoding.EncodeToString(state)),
 		JSONState:        tfe.String(base64.StdEncoding.EncodeToString(jsonState)),
 		JSONStateOutputs: tfe.String(base64.StdEncoding.EncodeToString(jsonStateOutputs)),
 	}
@@ -282,13 +288,46 @@ func (s *State) uploadState(lineage string, serial uint64, isForcePush bool, sta
 		options.Run = &tfe.Run{ID: runID}
 	}
 
+	// Create the new state.
+	_, err := s.tfeClient.StateVersions.Create(ctx, s.workspace.ID, options)
+	return err
+}
+
+func (s *State) uploadState(lineage string, serial uint64, isForcePush bool, state, jsonState, jsonStateOutputs []byte) error {
+	ctx := context.Background()
+
+	options := tfe.StateVersionUploadOptions{
+		StateVersionCreateOptions: tfe.StateVersionCreateOptions{
+			Lineage:          tfe.String(lineage),
+			Serial:           tfe.Int64(int64(serial)),
+			MD5:              tfe.String(fmt.Sprintf("%x", md5.Sum(state))),
+			Force:            tfe.Bool(isForcePush),
+			JSONStateOutputs: tfe.String(base64.StdEncoding.EncodeToString(jsonStateOutputs)),
+		},
+		RawState:     state,
+		RawJSONState: jsonState,
+	}
+
+	// If we have a run ID, make sure to add it to the options
+	// so the state will be properly associated with the run.
+	runID := os.Getenv("TFE_RUN_ID")
+	if runID != "" {
+		options.StateVersionCreateOptions.Run = &tfe.Run{ID: runID}
+	}
+
 	// The server is allowed to dynamically request a different time interval
 	// than we'd normally use, for example if it's currently under heavy load
 	// and needs clients to backoff for a while.
 	ctx = tfe.ContextWithResponseHeaderHook(ctx, s.readSnapshotIntervalHeader)
 
 	// Create the new state.
-	_, err := s.tfeClient.StateVersions.Create(ctx, s.workspace.ID, options)
+	_, err := s.tfeClient.StateVersions.Upload(ctx, s.workspace.ID, options)
+	if errors.Is(err, tfe.ErrStateVersionUploadNotSupported) {
+		// Create the new state with content included in the request (Terraform Enterprise v202306-1 and below)
+		log.Println("[INFO] Detected that state version upload is not supported. Retrying using compatibility state upload.")
+		return s.uploadStateFallback(ctx, lineage, serial, isForcePush, state, jsonState, jsonStateOutputs)
+	}
+
 	return err
 }
 
@@ -508,7 +547,7 @@ func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
 				return nil, ErrStateVersionUnauthorizedUpgradeState
 			}
 
-			return state.RootModule().OutputValues, nil
+			return state.RootOutputValues, nil
 		}
 
 		if output.Sensitive {
@@ -545,7 +584,14 @@ func clamp(val, min, max int64) int64 {
 }
 
 func (s *State) readSnapshotIntervalHeader(status int, header http.Header) {
-	intervalStr := header.Get("x-terraform-snapshot-interval")
+	// Only proceed if this came from tfe.v2 API
+	contentType := header.Get("Content-Type")
+	if !strings.Contains(contentType, tfe.ContentTypeJSONAPI) {
+		log.Printf("[TRACE] Skipping intermediate state interval because Content-Type was %q", contentType)
+		return
+	}
+
+	intervalStr := header.Get(HeaderSnapshotInterval)
 
 	if intervalSecs, err := strconv.ParseInt(intervalStr, 10, 64); err == nil {
 		// More than an hour is an unreasonable delay, so we'll just
@@ -561,6 +607,7 @@ func (s *State) readSnapshotIntervalHeader(status int, header http.Header) {
 	}
 
 	// We will only enable snapshots for intervals greater than zero
+	log.Printf("[TRACE] Intermediate state interval is set by header to %v", s.stateSnapshotInterval)
 	s.enableIntermediateSnapshots = s.stateSnapshotInterval > 0
 }
 

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -171,7 +171,7 @@ func TestNodeAbstractResourceInstance_WriteResourceInstanceState(t *testing.T) {
 		},
 	}
 	ctx.ProviderProvider = mockProvider
-	ctx.ProviderSchemaSchema = mockProvider.ProviderSchema()
+	ctx.ProviderSchemaSchema = mockProvider.GetProviderSchema()
 
 	err := node.writeResourceInstanceState(ctx, obj, workingState)
 	if err != nil {

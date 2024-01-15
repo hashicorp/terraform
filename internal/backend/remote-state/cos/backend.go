@@ -1,14 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package cos
 
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +30,8 @@ const (
 	PROVIDER_SECRET_KEY                   = "TENCENTCLOUD_SECRET_KEY"
 	PROVIDER_SECURITY_TOKEN               = "TENCENTCLOUD_SECURITY_TOKEN"
 	PROVIDER_REGION                       = "TENCENTCLOUD_REGION"
+	PROVIDER_ENDPOINT                     = "TENCENTCLOUD_ENDPOINT"
+	PROVIDER_DOMAIN                       = "TENCENTCLOUD_DOMAIN"
 	PROVIDER_ASSUME_ROLE_ARN              = "TENCENTCLOUD_ASSUME_ROLE_ARN"
 	PROVIDER_ASSUME_ROLE_SESSION_NAME     = "TENCENTCLOUD_ASSUME_ROLE_SESSION_NAME"
 	PROVIDER_ASSUME_ROLE_SESSION_DURATION = "TENCENTCLOUD_ASSUME_ROLE_SESSION_DURATION"
@@ -49,6 +53,7 @@ type Backend struct {
 	key     string
 	encrypt bool
 	acl     string
+	domain  string
 }
 
 // New creates a new backend for TencentCloud cos remote state.
@@ -86,6 +91,18 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the COS bucket",
+			},
+			"endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The custom endpoint for the COS API, e.g. http://cos-internal.{Region}.tencentcos.cn. Both HTTP and HTTPS are accepted.",
+				DefaultFunc: schema.EnvDefaultFunc(PROVIDER_ENDPOINT, nil),
+			},
+			"domain": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc(PROVIDER_DOMAIN, nil),
+				Description: "The root domain of the API request. Default is tencentcloudapi.com.",
 			},
 			"prefix": {
 				Type:        schema.TypeString,
@@ -231,6 +248,33 @@ func (b *Backend) configure(ctx context.Context) error {
 		return err
 	}
 
+	if v, ok := data.GetOk("domain"); ok {
+		b.domain = v.(string)
+		log.Printf("[DEBUG] Backend: set domain for TencentCloud API client. Domain: [%s]", b.domain)
+	}
+	// set url as endpoint when provided
+	// "http://{Bucket}.cos-internal.{Region}.tencentcos.cn"
+	if v, ok := data.GetOk("endpoint"); ok {
+		endpoint := v.(string)
+
+		re := regexp.MustCompile(`^(http(s)?)://cos-internal\.([^.]+)\.tencentcos\.cn$`)
+		matches := re.FindStringSubmatch(endpoint)
+		if len(matches) != 4 {
+			return fmt.Errorf("Invalid URL: %v must be: %v", endpoint, "http(s)://cos-internal.{Region}.tencentcos.cn")
+		}
+
+		protocol := matches[1]
+		region := matches[3]
+
+		// URL after converting
+		newUrl := fmt.Sprintf("%s://%s.cos-internal.%s.tencentcos.cn", protocol, b.bucket, region)
+		u, err = url.Parse(newUrl)
+		log.Printf("[DEBUG] Backend: set COS URL as: [%s]", newUrl)
+	}
+	if err != nil {
+		return err
+	}
+
 	secretId := data.Get("secret_id").(string)
 	secretKey := data.Get("secret_key").(string)
 	securityToken := data.Get("security_token").(string)
@@ -333,6 +377,8 @@ func (b *Backend) NewClientProfile(timeout int) *profile.ClientProfile {
 	cpf.HttpProfile.ReqMethod = "POST"
 	// request timeout
 	cpf.HttpProfile.ReqTimeout = timeout
+	// request domain
+	cpf.HttpProfile.RootDomain = b.domain
 
 	return cpf
 }

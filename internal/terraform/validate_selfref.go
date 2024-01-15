@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -11,12 +11,13 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // validateSelfRef checks to ensure that expressions within a particular
 // referencable block do not reference that same block.
-func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema *ProviderSchema) tfdiags.Diagnostics {
+func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema providers.ProviderSchema) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	addrStrs := make([]string, 0, 1)
@@ -25,11 +26,6 @@ func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema *
 	case addrs.ResourceInstance:
 		// A resource instance may not refer to its containing resource either.
 		addrStrs = append(addrStrs, tAddr.ContainingResource().String())
-	}
-
-	if providerSchema == nil {
-		diags = diags.Append(fmt.Errorf("provider schema unavailable while validating %s for self-references; this is a bug in Terraform and should be reported", addr))
-		return diags
 	}
 
 	var schema *configschema.Block
@@ -45,7 +41,7 @@ func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema *
 		return diags
 	}
 
-	refs, _ := lang.ReferencesInBlock(config, schema)
+	refs, _ := lang.ReferencesInBlock(addrs.ParseRef, config, schema)
 	for _, ref := range refs {
 		for _, addrStr := range addrStrs {
 			if ref.Subject.String() == addrStr {
@@ -60,4 +56,31 @@ func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema *
 	}
 
 	return diags
+}
+
+// Legacy provisioner configurations may refer to single instances using the
+// resource address. We need to filter these out from the reported references
+// to prevent cycles.
+func filterSelfRefs(self addrs.Resource, refs []*addrs.Reference) []*addrs.Reference {
+	for i := 0; i < len(refs); i++ {
+		ref := refs[i]
+
+		var subject addrs.Resource
+		switch subj := ref.Subject.(type) {
+		case addrs.Resource:
+			subject = subj
+		case addrs.ResourceInstance:
+			subject = subj.ContainingResource()
+		default:
+			continue
+		}
+
+		if self.Equal(subject) {
+			tail := len(refs) - 1
+
+			refs[i], refs[tail] = refs[tail], refs[i]
+			refs = refs[:tail]
+		}
+	}
+	return refs
 }

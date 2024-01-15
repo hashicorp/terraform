@@ -1,7 +1,11 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
+
+import (
+	"github.com/hashicorp/terraform/internal/tfdiags"
+)
 
 // GraphNodeDynamicExpandable is an interface that nodes can implement
 // to signal that they can be expanded at eval-time (hence dynamic).
@@ -16,5 +20,5 @@ type GraphNodeDynamicExpandable interface {
 	// of calling ErrWithWarnings on a tfdiags.Diagnostics value instead,
 	// in which case the caller will unwrap it and gather the individual
 	// diagnostics.
-	DynamicExpand(EvalContext) (*Graph, error)
+	DynamicExpand(EvalContext) (*Graph, tfdiags.Diagnostics)
 }

@@ -18,6 +18,8 @@ to remove a binding to an existing remote object without first destroying it,
 which will effectively make Terraform "forget" the object while it continues
 to exist in the remote system.
 
+-> **Note:** Terraform v1.7.0 and later supports `removed` blocks. Unlike the `terraform state rm` command, you can use `removed` blocks to remove more than one resource at a time, and you can review removals as part of your normal plan and apply workflow. [Learn more about using `removed` blocks with resources](/terraform/language/resources/syntax#removing-resources) and [using `removed` blocks with modules](/terraform/language/modules/syntax#removing-modules).
+
 ## Usage
 
 Usage: `terraform state rm [options] ADDRESS...`

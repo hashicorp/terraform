@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package plans
 
@@ -17,7 +17,22 @@ import (
 type ResourceInstanceChangeSrc struct {
 	// Addr is the absolute address of the resource instance that the change
 	// will apply to.
+	//
+	// THIS IS NOT A SUFFICIENT UNIQUE IDENTIFIER! It doesn't consider the
+	// fact that multiple objects for the same resource instance might be
+	// present in the same plan; use the ObjectAddr method instead if you
+	// need a unique address for a particular change.
 	Addr addrs.AbsResourceInstance
+
+	// DeposedKey is the identifier for a deposed object associated with the
+	// given instance, or states.NotDeposed if this change applies to the
+	// current object.
+	//
+	// A Replace change for a resource with create_before_destroy set will
+	// create a new DeposedKey temporarily during replacement. In that case,
+	// DeposedKey in the plan is always states.NotDeposed, representing that
+	// the current object is being replaced with the deposed.
+	DeposedKey states.DeposedKey
 
 	// PrevRunAddr is the absolute address that this resource instance had at
 	// the conclusion of a previous run.
@@ -31,16 +46,6 @@ type ResourceInstanceChangeSrc struct {
 	// equal to Addr in that case in order to simplify logic elsewhere which
 	// aims to detect and react to the movement of instances between addresses.
 	PrevRunAddr addrs.AbsResourceInstance
-
-	// DeposedKey is the identifier for a deposed object associated with the
-	// given instance, or states.NotDeposed if this change applies to the
-	// current object.
-	//
-	// A Replace change for a resource with create_before_destroy set will
-	// create a new DeposedKey temporarily during replacement. In that case,
-	// DeposedKey in the plan is always states.NotDeposed, representing that
-	// the current object is being replaced with the deposed.
-	DeposedKey states.DeposedKey
 
 	// Provider is the address of the provider configuration that was used
 	// to plan this change, and thus the configuration that must also be
@@ -72,6 +77,13 @@ type ResourceInstanceChangeSrc struct {
 	// Terraform that relates to this change. Terraform will save this
 	// byte-for-byte and return it to the provider in the apply call.
 	Private []byte
+}
+
+func (rcs *ResourceInstanceChangeSrc) ObjectAddr() addrs.AbsResourceInstanceObject {
+	return addrs.AbsResourceInstanceObject{
+		ResourceInstance: rcs.Addr,
+		DeposedKey:       rcs.DeposedKey,
+	}
 }
 
 // Decode unmarshals the raw representation of the instance object being

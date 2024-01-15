@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -18,7 +18,6 @@ import (
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/moduletest"
 	tfplugin "github.com/hashicorp/terraform/internal/plugin"
 	tfplugin6 "github.com/hashicorp/terraform/internal/plugin6"
 	"github.com/hashicorp/terraform/internal/providercache"
@@ -341,9 +340,6 @@ func (m *Meta) internalProviders() map[string]providers.Factory {
 		"terraform": func() (providers.Interface, error) {
 			return terraformProvider.NewProvider(), nil
 		},
-		"test": func() (providers.Interface, error) {
-			return moduletest.NewProvider(), nil
-		},
 	}
 }
 
@@ -382,18 +378,26 @@ func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 
 		// store the client so that the plugin can kill the child process
 		protoVer := client.NegotiatedVersion()
-		switch protoVer {
-		case 5:
-			p := raw.(*tfplugin.GRPCProvider)
-			p.PluginClient = client
-			return p, nil
-		case 6:
-			p := raw.(*tfplugin6.GRPCProvider)
-			p.PluginClient = client
-			return p, nil
-		default:
-			panic("unsupported protocol version")
-		}
+		return finalizeFactoryPlugin(raw, protoVer, meta.Provider, client), nil
+	}
+}
+
+// finalizeFactoryPlugin completes the setup of a plugin dispensed by the rpc
+// client to be returned by the plugin factory.
+func finalizeFactoryPlugin(rawPlugin any, protoVersion int, addr addrs.Provider, client *plugin.Client) providers.Interface {
+	switch protoVersion {
+	case 5:
+		p := rawPlugin.(*tfplugin.GRPCProvider)
+		p.PluginClient = client
+		p.Addr = addr
+		return p
+	case 6:
+		p := rawPlugin.(*tfplugin6.GRPCProvider)
+		p.PluginClient = client
+		p.Addr = addr
+		return p
+	default:
+		panic("unsupported protocol version")
 	}
 }
 
@@ -462,13 +466,9 @@ func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.Reattach
 			// go-plugin), so client.NegotiatedVersion() always returns 0. We
 			// assume that an unmanaged provider reporting protocol version 0 is
 			// actually using proto v5 for backwards compatibility.
-			p := raw.(*tfplugin.GRPCProvider)
-			p.PluginClient = client
-			return p, nil
+			return finalizeFactoryPlugin(raw, 5, provider, client), nil
 		case 6:
-			p := raw.(*tfplugin6.GRPCProvider)
-			p.PluginClient = client
-			return p, nil
+			return finalizeFactoryPlugin(raw, 6, provider, client), nil
 		default:
 			return nil, fmt.Errorf("unsupported protocol version %d", protoVer)
 		}

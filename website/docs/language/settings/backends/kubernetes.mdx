@@ -5,8 +5,6 @@ description: Terraform can store state remotely in Kubernetes and lock that stat
 
 # kubernetes
 
--> **Note:** This backend is limited by Kubernetes' maximum Secret size of 1MB. See [Secret restrictions](https://kubernetes.io/docs/concepts/configuration/secret/#restrictions) for details.
-
 Stores the state in a [Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/).
 
 This backend supports [state locking](/terraform/language/state/locking), with locking done using a Lease resource.

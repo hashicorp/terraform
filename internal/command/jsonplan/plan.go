@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jsonplan
 
@@ -46,7 +46,7 @@ const (
 	ResourceInstanceReadBecauseCheckNested        = "read_because_check_nested"
 )
 
-// Plan is the top-level representation of the json format of a plan. It includes
+// plan is the top-level representation of the json format of a plan. It includes
 // the complete config and current state.
 type plan struct {
 	FormatVersion    string      `json:"format_version,omitempty"`
@@ -63,6 +63,7 @@ type plan struct {
 	RelevantAttributes []ResourceAttr    `json:"relevant_attributes,omitempty"`
 	Checks             json.RawMessage   `json:"checks,omitempty"`
 	Timestamp          string            `json:"timestamp,omitempty"`
+	Errored            bool              `json:"errored"`
 }
 
 func newPlan() *plan {
@@ -86,20 +87,23 @@ type Change struct {
 	//    ["create"]
 	//    ["read"]
 	//    ["update"]
-	//    ["delete", "create"]
-	//    ["create", "delete"]
+	//    ["delete", "create"] (replace)
+	//    ["create", "delete"] (replace)
 	//    ["delete"]
-	// The two "replace" actions are represented in this way to allow callers to
-	// e.g. just scan the list for "delete" to recognize all three situations
-	// where the object will be deleted, allowing for any new deletion
-	// combinations that might be added in future.
+	//    ["forget"]
+	//    ["create", "forget"] (replace)
+	// The three "replace" actions are represented in this way to allow callers
+	// to, e.g., just scan the list for "delete" to recognize all three
+	// situations where the object will be deleted, allowing for any new
+	// deletion combinations that might be added in future.
 	Actions []string `json:"actions,omitempty"`
 
 	// Before and After are representations of the object value both before and
-	// after the action. For ["create"] and ["delete"] actions, either "before"
-	// or "after" is unset (respectively). For ["no-op"], the before and after
-	// values are identical. The "after" value will be incomplete if there are
-	// values within it that won't be known until after apply.
+	// after the action. For ["create"] and ["delete"]/["forget"] actions,
+	// either "before" or "after" is unset (respectively). For ["no-op"], the
+	// before and after values are identical. The "after" value will be
+	// incomplete if there are values within it that won't be known until after
+	// apply.
 	Before json.RawMessage `json:"before,omitempty"`
 	After  json.RawMessage `json:"after,omitempty"`
 
@@ -221,6 +225,7 @@ func Marshal(
 	output := newPlan()
 	output.TerraformVersion = version.String()
 	output.Timestamp = p.Timestamp.Format(time.RFC3339)
+	output.Errored = p.Errored
 
 	err := output.marshalPlanVariables(p.VariableValues, config.Module.Variables)
 	if err != nil {
@@ -291,8 +296,7 @@ func Marshal(
 		return nil, fmt.Errorf("error marshaling config: %s", err)
 	}
 
-	ret, err := json.Marshal(output)
-	return ret, err
+	return json.Marshal(output)
 }
 
 func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls map[string]*configs.Variable) error {
@@ -815,6 +819,10 @@ func actionString(action string) []string {
 		return []string{"read"}
 	case action == "DeleteThenCreate":
 		return []string{"delete", "create"}
+	case action == "Forget":
+		return []string{"forget"}
+	case action == "CreateThenForget":
+		return []string{"create", "forget"}
 	default:
 		return []string{action}
 	}
@@ -830,6 +838,10 @@ func UnmarshalActions(actions []string) plans.Action {
 		if actions[0] == "delete" && actions[1] == "create" {
 			return plans.DeleteThenCreate
 		}
+
+		if actions[0] == "create" && actions[1] == "forget" {
+			return plans.CreateThenForget
+		}
 	}
 
 	if len(actions) == 1 {
@@ -842,6 +854,8 @@ func UnmarshalActions(actions []string) plans.Action {
 			return plans.Update
 		case "read":
 			return plans.Read
+		case "forget":
+			return plans.Forget
 		case "no-op":
 			return plans.NoOp
 		}

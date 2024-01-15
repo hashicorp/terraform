@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package initwd
 
@@ -31,7 +31,7 @@ import (
 // As with NewLoaderForTests, a cleanup function is returned which must be
 // called before the test completes in order to remove the temporary
 // modules directory.
-func LoadConfigForTests(t *testing.T, rootDir string) (*configs.Config, *configload.Loader, func(), tfdiags.Diagnostics) {
+func LoadConfigForTests(t *testing.T, rootDir string, testsDir string) (*configs.Config, *configload.Loader, func(), tfdiags.Diagnostics) {
 	t.Helper()
 
 	var diags tfdiags.Diagnostics
@@ -39,7 +39,7 @@ func LoadConfigForTests(t *testing.T, rootDir string) (*configs.Config, *configl
 	loader, cleanup := configload.NewLoaderForTests(t)
 	inst := NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
 
-	_, moreDiags := inst.InstallModules(context.Background(), rootDir, true, ModuleInstallHooksImpl{})
+	_, moreDiags := inst.InstallModules(context.Background(), rootDir, testsDir, true, false, ModuleInstallHooksImpl{})
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		cleanup()
@@ -65,10 +65,10 @@ func LoadConfigForTests(t *testing.T, rootDir string) (*configs.Config, *configl
 // This is useful for concisely writing tests that don't expect errors at
 // all. For tests that expect errors and need to assert against them, use
 // LoadConfigForTests instead.
-func MustLoadConfigForTests(t *testing.T, rootDir string) (*configs.Config, *configload.Loader, func()) {
+func MustLoadConfigForTests(t *testing.T, rootDir, testsDir string) (*configs.Config, *configload.Loader, func()) {
 	t.Helper()
 
-	config, loader, cleanup, diags := LoadConfigForTests(t, rootDir)
+	config, loader, cleanup, diags := LoadConfigForTests(t, rootDir, testsDir)
 	if diags.HasErrors() {
 		cleanup()
 		t.Fatal(diags.Err())

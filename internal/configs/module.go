@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configs
 
@@ -49,10 +49,13 @@ type Module struct {
 	ManagedResources map[string]*Resource
 	DataResources    map[string]*Resource
 
-	Moved  []*Moved
-	Import []*Import
+	Moved   []*Moved
+	Removed []*Removed
+	Import  []*Import
 
 	Checks map[string]*Check
+
+	Tests map[string]*TestFile
 }
 
 // File describes the contents of a single configuration file.
@@ -86,10 +89,21 @@ type File struct {
 	ManagedResources []*Resource
 	DataResources    []*Resource
 
-	Moved  []*Moved
-	Import []*Import
+	Moved   []*Moved
+	Removed []*Removed
+	Import  []*Import
 
 	Checks []*Check
+}
+
+// NewModuleWithTests matches NewModule except it will also load in the provided
+// test files.
+func NewModuleWithTests(primaryFiles, overrideFiles []*File, testFiles map[string]*TestFile) (*Module, hcl.Diagnostics) {
+	mod, diags := NewModule(primaryFiles, overrideFiles)
+	if mod != nil {
+		mod.Tests = testFiles
+	}
+	return mod, diags
 }
 
 // NewModule takes a list of primary files and a list of override files and
@@ -113,6 +127,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		DataResources:      map[string]*Resource{},
 		Checks:             map[string]*Check{},
 		ProviderMetas:      map[addrs.Provider]*ProviderMeta{},
+		Tests:              map[string]*TestFile{},
 	}
 
 	// Process the required_providers blocks first, to ensure that all
@@ -407,28 +422,21 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	// runtime.)
 	m.Moved = append(m.Moved, file.Moved...)
 
+	m.Removed = append(m.Removed, file.Removed...)
+
 	for _, i := range file.Import {
+		iTo, iToOK := parseImportToStatic(i.To)
 		for _, mi := range m.Import {
-			if i.To.Equal(mi.To) {
+			// Try to detect duplicate import targets. We need to see if the to
+			// address can be parsed statically.
+			miTo, miToOK := parseImportToStatic(mi.To)
+			if iToOK && miToOK && iTo.Equal(miTo) {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Duplicate import configuration for %q", i.To),
-					Detail:   fmt.Sprintf("An import block for the resource %q was already declared at %s. A resource can have only one import block.", i.To, mi.DeclRange),
-					Subject:  &i.DeclRange,
+					Summary:  fmt.Sprintf("Duplicate import configuration for %q", i.ToResource),
+					Detail:   fmt.Sprintf("An import block for the resource %q was already declared at %s. A resource can have only one import block.", i.ToResource, mi.DeclRange),
+					Subject:  i.To.Range().Ptr(),
 				})
-				continue
-			}
-
-			if i.ID == mi.ID {
-				if i.To.Resource.Resource.Type == mi.To.Resource.Resource.Type {
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  fmt.Sprintf("Duplicate import for ID %q", i.ID),
-						Detail:   fmt.Sprintf("An import block for the ID %q and a resource of type %q was already declared at %s. The same resource cannot be imported twice.", i.ID, i.To.Resource.Resource.Type, mi.DeclRange),
-						Subject:  &i.DeclRange,
-					})
-					continue
-				}
 			}
 		}
 
@@ -438,28 +446,12 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 				Alias:     i.ProviderConfigRef.Alias,
 			})
 		} else {
-			implied, err := addrs.ParseProviderPart(i.To.Resource.Resource.ImpliedProvider())
+			implied, err := addrs.ParseProviderPart(i.ToResource.Resource.ImpliedProvider())
 			if err == nil {
 				i.Provider = m.ImpliedProviderForUnqualifiedType(implied)
 			}
 			// We don't return a diagnostic because the invalid resource name
 			// will already have been caught.
-		}
-
-		// It is invalid for any import block to have a "to" argument matching
-		// any moved block's "from" argument.
-		for _, mb := range m.Moved {
-			// Comparing string serialisations is good enough here, because we
-			// only care about equality in the case that both addresses are
-			// AbsResourceInstances.
-			if mb.From.String() == i.To.String() {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Cannot import to a move source",
-					Detail:   fmt.Sprintf("An import block for ID %q targets resource address %s, but this address appears in the \"from\" argument of a moved block, which is invalid. Please change the import target to a different address, such as the move target.", i.ID, i.To),
-					Subject:  &i.DeclRange,
-				})
-			}
 		}
 
 		m.Import = append(m.Import, i)
@@ -658,7 +650,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 	return diags
 }
 
-// gatherProviderLocalNames is a helper function that populatesA a map of
+// gatherProviderLocalNames is a helper function that populates a map of
 // provider FQNs -> provider local names. This information is useful for
 // user-facing output, which should include both the FQN and LocalName. It must
 // only be populated after the module has been parsed.

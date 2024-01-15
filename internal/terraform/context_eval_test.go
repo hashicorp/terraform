@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -8,7 +8,10 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
@@ -130,4 +133,214 @@ output "out" {
 		SetVariables: testInputValuesUnset(m.Module.Variables),
 	})
 	assertNoErrors(t, diags)
+}
+
+func TestContextPlanAndEval(t *testing.T) {
+	// This test actually performs a plan walk rather than an eval walk, but
+	// it's here because PlanAndEval is thematically related to the evaluation
+	// walk, with the same effect of producing a lang.Scope that the caller
+	// can use to evaluate arbitrary expressions.
+
+	m := testModule(t, "planandeval-basic")
+	p := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_thing": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"arg": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, scope, diags := ctx.PlanAndEval(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"a": {
+				Value: cty.StringVal("a value"),
+			},
+		},
+	})
+	assertNoDiagnostics(t, diags)
+
+	// This test isn't really about whether the plan is correct, but we'll
+	// do some basic checks on it anyway because if the plan is incorrect
+	// then the evaluation scope will probably behave oddly too.
+	if plan.Errored {
+		t.Error("plan is marked as errored; want success")
+	}
+	riAddr := mustResourceInstanceAddr("test_thing.a")
+	if plan.Changes != nil {
+		if rc := plan.Changes.ResourceInstance(riAddr); rc == nil {
+			t.Errorf("plan does not include a change for test_thing.a")
+		} else if got, want := rc.Action, plans.Create; got != want {
+			t.Errorf("wrong planned action for test_thing.a\ngot:  %s\nwant: %s", got, want)
+		}
+		if _, ok := plan.VariableValues["a"]; !ok {
+			t.Errorf("plan does not track value for var.a")
+		}
+	} else {
+		t.Fatalf("plan has no Changes")
+	}
+	if plan.PlannedState != nil {
+		if rs := plan.PlannedState.ResourceInstance(riAddr); rs == nil {
+			t.Errorf("planned satte does not include test_thing.a")
+		}
+	} else {
+		t.Fatalf("plan has no PlannedState")
+	}
+	if plan.PriorState == nil {
+		t.Fatalf("plan has no PriorState")
+	}
+	if plan.PrevRunState == nil {
+		t.Fatalf("plan has no PrevRunState")
+	}
+
+	if scope == nil {
+		// It's okay for scope to be nil when there are errors, but if we
+		// successfully created a plan then it should always be set.
+		t.Fatal("PlanAndEval returned nil scope")
+	}
+
+	t.Run("var.a", func(t *testing.T) {
+		expr := hcltest.MockExprTraversalSrc(`var.a`)
+		want := cty.StringVal("a value")
+		got, diags := scope.EvalExpr(expr, cty.String)
+		assertNoDiagnostics(t, diags)
+
+		if !want.RawEquals(got) {
+			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+		}
+	})
+	t.Run("test_thing.a", func(t *testing.T) {
+		expr := hcltest.MockExprTraversalSrc(`test_thing.a`)
+		want := cty.ObjectVal(map[string]cty.Value{
+			"arg": cty.StringVal("a value"),
+		})
+		got, diags := scope.EvalExpr(expr, cty.DynamicPseudoType)
+		assertNoDiagnostics(t, diags)
+
+		if !want.RawEquals(got) {
+			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+		}
+	})
+}
+
+func TestContextApplyAndEval(t *testing.T) {
+	// This test actually performs plan and apply walks rather than an eval
+	// walk, but it's here because ApplyAndEval is thematically related to the
+	// evaluation walk, with the same effect of producing a lang.Scope that the
+	// caller can use to evaluate arbitrary expressions.
+
+	m := testModule(t, "planandeval-basic")
+	p := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_thing": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"arg": {
+								Type:     cty.String,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"a": {
+				Value: cty.StringVal("a value"),
+			},
+		},
+	})
+	assertNoDiagnostics(t, diags)
+
+	// This test isn't really about whether the plan is correct, but we'll
+	// do some basic checks on it anyway because if the plan is incorrect
+	// then the evaluation scope will probably behave oddly too.
+	if plan.Errored {
+		t.Error("plan is marked as errored; want success")
+	}
+	riAddr := mustResourceInstanceAddr("test_thing.a")
+	if plan.Changes != nil {
+		if rc := plan.Changes.ResourceInstance(riAddr); rc == nil {
+			t.Errorf("plan does not include a change for test_thing.a")
+		} else if got, want := rc.Action, plans.Create; got != want {
+			t.Errorf("wrong planned action for test_thing.a\ngot:  %s\nwant: %s", got, want)
+		}
+		if _, ok := plan.VariableValues["a"]; !ok {
+			t.Errorf("plan does not track value for var.a")
+		}
+	} else {
+		t.Fatalf("plan has no Changes")
+	}
+	if plan.PlannedState != nil {
+		if rs := plan.PlannedState.ResourceInstance(riAddr); rs == nil {
+			t.Errorf("planned satte does not include test_thing.a")
+		}
+	} else {
+		t.Fatalf("plan has no PlannedState")
+	}
+	if plan.PriorState == nil {
+		t.Fatalf("plan has no PriorState")
+	}
+	if plan.PrevRunState == nil {
+		t.Fatalf("plan has no PrevRunState")
+	}
+
+	finalState, scope, diags := ctx.ApplyAndEval(plan, m, nil)
+	assertNoDiagnostics(t, diags)
+	if finalState == nil {
+		t.Fatalf("no final state")
+	}
+
+	if scope == nil {
+		// It's okay for scope to be nil when there are errors, but if we
+		// successfully applied the plan then it should always be set.
+		t.Fatal("ApplyAndEval returned nil scope")
+	}
+
+	t.Run("var.a", func(t *testing.T) {
+		expr := hcltest.MockExprTraversalSrc(`var.a`)
+		want := cty.StringVal("a value")
+		got, diags := scope.EvalExpr(expr, cty.String)
+		assertNoDiagnostics(t, diags)
+
+		if !want.RawEquals(got) {
+			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+		}
+	})
+	t.Run("test_thing.a", func(t *testing.T) {
+		expr := hcltest.MockExprTraversalSrc(`test_thing.a`)
+		want := cty.ObjectVal(map[string]cty.Value{
+			"arg": cty.StringVal("a value"),
+		})
+		got, diags := scope.EvalExpr(expr, cty.DynamicPseudoType)
+		assertNoDiagnostics(t, diags)
+
+		if !want.RawEquals(got) {
+			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+		}
+	})
 }

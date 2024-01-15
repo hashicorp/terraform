@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: BUSL-1.1
 
 #
 # This script builds the application from source for multiple platforms.
@@ -11,7 +11,7 @@ while [ -h "$SOURCE" ] ; do SOURCE="$(readlink "$SOURCE")"; done
 DIR="$( cd -P "$( dirname "$SOURCE" )/.." && pwd )"
 
 # Change into that directory
-cd "$DIR"
+cd "$DIR" || exit
 
 # Determine the arch/os combos we're building for
 XC_ARCH=${XC_ARCH:-"386 amd64 arm"}
@@ -41,9 +41,10 @@ export CGO_ENABLED=0
 # Set module download mode to readonly to not implicitly update go.mod
 export GOFLAGS="-mod=readonly"
 
-# In release mode we don't want debug information in the binary
+# In release mode we don't want debug information in the binary and we don't
+# want the -dev version marker
 if [[ -n "${TF_RELEASE}" ]]; then
-    LD_FLAGS="-s -w"
+    LD_FLAGS="-s -w -X 'github.com/hashicorp/terraform/version.dev=no'"
 fi
 
 # Ensure all remote modules are downloaded and cached before build so that

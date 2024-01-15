@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package funcs
 
@@ -135,7 +135,7 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 		givenFuncs := funcsCb() // this callback indirection is to avoid chicken/egg problems
 		funcs := make(map[string]function.Function, len(givenFuncs))
 		for name, fn := range givenFuncs {
-			if name == "templatefile" {
+			if name == "templatefile" || name == "core::templatefile" {
 				// We stub this one out to prevent recursive calls.
 				funcs[name] = function.New(&function.Spec{
 					Params: params,

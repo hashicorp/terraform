@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -11,8 +11,10 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/namedvals"
 )
 
 func TestNodeRootVariableExecute(t *testing.T) {
@@ -32,18 +34,18 @@ func TestNodeRootVariableExecute(t *testing.T) {
 			},
 		}
 
+		ctx.NamedValuesState = namedvals.NewState()
+
 		diags := n.Execute(ctx, walkApply)
 		if diags.HasErrors() {
 			t.Fatalf("unexpected error: %s", diags.Err())
 		}
 
-		if !ctx.SetRootModuleArgumentCalled {
-			t.Fatalf("ctx.SetRootModuleArgument wasn't called")
+		absAddr := addrs.RootModuleInstance.InputVariable(n.Addr.Name)
+		if !ctx.NamedValues().HasInputVariableValue(absAddr) {
+			t.Fatalf("no result was registered")
 		}
-		if got, want := ctx.SetRootModuleArgumentAddr.String(), "var.foo"; got != want {
-			t.Errorf("wrong address for ctx.SetRootModuleArgument\ngot:  %s\nwant: %s", got, want)
-		}
-		if got, want := ctx.SetRootModuleArgumentValue, cty.StringVal("true"); !want.RawEquals(got) {
+		if got, want := ctx.NamedValues().GetInputVariableValue(absAddr), cty.StringVal("true"); !want.RawEquals(got) {
 			// NOTE: The given value was cty.Bool but the type constraint was
 			// cty.String, so it was NodeRootVariable's responsibility to convert
 			// as part of preparing the "final value".
@@ -53,29 +55,12 @@ func TestNodeRootVariableExecute(t *testing.T) {
 	t.Run("validation", func(t *testing.T) {
 		ctx := new(MockEvalContext)
 
+		ctx.NamedValuesState = namedvals.NewState()
+
 		// The variable validation function gets called with Terraform's
 		// built-in functions available, so we need a minimal scope just for
 		// it to get the functions from.
 		ctx.EvaluationScopeScope = &lang.Scope{}
-
-		// We need to reimplement a _little_ bit of EvalContextBuiltin logic
-		// here to get a similar effect with EvalContextMock just to get the
-		// value to flow through here in a realistic way that'll make this test
-		// useful.
-		var finalVal cty.Value
-		ctx.SetRootModuleArgumentFunc = func(addr addrs.InputVariable, v cty.Value) {
-			if addr.Name == "foo" {
-				t.Logf("set %s to %#v", addr.String(), v)
-				finalVal = v
-			}
-		}
-		ctx.GetVariableValueFunc = func(addr addrs.AbsInputVariableInstance) cty.Value {
-			if addr.String() != "var.foo" {
-				return cty.NilVal
-			}
-			t.Logf("reading final val for %s (%#v)", addr.String(), finalVal)
-			return finalVal
-		}
 
 		n := &NodeRootVariable{
 			Addr: addrs.InputVariable{Name: "foo"},
@@ -115,24 +100,34 @@ func TestNodeRootVariableExecute(t *testing.T) {
 				Value:      cty.StringVal("5"),
 				SourceType: ValueFromUnknown,
 			},
+			Planning: true,
 		}
+
+		ctx.ChecksState = checks.NewState(&configs.Config{
+			Module: &configs.Module{
+				Variables: map[string]*configs.Variable{
+					"foo": n.Config,
+				},
+			},
+		})
 
 		diags := n.Execute(ctx, walkApply)
 		if diags.HasErrors() {
 			t.Fatalf("unexpected error: %s", diags.Err())
 		}
 
-		if !ctx.SetRootModuleArgumentCalled {
-			t.Fatalf("ctx.SetRootModuleArgument wasn't called")
+		absAddr := addrs.RootModuleInstance.InputVariable(n.Addr.Name)
+		if !ctx.NamedValues().HasInputVariableValue(absAddr) {
+			t.Fatalf("no result value for input variable")
 		}
-		if got, want := ctx.SetRootModuleArgumentAddr.String(), "var.foo"; got != want {
-			t.Errorf("wrong address for ctx.SetRootModuleArgument\ngot:  %s\nwant: %s", got, want)
-		}
-		if got, want := ctx.SetRootModuleArgumentValue, cty.NumberIntVal(5); !want.RawEquals(got) {
+		if got, want := ctx.NamedValues().GetInputVariableValue(absAddr), cty.NumberIntVal(5); !want.RawEquals(got) {
 			// NOTE: The given value was cty.Bool but the type constraint was
 			// cty.String, so it was NodeRootVariable's responsibility to convert
 			// as part of preparing the "final value".
 			t.Errorf("wrong value for ctx.SetRootModuleArgument\ngot:  %#v\nwant: %#v", got, want)
+		}
+		if status := ctx.Checks().ObjectCheckStatus(n.Addr.Absolute(addrs.RootModuleInstance)); status != checks.StatusPass {
+			t.Errorf("expected checks to pass but go %s instead", status)
 		}
 	})
 }

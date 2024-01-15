@@ -1,10 +1,11 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package cloud
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -89,7 +90,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 			}
 
 			// Retrieve the workspace used to run this operation in.
-			w, err = b.client.Workspaces.Read(stopCtx, b.organization, w.Name)
+			w, err = b.client.Workspaces.Read(stopCtx, b.Organization, w.Name)
 			if err != nil {
 				return nil, generalError("Failed to retrieve workspace", err)
 			}
@@ -169,7 +170,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 			options := tfe.ReadRunQueueOptions{}
 		search:
 			for {
-				rq, err := b.client.Organizations.ReadRunQueue(stopCtx, b.organization, options)
+				rq, err := b.client.Organizations.ReadRunQueue(stopCtx, b.Organization, options)
 				if err != nil {
 					return r, generalError("Failed to retrieve queue", err)
 				}
@@ -192,7 +193,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 			}
 
 			if position > 0 {
-				c, err := b.client.Organizations.ReadCapacity(stopCtx, b.organization)
+				c, err := b.client.Organizations.ReadCapacity(stopCtx, b.Organization)
 				if err != nil {
 					return r, generalError("Failed to retrieve capacity", err)
 				}
@@ -390,7 +391,7 @@ func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Oper
 		case tfe.PolicyHardFailed:
 			return fmt.Errorf(msgPrefix + " hard failed.")
 		case tfe.PolicySoftFailed:
-			runUrl := fmt.Sprintf(runHeader, b.hostname, b.organization, op.Workspace, r.ID)
+			runUrl := fmt.Sprintf(runHeader, b.Hostname, b.Organization, op.Workspace, r.ID)
 
 			if op.Type == backend.OperationTypePlan || op.UIOut == nil || op.UIIn == nil ||
 				!pc.Actions.IsOverridable || !pc.Permissions.CanOverride {
@@ -550,11 +551,12 @@ func (b *Cloud) confirm(stopCtx context.Context, op *backend.Operation, opts *te
 	return <-result
 }
 
-// This method will fetch the redacted plan output and marshal the response into
-// a struct the jsonformat.Renderer expects.
+// This method will fetch the redacted plan output as a byte slice, mirroring
+// the behavior of the similar client.Plans.ReadJSONOutput method.
 //
-// Note: Apologies for the lengthy definition, this is a result of not being able to mock receiver methods
-var readRedactedPlan func(context.Context, url.URL, string, string) (*jsonformat.Plan, error) = func(ctx context.Context, baseURL url.URL, token string, planID string) (*jsonformat.Plan, error) {
+// Note: Apologies for the lengthy definition, this is a result of not being
+// able to mock receiver methods
+var readRedactedPlan func(context.Context, url.URL, string, string) ([]byte, error) = func(ctx context.Context, baseURL url.URL, token string, planID string) ([]byte, error) {
 	client := retryablehttp.NewClient()
 	client.RetryMax = 10
 	client.RetryWaitMin = 100 * time.Millisecond
@@ -575,7 +577,6 @@ var readRedactedPlan func(context.Context, url.URL, string, string) (*jsonformat
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Accept", "application/json")
 
-	p := &jsonformat.Plan{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -586,10 +587,17 @@ var readRedactedPlan func(context.Context, url.URL, string, string) (*jsonformat
 		return nil, err
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(p); err != nil {
+	return io.ReadAll(resp.Body)
+}
+
+// decodeRedactedPlan unmarshals a downloaded redacted plan into a struct the
+// jsonformat.Renderer expects.
+func decodeRedactedPlan(jsonBytes []byte) (*jsonformat.Plan, error) {
+	r := bytes.NewReader(jsonBytes)
+	p := &jsonformat.Plan{}
+	if err := json.NewDecoder(r).Decode(p); err != nil {
 		return nil, err
 	}
-
 	return p, nil
 }
 

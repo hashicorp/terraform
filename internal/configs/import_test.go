@@ -1,18 +1,63 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configs
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/zclconf/go-cty/cty"
 )
+
+func TestParseConfigResourceFromExpression(t *testing.T) {
+	mustExpr := func(expr hcl.Expression, diags hcl.Diagnostics) hcl.Expression {
+		if diags != nil {
+			panic(diags.Error())
+		}
+		return expr
+	}
+
+	tests := []struct {
+		expr   hcl.Expression
+		expect addrs.ConfigResource
+	}{
+		{
+			mustExpr(hclsyntax.ParseExpression([]byte("test_instance.bar"), "my_traversal", hcl.Pos{})),
+			mustAbsResourceInstanceAddr("test_instance.bar").ConfigResource(),
+		},
+
+		// parsing should skip the each.key variable
+		{
+			mustExpr(hclsyntax.ParseExpression([]byte("test_instance.bar[each.key]"), "my_traversal", hcl.Pos{})),
+			mustAbsResourceInstanceAddr("test_instance.bar").ConfigResource(),
+		},
+
+		// nested modules must work too
+		{
+			mustExpr(hclsyntax.ParseExpression([]byte("module.foo[each.key].test_instance.bar[each.key]"), "my_traversal", hcl.Pos{})),
+			mustAbsResourceInstanceAddr("module.foo.test_instance.bar").ConfigResource(),
+		},
+	}
+
+	for i, tc := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, tc.expect), func(t *testing.T) {
+
+			got, diags := parseConfigResourceFromExpression(tc.expr)
+			if diags.HasErrors() {
+				t.Fatal(diags.ErrWithWarnings())
+			}
+			if !got.Equal(tc.expect) {
+				t.Fatalf("got %s, want %s", got, tc.expect)
+			}
+		})
+	}
+}
 
 func TestImportBlock_decode(t *testing.T) {
 	blockRange := hcl.Range{
@@ -51,9 +96,9 @@ func TestImportBlock_decode(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Import{
-				To:        mustAbsResourceInstanceAddr("test_instance.bar"),
-				ID:        "foo",
-				DeclRange: blockRange,
+				ToResource: mustAbsResourceInstanceAddr("test_instance.bar").ConfigResource(),
+				ID:         foo_str_expr,
+				DeclRange:  blockRange,
 			},
 			``,
 		},
@@ -75,9 +120,9 @@ func TestImportBlock_decode(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Import{
-				To:        mustAbsResourceInstanceAddr("test_instance.bar[\"one\"]"),
-				ID:        "foo",
-				DeclRange: blockRange,
+				ToResource: mustAbsResourceInstanceAddr("test_instance.bar[\"one\"]").ConfigResource(),
+				ID:         foo_str_expr,
+				DeclRange:  blockRange,
 			},
 			``,
 		},
@@ -99,9 +144,9 @@ func TestImportBlock_decode(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Import{
-				To:        mustAbsResourceInstanceAddr("module.bar.test_instance.bar"),
-				ID:        "foo",
-				DeclRange: blockRange,
+				ToResource: mustAbsResourceInstanceAddr("module.bar.test_instance.bar").ConfigResource(),
+				ID:         foo_str_expr,
+				DeclRange:  blockRange,
 			},
 			``,
 		},
@@ -119,8 +164,8 @@ func TestImportBlock_decode(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Import{
-				To:        mustAbsResourceInstanceAddr("test_instance.bar"),
-				DeclRange: blockRange,
+				ToResource: mustAbsResourceInstanceAddr("test_instance.bar").ConfigResource(),
+				DeclRange:  blockRange,
 			},
 			"Missing required argument",
 		},
@@ -129,19 +174,42 @@ func TestImportBlock_decode(t *testing.T) {
 				Type: "import",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcl.Attributes{
-						"id": {
-							Name: "id",
-							Expr: foo_str_expr,
+						"to": {
+							Name: "to",
+							Expr: bar_expr,
 						},
 					},
 				}),
 				DefRange: blockRange,
 			},
 			&Import{
-				ID:        "foo",
+				ID:        foo_str_expr,
 				DeclRange: blockRange,
 			},
 			"Missing required argument",
+		},
+		"error: data source": {
+			&hcl.Block{
+				Type: "import",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"id": {
+							Name: "id",
+							Expr: foo_str_expr,
+						},
+						"to": {
+							Name: "to",
+							Expr: hcltest.MockExprTraversalSrc("data.test_instance.bar"),
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			&Import{
+				ID:        foo_str_expr,
+				DeclRange: blockRange,
+			},
+			"Invalid import address",
 		},
 	}
 
@@ -160,8 +228,16 @@ func TestImportBlock_decode(t *testing.T) {
 				t.Fatal("expected error")
 			}
 
-			if !cmp.Equal(got, test.want, cmp.AllowUnexported(addrs.MoveEndpoint{})) {
-				t.Fatalf("wrong result: %s", cmp.Diff(got, test.want))
+			if diags.HasErrors() {
+				return
+			}
+
+			if !got.ToResource.Equal(test.want.ToResource) {
+				t.Errorf("expected resource %q got %q", test.want.ToResource, got.ToResource)
+			}
+
+			if !reflect.DeepEqual(got.ID, test.want.ID) {
+				t.Errorf("expected ID %q got %q", test.want.ID, got.ID)
 			}
 		})
 	}

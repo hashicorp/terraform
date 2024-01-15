@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 //go:build solaris
 // +build solaris
@@ -9,8 +9,8 @@ package command
 import (
 	"fmt"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/repl"
-	"github.com/mitchellh/cli"
 )
 
 func (c *ConsoleCommand) modeInteractive(session *repl.Session, ui cli.Ui) int {

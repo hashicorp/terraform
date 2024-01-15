@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package json
 
@@ -313,10 +313,12 @@ func startActionVerb(action plans.Action) string {
 		return "Destroying"
 	case plans.Read:
 		return "Refreshing"
-	case plans.CreateThenDelete, plans.DeleteThenCreate:
+	case plans.CreateThenDelete, plans.DeleteThenCreate, plans.CreateThenForget:
 		// This is not currently possible to reach, as we receive separate
 		// passes for create and delete
 		return "Replacing"
+	case plans.Forget:
+		return "Removing"
 	case plans.NoOp:
 		// This should never be possible: a no-op planned change should not
 		// be applied. We'll fall back to "Applying".
@@ -339,10 +341,15 @@ func progressActionVerb(action plans.Action) string {
 		return "destroying"
 	case plans.Read:
 		return "refreshing"
-	case plans.CreateThenDelete, plans.DeleteThenCreate:
+	case plans.CreateThenDelete, plans.CreateThenForget, plans.DeleteThenCreate:
 		// This is not currently possible to reach, as we receive separate
 		// passes for create and delete
 		return "replacing"
+	case plans.Forget:
+		// Removing a resource from state should not take very long. Fall back
+		// to "applying" just in case, since the terminology "forgetting" is
+		// meant to be internal to Terraform.
+		fallthrough
 	case plans.NoOp:
 		// This should never be possible: a no-op planned change should not
 		// be applied. We'll fall back to "applying".
@@ -365,10 +372,12 @@ func actionNoun(action plans.Action) string {
 		return "Destruction"
 	case plans.Read:
 		return "Refresh"
-	case plans.CreateThenDelete, plans.DeleteThenCreate:
+	case plans.CreateThenDelete, plans.DeleteThenCreate, plans.CreateThenForget:
 		// This is not currently possible to reach, as we receive separate
 		// passes for create and delete
 		return "Replacement"
+	case plans.Forget:
+		return "Removal"
 	case plans.NoOp:
 		// This should never be possible: a no-op planned change should not
 		// be applied. We'll fall back to "Apply".

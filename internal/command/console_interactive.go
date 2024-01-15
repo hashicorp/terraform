@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 //go:build !solaris
 // +build !solaris
@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/repl"
 
 	"github.com/ergochat/readline"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 func (c *ConsoleCommand) modeInteractive(session *repl.Session, ui cli.Ui) int {

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -96,12 +96,18 @@ func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalCon
 		return diags
 	}
 
+	// We intentionally write the change before the subsequent checks, because
+	// all of the checks below this point are for problems caused by the
+	// context surrounding the change, rather than the change itself, and
+	// so it's helpful to still include the valid-in-isolation change as
+	// part of the plan as additional context in our error output.
+	diags = diags.Append(n.writeChange(ctx, change, ""))
+
 	diags = diags.Append(n.checkPreventDestroy(change))
 	if diags.HasErrors() {
 		return diags
 	}
 
-	diags = diags.Append(n.writeChange(ctx, change, ""))
 	return diags
 }
 

@@ -1,18 +1,19 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 
-	"github.com/mitchellh/cli"
-
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/go-plugin"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
@@ -20,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/webbrowser"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	pluginDiscovery "github.com/hashicorp/terraform/internal/plugin/discovery"
+	"github.com/hashicorp/terraform/internal/rpcapi"
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 
@@ -52,6 +54,7 @@ var HiddenCommands map[string]struct{}
 var Ui cli.Ui
 
 func initCommands(
+	ctx context.Context,
 	originalWorkingDir string,
 	streams *terminal.Streams,
 	config *cliconfig.Config,
@@ -100,7 +103,8 @@ func initCommands(
 
 		PluginCacheMayBreakDependencyLockFile: config.PluginCacheMayBreakDependencyLockFile,
 
-		ShutdownCh: makeShutdownCh(),
+		ShutdownCh:    makeShutdownCh(),
+		CallerContext: ctx,
 
 		ProviderSource:       providerSrc,
 		ProviderDevOverrides: providerDevOverrides,
@@ -411,6 +415,25 @@ func initCommands(
 		},
 	}
 
+	if meta.AllowExperimentalFeatures {
+		Commands["cloud"] = func() (cli.Command, error) {
+			return &command.CloudCommand{
+				Meta: meta,
+			}, nil
+		}
+
+		// "rpcapi" is handled a bit differently because the whole point of
+		// this interface is to bypass the CLI layer so wrapping automation can
+		// get as-direct-as-possible access to Terraform Core functionality,
+		// without interference from behaviors that are intended for CLI
+		// end-user convenience. We bypass the "command" package entirely
+		// for this command in particular.
+		Commands["rpcapi"] = rpcapi.CLICommandFactory(rpcapi.CommandFactoryOpts{
+			ExperimentsAllowed: meta.AllowExperimentalFeatures,
+			ShutdownCh:         meta.ShutdownCh,
+		})
+	}
+
 	PrimaryCommands = []string{
 		"init",
 		"validate",
@@ -420,11 +443,11 @@ func initCommands(
 	}
 
 	HiddenCommands = map[string]struct{}{
-		"env":             struct{}{},
-		"internal-plugin": struct{}{},
-		"push":            struct{}{},
+		"env":             {},
+		"internal-plugin": {},
+		"push":            {},
+		"rpcapi":          {},
 	}
-
 }
 
 // makeShutdownCh creates an interrupt listener and returns a channel.

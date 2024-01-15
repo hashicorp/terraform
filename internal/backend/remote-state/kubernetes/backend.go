@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package kubernetes
 
@@ -151,6 +151,12 @@ func New() backend.Backend {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("KUBE_TOKEN", ""),
 				Description: "Token to authentifcate a service account.",
+			},
+			"proxy_url": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "URL to the proxy to be used for all API requests",
+				DefaultFunc: schema.EnvDefaultFunc("KUBE_PROXY_URL", ""),
 			},
 			"exec": {
 				Type:     schema.TypeList,
@@ -378,6 +384,10 @@ func tryLoadingConfigFile(d *schema.ResourceData) (*restclient.Config, error) {
 			return nil, fmt.Errorf("Failed to parse exec")
 		}
 		overrides.AuthInfo.Exec = exec
+	}
+
+	if v, ok := d.GetOk("proxy_url"); ok {
+		overrides.ClusterDefaults.ProxyURL = v.(string)
 	}
 
 	cc := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loader, overrides)

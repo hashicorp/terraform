@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // simple provider a minimal provider implementation for testing
 package simple
@@ -9,10 +9,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
+
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 type simple struct {
@@ -47,7 +48,25 @@ func Provider() providers.Interface {
 				"simple_resource": simpleResource,
 			},
 			ServerCapabilities: providers.ServerCapabilities{
-				PlanDestroy: true,
+				PlanDestroy:               true,
+				GetProviderSchemaOptional: true,
+			},
+			Functions: map[string]providers.FunctionDecl{
+				"noop": providers.FunctionDecl{
+					Parameters: []providers.FunctionParam{
+						{
+							Name:               "noop",
+							Type:               cty.DynamicPseudoType,
+							AllowNullValue:     true,
+							AllowUnknownValues: true,
+							Description:        "any value",
+							DescriptionKind:    configschema.StringPlain,
+						},
+					},
+					ReturnType:      cty.DynamicPseudoType,
+					Description:     "noop takes any single argument and returns the same value",
+					DescriptionKind: configschema.StringPlain,
+				},
 			},
 		},
 	}
@@ -138,10 +157,27 @@ func (s simple) ImportResourceState(providers.ImportResourceStateRequest) (resp 
 	return resp
 }
 
+func (s simple) MoveResourceState(providers.MoveResourceStateRequest) (resp providers.MoveResourceStateResponse) {
+	// We don't expose the move_resource_state capability, so this should never
+	// be called.
+	resp.Diagnostics = resp.Diagnostics.Append(errors.New("unsupported"))
+	return resp
+}
+
 func (s simple) ReadDataSource(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
 	m := req.Config.AsValueMap()
 	m["id"] = cty.StringVal("static_id")
 	resp.State = cty.ObjectVal(m)
+	return resp
+}
+
+func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
+	if req.FunctionName != "noop" {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("CallFunction for undefined function %q", req.FunctionName))
+		return resp
+	}
+
+	resp.Result = req.Arguments[0]
 	return resp
 }
 

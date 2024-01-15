@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package cloud
 
@@ -23,6 +23,7 @@ import (
 	version "github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/genconfig"
@@ -47,6 +48,16 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 		return nil, diags.Err()
 	}
 
+	if w.VCSRepo != nil && op.PlanOutPath != "" {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Saved plans not allowed for workspaces with a VCS connection",
+			"A workspace that is connected to a VCS requires the VCS-driven workflow "+
+				"to ensure that the VCS remains the single source of truth.",
+		))
+		return nil, diags.Err()
+	}
+
 	if b.ContextOpts != nil && b.ContextOpts.Parallelism != defaultParallelism {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -62,15 +73,6 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 			"Displaying a saved plan is currently not supported",
 			`Terraform Cloud currently requires configuration to be present and `+
 				`does not accept an existing saved plan as an argument at this time.`,
-		))
-	}
-
-	if op.PlanOutPath != "" {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Saving a generated plan is currently not supported",
-			`Terraform Cloud does not support saving the generated execution `+
-				`plan locally at this time.`,
 		))
 	}
 
@@ -95,7 +97,25 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 		return nil, diags.Err()
 	}
 
-	return b.plan(stopCtx, cancelCtx, op, w)
+	// If the run errored, exit before checking whether to save a plan file
+	run, err := b.plan(stopCtx, cancelCtx, op, w)
+	if err != nil {
+		return nil, err
+	}
+
+	// Save plan file if -out <FILE> was specified
+	if op.PlanOutPath != "" {
+		bookmark := cloudplan.NewSavedPlanBookmark(run.ID, b.Hostname)
+		err = bookmark.Save(op.PlanOutPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Everything succeded, so display next steps
+	op.View.PlanNextStep(op.PlanOutPath, op.GenerateConfigOut)
+
+	return run, nil
 }
 
 func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
@@ -107,9 +127,14 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, 
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(header) + "\n"))
 	}
 
+	// Plan-only means they ran terraform plan without -out.
+	provisional := op.PlanOutPath != ""
+	planOnly := op.Type == backend.OperationTypePlan && !provisional
+
 	configOptions := tfe.ConfigurationVersionCreateOptions{
 		AutoQueueRuns: tfe.Bool(false),
-		Speculative:   tfe.Bool(op.Type == backend.OperationTypePlan),
+		Speculative:   tfe.Bool(planOnly),
+		Provisional:   tfe.Bool(provisional),
 	}
 
 	cv, err := b.client.ConfigurationVersions.Create(stopCtx, w.ID, configOptions)
@@ -206,6 +231,7 @@ in order to capture the filesystem context the remote workspace expects:
 		Refresh:              tfe.Bool(op.PlanRefresh),
 		Workspace:            w,
 		AutoApply:            tfe.Bool(op.AutoApprove),
+		SavePlan:             tfe.Bool(op.PlanOutPath != ""),
 	}
 
 	switch op.PlanMode {
@@ -307,7 +333,7 @@ in order to capture the filesystem context the remote workspace expects:
 
 	if b.CLI != nil {
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(fmt.Sprintf(
-			runHeader, b.hostname, b.organization, op.Workspace, r.ID)) + "\n"))
+			runHeader, b.Hostname, b.Organization, op.Workspace, r.ID)) + "\n"))
 	}
 
 	// Render any warnings that were raised during run creation
@@ -495,9 +521,13 @@ func (b *Cloud) renderPlanLogs(ctx context.Context, op *backend.Operation, run *
 		return err
 	}
 	if renderSRO || shouldGenerateConfig {
-		redactedPlan, err = readRedactedPlan(ctx, b.client.BaseURL(), b.token, run.Plan.ID)
+		jsonBytes, err := readRedactedPlan(ctx, b.client.BaseURL(), b.Token, run.Plan.ID)
 		if err != nil {
 			return generalError("Failed to read JSON plan", err)
+		}
+		redactedPlan, err = decodeRedactedPlan(jsonBytes)
+		if err != nil {
+			return generalError("Failed to decode JSON plan", err)
 		}
 	}
 

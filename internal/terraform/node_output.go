@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -54,7 +55,7 @@ func (n *nodeExpandOutput) temporaryValue() bool {
 	return !n.Module.IsRoot()
 }
 
-func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	expander := ctx.InstanceExpander()
 	changes := ctx.Changes()
 
@@ -107,10 +108,6 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 				Addr:     absAddr,
 				Planning: n.Planning,
 			}
-
-		case n.Destroying:
-			// nothing is done here for non-root outputs
-			continue
 
 		default:
 			node = &NodeApplyableOutput{
@@ -209,6 +206,9 @@ type NodeApplyableOutput struct {
 	DestroyApply bool
 
 	Planning bool
+
+	// override is set by the graph itself, just before this node executes.
+	override cty.Value
 }
 
 var (
@@ -282,16 +282,16 @@ func (n *NodeApplyableOutput) ReferenceableAddrs() []addrs.Referenceable {
 func referencesForOutput(c *configs.Output) []*addrs.Reference {
 	var refs []*addrs.Reference
 
-	impRefs, _ := lang.ReferencesInExpr(c.Expr)
-	expRefs, _ := lang.References(c.DependsOn)
+	impRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, c.Expr)
+	expRefs, _ := lang.References(addrs.ParseRef, c.DependsOn)
 
 	refs = append(refs, impRefs...)
 	refs = append(refs, expRefs...)
 
 	for _, check := range c.Preconditions {
-		condRefs, _ := lang.ReferencesInExpr(check.Condition)
+		condRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, check.Condition)
 		refs = append(refs, condRefs...)
-		errRefs, _ := lang.ReferencesInExpr(check.ErrorMessage)
+		errRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, check.ErrorMessage)
 		refs = append(refs, errRefs...)
 	}
 
@@ -326,7 +326,9 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 
 	// Checks are not evaluated during a destroy. The checks may fail, may not
 	// be valid, or may not have been registered at all.
-	if !n.DestroyApply {
+	// We also don't evaluate checks for overridden outputs. This is because
+	// any references within the checks will likely not have been created.
+	if !n.DestroyApply && n.override == cty.NilVal {
 		checkRuleSeverity := tfdiags.Error
 		if n.RefreshOnly {
 			checkRuleSeverity = tfdiags.Warning
@@ -346,32 +348,38 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 	// If there was no change recorded, or the recorded change was not wholly
 	// known, then we need to re-evaluate the output
 	if !changeRecorded || !val.IsWhollyKnown() {
-		// This has to run before we have a state lock, since evaluation also
-		// reads the state
-		var evalDiags tfdiags.Diagnostics
-		val, evalDiags = ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
-		diags = diags.Append(evalDiags)
 
-		// We'll handle errors below, after we have loaded the module.
-		// Outputs don't have a separate mode for validation, so validate
-		// depends_on expressions here too
-		diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
+		// First, we check if we have an overridden value. If we do, then we
+		// use that and we don't try and evaluate the underlying expression.
+		val = n.override
+		if val == cty.NilVal {
+			// This has to run before we have a state lock, since evaluation also
+			// reads the state
+			var evalDiags tfdiags.Diagnostics
+			val, evalDiags = ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
+			diags = diags.Append(evalDiags)
 
-		// For root module outputs in particular, an output value must be
-		// statically declared as sensitive in order to dynamically return
-		// a sensitive result, to help avoid accidental exposure in the state
-		// of a sensitive value that the user doesn't want to include there.
-		if n.Addr.Module.IsRoot() {
-			if !n.Config.Sensitive && marks.Contains(val, marks.Sensitive) {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Output refers to sensitive values",
-					Detail: `To reduce the risk of accidentally exporting sensitive data that was intended to be only internal, Terraform requires that any root module output containing sensitive data be explicitly marked as sensitive, to confirm your intent.
+			// We'll handle errors below, after we have loaded the module.
+			// Outputs don't have a separate mode for validation, so validate
+			// depends_on expressions here too
+			diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
+
+			// For root module outputs in particular, an output value must be
+			// statically declared as sensitive in order to dynamically return
+			// a sensitive result, to help avoid accidental exposure in the state
+			// of a sensitive value that the user doesn't want to include there.
+			if n.Addr.Module.IsRoot() {
+				if !n.Config.Sensitive && marks.Contains(val, marks.Sensitive) {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Output refers to sensitive values",
+						Detail: `To reduce the risk of accidentally exporting sensitive data that was intended to be only internal, Terraform requires that any root module output containing sensitive data be explicitly marked as sensitive, to confirm your intent.
 
 If you do intend to export this data, annotate the output value as sensitive by adding the following argument:
     sensitive = true`,
-					Subject: n.Config.DeclRange.Ptr(),
-				})
+						Subject: n.Config.DeclRange.Ptr(),
+					})
+				}
 			}
 		}
 	}
@@ -383,7 +391,7 @@ If you do intend to export this data, annotate the output value as sensitive by 
 			// if we're continuing, make sure the output is included, and
 			// marked as unknown. If the evaluator was able to find a type
 			// for the value in spite of the error then we'll use it.
-			n.setValue(state, changes, cty.UnknownVal(val.Type()))
+			n.setValue(ctx.NamedValues(), state, changes, cty.UnknownVal(val.Type()))
 
 			// Keep existing warnings, while converting errors to warnings.
 			// This is not meant to be the normal path, so there no need to
@@ -403,13 +411,13 @@ If you do intend to export this data, annotate the output value as sensitive by 
 		}
 		return diags
 	}
-	n.setValue(state, changes, val)
+	n.setValue(ctx.NamedValues(), state, changes, val)
 
 	// If we were able to evaluate a new value, we can update that in the
 	// refreshed state as well.
 	if state = ctx.RefreshState(); state != nil && val.IsWhollyKnown() {
 		// we only need to update the state, do not pass in the changes again
-		n.setValue(state, nil, val)
+		n.setValue(nil, state, nil, val)
 	}
 
 	return diags
@@ -465,15 +473,18 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 	before := cty.NullVal(cty.DynamicPseudoType)
 	mod := state.Module(n.Addr.Module)
 	if n.Addr.Module.IsRoot() && mod != nil {
-		if o, ok := mod.OutputValues[n.Addr.OutputValue.Name]; ok {
+		s := state.Lock()
+		rootOutputs := s.RootOutputValues
+		if o, ok := rootOutputs[n.Addr.OutputValue.Name]; ok {
 			sensitiveBefore = o.Sensitive
 			before = o.Value
 		} else {
 			// If the output was not in state, a delete change would
 			// be meaningless, so exit early.
+			state.Unlock()
 			return nil
-
 		}
+		state.Unlock()
 	}
 
 	changes := ctx.Changes()
@@ -514,7 +525,7 @@ func (n *NodeDestroyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.Dot
 	}
 }
 
-func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.ChangesSync, val cty.Value) {
+func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states.SyncState, changes *plans.ChangesSync, val cty.Value) {
 	if changes != nil && n.Planning {
 		// if this is a root module, try to get a before value from the state for
 		// the diff
@@ -526,7 +537,9 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 
 		mod := state.Module(n.Addr.Module)
 		if n.Addr.Module.IsRoot() && mod != nil {
-			for name, o := range mod.OutputValues {
+			s := state.Lock()
+			rootOutputs := s.RootOutputValues
+			for name, o := range rootOutputs {
 				if name == n.Addr.OutputValue.Name {
 					before = o.Value
 					sensitiveBefore = o.Sensitive
@@ -534,6 +547,7 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 					break
 				}
 			}
+			state.Unlock()
 		}
 
 		// We will not show the value if either the before or after are marked
@@ -599,8 +613,17 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		return
 	}
 
-	log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
+	// caller leaves namedVals nil if they've already called this function
+	// with a different state, since we only have one namedVals regardless
+	// of how many states are involved in an operation.
+	if namedVals != nil {
+		namedVals.SetOutputValue(n.Addr, val)
+	}
 
+	// The state itself doesn't represent unknown values, so we null them
+	// out here and then we'll save the real unknown value in the planned
+	// changeset, if we have one on this graph walk.
+	log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
 	// non-root outputs need to keep sensitive marks for evaluation, but are
 	// not serialized.
 	if n.Addr.Module.IsRoot() {

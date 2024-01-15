@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package refactoring
 
@@ -434,24 +434,6 @@ Each resource can have moved from only one source resource.`,
 			},
 			WantError: ``, // This is okay because the call itself is not considered to be inside the package it refers to
 		},
-		"resource type mismatch": {
-			Statements: []MoveStatement{
-				makeTestMoveStmt(t, ``,
-					`test.nonexist1`,
-					`other.single`,
-				),
-			},
-			WantError: `Resource type mismatch: This statement declares a move from test.nonexist1 to other.single, which is a resource of a different type.`,
-		},
-		"resource instance type mismatch": {
-			Statements: []MoveStatement{
-				makeTestMoveStmt(t, ``,
-					`test.nonexist1[0]`,
-					`other.single`,
-				),
-			},
-			WantError: `Resource type mismatch: This statement declares a move from test.nonexist1[0] to other.single, which is a resource instance of a different type.`,
-		},
 		"crossing nested statements": {
 			// overlapping nested moves will result in a cycle.
 			Statements: []MoveStatement{
@@ -538,7 +520,7 @@ func loadRefactoringFixture(t *testing.T, dir string) (*configs.Config, instance
 	defer cleanup()
 
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
-	_, instDiags := inst.InstallModules(context.Background(), dir, true, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}

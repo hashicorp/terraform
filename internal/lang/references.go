@@ -1,10 +1,11 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package lang
 
 import (
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/blocktoattr"
@@ -24,7 +25,7 @@ import (
 // incomplete or invalid. Otherwise, the returned slice has one reference per
 // given traversal, though it is not guaranteed that the references will
 // appear in the same order as the given traversals.
-func References(traversals []hcl.Traversal) ([]*addrs.Reference, tfdiags.Diagnostics) {
+func References(parseRef ParseRef, traversals []hcl.Traversal) ([]*addrs.Reference, tfdiags.Diagnostics) {
 	if len(traversals) == 0 {
 		return nil, nil
 	}
@@ -33,7 +34,7 @@ func References(traversals []hcl.Traversal) ([]*addrs.Reference, tfdiags.Diagnos
 	refs := make([]*addrs.Reference, 0, len(traversals))
 
 	for _, traversal := range traversals {
-		ref, refDiags := addrs.ParseRef(traversal)
+		ref, refDiags := parseRef(traversal)
 		diags = diags.Append(refDiags)
 		if ref == nil {
 			continue
@@ -50,7 +51,7 @@ func References(traversals []hcl.Traversal) ([]*addrs.Reference, tfdiags.Diagnos
 //
 // A block schema must be provided so that this function can determine where in
 // the body variables are expected.
-func ReferencesInBlock(body hcl.Body, schema *configschema.Block) ([]*addrs.Reference, tfdiags.Diagnostics) {
+func ReferencesInBlock(parseRef ParseRef, body hcl.Body, schema *configschema.Block) ([]*addrs.Reference, tfdiags.Diagnostics) {
 	if body == nil {
 		return nil, nil
 	}
@@ -69,16 +70,16 @@ func ReferencesInBlock(body hcl.Body, schema *configschema.Block) ([]*addrs.Refe
 	// in a better position to test this due to having mock providers etc
 	// available.
 	traversals := blocktoattr.ExpandedVariables(body, schema)
-	return References(traversals)
+	return References(parseRef, traversals)
 }
 
 // ReferencesInExpr is a helper wrapper around References that first searches
 // the given expression for traversals, before converting those traversals
 // to references.
-func ReferencesInExpr(expr hcl.Expression) ([]*addrs.Reference, tfdiags.Diagnostics) {
+func ReferencesInExpr(parseRef ParseRef, expr hcl.Expression) ([]*addrs.Reference, tfdiags.Diagnostics) {
 	if expr == nil {
 		return nil, nil
 	}
 	traversals := expr.Variables()
-	return References(traversals)
+	return References(parseRef, traversals)
 }

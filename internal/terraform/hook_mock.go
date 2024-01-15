@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -21,7 +21,7 @@ type MockHook struct {
 
 	PreApplyCalled       bool
 	PreApplyAddr         addrs.AbsResourceInstance
-	PreApplyGen          states.Generation
+	PreApplyGen          addrs.DeposedKey
 	PreApplyAction       plans.Action
 	PreApplyPriorState   cty.Value
 	PreApplyPlannedState cty.Value
@@ -30,16 +30,16 @@ type MockHook struct {
 
 	PostApplyCalled      bool
 	PostApplyAddr        addrs.AbsResourceInstance
-	PostApplyGen         states.Generation
+	PostApplyGen         addrs.DeposedKey
 	PostApplyNewState    cty.Value
 	PostApplyError       error
 	PostApplyReturn      HookAction
 	PostApplyReturnError error
-	PostApplyFn          func(addrs.AbsResourceInstance, states.Generation, cty.Value, error) (HookAction, error)
+	PostApplyFn          func(addrs.AbsResourceInstance, addrs.DeposedKey, cty.Value, error) (HookAction, error)
 
 	PreDiffCalled        bool
 	PreDiffAddr          addrs.AbsResourceInstance
-	PreDiffGen           states.Generation
+	PreDiffGen           addrs.DeposedKey
 	PreDiffPriorState    cty.Value
 	PreDiffProposedState cty.Value
 	PreDiffReturn        HookAction
@@ -47,7 +47,7 @@ type MockHook struct {
 
 	PostDiffCalled       bool
 	PostDiffAddr         addrs.AbsResourceInstance
-	PostDiffGen          states.Generation
+	PostDiffGen          addrs.DeposedKey
 	PostDiffAction       plans.Action
 	PostDiffPriorState   cty.Value
 	PostDiffPlannedState cty.Value
@@ -86,14 +86,14 @@ type MockHook struct {
 
 	PreRefreshCalled     bool
 	PreRefreshAddr       addrs.AbsResourceInstance
-	PreRefreshGen        states.Generation
+	PreRefreshGen        addrs.DeposedKey
 	PreRefreshPriorState cty.Value
 	PreRefreshReturn     HookAction
 	PreRefreshError      error
 
 	PostRefreshCalled     bool
 	PostRefreshAddr       addrs.AbsResourceInstance
-	PostRefreshGen        states.Generation
+	PostRefreshGen        addrs.DeposedKey
 	PostRefreshPriorState cty.Value
 	PostRefreshNewState   cty.Value
 	PostRefreshReturn     HookAction
@@ -141,55 +141,55 @@ type MockHook struct {
 
 var _ Hook = (*MockHook)(nil)
 
-func (h *MockHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (h *MockHook) PreApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PreApplyCalled = true
 	h.PreApplyAddr = addr
-	h.PreApplyGen = gen
+	h.PreApplyGen = dk
 	h.PreApplyAction = action
 	h.PreApplyPriorState = priorState
 	h.PreApplyPlannedState = plannedNewState
 	return h.PreApplyReturn, h.PreApplyError
 }
 
-func (h *MockHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, err error) (HookAction, error) {
+func (h *MockHook) PostApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, newState cty.Value, err error) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PostApplyCalled = true
 	h.PostApplyAddr = addr
-	h.PostApplyGen = gen
+	h.PostApplyGen = dk
 	h.PostApplyNewState = newState
 	h.PostApplyError = err
 
 	if h.PostApplyFn != nil {
-		return h.PostApplyFn(addr, gen, newState, err)
+		return h.PostApplyFn(addr, dk, newState, err)
 	}
 
 	return h.PostApplyReturn, h.PostApplyReturnError
 }
 
-func (h *MockHook) PreDiff(addr addrs.AbsResourceInstance, gen states.Generation, priorState, proposedNewState cty.Value) (HookAction, error) {
+func (h *MockHook) PreDiff(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PreDiffCalled = true
 	h.PreDiffAddr = addr
-	h.PreDiffGen = gen
+	h.PreDiffGen = dk
 	h.PreDiffPriorState = priorState
 	h.PreDiffProposedState = proposedNewState
 	return h.PreDiffReturn, h.PreDiffError
 }
 
-func (h *MockHook) PostDiff(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (h *MockHook) PostDiff(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PostDiffCalled = true
 	h.PostDiffAddr = addr
-	h.PostDiffGen = gen
+	h.PostDiffGen = dk
 	h.PostDiffAction = action
 	h.PostDiffPriorState = priorState
 	h.PostDiffPlannedState = plannedNewState
@@ -247,18 +247,18 @@ func (h *MockHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName stri
 	h.ProvisionOutputMessage = line
 }
 
-func (h *MockHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value) (HookAction, error) {
+func (h *MockHook) PreRefresh(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState cty.Value) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PreRefreshCalled = true
 	h.PreRefreshAddr = addr
-	h.PreRefreshGen = gen
+	h.PreRefreshGen = dk
 	h.PreRefreshPriorState = priorState
 	return h.PreRefreshReturn, h.PreRefreshError
 }
 
-func (h *MockHook) PostRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value, newState cty.Value) (HookAction, error) {
+func (h *MockHook) PostRefresh(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState cty.Value, newState cty.Value) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 

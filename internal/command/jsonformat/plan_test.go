@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jsonformat
 
@@ -566,6 +566,76 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example will be destroyed
   - resource "test_instance" "example" {
       - id = "i-02ae66f368e8518a9" -> null
+    }`,
+		},
+		"forget": {
+			Action: plans.Forget,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-123"),
+			}),
+			After: cty.NullVal(cty.EmptyObject),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: ` # test_instance.example will no longer be managed by Terraform, but will not be destroyed
+ # (destroy = false is set in the configuration)
+ . resource "test_instance" "example" {
+        id  = "i-02ae66f368e8518a9"
+        # (1 unchanged attribute hidden)
+    }`,
+		},
+		"forget (deposed)": {
+			Action:     plans.Forget,
+			Mode:       addrs.ManagedResourceMode,
+			DeposedKey: states.DeposedKey("adios"),
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+			}),
+			After: cty.NullVal(cty.EmptyObject),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: ` # test_instance.example (deposed object adios) will be removed from Terraform state, but will not be destroyed
+ # (left over from a partially-failed replacement of this instance)
+ # (destroy = false is set in the configuration)
+ . resource "test_instance" "example" {
+        id = "i-02ae66f368e8518a9"
+    }`,
+		},
+		"create-then-forget": {
+			Action: plans.CreateThenForget,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02999999999999999"),
+				"ami": cty.StringVal("ami-AFTER"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(cty.Path{
+				cty.GetAttrStep{Name: "ami"},
+			}),
+			ExpectedOutput: ` # test_instance.example must be replaced, but the existing object will not be destroyed
+ # (destroy = false is set in the configuration)
+ +/. resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER" # forces replacement
+      ~ id  = "i-02ae66f368e8518a9" -> "i-02999999999999999"
     }`,
 		},
 		"string in-place update": {
@@ -6987,13 +7057,17 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 			}
 
 			tfschemas := &terraform.Schemas{
-				Providers: map[addrs.Provider]*providers.Schemas{
+				Providers: map[addrs.Provider]providers.ProviderSchema{
 					src.ProviderAddr.Provider: {
-						ResourceTypes: map[string]*configschema.Block{
-							src.Addr.Resource.Resource.Type: tc.Schema,
+						ResourceTypes: map[string]providers.Schema{
+							src.Addr.Resource.Resource.Type: {
+								Block: tc.Schema,
+							},
 						},
-						DataSources: map[string]*configschema.Block{
-							src.Addr.Resource.Resource.Type: tc.Schema,
+						DataSources: map[string]providers.Schema{
+							src.Addr.Resource.Resource.Type: {
+								Block: tc.Schema,
+							},
 						},
 					},
 				},

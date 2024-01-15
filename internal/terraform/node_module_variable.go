@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -8,13 +8,14 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // nodeExpandModuleVariable is the placeholder for an variable that has not yet had
@@ -24,6 +25,14 @@ type nodeExpandModuleVariable struct {
 	Module addrs.Module
 	Config *configs.Variable
 	Expr   hcl.Expression
+
+	// Planning must be set to true when building a planning graph, and must be
+	// false when building an apply graph.
+	Planning bool
+
+	// DestroyApply must be set to true when planning or applying a destroy
+	// operation, and false otherwise.
+	DestroyApply bool
 }
 
 var (
@@ -41,19 +50,42 @@ func (n *nodeExpandModuleVariable) temporaryValue() bool {
 	return true
 }
 
-func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
+
+	// If this variable has preconditions, we need to report these checks now.
+	//
+	// We should only do this during planning as the apply phase starts with
+	// all the same checkable objects that were registered during the plan.
+	var checkableAddrs addrs.Set[addrs.Checkable]
+	if n.Planning {
+		if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.Addr.InModule(n.Module)) {
+			checkableAddrs = addrs.MakeSet[addrs.Checkable]()
+		}
+	}
+
 	expander := ctx.InstanceExpander()
 	for _, module := range expander.ExpandModule(n.Module) {
+		addr := n.Addr.Absolute(module)
+		if checkableAddrs != nil {
+			checkableAddrs.Add(addr)
+		}
+
 		o := &nodeModuleVariable{
-			Addr:           n.Addr.Absolute(module),
+			Addr:           addr,
 			Config:         n.Config,
 			Expr:           n.Expr,
 			ModuleInstance: module,
+			DestroyApply:   n.DestroyApply,
 		}
 		g.Add(o)
 	}
 	addRootNodeToGraph(&g)
+
+	if checkableAddrs != nil {
+		ctx.Checks().ReportCheckableObjects(n.Addr.InModule(n.Module), checkableAddrs)
+	}
+
 	return &g, nil
 }
 
@@ -90,7 +122,7 @@ func (n *nodeExpandModuleVariable) References() []*addrs.Reference {
 	// where our associated variable was declared, which is correct because
 	// our value expression is assigned within a "module" block in the parent
 	// module.
-	refs, _ := lang.ReferencesInExpr(n.Expr)
+	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.Expr)
 	return refs
 }
 
@@ -113,6 +145,10 @@ type nodeModuleVariable struct {
 	// ModuleInstance in order to create the appropriate context for evaluating
 	// ModuleCallArguments, ex. so count.index and each.key can resolve
 	ModuleInstance addrs.ModuleInstance
+
+	// DestroyApply must be set to true when applying a destroy operation and
+	// false otherwise.
+	DestroyApply bool
 }
 
 // Ensure that we are implementing all of the interfaces we think we are
@@ -165,10 +201,16 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 
 	// Set values for arguments of a child module call, for later retrieval
 	// during expression evaluation.
-	_, call := n.Addr.Module.CallInstance()
-	ctx.SetModuleCallArgument(call, n.Addr.Variable, val)
+	ctx.NamedValues().SetInputVariableValue(n.Addr, val)
 
-	return evalVariableValidations(n.Addr, n.Config, n.Expr, ctx)
+	// Skip evalVariableValidations during destroy operations. We still want
+	// to evaluate the variable in case it is used to initialise providers
+	// or something downstream but we don't need to report on the success
+	// or failure of any validations for destroy operations.
+	if !n.DestroyApply {
+		diags = diags.Append(evalVariableValidations(n.Addr, n.Config, n.Expr, ctx))
+	}
+	return diags
 }
 
 // dag.GraphNodeDotter impl.

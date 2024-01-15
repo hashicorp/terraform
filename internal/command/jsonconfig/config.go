@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jsonconfig
 
@@ -414,6 +414,7 @@ func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terra
 	schema.Attributes = make(map[string]*configschema.Attribute)
 	for _, variable := range c.Module.Variables {
 		schema.Attributes[variable.Name] = &configschema.Attribute{
+			Type:     cty.DynamicPseudoType,
 			Required: variable.Default == cty.NilVal,
 		}
 	}

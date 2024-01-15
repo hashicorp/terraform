@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jsonformat
 
@@ -19,25 +19,20 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-type PlanRendererOpt int
-
 const (
 	detectedDrift  string = "drift"
 	proposedChange string = "change"
-
-	Errored PlanRendererOpt = iota
-	CanNotApply
 )
 
 type Plan struct {
 	PlanFormatVersion  string                     `json:"plan_format_version"`
-	OutputChanges      map[string]jsonplan.Change `json:"output_changes"`
-	ResourceChanges    []jsonplan.ResourceChange  `json:"resource_changes"`
-	ResourceDrift      []jsonplan.ResourceChange  `json:"resource_drift"`
-	RelevantAttributes []jsonplan.ResourceAttr    `json:"relevant_attributes"`
+	OutputChanges      map[string]jsonplan.Change `json:"output_changes,omitempty"`
+	ResourceChanges    []jsonplan.ResourceChange  `json:"resource_changes,omitempty"`
+	ResourceDrift      []jsonplan.ResourceChange  `json:"resource_drift,omitempty"`
+	RelevantAttributes []jsonplan.ResourceAttr    `json:"relevant_attributes,omitempty"`
 
 	ProviderFormatVersion string                            `json:"provider_format_version"`
-	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas"`
+	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas,omitempty"`
 }
 
 func (plan Plan) getSchema(change jsonplan.ResourceChange) *jsonprovider.Schema {
@@ -51,8 +46,8 @@ func (plan Plan) getSchema(change jsonplan.ResourceChange) *jsonprovider.Schema 
 	}
 }
 
-func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRendererOpt) {
-	checkOpts := func(target PlanRendererOpt) bool {
+func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Quality) {
+	checkOpts := func(target plans.Quality) bool {
 		for _, opt := range opts {
 			if opt == target {
 				return true
@@ -102,7 +97,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 		// the plan is "applyable" and, if so, whether it had refresh changes
 		// that we already would've presented above.
 
-		if checkOpts(Errored) {
+		if checkOpts(plans.Errored) {
 			if haveRefreshChanges {
 				renderer.Streams.Print(format.HorizontalRule(renderer.Colorize, renderer.Streams.Stdout.Columns()))
 				renderer.Streams.Println()
@@ -143,7 +138,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 				)
 
 				if haveRefreshChanges {
-					if !checkOpts(CanNotApply) {
+					if !checkOpts(plans.NoChanges) {
 						// In this case, applying this plan will not change any
 						// remote objects but _will_ update the state to match what
 						// we detected during refresh, so we'll reassure the user
@@ -210,7 +205,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 	}
 
 	if len(changes) > 0 {
-		if checkOpts(Errored) {
+		if checkOpts(plans.Errored) {
 			renderer.Streams.Printf("\nTerraform planned the following actions, but then encountered a problem:\n")
 		} else {
 			renderer.Streams.Printf("\nTerraform will perform the following actions:\n")
@@ -408,6 +403,17 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 		default:
 			buf.WriteString(fmt.Sprintf("[bold]  # %s[reset] must be [bold][red]replaced[reset]", dispAddr))
 		}
+	case plans.CreateThenForget:
+		buf.WriteString(fmt.Sprintf("[bold] # %s[reset] must be replaced, but the existing object will not be destroyed", dispAddr))
+		buf.WriteString("\n # (destroy = false is set in the configuration)")
+	case plans.Forget:
+		if len(resource.Deposed) > 0 {
+			buf.WriteString(fmt.Sprintf("[bold] # %s[reset] will be removed from Terraform state, but [bold][red]will not be destroyed[reset]", dispAddr))
+			buf.WriteString("\n[bold] # (left over from a partially-failed replacement of this instance)")
+		} else {
+			buf.WriteString(fmt.Sprintf("[bold] # %s[reset] will no longer be managed by Terraform, but [bold][red]will not be destroyed[reset]", dispAddr))
+		}
+		buf.WriteString("\n # (destroy = false is set in the configuration)")
 	case plans.Delete:
 		switch changeCause {
 		case proposedChange:

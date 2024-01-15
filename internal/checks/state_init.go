@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package checks
 
@@ -63,6 +63,22 @@ func collectInitialStatuses(into addrs.Map[addrs.ConfigCheckable, *configCheckab
 
 		if c.DataResource != nil {
 			st.checkTypes[addrs.CheckDataResource] = 1
+		}
+
+		into.Put(addr, st)
+	}
+
+	for _, v := range cfg.Module.Variables {
+		addr := v.Addr().InModule(moduleAddr)
+
+		vs := len(v.Validations)
+		if vs == 0 {
+			continue
+		}
+
+		st := &configCheckableState{}
+		st.checkTypes = map[addrs.CheckRuleType]int{
+			addrs.InputValidation: vs,
 		}
 
 		into.Put(addr, st)

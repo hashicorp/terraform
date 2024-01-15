@@ -66,8 +66,8 @@ is immediately available on system boot. For example:
   [`google_compute_instance`](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance)
   or [`google_compute_instance_group`](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance_group).
 * Oracle Cloud Infrastructure: `metadata` or `extended_metadata` on
-  [`oci_core_instance`](https://registry.terraform.io/providers/hashicorp/oci/latest/docs/resources/core_instance)
-  or [`oci_core_instance_configuration`](https://registry.terraform.io/providers/hashicorp/oci/latest/docs/resources/core_instance_configuration).
+  [`oci_core_instance`](https://registry.terraform.io/providers/oracle/oci/)
+  or [`oci_core_instance_configuration`](https://registry.terraform.io/providers/oracle/oci/).
 * VMware vSphere: Attach a virtual CDROM to
   [`vsphere_virtual_machine`](https://registry.terraform.io/providers/hashicorp/vsphere/latest/docs/resources/virtual_machine)
   using the `cdrom` block, containing a file called `user-data.txt`.
@@ -94,6 +94,42 @@ Even if you're deploying individual servers directly with Terraform, passing
 data this way will allow faster boot times and simplify deployment by avoiding
 the need for direct network access from Terraform to the new server and for
 remote access credentials to be provided.
+
+### Provisioning files using cloud-config
+
+You can add the [`cloudinit_config`](https://registry.terraform.io/providers/hashicorp/cloudinit/latest/docs) data source to your Terraform configuration and specify the files you want to provision as `text/cloud-config` content. The `cloudinit_config` data source renders multi-part MIME configurations for use with [cloud-init](https://cloudinit.readthedocs.io/en/latest/). Pass the files in the `content` field as YAML-encoded configurations using the `write_files` block. 
+
+In the following example, the `my_cloud_config` data source specifies a `text/cloud-config` MIME part named `cloud.conf`. The `part.content` field is set to [`yamlencode`](/terraform/language/functions/yamlencode), which encodes the `write_files` JSON object as YAML so that the system can provision the referenced files.
+
+```hcl
+data "cloudinit_config" "my_cloud_config" {
+  gzip          = false
+  base64_encode = false
+
+  part {
+    content_type = "text/cloud-config"
+    filename     = "cloud.conf"
+    content = yamlencode(
+      {
+        "write_files" : [
+          {
+            "path" : "/etc/foo.conf",
+            "content" : "foo contents",
+          },
+          {
+            "path" : "/etc/bar.conf",
+            "content" : file("bar.conf"),
+          },
+          {
+            "path" : "/etc/baz.conf",
+            "content" : templatefile("baz.tpl.conf", { SOME_VAR = "qux" }),
+          },
+        ],
+      }
+    )
+  }
+}
+```
 
 ### Running configuration management software
 

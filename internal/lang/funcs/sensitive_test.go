@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package funcs
 
@@ -130,16 +130,16 @@ func TestNonsensitive(t *testing.T) {
 			``,
 		},
 
-		// Passing a value that is already non-sensitive is an error,
-		// because this function should always be used with specific
-		// intention, not just as a "make everything visible" hammer.
+		// Passing a value that is already non-sensitive is not an error,
+		// as this function may be used with specific to ensure that all
+		// values are indeed non-sensitive
 		{
 			cty.NumberIntVal(1),
-			`the given value is not sensitive, so this call is redundant`,
+			``,
 		},
 		{
 			cty.NullVal(cty.String),
-			`the given value is not sensitive, so this call is redundant`,
+			``,
 		},
 
 		// Unknown values may become sensitive once they are known, so we

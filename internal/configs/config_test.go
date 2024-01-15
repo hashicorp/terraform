@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configs
 
@@ -15,6 +15,7 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	svchost "github.com/hashicorp/terraform-svchost"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -163,6 +164,42 @@ func TestConfigProviderRequirements(t *testing.T) {
 	}
 }
 
+func TestConfigProviderRequirementsInclTests(t *testing.T) {
+	cfg, diags := testNestedModuleConfigFromDirWithTests(t, "testdata/provider-reqs-with-tests")
+	// TODO: Version Constraint Deprecation.
+	// Once we've removed the version argument from provider configuration
+	// blocks, this can go back to expected 0 diagnostics.
+	// assertNoDiagnostics(t, diags)
+	assertDiagnosticCount(t, diags, 1)
+	assertDiagnosticSummary(t, diags, "Version constraints inside provider configuration blocks are deprecated")
+
+	tlsProvider := addrs.NewProvider(
+		addrs.DefaultProviderRegistryHost,
+		"hashicorp", "tls",
+	)
+	nullProvider := addrs.NewDefaultProvider("null")
+	randomProvider := addrs.NewDefaultProvider("random")
+	impliedProvider := addrs.NewDefaultProvider("implied")
+	terraformProvider := addrs.NewBuiltInProvider("terraform")
+	configuredProvider := addrs.NewDefaultProvider("configured")
+
+	got, diags := cfg.ProviderRequirements()
+	assertNoDiagnostics(t, diags)
+	want := getproviders.Requirements{
+		// the nullProvider constraints from the two modules are merged
+		nullProvider:       getproviders.MustParseVersionConstraints("~> 2.0.0"),
+		randomProvider:     getproviders.MustParseVersionConstraints("~> 1.2.0"),
+		tlsProvider:        getproviders.MustParseVersionConstraints("~> 3.0"),
+		configuredProvider: getproviders.MustParseVersionConstraints("~> 1.4"),
+		impliedProvider:    nil,
+		terraformProvider:  nil,
+	}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
+	}
+}
+
 func TestConfigProviderRequirementsDuplicate(t *testing.T) {
 	_, diags := testNestedModuleConfigFromDir(t, "testdata/duplicate-local-name")
 	assertDiagnosticCount(t, diags, 3)
@@ -194,6 +231,37 @@ func TestConfigProviderRequirementsShallow(t *testing.T) {
 		// the nullProvider constraint is only from the root module
 		nullProvider:       getproviders.MustParseVersionConstraints("~> 2.0.0"),
 		randomProvider:     getproviders.MustParseVersionConstraints("~> 1.2.0"),
+		tlsProvider:        getproviders.MustParseVersionConstraints("~> 3.0"),
+		configuredProvider: getproviders.MustParseVersionConstraints("~> 1.4"),
+		impliedProvider:    nil,
+		terraformProvider:  nil,
+	}
+
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
+	}
+}
+
+func TestConfigProviderRequirementsShallowInclTests(t *testing.T) {
+	cfg, diags := testNestedModuleConfigFromDirWithTests(t, "testdata/provider-reqs-with-tests")
+	// TODO: Version Constraint Deprecation.
+	// Once we've removed the version argument from provider configuration
+	// blocks, this can go back to expected 0 diagnostics.
+	// assertNoDiagnostics(t, diags)
+	assertDiagnosticCount(t, diags, 1)
+	assertDiagnosticSummary(t, diags, "Version constraints inside provider configuration blocks are deprecated")
+
+	tlsProvider := addrs.NewProvider(
+		addrs.DefaultProviderRegistryHost,
+		"hashicorp", "tls",
+	)
+	impliedProvider := addrs.NewDefaultProvider("implied")
+	terraformProvider := addrs.NewBuiltInProvider("terraform")
+	configuredProvider := addrs.NewDefaultProvider("configured")
+
+	got, diags := cfg.ProviderRequirementsShallow()
+	assertNoDiagnostics(t, diags)
+	want := getproviders.Requirements{
 		tlsProvider:        getproviders.MustParseVersionConstraints("~> 3.0"),
 		configuredProvider: getproviders.MustParseVersionConstraints("~> 1.4"),
 		impliedProvider:    nil,
@@ -262,6 +330,69 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 							grandchildProvider: nil,
 						},
 						Children: map[string]*ModuleRequirements{},
+						Tests:    make(map[string]*TestFileModuleRequirements),
+					},
+				},
+				Tests: make(map[string]*TestFileModuleRequirements),
+			},
+		},
+		Tests: make(map[string]*TestFileModuleRequirements),
+	}
+
+	ignore := cmpopts.IgnoreUnexported(version.Constraint{}, cty.Value{}, hclsyntax.Body{})
+	if diff := cmp.Diff(want, got, ignore); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
+	}
+}
+
+func TestConfigProviderRequirementsByModuleInclTests(t *testing.T) {
+	cfg, diags := testNestedModuleConfigFromDirWithTests(t, "testdata/provider-reqs-with-tests")
+	// TODO: Version Constraint Deprecation.
+	// Once we've removed the version argument from provider configuration
+	// blocks, this can go back to expected 0 diagnostics.
+	// assertNoDiagnostics(t, diags)
+	assertDiagnosticCount(t, diags, 1)
+	assertDiagnosticSummary(t, diags, "Version constraints inside provider configuration blocks are deprecated")
+
+	tlsProvider := addrs.NewProvider(
+		addrs.DefaultProviderRegistryHost,
+		"hashicorp", "tls",
+	)
+	nullProvider := addrs.NewDefaultProvider("null")
+	randomProvider := addrs.NewDefaultProvider("random")
+	impliedProvider := addrs.NewDefaultProvider("implied")
+	terraformProvider := addrs.NewBuiltInProvider("terraform")
+	configuredProvider := addrs.NewDefaultProvider("configured")
+
+	got, diags := cfg.ProviderRequirementsByModule()
+	assertNoDiagnostics(t, diags)
+	want := &ModuleRequirements{
+		Name:       "",
+		SourceAddr: nil,
+		SourceDir:  "testdata/provider-reqs-with-tests",
+		Requirements: getproviders.Requirements{
+			// Only the root module's version is present here
+			tlsProvider:       getproviders.MustParseVersionConstraints("~> 3.0"),
+			impliedProvider:   nil,
+			terraformProvider: nil,
+		},
+		Children: make(map[string]*ModuleRequirements),
+		Tests: map[string]*TestFileModuleRequirements{
+			"provider-reqs-root.tftest.hcl": {
+				Requirements: getproviders.Requirements{
+					configuredProvider: getproviders.MustParseVersionConstraints("~> 1.4"),
+				},
+				Runs: map[string]*ModuleRequirements{
+					"setup": {
+						Name:       "setup",
+						SourceAddr: addrs.ModuleSourceLocal("./setup"),
+						SourceDir:  "testdata/provider-reqs-with-tests/setup",
+						Requirements: getproviders.Requirements{
+							nullProvider:   getproviders.MustParseVersionConstraints("~> 2.0.0"),
+							randomProvider: getproviders.MustParseVersionConstraints("~> 1.2.0"),
+						},
+						Children: make(map[string]*ModuleRequirements),
+						Tests:    make(map[string]*TestFileModuleRequirements),
 					},
 				},
 			},
@@ -421,7 +552,7 @@ func TestConfigAddProviderRequirements(t *testing.T) {
 	reqs := getproviders.Requirements{
 		addrs.NewDefaultProvider("null"): nil,
 	}
-	diags = cfg.addProviderRequirements(reqs, true)
+	diags = cfg.addProviderRequirements(reqs, true, false)
 	assertNoDiagnostics(t, diags)
 }
 
@@ -447,7 +578,7 @@ func TestConfigImportProviderClashesWithResources(t *testing.T) {
 	cfg, diags := testModuleConfigFromFile("testdata/invalid-import-files/import-and-resource-clash.tf")
 	assertNoDiagnostics(t, diags)
 
-	diags = cfg.addProviderRequirements(getproviders.Requirements{}, true)
+	diags = cfg.addProviderRequirements(getproviders.Requirements{}, true, false)
 	assertExactDiagnostics(t, diags, []string{
 		`testdata/invalid-import-files/import-and-resource-clash.tf:9,3-19: Invalid import provider argument; The provider argument can only be specified in import blocks that will generate configuration.
 
@@ -459,7 +590,7 @@ func TestConfigImportProviderWithNoResourceProvider(t *testing.T) {
 	cfg, diags := testModuleConfigFromFile("testdata/invalid-import-files/import-and-no-resource.tf")
 	assertNoDiagnostics(t, diags)
 
-	diags = cfg.addProviderRequirements(getproviders.Requirements{}, true)
+	diags = cfg.addProviderRequirements(getproviders.Requirements{}, true, false)
 	assertExactDiagnostics(t, diags, []string{
 		`testdata/invalid-import-files/import-and-no-resource.tf:5,3-19: Invalid import provider argument; The provider argument can only be specified in import blocks that will generate configuration.
 

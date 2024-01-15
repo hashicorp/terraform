@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package logging
 
@@ -30,6 +30,7 @@ const (
 	// to other loggers, like provisioners and remote-state backends.
 	envLogCore     = "TF_LOG_CORE"
 	envLogProvider = "TF_LOG_PROVIDER"
+	envLogCloud    = "TF_LOG_CLOUD"
 )
 
 var (
@@ -134,6 +135,20 @@ func NewProviderLogger(prefix string) hclog.Logger {
 	return l
 }
 
+// NewCloudLogger returns a logger for the cloud plugin, possibly with a
+// different log level from the global logger.
+func NewCloudLogger() hclog.Logger {
+	l := &logPanicWrapper{
+		Logger: logger.Named("cloud"),
+	}
+
+	level := cloudLogLevel()
+	logger.Debug("created cloud logger", "level", level)
+
+	l.SetLevel(level)
+	return l
+}
+
 // CurrentLogLevel returns the current log level string based the environment vars
 func CurrentLogLevel() string {
 	ll, _ := globalLogLevel()
@@ -142,6 +157,15 @@ func CurrentLogLevel() string {
 
 func providerLogLevel() hclog.Level {
 	providerEnvLevel := strings.ToUpper(os.Getenv(envLogProvider))
+	if providerEnvLevel == "" {
+		providerEnvLevel = strings.ToUpper(os.Getenv(envLog))
+	}
+
+	return parseLogLevel(providerEnvLevel)
+}
+
+func cloudLogLevel() hclog.Level {
+	providerEnvLevel := strings.ToUpper(os.Getenv(envLogCloud))
 	if providerEnvLevel == "" {
 		providerEnvLevel = strings.ToUpper(os.Getenv(envLog))
 	}

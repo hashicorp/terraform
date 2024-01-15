@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -179,7 +179,7 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 			_, diags := evaluateForEachExpression(test.Expr, ctx)
 
 			if len(diags) != 1 {
-				t.Fatalf("got %d diagnostics; want 1", diags)
+				t.Fatalf("got %d diagnostics; want 1", len(diags))
 			}
 			if got, want := diags[0].Severity(), tfdiags.Error; got != want {
 				t.Errorf("wrong diagnostic severity %#v; want %#v", got, want)
@@ -221,14 +221,10 @@ func TestEvaluateForEachExpressionKnown(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			forEachVal, diags := evaluateForEachExpressionValue(expr, ctx, true)
+			diags := newForEachEvaluator(expr, ctx).ValidateResourceValue()
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
-			}
-
-			if forEachVal.IsKnown() {
-				t.Error("got known, want unknown")
 			}
 		})
 	}

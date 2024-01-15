@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jsonformat
 
@@ -32,32 +32,32 @@ func TestState(t *testing.T) {
 		Schemas *terraform.Schemas
 		Want    string
 	}{
-		{
+		0: {
 			State:   &states.State{},
 			Schemas: &terraform.Schemas{},
 			Want:    "The state file is empty. No resources are represented.\n",
 		},
-		{
+		1: {
 			State:   basicState(t),
 			Schemas: testSchemas(),
 			Want:    basicStateOutput,
 		},
-		{
+		2: {
 			State:   nestedState(t),
 			Schemas: testSchemas(),
 			Want:    nestedStateOutput,
 		},
-		{
+		3: {
 			State:   deposedState(t),
 			Schemas: testSchemas(),
 			Want:    deposedNestedStateOutput,
 		},
-		{
+		4: {
 			State:   onlyDeposedState(t),
 			Schemas: testSchemas(),
 			Want:    onlyDeposedOutput,
 		},
-		{
+		5: {
 			State:   stateWithMoreOutputs(t),
 			Schemas: testSchemas(),
 			Want:    stateWithMoreOutputsOutput,
@@ -156,8 +156,8 @@ func testProviderSchema() *providers.GetProviderSchemaResponse {
 func testSchemas() *terraform.Schemas {
 	provider := testProvider()
 	return &terraform.Schemas{
-		Providers: map[addrs.Provider]*terraform.ProviderSchema{
-			addrs.NewDefaultProvider("test"): provider.ProviderSchema(),
+		Providers: map[addrs.Provider]providers.ProviderSchema{
+			addrs.NewDefaultProvider("test"): provider.GetProviderSchema(),
 		},
 	}
 }
@@ -252,8 +252,10 @@ func basicState(t *testing.T) *states.State {
 		t.Errorf("root module is nil; want valid object")
 	}
 
-	rootModule.SetLocalValue("foo", cty.StringVal("foo value"))
-	rootModule.SetOutputValue("bar", cty.StringVal("bar value"), false)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("bar value"), false,
+	)
 	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
@@ -297,14 +299,30 @@ func stateWithMoreOutputs(t *testing.T) *states.State {
 		t.Errorf("root module is nil; want valid object")
 	}
 
-	rootModule.SetOutputValue("string_var", cty.StringVal("string value"), false)
-	rootModule.SetOutputValue("int_var", cty.NumberIntVal(42), false)
-	rootModule.SetOutputValue("bool_var", cty.BoolVal(true), false)
-	rootModule.SetOutputValue("sensitive_var", cty.StringVal("secret!!!"), true)
-	rootModule.SetOutputValue("map_var", cty.MapVal(map[string]cty.Value{
-		"first":  cty.StringVal("foo"),
-		"second": cty.StringVal("bar"),
-	}), false)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "string_var"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("string value"), false,
+	)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "int_var"}.Absolute(addrs.RootModuleInstance),
+		cty.NumberIntVal(42), false,
+	)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "bool_var"}.Absolute(addrs.RootModuleInstance),
+		cty.True, false,
+	)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "sensitive_var"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("secret!!!"), true,
+	)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "map_var"}.Absolute(addrs.RootModuleInstance),
+		cty.MapVal(map[string]cty.Value{
+			"first":  cty.StringVal("foo"),
+			"second": cty.StringVal("bar"),
+		}),
+		false,
+	)
 
 	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{

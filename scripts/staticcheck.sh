@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: BUSL-1.1
 
 
 echo "==> Checking that code complies with static analysis requirements..."
@@ -13,9 +13,6 @@ skip=$skip"|internal/planproto|internal/tfplugin5|internal/tfplugin6"
 
 packages=$(go list ./... | egrep -v ${skip})
 
-# We are skipping style-related checks, since terraform intentionally breaks
-# some of these. The goal here is to find issues that reduce code clarity, or
-# may result in bugs. We also disable fucntion deprecation checks (SA1019)
-# because our policy is to update deprecated calls locally while making other
-# nearby changes, rather than to make cross-cutting changes to update them all.
-go run honnef.co/go/tools/cmd/staticcheck -checks 'all,-SA1019,-ST*' ${packages}
+# Note that we globally disable some checks. The list is controlled by the
+# top-level staticcheck.conf file in this repo.
+go run honnef.co/go/tools/cmd/staticcheck ${packages}

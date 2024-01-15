@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -11,11 +11,16 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func transformProviders(concrete ConcreteProviderNodeFunc, config *configs.Config) GraphTransformer {
+func transformProviders(concrete ConcreteProviderNodeFunc, config *configs.Config, externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface) GraphTransformer {
 	return GraphTransformMulti(
+		// Add placeholder nodes for any externally-configured providers
+		&externalProviderTransformer{
+			ExternalProviderConfigs: externalProviderConfigs,
+		},
 		// Add providers from the config
 		&ProviderConfigTransformer{
 			Config:   config,
@@ -494,7 +499,9 @@ func (t *ProviderConfigTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	t.providers = make(map[string]GraphNodeProvider)
+	// We'll start with any provider nodes that are already in the graph,
+	// just so we can avoid creating any duplicates.
+	t.providers = providerVertexMap(g)
 	t.proxiable = make(map[string]bool)
 
 	// Start the transformation process
@@ -729,5 +736,40 @@ func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {
 		}
 	}
 
+	return nil
+}
+
+// externalProviderTransformer adds placeholder graph nodes for any providers
+// that were already instantiated and configured by the external caller.
+//
+// This should typically run before any other transformers that can add
+// nodes representing provider configurations, so that the others can notice
+// that a node is already present and therefore skip adding a duplicate.
+type externalProviderTransformer struct {
+	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+}
+
+func (t *externalProviderTransformer) Transform(g *Graph) error {
+	existing := providerVertexMap(g)
+
+	for rootAddr := range t.ExternalProviderConfigs {
+		absAddr := rootAddr.AbsProviderConfig()
+		if existing, exists := existing[absAddr.String()]; exists {
+			// We must not allow a non-external graph node to exist for
+			// an externally-configured provider, because that would
+			// cause strange things to happen. We shouldn't get here in
+			// practice because externalProviderTransformer should be
+			// the first transformer that introduces graph nodes representing
+			// provider configurations.
+			return fmt.Errorf("conflicting %T node for externally-configured provider %s (this is a bug in Terraform)", existing, absAddr)
+		}
+		abstract := &NodeAbstractProvider{
+			Addr: absAddr,
+		}
+		concrete := &nodeExternalProvider{
+			NodeAbstractProvider: abstract,
+		}
+		g.Add(concrete)
+	}
 	return nil
 }

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
 )
 
@@ -134,11 +134,11 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		// We'll collect a list of what's being managed here as extra context
 		// for the message.
 		var buf strings.Builder
-		for _, obj := range stateMgr.State().AllResourceInstanceObjectAddrs() {
+		for _, obj := range stateMgr.State().AllManagedResourceInstanceObjectAddrs() {
 			if obj.DeposedKey == states.NotDeposed {
-				fmt.Fprintf(&buf, "\n  - %s", obj.Instance.String())
+				fmt.Fprintf(&buf, "\n  - %s", obj.ResourceInstance.String())
 			} else {
-				fmt.Fprintf(&buf, "\n  - %s (deposed object %s)", obj.Instance.String(), obj.DeposedKey)
+				fmt.Fprintf(&buf, "\n  - %s (deposed object %s)", obj.ResourceInstance.String(), obj.DeposedKey)
 			}
 		}
 

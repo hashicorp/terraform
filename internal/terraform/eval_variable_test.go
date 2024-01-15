@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -12,8 +12,10 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -1107,12 +1109,14 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 		given    cty.Value
 		wantErr  []string
 		wantWarn []string
+		status   checks.Status
 	}{
 		// Valid variable validation declaration, assigned value which passes
 		// the condition generates no diagnostics.
 		{
 			varName: "valid",
 			given:   cty.StringVal("foo"),
+			status:  checks.StatusPass,
 		},
 		// Assigning a value which fails the condition generates an error
 		// message with the expression successfully evaluated.
@@ -1123,6 +1127,7 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 				"Invalid value for variable",
 				"Valid template string bar",
 			},
+			status: checks.StatusFail,
 		},
 		// Invalid variable validation declaration due to an unparseable
 		// template string. Assigning a value which passes the condition
@@ -1134,6 +1139,7 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 				"Validation error message expression is invalid",
 				"Missing expression; Expected the start of an expression, but found the end of the file.",
 			},
+			status: checks.StatusPass,
 		},
 		// Assigning a value which fails the condition generates an error
 		// message including the configured string interpreted as a literal
@@ -1149,6 +1155,7 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 				"Validation error message expression is invalid",
 				"Missing expression; Expected the start of an expression, but found the end of the file.",
 			},
+			status: checks.StatusFail,
 		},
 	}
 
@@ -1167,16 +1174,18 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 			// We need a minimal scope to allow basic functions to be passed to
 			// the HCL scope
 			ctx.EvaluationScopeScope = &lang.Scope{}
-			ctx.GetVariableValueFunc = func(addr addrs.AbsInputVariableInstance) cty.Value {
-				if got, want := addr.String(), varAddr.String(); got != want {
-					t.Errorf("incorrect argument to GetVariableValue: got %s, want %s", got, want)
-				}
-				return test.given
-			}
+			ctx.NamedValuesState = namedvals.NewState()
+			ctx.NamedValuesState.SetInputVariableValue(varAddr, test.given)
+			ctx.ChecksState = checks.NewState(cfg)
+			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
 			gotDiags := evalVariableValidations(
 				varAddr, varCfg, nil, ctx,
 			)
+
+			if ctx.ChecksState.ObjectCheckStatus(varAddr) != test.status {
+				t.Errorf("expected check result %s but instead %s", test.status, ctx.ChecksState.ObjectCheckStatus(varAddr))
+			}
 
 			if len(test.wantErr) == 0 && len(test.wantWarn) == 0 {
 				if len(gotDiags) > 0 {
@@ -1258,12 +1267,14 @@ variable "bar" {
 		varName string
 		given   cty.Value
 		wantErr []string
+		status  checks.Status
 	}{
 		// Validations pass on a sensitive variable with an error message which
 		// would generate a sensitive value
 		{
 			varName: "foo",
 			given:   cty.StringVal("boop"),
+			status:  checks.StatusPass,
 		},
 		// Assigning a value which fails the condition generates a sensitive
 		// error message, which is elided and generates another error
@@ -1275,12 +1286,14 @@ variable "bar" {
 				"The error message included a sensitive value, so it will not be displayed.",
 				"Error message refers to sensitive values",
 			},
+			status: checks.StatusFail,
 		},
 		// Validations pass on a sensitive variable with a correctly defined
 		// error message
 		{
 			varName: "bar",
 			given:   cty.StringVal("boop"),
+			status:  checks.StatusPass,
 		},
 		// Assigning a value which fails the condition generates a nonsensitive
 		// error message, which is displayed
@@ -1291,6 +1304,7 @@ variable "bar" {
 				"Invalid value for variable",
 				"Bar must be 4 characters, not 3.",
 			},
+			status: checks.StatusFail,
 		},
 	}
 
@@ -1309,20 +1323,22 @@ variable "bar" {
 			// We need a minimal scope to allow basic functions to be passed to
 			// the HCL scope
 			ctx.EvaluationScopeScope = &lang.Scope{}
-			ctx.GetVariableValueFunc = func(addr addrs.AbsInputVariableInstance) cty.Value {
-				if got, want := addr.String(), varAddr.String(); got != want {
-					t.Errorf("incorrect argument to GetVariableValue: got %s, want %s", got, want)
-				}
-				if varCfg.Sensitive {
-					return test.given.Mark(marks.Sensitive)
-				} else {
-					return test.given
-				}
+			ctx.NamedValuesState = namedvals.NewState()
+			if varCfg.Sensitive {
+				ctx.NamedValuesState.SetInputVariableValue(varAddr, test.given.Mark(marks.Sensitive))
+			} else {
+				ctx.NamedValuesState.SetInputVariableValue(varAddr, test.given)
 			}
+			ctx.ChecksState = checks.NewState(cfg)
+			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
 			gotDiags := evalVariableValidations(
 				varAddr, varCfg, nil, ctx,
 			)
+
+			if ctx.ChecksState.ObjectCheckStatus(varAddr) != test.status {
+				t.Errorf("expected check result %s but instead %s", test.status, ctx.ChecksState.ObjectCheckStatus(varAddr))
+			}
 
 			if len(test.wantErr) == 0 {
 				if len(gotDiags) > 0 {

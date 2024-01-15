@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jsonplan
 
@@ -26,7 +26,7 @@ type stateValues struct {
 	RootModule module            `json:"root_module,omitempty"`
 }
 
-// attributeValues is the JSON representation of the attribute values of the
+// AttributeValues is the JSON representation of the attribute values of the
 // resource, whose structure depends on the resource type schema.
 type attributeValues map[string]interface{}
 

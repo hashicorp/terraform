@@ -1,12 +1,11 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -17,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -51,7 +49,7 @@ func evalCheckRules(typ addrs.CheckRuleType, rules []*configs.CheckRule, ctx Eva
 	severity := diagSeverity.ToHCL()
 
 	for i, rule := range rules {
-		result, ruleDiags := evalCheckRule(typ, rule, ctx, self, keyData, severity)
+		result, ruleDiags := evalCheckRule(addrs.NewCheckRule(self, typ, i), rule, ctx, keyData, severity)
 		diags = diags.Append(ruleDiags)
 
 		log.Printf("[TRACE] evalCheckRules: %s status is now %s", self, result.Status)
@@ -70,33 +68,33 @@ type checkResult struct {
 	FailureMessage string
 }
 
-func validateCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData) (string, *hcl.EvalContext, tfdiags.Diagnostics) {
+func validateCheckRule(addr addrs.CheckRule, rule *configs.CheckRule, ctx EvalContext, keyData instances.RepetitionData) (string, *hcl.EvalContext, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	refs, moreDiags := lang.ReferencesInExpr(rule.Condition)
+	refs, moreDiags := lang.ReferencesInExpr(addrs.ParseRef, rule.Condition)
 	diags = diags.Append(moreDiags)
-	moreRefs, moreDiags := lang.ReferencesInExpr(rule.ErrorMessage)
+	moreRefs, moreDiags := lang.ReferencesInExpr(addrs.ParseRef, rule.ErrorMessage)
 	diags = diags.Append(moreDiags)
 	refs = append(refs, moreRefs...)
 
 	var selfReference, sourceReference addrs.Referenceable
-	switch typ {
+	switch addr.Type {
 	case addrs.ResourcePostcondition:
-		switch s := self.(type) {
+		switch s := addr.Container.(type) {
 		case addrs.AbsResourceInstance:
 			// Only resource postconditions can refer to self
 			selfReference = s.Resource
 		default:
-			panic(fmt.Sprintf("Invalid self reference type %t", self))
+			panic(fmt.Sprintf("Invalid self reference type %t", addr.Container))
 		}
 	case addrs.CheckAssertion:
-		switch s := self.(type) {
+		switch s := addr.Container.(type) {
 		case addrs.AbsCheck:
 			// Only check blocks have scoped resources so need to specify their
 			// source.
 			sourceReference = s.Check
 		default:
-			panic(fmt.Sprintf("Invalid source reference type %t", self))
+			panic(fmt.Sprintf("Invalid source reference type %t", addr.Container))
 		}
 	}
 	scope := ctx.EvaluationScope(selfReference, sourceReference, keyData)
@@ -104,17 +102,17 @@ func validateCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx Eva
 	hclCtx, moreDiags := scope.EvalContext(refs)
 	diags = diags.Append(moreDiags)
 
-	errorMessage, moreDiags := evalCheckErrorMessage(rule.ErrorMessage, hclCtx)
+	errorMessage, moreDiags := lang.EvalCheckErrorMessage(rule.ErrorMessage, hclCtx)
 	diags = diags.Append(moreDiags)
 
 	return errorMessage, hclCtx, diags
 }
 
-func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData, severity hcl.DiagnosticSeverity) (checkResult, tfdiags.Diagnostics) {
+func evalCheckRule(addr addrs.CheckRule, rule *configs.CheckRule, ctx EvalContext, keyData instances.RepetitionData, severity hcl.DiagnosticSeverity) (checkResult, tfdiags.Diagnostics) {
 	// NOTE: Intentionally not passing the caller's selected severity in here,
 	// because this reports errors in the configuration itself, not the failure
 	// of an otherwise-valid condition.
-	errorMessage, hclCtx, diags := validateCheckRule(typ, rule, ctx, self, keyData)
+	errorMessage, hclCtx, diags := validateCheckRule(addr, rule, ctx, keyData)
 
 	const errInvalidCondition = "Invalid condition result"
 
@@ -122,22 +120,25 @@ func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalCon
 	diags = diags.Append(hclDiags)
 
 	if diags.HasErrors() {
-		log.Printf("[TRACE] evalCheckRule: %s: %s", typ, diags.Err().Error())
+		log.Printf("[TRACE] evalCheckRule: %s: %s", addr.Type, diags.Err().Error())
 		return checkResult{Status: checks.StatusError}, diags
 	}
 
 	if !resultVal.IsKnown() {
 
 		// Check assertions warn if a status is unknown.
-		if typ == addrs.CheckAssertion {
-			diags = diags.Append(tfdiags.AsCheckBlockDiagnostic(&hcl.Diagnostic{
+		if addr.Type == addrs.CheckAssertion {
+			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagWarning,
-				Summary:     fmt.Sprintf("%s known after apply", typ.Description()),
+				Summary:     fmt.Sprintf("%s known after apply", addr.Type.Description()),
 				Detail:      "The condition could not be evaluated at this time, a result will be known when this plan is applied.",
 				Subject:     rule.Condition.Range().Ptr(),
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
-			}))
+				Extra: &addrs.CheckRuleDiagnosticExtra{
+					CheckRule: addr,
+				},
+			})
 		}
 
 		// We'll wait until we've learned more, then.
@@ -189,89 +190,23 @@ func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalCon
 	if errorMessageForDiags == "" {
 		errorMessageForDiags = "This check failed, but has an invalid error message as described in the other accompanying messages."
 	}
-	diag := &hcl.Diagnostic{
+	diags = diags.Append(&hcl.Diagnostic{
 		// The caller gets to choose the severity of this one, because we
 		// treat condition failures as warnings in the presence of
 		// certain special planning options.
 		Severity:    severity,
-		Summary:     fmt.Sprintf("%s failed", typ.Description()),
+		Summary:     fmt.Sprintf("%s failed", addr.Type.Description()),
 		Detail:      errorMessageForDiags,
 		Subject:     rule.Condition.Range().Ptr(),
 		Expression:  rule.Condition,
 		EvalContext: hclCtx,
-	}
-
-	if typ == addrs.CheckAssertion {
-		diags = diags.Append(tfdiags.AsCheckBlockDiagnostic(diag))
-	} else {
-		diags = diags.Append(diag)
-	}
+		Extra: &addrs.CheckRuleDiagnosticExtra{
+			CheckRule: addr,
+		},
+	})
 
 	return checkResult{
 		Status:         status,
 		FailureMessage: errorMessage,
 	}, diags
-}
-
-// evalCheckErrorMessage makes a best effort to evaluate the given expression,
-// as an error message string.
-//
-// It will either return a non-empty message string or it'll return diagnostics
-// with either errors or warnings that explain why the given expression isn't
-// acceptable.
-func evalCheckErrorMessage(expr hcl.Expression, hclCtx *hcl.EvalContext) (string, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	val, hclDiags := expr.Value(hclCtx)
-	diags = diags.Append(hclDiags)
-	if hclDiags.HasErrors() {
-		return "", diags
-	}
-
-	val, err := convert.Convert(val, cty.String)
-	if err != nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity:    hcl.DiagError,
-			Summary:     "Invalid error message",
-			Detail:      fmt.Sprintf("Unsuitable value for error message: %s.", tfdiags.FormatError(err)),
-			Subject:     expr.Range().Ptr(),
-			Expression:  expr,
-			EvalContext: hclCtx,
-		})
-		return "", diags
-	}
-	if !val.IsKnown() {
-		return "", diags
-	}
-	if val.IsNull() {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity:    hcl.DiagError,
-			Summary:     "Invalid error message",
-			Detail:      "Unsuitable value for error message: must not be null.",
-			Subject:     expr.Range().Ptr(),
-			Expression:  expr,
-			EvalContext: hclCtx,
-		})
-		return "", diags
-	}
-
-	val, valMarks := val.Unmark()
-	if _, sensitive := valMarks[marks.Sensitive]; sensitive {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "Error message refers to sensitive values",
-			Detail: `The error expression used to explain this condition refers to sensitive values, so Terraform will not display the resulting message.
-
-You can correct this by removing references to sensitive values, or by carefully using the nonsensitive() function if the expression will not reveal the sensitive data.`,
-			Subject:     expr.Range().Ptr(),
-			Expression:  expr,
-			EvalContext: hclCtx,
-		})
-		return "", diags
-	}
-
-	// NOTE: We've discarded any other marks the string might have been carrying,
-	// aside from the sensitive mark.
-
-	return strings.TrimSpace(val.AsString()), diags
 }

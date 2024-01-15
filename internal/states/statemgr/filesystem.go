@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package statemgr
 
@@ -248,7 +248,7 @@ func (s *Filesystem) GetRootOutputValues() (map[string]*states.OutputValue, erro
 		state = states.NewState()
 	}
 
-	return state.RootModule().OutputValues, nil
+	return state.RootOutputValues, nil
 }
 
 func (s *Filesystem) refreshState() error {

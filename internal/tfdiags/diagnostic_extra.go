@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package tfdiags
 
@@ -105,6 +105,14 @@ type DiagnosticExtraUnwrapper interface {
 	UnwrapDiagnosticExtra() interface{}
 }
 
+// DiagnosticExtraWrapper is an interface implemented by values that can be
+// dynamically updated to wrap other extra info.
+type DiagnosticExtraWrapper interface {
+	// WrapDiagnosticExtra accepts an ExtraInfo that it should add within the
+	// current ExtraInfo.
+	WrapDiagnosticExtra(inner interface{})
+}
+
 // DiagnosticExtraBecauseUnknown is an interface implemented by values in
 // the Extra field of Diagnostic when the diagnostic is potentially caused by
 // the presence of unknown values in an expression evaluation.
@@ -171,4 +179,23 @@ func DiagnosticCausedBySensitive(diag Diagnostic) bool {
 		return false
 	}
 	return maybe.DiagnosticCausedBySensitive()
+}
+
+// DiagnosticExtraDoNotConsolidate tells the Diagnostics.ConsolidateWarnings
+// function not to consolidate this diagnostic if it otherwise would.
+type DiagnosticExtraDoNotConsolidate interface {
+	// DoNotConsolidateDiagnostic returns true if the associated diagnostic
+	// should not be consolidated by the Diagnostics.ConsolidateWarnings
+	// function.
+	DoNotConsolidateDiagnostic() bool
+}
+
+// DoNotConsolidateDiagnostic returns true if the given diagnostic should not
+// be consolidated by the Diagnostics.ConsolidateWarnings function.
+func DoNotConsolidateDiagnostic(diag Diagnostic) bool {
+	maybe := ExtraInfo[DiagnosticExtraDoNotConsolidate](diag)
+	if maybe == nil {
+		return false
+	}
+	return maybe.DoNotConsolidateDiagnostic()
 }

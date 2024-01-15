@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -8,7 +8,10 @@ import (
 	"log"
 	"strings"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/logging"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -73,6 +76,12 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			defer walker.ExitPath(pn.Path())
 		}
 
+		if g.checkAndApplyOverrides(ctx.Overrides(), v) {
+			// We can skip whole vertices if they are in a module that has been
+			// overridden.
+			return
+		}
+
 		// If the node is exec-able, then execute it.
 		if ev, ok := v.(GraphNodeExecutable); ok {
 			diags = diags.Append(walker.Execute(vertexCtx, ev))
@@ -85,10 +94,10 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		if ev, ok := v.(GraphNodeDynamicExpandable); ok {
 			log.Printf("[TRACE] vertex %q: expanding dynamic subgraph", dag.VertexName(v))
 
-			g, err := ev.DynamicExpand(vertexCtx)
-			diags = diags.Append(err)
+			g, moreDiags := ev.DynamicExpand(vertexCtx)
+			diags = diags.Append(moreDiags)
 			if diags.HasErrors() {
-				log.Printf("[TRACE] vertex %q: failed expanding dynamic subgraph: %s", dag.VertexName(v), err)
+				log.Printf("[TRACE] vertex %q: failed expanding dynamic subgraph: %s", dag.VertexName(v), diags.Err())
 				return
 			}
 			if g != nil {
@@ -135,4 +144,182 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 	}
 
 	return g.AcyclicGraph.Walk(walkFn)
+}
+
+// checkAndApplyOverrides checks if target has any data that needs to be overridden.
+//
+// If this function returns true, then the whole vertex should be skipped and
+// not executed.
+//
+// The logic for a vertex is that if it is within an overridden module then we
+// don't want to execute it. Instead, we want to just set the values on the
+// output nodes for that module directly. So if a node is a
+// GraphNodeModuleInstance we want to skip it if there is an entry in our
+// overrides data structure that either matches the module for the vertex or
+// is a parent of the module for the vertex.
+//
+// We also want to actually set the new values for any outputs, resources or
+// data sources we encounter that should be overridden.
+func (g *Graph) checkAndApplyOverrides(overrides *mocking.Overrides, target dag.Vertex) bool {
+	if overrides.Empty() {
+		return false
+	}
+
+	switch v := target.(type) {
+	case GraphNodeOverridable:
+		// For resource and data sources, we want to skip them completely if
+		// they are within an overridden module.
+		resourceInstance := v.ResourceInstanceAddr()
+		if overrides.IsOverridden(resourceInstance.Module) {
+			return true
+		}
+
+		if override, ok := overrides.GetOverrideInclProviders(resourceInstance, v.ConfigProvider()); ok {
+			v.SetOverride(override)
+			return false
+		}
+
+		if override, ok := overrides.GetOverrideInclProviders(resourceInstance.ContainingResource(), v.ConfigProvider()); ok {
+			v.SetOverride(override)
+			return false
+		}
+
+	case *NodeApplyableOutput:
+		// For outputs, we want to skip them completely if they are deeply
+		// nested within an overridden module.
+		module := v.Path()
+		if overrides.IsDeeplyOverridden(module) {
+			// If the output is deeply nested under an overridden module we want
+			// to skip
+			return true
+		}
+
+		setOverride := func(values cty.Value) {
+			key := v.Addr.OutputValue.Name
+			if values.Type().HasAttribute(key) {
+				v.override = values.GetAttr(key)
+			} else {
+				// If we don't have a value provided for an output, then we'll
+				// just set it to be null.
+				//
+				// TODO(liamcervante): Can we generate a value here? Probably
+				//   not as we don't know the type.
+				v.override = cty.NullVal(cty.DynamicPseudoType)
+			}
+		}
+
+		// Otherwise, if we are in a directly overridden module then we want to
+		// apply the overridden output values.
+		if override, ok := overrides.GetOverride(module); ok {
+			setOverride(override.Values)
+			return false
+		}
+
+		lastStepInstanced := len(module) > 0 && module[len(module)-1].InstanceKey != addrs.NoKey
+		if lastStepInstanced {
+			// Then we could have overridden all the instances of this module.
+			if override, ok := overrides.GetOverride(module.ContainingModule()); ok {
+				setOverride(override.Values)
+				return false
+			}
+		}
+
+	case GraphNodeModuleInstance:
+		// Then this node is simply in a module. It might be that this entire
+		// module has been overridden, in which case this node shouldn't
+		// execute.
+		//
+		// We checked for resources and outputs earlier, so we know this isn't
+		// anything special.
+		module := v.Path()
+		if overrides.IsOverridden(module) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// ResourceGraph derives a graph containing addresses of only the nodes in the
+// receiver which implement [GraphNodeConfigResource], describing the
+// relationships between all of their [addrs.ConfigResource] addresses.
+//
+// Nodes that do not have resource addresses are discarded but the
+// result preserves correct dependency relationships for the nodes that are
+// left, still taking into account any indirect dependencies through nodes
+// that were discarded.
+func (g *Graph) ResourceGraph() addrs.DirectedGraph[addrs.ConfigResource] {
+	// For now we're doing this in a kinda-janky way, by first constructing
+	// a reduced graph containing only GraphNodeConfigResource implementations
+	// and then using that temporary graph to construct the final graph to
+	// return.
+
+	tmpG := Graph{}
+	tmpG.Subsume(&g.Graph)
+	tmpG.reducePreservingRelationships(func(n dag.Vertex) bool {
+		_, ret := n.(GraphNodeConfigResource)
+		return ret
+	})
+	tmpG.TransitiveReduction()
+
+	ret := addrs.NewDirectedGraph[addrs.ConfigResource]()
+	for _, n := range tmpG.Vertices() {
+		sourceR := n.(GraphNodeConfigResource)
+		sourceAddr := sourceR.ResourceAddr()
+		ret.Add(sourceAddr)
+		for _, dn := range tmpG.DownEdges(n) {
+			targetR := dn.(GraphNodeConfigResource)
+			ret.AddDependency(sourceAddr, targetR.ResourceAddr())
+		}
+	}
+	return ret
+}
+
+// reducePreservingRelationships modifies the receiver in-place so that it only
+// contains the nodes for which keepNode returns true, but also adds new
+// edges to preserve the dependency relationships for all of the nodes
+// that still remain.
+func (g *Graph) reducePreservingRelationships(keepNode func(dag.Vertex) bool) {
+	// This is a naive algorithm for now. Maybe we'll improve it later.
+
+	// We'll keep iterating as long as we find new edges to add because we
+	// might need to bridge across multiple nodes that we're going to remove
+	// in order to retain the relationships, and one iteration can only
+	// bridge a single node at a time.
+	changed := true
+	for changed {
+		changed = false
+		for _, n := range g.Vertices() {
+			if keepNode(n) {
+				continue
+			}
+
+			// If we're not going to keep this node then we need to connect
+			// all of its dependents to all of its dependencies so that the
+			// ordering is still preserved for those nodes that remain.
+			// However, this will often generate more edges than are strictly
+			// required and so it could be productive to run a transitive
+			// reduction afterwards.
+			dependents := g.UpEdges(n)
+			dependencies := g.DownEdges(n)
+			for dependent := range dependents {
+				for dependency := range dependencies {
+					edge := dag.BasicEdge(dependent, dependency)
+					if !g.HasEdge(edge) {
+						g.Connect(edge)
+						changed = true
+					}
+				}
+			}
+		}
+	}
+
+	// With all of the extra supporting edges in place, we can now safely
+	// remove the nodes we aren't going to keep without changing the
+	// relationships of the remaining nodes.
+	for _, n := range g.Vertices() {
+		if !keepNode(n) {
+			g.Remove(n)
+		}
+	}
 }

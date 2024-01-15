@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -222,6 +222,49 @@ func TestConsole_modules(t *testing.T) {
 	}
 
 	args := []string{}
+
+	for cmd, val := range commands {
+		var output bytes.Buffer
+		defer testStdinPipe(t, strings.NewReader(cmd))()
+		outCloser := testStdoutCapture(t, &output)
+		code := c.Run(args)
+		outCloser()
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		actual := output.String()
+		if output.String() != val {
+			t.Fatalf("bad: %q, expected %q", actual, val)
+		}
+	}
+}
+
+func TestConsole_modulesPlan(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer testChdir(t, td)()
+
+	p := applyFixtureProvider()
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+
+	c := &ConsoleCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	commands := map[string]string{
+		"test_instance.foo.ami\n": "\"bar\"\n",
+	}
+
+	// The -plan option means that we'll be evaluating expressions against
+	// a plan constructed from this configuration, instead of against its
+	// (non-existent) prior state.
+	args := []string{"-plan"}
 
 	for cmd, val := range commands {
 		var output bytes.Buffer

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jsonplan
 
@@ -8,11 +8,13 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestMarshalAttributeValues(t *testing.T) {
@@ -344,18 +346,18 @@ func TestMarshalPlanValuesNoopDeposed(t *testing.T) {
 
 func testSchemas() *terraform.Schemas {
 	return &terraform.Schemas{
-		Providers: map[addrs.Provider]*terraform.ProviderSchema{
-			addrs.NewDefaultProvider("test"): &terraform.ProviderSchema{
-				ResourceTypes: map[string]*configschema.Block{
+		Providers: map[addrs.Provider]providers.ProviderSchema{
+			addrs.NewDefaultProvider("test"): providers.ProviderSchema{
+				ResourceTypes: map[string]providers.Schema{
 					"test_thing": {
-						Attributes: map[string]*configschema.Attribute{
-							"woozles": {Type: cty.String, Optional: true, Computed: true},
-							"foozles": {Type: cty.String, Optional: true},
+						Version: 1,
+						Block: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"woozles": {Type: cty.String, Optional: true, Computed: true},
+								"foozles": {Type: cty.String, Optional: true},
+							},
 						},
 					},
-				},
-				ResourceTypeSchemaVersions: map[string]uint64{
-					"test_thing": 1,
 				},
 			},
 		},

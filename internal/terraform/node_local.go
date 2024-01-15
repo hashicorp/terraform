@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -8,12 +8,13 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // nodeExpandLocal represents a named local value in a configuration module,
@@ -61,11 +62,11 @@ func (n *nodeExpandLocal) ReferenceableAddrs() []addrs.Referenceable {
 
 // GraphNodeReferencer
 func (n *nodeExpandLocal) References() []*addrs.Reference {
-	refs, _ := lang.ReferencesInExpr(n.Config.Expr)
+	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.Config.Expr)
 	return refs
 }
 
-func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 	expander := ctx.InstanceExpander()
 	for _, module := range expander.ExpandModule(n.Module) {
@@ -124,7 +125,7 @@ func (n *NodeLocal) ReferenceableAddrs() []addrs.Referenceable {
 
 // GraphNodeReferencer
 func (n *NodeLocal) References() []*addrs.Reference {
-	refs, _ := lang.ReferencesInExpr(n.Config.Expr)
+	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.Config.Expr)
 	return refs
 }
 
@@ -138,7 +139,7 @@ func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Di
 
 	// We ignore diags here because any problems we might find will be found
 	// again in EvaluateExpr below.
-	refs, _ := lang.ReferencesInExpr(expr)
+	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, expr)
 	for _, ref := range refs {
 		if ref.Subject == addr {
 			diags = diags.Append(&hcl.Diagnostic{
@@ -160,13 +161,7 @@ func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Di
 		return diags
 	}
 
-	state := ctx.State()
-	if state == nil {
-		diags = diags.Append(fmt.Errorf("cannot write local value to nil state"))
-		return diags
-	}
-
-	state.SetLocalValue(addr.Absolute(ctx.Path()), val)
+	ctx.NamedValues().SetLocalValue(addr.Absolute(ctx.Path()), val)
 
 	return diags
 }

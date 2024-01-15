@@ -1,56 +1,59 @@
 ---
-page_title: Upgrading to Terraform v1.5
-description: Upgrading to Terraform v1.5
+page_title: Upgrading to Terraform v1.7
+description: Upgrading to Terraform v1.7
 ---
 
-# Upgrading to Terraform v1.5
+# Upgrading to Terraform v1.7
 
 -> **Tip:** Use the version selector to view the upgrade guides for older Terraform versions.
 
-Terraform v1.5 is a minor release in the stable Terraform v1.0 series.
+Terraform v1.7 is a minor release in the stable Terraform v1.0 series.
 
-Terraform v1.5 honors the
+Terraform v1.7 honors the
 [Terraform v1.0 Compatibility Promises](https://developer.hashicorp.com/terraform/language/v1-compatibility-promises),
 but there are some behavior changes outside of those promises that may affect a
 small number of users. Specifically, the following updates may require
 additional upgrade steps:
-* [End of support for older macOS releases](#end-of-support-for-older-macos-releases)
-* [Linux DNS resolver changes](#linux-dns-resolver-changes)
+* [Validations and checks in the state file](#validations-and-checks)
+* [Deprecated parameters for the S3 backend](#s3-backend)
 
-See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.5/CHANGELOG.md)
+See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.6/CHANGELOG.md)
 for more details. If you encounter any problems during upgrading which are not
 covered this guide, please start a new topic in
 [the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core)
 to discuss it.
 
-## End of support for older macOS releases
+## Validations and Checks
 
-Terraform v1.5 will be the last release supported on macOS 10.13 High Sierra
-and macOS 10.14 Mojave, both of which are no longer maintained by Apple.
+Due to a state interoperability issue ([#33770](https://github.com/hashicorp/terraform/issues/33770), [#34014](https://github.com/hashicorp/terraform/issues/34014)) in earlier versions of Terraform, state files created by the Terraform v1.7.x series may not be compatible with the following Terraform versions:
 
-Terraform v1.5 itself supports these older macOS versions, but we strongly
-recommend upgrading during the v1.5 release period so that you'll be ready to
-use Terraform v1.6 once it is released.
+* Terraform v1.3.0 through v1.3.9
+* Terraform v1.4.0 through v1.4.6
+* Terraform v1.5.0 through v1.5.6
 
-## Linux DNS resolver changes
+If your v1.7.x state file contains `check` blocks or input validations, it will not be compatible with the above versions. Attempting to load a state file created by Terraform v1.7.x in one of the above versions will result in an error similar to `Error refreshing state: unsupported checkable object "var"`. This will particularly affect configurations using the `terraform_remote_state` data source to load state files created by the `v1.7.x` series.
 
-Terraform on Linux uses a built-in DNS resolver rather than using the DNS
-resolver from the platform's C library, because this allows Terraform to run
-on systems with many different C libraries.
+To prevent this issue, users should upgrade any usage of the affected versions to the following patch releases in the relevant minor release series before attempting to process state files created by Terraform v1.7.x:
 
-In Terraform v1.5, the DNS resolver will now notice when you have set the
-`trust-ad` option in your `/etc/resolve.conf` file, and will respond by setting
-the "authentic data" option in outgoing DNS requests to better match the
-behavior of the GNU libc DNS resolver.
+* Terraform v1.3.x series users should upgrade to v1.3.10
+* Terraform v1.4.x series users should upgrade to v1.4.7
+* Terraform v1.5.x series users should upgrade to v1.5.7
 
-Terraform does not pay any attention to the corresponding option in responses,
-but some DNSSEC-aware recursive resolvers return different responses when the
-request option isn't set. This should therefore avoid some potential situations
-where a DNS request from Terraform might get a different response than a
-similar request from other software on your system.
+Terraform versions prior to v1.3.0 and equal to or after v1.6.0 are not affected by this issue.
 
-We don't expect this behavior change to be significant for most Terraform users.
+## S3 Backend
 
-Note that this change affects only DNS requests made by Terraform CLI itself,
-and not requests made by providers. Provider plugins are separate programs
-which handle DNS resolution themselves and so may have different behavior.
+In Terraform 1.7.0 the S3 backend will begin phasing out the legacy credential chain evaluation order by defaulting `use_legacy_workflow` to `false` and deprecating the argument.
+This will bring the default behavior of the backend into alignment with the AWS SDKs and CLI.
+The legacy behavior can be preserved by setting this argument to `true`.
+
+```hcl
+terraform {
+  backend "s3" {
+    # additional configuration omitted for brevity
+    use_legacy_workflow = true
+  }
+}
+```
+
+In Terraform 1.8.0 this argument will be removed, and the S3 backend will always use the default AWS SDK for Go credential chain evaluation order.

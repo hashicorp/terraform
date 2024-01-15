@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // The version package provides a location to set the release versions for all
 // packages to consume, without creating import cycles.
@@ -8,26 +8,45 @@
 package version
 
 import (
+	_ "embed"
 	"fmt"
+	"strings"
 
 	version "github.com/hashicorp/go-version"
 )
 
-// The main version number that is being run at the moment.
-var Version = "1.6.0"
+// rawVersion is the current version as a string, as read from the VERSION
+// file. This must be a valid semantic version.
+//
+//go:embed VERSION
+var rawVersion string
 
-// A pre-release marker for the version. If this is "" (empty string)
-// then it means that it is a final release. Otherwise, this is a pre-release
-// such as "dev" (in development), "beta", "rc1", etc.
-var Prerelease = "dev"
+// dev determines whether the -dev prerelease marker will
+// be included in version info. It is expected to be set to "no" using
+// linker flags when building binaries for release.
+var dev string = "yes"
 
-// SemVer is an instance of version.Version. This has the secondary
-// benefit of verifying during tests and init time that our version is a
-// proper semantic version, which should always be the case.
+// The main version number that is being run at the moment, populated from the raw version.
+var Version string
+
+// A pre-release marker for the version, populated using a combination of the raw version
+// and the dev flag.
+var Prerelease string
+
+// SemVer is an instance of version.Version representing the main version
+// without any prerelease information.
 var SemVer *version.Version
 
 func init() {
-	SemVer = version.Must(version.NewVersion(Version))
+	semVerFull := version.Must(version.NewVersion(strings.TrimSpace(rawVersion)))
+	SemVer = semVerFull.Core()
+	Version = SemVer.String()
+
+	if dev == "no" {
+		Prerelease = semVerFull.Prerelease()
+	} else {
+		Prerelease = "dev"
+	}
 }
 
 // Header is the header name used to send the current terraform version

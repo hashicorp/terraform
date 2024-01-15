@@ -1,85 +1,156 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package arguments
 
 import (
+	"reflect"
 	"testing"
 
-	"github.com/apparentlymart/go-shquot/shquot"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestParseTest(t *testing.T) {
-	tests := []struct {
-		Input     []string
-		Want      Test
-		WantError string
+func TestParseTest_Vars(t *testing.T) {
+	tcs := map[string]struct {
+		args []string
+		want []FlagNameValue
 	}{
-		{
-			nil,
-			Test{
-				Output: TestOutput{
-					JUnitXMLFile: "",
-				},
-			},
-			``,
+		"no var flags by default": {
+			args: nil,
+			want: nil,
 		},
-		{
-			[]string{"-invalid"},
-			Test{
-				Output: TestOutput{
-					JUnitXMLFile: "",
-				},
+		"one var": {
+			args: []string{"-var", "foo=bar"},
+			want: []FlagNameValue{
+				{Name: "-var", Value: "foo=bar"},
 			},
-			`flag provided but not defined: -invalid`,
 		},
-		{
-			[]string{"-junit-xml=result.xml"},
-			Test{
-				Output: TestOutput{
-					JUnitXMLFile: "result.xml",
-				},
+		"one var-file": {
+			args: []string{"-var-file", "cool.tfvars"},
+			want: []FlagNameValue{
+				{Name: "-var-file", Value: "cool.tfvars"},
 			},
-			``,
 		},
-		{
-			[]string{"baz"},
-			Test{
-				Output: TestOutput{
-					JUnitXMLFile: "",
-				},
+		"ordering preserved": {
+			args: []string{
+				"-var", "foo=bar",
+				"-var-file", "cool.tfvars",
+				"-var", "boop=beep",
 			},
-			`Invalid command arguments`,
+			want: []FlagNameValue{
+				{Name: "-var", Value: "foo=bar"},
+				{Name: "-var-file", Value: "cool.tfvars"},
+				{Name: "-var", Value: "boop=beep"},
+			},
 		},
 	}
 
-	baseCmdline := []string{"terraform", "test"}
-	for _, test := range tests {
-		name := shquot.POSIXShell(append(baseCmdline, test.Input...))
+	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
-			t.Log(name)
-			got, diags := ParseTest(test.Input)
+			got, diags := ParseTest(tc.args)
+			if len(diags) > 0 {
+				t.Fatalf("unexpected diags: %v", diags)
+			}
+			if vars := got.Vars.All(); !cmp.Equal(vars, tc.want) {
+				t.Fatalf("unexpected result\n%s", cmp.Diff(vars, tc.want))
+			}
+			if got, want := got.Vars.Empty(), len(tc.want) == 0; got != want {
+				t.Fatalf("expected Empty() to return %t, but was %t", want, got)
+			}
+		})
+	}
+}
 
-			if test.WantError != "" {
-				if len(diags) != 1 {
-					t.Fatalf("got %d diagnostics; want exactly 1\n%s", len(diags), diags.Err().Error())
-				}
-				if diags[0].Severity() != tfdiags.Error {
-					t.Fatalf("got a warning; want an error\n%s", diags.Err().Error())
-				}
-				if desc := diags[0].Description(); desc.Summary != test.WantError {
-					t.Fatalf("wrong error\ngot:  %s\nwant: %s", desc.Summary, test.WantError)
-				}
-			} else {
-				if len(diags) != 0 {
-					t.Fatalf("got %d diagnostics; want none\n%s", len(diags), diags.Err().Error())
-				}
+func TestParseTest(t *testing.T) {
+	tcs := map[string]struct {
+		args      []string
+		want      *Test
+		wantDiags tfdiags.Diagnostics
+	}{
+		"defaults": {
+			args: nil,
+			want: &Test{
+				Filter:        nil,
+				TestDirectory: "tests",
+				ViewType:      ViewHuman,
+				Vars:          &Vars{},
+			},
+			wantDiags: nil,
+		},
+		"with-filters": {
+			args: []string{"-filter=one.tftest.hcl", "-filter=two.tftest.hcl"},
+			want: &Test{
+				Filter:        []string{"one.tftest.hcl", "two.tftest.hcl"},
+				TestDirectory: "tests",
+				ViewType:      ViewHuman,
+				Vars:          &Vars{},
+			},
+			wantDiags: nil,
+		},
+		"json": {
+			args: []string{"-json"},
+			want: &Test{
+				Filter:        nil,
+				TestDirectory: "tests",
+				ViewType:      ViewJSON,
+				Vars:          &Vars{},
+			},
+			wantDiags: nil,
+		},
+		"test-directory": {
+			args: []string{"-test-directory=other"},
+			want: &Test{
+				Filter:        nil,
+				TestDirectory: "other",
+				ViewType:      ViewHuman,
+				Vars:          &Vars{},
+			},
+			wantDiags: nil,
+		},
+		"verbose": {
+			args: []string{"-verbose"},
+			want: &Test{
+				Filter:        nil,
+				TestDirectory: "tests",
+				ViewType:      ViewHuman,
+				Verbose:       true,
+				Vars:          &Vars{},
+			},
+		},
+		"unknown flag": {
+			args: []string{"-boop"},
+			want: &Test{
+				Filter:        nil,
+				TestDirectory: "tests",
+				ViewType:      ViewHuman,
+				Vars:          &Vars{},
+			},
+			wantDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to parse command-line flags",
+					"flag provided but not defined: -boop",
+				),
+			},
+		},
+	}
+
+	cmpOpts := cmpopts.IgnoreUnexported(Operation{}, Vars{}, State{})
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			got, diags := ParseTest(tc.args)
+
+			if diff := cmp.Diff(tc.want, got, cmpOpts); len(diff) > 0 {
+				t.Errorf("diff:\n%s", diff)
 			}
 
-			if diff := cmp.Diff(test.Want, got); diff != "" {
-				t.Errorf("wrong result\n%s", diff)
+			if !reflect.DeepEqual(diags, tc.wantDiags) {
+				t.Errorf("wrong result\ngot: %s\nwant: %s", spew.Sdump(diags), spew.Sdump(tc.wantDiags))
 			}
 		})
 	}

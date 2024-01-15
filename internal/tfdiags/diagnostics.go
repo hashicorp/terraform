@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package tfdiags
 
@@ -104,6 +104,17 @@ func (diags Diagnostics) Append(new ...interface{}) Diagnostics {
 func (diags Diagnostics) HasErrors() bool {
 	for _, diag := range diags {
 		if diag.Severity() == Error {
+			return true
+		}
+	}
+	return false
+}
+
+// HasWarnings returns true if any of the diagnostics in the list have
+// a severity of Warning.
+func (diags Diagnostics) HasWarnings() bool {
+	for _, diag := range diags {
+		if diag.Severity() == Warning {
 			return true
 		}
 	}

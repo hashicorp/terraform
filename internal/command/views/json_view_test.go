@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package views
 
@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -99,6 +100,53 @@ func TestJSONView_Diagnostics(t *testing.T) {
 				"summary":  "Unusually stripey cat detected",
 				"detail":   "Are you sure this random_pet isn't a cheetah?",
 			},
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestJSONView_DiagnosticsWithMetadata(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	jv := NewJSONView(NewView(streams))
+
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Warning,
+		`Improper use of "less"`,
+		`You probably mean "10 buckets or fewer"`,
+	))
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Error,
+		"Unusually stripey cat detected",
+		"Are you sure this random_pet isn't a cheetah?",
+	))
+
+	jv.Diagnostics(diags, "@meta", "extra_info")
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "warn",
+			"@message": `Warning: Improper use of "less"`,
+			"@module":  "terraform.ui",
+			"type":     "diagnostic",
+			"diagnostic": map[string]interface{}{
+				"severity": "warning",
+				"summary":  `Improper use of "less"`,
+				"detail":   `You probably mean "10 buckets or fewer"`,
+			},
+			"@meta": "extra_info",
+		},
+		{
+			"@level":   "error",
+			"@message": "Error: Unusually stripey cat detected",
+			"@module":  "terraform.ui",
+			"type":     "diagnostic",
+			"diagnostic": map[string]interface{}{
+				"severity": "error",
+				"summary":  "Unusually stripey cat detected",
+				"detail":   "Are you sure this random_pet isn't a cheetah?",
+			},
+			"@meta": "extra_info",
 		},
 	}
 	testJSONViewOutputEquals(t, done(t).Stdout(), want)
@@ -329,7 +377,7 @@ func TestJSONView_Outputs(t *testing.T) {
 // against a slice of structs representing the desired log messages. It
 // verifies that the output of JSONView is in JSON log format, one message per
 // line.
-func testJSONViewOutputEqualsFull(t *testing.T, output string, want []map[string]interface{}) {
+func testJSONViewOutputEqualsFull(t *testing.T, output string, want []map[string]interface{}, options ...cmp.Option) {
 	t.Helper()
 
 	// Remove final trailing newline
@@ -367,7 +415,7 @@ func testJSONViewOutputEqualsFull(t *testing.T, output string, want []map[string
 			}
 		}
 
-		if !cmp.Equal(wantStruct, gotStruct) {
+		if !cmp.Equal(wantStruct, gotStruct, options...) {
 			t.Errorf("unexpected output on line %d:\n%s", i, cmp.Diff(wantStruct, gotStruct))
 		}
 	}
@@ -375,7 +423,7 @@ func testJSONViewOutputEqualsFull(t *testing.T, output string, want []map[string
 
 // testJSONViewOutputEquals skips the first line of output, since it ought to
 // be a version message that we don't care about for most of our tests.
-func testJSONViewOutputEquals(t *testing.T, output string, want []map[string]interface{}) {
+func testJSONViewOutputEquals(t *testing.T, output string, want []map[string]interface{}, options ...cmp.Option) {
 	t.Helper()
 
 	// Remove up to the first newline
@@ -383,5 +431,5 @@ func testJSONViewOutputEquals(t *testing.T, output string, want []map[string]int
 	if index >= 0 {
 		output = output[index+1:]
 	}
-	testJSONViewOutputEqualsFull(t, output, want)
+	testJSONViewOutputEqualsFull(t, output, want, options...)
 }

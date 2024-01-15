@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -8,10 +8,11 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // NodeApplyableProvider represents a provider during an apply.
@@ -25,7 +26,7 @@ var (
 
 // GraphNodeExecutable
 func (n *NodeApplyableProvider) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	_, err := ctx.InitProvider(n.Addr)
+	_, err := ctx.InitProvider(n.Addr, n.Config)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -175,6 +176,40 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 			fmt.Sprintf(providerConfigErr, n.Addr.Provider),
 		))
 	}
+	return diags
+}
+
+// nodeExternalProvider is used instead of [NodeApplyableProvider] when an
+// already-configured provider instance has been provided by an external caller,
+// and therefore we don't need to do anything to get the provider ready to
+// use.
+type nodeExternalProvider struct {
+	*NodeAbstractProvider
+}
+
+var (
+	_ GraphNodeExecutable = (*nodeExternalProvider)(nil)
+)
+
+// Execute implements GraphNodeExecutable.
+func (n *nodeExternalProvider) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	log.Printf("[TRACE] nodeExternalProvider: using externally-configured instance for %s", n.Addr)
+	var diags tfdiags.Diagnostics
+
+	// Due to how the EvalContext provider cache works, we need to just poke
+	// this method with our provider address so that a subsequent call
+	// to ctx.Provider will return it successfully.
+	// In this case the "config" argument is always ignored, so we leave it
+	// set to nil to represent that.
+	_, err := ctx.InitProvider(n.Addr, nil)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to initialize externally-configured provider",
+			fmt.Sprintf("Despite it having been pre-initialized by an external caller, %s somehow failed to initialize. This is a bug in Terraform.", n.Addr),
+		))
+	}
+
 	return diags
 }
 

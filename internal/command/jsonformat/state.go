@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jsonformat
 
@@ -17,11 +17,11 @@ import (
 
 type State struct {
 	StateFormatVersion string                      `json:"state_format_version"`
-	RootModule         jsonstate.Module            `json:"root"`
-	RootModuleOutputs  map[string]jsonstate.Output `json:"root_module_outputs"`
+	RootModule         jsonstate.Module            `json:"root_module,omitempty"`
+	RootModuleOutputs  map[string]jsonstate.Output `json:"outputs,omitempty"`
 
 	ProviderFormatVersion string                            `json:"provider_format_version"`
-	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas"`
+	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas,omitempty"`
 }
 
 func (state State) Empty() bool {

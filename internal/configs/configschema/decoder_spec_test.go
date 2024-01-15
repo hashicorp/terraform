@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configschema
 
@@ -445,18 +445,6 @@ func TestAttributeDecoderSpec(t *testing.T) {
 		Want      cty.Value
 		DiagCount int
 	}{
-		"empty": {
-			&Attribute{},
-			hcl.EmptyBody(),
-			cty.NilVal,
-			0,
-		},
-		"nil": {
-			nil,
-			hcl.EmptyBody(),
-			cty.NilVal,
-			0,
-		},
 		"optional string (null)": {
 			&Attribute{
 				Type:     cty.String,
@@ -878,17 +866,33 @@ func TestAttributeDecoderSpec(t *testing.T) {
 // be removed when InternalValidate() is extended to validate Attribute specs
 // (and is used). See the #FIXME in decoderSpec.
 func TestAttributeDecoderSpec_panic(t *testing.T) {
-	attrS := &Attribute{
-		Type: cty.Object(map[string]cty.Type{
-			"nested_attribute": cty.String,
-		}),
-		NestedType: &Object{},
-		Optional:   true,
+	tests := map[string]struct {
+		Schema *Attribute
+	}{
+		"empty": {
+			Schema: &Attribute{},
+		},
+		"nil": {
+			Schema: nil,
+		},
+		"nested_attribute": {
+			Schema: &Attribute{
+				Type: cty.Object(map[string]cty.Type{
+					"nested_attribute": cty.String,
+				}),
+				NestedType: &Object{},
+				Optional:   true,
+			},
+		},
 	}
 
-	defer func() { recover() }()
-	attrS.decoderSpec("attr")
-	t.Errorf("expected panic")
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			defer func() { recover() }()
+			test.Schema.decoderSpec("attr")
+			t.Errorf("expected panic")
+		})
+	}
 }
 
 func TestListOptionalAttrsFromObject(t *testing.T) {

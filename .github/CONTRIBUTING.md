@@ -1,18 +1,21 @@
 # Contributing to Terraform
 
-This repository contains only Terraform core, which includes the command line interface and the main graph engine. Providers are implemented as plugins that each have their own repository linked from the [Terraform Registry index](https://registry.terraform.io/browse/providers). Instructions for developing each provider are usually in the associated README file. For more information, see [the provider development overview](https://www.terraform.io/docs/plugins/provider.html).
-
 **All communication on GitHub, the community forum, and other HashiCorp-provided communication channels is subject to [the HashiCorp community guidelines](https://www.hashicorp.com/community-guidelines).**
 
-This document provides guidance on Terraform contribution recommended practices. It covers what we're looking for in order to help set some expectations and help you get the most out of participation in this project. 
+This repository contains Terraform core, which includes the command line interface and the main graph engine. 
 
-To record a bug report, enhancement proposal, or give any other product feedback, please [open a GitHub issue](https://github.com/hashicorp/terraform/issues/new/choose) using the most appropriate issue template. Please do fill in all of the information the issue templates request, because we've seen from experience that this will maximize the chance that we'll be able to act on your feedback.
+Providers are implemented as plugins that each have their own repository linked from the [Terraform Registry index](https://registry.terraform.io/browse/providers). Instructions for developing each provider are usually in the associated README file. For more information, see [the provider development overview](https://www.terraform.io/docs/plugins/provider.html).
+
+This document provides guidance on Terraform contribution recommended practices. It covers what we're looking for in order to help set expectations and help you get the most out of participation in this project. 
+
+To report a bug, an enhancement proposal, or give any other product feedback, please [open a GitHub issue](https://github.com/hashicorp/terraform/issues/new/choose) using the most appropriate issue template. Please fill in all of the information the issue templates request. This will maximize our ability to act on your feedback.
 
 ---
 
 <!-- MarkdownTOC autolink="true" -->
 
-- [Contributing Fixes](#contributing-fixes)
+- [Introduction](#Introduction)
+- [Contributing a Pull Request](#contributing-a-pull-request)
 - [Proposing a Change](#proposing-a-change)
 	- [Caveats & areas of special concern](#caveats--areas-of-special-concern)
 		- [State Storage Backends](#state-storage-backends)
@@ -28,15 +31,31 @@ To record a bug report, enhancement proposal, or give any other product feedback
 
 <!-- /MarkdownTOC -->
 
-## Contributing Fixes
+## Introduction
 
-It can be tempting to want to dive into an open source project and help _build the thing_ you believe you're missing. It's a wonderful and helpful intention. However, Terraform is a complex tool. Many seemingly simple changes can have serious effects on other areas of the code and it can take some time to become familiar with the effects of even basic changes. The Terraform team is not immune to unintended and sometimes undesirable changes. We do take our work seriously, and appreciate the globally diverse community that relies on Terraform for workflows of all sizes and criticality. 
+One of the great things about publicly available source code is that you can dive into the project and help _build the thing_ you believe is missing. It's a wonderful and generous instinct. However, Terraform is a complex tool. Even simple changes can have a serious impact on other areas of the code and it can take some time to become familiar with the effects of even basic changes. The Terraform team is not immune to unintended and sometimes undesirable consequences. We take our work seriously, and appreciate the responsibility of maintaining software for a globally diverse community that relies on Terraform for workflows of all sizes and criticality. 
 
-As a result of Terraform's complexity and high bar for stability, the most straightforward way to start helping with the Terraform project is to pick an existing bug and [get to work](#terraform-clicore-development-environment). 
+As a result of Terraform's complexity and high bar for stability, the most straightforward way to help with the Terraform project is to [file a feature request or bug report](https://github.com/hashicorp/terraform/issues/new/choose), following the template to fully express your desired use case. 
 
-For new contributors we've labeled a few issues with `Good First Issue` as a nod to issues which will help get you familiar with Terraform development, while also providing an onramp to the codebase itself.
+If you believe you can also implement the solution for your bug or feature, we request that you first discuss the proposed solution with the core maintainer team. This discussion happens in GitHub, on the issue you created to describe the bug or feature. This discussion gives the core team a chance to explore any missing best practices or unintended consequences of the proposed change. Participating in this discussion and getting the go-ahead from a core maintainer is the only way to ensure your code is reviewed for inclusion with the project. It is also possible that the proposed solution is not workable, and will save you time writing code that will not be used due to unforeseen unintended consequences. Please read the section [Proposing a Change](#proposing-a-change) for the full details on this process. 
 
-Read the documentation, and don't be afraid to [ask questions](https://discuss.hashicorp.com/c/terraform-core/27). 
+(As a side note, this is how we work internally at HashiCorp as well. Changes are proposed internally via an RFC process, in which all impacted teams are able to review the proposed changes and give feedback before any code is written. Written communication of changes via the RFC process is a core pillar of our internal coordination.)
+
+
+## Contributing a Pull Request
+
+If you are a new contributor to Terraform, or looking to get started committing to the Terraform ecosystem, here are a couple of tips to get started. 
+
+First, the easiest way to get started is to make fixes or improvements to the documentation. This can be done completely within GitHub, no need to even clone the project! 
+
+Beyond documentation improvements, it is easiest to contribute to Terraform on the edges. If you are looking for a good starting place to contribute, finding and resolving issues in the providers is the best first step. These projects have huge breadth of coverage and are always looking for contributors to fix issues that might not otherwise get the attention of a maintainer. 
+
+Closer to home, within the Terraform core repository, working in areas like functions or backends tend to have less harmful unintended interactions with the core of Terraform (but, also, are not currently a high priority to be reviewed, so please discuss any changes with the team before you start.) It gets more difficult to contribute as you get closer to the core functionality (e.g., manipulating the graph and core language features). For these types of changes, please start with the [Proposing a Change](#proposing-a-change) section to understand how we think about managing this process.
+
+Once you are ready to write code, please see the section [Terraform CLI/Core Development Environment](#terraform-clicore-development-environment) to create your dev environment. Please read the documentation, and don't be afraid to ask questions in our [community forum](https://discuss.hashicorp.com/c/terraform-core/27). 
+
+You may see the `Good First Issue` label on issues in the Terraform repository on GitHub. We use this label to maintain a list of issues for new internal core team members to ramp up the codebase. That said, if you are feeling particularly ambitious, you can follow our process to propose a solution. Other HashiCorp repositories (for example, https://github.com/hashicorp/terraform-provider-aws/) do use the `Good First Issue` to indicate good issues for external contributors to get started. 
+
 
 ## Proposing a Change
 
@@ -50,7 +69,8 @@ For large proposals that could entail a significant design phase, we wish to be 
 
 Most changes will involve updates to the test suite, and changes to Terraform's documentation. The Terraform team can advise on different testing strategies for specific scenarios, and may ask you to revise the specific phrasing of your proposed documentation prose to match better with the standard "voice" of Terraform's documentation.
 
-This repository is primarily maintained by a small team at HashiCorp along with their other responsibilities, so unfortunately we cannot always respond promptly to pull requests, particularly if they do not relate to an existing GitHub issue where the Terraform team has already participated and indicated willingness to work on the issue or accept PRs for the proposal. We *are* grateful for all contributions however, and will give feedback on pull requests as soon as we're able.
+We cannot always respond promptly to pull requests, particularly if they do not relate to an existing GitHub issue where the Terraform team has already participated and indicated willingness to work on the issue or accept PRs for the proposal. We *are* grateful for all contributions however, and will give feedback on pull requests as soon as we are able. 
+
 
 ### Caveats & areas of special concern
 
@@ -58,13 +78,18 @@ There are some areas of Terraform which are of special concern to the Terraform 
 
 #### State Storage Backends
 
-The Terraform team is not merging PRs for new state storage backends at the current time. Our priority regarding state storage backends is to find maintainers for existing backends and remove those backends without maintainers.
+The Terraform team is not merging PRs for new state storage backends. Our priority regarding state storage backends is to find maintainers for existing backends and remove those backends without maintainers.
 
-Please see the [CODEOWNERS](https://github.com/hashicorp/terraform/blob/main/CODEOWNERS) file for the status of a given backend. Community members with an interest in a particular standard backend are welcome to help maintain it.
+Please see the [CODEOWNERS](https://github.com/hashicorp/terraform/blob/main/CODEOWNERS) file for the status of a given backend. Community members with an interest in a particular backend are welcome to offer to maintain it.
 
-Currently, merging state storage backends places a significant burden on the Terraform team. The team must set up an environment and cloud service provider account, or a new database/storage/key-value service, in order to build and test remote state storage backends. The time and complexity of doing so prevents us from moving Terraform forward in other ways.
+In terms of setting expectations, there are three categories of backends in the Terraform repository: backends maintained by the core team (ex.: http); backends maintained by one of HashiCorp's provider teams (e.g. AWS S3, Azure, etc); and backends maintained by third party maintainers (ex.: Postgres, COS). 
 
-We are working to remove ourselves from the critical path of state storage backends by moving them towards a plugin model. In the meantime, we won't be accepting new remote state backends into Terraform.
+* Backends maintained by the core team are unlikely to see accepted contributions. We are triaging incoming pull requests, but these are not highly prioritized against our other work. The smaller and more-contained the change, the more likely it will be reviewed (please see also [Proposing a Change](#proposing-a-change)).
+
+* Backends maintained by one of HashiCorp's provider teams review contributions irregularly. There is no official commitment, typically once every few months one of the maintainers will review a number of backend PRs relating to their provider. The S3 and Azure backends tend to see the most on-going development. 
+
+* Backends maintained by third-party maintainers are reviewed at the whim and availability of those maintainers. When the maintainer gives a positive code review to the pull request, the core team will do a review and merge the changes. 
+
 
 #### Provisioners
 
@@ -78,17 +103,19 @@ From our [documentation](https://www.terraform.io/docs/provisioners/index.html):
 
 The Terraform team is in the process of building a way forward which continues to decrease reliance on provisioners. In the mean time however, as our documentation indicates, they are a tool of last resort. As such expect that PRs and issues for provisioners are not high in priority. 
 
-Please see the [CODEOWNERS](https://github.com/hashicorp/terraform/blob/main/CODEOWNERS) file for the status of a given provisioner. Community members with an interest in a particular provisioner are welcome to help maintain it.
+Please see the [CODEOWNERS](https://github.com/hashicorp/terraform/blob/main/CODEOWNERS) file for the status of a given provisioner.
+
 
 #### Maintainers
 
-Maintainers are key contributors to our Open Source project. They contribute their time and expertise and we ask that the community take extra special care to be mindful of this when interacting with them.
+Maintainers are key contributors to our community project. They contribute their time and expertise and we ask that the community take extra special care to be mindful of this when interacting with them.
 
 For code that has a listed maintainer or maintainers in our [CODEOWNERS](https://github.com/hashicorp/terraform/blob/main/CODEOWNERS) file, the Terraform team will highlight them for participation in PRs which relate to the area of code they maintain. The expectation is that a maintainer will review the code and work with the PR contributor before the code is merged by the Terraform team.
 
 There is no expectation on response time for our maintainers; they may be indisposed for prolonged periods of time. Please be patient. Discussions on when code becomes "unmaintained" will be on a case-by-case basis. 
 
 If an an unmaintained area of code interests you and you'd like to become a maintainer, you may simply make a PR against our [CODEOWNERS](https://github.com/hashicorp/terraform/blob/main/CODEOWNERS) file with your github handle attached to the approriate area. If there is a maintainer or team of maintainers for that area, please coordinate with them as necessary. 
+
 
 ### Pull Request Lifecycle
 
@@ -117,6 +144,7 @@ The following checks run when a PR is opened:
 
 - Contributor License Agreement (CLA): If this is your first contribution to Terraform you will be asked to sign the CLA.
 - Tests: tests include unit tests and acceptance tests, and all tests must pass before a PR can be merged.
+- Vercel: this is an internal tool that does not run correctly for external contributors. We are aware of this and work around it for external contributions. 
 
 ----
 
@@ -128,7 +156,7 @@ Terraform providers are not maintained in this repository; you can find relevant
 repository and relevant issue tracker for each provider within the
 [Terraform Registry index](https://registry.terraform.io/browse/providers).
 
-This repository also does not include the source code for some other parts of the Terraform product including Terraform Cloud, Terraform Enterprise, and the Terraform Registry. Those components are not open source, though if you have feedback about them (including bug reports) please do feel free to [open a GitHub issue on this repository](https://github.com/hashicorp/terraform/issues/new/choose).
+This repository also does not include the source code for some other parts of the Terraform product including Terraform Cloud, Terraform Enterprise, and the Terraform Registry. The source for those components is not publicly available. If you have feedback about these products, including bug reports, please email [tf-cloud@hashicorp.support](mailto:tf-cloud@hashicorp.support) or [open a support request](https://support.hashicorp.com/hc/en-us/requests/new).
 
 ---
 
@@ -136,7 +164,7 @@ If you wish to work on the Terraform CLI source code, you'll first need to insta
 
 At this time the Terraform development environment is targeting only Linux and Mac OS X systems. While Terraform itself is compatible with Windows, unfortunately the unit test suite currently contains Unix-specific assumptions around maximum path lengths, path separators, etc.
 
-Refer to the file [`.go-version`](https://github.com/hashicorp/terraform/blob/main/.go-version) to see which version of Go Terraform is currently built with. Other versions will often work, but if you run into any build or testing problems please try with the specific Go version indicated. You can optionally simplify the installation of multiple specific versions of Go on your system by installing [`goenv`](https://github.com/syndbg/goenv), which reads `.go-version` and automatically selects the correct Go version.
+Refer to the file [`.go-version`](https://github.com/hashicorp/terraform/blob/main/.go-version) to see which version of Go Terraform is currently built with. As of Go 1.21, the `go` command (e.g. in `go build`) will automatically install the version of the Go toolchain corresponding to the version specified in `go.mod`, if it is newer than the version you have installed. The version in `go.mod` is considered the _minimum_ compatible Go version for Terraform, while the version in `.go-version` is what the production binary is actually built with.
 
 Use Git to clone this repository into a location of your choice. Terraform is using [Go Modules](https://blog.golang.org/using-go-modules), and so you should *not* clone it inside your `GOPATH`.
 

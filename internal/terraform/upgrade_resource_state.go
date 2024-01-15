@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -94,6 +94,14 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 	diags := resp.Diagnostics
 	if diags.HasErrors() {
 		return nil, diags
+	}
+
+	if !resp.UpgradedState.IsWhollyKnown() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid resource state upgrade",
+			fmt.Sprintf("The %s provider upgraded the state for %s from a previous version, but produced an invalid result: The returned state contains unknown values.", providerType, addr),
+		))
 	}
 
 	// After upgrading, the new value must conform to the current schema. When

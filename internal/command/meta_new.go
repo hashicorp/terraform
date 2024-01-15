@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -27,14 +27,15 @@ func (m *Meta) Input() bool {
 	return true
 }
 
-// PlanFile returns a reader for the plan file at the given path.
+// PlanFile loads the plan file at the given path, which might be either a local
+// or cloud plan.
 //
 // If the return value and error are both nil, the given path exists but seems
 // to be a configuration directory instead.
 //
 // Error will be non-nil if path refers to something which looks like a plan
 // file and loading the file fails.
-func (m *Meta) PlanFile(path string) (*planfile.Reader, error) {
+func (m *Meta) PlanFile(path string) (*planfile.WrappedPlanFile, error) {
 	fi, err := os.Stat(path)
 	if err != nil {
 		return nil, err
@@ -45,5 +46,5 @@ func (m *Meta) PlanFile(path string) (*planfile.Reader, error) {
 		return nil, nil
 	}
 
-	return planfile.Open(path)
+	return planfile.OpenWrapped(path)
 }

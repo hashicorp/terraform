@@ -1,5 +1,5 @@
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: BUSL-1.1
 
 schema = "1"
 
@@ -113,8 +113,21 @@ event "promote-production" {
   }
 }
 
-event "promote-production-docker" {
+event "crt-hook-tfc-upload" {
   depends = ["promote-production"]
+  action "crt-hook-tfc-upload" {
+    organization = "hashicorp"
+    repository = "terraform-releases"
+    workflow = "crt-hook-tfc-upload"
+  }
+
+  notification {
+    on = "always"
+  }
+}
+
+event "promote-production-docker" {
+  depends = ["crt-hook-tfc-upload"]
   action "promote-production-docker" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
@@ -139,28 +152,12 @@ event "promote-production-packaging" {
   }
 }
 
-// commenting the ironbank update for now until it is all set up on the Ironbank side
-
-// event "update-ironbank" {
-//   depends = ["promote-production-packaging"]
-//   action "update-ironbank" {
-//     organization = "hashicorp"
-//     repository = "crt-workflows-common"
-//     workflow = "update-ironbank"
-//   }
-
-//   notification {
-//     on = "always"
-//   }
-// }
-
-event "crt-hook-tfc-upload" {
-  // this will need to be changed back to update-ironbank once the Ironbank setup is done
+event "update-ironbank" {
   depends = ["promote-production-packaging"]
-  action "crt-hook-tfc-upload" {
+  action "update-ironbank" {
     organization = "hashicorp"
-    repository = "terraform-releases"
-    workflow = "crt-hook-tfc-upload"
+    repository = "crt-workflows-common"
+    workflow = "update-ironbank"
   }
 
   notification {

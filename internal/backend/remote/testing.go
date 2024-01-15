@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package remote
 
@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/cli"
 	tfe "github.com/hashicorp/go-tfe"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
@@ -27,7 +28,6 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
-	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
@@ -182,11 +182,13 @@ func testLocalBackend(t *testing.T, remote *Remote) backend.Enhanced {
 	b := backendLocal.NewWithBackend(remote)
 
 	// Add a test provider to the local backend.
-	p := backendLocal.TestLocalProvider(t, b, "null", &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p := backendLocal.TestLocalProvider(t, b, "null", providers.ProviderSchema{
+		ResourceTypes: map[string]providers.Schema{
 			"null_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Computed: true},
+					},
 				},
 			},
 		},

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -22,18 +22,21 @@ type ImportOpts struct {
 	SetVariables InputValues
 }
 
-// ImportTarget is a single resource to import.
+// ImportTarget is a single resource to import,
+// in legacy (CLI) import mode.
 type ImportTarget struct {
 	// Config is the original import block for this import. This might be null
 	// if the import did not originate in config.
 	Config *configs.Import
 
-	// Addr is the address for the resource instance that the new object should
-	// be imported into.
-	Addr addrs.AbsResourceInstance
+	// LegacyAddr is the import address set from the command line arguments
+	// when using the import command.
+	LegacyAddr addrs.AbsResourceInstance
 
-	// ID is the ID of the resource to import. This is resource-specific.
-	ID string
+	// IDString stores the evaluated ID from the Config for the import process.
+	// This is also used by the legacy import command to directly set the ID
+	// given from the CLI.
+	IDString string
 }
 
 // Import takes already-created external resources and brings them

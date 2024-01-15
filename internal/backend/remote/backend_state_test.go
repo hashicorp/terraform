@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package remote
 
@@ -41,7 +41,7 @@ func TestRemoteClient_stateLock(t *testing.T) {
 	remote.TestRemoteLocks(t, s1.(*remote.State).Client, s2.(*remote.State).Client)
 }
 
-func TestRemoteClient_withRunID(t *testing.T) {
+func TestRemoteClient_Put_withRunID(t *testing.T) {
 	// Set the TFE_RUN_ID environment variable before creating the client!
 	if err := os.Setenv("TFE_RUN_ID", cloud.GenerateID("run-")); err != nil {
 		t.Fatalf("error setting env var TFE_RUN_ID: %v", err)

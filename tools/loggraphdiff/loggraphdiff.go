@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // loggraphdiff is a tool for interpreting changes to the Terraform graph
 // based on the simple graph printing format used in the TF_LOG=trace log

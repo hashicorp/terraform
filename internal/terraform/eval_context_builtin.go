@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -11,12 +11,16 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -46,22 +50,26 @@ type BuiltinEvalContext struct {
 	// eval context.
 	Evaluator *Evaluator
 
-	// VariableValues contains the variable values across all modules. This
-	// structure is shared across the entire containing context, and so it
-	// may be accessed only when holding VariableValuesLock.
-	// The keys of the first level of VariableValues are the string
-	// representations of addrs.ModuleInstance values. The second-level keys
-	// are variable names within each module instance.
-	VariableValues     map[string]map[string]cty.Value
-	VariableValuesLock *sync.Mutex
+	// NamedValuesValue is where we keep the values of already-evaluated input
+	// variables, local values, and output values.
+	NamedValuesValue *namedvals.State
 
 	// Plugins is a library of plugin components (providers and provisioners)
 	// available for use during a graph walk.
 	Plugins *contextPlugins
 
+	// ExternalProviderConfigs are pre-configured provider instances passed
+	// in by the caller, for situations like Stack components where the
+	// root module isn't designed to be planned and applied in isolation and
+	// instead expects to recieve certain provider configurations from the
+	// stack configuration.
+	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+
 	Hooks                 []Hook
 	InputValue            UIInput
 	ProviderCache         map[string]providers.Interface
+	ProviderFuncCache     map[string]providers.Interface
+	ProviderFuncResults   *providers.FunctionResults
 	ProviderInputConfig   map[string]map[string]cty.Value
 	ProviderLock          *sync.Mutex
 	ProvisionerCache      map[string]provisioners.Interface
@@ -73,6 +81,7 @@ type BuiltinEvalContext struct {
 	PrevRunStateValue     *states.SyncState
 	InstanceExpanderValue *instances.Expander
 	MoveResultsValue      refactoring.MoveResults
+	OverrideValues        *mocking.Overrides
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -118,7 +127,7 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 	return ctx.InputValue
 }
 
-func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig) (providers.Interface, error) {
+func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig, config *configs.Provider) (providers.Interface, error) {
 	// If we already initialized, it is an error
 	if p := ctx.Provider(addr); p != nil {
 		return nil, fmt.Errorf("%s is already initialized", addr)
@@ -131,12 +140,38 @@ func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig) (provi
 
 	key := addr.String()
 
+	if addr.Module.IsRoot() {
+		rootAddr := addrs.RootProviderConfig{
+			Provider: addr.Provider,
+			Alias:    addr.Alias,
+		}
+		if external, isExternal := ctx.ExternalProviderConfigs[rootAddr]; isExternal {
+			// External providers should always be pre-configured by the
+			// external caller, and so we'll wrap them in a type that
+			// makes operations like ConfigureProvider and Close be no-op.
+			wrapped := externalProviderWrapper{external}
+			ctx.ProviderCache[key] = wrapped
+			return wrapped, nil
+		}
+	}
+
 	p, err := ctx.Plugins.NewProviderInstance(addr.Provider)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Printf("[TRACE] BuiltinEvalContext: Initialized %q provider for %s", addr.String(), addr)
+
+	// The config might be nil, if there was no config block defined for this
+	// provider.
+	if config != nil && config.Mock {
+		log.Printf("[TRACE] BuiltinEvalContext: Mocked %q provider for %s", addr.String(), addr)
+		p = &providers.Mock{
+			Provider: p,
+			Data:     config.MockData,
+		}
+	}
+
 	ctx.ProviderCache[key] = p
 
 	return p, nil
@@ -149,7 +184,7 @@ func (ctx *BuiltinEvalContext) Provider(addr addrs.AbsProviderConfig) providers.
 	return ctx.ProviderCache[addr.String()]
 }
 
-func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (*ProviderSchema, error) {
+func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (providers.ProviderSchema, error) {
 	return ctx.Plugins.ProviderSchema(addr.Provider)
 }
 
@@ -178,16 +213,6 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, c
 	p := ctx.Provider(addr)
 	if p == nil {
 		diags = diags.Append(fmt.Errorf("%s not initialized", addr))
-		return diags
-	}
-
-	providerSchema, err := ctx.ProviderSchema(addr)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("failed to read schema for %s: %s", addr, err))
-		return diags
-	}
-	if providerSchema == nil {
-		diags = diags.Append(fmt.Errorf("schema for %s is not available", addr))
 		return diags
 	}
 
@@ -254,7 +279,7 @@ func (ctx *BuiltinEvalContext) ProvisionerSchema(n string) (*configschema.Block,
 	return ctx.Plugins.ProvisionerSchema(n)
 }
 
-func (ctx *BuiltinEvalContext) CloseProvisioners() error {
+func (ctx *BuiltinEvalContext) ClosePlugins() error {
 	var diags tfdiags.Diagnostics
 	ctx.ProvisionerLock.Lock()
 	defer ctx.ProvisionerLock.Unlock()
@@ -264,6 +289,17 @@ func (ctx *BuiltinEvalContext) CloseProvisioners() error {
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("provisioner.Close %s: %s", name, err))
 		}
+		delete(ctx.ProvisionerCache, name)
+	}
+
+	ctx.ProviderLock.Lock()
+	defer ctx.ProviderLock.Unlock()
+	for name, prov := range ctx.ProviderFuncCache {
+		err := prov.Close()
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("provider.Close %s: %s", name, err))
+		}
+		delete(ctx.ProviderFuncCache, name)
 	}
 
 	return diags.Err()
@@ -305,7 +341,7 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	case addrs.ResourceInstance:
 		resourceAddr = sub.ContainingResource()
 		rc := sub.Absolute(ctx.Path())
-		change := ctx.Changes().GetResourceInstanceChange(rc, states.CurrentGen)
+		change := ctx.Changes().GetResourceInstanceChange(rc, addrs.NotDeposed)
 		if change != nil {
 			// we'll generate an error below if there was no change
 			changes = append(changes, change)
@@ -408,7 +444,7 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source 
 		InstanceKeyData: keyData,
 		Operation:       ctx.Evaluator.Operation,
 	}
-	scope := ctx.Evaluator.Scope(data, self, source)
+	scope := ctx.Evaluator.Scope(data, self, source, ctx.evaluationExternalFunctions())
 
 	// ctx.PathValue is the path of the module that contains whatever
 	// expression the caller will be trying to evaluate, so this will
@@ -423,6 +459,76 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source 
 	return scope
 }
 
+// evaluationExternalFunctions is a helper for method EvaluationScope which
+// determines the set of external functions that should be available for
+// evaluation in this EvalContext, based on declarations in the configuration.
+func (ctx *BuiltinEvalContext) evaluationExternalFunctions() lang.ExternalFuncs {
+	// The set of functions in scope includes the functions contributed by
+	// every provider that the current module has as a requirement.
+	//
+	// We expose them under the local name for each provider that was selected
+	// by the module author.
+	ret := lang.ExternalFuncs{}
+
+	cfg := ctx.Evaluator.Config.DescendentForInstance(ctx.Path())
+	if cfg == nil {
+		// It's weird to not have a configuration by this point, but we'll
+		// tolerate it for robustness and just return no functions at all.
+		return ret
+	}
+	if cfg.Module.ProviderRequirements == nil {
+		// A module with no provider requirements can't have any
+		// provider-contributed functions.
+		return ret
+	}
+
+	reqs := cfg.Module.ProviderRequirements.RequiredProviders
+	ret.Provider = make(map[string]map[string]function.Function, len(reqs))
+
+	for localName, req := range reqs {
+		providerAddr := req.Type
+		funcDecls, err := ctx.Plugins.ProviderFunctionDecls(providerAddr)
+		if err != nil {
+			// If a particular provider can't return schema then we'll catch
+			// it in plenty other places where it's more reasonable for us
+			// to return an error, so here we'll just treat it as having
+			// no functions.
+			log.Printf("[WARN] Error loading schema for %s to determine its functions: %s", providerAddr, err)
+			continue
+		}
+
+		ret.Provider[localName] = make(map[string]function.Function, len(funcDecls))
+		funcs := ret.Provider[localName]
+		for name, decl := range funcDecls {
+			funcs[name] = decl.BuildFunction(providerAddr, name, ctx.ProviderFuncResults, func() (providers.Interface, error) {
+				return ctx.functionProvider(providerAddr)
+			})
+		}
+	}
+
+	return ret
+}
+
+// functionProvider fetches a running provider instance for evaluating
+// functions from the cache, or starts a new instance and adds it to the cache.
+func (ctx *BuiltinEvalContext) functionProvider(addr addrs.Provider) (providers.Interface, error) {
+	ctx.ProviderLock.Lock()
+	defer ctx.ProviderLock.Unlock()
+
+	p, ok := ctx.ProviderFuncCache[addr.String()]
+	if ok {
+		return p, nil
+	}
+
+	log.Printf("[TRACE] starting function provider instance for %s", addr)
+	p, err := ctx.Plugins.NewProviderInstance(addr)
+	if err == nil {
+		ctx.ProviderFuncCache[addr.String()] = p
+	}
+
+	return p, err
+}
+
 func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {
 	if !ctx.pathSet {
 		panic("context path not set")
@@ -430,50 +536,8 @@ func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {
 	return ctx.PathValue
 }
 
-func (ctx *BuiltinEvalContext) SetRootModuleArgument(addr addrs.InputVariable, v cty.Value) {
-	ctx.VariableValuesLock.Lock()
-	defer ctx.VariableValuesLock.Unlock()
-
-	log.Printf("[TRACE] BuiltinEvalContext: Storing final value for variable %s", addr.Absolute(addrs.RootModuleInstance))
-	key := addrs.RootModuleInstance.String()
-	args := ctx.VariableValues[key]
-	if args == nil {
-		args = make(map[string]cty.Value)
-		ctx.VariableValues[key] = args
-	}
-	args[addr.Name] = v
-}
-
-func (ctx *BuiltinEvalContext) SetModuleCallArgument(callAddr addrs.ModuleCallInstance, varAddr addrs.InputVariable, v cty.Value) {
-	ctx.VariableValuesLock.Lock()
-	defer ctx.VariableValuesLock.Unlock()
-
-	if !ctx.pathSet {
-		panic("context path not set")
-	}
-
-	childPath := callAddr.ModuleInstance(ctx.PathValue)
-	log.Printf("[TRACE] BuiltinEvalContext: Storing final value for variable %s", varAddr.Absolute(childPath))
-	key := childPath.String()
-	args := ctx.VariableValues[key]
-	if args == nil {
-		args = make(map[string]cty.Value)
-		ctx.VariableValues[key] = args
-	}
-	args[varAddr.Name] = v
-}
-
-func (ctx *BuiltinEvalContext) GetVariableValue(addr addrs.AbsInputVariableInstance) cty.Value {
-	ctx.VariableValuesLock.Lock()
-	defer ctx.VariableValuesLock.Unlock()
-
-	modKey := addr.Module.String()
-	modVars := ctx.VariableValues[modKey]
-	val, ok := modVars[addr.Variable.Name]
-	if !ok {
-		return cty.DynamicVal
-	}
-	return val
+func (ctx *BuiltinEvalContext) NamedValues() *namedvals.State {
+	return ctx.NamedValuesValue
 }
 
 func (ctx *BuiltinEvalContext) Changes() *plans.ChangesSync {
@@ -502,4 +566,8 @@ func (ctx *BuiltinEvalContext) InstanceExpander() *instances.Expander {
 
 func (ctx *BuiltinEvalContext) MoveResults() refactoring.MoveResults {
 	return ctx.MoveResultsValue
+}
+
+func (ctx *BuiltinEvalContext) Overrides() *mocking.Overrides {
+	return ctx.OverrideValues
 }

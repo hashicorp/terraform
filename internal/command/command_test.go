@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -26,6 +26,8 @@ import (
 
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
@@ -50,7 +52,6 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/version"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // These are the directories for our test data and fixtures.
@@ -86,6 +87,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+// tempWorkingDir constructs a workdir.Dir object referring to a newly-created
 // tempWorkingDir constructs a workdir.Dir object referring to a newly-created
 // temporary directory. The temporary directory is automatically removed when
 // the test and all its subtests complete.
@@ -158,7 +160,7 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
-	_, instDiags := inst.InstallModules(context.Background(), dir, true, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
@@ -353,7 +355,10 @@ func testStateMgrCurrentLineage(mgr statemgr.Persistent) string {
 //	// (do stuff to the state)
 //	assertStateHasMarker(state, mark)
 func markStateForMatching(state *states.State, mark string) string {
-	state.RootModule().SetOutputValue("testing_mark", cty.StringVal(mark), false)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "testing_mark"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal(mark), false,
+	)
 	return mark
 }
 
@@ -361,7 +366,7 @@ func markStateForMatching(state *states.State, mark string) string {
 // mark string previously added to the given state. If no such mark is present,
 // the result is an empty string.
 func getStateMatchingMarker(state *states.State) string {
-	os := state.RootModule().OutputValues["testing_mark"]
+	os := state.RootOutputValues["testing_mark"]
 	if os == nil {
 		return ""
 	}

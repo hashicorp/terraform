@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -159,35 +160,13 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	importing := n.importTarget.ID != ""
-
-	if importing && n.Config == nil && len(n.generateConfigPath) == 0 {
-		// Then the user wrote an import target to a target that didn't exist.
-		if n.Addr.Module.IsRoot() {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Import block target does not exist",
-				Detail:   "The target for the given import block does not exist. If you wish to automatically generate config for this resource, use the -generate-config-out option within terraform plan. Otherwise, make sure the target resource exists within your configuration. For example:\n\n  terraform plan -generate-config-out=generated.tf",
-				Subject:  n.importTarget.Config.DeclRange.Ptr(),
-			})
-		} else {
-			// You can't generate config for a resource that is inside a
-			// module, so we will present a different error message for
-			// this case.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Import block target does not exist",
-				Detail:   "The target for the given import block does not exist. The specified target is within a module, and must be defined as a resource within that module before anything can be imported.",
-				Subject:  n.importTarget.Config.DeclRange.Ptr(),
-			})
-		}
-		return diags
-	}
+	importing := n.importTarget.IDString != ""
+	importId := n.importTarget.IDString
 
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
 	if importing {
-		instanceRefreshState, diags = n.importState(ctx, addr, provider, providerSchema)
+		instanceRefreshState, diags = n.importState(ctx, addr, importId, provider, providerSchema)
 	} else {
 		var readDiags tfdiags.Diagnostics
 		instanceRefreshState, readDiags = n.readResourceInstanceState(ctx, addr)
@@ -297,7 +276,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		if importing {
-			change.Importing = &plans.Importing{ID: n.importTarget.ID}
+			change.Importing = &plans.Importing{ID: importId}
 		}
 
 		// FIXME: here we udpate the change to reflect the reason for
@@ -307,11 +286,12 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			change.ActionReason = plans.ResourceInstanceReplaceByTriggers
 		}
 
-		diags = diags.Append(n.checkPreventDestroy(change))
-		if diags.HasErrors() {
-			return diags
-		}
-
+		// We intentionally write the change before the subsequent checks, because
+		// all of the checks below this point are for problems caused by the
+		// context surrounding the change, rather than the change itself, and
+		// so it's helpful to still include the valid-in-isolation change as
+		// part of the plan as additional context in our error output.
+		//
 		// FIXME: it is currently important that we write resource changes to
 		// the plan (n.writeChange) before we write the corresponding state
 		// (n.writeResourceInstanceState).
@@ -327,8 +307,15 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		// update these two data structures incorrectly through any objects
 		// reachable via the terraform.EvalContext API.
 		diags = diags.Append(n.writeChange(ctx, change, ""))
-
+		if diags.HasErrors() {
+			return diags
+		}
 		diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, workingState))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		diags = diags.Append(n.checkPreventDestroy(change))
 		if diags.HasErrors() {
 			return diags
 		}
@@ -439,21 +426,83 @@ func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repDat
 	return diags
 }
 
-func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, provider providers.Interface, providerSchema *ProviderSchema) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, importId string, provider providers.Interface, providerSchema providers.ProviderSchema) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	absAddr := addr.Resource.Absolute(ctx.Path())
 
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PrePlanImport(absAddr, n.importTarget.ID)
+		return h.PrePlanImport(absAddr, importId)
 	}))
 	if diags.HasErrors() {
 		return nil, diags
 	}
 
-	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
-		TypeName: addr.Resource.Resource.Type,
-		ID:       n.importTarget.ID,
-	})
+	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", n.Addr))
+		return nil, diags
+	}
+
+	var resp providers.ImportResourceStateResponse
+	if n.override != nil {
+		// For overriding resources that are being imported, we cheat a little
+		// bit and look ahead at the configuration the user has provided and
+		// we'll use that as the basis for the resource we're going to make up
+		// that is due to be overridden.
+
+		// Note, we know we have configuration as it's impossible to enable
+		// config generation during tests, and the validation that config exists
+		// if configuration generation is off has already happened.
+		if n.Config == nil {
+			// But, just in case we change this at some point in the future,
+			// let's add a specific error message here we can test for to
+			// document the expectation somewhere. This shouldn't happen in
+			// production, so we don't bother with a pretty error.
+			diags = diags.Append(fmt.Errorf("override blocks do not support config generation"))
+			return nil, diags
+		}
+
+		forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
+		keyData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+		configVal, _, configDiags := ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
+		if configDiags.HasErrors() {
+			// We have an overridden resource so we're definitely in a test and
+			// the users config is not valid. So give up and just report the
+			// problems in the users configuration. Normally, we'd import the
+			// resource before giving up but for a test it doesn't matter, the
+			// test fails in the same way and the state is just lost anyway.
+			//
+			// If there were only warnings from the config then we'll duplicate
+			// them if we include them (as the config will be loaded again
+			// later), so only add the configDiags into the main diags if we
+			// found actual errors.
+			diags = diags.Append(configDiags)
+			return nil, diags
+		}
+		configVal, _ = configVal.UnmarkDeep()
+
+		// Let's pretend we're reading the value as a data source so we
+		// pre-compute values now as if the resource has already been created.
+		override, overrideDiags := mocking.ComputedValuesForDataSource(configVal, mocking.MockedData{
+			Value: n.override.Values,
+			Range: n.override.ValuesRange,
+		}, schema)
+		resp = providers.ImportResourceStateResponse{
+			ImportedResources: []providers.ImportedResource{
+				{
+					TypeName: addr.Resource.Resource.Type,
+					State:    override,
+				},
+			},
+			Diagnostics: overrideDiags.InConfigBody(n.Config.Config, absAddr.String()),
+		}
+	} else {
+		resp = provider.ImportResourceState(providers.ImportResourceStateRequest{
+			TypeName: addr.Resource.Resource.Type,
+			ID:       importId,
+		})
+	}
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
 		return nil, diags
@@ -467,13 +516,13 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			"Import returned no resources",
 			fmt.Sprintf("While attempting to import with ID %s, the provider"+
 				"returned no instance states.",
-				n.importTarget.ID,
+				importId,
 			),
 		))
 		return nil, diags
 	}
 	for _, obj := range imported {
-		log.Printf("[TRACE] graphNodeImportState: import %s %q produced instance object of type %s", absAddr.String(), n.importTarget.ID, obj.TypeName)
+		log.Printf("[TRACE] graphNodeImportState: import %s %q produced instance object of type %s", absAddr.String(), importId, obj.TypeName)
 	}
 	if len(imported) > 1 {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -482,7 +531,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			fmt.Sprintf("While attempting to import with ID %s, the provider "+
 				"returned multiple resource instance states. This "+
 				"is not currently supported.",
-				n.importTarget.ID,
+				importId,
 			),
 		))
 		return nil, diags
@@ -494,7 +543,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	}))
 
 	if imported[0].TypeName == "" {
-		diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.importTarget.Addr.String()))
+		diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.Addr.String()))
 		return nil, diags
 	}
 
@@ -506,17 +555,18 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			"Import returned null resource",
 			fmt.Sprintf("While attempting to import with ID %s, the provider"+
 				"returned an instance with no state.",
-				n.importTarget.ID,
+				n.importTarget.IDString,
 			),
 		))
 	}
 
 	// refresh
 	riNode := &NodeAbstractResourceInstance{
-		Addr: n.importTarget.Addr,
+		Addr: n.Addr,
 		NodeAbstractResource: NodeAbstractResource{
 			ResolvedProvider: n.ResolvedProvider,
 		},
+		override: n.override,
 	}
 	instanceRefreshState, refreshDiags := riNode.refresh(ctx, states.NotDeposed, importedState)
 	diags = diags.Append(refreshDiags)
@@ -537,7 +587,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 					"is correct and that it is associated with the provider's "+
 					"configured region or endpoint, or use \"terraform apply\" to "+
 					"create a new remote object for this resource.",
-				n.importTarget.Addr,
+				n.Addr,
 			),
 		))
 		return instanceRefreshState, diags
@@ -547,13 +597,6 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	if len(n.generateConfigPath) > 0 {
 		if n.Config != nil {
 			return instanceRefreshState, diags.Append(fmt.Errorf("tried to generate config for %s, but it already exists", n.Addr))
-		}
-
-		schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
-		if schema == nil {
-			// Should be caught during validation, so we don't bother with a pretty error here
-			diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", n.Addr))
-			return instanceRefreshState, diags
 		}
 
 		// Generate the HCL string first, then parse the HCL body from it.

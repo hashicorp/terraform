@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package statefile
 
@@ -19,6 +19,25 @@ import (
 
 // ErrNoState is returned by ReadState when the state file is empty.
 var ErrNoState = errors.New("no state")
+
+// ErrUnusableState is an error wrapper to indicate that we *think* the input
+// represents state data, but can't use it for some reason (as explained in the
+// error text). Callers can check against this type with errors.As() if they
+// need to distinguish between corrupt state and more fundamental problems like
+// an empty file.
+type ErrUnusableState struct {
+	inner error
+}
+
+func errUnusable(err error) *ErrUnusableState {
+	return &ErrUnusableState{inner: err}
+}
+func (e *ErrUnusableState) Error() string {
+	return e.inner.Error()
+}
+func (e *ErrUnusableState) Unwrap() error {
+	return e.inner
+}
 
 // Read reads a state from the given reader.
 //
@@ -55,9 +74,9 @@ func Read(r io.Reader) (*File, error) {
 		return nil, ErrNoState
 	}
 
-	state, diags := readState(src)
-	if diags.HasErrors() {
-		return nil, diags.Err()
+	state, err := readState(src)
+	if err != nil {
+		return nil, err
 	}
 
 	if state == nil {
@@ -68,7 +87,7 @@ func Read(r io.Reader) (*File, error) {
 	return state, diags.Err()
 }
 
-func readState(src []byte) (*File, tfdiags.Diagnostics) {
+func readState(src []byte) (*File, error) {
 	var diags tfdiags.Diagnostics
 
 	if looksLikeVersion0(src) {
@@ -77,15 +96,20 @@ func readState(src []byte) (*File, tfdiags.Diagnostics) {
 			unsupportedFormat,
 			"The state is stored in a legacy binary format that is not supported since Terraform v0.7. To continue, first upgrade the state using Terraform 0.6.16 or earlier.",
 		))
-		return nil, diags
+		return nil, errUnusable(diags.Err())
 	}
 
 	version, versionDiags := sniffJSONStateVersion(src)
 	diags = diags.Append(versionDiags)
 	if versionDiags.HasErrors() {
-		return nil, diags
+		// This is the last point where there's a really good chance it's not a
+		// state file at all. Past here, we'll assume errors mean it's state but
+		// we can't use it.
+		return nil, diags.Err()
 	}
 
+	var result *File
+	var err error
 	switch version {
 	case 0:
 		diags = diags.Append(tfdiags.Sourceless(
@@ -93,15 +117,14 @@ func readState(src []byte) (*File, tfdiags.Diagnostics) {
 			unsupportedFormat,
 			"The state file uses JSON syntax but has a version number of zero. There was never a JSON-based state format zero, so this state file is invalid and cannot be processed.",
 		))
-		return nil, diags
 	case 1:
-		return readStateV1(src)
+		result, diags = readStateV1(src)
 	case 2:
-		return readStateV2(src)
+		result, diags = readStateV2(src)
 	case 3:
-		return readStateV3(src)
+		result, diags = readStateV3(src)
 	case 4:
-		return readStateV4(src)
+		result, diags = readStateV4(src)
 	default:
 		thisVersion := tfversion.SemVer.String()
 		creatingVersion := sniffJSONStateTerraformVersion(src)
@@ -119,8 +142,13 @@ func readState(src []byte) (*File, tfdiags.Diagnostics) {
 				fmt.Sprintf("The state file uses format version %d, which is not supported by Terraform %s. This state file may have been created by a newer version of Terraform.", version, thisVersion),
 			))
 		}
-		return nil, diags
 	}
+
+	if diags.HasErrors() {
+		err = errUnusable(diags.Err())
+	}
+
+	return result, err
 }
 
 func sniffJSONStateVersion(src []byte) (uint64, tfdiags.Diagnostics) {

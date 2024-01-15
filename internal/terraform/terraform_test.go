@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -67,7 +67,7 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
-	_, instDiags := inst.InstallModules(context.Background(), dir, true, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
@@ -124,7 +124,7 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
-	_, instDiags := inst.InstallModules(context.Background(), cfgPath, true, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
@@ -135,7 +135,7 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, diags := loader.LoadConfig(cfgPath)
+	config, diags := loader.LoadConfigWithTests(cfgPath, "tests")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
@@ -170,32 +170,33 @@ func testSetResourceInstanceTainted(module *states.Module, resource, attrsJson, 
 }
 
 func testProviderFuncFixed(rp providers.Interface) providers.Factory {
-	return func() (providers.Interface, error) {
-		if p, ok := rp.(*MockProvider); ok {
-			// make sure none of the methods were "called" on this new instance
-			p.GetProviderSchemaCalled = false
-			p.ValidateProviderConfigCalled = false
-			p.ValidateResourceConfigCalled = false
-			p.ValidateDataResourceConfigCalled = false
-			p.UpgradeResourceStateCalled = false
-			p.ConfigureProviderCalled = false
-			p.StopCalled = false
-			p.ReadResourceCalled = false
-			p.PlanResourceChangeCalled = false
-			p.ApplyResourceChangeCalled = false
-			p.ImportResourceStateCalled = false
-			p.ReadDataSourceCalled = false
-			p.CloseCalled = false
-		}
+	if p, ok := rp.(*MockProvider); ok {
+		// make sure none of the methods were "called" on this new instance
+		p.GetProviderSchemaCalled = false
+		p.ValidateProviderConfigCalled = false
+		p.ValidateResourceConfigCalled = false
+		p.ValidateDataResourceConfigCalled = false
+		p.UpgradeResourceStateCalled = false
+		p.ConfigureProviderCalled = false
+		p.StopCalled = false
+		p.ReadResourceCalled = false
+		p.PlanResourceChangeCalled = false
+		p.ApplyResourceChangeCalled = false
+		p.ImportResourceStateCalled = false
+		p.ReadDataSourceCalled = false
+		p.CloseCalled = false
+	}
 
+	return func() (providers.Interface, error) {
 		return rp, nil
 	}
 }
 
 func testProvisionerFuncFixed(rp *MockProvisioner) provisioners.Factory {
+	// make sure this provisioner has has not been closed
+	rp.CloseCalled = false
+
 	return func() (provisioners.Interface, error) {
-		// make sure this provisioner has has not been closed
-		rp.CloseCalled = false
 		return rp, nil
 	}
 }
@@ -232,6 +233,22 @@ func mustProviderConfig(s string) addrs.AbsProviderConfig {
 	return p
 }
 
+func mustReference(s string) *addrs.Reference {
+	p, diags := addrs.ParseRefStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return p
+}
+
+func mustModuleInstance(s string) addrs.ModuleInstance {
+	p, diags := addrs.ParseModuleInstanceStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return p
+}
+
 // HookRecordApplyOrder is a test hook that records the order of applies
 // by recording the PreApply event.
 type HookRecordApplyOrder struct {
@@ -246,7 +263,7 @@ type HookRecordApplyOrder struct {
 	l sync.Mutex
 }
 
-func (h *HookRecordApplyOrder) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (h *HookRecordApplyOrder) PreApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	if plannedNewState.RawEquals(priorState) {
 		return HookActionContinue, nil
 	}

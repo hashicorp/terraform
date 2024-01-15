@@ -1,9 +1,10 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -20,7 +22,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
@@ -135,7 +136,10 @@ func TestMetaBackend_emptyWithDefaultState(t *testing.T) {
 
 	// Write some state
 	next := testState()
-	next.RootModule().SetOutputValue("foo", cty.StringVal("bar"), false)
+	next.SetOutputValue(
+		addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("bar"), false,
+	)
 	s.WriteState(next)
 	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -1549,7 +1553,7 @@ func TestMetaBackend_planLocal(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, diags := m.BackendForPlan(backendConfig)
+	b, diags := m.BackendForLocalPlan(backendConfig)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1650,7 +1654,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	m.stateOutPath = statePath
 
 	// Get the backend
-	b, diags := m.BackendForPlan(plannedBackend)
+	b, diags := m.BackendForLocalPlan(plannedBackend)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1739,7 +1743,7 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, diags := m.BackendForPlan(backendConfig)
+	b, diags := m.BackendForLocalPlan(backendConfig)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1861,7 +1865,10 @@ func TestMetaBackend_localDoesNotDeleteLocal(t *testing.T) {
 
 	// // create our local state
 	orig := states.NewState()
-	orig.Module(addrs.RootModuleInstance).SetOutputValue("foo", cty.StringVal("bar"), false)
+	orig.SetOutputValue(
+		addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("bar"), false,
+	)
 	testStateFileDefault(t, orig)
 
 	m := testMetaBackend(t, nil)
@@ -1939,7 +1946,7 @@ func TestBackendFromState(t *testing.T) {
 	// them to match just for this test.
 	wd.OverrideDataDir(".")
 
-	stateBackend, diags := m.backendFromState()
+	stateBackend, diags := m.backendFromState(context.Background())
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}

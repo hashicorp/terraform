@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -130,9 +130,21 @@ func (p *Provider) ImportResourceState(req providers.ImportResourceStateRequest)
 	panic("unimplemented - terraform_remote_state has no resources")
 }
 
+func (p *Provider) MoveResourceState(providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
+	// We don't expose the move_resource_state capability, so this should never
+	// be called.
+	panic("unimplemented - terraform.io/builtin/terraform does not support cross-resource moves")
+}
+
 // ValidateResourceConfig is used to to validate the resource configuration values.
 func (p *Provider) ValidateResourceConfig(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 	return validateDataStoreResourceConfig(req)
+}
+
+// CallFunction would call a function contributed by this provider, but this
+// provider has no functions and so this function just panics.
+func (p *Provider) CallFunction(providers.CallFunctionRequest) providers.CallFunctionResponse {
+	panic("unimplemented - terraform.io/builtin/terraform provider has no functions")
 }
 
 // Close is a noop for this provider, since it's run in-process.

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package statemgr
 
@@ -70,7 +70,7 @@ func (m *fakeFull) PersistState(schemas *terraform.Schemas) error {
 }
 
 func (m *fakeFull) GetRootOutputValues() (map[string]*states.OutputValue, error) {
-	return m.State().RootModule().OutputValues, nil
+	return m.State().RootOutputValues, nil
 }
 
 func (m *fakeFull) Lock(info *LockInfo) (string, error) {

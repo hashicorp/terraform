@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package json
 
@@ -64,6 +64,7 @@ type ChangeAction string
 const (
 	ActionNoOp    ChangeAction = "noop"
 	ActionMove    ChangeAction = "move"
+	ActionForget  ChangeAction = "remove"
 	ActionCreate  ChangeAction = "create"
 	ActionRead    ChangeAction = "read"
 	ActionUpdate  ChangeAction = "update"
@@ -82,10 +83,12 @@ func changeAction(action plans.Action) ChangeAction {
 		return ActionRead
 	case plans.Update:
 		return ActionUpdate
-	case plans.DeleteThenCreate, plans.CreateThenDelete:
+	case plans.DeleteThenCreate, plans.CreateThenDelete, plans.CreateThenForget:
 		return ActionReplace
 	case plans.Delete:
 		return ActionDelete
+	case plans.Forget:
+		return ActionForget
 	default:
 		return ActionNoOp
 	}

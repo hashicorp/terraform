@@ -1,43 +1,145 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configs
 
 import (
 	"fmt"
+	"path"
 	"sort"
+	"strings"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 // BuildConfig constructs a Config from a root module by loading all of its
-// descendent modules via the given ModuleWalker.
+// descendent modules via the given ModuleWalker. This function also side loads
+// and installs any mock data files needed by the testing framework via the
+// MockDataLoader.
 //
 // The result is a module tree that has so far only had basic module- and
 // file-level invariants validated. If the returned diagnostics contains errors,
 // the returned module tree may be incomplete but can still be used carefully
 // for static analysis.
-func BuildConfig(root *Module, walker ModuleWalker) (*Config, hcl.Diagnostics) {
+func BuildConfig(root *Module, walker ModuleWalker, loader MockDataLoader) (*Config, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	cfg := &Config{
 		Module: root,
 	}
 	cfg.Root = cfg // Root module is self-referential.
 	cfg.Children, diags = buildChildModules(cfg, walker)
+	diags = append(diags, buildTestModules(cfg, walker)...)
 
 	// Skip provider resolution if there are any errors, since the provider
 	// configurations themselves may not be valid.
 	if !diags.HasErrors() {
 		// Now that the config is built, we can connect the provider names to all
 		// the known types for validation.
-		cfg.resolveProviderTypes()
+		providers := cfg.resolveProviderTypes()
+		cfg.resolveProviderTypesForTests(providers)
 	}
 
 	diags = append(diags, validateProviderConfigs(nil, cfg, nil)...)
+	diags = append(diags, validateProviderConfigsForTests(cfg)...)
+
+	// Final step, let's side load any external mock data into our test files.
+	diags = append(diags, installMockDataFiles(cfg, loader)...)
 
 	return cfg, diags
+}
+
+func installMockDataFiles(root *Config, loader MockDataLoader) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	for _, file := range root.Module.Tests {
+		for _, provider := range file.Providers {
+			if !provider.Mock {
+				// Don't try and process non-mocked providers.
+				continue
+			}
+
+			data, dataDiags := loader.LoadMockData(provider)
+			diags = append(diags, dataDiags...)
+			if data != nil {
+				// If we loaded some data, then merge the new data into the old
+				// data. In this case we expect and accept collisions, so we
+				// don't want the merge function warning us about them.
+				diags = append(diags, provider.MockData.Merge(data, true)...)
+			}
+		}
+	}
+
+	return diags
+}
+
+func buildTestModules(root *Config, walker ModuleWalker) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	for name, file := range root.Module.Tests {
+		for _, run := range file.Runs {
+			if run.Module == nil {
+				continue
+			}
+
+			// We want to make sure the path for the testing modules are unique
+			// so we create a dedicated path for them.
+			//
+			// Some examples:
+			//    - file: main.tftest.hcl, run: setup - test.main.setup
+			//    - file: tests/main.tftest.hcl, run: setup - test.tests.main.setup
+
+			dir := path.Dir(name)
+			base := path.Base(name)
+
+			path := addrs.Module{}
+			path = append(path, "test")
+			if dir != "." {
+				path = append(path, strings.Split(dir, "/")...)
+			}
+			path = append(path, strings.TrimSuffix(base, ".tftest.hcl"), run.Name)
+
+			req := ModuleRequest{
+				Name:              run.Name,
+				Path:              path,
+				SourceAddr:        run.Module.Source,
+				SourceAddrRange:   run.Module.SourceDeclRange,
+				VersionConstraint: run.Module.Version,
+				Parent:            root,
+				CallRange:         run.Module.DeclRange,
+			}
+
+			cfg, modDiags := loadModule(root, &req, walker)
+			diags = append(diags, modDiags...)
+
+			if cfg != nil {
+				// To get the loader to work, we need to set a bunch of values
+				// (like the name, path, and parent) as if the module was being
+				// loaded as a child of the root config.
+				//
+				// In actuality, when this is executed it will be as if the
+				// module was the root. So, we'll post-process some things to
+				// get it to behave as expected later.
+
+				// First, update the main module for this test run to behave as
+				// if it is the root module.
+				cfg.Parent = nil
+
+				// Then we need to update the paths for this config and all
+				// children, so they think they are all relative to the root
+				// module we just created.
+				rebaseChildModule(cfg, cfg)
+
+				// Finally, link the new config back into our test run so
+				// it can be retrieved later.
+				run.ConfigUnderTest = cfg
+			}
+		}
+	}
+
+	return diags
 }
 
 func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config, hcl.Diagnostics) {
@@ -69,52 +171,86 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 			Parent:            parent,
 			CallRange:         call.DeclRange,
 		}
-
-		mod, ver, modDiags := walker.LoadModule(&req)
+		child, modDiags := loadModule(parent.Root, &req, walker)
 		diags = append(diags, modDiags...)
-		if mod == nil {
-			// nil can be returned if the source address was invalid and so
-			// nothing could be loaded whatsoever. LoadModule should've
-			// returned at least one error diagnostic in that case.
+		if child == nil {
+			// This means an error occurred, there should be diagnostics within
+			// modDiags for this.
 			continue
-		}
-
-		child := &Config{
-			Parent:          parent,
-			Root:            parent.Root,
-			Path:            path,
-			Module:          mod,
-			CallRange:       call.DeclRange,
-			SourceAddr:      call.SourceAddr,
-			SourceAddrRange: call.SourceAddrRange,
-			Version:         ver,
-		}
-
-		child.Children, modDiags = buildChildModules(child, walker)
-		diags = append(diags, modDiags...)
-
-		if mod.Backend != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagWarning,
-				Summary:  "Backend configuration ignored",
-				Detail:   "Any selected backend applies to the entire configuration, so Terraform expects provider configurations only in the root module.\n\nThis is a warning rather than an error because it's sometimes convenient to temporarily call a root module as a child module for testing purposes, but this backend configuration block will have no effect.",
-				Subject:  mod.Backend.DeclRange.Ptr(),
-			})
-		}
-
-		if len(mod.Import) > 0 {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid import configuration",
-				Detail:   fmt.Sprintf("An import block was detected in %q. Import blocks are only allowed in the root module.", child.Path),
-				Subject:  mod.Import[0].DeclRange.Ptr(),
-			})
 		}
 
 		ret[call.Name] = child
 	}
 
 	return ret, diags
+}
+
+func loadModule(root *Config, req *ModuleRequest, walker ModuleWalker) (*Config, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	mod, ver, modDiags := walker.LoadModule(req)
+	diags = append(diags, modDiags...)
+	if mod == nil {
+		// nil can be returned if the source address was invalid and so
+		// nothing could be loaded whatsoever. LoadModule should've
+		// returned at least one error diagnostic in that case.
+		return nil, diags
+	}
+
+	cfg := &Config{
+		Parent:          req.Parent,
+		Root:            root,
+		Path:            req.Path,
+		Module:          mod,
+		CallRange:       req.CallRange,
+		SourceAddr:      req.SourceAddr,
+		SourceAddrRange: req.SourceAddrRange,
+		Version:         ver,
+	}
+
+	cfg.Children, modDiags = buildChildModules(cfg, walker)
+	diags = append(diags, modDiags...)
+
+	if mod.Backend != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Backend configuration ignored",
+			Detail:   "Any selected backend applies to the entire configuration, so Terraform expects provider configurations only in the root module.\n\nThis is a warning rather than an error because it's sometimes convenient to temporarily call a root module as a child module for testing purposes, but this backend configuration block will have no effect.",
+			Subject:  mod.Backend.DeclRange.Ptr(),
+		})
+	}
+
+	if len(mod.Import) > 0 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid import configuration",
+			Detail:   fmt.Sprintf("An import block was detected in %q. Import blocks are only allowed in the root module.", cfg.Path),
+			Subject:  mod.Import[0].DeclRange.Ptr(),
+		})
+	}
+
+	return cfg, diags
+}
+
+// rebaseChildModule updates cfg to make it act as if root is the base of the
+// module tree.
+//
+// This is used for modules loaded directly from test files. In order to load
+// them properly, and reuse the code for loading modules from normal
+// configuration files, we pretend they are children of the main configuration
+// object. Later, when it comes time for them to execute they will act as if
+// they are the root module directly.
+//
+// This function updates cfg so that it treats the provided root as the actual
+// root of this module tree. It then recurses into all the child modules and
+// does the same for them.
+func rebaseChildModule(cfg *Config, root *Config) {
+	for _, child := range cfg.Children {
+		rebaseChildModule(child, root)
+	}
+
+	cfg.Path = cfg.Path[len(root.Path):]
+	cfg.Root = root
 }
 
 // A ModuleWalker knows how to find and load a child module given details about
@@ -210,4 +346,22 @@ func init() {
 			},
 		}
 	})
+}
+
+// MockDataLoader provides an interface similar to loading modules, except it loads
+// and returns MockData objects for the testing framework to consume.
+type MockDataLoader interface {
+	// LoadMockData accepts a path to a local directory that should contain a
+	// set of .tfmock.hcl files that contain mock data that can be consumed by
+	// a mock provider within the tewting framework.
+	LoadMockData(provider *Provider) (*MockData, hcl.Diagnostics)
+}
+
+// MockDataLoaderFunc is an implementation of MockDataLoader that wraps a
+// callback function, for more convenient use of that interface.
+type MockDataLoaderFunc func(provider *Provider) (*MockData, hcl.Diagnostics)
+
+// LoadMockData implements MockDataLoader.
+func (f MockDataLoaderFunc) LoadMockData(provider *Provider) (*MockData, hcl.Diagnostics) {
+	return f(provider)
 }

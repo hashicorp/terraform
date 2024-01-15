@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -735,13 +735,65 @@ check "error" {
 				test.providerHook(test.provider)
 			}
 
-			state, diags := ctx.Apply(plan, configs)
+			state, diags := ctx.Apply(plan, configs, nil)
 			if validateCheckDiagnostics(t, "apply", test.applyWarning, test.applyError, diags) {
 				return
 			}
 			validateCheckResults(t, "apply", test.apply, state.CheckResults)
 		})
 	}
+}
+
+func TestContextChecks_DoesNotPanicOnModuleExpansion(t *testing.T) {
+	// This is a bit of a special test, we're adding it to verify that
+	// https://github.com/hashicorp/terraform/issues/34062 is fixed.
+	//
+	// Essentially we make a check block in a child module that depends on a
+	// resource that has no changes. We don't care about the actual behaviour
+	// of the check block. We just don't want the apply operation to crash.
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "panic_at_the_disco" {
+   source = "./panic"
+}
+`,
+		"panic/main.tf": `
+resource "test_object" "object" {
+    test_string = "Hello, world!"
+}
+
+check "check_should_not_panic" {
+    assert {
+         condition     = test_object.object.test_string == "Hello, world!"
+         error_message = "condition violated"
+    }
+}
+`,
+	})
+
+	p := simpleMockProvider()
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.BuildState(func(state *states.SyncState) {
+		state.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("module.panic_at_the_disco.test_object.object"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"test_string":"Hello, world!"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	}), DefaultPlanOpts)
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply(plan, m, nil)
+	assertNoErrors(t, diags)
 }
 
 func validateCheckDiagnostics(t *testing.T, stage string, expectedWarning, expectedError string, actual tfdiags.Diagnostics) bool {

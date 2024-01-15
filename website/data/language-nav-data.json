@@ -11,10 +11,8 @@
     "routes": [
       { "title": "Overview", "path": "files" },
       { "title": "Override Files", "path": "files/override" },
-      {
-        "title": "Dependency Lock File",
-        "path": "files/dependency-lock"
-      }
+      { "title": "Dependency Lock File", "path": "files/dependency-lock" },
+      { "title": "Test Files", "path": "files/tests" }
     ]
   },
   {
@@ -216,6 +214,17 @@
       }
     ]
   },
+  { "title": "Checks", "path": "checks" },
+  {
+      "title": "Import",
+      "routes": [
+       { "title": "Overview", "path": "import" },
+       {
+         "title": "Generating Configuration",
+         "path": "import/generating-configuration"
+       }
+    ]
+  },
   {
     "title": "Expressions",
     "routes": [
@@ -249,7 +258,7 @@
         "path": "expressions/dynamic-blocks"
       },
       {
-        "title": "Custom Condition Checks",
+        "title": "Custom Conditions",
         "path": "expressions/custom-conditions"
       },
       {
@@ -1044,7 +1053,20 @@
     ]
   },
   {
-    "title": "Upgrading to Terraform v1.4",
+    "title": "Tests",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "tests"
+      },
+      {
+        "title": "Mocks",
+        "path": "tests/mocking"
+      }
+    ]
+  },
+  {
+    "title": "Upgrading to Terraform v1.6",
     "path": "upgrade-guides"
   },
   {

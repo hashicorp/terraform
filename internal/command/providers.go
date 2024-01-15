@@ -1,11 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/xlab/treeprint"
 
@@ -29,8 +30,11 @@ func (c *ProvidersCommand) Synopsis() string {
 }
 
 func (c *ProvidersCommand) Run(args []string) int {
+	var testsDirectory string
+
 	args = c.Meta.process(args)
 	cmdFlags := c.Meta.defaultFlagSet("providers")
+	cmdFlags.StringVar(&testsDirectory, "test-directory", "tests", "test-directory")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
@@ -69,7 +73,7 @@ func (c *ProvidersCommand) Run(args []string) int {
 		return 1
 	}
 
-	config, configDiags := c.loadConfig(configPath)
+	config, configDiags := c.loadConfigWithTests(configPath, testsDirectory)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -146,6 +150,24 @@ func (c *ProvidersCommand) populateTreeNode(tree treeprint.Tree, node *configs.M
 		}
 		tree.AddNode(fmt.Sprintf("provider[%s]%s", fqn.String(), versionsStr))
 	}
+	for name, testNode := range node.Tests {
+		name = strings.TrimSuffix(name, ".tftest.hcl")
+		name = strings.ReplaceAll(name, "/", ".")
+		branch := tree.AddBranch(fmt.Sprintf("test.%s", name))
+
+		for fqn, dep := range testNode.Requirements {
+			versionsStr := getproviders.VersionConstraintsString(dep)
+			if versionsStr != "" {
+				versionsStr = " " + versionsStr
+			}
+			branch.AddNode(fmt.Sprintf("provider[%s]%s", fqn.String(), versionsStr))
+		}
+
+		for _, run := range testNode.Runs {
+			branch := branch.AddBranch(fmt.Sprintf("run.%s", run.Name))
+			c.populateTreeNode(branch, run)
+		}
+	}
 	for name, childNode := range node.Children {
 		branch := tree.AddBranch(fmt.Sprintf("module.%s", name))
 		c.populateTreeNode(branch, childNode)
@@ -153,7 +175,7 @@ func (c *ProvidersCommand) populateTreeNode(tree treeprint.Tree, node *configs.M
 }
 
 const providersCommandHelp = `
-Usage: terraform [global options] providers [DIR]
+Usage: terraform [global options] providers [options] [DIR]
 
   Prints out a tree of modules in the referenced configuration annotated with
   their provider requirements.
@@ -161,4 +183,8 @@ Usage: terraform [global options] providers [DIR]
   This provides an overview of all of the provider requirements across all
   referenced modules, as an aid to understanding why particular provider
   plugins are needed and why particular versions are selected.
+
+Options:
+
+  -test-directory=path	Set the Terraform test directory, defaults to "tests".
 `

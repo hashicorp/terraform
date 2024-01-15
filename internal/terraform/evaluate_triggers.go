@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -60,7 +60,7 @@ func triggersExprToTraversal(expr hcl.Expression, keyData instances.RepetitionDa
 
 		// The index key is the only place where we could have variables that
 		// reference count and each, so we need to parse those independently.
-		idx, hclDiags := parseIndexKeyExpr(e.Key, keyData)
+		idx, hclDiags := parseReplaceTriggeredByKeyExpr(e.Key, keyData)
 		diags = diags.Append(hclDiags)
 
 		trav = append(trav, idx)
@@ -80,9 +80,9 @@ func triggersExprToTraversal(expr hcl.Expression, keyData instances.RepetitionDa
 	return trav, diags
 }
 
-// parseIndexKeyExpr takes an hcl.Expression and parses it as an index key, while
+// parseReplaceTriggeredByKeyExpr takes an hcl.Expression and parses it as an index key, while
 // evaluating any references to count.index or each.key.
-func parseIndexKeyExpr(expr hcl.Expression, keyData instances.RepetitionData) (hcl.TraverseIndex, hcl.Diagnostics) {
+func parseReplaceTriggeredByKeyExpr(expr hcl.Expression, keyData instances.RepetitionData) (hcl.TraverseIndex, hcl.Diagnostics) {
 	idx := hcl.TraverseIndex{
 		SrcRange: expr.Range(),
 	}

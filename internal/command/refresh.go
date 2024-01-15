@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -104,7 +104,7 @@ func (c *RefreshCommand) Run(rawArgs []string) int {
 	}
 
 	if op.State != nil {
-		view.Outputs(op.State.RootModule().OutputValues)
+		view.Outputs(op.State.RootOutputValues)
 	}
 
 	return op.Result.ExitStatus()

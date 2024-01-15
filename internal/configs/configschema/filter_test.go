@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configschema
 
 import (
@@ -171,6 +174,12 @@ func TestFilter(t *testing.T) {
 							},
 							Nesting: NestingList,
 						},
+					},
+					"missing_attributes": {
+						NestedType: &Object{
+							Nesting: NestingList,
+						},
+						Computed: true,
 					},
 				},
 

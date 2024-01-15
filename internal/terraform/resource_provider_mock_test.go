@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -49,30 +49,6 @@ func mockProviderWithResourceTypeSchema(name string, schema *configschema.Block)
 	}
 }
 
-// getProviderSchemaResponseFromProviderSchema is a test helper to convert a
-// ProviderSchema to a GetProviderSchemaResponse for use when building a mock provider.
-func getProviderSchemaResponseFromProviderSchema(providerSchema *ProviderSchema) *providers.GetProviderSchemaResponse {
-	resp := &providers.GetProviderSchemaResponse{
-		Provider:      providers.Schema{Block: providerSchema.Provider},
-		ProviderMeta:  providers.Schema{Block: providerSchema.ProviderMeta},
-		ResourceTypes: map[string]providers.Schema{},
-		DataSources:   map[string]providers.Schema{},
-	}
-
-	for name, schema := range providerSchema.ResourceTypes {
-		resp.ResourceTypes[name] = providers.Schema{
-			Block:   schema,
-			Version: int64(providerSchema.ResourceTypeSchemaVersions[name]),
-		}
-	}
-
-	for name, schema := range providerSchema.DataSources {
-		resp.DataSources[name] = providers.Schema{Block: schema}
-	}
-
-	return resp
-}
-
 // simpleMockProvider returns a MockProvider that is pre-configured
 // with schema for its own config, for a resource type called "test_object" and
 // for a data source also called "test_object".
@@ -102,4 +78,63 @@ func simpleMockProvider() *MockProvider {
 			},
 		},
 	}
+}
+
+// ProviderSchema is a helper to convert from the internal GetProviderSchemaResponse to
+// a ProviderSchema.
+func (p *MockProvider) ProviderSchema() *ProviderSchema {
+	resp := p.getProviderSchema()
+
+	schema := &ProviderSchema{
+		Provider:                   resp.Provider.Block,
+		ProviderMeta:               resp.ProviderMeta.Block,
+		ResourceTypes:              map[string]*configschema.Block{},
+		DataSources:                map[string]*configschema.Block{},
+		ResourceTypeSchemaVersions: map[string]uint64{},
+	}
+
+	for resType, s := range resp.ResourceTypes {
+		schema.ResourceTypes[resType] = s.Block
+		schema.ResourceTypeSchemaVersions[resType] = uint64(s.Version)
+	}
+
+	for dataSource, s := range resp.DataSources {
+		schema.DataSources[dataSource] = s.Block
+	}
+
+	return schema
+}
+
+// the type was refactored out with all the functionality handled within the
+// provider package, but we keep this here for a shim in existing tests.
+type ProviderSchema struct {
+	Provider                   *configschema.Block
+	ProviderMeta               *configschema.Block
+	ResourceTypes              map[string]*configschema.Block
+	ResourceTypeSchemaVersions map[string]uint64
+	DataSources                map[string]*configschema.Block
+}
+
+// getProviderSchemaResponseFromProviderSchema is a test helper to convert a
+// ProviderSchema to a GetProviderSchemaResponse for use when building a mock provider.
+func getProviderSchemaResponseFromProviderSchema(providerSchema *ProviderSchema) *providers.GetProviderSchemaResponse {
+	resp := &providers.GetProviderSchemaResponse{
+		Provider:      providers.Schema{Block: providerSchema.Provider},
+		ProviderMeta:  providers.Schema{Block: providerSchema.ProviderMeta},
+		ResourceTypes: map[string]providers.Schema{},
+		DataSources:   map[string]providers.Schema{},
+	}
+
+	for name, schema := range providerSchema.ResourceTypes {
+		resp.ResourceTypes[name] = providers.Schema{
+			Block:   schema,
+			Version: int64(providerSchema.ResourceTypeSchemaVersions[name]),
+		}
+	}
+
+	for name, schema := range providerSchema.DataSources {
+		resp.DataSources[name] = providers.Schema{Block: schema}
+	}
+
+	return resp
 }

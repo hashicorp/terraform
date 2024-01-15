@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/providers"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
@@ -82,13 +83,15 @@ func TestValidateSelfRef(t *testing.T) {
 				},
 			})
 
-			ps := &ProviderSchema{
-				ResourceTypes: map[string]*configschema.Block{
-					"aws_instance": &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"foo": {
-								Type:     cty.String,
-								Required: true,
+			ps := providers.ProviderSchema{
+				ResourceTypes: map[string]providers.Schema{
+					"aws_instance": {
+						Block: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"foo": {
+									Type:     cty.String,
+									Required: true,
+								},
 							},
 						},
 					},

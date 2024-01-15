@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configschema
 
@@ -67,8 +67,10 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 			val = in.GetAttr(name)
 		case attrS.Computed || attrS.Optional:
 			val = cty.NullVal(attrType)
-		default:
+		case attrS.Required:
 			return cty.UnknownVal(impliedType), path.NewErrorf("attribute %q is required", name)
+		default:
+			return cty.UnknownVal(impliedType), path.NewErrorf("attribute %q has none of required, optional, or computed set", name)
 		}
 
 		val, err := convert.Convert(val, attrConvType)

@@ -1,11 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package addrs
 
 // Targetable is an interface implemented by all address types that can be
 // used as "targets" for selecting sub-graphs of a graph.
 type Targetable interface {
+	UniqueKeyer
+
 	targetableSigil()
 
 	// TargetContains returns true if the receiver is considered to contain

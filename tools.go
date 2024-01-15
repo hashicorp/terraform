@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 //go:build tools
 // +build tools
@@ -11,6 +11,7 @@ package tools
 // Go toolchain to see that we need to include them in go.mod and go.sum.
 
 import (
+	_ "github.com/hashicorp/copywrite"
 	_ "github.com/nishanths/exhaustive/cmd/exhaustive"
 	_ "golang.org/x/tools/cmd/stringer"
 	_ "honnef.co/go/tools/cmd/staticcheck"

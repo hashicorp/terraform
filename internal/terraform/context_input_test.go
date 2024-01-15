@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -76,7 +76,7 @@ func TestContext2Input_provider(t *testing.T) {
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
-	if _, diags := ctx.Apply(plan, m); diags.HasErrors() {
+	if _, diags := ctx.Apply(plan, m, nil); diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
@@ -159,7 +159,7 @@ func TestContext2Input_providerMulti(t *testing.T) {
 		return p, nil
 	}
 
-	if _, diags := ctx.Apply(plan, m); diags.HasErrors() {
+	if _, diags := ctx.Apply(plan, m, nil); diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
@@ -235,7 +235,7 @@ func TestContext2Input_providerId(t *testing.T) {
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
-	if _, diags := ctx.Apply(plan, m); diags.HasErrors() {
+	if _, diags := ctx.Apply(plan, m, nil); diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
@@ -309,7 +309,7 @@ func TestContext2Input_providerOnly(t *testing.T) {
 	})
 	assertNoErrors(t, diags)
 
-	state, err := ctx.Apply(plan, m)
+	state, err := ctx.Apply(plan, m, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -360,7 +360,7 @@ func TestContext2Input_providerVars(t *testing.T) {
 	})
 	assertNoErrors(t, diags)
 
-	if _, diags := ctx.Apply(plan, m); diags.HasErrors() {
+	if _, diags := ctx.Apply(plan, m, nil); diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 

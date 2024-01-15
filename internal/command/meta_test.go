@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -14,10 +14,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/mitchellh/cli"
 )
 
 func TestMetaColorize(t *testing.T) {

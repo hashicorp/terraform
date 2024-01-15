@@ -35,6 +35,7 @@ terraform {
     hostname = "app.terraform.io" # Optional; defaults to app.terraform.io
 
     workspaces {
+      project = "networking-development"
       tags = ["networking", "source:cli"]
     }
   }
@@ -75,6 +76,10 @@ The `cloud` block supports the following configuration arguments:
     directory, and cannot manage workspaces from the CLI (e.g. `terraform workspace select` or
     `terraform workspace new`). This option conflicts with `tags`.
 
+  - `project` - (Optional) The name of a Terraform Cloud project. Workspaces that need creating
+    will be created within this project. `terraform workspace list` will be filtered by workspaces
+    in the supplied project.
+
 - `hostname` - (Optional) The hostname of a Terraform Enterprise installation, if using Terraform
   Enterprise. Defaults to Terraform Cloud (app.terraform.io).
 
@@ -98,6 +103,8 @@ Use the following environment variables to configure the `cloud` block:
 
 - `TF_CLOUD_HOSTNAME` - The hostname of a Terraform Enterprise installation. Terraform reads this when `hostname` is omitted from the `cloud` block. If both are specified, the configuration takes precedence.
 
+- `TF_CLOUD_PROJECT` - The name of a Terraform Cloud project. Terraform reads this when `workspaces.project` is omitted from the `cloud` block. If both are specified, the cloud block configuration takes precedence.
+
 - `TF_WORKSPACE` - The name of a single Terraform Cloud workspace. Terraform reads this when `workspaces` is omitted from the `cloud` block. Terraform Cloud will not create a new workspace from this variable; the workspace must exist in the specified organization. You can set `TF_WORKSPACE` if the `cloud` block uses tags. However, the value of `TF_WORKSPACE` must be included in the set of tags. This variable also selects the workspace in your local environment. Refer to [TF_WORKSPACE](/terraform/cli/config/environment-variables#tf_workspace) for details.
 
 ## Excluding Files from Upload with .terraformignore
@@ -116,6 +123,6 @@ The rules in `.terraformignore` file resemble the rules allowed in a
 
 - Comments (starting with `#`) or blank lines are ignored.
 - End a pattern with a forward slash `/` to specify a directory.
-- Negate a pattern by starting it with an exclamation point `!`.
+- Negate a pattern by starting it with an exclamation point `!`. When ignoring large directories, negation patterns can impact performance. Place negation rules as early as possible within `.terraformignore` or avoid using them if possible.
 
 -> **Note:** Unlike `.gitignore`, only the `.terraformignore` at the root of the configuration directory is considered.
