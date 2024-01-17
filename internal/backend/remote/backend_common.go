@@ -419,16 +419,16 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 		case tfe.PolicyHardFailed:
 			return fmt.Errorf(msgPrefix + " hard failed.")
 		case tfe.PolicySoftFailed:
-			runUrl := fmt.Sprintf(runHeader, b.hostname, b.organization, op.Workspace, r.ID)
+			runURL := fmt.Sprintf(runHeaderErr, b.hostname, b.organization, op.Workspace, r.ID)
 
 			if op.Type == backend.OperationTypePlan || op.UIOut == nil || op.UIIn == nil ||
 				!pc.Actions.IsOverridable || !pc.Permissions.CanOverride {
-				return fmt.Errorf(msgPrefix + " soft failed.\n" + runUrl)
+				return fmt.Errorf(msgPrefix + " soft failed.\n" + runURL)
 			}
 
 			if op.AutoApprove {
 				if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
-					return generalError(fmt.Sprintf("Failed to override policy check.\n%s", runUrl), err)
+					return generalError(fmt.Sprintf("Failed to override policy check.\n%s", runURL), err)
 				}
 			} else {
 				opts := &terraform.InputOpts{
@@ -439,16 +439,17 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 				err = b.confirm(stopCtx, op, opts, r, "override")
 				if err != nil && err != errRunOverridden {
 					return fmt.Errorf(
-						fmt.Sprintf("Failed to override: %s\n%s\n", err.Error(), runUrl),
+						fmt.Sprintf("Failed to override: %s\n%s\n", err.Error(), runURL),
 					)
 				}
 
 				if err != errRunOverridden {
 					if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
-						return generalError(fmt.Sprintf("Failed to override policy check.\n%s", runUrl), err)
+						return generalError(fmt.Sprintf("Failed to override policy check.\n%s", runURL), err)
 					}
 				} else {
-					b.CLI.Output(fmt.Sprintf("The run needs to be manually overridden or discarded.\n%s\n", runUrl))
+					runURL := fmt.Sprintf(runHeader, b.hostname, b.organization, op.Workspace, r.ID)
+					b.CLI.Output(fmt.Sprintf("The run needs to be manually overridden or discarded.\n%s\n", runURL))
 				}
 			}
 

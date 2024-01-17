@@ -638,8 +638,13 @@ Preparing the remote plan...
 `
 
 const runHeader = `
-[reset][yellow]To view this run in a browser, visit:
-https://%s/app/%s/%s/runs/%s[reset]
+[reset][yellow]To view this run in a browser, visit:[reset]
+[reset][yellow]https://%s/app/%s/%s/runs/%s[reset]
+`
+
+const runHeaderErr = `
+To view this run in the browser, visit:
+https://%s/app/%s/%s/runs/%s
 `
 
 // The newline in this error is to make it look good in the CLI!

@@ -174,22 +174,22 @@ func (b *Cloud) processStageOverrides(context *IntegrationContext, output Integr
 		Query:       "\nDo you want to override the failed policy check?",
 		Description: "Only 'override' will be accepted to override.",
 	}
-	runUrl := fmt.Sprintf(taskStageHeader, b.Hostname, b.Organization, context.Op.Workspace, context.Run.ID)
+	runURL := fmt.Sprintf(taskStageHeader, b.Hostname, b.Organization, context.Op.Workspace, context.Run.ID)
 	err := b.confirm(context.StopContext, context.Op, opts, context.Run, "override")
 	if err != nil && err != errRunOverridden {
 		return false, fmt.Errorf(
-			fmt.Sprintf("Failed to override: %s\n%s\n", err.Error(), runUrl),
+			fmt.Sprintf("Failed to override: %s\n%s\n", err.Error(), runURL),
 		)
 	}
 
 	if err != errRunOverridden {
 		if _, err = b.client.TaskStages.Override(context.StopContext, taskStageID, tfe.TaskStageOverrideOptions{}); err != nil {
-			return false, generalError(fmt.Sprintf("Failed to override policy check.\n%s", runUrl), err)
+			return false, generalError(fmt.Sprintf("Failed to override policy check.\n%s", runURL), err)
 		} else {
 			return true, nil
 		}
 	} else {
-		output.Output(fmt.Sprintf("The run needs to be manually overridden or discarded.\n%s\n", runUrl))
+		output.Output(fmt.Sprintf("The run needs to be manually overridden or discarded.\n%s\n", runURL))
 	}
 	return false, nil
 }
