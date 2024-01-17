@@ -23,27 +23,10 @@ type Providers struct {
 }
 
 type Provider struct {
-	Provider          *Schema            `json:"provider,omitempty"`
-	ResourceSchemas   map[string]*Schema `json:"resource_schemas,omitempty"`
-	DataSourceSchemas map[string]*Schema `json:"data_source_schemas,omitempty"`
-
-	// Functions are serialized by the jsonfunction package
-	Functions               json.RawMessage `json:"functions,omitempty"`
-	providerSchemaFunctions map[string]providers.FunctionDecl
-}
-
-func (p Provider) MarshalJSON() ([]byte, error) {
-	type provider Provider
-
-	tmp := provider(p)
-
-	var err error
-	tmp.Functions, err = jsonfunction.MarshalProviderFunctions(p.providerSchemaFunctions)
-	if err != nil {
-		return nil, err
-	}
-
-	return json.Marshal(tmp)
+	Provider          *Schema                                    `json:"provider,omitempty"`
+	ResourceSchemas   map[string]*Schema                         `json:"resource_schemas,omitempty"`
+	DataSourceSchemas map[string]*Schema                         `json:"data_source_schemas,omitempty"`
+	Functions         map[string]*jsonfunction.FunctionSignature `json:"functions,omitempty"`
 }
 
 func newProviders() *Providers {
@@ -75,9 +58,9 @@ func Marshal(s *terraform.Schemas) ([]byte, error) {
 
 func marshalProvider(tps providers.ProviderSchema) *Provider {
 	return &Provider{
-		Provider:                marshalSchema(tps.Provider),
-		ResourceSchemas:         marshalSchemas(tps.ResourceTypes),
-		DataSourceSchemas:       marshalSchemas(tps.DataSources),
-		providerSchemaFunctions: tps.Functions,
+		Provider:          marshalSchema(tps.Provider),
+		ResourceSchemas:   marshalSchemas(tps.ResourceTypes),
+		DataSourceSchemas: marshalSchemas(tps.DataSources),
+		Functions:         jsonfunction.MarshalProviderFunctions(tps.Functions),
 	}
 }

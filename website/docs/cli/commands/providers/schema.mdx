@@ -47,7 +47,7 @@ The JSON output format consists of the following objects and sub-objects:
 - [Providers Schema Representation](#providers-schema-representation) - the top-level object returned by `terraform providers schema -json`
 - [Schema Representation](#schema-representation) - a sub-object of providers, resources, and data sources that describes their schema, along with function signatures
 - [Block Representation](#block-representation) - a sub-object of schemas that describes attributes and nested blocks
-- [Function Signature Representation](#function-signature-representation) - a sub-object of functions that describes parameters, the return, and additional documentation
+- [Function Representation](#function-representation) - a sub-object of functions that describes parameters, the return, and additional documentation
 - [Parameter Representation](#parameter-representation) - a sub-object of function signatures that describes their type and additional documentation
 
 ## Providers Schema Representation
@@ -75,18 +75,9 @@ The JSON output format consists of the following objects and sub-objects:
         "example_datasource_name": <schema-representation>,
       },
 
-      // "functions" describes the provider functions
+      // "functions" map the provider function name to the function definition
       "functions": {
-        // "format_version" describes the format version for the function
-        // signatures.
-        "format_version": "1.0",
-
-        // "function_signatures" describes the signatures for all
-        // available functions.
-        "function_signatures": {
-          // keys in this map are the function names, such as "abs"
-          "example_function": <function-signature-representation>
-        }
+        "example_function": <function-representation>
       }
     },
     "example_provider_two": { … }
@@ -166,9 +157,9 @@ A block representation contains "attributes" and "block_types" (which represent 
 }
 ```
 
-## Function Signature Representation
+## Function Representation
 
-A function signature describes the definition of a function.
+A function representation describes the definition of a function.
 
 ```javascript
 {

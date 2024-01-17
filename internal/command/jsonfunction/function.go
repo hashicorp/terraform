@@ -16,6 +16,10 @@ import (
 // FormatVersion represents the version of the json format and will be
 // incremented for any change to this format that requires changes to a
 // consuming parser.
+//
+// Any changes to this version should also consider compatibility in the
+// jsonprovider package versioning as well, as that functionality is also
+// reliant on this package.
 const FormatVersion = "1.0"
 
 // functions is the top-level object returned when exporting function signatures
@@ -59,22 +63,18 @@ func newFunctions() *functions {
 	}
 }
 
-func MarshalProviderFunctions(f map[string]providers.FunctionDecl) ([]byte, error) {
-	if len(f) == 0 {
-		return nil, nil
+func MarshalProviderFunctions(f map[string]providers.FunctionDecl) map[string]*FunctionSignature {
+	if f == nil {
+		return nil
 	}
 
-	signatures := newFunctions()
+	result := make(map[string]*FunctionSignature, len(f))
 
 	for name, v := range f {
-		signatures.Signatures[name] = marshalProviderFunction(v)
+		result[name] = marshalProviderFunction(v)
 	}
 
-	ret, err := json.Marshal(signatures)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to serialize provider functions: %w", err)
-	}
-	return ret, nil
+	return result
 }
 
 func Marshal(f map[string]function.Function) ([]byte, tfdiags.Diagnostics) {

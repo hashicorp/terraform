@@ -4,6 +4,7 @@
 package jsonfunction
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -106,7 +107,7 @@ func TestMarshal(t *testing.T) {
 				}),
 			},
 			ProviderFunctions: map[string]providers.FunctionDecl{
-				"fun": providers.FunctionDecl{
+				"fun": {
 					VariadicParameter: &providers.FunctionParam{
 						Name:               "default",
 						Description:        "default description",
@@ -180,14 +181,34 @@ func TestMarshal(t *testing.T) {
 			}
 
 			if test.ProviderFunctions != nil {
-				got, err := MarshalProviderFunctions(test.ProviderFunctions)
+				// Provider functions should marshal identically to cty
+				// functions, without the wrapping object.
+				got := MarshalProviderFunctions(test.ProviderFunctions)
+
+				gotBytes, err := json.Marshal(got)
+
 				if err != nil {
 					// these should never error
-					t.Fatal("MarshalProviderFunctions failed:", err)
+					t.Fatal("Marshal of ProviderFunctions failed:", err)
 				}
 
-				// Provider functions should marshal identically to cty functions
-				if diff := cmp.Diff(test.Want, string(got)); diff != "" {
+				var want functions
+
+				err = json.Unmarshal([]byte(test.Want), &want)
+
+				if err != nil {
+					// these should never error
+					t.Fatal("Unmarshal of Want failed:", err)
+				}
+
+				wantBytes, err := json.Marshal(want.Signatures)
+
+				if err != nil {
+					// these should never error
+					t.Fatal("Marshal of Want.Signatures failed:", err)
+				}
+
+				if diff := cmp.Diff(string(wantBytes), string(gotBytes)); diff != "" {
 					t.Fatalf("mismatch of function signature: %s", diff)
 				}
 			}
