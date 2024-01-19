@@ -59,6 +59,23 @@ func (c AbsModuleCall) absMoveableSigil() {
 	// AbsModuleCall is "moveable".
 }
 
+// StaticModule returns the static module path for the receiver.
+//
+// In other words, it effectively discards all of the dynamic instance keys
+// along the path to this call, while retaining the static module names.
+//
+// Given a representation of module.a["foo"].module.b, this would return
+// the [Module]-based representation of module.a.module.b, discarding the
+// first step's dynamic instance key "foo".
+func (c AbsModuleCall) StaticModule() Module {
+	ret := make(Module, len(c.Module), len(c.Module)+1)
+	for i, step := range c.Module {
+		ret[i] = step.Name
+	}
+	ret = append(ret, c.Call.Name)
+	return ret
+}
+
 func (c AbsModuleCall) String() string {
 	if len(c.Module) == 0 {
 		return "module." + c.Call.Name
