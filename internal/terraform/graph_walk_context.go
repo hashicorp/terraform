@@ -91,6 +91,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		State:         w.State,
 		Changes:       w.Changes,
 		Plugins:       w.Context.plugins,
+		Instances:     w.InstanceExpander,
 		NamedValues:   w.NamedValues,
 		PlanTimestamp: w.PlanTimestamp,
 	}
