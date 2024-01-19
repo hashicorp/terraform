@@ -135,6 +135,45 @@ func (e *Expander) ExpandModule(addr addrs.Module) []addrs.ModuleInstance {
 	return e.expandModule(addr, false)
 }
 
+// ExpandAbsModuleCall is similar to [Expander.ExpandModule] except that it
+// filters the result to include only the instances that belong to the
+// given module call instance, and therefore returns just instance keys
+// since the rest of the module address is implied by the given argument.
+//
+// For example, passing an address representing module.a["foo"].module.b
+// would include only instances under module.a["foo"], and disregard instances
+// under other dynamic paths like module.a["bar"].
+//
+// If the requested module call has an unknown expansion (e.g. because it
+// had an unknown value for count or for_each) then the second result is
+// false and the other results are meaningless. If the second return value is
+// true, then the set of module instances is complete, and all of the instances
+// have instance keys matching the returned keytype.
+//
+// The instances are returned in the typical sort order for the returned
+// key type: integer keys are sorted numerically, and string keys are sorted
+// lexically.
+func (e *Expander) ExpandAbsModuleCall(addr addrs.AbsModuleCall) (keyType addrs.InstanceKeyType, insts []addrs.InstanceKey, known bool) {
+	expParent, ok := e.findModule(addr.Module)
+	if !ok {
+		// This module call lives under an unknown-expansion prefix, so we
+		// cannot answer this question.
+		return addrs.NoKeyType, nil, false
+	}
+
+	expCall, ok := expParent.moduleCalls[addr.Call]
+	if !ok {
+		// This indicates a bug, since we should've calculated the expansions
+		// (even if unknown) before any caller asks for the results.
+		panic(fmt.Sprintf("no expansion has been registered for %s", addr.String()))
+	}
+	keyType, instKeys, deferred := expCall.instanceKeys()
+	if deferred {
+		return addrs.NoKeyType, nil, false
+	}
+	return keyType, instKeys, true
+}
+
 // expandModule allows skipping unexpanded module addresses by setting skipUnregistered to true.
 // This is used by instances.Set, which is only concerned with the expanded
 // instances, and should not panic when looking up unknown addresses.
