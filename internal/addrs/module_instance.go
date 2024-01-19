@@ -391,6 +391,17 @@ func (m ModuleInstance) Call() (ModuleInstance, ModuleCall) {
 	}
 }
 
+// AbsCall returns the same information as [ModuleInstance.Call], but returns
+// it as a single [AbsModuleCall] value rather than the containing module
+// and the local call address separately.
+func (m ModuleInstance) AbsCall() AbsModuleCall {
+	container, call := m.Call()
+	return AbsModuleCall{
+		Module: container,
+		Call:   call,
+	}
+}
+
 // CallInstance returns the module call instance address that corresponds to
 // the given module instance, along with the address of the module instance
 // that contains it.
