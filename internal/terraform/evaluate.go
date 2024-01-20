@@ -811,6 +811,37 @@ func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAdd
 
 func (d *evaluationStateData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	if d.Evaluator.Meta == nil || d.Evaluator.Meta.Env == "" {
+		// The absense of an "env" (really: workspace) name suggests that
+		// we're running in a non-workspace context, such as in a component
+		// of a stack. terraform.workspace -- and the terraform symbol in
+		// general -- is a legacy thing from workspaces mode that isn't
+		// carried forward to stacks, because stack configurations can instead
+		// vary their behavior based on input variables provided in the
+		// deployment configuration.
+		switch addr.Name {
+		case "workspace":
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Invalid reference`,
+				Detail:   `The terraform.workspace attribute is only available for modules used in Terraform workspaces. Use input variables instead to create variations between different instances of this module.`,
+				Subject:  rng.ToHCL().Ptr(),
+			})
+		default:
+			// A more generic error for any other attribute name, since no
+			// others are valid anyway but it would be confusing to mention
+			// terraform.workspace here.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Invalid reference`,
+				Detail:   `The "terraform" object is only available for modules used in Terraform workspaces.`,
+				Subject:  rng.ToHCL().Ptr(),
+			})
+		}
+		return cty.DynamicVal, diags
+	}
+
 	switch addr.Name {
 
 	case "workspace":
