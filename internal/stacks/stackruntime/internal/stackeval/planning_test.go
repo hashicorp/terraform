@@ -6,8 +6,10 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -23,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestPlanning_DestroyMode(t *testing.T) {
@@ -574,6 +577,47 @@ func TestPlanning_RequiredComponents(t *testing.T) {
 
 		if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
 			t.Errorf("wrong result\n%s", diff)
+		}
+	})
+}
+
+func TestPlanning_NoWorkspaceNameRef(t *testing.T) {
+	// This test verifies that a reference to terraform.workspace is treated
+	// as invalid for modules used in a stacks context, because there's
+	// no comparable single string to use in stacks context and we expect
+	// modules used in stack components to vary declarations based only
+	// on their input variables.
+	//
+	// (If something needs to vary between stack deployments then that's
+	// a good candidate for an input variable on the root stack configuration,
+	// set differently for each deployment, and then passed in to the
+	// components that need it.)
+
+	cfg := testStackConfig(t, "planning", "no_workspace_name_ref")
+	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
+		PlanningMode: plans.NormalMode,
+	})
+
+	inPromisingTask(t, func(ctx context.Context, t *testing.T) {
+		_, diags := testPlan(t, main)
+		if !diags.HasErrors() {
+			t.Fatal("success; want error about invalid terraform.workspace reference")
+		}
+
+		// At least one of the diagnostics must mention the terraform.workspace
+		// attribute in its detail.
+		seenRelevantDiag := false
+		for _, diag := range diags {
+			if diag.Severity() != tfdiags.Error {
+				continue
+			}
+			if strings.Contains(diag.Description().Detail, "terraform.workspace") {
+				seenRelevantDiag = true
+				break
+			}
+		}
+		if !seenRelevantDiag {
+			t.Fatalf("none of the error diagnostics mentions terraform.workspace\n%s", spew.Sdump(diags.ForRPC()))
 		}
 	})
 }
