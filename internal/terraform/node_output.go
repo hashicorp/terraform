@@ -79,50 +79,63 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 	}
 
 	var g Graph
-	for _, module := range expander.ExpandModule(n.Module) {
-		absAddr := n.Addr.Absolute(module)
-		if checkableAddrs != nil {
-			checkableAddrs.Add(absAddr)
-		}
-
-		// Find any recorded change for this output
-		var change *plans.OutputChangeSrc
-		var outputChanges []*plans.OutputChangeSrc
-		if module.IsRoot() {
-			outputChanges = changes.GetRootOutputChanges()
-		} else {
-			parent, call := module.Call()
-			outputChanges = changes.GetOutputChanges(parent, call)
-		}
-		for _, c := range outputChanges {
-			if c.Addr.String() == absAddr.String() {
-				change = c
-				break
-			}
-		}
-
-		var node dag.Vertex
-		switch {
-		case module.IsRoot() && n.Destroying:
-			node = &NodeDestroyableOutput{
-				Addr:     absAddr,
-				Planning: n.Planning,
+	forEachModuleInstance(
+		expander, n.Module,
+		func(module addrs.ModuleInstance) {
+			absAddr := n.Addr.Absolute(module)
+			if checkableAddrs != nil {
+				checkableAddrs.Add(absAddr)
 			}
 
-		default:
-			node = &NodeApplyableOutput{
-				Addr:         absAddr,
-				Config:       n.Config,
-				Change:       change,
-				RefreshOnly:  n.RefreshOnly,
-				DestroyApply: n.Destroying,
-				Planning:     n.Planning,
+			// Find any recorded change for this output
+			var change *plans.OutputChangeSrc
+			var outputChanges []*plans.OutputChangeSrc
+			if module.IsRoot() {
+				outputChanges = changes.GetRootOutputChanges()
+			} else {
+				parent, call := module.Call()
+				outputChanges = changes.GetOutputChanges(parent, call)
 			}
-		}
+			for _, c := range outputChanges {
+				if c.Addr.String() == absAddr.String() {
+					change = c
+					break
+				}
+			}
 
-		log.Printf("[TRACE] Expanding output: adding %s as %T", absAddr.String(), node)
-		g.Add(node)
-	}
+			var node dag.Vertex
+			switch {
+			case module.IsRoot() && n.Destroying:
+				node = &NodeDestroyableOutput{
+					Addr:     absAddr,
+					Planning: n.Planning,
+				}
+
+			default:
+				node = &NodeApplyableOutput{
+					Addr:         absAddr,
+					Config:       n.Config,
+					Change:       change,
+					RefreshOnly:  n.RefreshOnly,
+					DestroyApply: n.Destroying,
+					Planning:     n.Planning,
+				}
+			}
+
+			log.Printf("[TRACE] Expanding output: adding %s as %T", absAddr.String(), node)
+			g.Add(node)
+		},
+		func(pem addrs.PartialExpandedModule) {
+			absAddr := addrs.ObjectInPartialExpandedModule(pem, n.Addr)
+			node := &nodeOutputInPartialModule{
+				Addr:        absAddr,
+				Config:      n.Config,
+				RefreshOnly: n.RefreshOnly,
+			}
+			log.Printf("[TRACE] Expanding output: adding placeholder for all %s as %T", absAddr.String(), node)
+			g.Add(node)
+		},
+	)
 	addRootNodeToGraph(&g)
 
 	if checkableAddrs != nil {
@@ -433,6 +446,25 @@ func (n *NodeApplyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.DotNo
 		},
 	}
 }
+
+// nodeOutputInPartialModule represents an infinite set of possible output value
+// instances beneath a partially-expanded module instance prefix.
+//
+// Its job is to find a suitable placeholder value that approximates the
+// values of all of those possible instances. Ideally that's a concrete
+// known value if all instances would have the same value, an unknown value
+// of a specific type if the definition produces a known type, or a
+// totally-unknown value of unknown type in the worst case.
+type nodeOutputInPartialModule struct {
+	Addr   addrs.InPartialExpandedModule[addrs.OutputValue]
+	Config *configs.Output
+
+	// Refresh-only mode means that any failing output preconditions are
+	// reported as warnings rather than errors
+	RefreshOnly bool
+}
+
+// TODO: Implement nodeOutputInPartialModule.Execute
 
 // NodeDestroyableOutput represents an output that is "destroyable":
 // its application will remove the output from the state.

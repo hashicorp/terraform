@@ -69,14 +69,25 @@ func (n *nodeExpandLocal) References() []*addrs.Reference {
 func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 	expander := ctx.InstanceExpander()
-	for _, module := range expander.ExpandModule(n.Module) {
-		o := &NodeLocal{
-			Addr:   n.Addr.Absolute(module),
-			Config: n.Config,
-		}
-		log.Printf("[TRACE] Expanding local: adding %s as %T", o.Addr.String(), o)
-		g.Add(o)
-	}
+	forEachModuleInstance(
+		expander, n.Module,
+		func(module addrs.ModuleInstance) {
+			o := &NodeLocal{
+				Addr:   n.Addr.Absolute(module),
+				Config: n.Config,
+			}
+			log.Printf("[TRACE] Expanding local: adding %s as %T", o.Addr.String(), o)
+			g.Add(o)
+		},
+		func(pem addrs.PartialExpandedModule) {
+			o := &nodeLocalInPartialModule{
+				Addr:   addrs.ObjectInPartialExpandedModule(pem, n.Addr),
+				Config: n.Config,
+			}
+			log.Printf("[TRACE] Expanding local: adding placeholder for all %s as %T", o.Addr.String(), o)
+			g.Add(o)
+		},
+	)
 	addRootNodeToGraph(&g)
 	return &g, nil
 }
@@ -176,3 +187,18 @@ func (n *NodeLocal) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
 		},
 	}
 }
+
+// nodeLocalInPartialModule represents an infinite set of possible local value
+// instances beneath a partially-expanded module instance prefix.
+//
+// Its job is to find a suitable placeholder value that approximates the
+// values of all of those possible instances. Ideally that's a concrete
+// known value if all instances would have the same value, an unknown value
+// of a specific type if the definition produces a known type, or a
+// totally-unknown value of unknown type in the worst case.
+type nodeLocalInPartialModule struct {
+	Addr   addrs.InPartialExpandedModule[addrs.LocalValue]
+	Config *configs.Local
+}
+
+// TODO: Implement nodeLocalUnexpandedPlaceholder.Execute
