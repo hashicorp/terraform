@@ -65,21 +65,35 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, tfdia
 	}
 
 	expander := ctx.InstanceExpander()
-	for _, module := range expander.ExpandModule(n.Module) {
-		addr := n.Addr.Absolute(module)
-		if checkableAddrs != nil {
-			checkableAddrs.Add(addr)
-		}
+	forEachModuleInstance(
+		expander, n.Module,
+		func(module addrs.ModuleInstance) {
+			addr := n.Addr.Absolute(module)
+			if checkableAddrs != nil {
+				checkableAddrs.Add(addr)
+			}
 
-		o := &nodeModuleVariable{
-			Addr:           addr,
-			Config:         n.Config,
-			Expr:           n.Expr,
-			ModuleInstance: module,
-			DestroyApply:   n.DestroyApply,
-		}
-		g.Add(o)
-	}
+			o := &nodeModuleVariable{
+				Addr:           addr,
+				Config:         n.Config,
+				Expr:           n.Expr,
+				ModuleInstance: module,
+				DestroyApply:   n.DestroyApply,
+			}
+			g.Add(o)
+		},
+		func(pem addrs.PartialExpandedModule) {
+			addr := addrs.ObjectInPartialExpandedModule(pem, n.Addr)
+			o := &nodeModuleVariableInPartialModule{
+				Addr:           addr,
+				Config:         n.Config,
+				Expr:           n.Expr,
+				ModuleInstance: pem,
+				DestroyApply:   n.DestroyApply,
+			}
+			g.Add(o)
+		},
+	)
 	addRootNodeToGraph(&g)
 
 	if checkableAddrs != nil {
@@ -287,3 +301,26 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 
 	return finalVal, diags.ErrWithWarnings()
 }
+
+// nodeModuleVariableInPartialModule represents an infinite set of possible
+// input variable instances beneath a partially-expanded module instance prefix.
+//
+// Its job is to find a suitable placeholder value that approximates the
+// values of all of those possible instances. Ideally that's a concrete
+// known value if all instances would have the same value, an unknown value
+// of a specific type if the definition produces a known type, or a
+// totally-unknown value of unknown type in the worst case.
+type nodeModuleVariableInPartialModule struct {
+	Addr   addrs.InPartialExpandedModule[addrs.InputVariable]
+	Config *configs.Variable // Config is the var in the config
+	Expr   hcl.Expression    // Expr is the value expression given in the call
+	// ModuleInstance in order to create the appropriate context for evaluating
+	// ModuleCallArguments, ex. so count.index and each.key can resolve
+	ModuleInstance addrs.PartialExpandedModule
+
+	// DestroyApply must be set to true when applying a destroy operation and
+	// false otherwise.
+	DestroyApply bool
+}
+
+// TODO: Implement nodeModuleVariableInPartialModule.Execute
