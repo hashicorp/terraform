@@ -208,7 +208,7 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"functions_available": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: "2 passed, 0 failed.",
 			code:        0,
 		},
 		"mocking": {
