@@ -1023,7 +1023,7 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 	values := make(terraform.InputValues)
 
 	// First, let's look at the global variables.
-	for name, value := range runner.globalVariables {
+	for name, variable := range runner.globalVariables {
 		if !relevantVariables[name] {
 			// Then this run block doesn't need this value.
 			continue
@@ -1039,9 +1039,22 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 			parsingMode = cfg.ParsingMode
 		}
 
-		var valueDiags tfdiags.Diagnostics
-		values[name], valueDiags = value.ParseVariableValue(parsingMode)
+		value, valueDiags := variable.ParseVariableValue(parsingMode)
 		diags = diags.Append(valueDiags)
+		if diags.HasErrors() {
+			// We still add a value for this variable even though we couldn't
+			// parse it as we don't want to compound errors later. For example,
+			// the system would report this variable didn't have a value which
+			// would confuse the user because it does have a value, it's just
+			// not a valid value. We have added the diagnostics so the user
+			// will be informed about the error, and the test won't run. We'll
+			// just report only the relevant errors.
+			values[name] = &terraform.InputValue{
+				Value: cty.NilVal,
+			}
+			continue
+		}
+		values[name] = value
 	}
 
 	// Second, we'll check the run level variables.
