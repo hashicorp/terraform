@@ -1,5 +1,9 @@
 ## 1.7.1 (Unreleased)
 
+BUG FIXES:
+
+* `terraform test`: Fix crash when referencing variables or functions within the file level `variables` block. ([#34531](https://github.com/hashicorp/terraform/issues/34531))
+
 ## 1.7.0 (January 17, 2024)
 
 UPGRADE NOTES:
