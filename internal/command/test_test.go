@@ -208,7 +208,7 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"functions_available": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: "2 passed, 0 failed.",
 			code:        0,
 		},
 		"mocking": {
@@ -226,6 +226,11 @@ func TestTest_Runs(t *testing.T) {
 		"empty_module_with_output": {
 			expectedOut: "1 passed, 0 failed.",
 			code:        0,
+		},
+		"global_var_refs": {
+			expectedOut: "2 failed, 1 skipped.",
+			expectedErr: "Variables may not be used here.",
+			code:        1,
 		},
 	}
 	for name, tc := range tcs {
@@ -281,7 +286,7 @@ func TestTest_Runs(t *testing.T) {
 			}
 
 			if !strings.Contains(output.Stdout(), tc.expectedOut) {
-				t.Errorf("output didn't contain expected string:\n\n%s", output.All())
+				t.Errorf("output didn't contain expected string:\n\n%s", output.Stdout())
 			}
 
 			if !strings.Contains(output.Stderr(), tc.expectedErr) {
