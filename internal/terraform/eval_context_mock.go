@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
@@ -118,6 +119,8 @@ type MockEvalContext struct {
 
 	PathCalled bool
 	PathPath   addrs.ModuleInstance
+
+	LanguageExperimentsActive experiments.Set
 
 	NamedValuesCalled bool
 	NamedValuesState  *namedvals.State
@@ -332,6 +335,15 @@ func (c *MockEvalContext) WithPath(path addrs.ModuleInstance) EvalContext {
 func (c *MockEvalContext) Path() addrs.ModuleInstance {
 	c.PathCalled = true
 	return c.PathPath
+}
+
+func (c *MockEvalContext) LanguageExperimentActive(experiment experiments.Experiment) bool {
+	// This particular function uses a live data structure so that tests can
+	// exercise different experiments being enabled; there is little reason
+	// to directly test whether this function was called since we use this
+	// function only temporarily while an experiment is active, and then
+	// remove the calls once the experiment is concluded.
+	return c.LanguageExperimentsActive.Has(experiment)
 }
 
 func (c *MockEvalContext) NamedValues() *namedvals.State {

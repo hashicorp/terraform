@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
@@ -133,6 +134,11 @@ type EvalContext interface {
 	// EvaluationScope returns a scope that can be used to evaluate reference
 	// addresses in this context.
 	EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope
+
+	// LanguageExperimentActive returns true if the given experiment is
+	// active in the module associated with this EvalContext, or false
+	// otherwise.
+	LanguageExperimentActive(experiment experiments.Experiment) bool
 
 	// NamedValues returns the object that tracks the gradual evaluation of
 	// all input variables, local values, and output values during a graph
