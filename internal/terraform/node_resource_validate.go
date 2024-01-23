@@ -306,7 +306,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		}
 
 		// Evaluate the for_each expression here so we can expose the diagnostics
-		forEachDiags := newForEachEvaluator(n.Config.ForEach, ctx).ValidateResourceValue()
+		forEachDiags := newForEachEvaluator(n.Config.ForEach, ctx, false).ValidateResourceValue()
 		diags = diags.Append(forEachDiags)
 	}
 

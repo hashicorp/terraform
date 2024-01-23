@@ -378,7 +378,7 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 			continue
 		}
 
-		forEachData, forEachDiags := newForEachEvaluator(imp.Config.ForEach, ctx).ImportValues()
+		forEachData, forEachDiags := newForEachEvaluator(imp.Config.ForEach, ctx, false).ImportValues()
 		diags = diags.Append(forEachDiags)
 		if forEachDiags.HasErrors() {
 			return imports, diags

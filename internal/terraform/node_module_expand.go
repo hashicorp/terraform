@@ -113,7 +113,7 @@ func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) (diags tfd
 		ctx = ctx.WithPath(module)
 		switch {
 		case n.ModuleCall.Count != nil:
-			count, ctDiags := evaluateCountExpression(n.ModuleCall.Count, ctx)
+			count, ctDiags := evaluateCountExpression(n.ModuleCall.Count, ctx, false)
 			diags = diags.Append(ctDiags)
 			if diags.HasErrors() {
 				return diags
@@ -121,7 +121,7 @@ func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) (diags tfd
 			expander.SetModuleCount(module, call, count)
 
 		case n.ModuleCall.ForEach != nil:
-			forEach, feDiags := evaluateForEachExpression(n.ModuleCall.ForEach, ctx)
+			forEach, _, feDiags := evaluateForEachExpression(n.ModuleCall.ForEach, ctx, false)
 			diags = diags.Append(feDiags)
 			if diags.HasErrors() {
 				return diags
@@ -256,7 +256,7 @@ func (n *nodeValidateModule) Execute(ctx EvalContext, op walkOperation) (diags t
 			diags = diags.Append(countDiags)
 
 		case n.ModuleCall.ForEach != nil:
-			forEachDiags := newForEachEvaluator(n.ModuleCall.ForEach, ctx).ValidateResourceValue()
+			forEachDiags := newForEachEvaluator(n.ModuleCall.ForEach, ctx, false).ValidateResourceValue()
 			diags = diags.Append(forEachDiags)
 		}
 

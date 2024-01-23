@@ -72,7 +72,7 @@ func TestEvaluateForEachExpression_valid(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			forEachMap, diags := evaluateForEachExpression(test.Expr, ctx)
+			forEachMap, _, diags := evaluateForEachExpression(test.Expr, ctx, false)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
@@ -176,7 +176,7 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			_, diags := evaluateForEachExpression(test.Expr, ctx)
+			_, _, diags := evaluateForEachExpression(test.Expr, ctx, false)
 
 			if len(diags) != 1 {
 				t.Fatalf("got %d diagnostics; want 1", len(diags))
@@ -211,6 +211,41 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 	}
 }
 
+func TestEvaluateForEachExpression_allowUnknown(t *testing.T) {
+	tests := map[string]struct {
+		Expr hcl.Expression
+	}{
+		"unknown string set": {
+			hcltest.MockExprLiteral(cty.UnknownVal(cty.Set(cty.String))),
+		},
+		"unknown map": {
+			hcltest.MockExprLiteral(cty.UnknownVal(cty.Map(cty.Bool))),
+		},
+		"set containing unknown value": {
+			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.UnknownVal(cty.String)})),
+		},
+		"set containing dynamic unknown value": {
+			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.UnknownVal(cty.DynamicPseudoType)})),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			ctx := &MockEvalContext{}
+			ctx.installSimpleEval()
+			_, known, diags := evaluateForEachExpression(test.Expr, ctx, true)
+
+			// With allowUnknown set, all of these expressions should be treated
+			// as valid for_each values.
+			assertNoDiagnostics(t, diags)
+
+			if known {
+				t.Errorf("result is known; want unknown")
+			}
+		})
+	}
+}
+
 func TestEvaluateForEachExpressionKnown(t *testing.T) {
 	tests := map[string]hcl.Expression{
 		"unknown string set": hcltest.MockExprLiteral(cty.UnknownVal(cty.Set(cty.String))),
@@ -221,7 +256,7 @@ func TestEvaluateForEachExpressionKnown(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			diags := newForEachEvaluator(expr, ctx).ValidateResourceValue()
+			diags := newForEachEvaluator(expr, ctx, false).ValidateResourceValue()
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
