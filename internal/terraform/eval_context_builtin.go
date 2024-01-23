@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
@@ -534,6 +535,24 @@ func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {
 		panic("context path not set")
 	}
 	return ctx.PathValue
+}
+
+func (ctx *BuiltinEvalContext) LanguageExperimentActive(experiment experiments.Experiment) bool {
+	if ctx.Evaluator == nil || ctx.Evaluator.Config == nil {
+		// Should not get here in normal code, but might get here in test code
+		// if the context isn't fully populated.
+		return false
+	}
+	if !ctx.pathSet {
+		// An EvalContext that isn't associated with a module path cannot
+		// have active experiments.
+		return false
+	}
+	cfg := ctx.Evaluator.Config.DescendentForInstance(ctx.Path())
+	if cfg == nil {
+		return false
+	}
+	return cfg.Module.ActiveExperiments.Has(experiment)
 }
 
 func (ctx *BuiltinEvalContext) NamedValues() *namedvals.State {
