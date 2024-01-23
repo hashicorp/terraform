@@ -21,11 +21,13 @@ const (
 	SuppressProviderSensitiveAttrs = Experiment("provider_sensitive_attrs")
 	ConfigDrivenMove               = Experiment("config_driven_move")
 	PreconditionsPostconditions    = Experiment("preconditions_postconditions")
+	UnknownInstances               = Experiment("unknown_instances")
 )
 
 func init() {
 	// Each experiment constant defined above must be registered here as either
 	// a current or a concluded experiment.
+	registerCurrentExperiment(UnknownInstances)
 	registerConcludedExperiment(VariableValidation, "Custom variable validation can now be used by default, without enabling an experiment.")
 	registerConcludedExperiment(SuppressProviderSensitiveAttrs, "Provider-defined sensitive attributes are now redacted by default, without enabling an experiment.")
 	registerConcludedExperiment(ConfigDrivenMove, "Declarations of moved resource instances using \"moved\" blocks can now be used by default, without enabling an experiment.")
