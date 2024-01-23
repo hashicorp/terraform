@@ -32,7 +32,7 @@ func TestEvaluateCountExpression(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			countVal, diags := evaluateCountExpression(test.Expr, ctx)
+			countVal, diags := evaluateCountExpression(test.Expr, ctx, false)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
@@ -42,6 +42,40 @@ func TestEvaluateCountExpression(t *testing.T) {
 				t.Errorf(
 					"wrong map value\ngot:  %swant: %s",
 					spew.Sdump(countVal), spew.Sdump(test.Count),
+				)
+			}
+		})
+	}
+}
+
+func TestEvaluateCountExpression_allowUnknown(t *testing.T) {
+	tests := map[string]struct {
+		Expr  hcl.Expression
+		Count int
+	}{
+		"unknown number": {
+			hcltest.MockExprLiteral(cty.UnknownVal(cty.Number)),
+			-1,
+		},
+		"dynamicval": {
+			hcltest.MockExprLiteral(cty.DynamicVal),
+			-1,
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			ctx := &MockEvalContext{}
+			ctx.installSimpleEval()
+			countVal, diags := evaluateCountExpression(test.Expr, ctx, true)
+
+			if len(diags) != 0 {
+				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
+			}
+
+			if !reflect.DeepEqual(countVal, test.Count) {
+				t.Errorf(
+					"wrong result\ngot:  %#v\nwant: %#v",
+					countVal, test.Count,
 				)
 			}
 		})

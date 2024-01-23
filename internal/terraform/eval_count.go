@@ -6,10 +6,11 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
+
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // evaluateCountExpression is our standard mechanism for interpreting an
@@ -20,9 +21,15 @@ import (
 // evaluateCountExpression differs from evaluateCountExpressionValue by
 // returning an error if the count value is not known, and converting the
 // cty.Value to an integer.
-func evaluateCountExpression(expr hcl.Expression, ctx EvalContext) (int, tfdiags.Diagnostics) {
+//
+// If allowUnknown is false then this function will return error diagnostics
+// whenever the expression returns an unknown value. Setting allowUnknown to
+// true instead permits unknown values, indicating them by returning the
+// placeholder value -1. Callers can assume that a return value of -1 without
+// any error diagnostics represents a valid unknown value.
+func evaluateCountExpression(expr hcl.Expression, ctx EvalContext, allowUnknown bool) (int, tfdiags.Diagnostics) {
 	countVal, diags := evaluateCountExpressionValue(expr, ctx)
-	if !countVal.IsKnown() {
+	if !allowUnknown && !countVal.IsKnown() {
 		// Currently this is a rather bad outcome from a UX standpoint, since we have
 		// no real mechanism to deal with this situation and all we can do is produce
 		// an error message.
