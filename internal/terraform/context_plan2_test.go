@@ -2932,7 +2932,7 @@ output "output" {
 		}
 
 		if res.Addr.Resource.Resource.Mode == addrs.DataResourceMode && res.Action != plans.NoOp {
-			t.Errorf("unexpected %s plan for %s", res.Action, res.Addr)
+			t.Errorf("unexpected %s/%s plan for %s", res.Action, res.ActionReason, res.Addr)
 		}
 	}
 }

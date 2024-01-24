@@ -11971,15 +11971,22 @@ resource "test_resource" "foo" {
 	}
 
 	verifySensitiveValue := func(pvms []cty.PathValueMarks) {
-		if len(pvms) != 1 {
-			t.Fatalf("expected 1 sensitive path, got %d", len(pvms))
+		if len(pvms) != 2 {
+			t.Fatalf("expected 2 sensitive paths, got %d", len(pvms))
 		}
-		pvm := pvms[0]
-		if gotPath, wantPath := pvm.Path, cty.GetAttrPath("value"); !gotPath.Equals(wantPath) {
-			t.Errorf("wrong path\n got: %#v\nwant: %#v", gotPath, wantPath)
-		}
-		if gotMarks, wantMarks := pvm.Marks, cty.NewValueMarks(marks.Sensitive); !gotMarks.Equal(wantMarks) {
-			t.Errorf("wrong marks\n got: %#v\nwant: %#v", gotMarks, wantMarks)
+
+		for _, pvm := range pvms {
+			switch {
+			case pvm.Path.Equals(cty.GetAttrPath("value")):
+			case pvm.Path.Equals(cty.GetAttrPath("sensitive_value")):
+			default:
+				t.Errorf("unexpected path mark: %#v", pvm)
+				return
+			}
+
+			if want := cty.NewValueMarks(marks.Sensitive); !pvm.Marks.Equal(want) {
+				t.Errorf("wrong marks\n got: %#v\nwant: %#v", pvm.Marks, want)
+			}
 		}
 	}
 
@@ -12034,15 +12041,19 @@ resource "test_resource" "baz" {
 	}
 
 	verifySensitiveValue := func(pvms []cty.PathValueMarks) {
-		if len(pvms) != 1 {
-			t.Fatalf("expected 1 sensitive path, got %d", len(pvms))
-		}
-		pvm := pvms[0]
-		if gotPath, wantPath := pvm.Path, cty.GetAttrPath("value"); !gotPath.Equals(wantPath) {
-			t.Errorf("wrong path\n got: %#v\nwant: %#v", gotPath, wantPath)
-		}
-		if gotMarks, wantMarks := pvm.Marks, cty.NewValueMarks(marks.Sensitive); !gotMarks.Equal(wantMarks) {
-			t.Errorf("wrong marks\n got: %#v\nwant: %#v", gotMarks, wantMarks)
+		for _, pvm := range pvms {
+			switch {
+			case pvm.Path.Equals(cty.GetAttrPath("value")):
+			case pvm.Path.Equals(cty.GetAttrPath("sensitive_value")):
+			case pvm.Path.Equals(cty.GetAttrPath("nesting_single").GetAttr("sensitive_value")):
+			default:
+				t.Errorf("unexpected path mark: %#v", pvm)
+				return
+			}
+
+			if want := cty.NewValueMarks(marks.Sensitive); !pvm.Marks.Equal(want) {
+				t.Errorf("wrong marks\n got: %#v\nwant: %#v", pvm.Marks, want)
+			}
 		}
 	}
 
@@ -12120,17 +12131,22 @@ resource "test_resource" "foo" {
 
 	fooState := state.ResourceInstance(addr)
 
-	if len(fooState.Current.AttrSensitivePaths) != 1 {
-		t.Fatalf("wrong number of sensitive paths, expected 1, got, %v", len(fooState.Current.AttrSensitivePaths))
-	}
-	got := fooState.Current.AttrSensitivePaths[0]
-	want := cty.PathValueMarks{
-		Path:  cty.GetAttrPath("value"),
-		Marks: cty.NewValueMarks(marks.Sensitive),
+	if len(fooState.Current.AttrSensitivePaths) != 2 {
+		t.Fatalf("wrong number of sensitive paths, expected 2, got, %v", len(fooState.Current.AttrSensitivePaths))
 	}
 
-	if !got.Equal(want) {
-		t.Fatalf("wrong value marks; got:\n%#v\n\nwant:\n%#v\n", got, want)
+	for _, pvm := range fooState.Current.AttrSensitivePaths {
+		switch {
+		case pvm.Path.Equals(cty.GetAttrPath("value")):
+		case pvm.Path.Equals(cty.GetAttrPath("sensitive_value")):
+		default:
+			t.Errorf("unexpected path mark: %#v", pvm)
+			return
+		}
+
+		if want := cty.NewValueMarks(marks.Sensitive); !pvm.Marks.Equal(want) {
+			t.Errorf("wrong marks\n got: %#v\nwant: %#v", pvm.Marks, want)
+		}
 	}
 
 	m2 := testModuleInline(t, map[string]string{
@@ -12145,33 +12161,22 @@ resource "test_resource" "foo" {
 }`,
 	})
 
-	ctx2 := testContext2(t, &ContextOpts{
+	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
-	// NOTE: Prior to our refactoring to make the state an explicit argument
-	// of Plan, as opposed to hidden state inside Context, this test was
-	// calling ctx.Apply instead of ctx2.Apply and thus using the previous
-	// plan instead of this new plan. "Fixing" it to use the new plan seems
-	// to break the test, so we've preserved that oddity here by saving the
-	// old plan as oldPlan and essentially discarding the new plan entirely,
-	// but this seems rather suspicious and we should ideally figure out what
-	// this test was originally intending to do and make it do that.
-	oldPlan := plan
-	_, diags = ctx2.Plan(m2, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	plan, diags = ctx.Plan(m2, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
-	stateWithoutSensitive, diags := ctx.Apply(oldPlan, m, nil)
+	stateWithoutSensitive, diags := ctx.Apply(plan, m2, nil)
 	assertNoErrors(t, diags)
 
 	fooState2 := stateWithoutSensitive.ResourceInstance(addr)
-	if len(fooState2.Current.AttrSensitivePaths) > 0 {
-		t.Fatalf(
-			"wrong number of sensitive paths, expected 0, got, %v\n%s",
+	if len(fooState2.Current.AttrSensitivePaths) != 1 {
+		t.Fatalf("wrong number of sensitive paths, expected 1, got, %v\n%#v\n",
 			len(fooState2.Current.AttrSensitivePaths),
-			spew.Sdump(fooState2.Current.AttrSensitivePaths),
-		)
+			fooState2.Current.AttrSensitivePaths)
 	}
 }
 

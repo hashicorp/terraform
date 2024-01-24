@@ -28,7 +28,8 @@
                         "password": "secret"
                     },
                     "sensitive_values": {
-                        "ami": true
+                        "ami": true,
+                        "password": true
                     }
                 },
                 {
@@ -44,7 +45,8 @@
                         "password": "secret"
                     },
                     "sensitive_values": {
-                        "ami": true
+                        "ami": true,
+                        "password": true
                     }
                 },
                 {
@@ -60,7 +62,8 @@
                         "password": "secret"
                     },
                     "sensitive_values": {
-                        "ami": true
+                        "ami": true,
+                        "password": true
                     }
                 }
             ]
