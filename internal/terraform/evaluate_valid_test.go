@@ -135,11 +135,7 @@ For example, to correlate with indices of a referring resource, use:
 				t.Fatal(diags.Err())
 			}
 
-			data := &evaluationStateData{
-				Evaluator: evaluator,
-			}
-
-			diags = data.StaticValidateReferences(refs, nil, test.Src)
+			diags = evaluator.StaticValidateReferences(refs, addrs.RootModule, nil, test.Src)
 			if diags.HasErrors() {
 				if test.WantErr == "" {
 					t.Fatalf("Unexpected diagnostics: %s", diags.Err())
