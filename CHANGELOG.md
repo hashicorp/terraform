@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * `terraform test`: Fix crash when referencing variables or functions within the file level `variables` block. ([#34531](https://github.com/hashicorp/terraform/issues/34531))
+* `terraform test`: Fix crash when `override_module` block was missing the `outputs` attribute. ([#34563](https://github.com/hashicorp/terraform/issues/34563))
 
 ## 1.7.0 (January 17, 2024)
 
