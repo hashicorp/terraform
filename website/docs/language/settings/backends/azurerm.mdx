@@ -11,19 +11,19 @@ This backend supports state locking and consistency checking with Azure Blob Sto
 
 ~> **Terraform 1.1 and 1.2 supported a feature-flag to allow enabling/disabling the use of Microsoft Graph (and MSAL) rather than Azure Active Directory Graph (and ADAL) - however this flag has since been removed in Terraform 1.3. Microsoft Graph (and MSAL) are now enabled by default and Azure Active Directory Graph (and ADAL) can no longer be used.
 
-## Authentication4
+## Authentication
 
 The `azurerm` backend supports 3 methods of authenticating to the storage account:
 
-- Access Key (default)
-- Entra ID
-- SAS Token
+- **Access Key** (default)
+- **Entra ID**
+- **SAS Token**
 
-The Access Key method can be used directly or in combination with an Entra ID principal. By default when you use an Entra ID principal, it will use the Access Token of that principal to generate an Access Key for the storage account and use that Access Key to authenticate to the blob.
+The **Access Key** method can be used directly or in combination with an Entra ID principal (e.g. user, service principal or managed identity). By default when you use an Entra ID principal, it will use the Access Token of that principal to generate an Access Key for the storage account and use that Access Key to authenticate to the state file blob. To use an Access Key directly you must generate one for you state file blob and pass it to the backend config.
 
-The Entra ID method can only be used in combination with an Entra ID principal.
+The **Entra ID** method can only be used in combination with an Entra ID principal. To use the Entra ID method you must set the `use_azuread_auth` variable to `true` in your backend configuration. This will cause the backend to use the Access Token of the Entra ID principal to authenticate to the state file blob.
 
-The SAS Token method can only be used directly.
+The **SAS Token** method can only be used directly. You must generate a SAS Token for your state file blob and pass it to the backend config.
 
 The `azurerm` backend supports the following authentication methods to connect the storage account based on the variables that are set:
 
