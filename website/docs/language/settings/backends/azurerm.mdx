@@ -50,6 +50,8 @@ The `azurerm` backend supports the following authentication methods to connect t
 
 ### Backend: Entra ID User via Azure CLI
 
+This method is not suitable for automation since it only supports a User Principal. To check which tenant and subscription you are pointed to, run `az account show`.
+
 Connect to Storage Account with Access Key (default):
 
 ```hcl
@@ -260,6 +262,8 @@ terraform {
 ## Example Data Source Configurations
 
 ### Data Source: Entra ID User Principal via Azure CLI
+
+This method is not suitable for automation since it only supports a User Principal. To check which tenant and subscription you are pointed to, run `az account show`.
 
 Connect to Storage Account with Access Key (default):
 
