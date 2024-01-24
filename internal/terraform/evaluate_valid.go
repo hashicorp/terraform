@@ -31,24 +31,27 @@ import (
 //
 // The result may include warning diagnostics if, for example, deprecated
 // features are referenced.
-func (d *evaluationStateData) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
+func (e *Evaluator) StaticValidateReferences(refs []*addrs.Reference, modAddr addrs.Module, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	for _, ref := range refs {
-		moreDiags := d.staticValidateReference(ref, self, source)
+		moreDiags := e.StaticValidateReference(ref, modAddr, self, source)
 		diags = diags.Append(moreDiags)
 	}
 	return diags
 }
 
-func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
-	modCfg := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
+func (e *Evaluator) StaticValidateReference(ref *addrs.Reference, modAddr addrs.Module, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
+	modCfg := e.Config.Descendent(modAddr)
 	if modCfg == nil {
 		// This is a bug in the caller rather than a problem with the
 		// reference, but rather than crashing out here in an unhelpful way
 		// we'll just ignore it and trust a different layer to catch it.
 		return nil
 	}
+	return e.staticValidateReference(ref, modCfg, self, source)
+}
 
+func (e *Evaluator) staticValidateReference(ref *addrs.Reference, modCfg *configs.Config, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
 	if ref.Subject == addrs.Self {
 		// The "self" address is a special alias for the address given as
 		// our self parameter here, if present.
@@ -80,20 +83,20 @@ func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self
 	// staticValidateMultiResourceReference respectively.
 	case addrs.Resource:
 		var diags tfdiags.Diagnostics
-		diags = diags.Append(d.staticValidateSingleResourceReference(modCfg, addr, ref.Remaining, ref.SourceRange))
-		diags = diags.Append(d.staticValidateResourceReference(modCfg, addr, source, ref.Remaining, ref.SourceRange))
+		diags = diags.Append(staticValidateSingleResourceReference(modCfg, addr, ref.Remaining, ref.SourceRange))
+		diags = diags.Append(staticValidateResourceReference(modCfg, addr, source, e.Plugins, ref.Remaining, ref.SourceRange))
 		return diags
 	case addrs.ResourceInstance:
 		var diags tfdiags.Diagnostics
-		diags = diags.Append(d.staticValidateMultiResourceReference(modCfg, addr, ref.Remaining, ref.SourceRange))
-		diags = diags.Append(d.staticValidateResourceReference(modCfg, addr.ContainingResource(), source, ref.Remaining, ref.SourceRange))
+		diags = diags.Append(staticValidateMultiResourceReference(modCfg, addr, ref.Remaining, ref.SourceRange))
+		diags = diags.Append(staticValidateResourceReference(modCfg, addr.ContainingResource(), source, e.Plugins, ref.Remaining, ref.SourceRange))
 		return diags
 
 	// We also handle all module call references the same way, disregarding index.
 	case addrs.ModuleCall:
-		return d.staticValidateModuleCallReference(modCfg, addr, ref.Remaining, ref.SourceRange)
+		return staticValidateModuleCallReference(modCfg, addr, ref.Remaining, ref.SourceRange)
 	case addrs.ModuleCallInstance:
-		return d.staticValidateModuleCallReference(modCfg, addr.Call, ref.Remaining, ref.SourceRange)
+		return staticValidateModuleCallReference(modCfg, addr.Call, ref.Remaining, ref.SourceRange)
 	case addrs.ModuleCallInstanceOutput:
 		// This one is a funny one because we will take the output name referenced
 		// and use it to fake up a "remaining" that would make sense for the
@@ -109,7 +112,7 @@ func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self
 			// but is close enough for our purposes.
 			SrcRange: ref.SourceRange.ToHCL(),
 		}
-		return d.staticValidateModuleCallReference(modCfg, addr.Call.Call, remain, ref.SourceRange)
+		return staticValidateModuleCallReference(modCfg, addr.Call.Call, remain, ref.SourceRange)
 
 	default:
 		// Anything else we'll just permit through without any static validation
@@ -118,7 +121,7 @@ func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self
 	}
 }
 
-func (d *evaluationStateData) staticValidateSingleResourceReference(modCfg *configs.Config, addr addrs.Resource, remain hcl.Traversal, rng tfdiags.SourceRange) tfdiags.Diagnostics {
+func staticValidateSingleResourceReference(modCfg *configs.Config, addr addrs.Resource, remain hcl.Traversal, rng tfdiags.SourceRange) tfdiags.Diagnostics {
 	// If we have at least one step in "remain" and this resource has
 	// "count" set then we know for sure this in invalid because we have
 	// something like:
@@ -163,7 +166,7 @@ func (d *evaluationStateData) staticValidateSingleResourceReference(modCfg *conf
 	return diags
 }
 
-func (d *evaluationStateData) staticValidateMultiResourceReference(modCfg *configs.Config, addr addrs.ResourceInstance, remain hcl.Traversal, rng tfdiags.SourceRange) tfdiags.Diagnostics {
+func staticValidateMultiResourceReference(modCfg *configs.Config, addr addrs.ResourceInstance, remain hcl.Traversal, rng tfdiags.SourceRange) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	cfg := modCfg.Module.ResourceByAddr(addr.ContainingResource())
@@ -175,7 +178,7 @@ func (d *evaluationStateData) staticValidateMultiResourceReference(modCfg *confi
 
 	if addr.Key == addrs.NoKey {
 		// This is a different path into staticValidateSingleResourceReference
-		return d.staticValidateSingleResourceReference(modCfg, addr.ContainingResource(), remain, rng)
+		return staticValidateSingleResourceReference(modCfg, addr.ContainingResource(), remain, rng)
 	} else {
 		if cfg.Count == nil && cfg.ForEach == nil {
 			diags = diags.Append(&hcl.Diagnostic{
@@ -190,7 +193,7 @@ func (d *evaluationStateData) staticValidateMultiResourceReference(modCfg *confi
 	return diags
 }
 
-func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource, source addrs.Referenceable, remain hcl.Traversal, rng tfdiags.SourceRange) tfdiags.Diagnostics {
+func staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource, source addrs.Referenceable, plugins *contextPlugins, remain hcl.Traversal, rng tfdiags.SourceRange) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	var modeAdjective string
@@ -236,7 +239,7 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 	}
 
 	providerFqn := modCfg.Module.ProviderForLocalConfig(cfg.ProviderConfigAddr())
-	schema, _, err := d.Evaluator.Plugins.ResourceTypeSchema(providerFqn, addr.Mode, addr.Type)
+	schema, _, err := plugins.ResourceTypeSchema(providerFqn, addr.Mode, addr.Type)
 	if err != nil {
 		// Prior validation should've taken care of a schema lookup error,
 		// so we should never get here but we'll handle it here anyway for
@@ -286,7 +289,7 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 	return diags
 }
 
-func (d *evaluationStateData) staticValidateModuleCallReference(modCfg *configs.Config, addr addrs.ModuleCall, remain hcl.Traversal, rng tfdiags.SourceRange) tfdiags.Diagnostics {
+func staticValidateModuleCallReference(modCfg *configs.Config, addr addrs.ModuleCall, remain hcl.Traversal, rng tfdiags.SourceRange) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// For now, our focus here is just in testing that the referenced module

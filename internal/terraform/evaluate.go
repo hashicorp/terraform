@@ -146,6 +146,13 @@ var EvalDataForNoInstanceKey = InstanceKeyEvalData{}
 // evaluationStateData must implement lang.Data
 var _ lang.Data = (*evaluationStateData)(nil)
 
+// StaticValidateReferences calls [Evaluator.StaticValidateReferences] on
+// the evaluator embedded in this data object, using this data object's
+// static module path.
+func (d *evaluationStateData) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
+	return d.Evaluator.StaticValidateReferences(refs, d.ModulePath.Module(), self, source)
+}
+
 func (d *evaluationStateData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	switch addr.Name {
