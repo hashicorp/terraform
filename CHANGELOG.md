@@ -1,11 +1,22 @@
 ## 1.8.0 (Unreleased)
 
+UPGRADE NOTES:
+
+* The first plan after upgrading may show resource updates with no apparent changes if `-refresh-only` or `-refresh=false` is used. The fix introduced for #34567 may require rewriting the state for some resources, which will be done automatically during the first normal plan and apply operation.
+
+
 EXPERIMENTS:
 
 Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
 
 * `terraform test` accepts a new option `-junit-xml=FILENAME`. If specified, and if the test configuration is valid enough to begin executing, then Terraform writes a JUnit XML test result report to the given filename, describing similar information as included in the normal test output. (#34291)
 * The new command `terraform rpcapi` exposes some Terraform Core functionality through an RPC interface compatible with [`go-plugin`](https://github.com/hashicorp/go-plugin). The exact RPC API exposed here is currently subject to change at any time, because it's here primarily as a vehicle to support the [Terraform Stacks](https://www.hashicorp.com/blog/terraform-stacks-explained) private preview and so will be broken if necessary to respond to feedback from private preview participants, or possibly for other reasons. Do not use this mechanism yet outside of Terraform Stacks private preview.
+
+
+BUG FIXES:
+
+* core: Sensitive values will now be tracked more accurately in state and plans, preventing unexpected updates with no apparent changes [GH-34567]
+
 
 ## Previous Releases
 
