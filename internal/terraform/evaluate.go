@@ -744,13 +744,9 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				continue
 			}
 
-			// If our provider schema contains sensitive values, mark those as sensitive
-			afterMarks := change.AfterValMarks
-			if schema.ContainsSensitive() {
-				afterMarks = append(afterMarks, schema.ValueMarks(val, nil)...)
-			}
-
-			instances[key] = val.MarkWithPaths(afterMarks)
+			// Unlike decoding state, decoding a change does not automatically
+			// mark values.
+			instances[key] = val.MarkWithPaths(change.AfterValMarks)
 			continue
 		}
 
@@ -769,16 +765,6 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 		val := ios.Value
 
-		// If our schema contains sensitive values, mark those as sensitive.
-		// Since decoding the instance object can also apply sensitivity marks,
-		// we must remove and combine those before remarking to avoid a double-
-		// mark error.
-		if schema.ContainsSensitive() {
-			var marks []cty.PathValueMarks
-			val, marks = val.UnmarkDeepWithPaths()
-			marks = append(marks, schema.ValueMarks(val, nil)...)
-			val = val.MarkWithPaths(marks)
-		}
 		instances[key] = val
 	}
 

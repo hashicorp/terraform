@@ -235,6 +235,32 @@ func TestEvaluatorGetResource(t *testing.T) {
 			&states.ResourceInstanceObjectSrc{
 				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"id":"foo", "nesting_list": [{"sensitive_value":"abc"}], "nesting_map": {"foo":{"foo":"x"}}, "nesting_set": [{"baz":"abc"}], "nesting_single": {"boop":"abc"}, "nesting_nesting": {"nesting_list":[{"sensitive_value":"abc"}]}, "value":"hello"}`),
+				AttrSensitivePaths: []cty.PathValueMarks{
+					{
+						Path:  cty.GetAttrPath("nesting_list").IndexInt(0).GetAttr("sensitive_value"),
+						Marks: cty.NewValueMarks(marks.Sensitive),
+					},
+					{
+						Path:  cty.GetAttrPath("nesting_map").IndexString("foo").GetAttr("foo"),
+						Marks: cty.NewValueMarks(marks.Sensitive),
+					},
+					{
+						Path:  cty.GetAttrPath("nesting_nesting").GetAttr("nesting_list").IndexInt(0).GetAttr("sensitive_value"),
+						Marks: cty.NewValueMarks(marks.Sensitive),
+					},
+					{
+						Path:  cty.GetAttrPath("nesting_set"),
+						Marks: cty.NewValueMarks(marks.Sensitive),
+					},
+					{
+						Path:  cty.GetAttrPath("nesting_single").GetAttr("boop"),
+						Marks: cty.NewValueMarks(marks.Sensitive),
+					},
+					{
+						Path:  cty.GetAttrPath("value"),
+						Marks: cty.NewValueMarks(marks.Sensitive),
+					},
+				},
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewDefaultProvider("test"),
@@ -433,10 +459,10 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":              cty.StringVal("foo"),
 				"to_mark_val":     cty.StringVal("pizza").Mark(marks.Sensitive),
-				"sensitive_value": cty.StringVal("abc"),
+				"sensitive_value": cty.StringVal("abc").Mark(marks.Sensitive),
 				"sensitive_collection": cty.MapVal(map[string]cty.Value{
 					"boop": cty.StringVal("beep"),
-				}),
+				}).Mark(marks.Sensitive),
 			}),
 		},
 	}

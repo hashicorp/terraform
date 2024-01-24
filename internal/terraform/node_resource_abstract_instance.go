@@ -620,9 +620,9 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 	priorVal := state.Value
 
 	// Unmarked before sending to provider
-	var priorPaths []cty.PathValueMarks
+	var priorMarks []cty.PathValueMarks
 	if priorVal.ContainsMarked() {
-		priorVal, priorPaths = priorVal.UnmarkDeepWithPaths()
+		priorVal, priorMarks = priorVal.UnmarkDeepWithPaths()
 	}
 
 	var resp providers.ReadResourceResponse
@@ -714,9 +714,14 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		return ret, diags
 	}
 
-	// Mark the value if necessary
-	if len(priorPaths) > 0 {
-		ret.Value = ret.Value.MarkWithPaths(priorPaths)
+	// Mark the value with any prior marks from the state, and the marks from
+	// the schema. This ensures we capture any marks from the last
+	// configuration, as well as any marks from the schema which were not in
+	// the prior state. New marks may appear when the prior state was from an
+	// import operation, or if the provider added new marks to the schema.
+	if marks := dedupePathValueMarks(append(priorMarks, schema.ValueMarks(ret.Value, nil)...)); len(marks) > 0 {
+		//if marks := priorMarks; len(marks) > 0 {
+		ret.Value = ret.Value.MarkWithPaths(marks)
 	}
 
 	return ret, diags
@@ -993,8 +998,13 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 
 	// Add the marks back to the planned new value -- this must happen after ignore changes
-	// have been processed
+	// have been processed. We add in the schema marks as well, so ensure that
+	// provider defined private attributes are marked correctly here.
 	unmarkedPlannedNewVal := plannedNewVal
+	// Add schema path marks to unmarkedPaths, so that any difference in
+	// sensitive attributes from the provider are marked correctly too.
+	unmarkedPaths = dedupePathValueMarks(append(unmarkedPaths, schema.ValueMarks(plannedNewVal, nil)...))
+
 	if len(unmarkedPaths) > 0 {
 		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 	}
