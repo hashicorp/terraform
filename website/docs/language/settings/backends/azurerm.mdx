@@ -29,12 +29,12 @@ The `azurerm` backend supports the following authentication methods to connect t
 
 | Entra ID Authentication Method | Storage Account Authentication Type | Authentication variable * | Entra ID variable |
 |-----|---|---|---|
-| Entra ID User via Azure CLI | Access Key | N/A | N/A |
-| Entra ID User via Azure CLI | Entra ID | N/A | `use_azuread_auth = true` |
-| Entra ID Service Principal via OIDC (Workload identity federation) | Access Key | `use_oidc = true` | N/A |
-| Entra ID Service Principal via OIDC (Workload identity federation) | Entra ID | `use_oidc = true` | `use_azuread_auth = true` |
-| Entra ID Service Principal via Managed identity | Access Key | `use_msi = true` | N/A |
-| Entra ID Service Principal via Managed identity | Entra ID | `use_msi = true` | `use_azuread_auth = true` |
+| Entra ID User Principal via Azure CLI | Access Key | N/A | N/A |
+| Entra ID User Principal via Azure CLI | Entra ID | N/A | `use_azuread_auth = true` |
+| Entra ID Service Principal or User Assigned Managed Identity via OIDC (Workload identity federation) | Access Key | `use_oidc = true` | N/A |
+| Entra ID Service Principal or User Assigned Managed Identity via OIDC (Workload identity federation) | Entra ID | `use_oidc = true` | `use_azuread_auth = true` |
+| Entra ID Managed Identity Principal | Access Key | `use_msi = true` | N/A |
+| Entra ID Managed Identity Principal | Entra ID | `use_msi = true` | `use_azuread_auth = true` |
 | Entra ID Service Principal via Client Secret | Access Key | `client_secret = <service principal secret>` | N/A |
 | Entra ID Service Principal via Client Secret | Entra ID | `client_secret = <service principal secret>` | `use_azuread_auth = true` |
 | Entra ID Service Principal via Client Certificate | Access Key | `client_certificate_path = <cert path>` | N/A |
@@ -48,9 +48,9 @@ The `azurerm` backend supports the following authentication methods to connect t
 
 ## Example Backend Configurations
 
-### Backend Entra ID via Azure CLI
+### Backend: Entra ID User via Azure CLI
 
-Access Key (default):
+Connect to Storage Account with Access Key (default):
 
 ```hcl
 terraform {
@@ -63,7 +63,7 @@ terraform {
 }
 ```
 
-Entra ID:
+Connect to Storage Account with Entra ID:
 
 ```hcl
 terraform {
@@ -77,9 +77,11 @@ terraform {
 }
 ```
 
-### Backend Entra ID via OIDC (Workload identity federation)
+### Backend: Entra ID Service Principal or User Assigned Managed Identity via OIDC (Workload identity federation)
 
-Access Key (default):
+You can use an App Registration (Service Principal) or a User Assigned Managed Identity to configure federated credentials. You must supply the client id of the principal.
+
+Connect to Storage Account with Access Key (default):
 
 ```hcl
 terraform {
@@ -96,7 +98,7 @@ terraform {
 }
 ```
 
-Entra ID:
+Connect to Storage Account with Entra ID:
 
 ```hcl
 terraform {
@@ -114,9 +116,11 @@ terraform {
 }
 ```
 
-### Backend Entra ID via Managed identity
+### Backend: Entra ID Managed Identity Principal
 
-Access Key (default):
+You can use a User Assigned Managed Identity as well as a System Assigned Managed Identity on your agent / runner compute. However the authentication does not support specifiying the Client ID of the User Assigned Managed Identity, so you can only supply one per compute instance.
+
+Connect to Storage Account with Access Key (default):
 
 ```hcl
 terraform {
@@ -132,7 +136,7 @@ terraform {
 }
 ```
 
-Entra ID:
+Connect to Storage Account with Entra ID:
 
 ```hcl
 terraform {
@@ -149,9 +153,9 @@ terraform {
 }
 ```
 
-### Backend Entra ID via Client Secret
+### Backend: Entra ID Service Principal via Client Secret
 
-Access Key (default):
+Connect to Storage Account with Access Key (default):
 
 ```hcl
 terraform {
@@ -168,7 +172,7 @@ terraform {
 }
 ```
 
-Entra ID:
+Connect to Storage Account with Entra ID:
 
 ```hcl
 terraform {
@@ -186,9 +190,9 @@ terraform {
 }
 ```
 
-### Backend Entra ID via Client Certificate
+### Backend: Entra ID Service Principal via Client Certificate
 
-Access Key (default):
+Connect to Storage Account with Access Key (default):
 
 ```hcl
 terraform {
@@ -206,7 +210,7 @@ terraform {
 }
 ```
 
-Entra ID:
+Connect to Storage Account with Entra ID:
 
 ```hcl
 terraform {
@@ -225,7 +229,7 @@ terraform {
 }
 ```
 
-### Backend Access Key Direct
+### Backend: Access Key Direct
 
 ```hcl
 terraform {
@@ -239,7 +243,7 @@ terraform {
 }
 ```
 
-### Backend SAS Token
+### Backend: SAS Token
 
 ```hcl
 terraform {
@@ -255,9 +259,9 @@ terraform {
 
 ## Example Data Source Configurations
 
-### Data Source Entra ID via Azure CLI
+### Data Source: Entra ID User Principal via Azure CLI
 
-Access Key (default):
+Connect to Storage Account with Access Key (default):
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -271,7 +275,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-Entra ID:
+Connect to Storage Account with Entra ID:
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -286,9 +290,11 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-### Data Source Entra ID via OIDC (Workload identity federation)
+### Data Source: Entra ID Service Principal or User Assigned Managed Identity via OIDC (Workload identity federation)
 
-Access Key (default):
+You can use an App Registration (Service Principal) or a User Assigned Managed Identity to configure federated credentials. You must supply the client id of the principal.
+
+Connect to Storage Account with Access Key (default):
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -306,7 +312,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-Entra ID:
+Connect to Storage Account with Entra ID:
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -325,9 +331,11 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-### Data Source Entra ID via Managed identity
+### Data Source: Entra ID Managed Identity Principal
 
-Access Key (default):
+You can use a User Assigned Managed Identity as well as a System Assigned Managed Identity on your agent / runner compute. However the authentication does not support specifiying the Client ID of the User Assigned Managed Identity, so you can only supply one per compute instance.
+
+Connect to Storage Account with Access Key (default):
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -344,7 +352,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-Entra ID:
+Connect to Storage Account with Entra ID:
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -362,9 +370,9 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-### Data Source Entra ID via Client Secret
+### Data Source: Entra ID Service Principal via Client Secret
 
-Access Key (default):
+Connect to Storage Account with Access Key (default):
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -382,7 +390,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-Entra ID:
+Connect to Storage Account with Entra ID:
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -401,9 +409,9 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-### Data Source Entra ID via Client Certificate
+### Data Source: Entra ID Service Principal via Client Certificate
 
-Access Key (default):
+Connect to Storage Account with Access Key (default):
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -422,7 +430,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-Entra ID:
+Connect to Storage Account with Entra ID:
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -442,7 +450,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-### Data Source Access Key Direct
+### Data Source: Access Key Direct
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -457,7 +465,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-### Data Source SAS Token
+### Data Source: SAS Token
 
 ```hcl
 data "terraform_remote_state" "foo" {
