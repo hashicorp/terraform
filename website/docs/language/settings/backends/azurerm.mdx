@@ -157,7 +157,7 @@ terraform {
 
 ### Backend: Entra ID Service Principal via Client Secret
 
-~> WARNING: This method requires you to manage and a rotate a secret. Consider using OIDC as a more secure approach.
+~> **Warning!**: This method requires you to manage and a rotate a secret. Consider using OIDC as a more secure approach.
 
 Connect to Storage Account with Access Key (default):
 
@@ -196,7 +196,7 @@ terraform {
 
 ### Backend: Entra ID Service Principal via Client Certificate
 
-~> WARNING: This method requires you to manage and a rotate a secret. Consider using OIDC as a more secure approach.
+~> **Warning!**: This method requires you to manage and a rotate a secret. Consider using OIDC as a more secure approach.
 
 Connect to Storage Account with Access Key (default):
 
@@ -237,7 +237,7 @@ terraform {
 
 ### Backend: Access Key Direct
 
-~> WARNING: This method requires you to manage and a rotate a secret. Consider using OIDC as a more secure approach.
+~> **Warning!**: This method requires you to manage and a rotate a secret. Consider using OIDC as a more secure approach.
 
 ```hcl
 terraform {
@@ -253,7 +253,7 @@ terraform {
 
 ### Backend: SAS Token
 
-~> WARNING: This method requires you to manage and a rotate a secret. Consider using OIDC as a more secure approach.
+~> **Warning!**: This method requires you to manage and a rotate a secret. Consider using OIDC as a more secure approach.
 
 ```hcl
 terraform {
@@ -384,7 +384,7 @@ data "terraform_remote_state" "foo" {
 
 ### Data Source: Entra ID Service Principal via Client Secret
 
-~> WARNING: This method requires you to manage and a rotate a secret. Consider using OIDC as a more secure approach.
+~> **Warning!**: This method requires you to manage and a rotate a secret. Consider using OIDC as a more secure approach.
 
 Connect to Storage Account with Access Key (default):
 
@@ -425,7 +425,7 @@ data "terraform_remote_state" "foo" {
 
 ### Data Source: Entra ID Service Principal via Client Certificate
 
-~> WARNING: This method requires you to manage and a rotate a secret. Consider using OIDC as a more secure approach.
+~> **Warning!**: This method requires you to manage and a rotate a secret. Consider using OIDC as a more secure approach.
 
 Connect to Storage Account with Access Key (default):
 
@@ -468,7 +468,7 @@ data "terraform_remote_state" "foo" {
 
 ### Data Source: Access Key Direct
 
-~> WARNING: This method requires you to manage and a rotate a secret. Consider using OIDC as a more secure approach.
+~> **Warning!**: This method requires you to manage and a rotate a secret. Consider using OIDC as a more secure approach.
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -485,7 +485,7 @@ data "terraform_remote_state" "foo" {
 
 ### Data Source: SAS Token
 
-~> WARNING: This method requires you to manage and a rotate a secret. Consider using OIDC as a more secure approach.
+~> **Warning!**: This method requires you to manage and a rotate a secret. Consider using OIDC as a more secure approach.
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -502,7 +502,7 @@ data "terraform_remote_state" "foo" {
 
 ## Configuration Variables
 
-!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+!> ****Warning!**:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
 
 The following configuration options are supported:
 
