@@ -196,7 +196,13 @@ func (g *Graph) checkAndApplyOverrides(overrides *mocking.Overrides, target dag.
 
 		setOverride := func(values cty.Value) {
 			key := v.Addr.OutputValue.Name
-			if values.Type().HasAttribute(key) {
+
+			// The values.Type() should be an object type, but it might have
+			// been set to nil by a test or something. We can handle it in the
+			// same way as the attribute just not being specified. It's
+			// functionally the same for us and not something we need to raise
+			// alarms about.
+			if values.Type().IsObjectType() && values.Type().HasAttribute(key) {
 				v.override = values.GetAttr(key)
 			} else {
 				// If we don't have a value provided for an output, then we'll
