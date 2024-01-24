@@ -57,10 +57,10 @@ Connect to Storage Account with Access Key (default):
 ```hcl
 terraform {
   backend "azurerm" {
-    resource_group_name  = "StorageAccount-ResourceGroup"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
-    storage_account_name = "abcd1234"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
-    container_name       = "tfstate"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
-    key                  = "prod.terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    resource_group_name  = "rg-tfstate-001"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "stotfstate001"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "prod"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
   }
 }
 ```
@@ -70,10 +70,10 @@ Connect to Storage Account with Entra ID:
 ```hcl
 terraform {
   backend "azurerm" {
-    resource_group_name  = "StorageAccount-ResourceGroup"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
-    storage_account_name = "abcd1234"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
-    container_name       = "tfstate"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
-    key                  = "prod.terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    resource_group_name  = "rg-tfstate-001"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "stotfstate001"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "prod"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
     use_azuread_auth     = true  # Can also be set via `USE_AZURE_AD` environment variable.
   }
 }
@@ -88,10 +88,10 @@ Connect to Storage Account with Access Key (default):
 ```hcl
 terraform {
   backend "azurerm" {
-    resource_group_name  = "StorageAccount-ResourceGroup"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
-    storage_account_name = "abcd1234"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
-    container_name       = "tfstate"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
-    key                  = "prod.terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    resource_group_name  = "rg-tfstate-001"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "stotfstate001"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "prod"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
     use_oidc              = true  # Can also be set via `USE_OIDC` environment variable.
     client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
     subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
@@ -105,10 +105,10 @@ Connect to Storage Account with Entra ID:
 ```hcl
 terraform {
   backend "azurerm" {
-    resource_group_name  = "StorageAccount-ResourceGroup"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
-    storage_account_name = "abcd1234"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
-    container_name       = "tfstate"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
-    key                  = "prod.terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    resource_group_name  = "rg-tfstate-001"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "stotfstate001"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "prod"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
     use_oidc              = true  # Can also be set via `USE_OIDC` environment variable.
     client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
     subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
@@ -127,10 +127,10 @@ Connect to Storage Account with Access Key (default):
 ```hcl
 terraform {
   backend "azurerm" {
-    resource_group_name  = "StorageAccount-ResourceGroup"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
-    storage_account_name = "abcd1234"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
-    container_name       = "tfstate"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
-    key                  = "prod.terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    resource_group_name  = "rg-tfstate-001"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "stotfstate001"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "prod"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
     use_msi              = true  # Can also be set via `USE_MSI` environment variable.
     subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
     tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
@@ -143,10 +143,10 @@ Connect to Storage Account with Entra ID:
 ```hcl
 terraform {
   backend "azurerm" {
-    resource_group_name  = "StorageAccount-ResourceGroup"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
-    storage_account_name = "abcd1234"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
-    container_name       = "tfstate"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
-    key                  = "prod.terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    resource_group_name  = "rg-tfstate-001"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "stotfstate001"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "prod"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
     use_msi              = true  # Can also be set via `USE_MSI` environment variable.
     subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
     tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
@@ -164,10 +164,10 @@ Connect to Storage Account with Access Key (default):
 ```hcl
 terraform {
   backend "azurerm" {
-    resource_group_name  = "StorageAccount-ResourceGroup"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
-    storage_account_name = "abcd1234"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
-    container_name       = "tfstate"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
-    key                  = "prod.terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    resource_group_name  = "rg-tfstate-001"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "stotfstate001"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "prod"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
     client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
     client_secret        = "************************************"  # Can also be set via `ARM_CLIENT_SECRET` environment variable.
     subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
@@ -181,10 +181,10 @@ Connect to Storage Account with Entra ID:
 ```hcl
 terraform {
   backend "azurerm" {
-    resource_group_name  = "StorageAccount-ResourceGroup"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
-    storage_account_name = "abcd1234"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
-    container_name       = "tfstate"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
-    key                  = "prod.terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    resource_group_name  = "rg-tfstate-001"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "stotfstate001"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "prod"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
     client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
     client_secret        = "************************************"  # Can also be set via `ARM_CLIENT_SECRET` environment variable.
     subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
@@ -203,10 +203,10 @@ Connect to Storage Account with Access Key (default):
 ```hcl
 terraform {
   backend "azurerm" {
-    resource_group_name         = "StorageAccount-ResourceGroup"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
-    storage_account_name        = "abcd1234"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
-    container_name              = "tfstate"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
-    key                         = "prod.terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    resource_group_name         = "rg-tfstate-001"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name        = "stotfstate001"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name              = "prod"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                         = "terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
     client_id                   = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
     client_certificate_path     = "./cert.pfx"  # Can also be set via `ARM_CLIENT_CERTIFICATE_PATH` environment variable.
     client_certificate_password = "************************************"  # Can also be set via `ARM_CLIENT_CERTIFICATE_PASSWORD` environment variable.
@@ -221,10 +221,10 @@ Connect to Storage Account with Entra ID:
 ```hcl
 terraform {
   backend "azurerm" {
-    resource_group_name         = "StorageAccount-ResourceGroup"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
-    storage_account_name        = "abcd1234"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
-    container_name              = "tfstate"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
-    key                         = "prod.terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    resource_group_name         = "rg-tfstate-001"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name        = "stotfstate001"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name              = "prod"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                         = "terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
     client_id                   = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
     client_certificate_path     = "./cert.pfx"  # Can also be set via `ARM_CLIENT_CERTIFICATE_PATH` environment variable.
     client_certificate_password = "************************************"  # Can also be set via `ARM_CLIENT_CERTIFICATE_PASSWORD` environment variable.
@@ -242,10 +242,10 @@ terraform {
 ```hcl
 terraform {
   backend "azurerm" {
-    resource_group_name  = "StorageAccount-ResourceGroup"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
-    storage_account_name = "abcd1234"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
-    container_name       = "tfstate"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
-    key                  = "prod.terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    resource_group_name  = "rg-tfstate-001"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "stotfstate001"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "prod"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
     access_key           = "abcdefghijklmnopqrstuvwxyz0123456789..."  # Can also be set via `ARM_ACCESS_KEY` environment variable.
   }
 }
@@ -258,10 +258,10 @@ terraform {
 ```hcl
 terraform {
   backend "azurerm" {
-    resource_group_name  = "StorageAccount-ResourceGroup"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
-    storage_account_name = "abcd1234"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
-    container_name       = "tfstate"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
-    key                  = "prod.terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
+    resource_group_name  = "rg-tfstate-001"  # Can be passed via `-backend-config=`"resource_group_name=<resource group name>"` in the `init` command.
+    storage_account_name = "stotfstate001"  # Can be passed via `-backend-config=`"storage_account_name=<storage account name>"` in the `init` command.
+    container_name       = "prod"  # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key                  = "terraform.tfstate"  # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
     sas_token            = "abcdefghijklmnopqrstuvwxyz0123456789..."  # Can also be set via `ARM_SAS_TOKEN` environment variable.
   }
 }
@@ -279,10 +279,10 @@ Connect to Storage Account with Access Key (default):
 data "terraform_remote_state" "foo" {
   backend = "azurerm"
   config = {
-    resource_group_name  = "StorageAccount-ResourceGroup"
-    storage_account_name = "abcd1234"
-    container_name       = "tfstate"
-    key                  = "prod.terraform.tfstate"
+    resource_group_name  = "rg-tfstate-001"
+    storage_account_name = "stotfstate001"
+    container_name       = "prod"
+    key                  = "terraform.tfstate"
   }
 }
 ```
@@ -293,10 +293,10 @@ Connect to Storage Account with Entra ID:
 data "terraform_remote_state" "foo" {
   backend = "azurerm"
   config = {
-    resource_group_name  = "StorageAccount-ResourceGroup"
-    storage_account_name = "abcd1234"
-    container_name       = "tfstate"
-    key                  = "prod.terraform.tfstate"
+    resource_group_name  = "rg-tfstate-001"
+    storage_account_name = "stotfstate001"
+    container_name       = "prod"
+    key                  = "terraform.tfstate"
     use_azuread_auth     = true  # Can also be set via `USE_AZURE_AD` environment variable.
   }
 }
@@ -312,10 +312,10 @@ Connect to Storage Account with Access Key (default):
 data "terraform_remote_state" "foo" {
   backend = "azurerm"
   config = {
-    resource_group_name  = "StorageAccount-ResourceGroup"
-    storage_account_name = "abcd1234"
-    container_name       = "tfstate"
-    key                  = "prod.terraform.tfstate"
+    resource_group_name  = "rg-tfstate-001"
+    storage_account_name = "stotfstate001"
+    container_name       = "prod"
+    key                  = "terraform.tfstate"
     use_oidc             = true  # Can also be set via `USE_OIDC` environment variable.
     client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
     subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
@@ -330,10 +330,10 @@ Connect to Storage Account with Entra ID:
 data "terraform_remote_state" "foo" {
   backend = "azurerm"
   config = {
-    resource_group_name  = "StorageAccount-ResourceGroup"
-    storage_account_name = "abcd1234"
-    container_name       = "tfstate"
-    key                  = "prod.terraform.tfstate"
+    resource_group_name  = "rg-tfstate-001"
+    storage_account_name = "stotfstate001"
+    container_name       = "prod"
+    key                  = "terraform.tfstate"
     use_oidc             = true  # Can also be set via `USE_OIDC` environment variable.
     client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
     subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
@@ -353,10 +353,10 @@ Connect to Storage Account with Access Key (default):
 data "terraform_remote_state" "foo" {
   backend = "azurerm"
   config = {
-    resource_group_name  = "StorageAccount-ResourceGroup"
-    storage_account_name = "abcd1234"
-    container_name       = "tfstate"
-    key                  = "prod.terraform.tfstate"
+    resource_group_name  = "rg-tfstate-001"
+    storage_account_name = "stotfstate001"
+    container_name       = "prod"
+    key                  = "terraform.tfstate"
     use_msi              = true  # Can also be set via `USE_MSI` environment variable.
     subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
     tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
@@ -370,10 +370,10 @@ Connect to Storage Account with Entra ID:
 data "terraform_remote_state" "foo" {
   backend = "azurerm"
   config = {
-    resource_group_name  = "StorageAccount-ResourceGroup"
-    storage_account_name = "abcd1234"
-    container_name       = "tfstate"
-    key                  = "prod.terraform.tfstate"
+    resource_group_name  = "rg-tfstate-001"
+    storage_account_name = "stotfstate001"
+    container_name       = "prod"
+    key                  = "terraform.tfstate"
     use_msi              = true  # Can also be set via `USE_MSI` environment variable.
     subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
     tenant_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_TENANT_ID` environment variable.
@@ -392,10 +392,10 @@ Connect to Storage Account with Access Key (default):
 data "terraform_remote_state" "foo" {
   backend = "azurerm"
   config = {
-    resource_group_name  = "StorageAccount-ResourceGroup"
-    storage_account_name = "abcd1234"
-    container_name       = "tfstate"
-    key                  = "prod.terraform.tfstate"
+    resource_group_name  = "rg-tfstate-001"
+    storage_account_name = "stotfstate001"
+    container_name       = "prod"
+    key                  = "terraform.tfstate"
     client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
     client_secret        = "************************************"  # Can also be set via `ARM_CLIENT_SECRET` environment variable.
     subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
@@ -410,10 +410,10 @@ Connect to Storage Account with Entra ID:
 data "terraform_remote_state" "foo" {
   backend = "azurerm"
   config = {
-    resource_group_name  = "StorageAccount-ResourceGroup"
-    storage_account_name = "abcd1234"
-    container_name       = "tfstate"
-    key                  = "prod.terraform.tfstate"
+    resource_group_name  = "rg-tfstate-001"
+    storage_account_name = "stotfstate001"
+    container_name       = "prod"
+    key                  = "terraform.tfstate"
     client_id            = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
     client_secret        = "************************************"  # Can also be set via `ARM_CLIENT_SECRET` environment variable.
     subscription_id      = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_SUBSCRIPTION_ID` environment variable.
@@ -433,10 +433,10 @@ Connect to Storage Account with Access Key (default):
 data "terraform_remote_state" "foo" {
   backend = "azurerm"
   config = {
-    resource_group_name  = "StorageAccount-ResourceGroup"
-    storage_account_name = "abcd1234"
-    container_name       = "tfstate"
-    key                  = "prod.terraform.tfstate"
+    resource_group_name  = "rg-tfstate-001"
+    storage_account_name = "stotfstate001"
+    container_name       = "prod"
+    key                  = "terraform.tfstate"
     client_id                   = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
     client_certificate_path     = "./cert.pfx"  # Can also be set via `ARM_CLIENT_CERTIFICATE_PATH` environment variable.
     client_certificate_password = "************************************"  # Can also be set via `ARM_CLIENT_CERTIFICATE_PASSWORD` environment variable.
@@ -452,10 +452,10 @@ Connect to Storage Account with Entra ID:
 data "terraform_remote_state" "foo" {
   backend = "azurerm"
   config = {
-    resource_group_name  = "StorageAccount-ResourceGroup"
-    storage_account_name = "abcd1234"
-    container_name       = "tfstate"
-    key                  = "prod.terraform.tfstate"
+    resource_group_name  = "rg-tfstate-001"
+    storage_account_name = "stotfstate001"
+    container_name       = "prod"
+    key                  = "terraform.tfstate"
     client_id                   = "00000000-0000-0000-0000-000000000000"  # Can also be set via `ARM_CLIENT_ID` environment variable.
     client_certificate_path     = "./cert.pfx"  # Can also be set via `ARM_CLIENT_CERTIFICATE_PATH` environment variable.
     client_certificate_password = "************************************"  # Can also be set via `ARM_CLIENT_CERTIFICATE_PASSWORD` environment variable.
@@ -474,10 +474,10 @@ data "terraform_remote_state" "foo" {
 data "terraform_remote_state" "foo" {
   backend = "azurerm"
   config = {
-    resource_group_name  = "StorageAccount-ResourceGroup"
-    storage_account_name = "abcd1234"
-    container_name       = "tfstate"
-    key                  = "prod.terraform.tfstate"
+    resource_group_name  = "rg-tfstate-001"
+    storage_account_name = "stotfstate001"
+    container_name       = "prod"
+    key                  = "terraform.tfstate"
     access_key           = "abcdefghijklmnopqrstuvwxyz0123456789..."  # Can also be set via `ARM_ACCESS_KEY` environment variable.
   }
 }
@@ -491,10 +491,10 @@ data "terraform_remote_state" "foo" {
 data "terraform_remote_state" "foo" {
   backend = "azurerm"
   config = {
-    resource_group_name  = "StorageAccount-ResourceGroup"
-    storage_account_name = "abcd1234"
-    container_name       = "tfstate"
-    key                  = "prod.terraform.tfstate"
+    resource_group_name  = "rg-tfstate-001"
+    storage_account_name = "stotfstate001"
+    container_name       = "prod"
+    key                  = "terraform.tfstate"
     sas_token            = "abcdefghijklmnopqrstuvwxyz0123456789..."  # Can also be set via `ARM_SAS_TOKEN` environment variable.
   }
 }
