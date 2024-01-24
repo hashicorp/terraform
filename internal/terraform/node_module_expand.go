@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -106,6 +107,15 @@ func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) (diags tfd
 	expander := ctx.InstanceExpander()
 	_, call := n.Addr.Call()
 
+	// Allowing unknown values in count and for_each is currently only an
+	// experimental feature. This will hopefully become the default (and only)
+	// behavior in future, if the experiment is successful.
+	//
+	// If this is false then the codepaths that handle unknown values below
+	// become unreachable, because the evaluate functions will reject unknown
+	// values as an error.
+	allowUnknown := ctx.LanguageExperimentActive(experiments.UnknownInstances)
+
 	// nodeExpandModule itself does not have visibility into how its ancestors
 	// were expanded, so we use the expander here to provide all possible paths
 	// to our module, and register module instances with each of them.
@@ -113,20 +123,29 @@ func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) (diags tfd
 		ctx = ctx.WithPath(module)
 		switch {
 		case n.ModuleCall.Count != nil:
-			count, ctDiags := evaluateCountExpression(n.ModuleCall.Count, ctx, false)
+			count, ctDiags := evaluateCountExpression(n.ModuleCall.Count, ctx, allowUnknown)
 			diags = diags.Append(ctDiags)
 			if diags.HasErrors() {
 				return diags
 			}
-			expander.SetModuleCount(module, call, count)
+			if count >= 0 {
+				expander.SetModuleCount(module, call, count)
+			} else {
+				// -1 represents "unknown"
+				expander.SetModuleCountUnknown(module, call)
+			}
 
 		case n.ModuleCall.ForEach != nil:
-			forEach, _, feDiags := evaluateForEachExpression(n.ModuleCall.ForEach, ctx, false)
+			forEach, known, feDiags := evaluateForEachExpression(n.ModuleCall.ForEach, ctx, allowUnknown)
 			diags = diags.Append(feDiags)
 			if diags.HasErrors() {
 				return diags
 			}
-			expander.SetModuleForEach(module, call, forEach)
+			if known {
+				expander.SetModuleForEach(module, call, forEach)
+			} else {
+				expander.SetModuleForEachUnknown(module, call)
+			}
 
 		default:
 			expander.SetModuleSingle(module, call)

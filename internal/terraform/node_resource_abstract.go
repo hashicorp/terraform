@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -402,19 +403,33 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 	// to expand the module here to create all resources.
 	expander := ctx.InstanceExpander()
 
+	// Allowing unknown values in count and for_each is currently only an
+	// experimental feature. This will hopefully become the default (and only)
+	// behavior in future, if the experiment is successful.
+	//
+	// If this is false then the codepaths that handle unknown values below
+	// become unreachable, because the evaluate functions will reject unknown
+	// values as an error.
+	allowUnknown := ctx.LanguageExperimentActive(experiments.UnknownInstances)
+
 	switch {
 	case n.Config != nil && n.Config.Count != nil:
-		count, countDiags := evaluateCountExpression(n.Config.Count, ctx, false)
+		count, countDiags := evaluateCountExpression(n.Config.Count, ctx, allowUnknown)
 		diags = diags.Append(countDiags)
 		if countDiags.HasErrors() {
 			return diags
 		}
 
 		state.SetResourceProvider(addr, n.ResolvedProvider)
-		expander.SetResourceCount(addr.Module, n.Addr.Resource, count)
+		if count >= 0 {
+			expander.SetResourceCount(addr.Module, n.Addr.Resource, count)
+		} else {
+			// -1 represents "unknown"
+			expander.SetResourceCountUnknown(addr.Module, n.Addr.Resource)
+		}
 
 	case n.Config != nil && n.Config.ForEach != nil:
-		forEach, _, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx, false)
+		forEach, known, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx, allowUnknown)
 		diags = diags.Append(forEachDiags)
 		if forEachDiags.HasErrors() {
 			return diags
@@ -423,7 +438,11 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 		// This method takes care of all of the business logic of updating this
 		// while ensuring that any existing instances are preserved, etc.
 		state.SetResourceProvider(addr, n.ResolvedProvider)
-		expander.SetResourceForEach(addr.Module, n.Addr.Resource, forEach)
+		if known {
+			expander.SetResourceForEach(addr.Module, n.Addr.Resource, forEach)
+		} else {
+			expander.SetResourceForEachUnknown(addr.Module, n.Addr.Resource)
+		}
 
 	default:
 		state.SetResourceProvider(addr, n.ResolvedProvider)

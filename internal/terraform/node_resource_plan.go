@@ -218,7 +218,7 @@ func (n *nodeExpandPlannableResource) validateExpandedImportTargets() tfdiags.Di
 //
 // It has several side-effects:
 //   - Adds a node to Graph g for each leaf resource instance it discovers, whether present or orphaned.
-//   - Registers the expansion of the resource in the "expander" object embedded inside EvalContext ctx.
+//   - Registers the expansion of the resource in the "expander" object embedded inside EvalContext globalCtx.
 //   - Adds each present (non-orphaned) resource instance address to checkableAddrs (guaranteed to always be addrs.AbsResourceInstance, despite being declared as addrs.Checkable).
 //
 // After calling this for each of the module instances the resource appears
