@@ -2932,7 +2932,6 @@ output "output" {
 		}
 
 		if res.Addr.Resource.Resource.Mode == addrs.DataResourceMode && res.Action != plans.NoOp {
-			fmt.Println(res.Addr, res.ActionReason)
 			t.Errorf("unexpected %s/%s plan for %s", res.Action, res.ActionReason, res.Addr)
 		}
 	}

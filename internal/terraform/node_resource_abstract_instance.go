@@ -997,12 +997,11 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 	}
 
-	// Add the marks back to the planned new value -- this must happen after ignore changes
-	// have been processed. We add in the schema marks as well, so ensure that
-	// provider defined private attributes are marked correctly here.
+	// Add the marks back to the planned new value -- this must happen after
+	// ignore changes have been processed. We add in the schema marks as well,
+	// to ensure that provider defined private attributes are marked correctly
+	// here.
 	unmarkedPlannedNewVal := plannedNewVal
-	// Add schema path marks to unmarkedPaths, so that any difference in
-	// sensitive attributes from the provider are marked correctly too.
 	unmarkedPaths = dedupePathValueMarks(append(unmarkedPaths, schema.ValueMarks(plannedNewVal, nil)...))
 
 	if len(unmarkedPaths) > 0 {
