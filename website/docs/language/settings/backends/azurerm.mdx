@@ -19,7 +19,7 @@ The `azurerm` backend supports 3 methods of authenticating to the storage accoun
 - **Entra ID**
 - **SAS Token**
 
-The **Access Key** method can be used directly or in combination with an Entra ID principal (e.g. user, service principal or managed identity). By default when you use an Entra ID principal, it will use the Access Token of that principal to generate an Access Key for the storage account and use that Access Key to authenticate to the state file blob. To use an Access Key directly you must generate one for you state file blob and pass it to the backend config.
+The **Access Key** method can be used directly or in combination with an Entra ID principal (e.g. user, service principal or managed identity). By default when you use an Entra ID principal, it will use the Access Token of that principal to generate an Access Key for the storage account and use that Access Key to authenticate to the state file blob. To use an Access Key directly you must generate one for your state file blob and pass it to the backend config.
 
 The **Entra ID** method can only be used in combination with an Entra ID principal. To use the Entra ID method you must set the `use_azuread_auth` variable to `true` in your backend configuration. This will cause the backend to use the Access Token of the Entra ID principal to authenticate to the state file blob.
 
