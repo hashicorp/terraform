@@ -464,6 +464,10 @@ type nodeOutputInPartialModule struct {
 	RefreshOnly bool
 }
 
+func (n *nodeOutputInPartialModule) Path() addrs.PartialExpandedModule {
+	return n.Addr.Module
+}
+
 // TODO: Implement nodeOutputInPartialModule.Execute
 
 // NodeDestroyableOutput represents an output that is "destroyable":

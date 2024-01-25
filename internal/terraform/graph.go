@@ -67,19 +67,32 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			}
 		}()
 
-		// vertexCtx is the context that we use when evaluating. This
-		// is normally the context of our graph but can be overridden
-		// with a GraphNodeModuleInstance impl.
-		vertexCtx := ctx
-		if pn, ok := v.(GraphNodeModuleInstance); ok {
-			vertexCtx = walker.EnterPath(pn.Path())
-			defer walker.ExitPath(pn.Path())
-		}
-
 		if g.checkAndApplyOverrides(ctx.Overrides(), v) {
 			// We can skip whole vertices if they are in a module that has been
 			// overridden.
+			log.Printf("[TRACE] vertex %q: overridden by a test double, so skipping", dag.VertexName(v))
 			return
+		}
+
+		// vertexCtx is the context that we use when evaluating. This
+		// is normally the global context but can be overridden
+		// with a GraphNodeModuleInstance or GraphNodePartialExpandedModule
+		// impl. (The two interfaces are intentionally mutually-exclusive by
+		// both having the same method name but with different signatures,
+		// since a node can't belong to two different contexts at once.)
+		vertexCtx := ctx
+		if pn, ok := v.(GraphNodeModuleInstance); ok {
+			moduleAddr := pn.Path() // An addrs.ModuleInstance
+			log.Printf("[TRACE] vertex %q: belongs to %s", dag.VertexName(v), moduleAddr)
+			vertexCtx = walker.EnterPath(moduleAddr)
+			defer walker.ExitPath(pn.Path())
+		} else if pn, ok := v.(GraphNodePartialExpandedModule); ok {
+			moduleAddr := pn.Path() // An addrs.PartialExpandedModule
+			log.Printf("[TRACE] vertex %q: belongs to all of %s", dag.VertexName(v), moduleAddr)
+			vertexCtx = walker.EnterPartialExpandedPath(pn.Path())
+			defer walker.ExitPartialExpandedPath(pn.Path())
+		} else {
+			log.Printf("[TRACE] vertex %q: does not belong to any module instance", dag.VertexName(v))
 		}
 
 		// If the node is exec-able, then execute it.

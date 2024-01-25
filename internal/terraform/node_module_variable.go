@@ -323,4 +323,8 @@ type nodeModuleVariableInPartialModule struct {
 	DestroyApply bool
 }
 
+func (n *nodeModuleVariableInPartialModule) Path() addrs.PartialExpandedModule {
+	return n.Addr.Module
+}
+
 // TODO: Implement nodeModuleVariableInPartialModule.Execute
