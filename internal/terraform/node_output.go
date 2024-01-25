@@ -132,6 +132,10 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 				Config:      n.Config,
 				RefreshOnly: n.RefreshOnly,
 			}
+			// We don't need to handle the module.IsRoot() && n.Destroying case
+			// seen in the fully-expanded case above, because the root module
+			// instance is always "fully expanded" (it's always a singleton)
+			// and so we can't get here for output values in the root module.
 			log.Printf("[TRACE] Expanding output: adding placeholder for all %s as %T", absAddr.String(), node)
 			g.Add(node)
 		},
@@ -464,11 +468,43 @@ type nodeOutputInPartialModule struct {
 	RefreshOnly bool
 }
 
+// Path implements [GraphNodePartialExpandedModule], meaning that the
+// Execute method receives an [EvalContext] that's set up for partial-expanded
+// evaluation instead of full evaluation.
 func (n *nodeOutputInPartialModule) Path() addrs.PartialExpandedModule {
 	return n.Addr.Module
 }
 
-// TODO: Implement nodeOutputInPartialModule.Execute
+func (n *nodeOutputInPartialModule) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	// Our job here is to make sure that the output value definition is
+	// valid for all instances of this output value across all of the possible
+	// module instances under our partially-expanded prefix, and to record
+	// a placeholder value that captures as precisely as possible what all
+	// of those results have in common. In the worst case where they have
+	// absolutely nothing in common cty.DynamicVal is the ultimate fallback,
+	// but we should try to do better when possible to give operators earlier
+	// feedback about any problems they would definitely encounter on a
+	// subsequent plan where the output values get evaluated concretely.
+
+	namedVals := ctx.NamedValues()
+
+	// this "ctx" is preconfigured to evaluate in terms of other placeholder
+	// values generated in the same unexpanded module prefix, rather than
+	// from the active state/plan, so this result is likely to be derived
+	// from unknown value placeholders itself.
+	val, diags := ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
+	if val == cty.NilVal {
+		val = cty.DynamicVal
+	}
+
+	// We'll also check that the depends_on argument is valid, since that's
+	// a static concern anyway and so cannot vary between instances of the
+	// same module.
+	diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
+
+	namedVals.SetOutputValuePlaceholder(n.Addr, val)
+	return diags
+}
 
 // NodeDestroyableOutput represents an output that is "destroyable":
 // its application will remove the output from the state.
