@@ -14,6 +14,8 @@ type GraphWalker interface {
 	EvalContext() EvalContext
 	EnterPath(addrs.ModuleInstance) EvalContext
 	ExitPath(addrs.ModuleInstance)
+	EnterPartialExpandedPath(addrs.PartialExpandedModule) EvalContext
+	ExitPartialExpandedPath(addrs.PartialExpandedModule)
 	Execute(EvalContext, GraphNodeExecutable) tfdiags.Diagnostics
 }
 
@@ -22,7 +24,11 @@ type GraphWalker interface {
 // implementing all the required functions.
 type NullGraphWalker struct{}
 
-func (NullGraphWalker) EvalContext() EvalContext                                     { return new(MockEvalContext) }
-func (NullGraphWalker) EnterPath(addrs.ModuleInstance) EvalContext                   { return new(MockEvalContext) }
-func (NullGraphWalker) ExitPath(addrs.ModuleInstance)                                {}
+func (NullGraphWalker) EvalContext() EvalContext                   { return new(MockEvalContext) }
+func (NullGraphWalker) EnterPath(addrs.ModuleInstance) EvalContext { return new(MockEvalContext) }
+func (NullGraphWalker) ExitPath(addrs.ModuleInstance)              {}
+func (NullGraphWalker) EnterPartialExpandedPath(addrs.PartialExpandedModule) EvalContext {
+	return new(MockEvalContext)
+}
+func (NullGraphWalker) ExitPartialExpandedPath(addrs.PartialExpandedModule)          {}
 func (NullGraphWalker) Execute(EvalContext, GraphNodeExecutable) tfdiags.Diagnostics { return nil }
