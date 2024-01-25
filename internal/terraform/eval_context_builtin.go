@@ -34,18 +34,16 @@ import (
 // BuiltinEvalContext is an EvalContext implementation that is used by
 // Terraform by default.
 type BuiltinEvalContext struct {
+	// scope is the scope (module instance or set of possible module instances)
+	// that this context is operating within.
+	//
+	// Note: this can be evalContextGlobal (i.e. nil) when visiting a graph
+	// node that doesn't belong to a particular module, in which case any
+	// method using it will panic.
+	scope evalContextScope
+
 	// StopContext is the context used to track whether we're complete
 	StopContext context.Context
-
-	// PathValue is the Path that this context is operating within.
-	PathValue addrs.ModuleInstance
-
-	// pathSet indicates that this context was explicitly created for a
-	// specific path, and can be safely used for evaluation. This lets us
-	// differentiate between PathValue being unset, and the zero value which is
-	// equivalent to RootModuleInstance.  Path and Evaluation methods will
-	// panic if this is not set.
-	pathSet bool
 
 	// Evaluator is used for evaluating expressions within the scope of this
 	// eval context.
@@ -90,8 +88,17 @@ var _ EvalContext = (*BuiltinEvalContext)(nil)
 
 func (ctx *BuiltinEvalContext) WithPath(path addrs.ModuleInstance) EvalContext {
 	newCtx := *ctx
-	newCtx.pathSet = true
-	newCtx.PathValue = path
+	newCtx.scope = evalContextModuleInstance{
+		Addr: path,
+	}
+	return &newCtx
+}
+
+func (ctx *BuiltinEvalContext) WithPartialExpandedPath(path addrs.PartialExpandedModule) EvalContext {
+	newCtx := *ctx
+	newCtx.scope = evalContextPartialExpandedModule{
+		Addr: path,
+	}
 	return &newCtx
 }
 
@@ -436,28 +443,45 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 }
 
 func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {
-	if !ctx.pathSet {
-		panic("context path not set")
-	}
-	data := &evaluationStateData{
-		Evaluator:       ctx.Evaluator,
-		ModulePath:      ctx.PathValue,
-		InstanceKeyData: keyData,
-		Operation:       ctx.Evaluator.Operation,
-	}
-	scope := ctx.Evaluator.Scope(data, self, source, ctx.evaluationExternalFunctions())
+	switch scope := ctx.scope.(type) {
+	case evalContextModuleInstance:
+		data := &evaluationStateData{
+			Evaluator:       ctx.Evaluator,
+			ModulePath:      scope.Addr,
+			InstanceKeyData: keyData,
+			Operation:       ctx.Evaluator.Operation,
+		}
+		evalScope := ctx.Evaluator.Scope(data, self, source, ctx.evaluationExternalFunctions())
 
-	// ctx.PathValue is the path of the module that contains whatever
-	// expression the caller will be trying to evaluate, so this will
-	// activate only the experiments from that particular module, to
-	// be consistent with how experiment checking in the "configs"
-	// package itself works. The nil check here is for robustness in
-	// incompletely-mocked testing situations; mc should never be nil in
-	// real situations.
-	if mc := ctx.Evaluator.Config.DescendentForInstance(ctx.PathValue); mc != nil {
-		scope.SetActiveExperiments(mc.Module.ActiveExperiments)
+		// ctx.PathValue is the path of the module that contains whatever
+		// expression the caller will be trying to evaluate, so this will
+		// activate only the experiments from that particular module, to
+		// be consistent with how experiment checking in the "configs"
+		// package itself works. The nil check here is for robustness in
+		// incompletely-mocked testing situations; mc should never be nil in
+		// real situations.
+		if mc := ctx.Evaluator.Config.DescendentForInstance(scope.Addr); mc != nil {
+			evalScope.SetActiveExperiments(mc.Module.ActiveExperiments)
+		}
+		return evalScope
+	case evalContextPartialExpandedModule:
+		data := &evaluationPlaceholderData{
+			Evaluator:      ctx.Evaluator,
+			ModulePath:     scope.Addr,
+			CountAvailable: keyData.CountIndex != cty.NilVal,
+			EachAvailable:  keyData.EachKey != cty.NilVal,
+			Operation:      ctx.Evaluator.Operation,
+		}
+		evalScope := ctx.Evaluator.Scope(data, self, source, ctx.evaluationExternalFunctions())
+		if mc := ctx.Evaluator.Config.Descendent(scope.Addr.Module()); mc != nil {
+			evalScope.SetActiveExperiments(mc.Module.ActiveExperiments)
+		}
+		return evalScope
+	default:
+		// This method is valid only for module-scoped EvalContext objects.
+		panic("no evaluation scope available: not in module context")
 	}
-	return scope
+
 }
 
 // evaluationExternalFunctions is a helper for method EvaluationScope which
@@ -531,10 +555,10 @@ func (ctx *BuiltinEvalContext) functionProvider(addr addrs.Provider) (providers.
 }
 
 func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {
-	if !ctx.pathSet {
-		panic("context path not set")
+	if scope, ok := ctx.scope.(evalContextModuleInstance); ok {
+		return scope.Addr
 	}
-	return ctx.PathValue
+	panic("not evaluating in the scope of a fully-expanded module")
 }
 
 func (ctx *BuiltinEvalContext) LanguageExperimentActive(experiment experiments.Experiment) bool {
@@ -543,12 +567,14 @@ func (ctx *BuiltinEvalContext) LanguageExperimentActive(experiment experiments.E
 		// if the context isn't fully populated.
 		return false
 	}
-	if !ctx.pathSet {
-		// An EvalContext that isn't associated with a module path cannot
-		// have active experiments.
+	scope := ctx.scope
+	if scope == evalContextGlobal {
+		// If we're not associated with a specific module then there can't
+		// be any language experiments in play, because experiment activation
+		// is module-scoped.
 		return false
 	}
-	cfg := ctx.Evaluator.Config.DescendentForInstance(ctx.Path())
+	cfg := ctx.Evaluator.Config.Descendent(scope.evalContextScopeModule())
 	if cfg == nil {
 		return false
 	}

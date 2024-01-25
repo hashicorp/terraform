@@ -193,4 +193,8 @@ type EvalContext interface {
 	// WithPath returns a copy of the context with the internal path set to the
 	// path argument.
 	WithPath(path addrs.ModuleInstance) EvalContext
+
+	// WithPartialExpandedPath returns a copy of the context with the internal
+	// path set to the path argument.
+	WithPartialExpandedPath(path addrs.PartialExpandedModule) EvalContext
 }
