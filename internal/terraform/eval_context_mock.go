@@ -332,6 +332,14 @@ func (c *MockEvalContext) WithPath(path addrs.ModuleInstance) EvalContext {
 	return &newC
 }
 
+func (c *MockEvalContext) WithPartialExpandedPath(path addrs.PartialExpandedModule) EvalContext {
+	// This is not yet implemented as a mock, because we've not yet had any
+	// need for it. If we end up needing to test this behavior in isolation
+	// somewhere then we'll need to figure out how to fit it in here without
+	// upsetting too many existing tests that rely on the PathPath field.
+	panic("WithPartialExpandedPath not implemented for MockEvalContext")
+}
+
 func (c *MockEvalContext) Path() addrs.ModuleInstance {
 	c.PathCalled = true
 	return c.PathPath
