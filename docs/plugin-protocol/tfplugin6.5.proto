@@ -501,13 +501,20 @@ message MoveResourceState {
 
         // The resource type that the resource is being moved to.
         string target_type_name = 5;
+
+        // The private state of the resource being moved.
+        bytes source_private = 6;
     }
+
     message Response {
         // The state of the resource after it has been moved.
         DynamicValue target_state = 1;
 
         // Any diagnostics that occurred during the move.
         repeated Diagnostic diagnostics = 2;
+
+        // The private state of the resource after it has been moved.
+        bytes target_private = 3;
     }
 }
 

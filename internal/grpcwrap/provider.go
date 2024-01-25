@@ -374,6 +374,7 @@ func (p *provider) MoveResourceState(_ context.Context, request *tfplugin5.MoveR
 		SourceTypeName:        request.SourceTypeName,
 		SourceSchemaVersion:   request.SourceSchemaVersion,
 		SourceStateJSON:       request.SourceState.Json,
+		SourcePrivate:         request.SourcePrivate,
 		TargetTypeName:        request.TargetTypeName,
 	})
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, moveResp.Diagnostics)
@@ -388,6 +389,7 @@ func (p *provider) MoveResourceState(_ context.Context, request *tfplugin5.MoveR
 		return resp, nil
 	}
 	resp.TargetState = targetState
+	resp.TargetPrivate = moveResp.TargetPrivate
 	return resp, nil
 }
 

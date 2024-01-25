@@ -411,6 +411,10 @@ type MoveResourceStateRequest struct {
 	// in the state.
 	SourceStateJSON []byte
 
+	// SourcePrivate contains the private state of the resource that is being
+	// moved.
+	SourcePrivate []byte
+
 	// TargetTypeName is the name of the resource type that the resource is
 	// being moved to.
 	TargetTypeName string
@@ -420,6 +424,10 @@ type MoveResourceStateResponse struct {
 	// TargetState is the state of the resource after it has been moved to the
 	// new resource type.
 	TargetState cty.Value
+
+	// TargetPrivate is the private state of the resource after it has been
+	// moved to the new resource type.
+	TargetPrivate []byte
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics

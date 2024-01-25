@@ -631,6 +631,7 @@ func (p *GRPCProvider) MoveResourceState(r providers.MoveResourceStateRequest) (
 		SourceState: &proto6.RawState{
 			Json: r.SourceStateJSON,
 		},
+		SourcePrivate:  r.SourcePrivate,
 		TargetTypeName: r.TargetTypeName,
 	}
 
@@ -663,6 +664,9 @@ func (p *GRPCProvider) MoveResourceState(r providers.MoveResourceStateRequest) (
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
+
+	resp.TargetPrivate = protoResp.TargetPrivate
+
 	return resp
 }
 
