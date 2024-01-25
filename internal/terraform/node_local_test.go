@@ -8,10 +8,10 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -19,22 +19,22 @@ import (
 func TestNodeLocalExecute(t *testing.T) {
 	tests := []struct {
 		Value string
-		Want  interface{}
+		Want  cty.Value
 		Err   bool
 	}{
 		{
 			"hello!",
-			"hello!",
+			cty.StringVal("hello!"),
 			false,
 		},
 		{
 			"",
-			"",
+			cty.StringVal(""),
 			false,
 		},
 		{
 			"Hello, ${local.foo}",
-			nil,
+			cty.DynamicVal,
 			true, // self-referencing
 		},
 	}
@@ -57,7 +57,7 @@ func TestNodeLocalExecute(t *testing.T) {
 				StateState:       states.NewState().SyncWrapper(),
 				NamedValuesState: namedvals.NewState(),
 
-				EvaluateExprResult: hcl2shim.HCL2ValueFromConfigValue(test.Want),
+				EvaluateExprResult: test.Want,
 			}
 
 			err := n.Execute(ctx, walkApply)
@@ -69,19 +69,13 @@ func TestNodeLocalExecute(t *testing.T) {
 				}
 			}
 
-			if test.Err {
-				if ctx.NamedValues().HasLocalValue(localAddr) {
-					t.Errorf("have value for %s, but wanted none", localAddr)
-				}
-			} else {
-				if !ctx.NamedValues().HasLocalValue(localAddr) {
-					t.Fatalf("no value for %s", localAddr)
-				}
-				got := ctx.NamedValues().GetLocalValue(localAddr)
-				want := hcl2shim.HCL2ValueFromConfigValue(test.Want)
-				if !want.RawEquals(got) {
-					t.Errorf("wrong value for %s\ngot:  %#v\nwant: %#v", localAddr, got, want)
-				}
+			if !ctx.NamedValues().HasLocalValue(localAddr) {
+				t.Fatalf("no value for %s", localAddr)
+			}
+			got := ctx.NamedValues().GetLocalValue(localAddr)
+			want := test.Want
+			if !want.RawEquals(got) {
+				t.Errorf("wrong value for %s\ngot:  %#v\nwant: %#v", localAddr, got, want)
 			}
 		})
 	}
