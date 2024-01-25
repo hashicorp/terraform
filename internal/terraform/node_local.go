@@ -201,4 +201,8 @@ type nodeLocalInPartialModule struct {
 	Config *configs.Local
 }
 
+func (n *nodeLocalInPartialModule) Path() addrs.PartialExpandedModule {
+	return n.Addr.Module
+}
+
 // TODO: Implement nodeLocalUnexpandedPlaceholder.Execute
