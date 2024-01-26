@@ -160,6 +160,11 @@ type nodeModuleVariable struct {
 	// ModuleCallArguments, ex. so count.index and each.key can resolve
 	ModuleInstance addrs.ModuleInstance
 
+	// ModuleCallConfig is the module call that the expression in field Expr
+	// came from, which helps decide what [instances.RepetitionData] we should
+	// use when evaluating Expr.
+	ModuleCallConfig *configs.ModuleCall
+
 	// DestroyApply must be set to true when applying a destroy operation and
 	// false otherwise.
 	DestroyApply bool
@@ -241,12 +246,6 @@ func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNod
 // evalModuleVariable produces the value for a particular variable as will
 // be used by a child module instance.
 //
-// The result is written into a map, with its key set to the local name of the
-// variable, disregarding the module instance address. A map is returned instead
-// of a single value as a result of trying to be convenient for use with
-// EvalContext.SetModuleCallArguments, which expects a map to merge in with any
-// existing arguments.
-//
 // validateOnly indicates that this evaluation is only for config
 // validation, and we will not have any expansion module instance
 // repetition data.
@@ -261,11 +260,10 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 		case validateOnly:
 			// the instance expander does not track unknown expansion values, so we
 			// have to assume all RepetitionData is unknown.
-			moduleInstanceRepetitionData = instances.RepetitionData{
-				CountIndex: cty.UnknownVal(cty.Number),
-				EachKey:    cty.UnknownVal(cty.String),
-				EachValue:  cty.DynamicVal,
-			}
+			// TODO: Ideally we should vary the placeholder we use here based
+			// on how the module call repetition was configured, but we don't
+			// have enough information here to decide that.
+			moduleInstanceRepetitionData = instances.TotallyUnknownRepetitionData
 
 		default:
 			// Get the repetition data for this module instance,
@@ -327,4 +325,33 @@ func (n *nodeModuleVariableInPartialModule) Path() addrs.PartialExpandedModule {
 	return n.Addr.Module
 }
 
-// TODO: Implement nodeModuleVariableInPartialModule.Execute
+func (n *nodeModuleVariableInPartialModule) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	// Our job here is to make sure that the input variable definition is
+	// valid for all instances of this input variable across all of the possible
+	// module instances under our partially-expanded prefix, and to record
+	// a placeholder value that captures as precisely as possible what all
+	// of those results have in common. In the worst case where they have
+	// absolutely nothing in common cty.DynamicVal is the ultimate fallback,
+	// but we should try to do better when possible to give operators earlier
+	// feedback about any problems they would definitely encounter on a
+	// subsequent plan where the input variables get evaluated concretely.
+
+	namedVals := ctx.NamedValues()
+
+	// TODO: Ideally we should vary the placeholder we use here based
+	// on how the module call repetition was configured, but we don't
+	// have enough information here to decide that.
+	moduleInstanceRepetitionData := instances.TotallyUnknownRepetitionData
+
+	// NOTE WELL: Input variables are a little strange in that they announce
+	// themselves as belonging to the caller of the module they are declared
+	// in, because that's where their definition expressions get evaluated.
+	// Therefore this [EvalContext] is in the scope of the parent module,
+	// while n.Addr describes an object in the child module (where the
+	// variable declaration appeared).
+	scope := ctx.EvaluationScope(nil, nil, moduleInstanceRepetitionData)
+	val, diags := scope.EvalExpr(n.Expr, cty.DynamicPseudoType)
+
+	namedVals.SetInputVariablePlaceholder(n.Addr, val)
+	return diags
+}
