@@ -140,6 +140,7 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 		SourceTypeName:        source.Resource.Resource.Type,
 		SourceSchemaVersion:   int64(src.SchemaVersion),
 		SourceStateJSON:       src.AttrsJSON,
+		SourcePrivate:         src.Private,
 		TargetTypeName:        target.Resource.Resource.Type,
 	}
 
@@ -175,7 +176,7 @@ func (move *crossTypeMove) applyCrossTypeMove(stmt *MoveStatement, source, targe
 
 	newValue := &states.ResourceInstanceObject{
 		Value:               resp.TargetState,
-		Private:             src.Private,
+		Private:             resp.TargetPrivate,
 		Status:              src.Status,
 		Dependencies:        src.Dependencies,
 		CreateBeforeDestroy: src.CreateBeforeDestroy,
