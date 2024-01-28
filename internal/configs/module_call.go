@@ -34,6 +34,9 @@ type ModuleCall struct {
 
 	DependsOn []hcl.Traversal
 
+	PreventDestroy    bool
+	PreventDestroySet bool
+
 	DeclRange hcl.Range
 }
 
@@ -197,6 +200,42 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 		}
 	}
 
+	var seenLifecycle *hcl.Block
+	for _, block := range content.Blocks {
+		switch block.Type {
+		case "lifecycle":
+			if seenLifecycle != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate lifecycle block",
+					Detail:   fmt.Sprintf("This module already has a lifecycle block at %s.", seenLifecycle.DefRange),
+					Subject:  &block.DefRange,
+				})
+				continue
+			}
+			seenLifecycle = block
+
+			lcContent, lcDiags := block.Body.Content(moduleLifecycleBlockSchema)
+			diags = append(diags, lcDiags...)
+
+			if attr, exists := lcContent.Attributes["prevent_destroy"]; exists {
+				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &mc.PreventDestroy)
+				diags = append(diags, valDiags...)
+				mc.PreventDestroySet = true
+			}
+
+		default:
+			// Any other block types are ones we've reserved for future use,
+			// so they get a generic message.
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reserved block type name in module block",
+				Detail:   fmt.Sprintf("The block type name %q is reserved for use by Terraform in a future version.", block.Type),
+				Subject:  &block.TypeRange,
+			})
+		}
+	}
+
 	return mc, diags
 }
 
@@ -270,6 +309,9 @@ var moduleBlockSchema = &hcl.BodySchema{
 			Name: "count",
 		},
 		{
+			Name: "prevent_destroy",
+		},
+		{
 			Name: "for_each",
 		},
 		{
@@ -281,11 +323,19 @@ var moduleBlockSchema = &hcl.BodySchema{
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "_"}, // meta-argument escaping block
+		{Type: "lifecycle"},
 
 		// These are all reserved for future use.
-		{Type: "lifecycle"},
 		{Type: "locals"},
 		{Type: "provider", LabelNames: []string{"type"}},
+	},
+}
+
+var moduleLifecycleBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{
+			Name: "prevent_destroy",
+		},
 	},
 }
 
