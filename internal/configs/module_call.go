@@ -167,39 +167,6 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 	}
 
 	var seenEscapeBlock *hcl.Block
-	for _, block := range content.Blocks {
-		switch block.Type {
-		case "_":
-			if seenEscapeBlock != nil {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Duplicate escaping block",
-					Detail: fmt.Sprintf(
-						"The special block type \"_\" can be used to force particular arguments to be interpreted as module input variables rather than as meta-arguments, but each module block can have only one such block. The first escaping block was at %s.",
-						seenEscapeBlock.DefRange,
-					),
-					Subject: &block.DefRange,
-				})
-				continue
-			}
-			seenEscapeBlock = block
-
-			// When there's an escaping block its content merges with the
-			// existing config we extracted earlier, so later decoding
-			// will see a blend of both.
-			mc.Config = hcl.MergeBodies([]hcl.Body{mc.Config, block.Body})
-
-		default:
-			// All of the other block types in our schema are reserved.
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Reserved block type name in module block",
-				Detail:   fmt.Sprintf("The block type name %q is reserved for use by Terraform in a future version.", block.Type),
-				Subject:  &block.TypeRange,
-			})
-		}
-	}
-
 	var seenLifecycle *hcl.Block
 	for _, block := range content.Blocks {
 		switch block.Type {
@@ -223,10 +190,28 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 				diags = append(diags, valDiags...)
 				mc.PreventDestroySet = true
 			}
+		case "_":
+			if seenEscapeBlock != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate escaping block",
+					Detail: fmt.Sprintf(
+						"The special block type \"_\" can be used to force particular arguments to be interpreted as module input variables rather than as meta-arguments, but each module block can have only one such block. The first escaping block was at %s.",
+						seenEscapeBlock.DefRange,
+					),
+					Subject: &block.DefRange,
+				})
+				continue
+			}
+			seenEscapeBlock = block
+
+			// When there's an escaping block its content merges with the
+			// existing config we extracted earlier, so later decoding
+			// will see a blend of both.
+			mc.Config = hcl.MergeBodies([]hcl.Body{mc.Config, block.Body})
 
 		default:
-			// Any other block types are ones we've reserved for future use,
-			// so they get a generic message.
+			// All of the other block types in our schema are reserved.
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Reserved block type name in module block",
