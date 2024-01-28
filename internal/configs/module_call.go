@@ -309,9 +309,6 @@ var moduleBlockSchema = &hcl.BodySchema{
 			Name: "count",
 		},
 		{
-			Name: "prevent_destroy",
-		},
-		{
 			Name: "for_each",
 		},
 		{
