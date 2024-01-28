@@ -5,9 +5,15 @@ package azure
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
@@ -21,6 +27,16 @@ import (
 	"github.com/manicminer/hamilton/environments"
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
+	"github.com/tombuildsstuff/kermit/sdk/keyvault/7.4/keyvault"
+)
+
+// we set these headers to encrypt tfstate blob with CMK
+// https://learn.microsoft.com/en-us/azure/storage/blobs/encryption-customer-provided-keys#request-headers-for-specifying-customer-provided-keys
+const (
+	encryptionAlgorithm          = "AES256"
+	cmkEncryptionAlgorithmHeader = "x-ms-encryption-algorithm"
+	cmkEncryptionKeyHeader       = "x-ms-encryption-key"
+	cmkEncryptionKeySHA256Header = "x-ms-encryption-key-sha256"
 )
 
 type ArmClient struct {
@@ -29,9 +45,12 @@ type ArmClient struct {
 	storageAccountsClient *armStorage.AccountsClient
 	containersClient      *containers.Client
 	blobsClient           *blobs.Client
+	keyVaultSecretsClient keyvault.BaseClient
 
-	// azureAdStorageAuth is only here if we're using AzureAD Authentication but is an Authorizer for Storage
-	azureAdStorageAuth *autorest.Authorizer
+	// azureAdStorageAuth is only here if we're using AzureAD Authentication but is an Authorizer for Storage & keyvault
+	azureAdStorageAuth  *autorest.Authorizer
+	azureAdKVSecretAuth *autorest.Authorizer
+	keyVaultSecretURI   string
 
 	accessKey          string
 	environment        azure.Environment
@@ -128,6 +147,21 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 		client.azureAdStorageAuth = &storageAuth
 	}
 
+	if config.KeyVaultSecretURI != "" && config.UseAzureADAuthentication {
+		// this is for keyvault secrets (data plan API)
+		keyVaultSecretAuth, err := armConfig.GetMSALToken(ctx, hamiltonEnv.KeyVault, sender, oauthConfig, env.ResourceIdentifiers.KeyVault)
+		if err != nil {
+			return nil, err
+		}
+		client.azureAdKVSecretAuth = &keyVaultSecretAuth
+		client.keyVaultSecretURI = config.KeyVaultSecretURI
+
+		// we build keyvault secret client here
+		kvSecretClient := keyvault.New()
+		client.configureClient(&kvSecretClient.Client, keyVaultSecretAuth)
+		client.keyVaultSecretsClient = kvSecretClient
+	}
+
 	accountsClient := armStorage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, armConfig.SubscriptionID)
 	client.configureClient(&accountsClient.Client, auth)
 	client.storageAccountsClient = &accountsClient
@@ -153,7 +187,22 @@ func (c ArmClient) getBlobClient(ctx context.Context) (*blobs.Client, error) {
 	}
 
 	if c.azureAdStorageAuth != nil {
+		log.Printf("[DEBUG] Building the Blob Client using AD authentication")
 		blobsClient := blobs.NewWithEnvironment(c.environment)
+		if c.keyVaultSecretURI != "" {
+			log.Printf("[DEBUG] Building the Blob Client using AD authentication with CMK enabled")
+			secretValue, err := c.fetchSecretFromKV(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("Error retrieving secret from keyvault %q: %s", c.keyVaultSecretURI, err)
+			}
+			if secretValue != "" {
+				cmkEncryptHeaders, err := setEncryptionHeaders(secretValue)
+				if err != nil {
+					return nil, fmt.Errorf("Error setting up encryption headers %+v", err)
+				}
+				blobsClient.RequestInspector = autorest.WithHeaders(cmkEncryptHeaders)
+			}
+		}
 		c.configureClient(&blobsClient.Client, *c.azureAdStorageAuth)
 		return &blobsClient, nil
 	}
@@ -182,6 +231,34 @@ func (c ArmClient) getBlobClient(ctx context.Context) (*blobs.Client, error) {
 	blobsClient := blobs.NewWithEnvironment(c.environment)
 	c.configureClient(&blobsClient.Client, storageAuth)
 	return &blobsClient, nil
+}
+
+// Azure KV supports both keys & secrets. While key is the perfect fit for CMK but
+// due to it's asymmetric nature but it's not possible to extract the key from Azure.
+// Secrets on the other hand offer AES symmetric encryption, would help in recovering
+// statefile in the events of corruption etc.,
+func (c ArmClient) fetchSecretFromKV(ctx context.Context) (string, error) {
+
+	if !IsValidKeyVaultSecretURI(c.keyVaultSecretURI) {
+		return "", fmt.Errorf("Error invalid keyvault secret URI passed. It should be in format like https://<keyvault-name>.vault.azure.net/secrets/<secret-name>/<version-if-not-latest-is-chosen>")
+	}
+
+	kvName, secretName, version, err := extractKeyVaultAndSecretNames(c.keyVaultSecretURI)
+	if err != nil {
+		return "", fmt.Errorf("Error parsing keyvault and secret from key_vault_secret_uri: %+v", err)
+	}
+	if kvName != "" && secretName != "" {
+		vaultBaseURL := fmt.Sprintf("https://%s.vault.azure.net/", kvName)
+		log.Printf("[DEBUG] Building the Keyvault Client from Azure AD auth")
+		secret, err := c.keyVaultSecretsClient.GetSecret(ctx, vaultBaseURL, secretName, version)
+		if err != nil {
+			return "", fmt.Errorf("Error fetching secret from kv: %+v", err)
+		}
+		log.Printf("[DEBUG] Fetched secret of %v", *secret.ID)
+		return *secret.Value, nil
+	}
+
+	return "", nil
 }
 
 func (c ArmClient) getContainersClient(ctx context.Context) (*containers.Client, error) {
@@ -246,4 +323,70 @@ func buildUserAgent() string {
 	}
 
 	return userAgent
+}
+
+// we extract vault, secret names & versions from a given keyvault uri
+// version is not mandatory, if not passed latest version is chosen
+func extractKeyVaultAndSecretNames(keyVaultURI string) (string, string, string, error) {
+	parsedURL, err := url.Parse(keyVaultURI)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	// Extract Key Vault name from the host
+	keyVaultName := strings.Split(parsedURL.Host, ".")[0]
+
+	// Extract Secret name from the path
+	segments := strings.Split(parsedURL.Path, "/")
+	secretName := segments[2] // Index 2 is the secret name
+
+	// Extract version from the path (if available)
+	var version string
+	if len(segments) >= 4 {
+		version = segments[3] // Index 3 is the version
+	}
+
+	return keyVaultName, secretName, version, nil
+}
+
+// calculateSHA256 calculates the SHA256 hash of a given data
+func calculateSHA256(data []byte) ([]byte, error) {
+	hash := sha256.New()
+	_, err := hash.Write(data)
+	if err != nil {
+		return nil, err
+	}
+	return hash.Sum(nil), nil
+}
+
+func setEncryptionHeaders(secretValue string) (map[string]interface{}, error) {
+	// the secret is recommended to be stored in hex format on azure kv
+	// this is due to the fact that many invisible characters of AES encryption key are lost
+	// during copy paste as they are not neither visible to human eyes nor to `echo` command
+	// we decode here to binary before base64 encoding as required by Azure
+	decodedBinaryFromHex, err := hex.DecodeString(secretValue)
+	if err != nil {
+		return nil, fmt.Errorf("Error decoding keyvault secret from hex. Ensure the AES secret key is in hexadecimal format with no special characters. %+v", err)
+	}
+
+	// we calculate sha-2 output of above secret key
+	sha256output, err := calculateSHA256(decodedBinaryFromHex)
+	if err != nil {
+		return nil, fmt.Errorf("Error applying sha256 to secret key %+v", err)
+	}
+
+	headers := map[string]interface{}{
+		cmkEncryptionAlgorithmHeader: encryptionAlgorithm,
+		cmkEncryptionKeyHeader:       base64.StdEncoding.EncodeToString(decodedBinaryFromHex),
+		cmkEncryptionKeySHA256Header: base64.StdEncoding.EncodeToString(sha256output),
+	}
+	return headers, nil
+}
+
+// isValidKeyVaultSecretURI checks if the provided string is a valid Azure Key Vault secret URI
+func IsValidKeyVaultSecretURI(uri string) bool {
+	// Key Vault URI pattern: https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>
+	keyVaultSecretURIPattern := regexp.MustCompile(`^https:\/\/[a-zA-Z0-9-]+\.vault\.azure\.net\/secrets\/[a-zA-Z0-9-]+(\/[a-zA-Z0-9-]+)?$`)
+
+	return keyVaultSecretURIPattern.MatchString(uri)
 }

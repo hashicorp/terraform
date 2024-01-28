@@ -13,16 +13,35 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
+	armKeyVault "github.com/Azure/azure-sdk-for-go/profiles/2020-09-01/keyvault/mgmt/keyvault"
+	"github.com/Azure/azure-sdk-for-go/services/graphrbac/1.6/graphrbac"
 	armStorage "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2021-01-01/storage"
 	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/adal"
+	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/to"
+
+	"github.com/gofrs/uuid"
 	sasStorage "github.com/hashicorp/go-azure-helpers/storage"
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
+	"github.com/tombuildsstuff/kermit/sdk/keyvault/7.4/keyvault"
 )
 
 const (
 	// required for Azure Stack
 	sasSignedVersion = "2015-04-05"
+	// This is hex of AES-32 byte (256 bit) key generated with
+	// bash equivalient :: openssl rand 32 | xxd -p | xxd -p -r
+	kvSecretHex = "aa913b33a385c806b54bc224183addea1266343e99bf47d581c976e14b318fa4"
 )
+
+type KVARMClient struct {
+	armClient    *ArmClient
+	tenantID     string
+	clientID     string
+	clientSecret string
+	armLocation  string
+}
 
 // verify that we are doing ACC tests or the Azure tests specifically
 func testAccAzureBackend(t *testing.T) {
@@ -96,6 +115,7 @@ func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
 		StorageAccountName:            res.storageAccountName,
 		UseMsi:                        msiEnabled,
 		UseAzureADAuthentication:      res.useAzureADAuth,
+		KeyVaultSecretURI:             res.keyVaultSecretURI,
 	})
 	if err != nil {
 		t.Fatalf("Failed to build ArmClient: %+v", err)
@@ -139,6 +159,7 @@ type resourceNames struct {
 	storageKeyName          string
 	storageAccountAccessKey string
 	useAzureADAuth          bool
+	keyVaultSecretURI       string
 }
 
 func testResourceNames(rString string, keyName string) resourceNames {
@@ -149,6 +170,7 @@ func testResourceNames(rString string, keyName string) resourceNames {
 		storageContainerName: "acctestcont",
 		storageKeyName:       keyName,
 		useAzureADAuth:       false,
+		keyVaultSecretURI:    "",
 	}
 }
 
@@ -166,13 +188,56 @@ func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames
 			Tier: armStorage.Standard,
 		},
 		Location: &names.location,
+		// TLS 1.0 & 1.1 will be retired from 01.11.2024
+		AccountPropertiesCreateParameters: &armStorage.AccountPropertiesCreateParameters{
+			MinimumTLSVersion: armStorage.TLS12,
+		},
 	}
 	if names.useAzureADAuth {
 		allowSharedKeyAccess := false
 		storageProps.AccountPropertiesCreateParameters = &armStorage.AccountPropertiesCreateParameters{
 			AllowSharedKeyAccess: &allowSharedKeyAccess,
+			MinimumTLSVersion:    armStorage.TLS12,
 		}
 	}
+
+	// create kv, secret and set aes-256 secret
+	if names.useAzureADAuth && names.keyVaultSecretURI != "" {
+
+		kvARMClient := KVARMClient{
+			armClient:    c,
+			tenantID:     os.Getenv("ARM_TENANT_ID"),
+			clientID:     os.Getenv("ARM_CLIENT_ID"),
+			clientSecret: os.Getenv("ARM_CLIENT_SECRET"),
+			armLocation:  os.Getenv("ARM_LOCATION"),
+		}
+
+		appID, err := kvARMClient.fetchAppIDFromGraphAPI(ctx)
+		if err != nil {
+			return fmt.Errorf("Error fetching application id of service principal: %s", err)
+		}
+
+		kvName, secretName, _, err := extractKeyVaultAndSecretNames(c.keyVaultSecretURI)
+		if err != nil {
+			return fmt.Errorf("Error parsing kevault secret URI: %s", err)
+		}
+
+		kvProperties, err := kvARMClient.createKV(ctx, kvName, *appID.Value)
+		if err != nil {
+			return fmt.Errorf("Error creating keyvault: %s", err)
+		}
+
+		// set secret via properties here
+		secretProps := keyvault.SecretSetParameters{
+			Value: to.StringPtr(kvSecretHex),
+		}
+
+		_, err = c.keyVaultSecretsClient.SetSecret(ctx, *kvProperties.VaultURI, secretName, secretProps)
+		if err != nil {
+			return fmt.Errorf("Error creating the keyvault secret: %s", err)
+		}
+	}
+
 	future, err := c.storageAccountsClient.Create(ctx, names.resourceGroup, names.storageAccountName, storageProps)
 	if err != nil {
 		return fmt.Errorf("failed to create test storage account: %s", err)
@@ -212,6 +277,112 @@ func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames
 	}
 
 	return nil
+}
+
+func (k *KVARMClient) createKV(ctx context.Context, kvName, appID string) (*armKeyVault.VaultProperties, error) {
+	authorizer, err := k.getAuthorizer()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create authorizer: %s", err)
+	}
+	kvClient := armKeyVault.NewVaultsClient(k.armClient.groupsClient.SubscriptionID)
+	kvClient.Authorizer = authorizer
+
+	// convert tenant_id to UUID
+	tenant_id, err := uuid.FromString(k.tenantID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse UUID from ARM_TENANT_ID: %s", err)
+	}
+
+	keyVaultProps := armKeyVault.VaultProperties{
+		// disable softdelete (not required for tests)
+		EnableSoftDelete:          to.BoolPtr(false),
+		SoftDeleteRetentionInDays: nil,
+		TenantID:                  &tenant_id,
+		Sku: &armKeyVault.Sku{
+			Name:   armKeyVault.Standard,
+			Family: to.StringPtr("A"),
+		},
+		EnableRbacAuthorization: to.BoolPtr(false),
+		// KV accesspolicy is chosen here over RBAC
+		AccessPolicies: &[]armKeyVault.AccessPolicyEntry{
+			{
+				ObjectID: &appID,
+				TenantID: &tenant_id,
+				Permissions: &armKeyVault.Permissions{
+					Secrets: &[]armKeyVault.SecretPermissions{
+						armKeyVault.SecretPermissionsAll,
+					},
+				},
+			},
+		},
+	}
+
+	log.Printf("Creating keyvault %q", kvName)
+	future, err := kvClient.CreateOrUpdate(ctx, k.armClient.resourceGroupName, kvName, armKeyVault.VaultCreateOrUpdateParameters{
+		Properties: &keyVaultProps,
+		Location:   to.StringPtr(k.armLocation),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create test keyvault: %s", err)
+	}
+
+	err = future.WaitForCompletionRef(ctx, kvClient.Client)
+	if err != nil {
+		return nil, fmt.Errorf("failed waiting for the creation of keyvault: %s", err)
+	}
+
+	testKv, err := future.Result(kvClient)
+	if err != nil {
+		return nil, fmt.Errorf("failed fetching the created keyvault: %s", err)
+	}
+
+	return testKv.Properties, nil
+}
+
+// we need to fetch object ID of the service principal
+// this is possible to find either with graphAPI or
+// parsing jwt tokens (oid claim). Below func uses graphAPI
+func (k *KVARMClient) fetchAppIDFromGraphAPI(ctx context.Context) (*graphrbac.ServicePrincipalObjectResult, error) {
+	graphAuthorizer, err := k.getGraphAuthorizer()
+	if err != nil {
+		return nil, err
+	}
+
+	graphClient := graphrbac.NewApplicationsClient(k.tenantID)
+	graphClient.Authorizer = graphAuthorizer
+
+	app, err := graphClient.GetServicePrincipalsIDByAppID(ctx, k.clientID)
+	if err != nil {
+		return nil, err
+	}
+	return &app, nil
+}
+
+// we create authorizer for keyvault client (only required for ACC tests)
+func (k *KVARMClient) getAuthorizer() (autorest.Authorizer, error) {
+	oauthConfig, err := adal.NewOAuthConfig(azure.PublicCloud.ActiveDirectoryEndpoint, k.tenantID)
+	if err != nil {
+		return nil, err
+	}
+	spToken, err := adal.NewServicePrincipalToken(*oauthConfig, k.clientID, k.clientSecret, azure.PublicCloud.ResourceManagerEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	return autorest.NewBearerAuthorizer(spToken), nil
+}
+
+// we create authorizer for graph client (only required for ACC tests)
+// this is different API from ARM resource endpoint
+func (k *KVARMClient) getGraphAuthorizer() (autorest.Authorizer, error) {
+	oauthConfig, err := adal.NewOAuthConfig(azure.PublicCloud.ActiveDirectoryEndpoint, k.tenantID)
+	if err != nil {
+		return nil, err
+	}
+	spToken, err := adal.NewServicePrincipalToken(*oauthConfig, k.clientID, k.clientSecret, azure.PublicCloud.GraphEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	return autorest.NewBearerAuthorizer(spToken), nil
 }
 
 func (c ArmClient) destroyTestResources(ctx context.Context, resources resourceNames) error {

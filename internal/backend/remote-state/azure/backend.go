@@ -177,6 +177,13 @@ func New() backend.Backend {
 				Description: "Should Terraform use AzureAD Authentication to access the Blob?",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_AZUREAD", false),
 			},
+
+			"key_vault_secret_uri": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The URL of a key vault secret. This will be used to encrypt and decrypt state file",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_KEYVAULT_SECRET", ""),
+			},
 		},
 	}
 
@@ -221,6 +228,7 @@ type BackendConfig struct {
 	UseMsi                        bool
 	UseOIDC                       bool
 	UseAzureADAuthentication      bool
+	KeyVaultSecretURI             string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -257,6 +265,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		UseMsi:                        data.Get("use_msi").(bool),
 		UseOIDC:                       data.Get("use_oidc").(bool),
 		UseAzureADAuthentication:      data.Get("use_azuread_auth").(bool),
+		KeyVaultSecretURI:             data.Get("key_vault_secret_uri").(string),
 	}
 
 	armClient, err := buildArmClient(context.TODO(), config)

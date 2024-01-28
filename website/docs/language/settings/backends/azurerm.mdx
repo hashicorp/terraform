@@ -83,6 +83,26 @@ terraform {
 
 ***
 
+When authenticating using Azure AD Authentication and Customer Managed Key encryption:
+
+```hcl
+terraform {
+  backend "azurerm" {
+    storage_account_name = "abcd1234"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+    use_azuread_auth     = true
+    key_vault_secret_uri = "https://myvault.vault.azure.net/secrets/mysecret/"
+    subscription_id      = "00000000-0000-0000-0000-000000000000"
+    tenant_id            = "00000000-0000-0000-0000-000000000000"
+  }
+}
+```
+
+-> **Note:** When using Customer Managed Key encryption you also need to ensure the `Key Vault Secrets Officer` (with RBAC) or equivalent vault access policy for keyvault. Both keyvault and storage accounts have to be in the same subscription & in combination with `use_azuread_auth` only.
+
+***
+
 When authenticating using the Access Key associated with the Storage Account:
 
 ```hcl
@@ -298,6 +318,8 @@ When authenticating using the Storage Account's Access Key - the following field
 When authenticating using AzureAD Authentication - the following fields are also supported:
 
 * `use_azuread_auth` - (Optional) Should AzureAD Authentication be used to access the Blob Storage Account. This can also be sourced from the `ARM_USE_AZUREAD` environment variable.
+
+* `key_vault_secret_uri` - (Optional) Enable [customer managed key encryption](https://learn.microsoft.com/en-us/azure/storage/blobs/encryption-customer-provided-keys#request-headers-for-specifying-customer-provided-keys) of the state file with an AES-256 secret from keyvault. Version is optional, if not passed latest is chosen.
 
 -> **Note:** When using AzureAD for Authentication to Storage you also need to ensure the `Storage Blob Data Owner` role is assigned.
 
