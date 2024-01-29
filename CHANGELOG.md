@@ -1,5 +1,9 @@
 ## 1.7.2 (Unreleased)
 
+NEW FEATURES:
+
+* `terraform fmt`: Terraform mock data files (`.tfmock.hcl`) will now be included when executing the format command. ([#34580](https://github.com/hashicorp/terraform/issues/34580))
+
 ## 1.7.1 (January 24, 2024)
 
 BUG FIXES:
