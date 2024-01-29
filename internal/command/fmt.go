@@ -32,6 +32,7 @@ var (
 		".tf",
 		".tfvars",
 		".tftest.hcl",
+		".tfmock.hcl",
 	}
 )
 
