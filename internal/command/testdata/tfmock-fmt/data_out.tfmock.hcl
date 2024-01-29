@@ -14,8 +14,7 @@ mock_data "aws_availability_zones" {
 override_data {
   target = data.aws_subnets.private_subnets
   values = {
-    ids = [
-      "subnet-a",
+    ids = ["subnet-a",
       "subnet-b",
       "subnet-c"
     ]
