@@ -2230,6 +2230,93 @@ func TestBackendPrefixInWorkspace(t *testing.T) {
 	}
 }
 
+func TestBackendRestrictedRoot_Default(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	workspacePrefix := defaultWorkspaceKeyPrefix
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket": bucketName,
+		"key":    "test/test-env.tfstate",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region, s3BucketWithPolicy(fmt.Sprintf(`{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "Statement1",
+			"Effect": "Deny",
+			"Principal": "*",
+			"Action": "s3:ListBucket",
+			"Resource": "arn:aws:s3:::%[1]s",
+			"Condition": {
+				"StringLike": {
+					"s3:prefix": "%[2]s/*"
+				}
+			}
+		}
+	]
+}`, bucketName, workspacePrefix)))
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
+
+	sMgr, err := b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := sMgr.RefreshState(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkStateList(b, []string{"default"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestBackendRestrictedRoot_NamedPrefix(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	workspacePrefix := "prefix"
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":               bucketName,
+		"key":                  "test/test-env.tfstate",
+		"workspace_key_prefix": workspacePrefix,
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region, s3BucketWithPolicy(fmt.Sprintf(`{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "Statement1",
+			"Effect": "Deny",
+			"Principal": "*",
+			"Action": "s3:ListBucket",
+			"Resource": "arn:aws:s3:::%[1]s",
+			"Condition": {
+				"StringLike": {
+					"s3:prefix": "%[2]s/*"
+				}
+			}
+		}
+	]
+}`, bucketName, workspacePrefix)))
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
+
+	_, err := b.StateMgr(backend.DefaultStateName)
+	if err == nil {
+		t.Fatal("expected AccessDenied error, got none")
+	}
+	if s := err.Error(); !strings.Contains(s, fmt.Sprintf("Unable to list objects in S3 bucket %q with prefix %q:", bucketName, workspacePrefix+"/")) {
+		t.Fatalf("expected AccessDenied error, got: %s", s)
+	}
+}
+
 func TestBackendWrongRegion(t *testing.T) {
 	testACC(t)
 
@@ -2644,6 +2731,7 @@ func checkStateList(b backend.Backend, expected []string) error {
 type createS3BucketOptions struct {
 	versioning     bool
 	objectLockMode s3types.ObjectLockRetentionMode
+	policy         string
 }
 
 type createS3BucketOptionsFunc func(*createS3BucketOptions)
@@ -2689,7 +2777,7 @@ func createS3Bucket(ctx context.Context, t *testing.T, s3Client *s3.Client, buck
 	}
 
 	if opts.objectLockMode != "" {
-		_, err = s3Client.PutObjectLockConfiguration(ctx, &s3.PutObjectLockConfigurationInput{
+		_, err := s3Client.PutObjectLockConfiguration(ctx, &s3.PutObjectLockConfigurationInput{
 			Bucket: aws.String(bucketName),
 			ObjectLockConfiguration: &s3types.ObjectLockConfiguration{
 				ObjectLockEnabled: s3types.ObjectLockEnabledEnabled,
@@ -2705,6 +2793,16 @@ func createS3Bucket(ctx context.Context, t *testing.T, s3Client *s3.Client, buck
 			t.Fatalf("failed enabling object locking: %s", err)
 		}
 	}
+
+	if opts.policy != "" {
+		_, err := s3Client.PutBucketPolicy(ctx, &s3.PutBucketPolicyInput{
+			Bucket: aws.String(bucketName),
+			Policy: &opts.policy,
+		})
+		if err != nil {
+			t.Fatalf("failed setting bucket policy: %s", err)
+		}
+	}
 }
 
 func s3BucketWithVersioning(opts *createS3BucketOptions) {
@@ -2714,6 +2812,12 @@ func s3BucketWithVersioning(opts *createS3BucketOptions) {
 func s3BucketWithObjectLock(mode s3types.ObjectLockRetentionMode) createS3BucketOptionsFunc {
 	return func(opts *createS3BucketOptions) {
 		opts.objectLockMode = mode
+	}
+}
+
+func s3BucketWithPolicy(policy string) createS3BucketOptionsFunc {
+	return func(opts *createS3BucketOptions) {
+		opts.policy = policy
 	}
 }
 

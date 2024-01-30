@@ -1,5 +1,9 @@
 ## 1.7.2 (Unreleased)
 
+BUG FIXES:
+
+* backend/s3: No longer returns error when IAM user or role does not have access to the default workspace prefix `env:`. ([#34511](https://github.com/hashicorp/terraform/pull/34511))
+
 ENHANCEMENTS:
 
 * `terraform fmt`: Terraform mock data files (`.tfmock.hcl`) will now be included when executing the format command. ([#34580](https://github.com/hashicorp/terraform/issues/34580))
