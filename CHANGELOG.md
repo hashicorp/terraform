@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * backend/s3: No longer returns error when IAM user or role does not have access to the default workspace prefix `env:`. ([#34511](https://github.com/hashicorp/terraform/pull/34511))
+* cloud: When triggering a run, the .terraform/modules directory was being excluded from the configuration upload causing Terraform Cloud to try (and sometimes fail) to re-download the modules. ([#34543](https://github.com/hashicorp/terraform/issues/34543))
 
 ENHANCEMENTS:
 
