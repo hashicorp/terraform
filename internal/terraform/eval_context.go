@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -175,6 +176,11 @@ type EvalContext interface {
 	// The InstanceExpander is a global object that is shared across all of the
 	// EvalContext objects for a given configuration.
 	InstanceExpander() *instances.Expander
+
+	// Deferrals returns a helper object for tracking deferred actions, which
+	// means that Terraform either cannot plan an action at all or cannot
+	// perform a planned action due to an upstream dependency being deferred.
+	Deferrals() *deferring.Deferred
 
 	// MoveResults returns a map describing the results of handling any
 	// resource instance move statements prior to the graph walk, so that

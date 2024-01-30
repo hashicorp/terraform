@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -38,6 +39,7 @@ type ContextGraphWalker struct {
 	Checks                  *checks.State       // Used for safe concurrent writes of checkable objects and their check results
 	NamedValues             *namedvals.State    // Tracks evaluation of input variables, local values, and output values
 	InstanceExpander        *instances.Expander // Tracks our gradual expansion of module and resource instances
+	Deferrals               *deferring.Deferred // Tracks any deferred actions
 	Imports                 []configs.Import
 	MoveResults             refactoring.MoveResults // Read-only record of earlier processing of move statements
 	Operation               walkOperation
@@ -101,6 +103,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Plugins:       w.Context.plugins,
 		Instances:     w.InstanceExpander,
 		NamedValues:   w.NamedValues,
+		Deferrals:     w.Deferrals,
 		PlanTimestamp: w.PlanTimestamp,
 	}
 
@@ -122,6 +125,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		ChangesValue:            w.Changes,
 		ChecksValue:             w.Checks,
 		NamedValuesValue:        w.NamedValues,
+		DeferralsValue:          w.Deferrals,
 		StateValue:              w.State,
 		RefreshStateValue:       w.RefreshState,
 		PrevRunStateValue:       w.PrevRunState,

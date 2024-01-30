@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -63,6 +64,9 @@ type BuiltinEvalContext struct {
 	// instead expects to recieve certain provider configurations from the
 	// stack configuration.
 	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+
+	// DeferralsValue is the object returned by [BuiltinEvalContext.Deferrals].
+	DeferralsValue *deferring.Deferred
 
 	Hooks                 []Hook
 	InputValue            UIInput
@@ -573,6 +577,10 @@ func (ctx *BuiltinEvalContext) LanguageExperimentActive(experiment experiments.E
 
 func (ctx *BuiltinEvalContext) NamedValues() *namedvals.State {
 	return ctx.NamedValuesValue
+}
+
+func (ctx *BuiltinEvalContext) Deferrals() *deferring.Deferred {
+	return ctx.DeferralsValue
 }
 
 func (ctx *BuiltinEvalContext) Changes() *plans.ChangesSync {

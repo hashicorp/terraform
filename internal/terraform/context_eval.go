@@ -100,7 +100,7 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 		// If we skipped walking the graph (due to errors) then we'll just
 		// use a placeholder graph walker here, which'll refer to the
 		// unmodified state.
-		walker = c.graphWalker(walkEval, walkOpts)
+		walker = c.graphWalker(graph, walkEval, walkOpts)
 	}
 
 	return evalScopeFromGraphWalk(walker, moduleAddr), diags

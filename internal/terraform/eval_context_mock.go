@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -124,6 +125,9 @@ type MockEvalContext struct {
 
 	NamedValuesCalled bool
 	NamedValuesState  *namedvals.State
+
+	DeferralsCalled bool
+	DeferralsState  *deferring.Deferred
 
 	ChangesCalled  bool
 	ChangesChanges *plans.ChangesSync
@@ -352,6 +356,11 @@ func (c *MockEvalContext) LanguageExperimentActive(experiment experiments.Experi
 func (c *MockEvalContext) NamedValues() *namedvals.State {
 	c.NamedValuesCalled = true
 	return c.NamedValuesState
+}
+
+func (c *MockEvalContext) Deferrals() *deferring.Deferred {
+	c.DeferralsCalled = true
+	return c.DeferralsState
 }
 
 func (c *MockEvalContext) Changes() *plans.ChangesSync {
