@@ -749,12 +749,9 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	// See the documentation for these plan fields to learn what exactly they
 	// are intended to mean.
 	if !diags.HasErrors() {
-		if len(opts.Targets) == 0 {
-			// A plan without any targets should be complete if we didn't encounter
-			// errors while producing it.
-			// TODO: Once we support "deferred actions" for resources, the
-			// presence of any of those should cause the plan to be marked
-			// incomplete too.
+		if len(opts.Targets) == 0 && !walker.Deferrals.HaveAnyDeferrals() {
+			// A plan without any targets or deferred actions should be
+			// complete if we didn't encounter errors while producing it.
 			log.Println("[TRACE] Plan is complete")
 			plan.Complete = true
 		} else {
