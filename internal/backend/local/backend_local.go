@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -516,7 +517,9 @@ var _ backend.UnparsedVariableValue = unparsedTestVariableValue{}
 func (v unparsedTestVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	value, valueDiags := v.Expr.Value(nil)
+	value, valueDiags := v.Expr.Value(&hcl.EvalContext{
+		Functions: lang.TestingFunctions(),
+	})
 	diags = diags.Append(valueDiags)
 	if valueDiags.HasErrors() {
 		return nil, diags

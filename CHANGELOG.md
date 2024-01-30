@@ -1,4 +1,21 @@
-## 1.7.0 (Unreleased)
+## 1.7.2 (Unreleased)
+
+BUG FIXES:
+
+* backend/s3: No longer returns error when IAM user or role does not have access to the default workspace prefix `env:`. ([#34511](https://github.com/hashicorp/terraform/pull/34511))
+
+ENHANCEMENTS:
+
+* `terraform fmt`: Terraform mock data files (`.tfmock.hcl`) will now be included when executing the format command. ([#34580](https://github.com/hashicorp/terraform/issues/34580))
+
+## 1.7.1 (January 24, 2024)
+
+BUG FIXES:
+
+* `terraform test`: Fix crash when referencing variables or functions within the file level `variables` block. ([#34531](https://github.com/hashicorp/terraform/issues/34531))
+* `terraform test`: Fix crash when `override_module` block was missing the `outputs` attribute. ([#34563](https://github.com/hashicorp/terraform/issues/34563))
+
+## 1.7.0 (January 17, 2024)
 
 UPGRADE NOTES:
 
@@ -38,8 +55,7 @@ BUG FIXES:
 * `terraform test`: Stop attempting to destroy run blocks that have no actual infrastructure to destroy. This fixes an issue where attempts to destroy "verification" run blocks that load only data sources would fail if the underlying infrastructure referenced by the run blocks had already been destroyed. ([#34331](https://github.com/hashicorp/terraform/pull/34331))
 * `terraform test`: Improve error message for invalid run block names. ([#34469](https://github.com/hashicorp/terraform/pull/34469))
 * `terraform test`: Fix bug where outputs in "empty" modules were not available to the assertions from Terraform test files. ([#34482](https://github.com/hashicorp/terraform/pull/34482))
-* security: update `golang.org/x/crypto` to patch CVE-2023-48795 [GH-34426]
-* backend/s3: No longer returns error when IAM user or role does not have access to the default workspace prefix `env:`. ([#34511](https://github.com/hashicorp/terraform/pull/34511))
+* security: Upstream patch to mitigate the security advisory CVE-2023-48795, which potentially affects `local-exec` and `file` provisioners connecting to remote hosts using SSH. ([#34426](https://github.com/hashicorp/terraform/issues/34426))
 
 ENHANCEMENTS:
 

@@ -435,8 +435,27 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 		diags = append(diags, valueDiags...)
 	} else {
 		// It's fine if we don't have any values, just means we'll generate
-		// values for everything ourselves.
-		override.Values = cty.NilVal
+		// values for everything ourselves. We set this to an empty object so
+		// it's equivalent to `values = {}` which makes later processing easier.
+		override.Values = cty.EmptyObjectVal
+	}
+
+	if !override.Values.Type().IsObjectType() {
+
+		var attributePreposition string
+		switch attributeName {
+		case "outputs":
+			attributePreposition = "an"
+		default:
+			attributePreposition = "a"
+		}
+
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  fmt.Sprintf("Invalid %s attribute", attributeName),
+			Detail:   fmt.Sprintf("%s blocks must specify %s %s attribute that is an object.", blockName, attributePreposition, attributeName),
+			Subject:  override.ValuesRange.Ptr(),
+		})
 	}
 
 	return override, diags

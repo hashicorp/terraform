@@ -29,6 +29,7 @@ func TestTest_Runs(t *testing.T) {
 		expectedErr           string
 		expectedResourceCount int
 		code                  int
+		initCode              int
 		skip                  bool
 	}{
 		"simple_pass": {
@@ -208,12 +209,16 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"functions_available": {
-			expectedOut: "1 passed, 0 failed.",
+			expectedOut: "2 passed, 0 failed.",
 			code:        0,
 		},
 		"mocking": {
-			expectedOut: "5 passed, 0 failed.",
+			expectedOut: "6 passed, 0 failed.",
 			code:        0,
+		},
+		"mocking-invalid": {
+			expectedErr: "Invalid outputs attribute",
+			initCode:    1,
 		},
 		"dangling_data_block": {
 			expectedOut: "2 passed, 0 failed.",
@@ -226,6 +231,11 @@ func TestTest_Runs(t *testing.T) {
 		"empty_module_with_output": {
 			expectedOut: "1 passed, 0 failed.",
 			code:        0,
+		},
+		"global_var_refs": {
+			expectedOut: "2 failed, 1 skipped.",
+			expectedErr: "Variables may not be used here.",
+			code:        1,
 		},
 	}
 	for name, tc := range tcs {
@@ -265,8 +275,30 @@ func TestTest_Runs(t *testing.T) {
 				Meta: meta,
 			}
 
-			if code := init.Run(nil); code != 0 {
-				t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+			if code := init.Run(nil); code != tc.initCode {
+				t.Fatalf("expected status code %d but got %d: %s", tc.initCode, code, ui.ErrorWriter)
+			}
+
+			if tc.initCode > 0 {
+				// Then we don't expect the init step to succeed. So we'll check
+				// the init output for our expected error messages and outputs.
+
+				stdout, stderr := ui.ErrorWriter.String(), ui.ErrorWriter.String()
+
+				if !strings.Contains(stdout, tc.expectedOut) {
+					t.Errorf("output didn't contain expected string:\n\n%s", stdout)
+				}
+
+				if !strings.Contains(stderr, tc.expectedErr) {
+					t.Errorf("error didn't contain expected string:\n\n%s", stderr)
+				} else if tc.expectedErr == "" && stderr != "" {
+					t.Errorf("unexpected stderr output\n%s", stderr)
+				}
+
+				// If `terraform init` failed, then we don't expect that
+				// `terraform test` will have run at all, so we can just return
+				// here.
+				return
 			}
 
 			c := &TestCommand{
@@ -281,7 +313,7 @@ func TestTest_Runs(t *testing.T) {
 			}
 
 			if !strings.Contains(output.Stdout(), tc.expectedOut) {
-				t.Errorf("output didn't contain expected string:\n\n%s", output.All())
+				t.Errorf("output didn't contain expected string:\n\n%s", output.Stdout())
 			}
 
 			if !strings.Contains(output.Stderr(), tc.expectedErr) {
