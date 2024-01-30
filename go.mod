@@ -47,7 +47,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-plugin v1.4.3
 	github.com/hashicorp/go-retryablehttp v0.7.5
-	github.com/hashicorp/go-slug v0.13.3
+	github.com/hashicorp/go-slug v0.13.4
 	github.com/hashicorp/go-tfe v1.41.0
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.6.0
@@ -97,7 +97,7 @@ require (
 	golang.org/x/mod v0.12.0
 	golang.org/x/net v0.19.0
 	golang.org/x/oauth2 v0.11.0
-	golang.org/x/sys v0.15.0
+	golang.org/x/sys v0.16.0
 	golang.org/x/term v0.15.0
 	golang.org/x/text v0.14.0
 	golang.org/x/tools v0.13.0
