@@ -18,6 +18,10 @@ Experiments are only enabled in alpha releases of Terraform CLI. The following f
 
     This is at an early stage and so currently setting these arguments to unknown values will only yield broken behavior, and so it's not yet useful to participate in this experiment. Future work will improve support for this new possibility, gradually making this experiment viable.
 
+NEW FEATURES:
+
+* Providers can now implement functions which can be used from within the Terraform configuration language. The syntax for calling a provider supplied function is `provider::provider_name::function_name()` (#34394)
+
 ## Previous Releases
 
 For information on prior major and minor releases, see their changelogs:
