@@ -115,6 +115,16 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 	configVal, configBody, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
 	diags = diags.Append(evalDiags)
 	if evalDiags.HasErrors() {
+		if config == nil {
+			// The error messages from the above evaluation will be confusing
+			// if there isn't an explicit "provider" block in the configuration.
+			// Add some detail to the error message in this case.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid provider configuration",
+				fmt.Sprintf(providerConfigErr, n.Addr.Provider),
+			))
+		}
 		return diags
 	}
 
