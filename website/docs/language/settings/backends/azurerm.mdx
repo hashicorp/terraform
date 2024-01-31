@@ -15,20 +15,20 @@ This backend supports state locking and consistency checking with Azure Blob Sto
 
 The `azurerm` backend supports 3 methods of authenticating to the storage account:
 
-- **Access Key** (default)
-- **Azure Active Directory**
-- **SAS Token**
+- Access Key (default)
+- Azure Active Directory
+- SAS Token
 
 The *Access Key* method can be used directly, by specifying the access key, or in combination with an Azure AD principal (e.g. user, service principal or managed identity). To use an Access Key directly you must generate one for your state file blob and specify it in the backend configuration. If neither an access key or client ID is specified, Terraform will attempt to use Azure CLI. In both cases where no access key is given, Terraform will attempt to retrieve the access key for the storage account, using the authenticated Azure AD principal.
 
-The *Azure Active Directory* method can only be used in combination with an Azure AD principal. To use the Azure Active Directory method you must set the `use_azuread_auth` variable to `true` in your backend configuration. This will cause the backend to use the Access Token of the Azure AD principal to authenticate to the state file blob, nstead of authenticating using a shared access key.
+The *Azure Active Directory* method can only be used in combination with an Azure AD principal. To use the Azure Active Directory method you must set the `use_azuread_auth` variable to `true` in your backend configuration. This will cause the backend to use the Access Token of the Azure AD principal to authenticate to the state file blob, instead of authenticating using a shared access key.
 
 The *SAS Token* method can only be used directly. You must generate a SAS Token for your state file blob and pass it to the backend config.
 
 The `azurerm` backend supports the following authentication scenarios to connect to the storage account, based on the configuration variables provided:
 
-| Authentication Method | Storage Account Authentication Type | Minimum Required Configuration* |
-|-----|---|---|---|
+| Authentication Method | Storage Account Authentication Type | Minimum Required Configuration† |
+|-----|---|---|
 | User Principal via Azure CLI | Access Key | N/A |
 | User Principal via Azure CLI | Azure AD | `use_azuread_auth = true` |
 | Service Principal or User Assigned Managed Identity via OIDC (Workload identity federation) | Access Key | `use_oidc = true` |
@@ -42,7 +42,7 @@ The `azurerm` backend supports the following authentication scenarios to connect
 | Access Key direct | Access Key | `access_key = "..."` |
 | SAS Token direct | SAS Token | `sas_token = "..."` |
 
--> * There are sometimes more options needed for successful authentication. The variable shown is the one that triggers the backend to use a given authentication scenario. You can see examples of each option below.
+† There are sometimes more options needed for successful authentication. The variable shown is the one that triggers the backend to use a given authentication scenario. You can see examples of each option below.
 
 -> Sensitive values should not be hardcoded into your configuration, and should instead be specified using environment variables or partial configuration flags in the `init` command of Terraform CLI.
 
@@ -159,7 +159,7 @@ terraform {
 
 ### Backend: Azure AD Service Principal via Client Secret
 
-~> **Warning!**: This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
+~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
 
 *Connect to Storage Account with Access Key*
 
@@ -198,7 +198,7 @@ terraform {
 
 ### Backend: Azure AD Service Principal via Client Certificate
 
-~> **Warning!**: This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
+~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
 
 *Connect to Storage Account with Access Key*
 
@@ -239,7 +239,7 @@ terraform {
 
 ### Backend: Access Key Direct
 
-~> **Warning!**: This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
+~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
 
 ```hcl
 terraform {
@@ -255,7 +255,7 @@ terraform {
 
 ### Backend: SAS Token
 
-~> **Warning!**: This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
+~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
 
 ```hcl
 terraform {
@@ -386,7 +386,7 @@ data "terraform_remote_state" "foo" {
 
 ### Data Source: Azure AD Service Principal via Client Secret
 
-~> **Warning!**: This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
+~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
 
 *Connect to Storage Account with Access Key*
 
@@ -427,7 +427,7 @@ data "terraform_remote_state" "foo" {
 
 ### Data Source: Azure AD Service Principal via Client Certificate
 
-~> **Warning!**: This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
+~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
 
 *Connect to Storage Account with Access Key*
 
@@ -470,7 +470,7 @@ data "terraform_remote_state" "foo" {
 
 ### Data Source: Access Key Direct
 
-~> **Warning!**: This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
+~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -487,7 +487,7 @@ data "terraform_remote_state" "foo" {
 
 ### Data Source: SAS Token
 
-~> **Warning!**: This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
+~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
 
 ```hcl
 data "terraform_remote_state" "foo" {
