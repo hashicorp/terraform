@@ -173,7 +173,7 @@ func (s simple) ReadDataSource(req providers.ReadDataSourceRequest) (resp provid
 
 func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
 	if req.FunctionName != "noop" {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("CallFunction for undefined function %q", req.FunctionName))
+		resp.Err = fmt.Errorf("CallFunction for undefined function %q", req.FunctionName)
 		return resp
 	}
 

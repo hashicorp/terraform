@@ -5,9 +5,9 @@ package grpcwrap
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc/codes"
@@ -444,15 +444,18 @@ func (p *provider) CallFunction(_ context.Context, req *tfplugin5.CallFunction_R
 	if len(req.Arguments) != 0 {
 		args = make([]cty.Value, len(req.Arguments))
 		for i, rawArg := range req.Arguments {
+			idx := int64(i)
 
 			var argTy cty.Type
 			if i < len(funcSchema.Parameters) {
 				argTy = funcSchema.Parameters[i].Type
 			} else {
 				if funcSchema.VariadicParameter == nil {
-					resp.Diagnostics = convert.AppendProtoDiag(
-						resp.Diagnostics, fmt.Errorf("too many arguments for non-variadic function"),
-					)
+
+					resp.Error = &tfplugin5.FunctionError{
+						Text:             "too many arguments for non-variadic function",
+						FunctionArgument: &idx,
+					}
 					return resp, nil
 				}
 				argTy = funcSchema.VariadicParameter.Type
@@ -460,9 +463,13 @@ func (p *provider) CallFunction(_ context.Context, req *tfplugin5.CallFunction_R
 
 			argVal, err := decodeDynamicValue(rawArg, argTy)
 			if err != nil {
-				resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+				resp.Error = &tfplugin5.FunctionError{
+					Text:             err.Error(),
+					FunctionArgument: &idx,
+				}
 				return resp, nil
 			}
+
 			args[i] = argVal
 		}
 	}
@@ -471,14 +478,26 @@ func (p *provider) CallFunction(_ context.Context, req *tfplugin5.CallFunction_R
 		FunctionName: req.Name,
 		Arguments:    args,
 	})
-	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, callResp.Diagnostics)
-	if callResp.Diagnostics.HasErrors() {
+
+	if callResp.Err != nil {
+		resp.Error = &tfplugin5.FunctionError{
+			Text: callResp.Err.Error(),
+		}
+
+		if argErr, ok := callResp.Err.(function.ArgError); ok {
+			idx := int64(argErr.Index)
+			resp.Error.FunctionArgument = &idx
+		}
+
 		return resp, nil
 	}
 
 	resp.Result, err = encodeDynamicValue(callResp.Result, funcSchema.ReturnType)
 	if err != nil {
-		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		resp.Error = &tfplugin5.FunctionError{
+			Text: err.Error(),
+		}
+
 		return resp, nil
 	}
 

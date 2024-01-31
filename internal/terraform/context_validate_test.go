@@ -2534,23 +2534,23 @@ func TestContext2Validate_providerContributedFunctions(t *testing.T) {
 		}
 		p.CallFunctionFn = func(req providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
 			if req.FunctionName != "count_e" {
-				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("incorrect function name %q", req.FunctionName))
+				resp.Err = fmt.Errorf("incorrect function name %q", req.FunctionName)
 				return resp
 			}
 			if len(req.Arguments) != 1 {
-				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("wrong number of arguments %d", len(req.Arguments)))
+				resp.Err = fmt.Errorf("wrong number of arguments %d", len(req.Arguments))
 				return resp
 			}
 			if req.Arguments[0].Type() != cty.String {
-				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("wrong argument type %#v", req.Arguments[0].Type()))
+				resp.Err = fmt.Errorf("wrong argument type %#v", req.Arguments[0].Type())
 				return resp
 			}
 			if !req.Arguments[0].IsKnown() {
-				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("argument is unknown"))
+				resp.Err = fmt.Errorf("argument is unknown")
 				return resp
 			}
 			if req.Arguments[0].IsNull() {
-				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("argument is null"))
+				resp.Err = fmt.Errorf("argument is null")
 				return resp
 			}
 
