@@ -8,6 +8,7 @@ BUG FIXES:
 ENHANCEMENTS:
 
 * `terraform fmt`: Terraform mock data files (`.tfmock.hcl`) will now be included when executing the format command. ([#34580](https://github.com/hashicorp/terraform/issues/34580))
+* Add additional diagnostics when a generated provider block that fails schema validation requires explicit configuration. ([#34595](https://github.com/hashicorp/terraform/issues/34595))
 
 ## 1.7.1 (January 24, 2024)
 
