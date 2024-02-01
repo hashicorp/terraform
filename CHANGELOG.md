@@ -21,6 +21,7 @@ Experiments are only enabled in alpha releases of Terraform CLI. The following f
 NEW FEATURES:
 
 * Providers can now implement functions which can be used from within the Terraform configuration language. The syntax for calling a provider supplied function is `provider::provider_name::function_name()` (#34394)
+* Providers can now implement move operations between resource types, both from resources defined by the provider and defined by other providers. Check provider documentation for supported cross-resource moves.
 
 ## Previous Releases
 
