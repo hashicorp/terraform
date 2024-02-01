@@ -108,6 +108,30 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	expander := ctx.InstanceExpander()
 	moduleInstances := expander.ExpandModule(n.Addr.Module)
 
+	// The possibility of partial-expanded modules and resources is
+	// currently guarded by a language experiment, and so to minimize the
+	// risk of that experiment impacting mainline behavior we currently
+	// branch off into an entirely-separate codepath in those situations,
+	// at the expense of duplicating some of the logic for behavior this
+	// method would normally handle.
+	//
+	// Normally language experiments are confined to only a single module,
+	// but this one has potential cross-module impact once enabled for at
+	// least one, and so this flag is true if _any_ module in the configuration
+	// has opted in to the experiment. Our intent is for this different
+	// codepath to produce the same results when there aren't any
+	// partial-expanded modules, but bugs might make that not true and so
+	// this is conservative to minimize the risk of breaking things for
+	// those who aren't participating in the experiment.
+	//
+	// TODO: If this experiment is stablized then we should aim to combine
+	// these two codepaths back together, so that the behavior is less likely
+	// to diverge under future maintenence.
+	if n.unknownInstancesExperimentEnabled {
+		pem := expander.UnknownModuleInstances(n.Addr.Module)
+		return n.dynamicExpandWithUnknownInstancesExperiment(ctx, moduleInstances, pem)
+	}
+
 	// Lock the state while we inspect it
 	state := ctx.State().Lock()
 
@@ -191,6 +215,218 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 
 	addRootNodeToGraph(&g)
 
+	return &g, diags
+}
+
+// dynamicExpandWithUnknownInstancesExperiment is a temporary experimental
+// variant of DynamicExpand that we use when at least one module is
+// participating in the "unknown_instances" language experiment.
+//
+// This is not exactly in the typical spirit of language experiments in that
+// the effect is not scoped only to the module where the opt-in is declared:
+// if there are bugs in this method then they could potentially also affect
+// resources in modules not directly participating. We're accepting that
+// as a pragmatic compromise here since unknown expansion of a module call
+// is inherently a cross-module concern.
+//
+// If we move forward with unknown instances as a stable feature then we
+// should find a way to meld this logic with the main DynamicExpand logic,
+// but it's separate for now to minimize the risk of the experiment impacting
+// configurations that are not opted into it.
+func (n *nodeExpandPlannableResource) dynamicExpandWithUnknownInstancesExperiment(globalCtx EvalContext, knownInsts []addrs.ModuleInstance, partialInsts addrs.Set[addrs.PartialExpandedModule]) (*Graph, tfdiags.Diagnostics) {
+	var g Graph
+	var diags tfdiags.Diagnostics
+
+	// We need to resolve the expansions of the resource itself, separately
+	// for each of the dynamic module prefixes it appears under.
+	knownAddrs := addrs.MakeSet[addrs.AbsResourceInstance]()
+	partialExpandedAddrs := addrs.MakeSet[addrs.PartialExpandedResource]()
+	for _, moduleAddr := range knownInsts {
+		resourceAddr := n.Addr.Resource.Absolute(moduleAddr)
+		// The rest of our work here needs to know which module instance it's
+		// working in, so that it can evaluate expressions in the appropriate scope.
+		moduleCtx := evalContextForModuleInstance(globalCtx, resourceAddr.Module)
+
+		// writeResourceState calculates the dynamic expansion of the given
+		// resource as a side-effect, along with its other work.
+		moreDiags := n.writeResourceState(moduleCtx, resourceAddr)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			continue
+		}
+
+		// We can now ask for all of the individual resource instances that
+		// we know, or for those with not-yet-known expansion.
+		expander := moduleCtx.InstanceExpander()
+		_, knownInstKeys, haveUnknownKeys := expander.ResourceInstanceKeys(resourceAddr)
+		for _, instKey := range knownInstKeys {
+			instAddr := resourceAddr.Instance(instKey)
+			knownAddrs.Add(instAddr)
+		}
+		if haveUnknownKeys {
+			partialAddr := moduleAddr.UnexpandedResource(resourceAddr.Resource)
+			partialExpandedAddrs.Add(partialAddr)
+		}
+	}
+	for _, moduleAddr := range partialInsts {
+		// Resources that appear under partial-expanded module prefixes are
+		// also partial-expanded resource addresses.
+		partialAddr := moduleAddr.Resource(n.Addr.Resource)
+		partialExpandedAddrs.Add(partialAddr)
+	}
+	// If we accumulated any error diagnostics in our work so far then
+	// we'll just bail out at this point.
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// We need to search the prior state for any resource instances that
+	// belong to module instances that are no longer declared in the
+	// configuration, which is one way a resource instance can be classified
+	// as an "orphan".
+	//
+	// However, if any instance is under a partial-expanded prefix then
+	// we can't know whether it's still desired or not, and so we'll need
+	// to defer dealing with it to a future plan/apply round.
+	//
+	// We need to compare with the resource instances we can find in the
+	// state, so we'll need to briefly hold the state lock while we inspect
+	// those. The following inline function limits the scope of the lock.
+	orphanAddrs := addrs.MakeSet[addrs.AbsResourceInstance]()
+	maybeOrphanAddrs := addrs.MakeSet[addrs.AbsResourceInstance]()
+	func() {
+		ss := globalCtx.PrevRunState()
+		state := ss.Lock()
+		defer ss.Unlock()
+
+		for _, res := range state.Resources(n.Addr) {
+		Instances:
+			for instKey := range res.Instances {
+				instAddr := res.Addr.Instance(instKey)
+
+				for _, partialAddr := range partialExpandedAddrs {
+					if partialAddr.MatchesInstance(instAddr) {
+						// The instance is beneath a partial-expanded prefix, so
+						// we can't decide yet whether it's an orphan or not,
+						// but we'll still note it so we can make sure to
+						// refresh its state.
+						maybeOrphanAddrs.Add(instAddr)
+						continue Instances
+					}
+				}
+				if !knownAddrs.Has(instAddr) {
+					// If we get here then the instance is not under an
+					// partial-expanded prefix and is not in our set of
+					// fully-known desired state instances, and so it's
+					// an "orphan".
+					orphanAddrs.Add(instAddr)
+				}
+			}
+		}
+	}()
+
+	// TEMP: The code that deals with some other language/workflow features
+	// is not yet updated to be able to handle partial-expanded resource
+	// address prefixes, to constrain the scope of the initial experimental
+	// implementation. We'll reject some of those cases with errors, just to
+	// be explicit that they don't work rather than just quietly doing
+	// something incomplete/broken/strange.
+	if len(partialExpandedAddrs) != 0 {
+		// Some other parts of the system aren't yet able to make sense of
+		// partial-expanded resource addresses, so we'll forbid them for
+		// now and improve on this in later iterations of the experiment.
+		if len(n.Targets) != 0 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot use resource targeting with unknown count or for_each",
+				"In the current phase of the unknown_instances language experiment, the -target=... planning option is not yet supported whenever unknown count or for_each are present.",
+			))
+		}
+		if len(n.forceReplace) != 0 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot use forced replacement with unknown count or for_each",
+				"In the current phase of the unknown_instances language experiment, the -replace=... planning option is not yet supported whenever unknown count or for_each are present.",
+			))
+		}
+		if diags.HasErrors() {
+			return nil, diags
+		}
+	}
+
+	// At this point we have four different sets of resource instance
+	// addresses:
+	// - knownAddrs are definitely in the desired state. They may or may not
+	//   also be in the previous run state.
+	// - partialExpandedAddrs are unbounded sets of instances that _might_
+	//   be in the desired state, but we can't know until a future round.
+	// - orphanAddrs are in the previous run state but definitely not in
+	//   the desired state.
+	// - maybeOrphanAddrs are in the previous run state and we can't know
+	//   whether they are in the desired state until a future round.
+	//
+	// Each resource instance in the union of all of the above sets needs to
+	// be represented as part of _some_ graph node, but we'll build them
+	// differently depending on which set they came from.
+	for _, addr := range knownAddrs {
+		log.Printf("[TRACE] nodeExpandPlannableResource: %s is definitely in the desired state", addr)
+		v := &NodePlannableResourceInstance{
+			NodeAbstractResourceInstance: NewNodeAbstractResourceInstance(addr),
+			skipRefresh:                  n.skipRefresh,
+			skipPlanChanges:              n.skipPlanChanges,
+			forceReplace:                 n.forceReplace,
+			// TODO: replaceTriggeredBy?
+			// TODO: importTarget?
+			// TODO: ForceCreateBeforeDestroy?
+		}
+		v.ResolvedProvider = n.ResolvedProvider
+		v.Config = n.Config
+		g.Add(v)
+	}
+	for _, addr := range partialExpandedAddrs {
+		log.Printf("[TRACE] nodeExpandPlannableResource: desired instances matching %s are not yet known", addr)
+		v := &nodePlannablePartialExpandedResource{
+			addr:             addr,
+			config:           n.Config,
+			resolvedProvider: n.ResolvedProvider,
+			skipPlanChanges:  n.skipPlanChanges,
+		}
+		g.Add(v)
+	}
+	for _, addr := range orphanAddrs {
+		log.Printf("[TRACE] nodeExpandPlannableResource: %s is in previous state but no longer desired", addr)
+		v := &NodePlannableResourceInstanceOrphan{
+			NodeAbstractResourceInstance: NewNodeAbstractResourceInstance(addr),
+			skipRefresh:                  n.skipRefresh,
+			skipPlanChanges:              n.skipPlanChanges,
+			// TODO: forgetResources?
+			// TODO: forgetModules?
+		}
+		v.ResolvedProvider = n.ResolvedProvider
+		v.Config = n.Config
+		g.Add(v)
+	}
+	for _, addr := range maybeOrphanAddrs {
+		// For any object in the previous run state where we cannot yet know
+		// if it's an orphan, we can't yet properly plan it but we still
+		// want to refresh it, in the same way we would if this were a
+		// refresh-only plan.
+		log.Printf("[TRACE] nodeExpandPlannableResource: %s is in previous state but unknown whether it's still desired", addr)
+		v := &NodePlannableResourceInstance{
+			NodeAbstractResourceInstance: NewNodeAbstractResourceInstance(addr),
+			skipRefresh:                  n.skipRefresh,
+			skipPlanChanges:              true, // We never plan for a "maybe-orphan"
+			forceReplace:                 n.forceReplace,
+			// TODO: replaceTriggeredBy?
+			// TODO: importTarget?
+			// TODO: ForceCreateBeforeDestroy?
+		}
+		v.ResolvedProvider = n.ResolvedProvider
+		v.Config = n.Config
+		g.Add(v)
+	}
+
+	addRootNodeToGraph(&g)
 	return &g, diags
 }
 
