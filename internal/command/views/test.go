@@ -828,7 +828,7 @@ func junitXMLTestReport(suite *moduletest.Suite) ([]byte, error) {
 	enc := xml.NewEncoder(&buf)
 	enc.EncodeToken(xml.ProcInst{
 		Target: "xml",
-		Inst:   []byte(`version="1.0" encoding="UTF-8`),
+		Inst:   []byte(`version="1.0" encoding="UTF-8"`),
 	})
 	enc.Indent("", "  ")
 
