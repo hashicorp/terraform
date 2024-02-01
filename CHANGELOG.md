@@ -4,6 +4,11 @@ UPGRADE NOTES:
 
 * The first plan after upgrading may show resource updates with no apparent changes if `-refresh-only` or `-refresh=false` is used. The fix introduced for #34567 may require rewriting the state for some resources, which will be done automatically during the first normal plan and apply operation.
 
+NEW FEATURES:
+
+* Providers can now implement functions which can be used from within the Terraform configuration language. The syntax for calling a provider supplied function is `provider::provider_name::function_name()`. [GH-34394]
+* Providers can now implement move operations between resource types, both from resource types defined by the provider and defined by other providers. Check provider documentation for supported cross-resource-type moves.
+
 BUG FIXES:
 
 * core: Sensitive values will now be tracked more accurately in state and plans, preventing unexpected updates with no apparent changes [GH-34567]
@@ -17,11 +22,6 @@ Experiments are only enabled in alpha releases of Terraform CLI. The following f
 * The [language-level experiment](https://developer.hashicorp.com/terraform/language/settings#experimental-language-features) `unknown_instances` permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values.
 
     This is at an early stage and so currently setting these arguments to unknown values will only yield broken behavior, and so it's not yet useful to participate in this experiment. Future work will improve support for this new possibility, gradually making this experiment viable.
-
-NEW FEATURES:
-
-* Providers can now implement functions which can be used from within the Terraform configuration language. The syntax for calling a provider supplied function is `provider::provider_name::function_name()` (#34394)
-* Providers can now implement move operations between resource types, both from resources defined by the provider and defined by other providers. Check provider documentation for supported cross-resource moves.
 
 ## Previous Releases
 
