@@ -108,6 +108,20 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	expander := ctx.InstanceExpander()
 	moduleInstances := expander.ExpandModule(n.Addr.Module)
 
+	// The possibility of partial-expanded modules and resources is
+	// currently guarded by a language experiment, and so to minimize the
+	// risk of that experiment impacting mainline behavior we currently
+	// branch off into an entirely-separate codepath in those situations,
+	// at the expense of duplicating some of the logic for behavior this
+	// method would normally handle.
+	//
+	// TODO: If this experiment is stablized then we should aim to combine
+	// these two codepaths back together, so that the behavior is less likely
+	// to diverge under future maintenence.
+	if pem := expander.UnknownModuleInstances(n.Addr.Module); len(pem) != 0 {
+		return n.dynamicExpandWithPartialExpandedModule(ctx, moduleInstances, pem)
+	}
+
 	// Lock the state while we inspect it
 	state := ctx.State().Lock()
 
@@ -190,6 +204,109 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	}
 
 	addRootNodeToGraph(&g)
+
+	return &g, diags
+}
+
+// dynamicExpandWithPartialExpandedModule is a temporary experimental variant
+// of DynamicExpand that we use whenever the resource belongs to at least
+// one partial-expanded module prefix, suggesting that one of the modules
+// is participating in the "unknown_instances" language experiment.
+//
+// If we move forward with unknown instances as a stable feature then we
+// should find a way to meld this logic with the main DynamicExpand logic,
+// but it's separate for now to minimize the risk of the experiment impacting
+// configurations that are not opted into it.
+func (n *nodeExpandPlannableResource) dynamicExpandWithPartialExpandedModule(globalCtx EvalContext, knownInsts []addrs.ModuleInstance, partialInsts addrs.Set[addrs.PartialExpandedModule]) (*Graph, tfdiags.Diagnostics) {
+	var g Graph
+	var diags tfdiags.Diagnostics
+
+	// Lock the previous run state while we inspect it
+	state := globalCtx.PrevRunState().Lock()
+
+	// We need to search the prior state for any resource instances that
+	// belong to module instances that are no longer declared in the
+	// configuration, which is one way a resource instance can be classified
+	// as an "orphan".
+	//
+	// However, if any instance is under a partial-expanded prefix then
+	// we can't know whether it's still desired or not, and so we'll need
+	// to defer dealing with it to a future plan/apply round.
+	orphanAddrs := addrs.MakeSet[addrs.AbsResourceInstance]()
+	maybeOrphanAddrs := addrs.MakeSet[addrs.AbsResourceInstance]()
+Resources:
+	for _, res := range state.Resources(n.Addr) {
+		for _, m := range knownInsts {
+			if m.Equal(res.Addr.Module) {
+				// Exactly matched, so definitely not an orphan due to
+				// module instance removal. (Might still be orphaned
+				// based on the resource's own expansion, but we'll deal
+				// with that later.)
+				continue Resources
+			}
+		}
+		for _, m := range partialInsts {
+			if m.MatchesInstance(res.Addr.Module) {
+				// The instance is beneath a partial-expanded prefix, so
+				// we can't decide whether it's an orphan or not.
+				for instKey := range res.Instances {
+					instAddr := res.Addr.Instance(instKey)
+					maybeOrphanAddrs.Add(instAddr)
+				}
+				continue Resources
+			}
+		}
+		// If we get here then it wasn't covered by either a known-declared
+		// module instance or a partial-expanded prefix, and so all of its
+		// existing instances are definitely orphans.
+		for instKey := range res.Instances {
+			instAddr := res.Addr.Instance(instKey)
+			orphanAddrs.Add(instAddr)
+		}
+	}
+
+	// We'll no longer use the state directly here, and the other functions
+	// we'll call below may use it so we'll release the lock.
+	state = nil
+	globalCtx.State().Unlock()
+
+	// We now need to resolve the instances for the resource itself, separately
+	// for each known module instance address the resource is present in.
+	for _, moduleAddr := range knownInsts {
+		resourceAddr := n.Addr.Resource.Absolute(moduleAddr)
+		// The rest of our work here needs to know which module instance it's
+		// working in, so that it can evaluate expressions in the appropriate scope.
+		moduleCtx := globalCtx.WithPath(resourceAddr.Module)
+
+		// writeResourceState calculates the dynamic expansion of the given
+		// resource as a side-effect, along with its other work.
+		moreDiags := n.writeResourceState(moduleCtx, resourceAddr)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			continue
+		}
+
+		// We can now ask for all of the individual resource instances that
+		// we know, or for those with not-yet-known expansion.
+		expander := moduleCtx.InstanceExpander()
+		knownInsts := expander.ExpandResource(resourceAddr)
+		// TODO: the instances.Expander API is a little wrong here: we should
+		// have a single method that returns either the known instances
+		// or a flag saying it's unknown, since for a leaf resource we can
+		// never have a mixture of known and unknown instance keys.
+		_ = knownInsts
+	}
+	// If we accumulated any error diagnostics in our work so far then
+	// we'll just bail out at this point.
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// TODO:
+	// - check that "force replace" is being used consistently with how
+	//   the resource is declared.
+	// - Create graph nodes of different kinds depending on how we've classified
+	//   each resource instance or partial-expanded resource address prefix.
 
 	return &g, diags
 }
