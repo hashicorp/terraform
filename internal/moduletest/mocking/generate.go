@@ -101,6 +101,12 @@ func GenerateValueForType(target cty.Type) cty.Value {
 			children[attribute] = GenerateValueForType(target.AttributeType(attribute))
 		}
 		return cty.ObjectVal(children)
+	case target == cty.DynamicPseudoType:
+		// For dynamic types, we cannot generate a value that is guaranteed to
+		// be valid. Instead, we return a null value. This means users will get
+		// an error saying that the value is null, but it's better than an error
+		// saying that the type is wrong which will be confusing.
+		return cty.NullVal(cty.DynamicPseudoType)
 	default:
 		panic(fmt.Errorf("unknown complex type: %s", target.FriendlyName()))
 	}
