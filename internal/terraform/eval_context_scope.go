@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 )
 
 // evalContextScope represents the scope that an [EvalContext] (or rather,
@@ -26,6 +27,8 @@ import (
 //     a common known prefix, in situations where a module call has an unknown
 //     value for its count or for_each argument.
 type evalContextScope interface {
+	collections.UniqueKeyer[evalContextScope]
+
 	// evalContextScopeModule returns the static module address of whatever
 	// fully- or partially-expanded module instance address this scope is
 	// associated with.
@@ -33,6 +36,8 @@ type evalContextScope interface {
 	// A "global" evaluation context is a nil [evalContextScope], and so
 	// this method will panic for that scope.
 	evalContextScopeModule() addrs.Module
+
+	String() string
 }
 
 // evalContextGlobal is the nil [evalContextScope] used to represent an
@@ -49,6 +54,16 @@ func (s evalContextModuleInstance) evalContextScopeModule() addrs.Module {
 	return s.Addr.Module()
 }
 
+func (s evalContextModuleInstance) String() string {
+	return s.Addr.String()
+}
+
+func (s evalContextModuleInstance) UniqueKey() collections.UniqueKey[evalContextScope] {
+	return evalContextScopeUniqueKey{
+		k: s.Addr.UniqueKey(),
+	}
+}
+
 // evalContextPartialExpandedModule is an [evalContextScope] associated with
 // an unbounded set of possible module instances that share a common known
 // address prefix.
@@ -59,3 +74,20 @@ type evalContextPartialExpandedModule struct {
 func (s evalContextPartialExpandedModule) evalContextScopeModule() addrs.Module {
 	return s.Addr.Module()
 }
+
+func (s evalContextPartialExpandedModule) String() string {
+	return s.Addr.String()
+}
+
+func (s evalContextPartialExpandedModule) UniqueKey() collections.UniqueKey[evalContextScope] {
+	return evalContextScopeUniqueKey{
+		k: s.Addr.UniqueKey(),
+	}
+}
+
+type evalContextScopeUniqueKey struct {
+	k addrs.UniqueKey
+}
+
+// IsUniqueKey implements collections.UniqueKey.
+func (evalContextScopeUniqueKey) IsUniqueKey(evalContextScope) {}

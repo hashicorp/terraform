@@ -116,6 +116,6 @@ func evalScopeFromGraphWalk(walker *ContextGraphWalker, moduleAddr addrs.ModuleI
 	// just to get hold of an EvalContext for it. ContextGraphWalker
 	// caches its contexts, so we should get hold of the context that was
 	// previously used for evaluation here, unless we skipped walking.
-	evalCtx := walker.EnterPath(moduleAddr)
+	evalCtx := walker.enterScope(evalContextModuleInstance{Addr: moduleAddr})
 	return evalCtx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
 }

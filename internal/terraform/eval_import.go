@@ -21,7 +21,7 @@ func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData in
 
 	// import blocks only exist in the root module, and must be evaluated in
 	// that context.
-	ctx = ctx.WithPath(addrs.RootModuleInstance)
+	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
 
 	if expr == nil {
 		return "", diags.Append(&hcl.Diagnostic{

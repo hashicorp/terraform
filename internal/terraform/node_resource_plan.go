@@ -230,7 +230,7 @@ func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalCont
 
 	// The rest of our work here needs to know which module instance it's
 	// working in, so that it can evaluate expressions in the appropriate scope.
-	moduleCtx := globalCtx.WithPath(resAddr.Module)
+	moduleCtx := evalContextForModuleInstance(globalCtx, resAddr.Module)
 
 	// writeResourceState is responsible for informing the expander of what
 	// repetition mode this resource has, which allows expander.ExpandResource
@@ -339,7 +339,7 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 
 	// Import blocks are only valid within the root module, and must be
 	// evaluated within that context
-	ctx = ctx.WithPath(addrs.RootModuleInstance)
+	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
 
 	for _, imp := range n.importTargets {
 		if imp.Config == nil {

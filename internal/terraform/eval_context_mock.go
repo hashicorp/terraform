@@ -118,7 +118,7 @@ type MockEvalContext struct {
 	EvaluationScopeScope   *lang.Scope
 
 	PathCalled bool
-	PathPath   addrs.ModuleInstance
+	Scope      evalContextScope
 
 	LanguageExperimentsActive experiments.Set
 
@@ -326,23 +326,18 @@ func (c *MockEvalContext) EvaluationScope(self addrs.Referenceable, source addrs
 	return c.EvaluationScopeScope
 }
 
-func (c *MockEvalContext) WithPath(path addrs.ModuleInstance) EvalContext {
+func (c *MockEvalContext) withScope(scope evalContextScope) EvalContext {
 	newC := *c
-	newC.PathPath = path
+	newC.Scope = scope
 	return &newC
-}
-
-func (c *MockEvalContext) WithPartialExpandedPath(path addrs.PartialExpandedModule) EvalContext {
-	// This is not yet implemented as a mock, because we've not yet had any
-	// need for it. If we end up needing to test this behavior in isolation
-	// somewhere then we'll need to figure out how to fit it in here without
-	// upsetting too many existing tests that rely on the PathPath field.
-	panic("WithPartialExpandedPath not implemented for MockEvalContext")
 }
 
 func (c *MockEvalContext) Path() addrs.ModuleInstance {
 	c.PathCalled = true
-	return c.PathPath
+	// This intentionally panics if scope isn't a module instance; callers
+	// should use this only for an eval context that's working in a
+	// fully-expanded module instance.
+	return c.Scope.(evalContextModuleInstance).Addr
 }
 
 func (c *MockEvalContext) LanguageExperimentActive(experiment experiments.Experiment) bool {

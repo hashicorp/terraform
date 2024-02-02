@@ -4,7 +4,6 @@
 package terraform
 
 import (
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -12,10 +11,8 @@ import (
 // with Graph.Walk will invoke the given callbacks under certain events.
 type GraphWalker interface {
 	EvalContext() EvalContext
-	EnterPath(addrs.ModuleInstance) EvalContext
-	ExitPath(addrs.ModuleInstance)
-	EnterPartialExpandedPath(addrs.PartialExpandedModule) EvalContext
-	ExitPartialExpandedPath(addrs.PartialExpandedModule)
+	enterScope(evalContextScope) EvalContext
+	exitScope(evalContextScope)
 	Execute(EvalContext, GraphNodeExecutable) tfdiags.Diagnostics
 }
 
@@ -24,11 +21,7 @@ type GraphWalker interface {
 // implementing all the required functions.
 type NullGraphWalker struct{}
 
-func (NullGraphWalker) EvalContext() EvalContext                   { return new(MockEvalContext) }
-func (NullGraphWalker) EnterPath(addrs.ModuleInstance) EvalContext { return new(MockEvalContext) }
-func (NullGraphWalker) ExitPath(addrs.ModuleInstance)              {}
-func (NullGraphWalker) EnterPartialExpandedPath(addrs.PartialExpandedModule) EvalContext {
-	return new(MockEvalContext)
-}
-func (NullGraphWalker) ExitPartialExpandedPath(addrs.PartialExpandedModule)          {}
+func (NullGraphWalker) EvalContext() EvalContext                                     { return new(MockEvalContext) }
+func (NullGraphWalker) enterScope(evalContextScope) EvalContext                      { return new(MockEvalContext) }
+func (NullGraphWalker) exitScope(evalContextScope)                                   {}
 func (NullGraphWalker) Execute(EvalContext, GraphNodeExecutable) tfdiags.Diagnostics { return nil }
