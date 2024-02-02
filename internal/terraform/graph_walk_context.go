@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
@@ -51,7 +52,7 @@ type ContextGraphWalker struct {
 	NonFatalDiagnostics tfdiags.Diagnostics
 
 	once                sync.Once
-	contexts            map[string]*BuiltinEvalContext
+	contexts            collections.Map[evalContextScope, *BuiltinEvalContext]
 	contextLock         sync.Mutex
 	providerCache       map[string]providers.Interface
 	providerFuncCache   map[string]providers.Interface
@@ -65,33 +66,23 @@ type ContextGraphWalker struct {
 
 var _ GraphWalker = (*ContextGraphWalker)(nil)
 
-func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
+// enterScope provides an EvalContext associated with the given scope.
+func (w *ContextGraphWalker) enterScope(scope evalContextScope) EvalContext {
+	if scope == nil {
+		// Just want a global EvalContext then, presumably.
+		return w.EvalContext()
+	}
+
 	w.contextLock.Lock()
 	defer w.contextLock.Unlock()
 
-	// If we already have a context for this path cached, use that
-	key := path.String()
-	if ctx, ok := w.contexts[key]; ok {
+	// We might already have a context for this scope.
+	if ctx, ok := w.contexts.GetOk(scope); ok {
 		return ctx
 	}
 
-	ctx := w.EvalContext().WithPath(path)
-	w.contexts[key] = ctx.(*BuiltinEvalContext)
-	return ctx
-}
-
-func (w *ContextGraphWalker) EnterPartialExpandedPath(path addrs.PartialExpandedModule) EvalContext {
-	w.contextLock.Lock()
-	defer w.contextLock.Unlock()
-
-	// If we already have a context for this path cached, use that
-	key := path.String()
-	if ctx, ok := w.contexts[key]; ok {
-		return ctx
-	}
-
-	ctx := w.EvalContext().WithPartialExpandedPath(path)
-	w.contexts[key] = ctx.(*BuiltinEvalContext)
+	ctx := w.EvalContext().withScope(scope).(*BuiltinEvalContext)
+	w.contexts.Put(scope, ctx)
 	return ctx
 }
 
@@ -142,7 +133,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 }
 
 func (w *ContextGraphWalker) init() {
-	w.contexts = make(map[string]*BuiltinEvalContext)
+	w.contexts = collections.NewMap[evalContextScope, *BuiltinEvalContext]()
 	w.providerCache = make(map[string]providers.Interface)
 	w.providerFuncCache = make(map[string]providers.Interface)
 	w.providerSchemas = make(map[string]providers.ProviderSchema)

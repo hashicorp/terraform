@@ -86,19 +86,9 @@ type BuiltinEvalContext struct {
 // BuiltinEvalContext implements EvalContext
 var _ EvalContext = (*BuiltinEvalContext)(nil)
 
-func (ctx *BuiltinEvalContext) WithPath(path addrs.ModuleInstance) EvalContext {
+func (ctx *BuiltinEvalContext) withScope(scope evalContextScope) EvalContext {
 	newCtx := *ctx
-	newCtx.scope = evalContextModuleInstance{
-		Addr: path,
-	}
-	return &newCtx
-}
-
-func (ctx *BuiltinEvalContext) WithPartialExpandedPath(path addrs.PartialExpandedModule) EvalContext {
-	newCtx := *ctx
-	newCtx.scope = evalContextPartialExpandedModule{
-		Addr: path,
-	}
+	newCtx.scope = scope
 	return &newCtx
 }
 

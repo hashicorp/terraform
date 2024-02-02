@@ -153,7 +153,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_WriteResourceInstanceState(t *
 	state := states.NewState()
 	ctx := new(MockEvalContext)
 	ctx.StateState = state.SyncWrapper()
-	ctx.PathPath = addrs.RootModuleInstance
+	ctx.Scope = evalContextModuleInstance{Addr: addrs.RootModuleInstance}
 	mockProvider := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
 			"id": {

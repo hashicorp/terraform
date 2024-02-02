@@ -190,11 +190,13 @@ type EvalContext interface {
 	// this execution.
 	Overrides() *mocking.Overrides
 
-	// WithPath returns a copy of the context with the internal path set to the
-	// path argument.
-	WithPath(path addrs.ModuleInstance) EvalContext
+	// withScope derives a new EvalContext that has all of the same global
+	// context, but a new evaluation scope.
+	withScope(scope evalContextScope) EvalContext
+}
 
-	// WithPartialExpandedPath returns a copy of the context with the internal
-	// path set to the path argument.
-	WithPartialExpandedPath(path addrs.PartialExpandedModule) EvalContext
+func evalContextForModuleInstance(baseCtx EvalContext, addr addrs.ModuleInstance) EvalContext {
+	return baseCtx.withScope(evalContextModuleInstance{
+		Addr: addr,
+	})
 }

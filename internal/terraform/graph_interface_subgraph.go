@@ -36,3 +36,17 @@ type GraphNodeModulePath interface {
 type GraphNodePartialExpandedModule interface {
 	Path() addrs.PartialExpandedModule
 }
+
+// graphNodeEvalContextScope is essentially a combination of
+// [GraphNodeModuleInstance] and [GraphNodePartialExpandedModule] for when
+// the decision between the two must be made dynamically.
+//
+// When a graph node implements this interface, the [EvalContext] passed
+// to its DynamicExpand and/or Execute method will be associated with whatever
+// scope is returned by method Path.
+type graphNodeEvalContextScope interface {
+	// Path must return a _non-nil_ evalContextScope value, which therefore
+	// describes either a fully-expanded module instance address or a
+	// partial-expanded module address.
+	Path() evalContextScope
+}

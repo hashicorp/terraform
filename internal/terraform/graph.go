@@ -76,21 +76,33 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 
 		// vertexCtx is the context that we use when evaluating. This
 		// is normally the global context but can be overridden
-		// with a GraphNodeModuleInstance or GraphNodePartialExpandedModule
-		// impl. (The two interfaces are intentionally mutually-exclusive by
-		// both having the same method name but with different signatures,
-		// since a node can't belong to two different contexts at once.)
+		// with either a GraphNodeModuleInstance, GraphNodePartialExpandedModule,
+		// or graphNodeEvalContextScope implementation. (These interfaces are
+		// all intentionally mutually-exclusive by having the same method
+		// name but different signatures, since a node can only belong to
+		// one context at a time.)
 		vertexCtx := ctx
-		if pn, ok := v.(GraphNodeModuleInstance); ok {
+		if pn, ok := v.(graphNodeEvalContextScope); ok {
+			scope := pn.Path()
+			log.Printf("[TRACE] vertex %q: belongs to %s", dag.VertexName(v), scope)
+			vertexCtx = walker.enterScope(scope)
+			defer walker.exitScope(scope)
+		} else if pn, ok := v.(GraphNodeModuleInstance); ok {
 			moduleAddr := pn.Path() // An addrs.ModuleInstance
 			log.Printf("[TRACE] vertex %q: belongs to %s", dag.VertexName(v), moduleAddr)
-			vertexCtx = walker.EnterPath(moduleAddr)
-			defer walker.ExitPath(pn.Path())
+			scope := evalContextModuleInstance{
+				Addr: moduleAddr,
+			}
+			vertexCtx = walker.enterScope(scope)
+			defer walker.exitScope(scope)
 		} else if pn, ok := v.(GraphNodePartialExpandedModule); ok {
 			moduleAddr := pn.Path() // An addrs.PartialExpandedModule
 			log.Printf("[TRACE] vertex %q: belongs to all of %s", dag.VertexName(v), moduleAddr)
-			vertexCtx = walker.EnterPartialExpandedPath(pn.Path())
-			defer walker.ExitPartialExpandedPath(pn.Path())
+			scope := evalContextPartialExpandedModule{
+				Addr: moduleAddr,
+			}
+			vertexCtx = walker.enterScope(scope)
+			defer walker.exitScope(scope)
 		} else {
 			log.Printf("[TRACE] vertex %q: does not belong to any module instance", dag.VertexName(v))
 		}
