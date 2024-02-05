@@ -84,6 +84,21 @@ func TestResourceProvider_Validate_bad_no_source(t *testing.T) {
 	}
 }
 
+func TestResourceProvider_Validate_bad_null_source(t *testing.T) {
+	v := cty.ObjectVal(map[string]cty.Value{
+		"destination": cty.StringVal("/tmp/bar"),
+		"source":      cty.NullVal(cty.String),
+	})
+
+	resp := New().ValidateProvisionerConfig(provisioners.ValidateProvisionerConfigRequest{
+		Config: v,
+	})
+
+	if !resp.Diagnostics.HasErrors() {
+		t.Fatal("Should have errors")
+	}
+}
+
 func TestResourceProvider_Validate_bad_to_many_src(t *testing.T) {
 	v := cty.ObjectVal(map[string]cty.Value{
 		"source":      cty.StringVal("nope"),
