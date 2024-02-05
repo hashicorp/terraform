@@ -691,6 +691,10 @@
         "routes": [
           { "title": "<code>can</code>", "href": "/language/functions/can" },
           {
+            "title": "<code>issensitive</code>",
+            "href": "/language/functions/issensitive"
+          },
+          {
             "title": "<code>nonsensitive</code>",
             "href": "/language/functions/nonsensitive"
           },
