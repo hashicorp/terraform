@@ -598,6 +598,30 @@ func TestContext2Plan_importIdInvalidNull(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_importIdInvalidEmptyString(t *testing.T) {
+	p := testProvider("test")
+	m := testModule(t, "import-id-invalid-null")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		SetVariables: InputValues{
+			"the_id": &InputValue{
+				Value: cty.StringVal(""),
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	if got, want := diags.Err().Error(), "The import ID value evaluates to an empty string, please provide a non-empty value."; !strings.Contains(got, want) {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
+
 func TestContext2Plan_importIdInvalidUnknown(t *testing.T) {
 	p := testProvider("test")
 	m := testModule(t, "import-id-invalid-unknown")

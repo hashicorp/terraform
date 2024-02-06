@@ -72,6 +72,15 @@ func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData in
 		})
 	}
 
+	if importId == "" {
+		return "", diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid import id argument",
+			Detail:   "The import ID value evaluates to an empty string, please provide a non-empty value.",
+			Subject:  expr.Range().Ptr(),
+		})
+	}
+
 	return importId, diags
 }
 
