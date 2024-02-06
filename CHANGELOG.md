@@ -8,6 +8,7 @@ NEW FEATURES:
 
 * Providers can now implement functions which can be used from within the Terraform configuration language. The syntax for calling a provider supplied function is `provider::provider_name::function_name()`. [GH-34394]
 * Providers can now implement move operations between resource types, both from resource types defined by the provider and defined by other providers. Check provider documentation for supported cross-resource-type moves.
+* `issensitive` function added to detect if a value is marked as sensitive
 
 BUG FIXES:
 
