@@ -3,6 +3,7 @@
 BUG FIXES: 
 
 * `terraform test`: Fix crash when dynamic-typed attributes are not assigned values in mocks. ([#34610](https://github.com/hashicorp/terraform/pull/34511))
+* don't panic when file provisioner source is null. ([#34621](https://github.com/hashicorp/terraform/pull/34621))
 
 ## 1.7.2 (January 31, 2024)
 
