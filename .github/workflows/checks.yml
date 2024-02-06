@@ -64,6 +64,17 @@ jobs:
         run: |
           go test ./...
 
+  copywrite-tests:
+    name: "License Header Checks"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - name: Install copywrite
+        uses: hashicorp/setup-copywrite@v1.1.2
+      - name: Validate Header Compliance
+        run: copywrite headers --plan
+
   race-tests:
     name: "Race Tests"
     runs-on: ubuntu-latest
