@@ -515,6 +515,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"issensitive": {
+			{
+				`issensitive(1)`,
+				cty.False,
+			},
+		},
+
 		"join": {
 			{
 				`join(" ", ["Hello", "World"])`,

@@ -1,0 +1,27 @@
+---
+page_title: issensitive - Functions - Configuration Language
+description: The issensitive function true if the value passed is marked as sensitive
+---
+
+# `issensitive` Function
+
+-> **Note:** This function is only available in Terraform v1.8 and later.
+
+`issensitive` takes any value and returns true if Terraform
+treats it as sensitive, with the same meaning and behavior as for
+[sensitive input variables](/terraform/language/values/variables#suppressing-values-in-cli-output).
+
+If a value not marked as sensitive is passed the function returns false.
+
+See [`sensitive`](/terraform/language/functions/sensitive), [`nonsensitive`](/terraform/language/functions/nonsensitive), and [sensitive input variables](/terraform/language/values/variables#suppressing-values-in-cli-output) for more information on sensitive values.
+
+## Examples
+
+```
+> issensitive(sensitive("secret"))
+true
+> issensitive("hello")
+false
+> sensitive(var.my-var-with-sensitive-set-to-true)
+true
+```
