@@ -423,6 +423,121 @@ resource "tfcoremock_simple_resource" "empty" {
   single = null
 }`,
 		},
+		"simple_resource_with_stringified_json_object": {
+			schema: &configschema.Block{
+				// BlockTypes: map[string]*configschema.NestedBlock{},
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"value": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			addr: addrs.AbsResourceInstance{
+				Module: nil,
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "tfcoremock_simple_resource",
+						Name: "empty",
+					},
+					Key: nil,
+				},
+			},
+			provider: addrs.LocalProviderConfig{
+				LocalName: "tfcoremock",
+			},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"id":    cty.StringVal("D2320658"),
+				"value": cty.StringVal(`{ "0Hello": "World", "And": ["Solar", "System"], "ready": true }`),
+			}),
+			expected: `
+resource "tfcoremock_simple_resource" "empty" {
+  value = jsonencode({
+    "0Hello" = "World"
+    And      = ["Solar", "System"]
+    ready    = true
+  })
+}`,
+		},
+		"simple_resource_with_stringified_json_array": {
+			schema: &configschema.Block{
+				// BlockTypes: map[string]*configschema.NestedBlock{},
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"value": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			addr: addrs.AbsResourceInstance{
+				Module: nil,
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "tfcoremock_simple_resource",
+						Name: "empty",
+					},
+					Key: nil,
+				},
+			},
+			provider: addrs.LocalProviderConfig{
+				LocalName: "tfcoremock",
+			},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"id":    cty.StringVal("D2320658"),
+				"value": cty.StringVal(`["Hello", "World"]`),
+			}),
+			expected: `
+resource "tfcoremock_simple_resource" "empty" {
+  value = jsonencode(["Hello", "World"])
+}`,
+		},
+		"simple_resource_with_malformed_json": {
+			schema: &configschema.Block{
+				// BlockTypes: map[string]*configschema.NestedBlock{},
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"value": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			addr: addrs.AbsResourceInstance{
+				Module: nil,
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "tfcoremock_simple_resource",
+						Name: "empty",
+					},
+					Key: nil,
+				},
+			},
+			provider: addrs.LocalProviderConfig{
+				LocalName: "tfcoremock",
+			},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"id":    cty.StringVal("D2320658"),
+				"value": cty.StringVal(`["Hello", "World"`),
+			}),
+			expected: `
+resource "tfcoremock_simple_resource" "empty" {
+  value = "[\"Hello\", \"World\""
+}`,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
