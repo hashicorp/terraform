@@ -243,8 +243,16 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 		}
 		ctx := evts.OnContext(ctx)
 
+		// We can not use c.providerGlobalCacheDir() as we install the provider into a temp dir
 		dir := providercache.NewDirWithPlatform(tempDir, platform)
 		installer := providercache.NewInstaller(dir, source)
+
+		// Use global plugin cache for extra speed if this architecture matches the systems (and therefore the caches) one
+		globalCacheDir := c.providerGlobalCacheDir()
+		if globalCacheDir != nil && platform == getproviders.CurrentPlatform {
+			installer.SetGlobalCacheDir(globalCacheDir)
+			installer.SetGlobalCacheDirMayBreakDependencyLockFile(c.PluginCacheMayBreakDependencyLockFile)
+		}
 
 		newLocks, err := installer.EnsureProviderVersions(ctx, oldLocks, reqs, providercache.InstallNewProvidersForce)
 		if err != nil {
