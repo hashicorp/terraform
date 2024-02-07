@@ -83,6 +83,13 @@ type NodeAbstractResource struct {
 	// generateConfigPath tells this node which file to write generated config
 	// into. If empty, then config should not be generated.
 	generateConfigPath string
+
+	// TEMP: [ConfigTransformer] sets this to true when at least one module
+	// in the configuration has opted in to the unknown_instances experiment.
+	// See the field of the same name in [ConfigTransformer] for more details.
+	// (And if that field has been removed already, then this one should've
+	// been too!)
+	unknownInstancesExperimentEnabled bool
 }
 
 var (
