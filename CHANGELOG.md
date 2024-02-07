@@ -4,6 +4,7 @@ BUG FIXES:
 
 * `terraform test`: Fix crash when dynamic-typed attributes are not assigned values in mocks. ([#34610](https://github.com/hashicorp/terraform/pull/34511))
 * don't panic when file provisioner source is null. ([#34621](https://github.com/hashicorp/terraform/pull/34621))
+* throw helpful error message if import block is configured with id "" ([34625](https://github.com/hashicorp/terraform/pull/34625))
 
 ## 1.7.2 (January 31, 2024)
 
