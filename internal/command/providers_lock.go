@@ -43,9 +43,11 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 	var optPlatforms FlagStringSlice
 	var fsMirrorDir string
 	var netMirrorURL string
+
 	cmdFlags.Var(&optPlatforms, "platform", "target platform")
 	cmdFlags.StringVar(&fsMirrorDir, "fs-mirror", "", "filesystem mirror directory")
 	cmdFlags.StringVar(&netMirrorURL, "net-mirror", "", "network mirror base URL")
+	pluginCache := cmdFlags.Bool("enable-plugin-cache", false, "")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
@@ -249,7 +251,7 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 
 		// Use global plugin cache for extra speed if this architecture matches the systems (and therefore the caches) one
 		globalCacheDir := c.providerGlobalCacheDir()
-		if globalCacheDir != nil {
+		if *pluginCache && globalCacheDir != nil {
 			installer.SetGlobalCacheDir(globalCacheDir.WithPlatform(platform))
 			installer.SetGlobalCacheDirMayBreakDependencyLockFile(c.PluginCacheMayBreakDependencyLockFile)
 		}
@@ -378,38 +380,42 @@ Usage: terraform [global options] providers lock [options] [providers...]
 
 Options:
 
-  -fs-mirror=dir     Consult the given filesystem mirror directory instead
-                     of the origin registry for each of the given providers.
+  -fs-mirror=dir         Consult the given filesystem mirror directory instead
+                         of the origin registry for each of the given providers.
 
-                     This would be necessary to generate lock file entries for
-                     a provider that is available only via a mirror, and not
-                     published in an upstream registry. In this case, the set
-                     of valid checksums will be limited only to what Terraform
-                     can learn from the data in the mirror directory.
+                         This would be necessary to generate lock file entries for
+                         a provider that is available only via a mirror, and not
+                         published in an upstream registry. In this case, the set
+                         of valid checksums will be limited only to what Terraform
+                         can learn from the data in the mirror directory.
 
-  -net-mirror=url    Consult the given network mirror (given as a base URL)
-                     instead of the origin registry for each of the given
-                     providers.
+  -net-mirror=url        Consult the given network mirror (given as a base URL)
+                         instead of the origin registry for each of the given
+                         providers.
 
-                     This would be necessary to generate lock file entries for
-                     a provider that is available only via a mirror, and not
-                     published in an upstream registry. In this case, the set
-                     of valid checksums will be limited only to what Terraform
-                     can learn from the data in the mirror indices.
+                         This would be necessary to generate lock file entries for
+                         a provider that is available only via a mirror, and not
+                         published in an upstream registry. In this case, the set
+                         of valid checksums will be limited only to what Terraform
+                         can learn from the data in the mirror indices.
 
-  -platform=os_arch  Choose a target platform to request package checksums
-                     for.
+  -platform=os_arch      Choose a target platform to request package checksums
+                         for.
 
-                     By default Terraform will request package checksums
-                     suitable only for the platform where you run this
-                     command. Use this option multiple times to include
-                     checksums for multiple target systems.
+                         By default Terraform will request package checksums
+                         suitable only for the platform where you run this
+                         command. Use this option multiple times to include
+                         checksums for multiple target systems.
 
-                     Target names consist of an operating system and a CPU
-                     architecture. For example, "linux_amd64" selects the
-                     Linux operating system running on an AMD64 or x86_64
-                     CPU. Each provider is available only for a limited
-                     set of target platforms.
+                         Target names consist of an operating system and a CPU
+                         architecture. For example, "linux_amd64" selects the
+                         Linux operating system running on an AMD64 or x86_64
+                         CPU. Each provider is available only for a limited
+                         set of target platforms.
+
+  -enable-plugin-cache   Enable the usage of the globally configured plugin cache.
+                         This will speed up the locking process, but the providers
+                         wont be loaded from am authoritative source.
 `
 }
 
