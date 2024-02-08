@@ -24,6 +24,10 @@ Experiments are only enabled in alpha releases of Terraform CLI. The following f
 
     This is at an early stage and so currently setting these arguments to unknown values will only yield broken behavior, and so it's not yet useful to participate in this experiment. Future work will improve support for this new possibility, gradually making this experiment viable.
 
+## ENHANCEMENTS:
+
+* In import-generated code represent JSON values in HCL instead of as strings
+
 ## Previous Releases
 
 For information on prior major and minor releases, see their changelogs:
