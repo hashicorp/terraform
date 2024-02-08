@@ -131,7 +131,7 @@ func (b *Local) opPlan(
 	}
 
 	// Record whether this plan includes any side-effects that could be applied.
-	runningOp.PlanEmpty = !plan.CanApply()
+	runningOp.PlanEmpty = !plan.Applyable
 
 	// Save the plan to disk
 	if path := op.PlanOutPath; path != "" {

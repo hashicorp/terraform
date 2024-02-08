@@ -63,6 +63,8 @@ type plan struct {
 	RelevantAttributes []ResourceAttr    `json:"relevant_attributes,omitempty"`
 	Checks             json.RawMessage   `json:"checks,omitempty"`
 	Timestamp          string            `json:"timestamp,omitempty"`
+	Applyable          bool              `json:"applyable"`
+	Complete           bool              `json:"complete"`
 	Errored            bool              `json:"errored"`
 }
 
@@ -225,6 +227,8 @@ func Marshal(
 	output := newPlan()
 	output.TerraformVersion = version.String()
 	output.Timestamp = p.Timestamp.Format(time.RFC3339)
+	output.Applyable = p.Applyable
+	output.Complete = p.Complete
 	output.Errored = p.Errored
 
 	err := output.marshalPlanVariables(p.VariableValues, config.Module.Variables)

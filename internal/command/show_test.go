@@ -1207,6 +1207,8 @@ type plan struct {
 	OutputChanges   map[string]interface{} `json:"output_changes,omitempty"`
 	PriorState      priorState             `json:"prior_state,omitempty"`
 	Config          map[string]interface{} `json:"configuration,omitempty"`
+	Applyable       bool                   `json:"applyable"`
+	Complete        bool                   `json:"complete"`
 	Errored         bool                   `json:"errored"`
 }
 

@@ -82,6 +82,8 @@ func TestPlanWithSingleResource(t *testing.T) {
 				},
 			),
 			Action:             plans.Create,
+			PlanApplyable:      true,
+			PlanComplete:       true,
 			PlannedInputValues: make(map[string]plans.DynamicValue),
 			PlannedOutputValues: map[string]cty.Value{
 				"input":  cty.StringVal("hello"),
@@ -290,6 +292,8 @@ func TestPlanSensitiveOutput(t *testing.T) {
 				},
 			),
 			Action:             plans.Create,
+			PlanApplyable:      true,
+			PlanComplete:       true,
 			PlannedInputValues: make(map[string]plans.DynamicValue),
 			PlannedOutputValues: map[string]cty.Value{
 				"out": cty.StringVal("secret").Mark(marks.Sensitive),
@@ -356,6 +360,8 @@ func TestPlanSensitiveOutputNested(t *testing.T) {
 				},
 			),
 			Action:             plans.Create,
+			PlanApplyable:      true,
+			PlanComplete:       true,
 			PlannedInputValues: make(map[string]plans.DynamicValue),
 			PlannedOutputValues: map[string]cty.Value{
 				"out": cty.StringVal("secret").Mark(marks.Sensitive),
@@ -422,6 +428,8 @@ func TestPlanSensitiveOutputAsInput(t *testing.T) {
 				},
 			),
 			Action:             plans.Create,
+			PlanApplyable:      true,
+			PlanComplete:       true,
 			PlannedInputValues: make(map[string]plans.DynamicValue),
 			PlannedOutputValues: map[string]cty.Value{
 				"out": cty.StringVal("secret").Mark(marks.Sensitive),
@@ -435,7 +443,9 @@ func TestPlanSensitiveOutputAsInput(t *testing.T) {
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
-			Action: plans.Create,
+			Action:        plans.Create,
+			PlanApplyable: true,
+			PlanComplete:  true,
 			PlannedInputValues: map[string]plans.DynamicValue{
 				"secret": mustPlanDynamicValueDynamicType(cty.StringVal("secret")),
 			},

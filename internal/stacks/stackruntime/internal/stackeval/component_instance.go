@@ -1118,6 +1118,8 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 			Addr: c.Addr(),
 
 			Action:                 action,
+			PlanApplyable:          corePlan.Applyable,
+			PlanComplete:           corePlan.Complete,
 			RequiredComponents:     c.RequiredComponents(ctx),
 			PlannedInputValues:     corePlan.VariableValues,
 			PlannedInputValueMarks: corePlan.VariableMarks,

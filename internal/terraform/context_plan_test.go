@@ -43,6 +43,7 @@ func TestContext2Plan_basic(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	checkPlanCompleteAndApplyable(t, plan)
 
 	if l := len(plan.Changes.Resources); l < 2 {
 		t.Fatalf("wrong number of resources %d; want fewer than two\n%s", l, spew.Sdump(plan.Changes.Resources))
@@ -113,6 +114,7 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	checkPlanCompleteAndApplyable(t, plan)
 
 	// the state should still show one deposed
 	expectedState := strings.TrimSpace(`
@@ -1274,10 +1276,11 @@ func TestContext2Plan_moduleVarWrongTypeBasic(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if !diags.HasErrors() {
 		t.Fatalf("succeeded; want errors")
 	}
+	checkPlanErrored(t, plan)
 }
 
 func TestContext2Plan_moduleVarWrongTypeNested(t *testing.T) {
@@ -1289,10 +1292,11 @@ func TestContext2Plan_moduleVarWrongTypeNested(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if !diags.HasErrors() {
 		t.Fatalf("succeeded; want errors")
 	}
+	checkPlanErrored(t, plan)
 }
 
 func TestContext2Plan_moduleVarWithDefaultValue(t *testing.T) {
@@ -1304,10 +1308,11 @@ func TestContext2Plan_moduleVarWithDefaultValue(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	checkPlanCompleteAndApplyable(t, plan)
 }
 
 func TestContext2Plan_moduleVarComputed(t *testing.T) {
@@ -1382,6 +1387,7 @@ func TestContext2Plan_preventDestroy_bad(t *testing.T) {
 	})
 
 	plan, err := ctx.Plan(m, state, DefaultPlanOpts)
+	checkPlanErrored(t, plan)
 
 	expectedErr := "aws_instance.foo has lifecycle.prevent_destroy"
 	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
@@ -1442,9 +1448,13 @@ func TestContext2Plan_preventDestroy_good(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	checkPlanComplete(t, plan)
 
 	if !plan.Changes.Empty() {
 		t.Fatalf("expected no changes, got %#v\n", plan.Changes)
+	}
+	if plan.Applyable {
+		t.Errorf("plan is applyable; should not be (because it has no changes)")
 	}
 }
 
@@ -1478,6 +1488,7 @@ func TestContext2Plan_preventDestroy_countBad(t *testing.T) {
 	})
 
 	plan, err := ctx.Plan(m, state, DefaultPlanOpts)
+	checkPlanErrored(t, plan)
 
 	expectedErr := "aws_instance.foo[1] has lifecycle.prevent_destroy"
 	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
@@ -1531,10 +1542,10 @@ func TestContext2Plan_preventDestroy_countGood(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
-
 	if plan.Changes.Empty() {
 		t.Fatalf("Expected non-empty plan, got %s", legacyDiffComparisonString(plan.Changes))
 	}
+	checkPlanCompleteAndApplyable(t, plan)
 }
 
 func TestContext2Plan_preventDestroy_countGoodNoChange(t *testing.T) {
@@ -4048,6 +4059,11 @@ func TestContext2Plan_targeted(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	checkPlanApplyable(t, plan)
+	if plan.Complete {
+		t.Error("plan marked as complete; should not be because it used targeting")
+	}
+
 	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
 	ty := schema.ImpliedType()
 
@@ -4098,6 +4114,11 @@ func TestContext2Plan_targetedCrossModule(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	checkPlanApplyable(t, plan)
+	if plan.Complete {
+		t.Error("plan marked as complete; should not be because it used targeting")
+	}
+
 	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
 	ty := schema.ImpliedType()
 
@@ -4163,6 +4184,10 @@ func TestContext2Plan_targetedModuleWithProvider(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	checkPlanApplyable(t, plan)
+	if plan.Complete {
+		t.Error("plan marked as complete; should not be because it used targeting")
+	}
 
 	schema := p.GetProviderSchemaResponse.ResourceTypes["null_resource"].Block
 	ty := schema.ImpliedType()
@@ -4221,6 +4246,10 @@ func TestContext2Plan_targetedOrphan(t *testing.T) {
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	checkPlanApplyable(t, plan)
+	if plan.Complete {
+		t.Error("plan marked as complete; should not be because it used targeting")
 	}
 
 	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
@@ -4288,6 +4317,10 @@ func TestContext2Plan_targetedModuleOrphan(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	checkPlanApplyable(t, plan)
+	if plan.Complete {
+		t.Error("plan marked as complete; should not be because it used targeting")
+	}
 
 	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
 	ty := schema.ImpliedType()
@@ -4330,6 +4363,10 @@ func TestContext2Plan_targetedModuleUntargetedVariable(t *testing.T) {
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	checkPlanApplyable(t, plan)
+	if plan.Complete {
+		t.Error("plan marked as complete; should not be because it used targeting")
 	}
 
 	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
@@ -4610,6 +4647,10 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	checkPlanComplete(t, plan)
+	if plan.Applyable {
+		t.Error("plan marked as applyable; should not be because all actions should be no-op")
 	}
 
 	for _, res := range plan.Changes.Resources {

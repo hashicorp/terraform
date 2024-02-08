@@ -9524,6 +9524,8 @@ func TestContext2Apply_moduleReplaceCycle(t *testing.T) {
 			Changes:      changes,
 			PriorState:   state.DeepCopy(),
 			PrevRunState: state.DeepCopy(),
+			Applyable:    true,
+			Complete:     true,
 		}
 
 		t.Run(mode, func(t *testing.T) {

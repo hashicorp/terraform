@@ -1,5 +1,7 @@
 {
     "format_version": "1.0",
+    "applyable": true,
+    "complete": true,
     "planned_values": {
         "outputs": {
             "test": {
