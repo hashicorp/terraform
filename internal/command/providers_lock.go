@@ -249,8 +249,8 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 
 		// Use global plugin cache for extra speed if this architecture matches the systems (and therefore the caches) one
 		globalCacheDir := c.providerGlobalCacheDir()
-		if globalCacheDir != nil && platform == getproviders.CurrentPlatform {
-			installer.SetGlobalCacheDir(globalCacheDir)
+		if globalCacheDir != nil {
+			installer.SetGlobalCacheDir(globalCacheDir.WithPlatform(platform))
 			installer.SetGlobalCacheDirMayBreakDependencyLockFile(c.PluginCacheMayBreakDependencyLockFile)
 		}
 
