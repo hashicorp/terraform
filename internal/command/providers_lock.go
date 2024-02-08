@@ -245,7 +245,6 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 		}
 		ctx := evts.OnContext(ctx)
 
-		// We can not use c.providerGlobalCacheDir() as we install the provider into a temp dir
 		dir := providercache.NewDirWithPlatform(tempDir, platform)
 		installer := providercache.NewInstaller(dir, source)
 
