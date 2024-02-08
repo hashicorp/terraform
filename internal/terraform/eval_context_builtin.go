@@ -489,7 +489,7 @@ func (ctx *BuiltinEvalContext) evaluationExternalFunctions() lang.ExternalFuncs 
 	// by the module author.
 	ret := lang.ExternalFuncs{}
 
-	cfg := ctx.Evaluator.Config.DescendentForInstance(ctx.Path())
+	cfg := ctx.Evaluator.Config.Descendent(ctx.scope.evalContextScopeModule())
 	if cfg == nil {
 		// It's weird to not have a configuration by this point, but we'll
 		// tolerate it for robustness and just return no functions at all.
