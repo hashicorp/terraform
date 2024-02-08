@@ -4,6 +4,7 @@
 package genconfig
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -158,15 +160,46 @@ func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *stri
 			if attrS.Sensitive || val.IsMarked() {
 				buf.WriteString("null # sensitive")
 			} else {
-				tok := hclwrite.TokensForValue(val)
-				if _, err := tok.WriteTo(buf); err != nil {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagWarning,
-						Summary:  "Skipped part of config generation",
-						Detail:   fmt.Sprintf("Could not create attribute %s in %s when generating import configuration. The plan will likely report the missing attribute as being deleted.", name, addr),
-						Extra:    err,
-					})
-					continue
+				// If the value is a string storing a JSON value we want to represent it in a terraform native way
+				// and encapsulate it in `jsonencode` as it is the idiomatic representation
+				if val.IsKnown() && !val.IsNull() && val.Type() == cty.String && json.Valid([]byte(val.AsString())) {
+					buf.WriteString("jsonencode(")
+
+					var ctyValue ctyjson.SimpleJSONValue
+					err := ctyValue.UnmarshalJSON([]byte(val.AsString()))
+					if err != nil {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagWarning,
+							Summary:  "Failed to parse JSON",
+							Detail:   fmt.Sprintf("Could not parse JSON value of attribute %s in %s when generating import configuration. The plan will likely report the missing attribute as being deleted. This is most likely a bug in Terraform, please report it.", name, addr),
+							Extra:    err,
+						})
+						continue
+					}
+
+					tok := hclwrite.TokensForValue(ctyValue.Value)
+					if _, err := tok.WriteTo(buf); err != nil {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagWarning,
+							Summary:  "Skipped part of config generation",
+							Detail:   fmt.Sprintf("Could not create attribute %s in %s when generating import configuration. The plan will likely report the missing attribute as being deleted.", name, addr),
+							Extra:    err,
+						})
+						continue
+					}
+
+					buf.WriteString(")")
+				} else {
+					tok := hclwrite.TokensForValue(val)
+					if _, err := tok.WriteTo(buf); err != nil {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagWarning,
+							Summary:  "Skipped part of config generation",
+							Detail:   fmt.Sprintf("Could not create attribute %s in %s when generating import configuration. The plan will likely report the missing attribute as being deleted.", name, addr),
+							Extra:    err,
+						})
+						continue
+					}
 				}
 			}
 
