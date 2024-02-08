@@ -9,13 +9,14 @@ import (
 	"sync"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // StackConfig represents a stack as represented in the configuration: either the
@@ -336,6 +337,7 @@ func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stacka
 				Detail:   fmt.Sprintf("There is no variable %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
+			return nil, diags
 		}
 		return ret, diags
 	case stackaddrs.Component:
@@ -347,6 +349,7 @@ func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stacka
 				Detail:   fmt.Sprintf("There is no component %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
+			return nil, diags
 		}
 		return ret, diags
 	case stackaddrs.StackCall:
@@ -358,6 +361,7 @@ func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stacka
 				Detail:   fmt.Sprintf("There is no stack %q block declared this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
+			return nil, diags
 		}
 		return ret, diags
 	default:
