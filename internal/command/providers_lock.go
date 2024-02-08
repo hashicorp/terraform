@@ -249,7 +249,7 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 		dir := providercache.NewDirWithPlatform(tempDir, platform)
 		installer := providercache.NewInstaller(dir, source)
 
-		// Use global plugin cache for extra speed if this architecture matches the systems (and therefore the caches) one
+		// Use global plugin cache for extra speed if present and flag is set
 		globalCacheDir := c.providerGlobalCacheDir()
 		if *pluginCache && globalCacheDir != nil {
 			installer.SetGlobalCacheDir(globalCacheDir.WithPlatform(platform))
