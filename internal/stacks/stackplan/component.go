@@ -25,6 +25,10 @@ import (
 type Component struct {
 	PlannedAction plans.Action
 
+	// These fields echo the [plans.Plan.Applyable] and [plans.Plan.Complete]
+	// field respectively. See the docs for those fields for more information.
+	PlanApplyable, PlanComplete bool
+
 	// ResourceInstancePlanned describes the changes that Terraform is proposing
 	// to make to try to converge the real system state with the desired state
 	// as described by the configuration.
@@ -81,6 +85,8 @@ func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 	plan := &plans.Plan{
 		Changes:   changes,
 		Timestamp: c.PlanTimestamp,
+		Applyable: c.PlanApplyable,
+		Complete:  c.PlanComplete,
 	}
 
 	sc := changes.SyncWrapper()

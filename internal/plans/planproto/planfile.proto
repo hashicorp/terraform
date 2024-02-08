@@ -27,9 +27,34 @@ message Plan {
     // make decisions in Terraform Core during the applying of a plan.
     Mode ui_mode = 17;
 
+    // Applyable is true for any plan where it makes sense to ask an operator
+    // to approve it and then ask Terraform to apply it.
+    //
+    // The other fields provide more context about why a non-applyable plan
+    // is not applyable, but this field is here so that if new situations
+    // arise in future then old callers can at least still make the right
+    // decision about whether to show the approval prompt, even if they don't
+    // know yet why a particular plan isn't applyable and have to just use
+    // a generic error message.
+    bool applyable = 25;
+
+    // Complete is true for a plan that includes a planned action for every
+    // resource input object that was present across the desired state and
+    // prior state, even if the planned action is "no-op".
+    //
+    // Conversely, if this field is false then the plan deals with only a
+    // subset of those objects. The reason for that should always be
+    // determinable based on other fields in this message, but this flag
+    // is here to ensure that if new situations arise in future then old
+    // callers can at least still show a generic message about the plan
+    // being incomplete, even if they don't know yet how to explain the
+    // reason to the operator.
+    bool complete = 26;
+
     // Errored is true for any plan whose creation was interrupted by an
-    // error. A plan with this flag set cannot be applied, and the changes
-    // it proposes are likely to be incomplete.
+    // error. A plan with this flag set cannot be applied
+    // (i.e. applyable = false), and the changes it proposes are likely to be
+    // incomplete.
     bool errored = 20;
 
     // The variables that were set when creating the plan. Each value is

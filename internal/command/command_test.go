@@ -197,6 +197,12 @@ func testPlan(t *testing.T) *plans.Plan {
 			Config: backendConfigRaw,
 		},
 		Changes: plans.NewChanges(),
+
+		// We'll default to the fake plan being both applyable and complete,
+		// since that's what most tests expect. Tests can override these
+		// back to false again afterwards if they need to.
+		Applyable: true,
+		Complete:  true,
 	}
 }
 

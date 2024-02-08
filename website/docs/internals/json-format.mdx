@@ -75,6 +75,34 @@ For ease of consumption by callers, the plan representation includes a partial r
   // being applied to, using the state representation described above.
   "prior_state":  <state-representation>,
 
+  // "applyable" indicates that it would make sense for a wrapping automation
+  // to try to apply this plan, possibly after asking a human operator for
+  // approval.
+  //
+  // Other attributes may give additional context about why the plan is not
+  // applyable, but wrapping automations should use this flag as their
+  // primary condition to accommodate potential changes to the exact definition
+  // of "applyable" in future Terraform versions.
+  "applyable": true,
+
+  // "complete" indicates that Terraform expects that after applying this
+  // plan the actual state will match the desired state.
+  //
+  // An incomplete plan is expected to require at least one additional
+  // plan/apply round to achieve convergence, and so wrapping automations
+  // should ideally either automatically start a new plan/apply round after
+  // this plan is applied, or prompt the operator that they should do so.
+  //
+  // Other attributes may give additional context about why the plan is not
+  // complete, but wrapping automations should use this flag as their
+  // primary condition to accommodate potential changes to the exact definition
+  // of "complete" in future Terraform versions.
+  "complete": true,
+
+  // "errored" indicates whether planning failed. An errored plan cannot be applied,
+  // but the actions planned before failure may help to understand the error.
+  "errored": false,
+
   // "configuration" is a representation of the configuration being applied to the
   // prior state, using the configuration representation described above.
   "configuration": <configuration-representation>,
@@ -229,11 +257,7 @@ For ease of consumption by callers, the plan representation includes a partial r
   // resources with postconditions, with as much information as Terraform can
   // recognize at plan time. Some objects will have status "unknown" to
   // indicate that their status will only be determined after applying the plan.
-  "checks" <checks-representation>,
-
-  // "errored" indicates whether planning failed. An errored plan cannot be applied,
-  // but the actions planned before failure may help to understand the error.
-  "errored": false
+  "checks" <checks-representation>
 }
 ```
 

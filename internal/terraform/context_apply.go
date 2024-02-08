@@ -87,13 +87,34 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 	}
 
 	if plan.Errored {
-		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Cannot apply failed plan",
 			`The given plan is incomplete due to errors during planning, and so it cannot be applied.`,
 		))
 		return nil, nil, diags
+	}
+	if !plan.Applyable {
+		if plan.Changes.Empty() {
+			// If a plan is not applyable but it didn't have any errors then that
+			// suggests it was a "no-op" plan, which doesn't really do any
+			// harm to apply, so we'll just do it but leave ourselves a note
+			// in the trace log in case it ends up relevant to a bug report.
+			log.Printf("[TRACE] Applying a no-op plan")
+		} else {
+			// This situation isn't something we expect, since our own rules
+			// for what "applyable" means make this scenario impossible. We'll
+			// reject it on the assumption that something very strange is
+			// going on. and so better to halt than do something incorrect.
+			// This error message is generic and useless because we don't
+			// expect anyone to ever see it in normal use.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot apply non-applyable plan",
+				`The given plan is not applyable. If this seems like a bug in Terraform, then please report it!`,
+			))
+			return nil, nil, diags
+		}
 	}
 
 	for _, rc := range plan.Changes.Resources {

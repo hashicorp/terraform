@@ -2214,6 +2214,7 @@ func TestContext2Plan_refreshOnlyMode(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
+	checkPlanCompleteAndApplyable(t, plan)
 
 	if !p.UpgradeResourceStateCalled {
 		t.Errorf("Provider's UpgradeResourceState wasn't called; should've been")

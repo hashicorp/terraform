@@ -738,6 +738,18 @@ message PlannedChange {
         // and doesn't take into account what actions are planned for any
         // resource instances inside.
         repeated ChangeType actions = 2;
+        // A flag for whether applying this plan is expected to cause the
+        // desired state and actual state to become converged.
+        //
+        // If this field is false, that means Terraform expects that at least
+        // one more plan/apply round will be needed to reach convergence.
+        //
+        // If this field is true then Terraform hopes to be able to converge
+        // after this plan is applied, but callers should ideally still check
+        // anyway by running one more plan to confirm that there aren't any
+        // unexpected differences caused by such situations as contradictory
+        // configuration or provider bugs.
+        bool plan_complete = 3;
     }
     message ResourceInstance {
         ResourceInstanceObjectInStackAddr addr = 1;

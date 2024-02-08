@@ -87,7 +87,9 @@ func testPlan(t *testing.T) *plans.Plan {
 	})
 
 	return &plans.Plan{
-		Changes: changes,
+		Changes:   changes,
+		Applyable: true,
+		Complete:  true,
 	}
 }
 

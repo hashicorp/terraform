@@ -230,11 +230,10 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File, progress mod
 				}
 
 				var opts []plans.Quality
-				if !run.Verbose.Plan.CanApply() {
-					opts = append(opts, plans.NoChanges)
-				}
 				if run.Verbose.Plan.Errored {
 					opts = append(opts, plans.Errored)
+				} else if !run.Verbose.Plan.Applyable {
+					opts = append(opts, plans.NoChanges)
 				}
 
 				renderer.RenderHumanPlan(plan, run.Verbose.Plan.UIMode, opts...)

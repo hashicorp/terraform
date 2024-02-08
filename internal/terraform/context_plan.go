@@ -745,6 +745,41 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		// Other fields get populated by Context.Plan after we return
 	}
 
+	// Our final rulings on whether the plan is "complete" and "applyable".
+	// See the documentation for these plan fields to learn what exactly they
+	// are intended to mean.
+	if !diags.HasErrors() {
+		if len(opts.Targets) == 0 {
+			// A plan without any targets should be complete if we didn't encounter
+			// errors while producing it.
+			// TODO: Once we support "deferred actions" for resources, the
+			// presence of any of those should cause the plan to be marked
+			// incomplete too.
+			log.Println("[TRACE] Plan is complete")
+			plan.Complete = true
+		} else {
+			log.Println("[TRACE] Plan is incomplete")
+		}
+		if opts.Mode == plans.RefreshOnlyMode {
+			// In refresh-only mode we explicitly don't expect to propose any
+			// actions, but the plan is applyable if the state was changed
+			// in an interesting way by the refresh step.
+			plan.Applyable = !plan.PriorState.ManagedResourcesEqual(plan.PrevRunState)
+		} else {
+			// For other planning modes a plan is applyable if its "changes"
+			// are not considered empty (by whatever rules the plans package
+			// uses to decide that).
+			plan.Applyable = !plan.Changes.Empty()
+		}
+		if plan.Applyable {
+			log.Println("[TRACE] Plan is applyable")
+		} else {
+			log.Println("[TRACE] Plan is not applyable")
+		}
+	} else {
+		log.Println("[WARN] Planning encountered errors, so plan is not applyable")
+	}
+
 	// The caller also gets access to an expression evaluation scope in the
 	// root module, in case it needs to extract other information using
 	// expressions, like in "terraform console" or the test harness.

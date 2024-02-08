@@ -88,11 +88,10 @@ func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *
 		}
 
 		var opts []plans.Quality
-		if !plan.CanApply() {
-			opts = append(opts, plans.NoChanges)
-		}
 		if plan.Errored {
 			opts = append(opts, plans.Errored)
+		} else if !plan.Applyable {
+			opts = append(opts, plans.NoChanges)
 		}
 
 		renderer.RenderHumanPlan(jplan, plan.UIMode, opts...)

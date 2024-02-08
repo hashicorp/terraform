@@ -50,6 +50,31 @@ type Plan struct {
 	ForceReplaceAddrs []addrs.AbsResourceInstance
 	Backend           Backend
 
+	// Complete is true if Terraform considers this to be a "complete" plan,
+	// which is to say that it includes a planned action (even if no-op)
+	// for every resource instance object that was mentioned across both
+	// the desired state and prior state.
+	//
+	// If Complete is false then the plan might still be applyable (check
+	// [Plan.Applyable]) but after applying it the operator should be reminded
+	// to plan and apply again to hopefully make more progress towards
+	// convergence.
+	//
+	// For an incomplete plan, other fields of this type may give more context
+	// about why the plan is incomplete, which a UI layer could present to
+	// the user as part of a warning that the plan is incomplete.
+	Complete bool
+
+	// Applyable is true if both Terraform was able to create a plan
+	// successfully and if the plan calls for making some sort of meaningful
+	// change.
+	//
+	// If [Plan.Errored] is also set then that means the plan is non-applyable
+	// due to an error. If not then the plan was created successfully but found
+	// no material differences between desired and prior state, and so
+	// applying this plan would achieve nothing.
+	Applyable bool
+
 	// Errored is true if the Changes information is incomplete because
 	// the planning operation failed. An errored plan cannot be applied,
 	// but can be cautiously inspected for debugging purposes.
@@ -129,53 +154,6 @@ type Plan struct {
 	// function calls, so that calls during apply can be checked for
 	// consistency.
 	ProviderFunctionResults []providers.FunctionHash
-}
-
-// CanApply returns true if and only if the recieving plan includes content
-// that would make sense to apply. If it returns false, the plan operation
-// should indicate that there's nothing to do and Terraform should exit
-// without prompting the user to confirm the changes.
-//
-// This function represents our main business logic for making the decision
-// about whether a given plan represents meaningful "changes", and so its
-// exact definition may change over time; the intent is just to centralize the
-// rules for that rather than duplicating different versions of it at various
-// locations in the UI code.
-func (p *Plan) CanApply() bool {
-	switch {
-	case p.Errored:
-		// An errored plan can never be applied, because it is incomplete.
-		// Such a plan is only useful for describing the subset of actions
-		// planned so far in case they are useful for understanding the
-		// causes of the errors.
-		return false
-
-	case !p.Changes.Empty():
-		// "Empty" means that everything in the changes is a "NoOp", so if
-		// not empty then there's at least one non-NoOp change.
-		return true
-
-	case !p.PriorState.ManagedResourcesEqual(p.PrevRunState):
-		// If there are no changes planned but we detected some
-		// outside-Terraform changes while refreshing then we consider
-		// that applyable in isolation only if this was a refresh-only
-		// plan where we expect updating the state to include these
-		// changes was the intended goal.
-		//
-		// (We don't treat a "refresh only" plan as applyable in normal
-		// planning mode because historically the refresh result wasn't
-		// considered part of a plan at all, and so it would be
-		// a disruptive breaking change if refreshing alone suddenly
-		// became applyable in the normal case and an existing configuration
-		// was relying on ignore_changes in order to be convergent in spite
-		// of intentional out-of-band operations.)
-		return p.UIMode == RefreshOnlyMode
-
-	default:
-		// Otherwise, there are either no changes to apply or they are changes
-		// our cases above don't consider as worthy of applying in isolation.
-		return false
-	}
 }
 
 // ProviderAddrs returns a list of all of the provider configuration addresses
