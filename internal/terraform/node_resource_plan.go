@@ -328,9 +328,9 @@ func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalCont
 }
 
 // Import blocks are expanded in conjunction with their associated resource block.
-func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr addrs.AbsResource, instanceAddrs []addrs.AbsResourceInstance) (addrs.Map[addrs.AbsResourceInstance, string], tfdiags.Diagnostics) {
+func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr addrs.AbsResource, instanceAddrs []addrs.AbsResourceInstance) (addrs.Map[addrs.AbsResourceInstance, *ImportTarget], tfdiags.Diagnostics) {
 	// Imports maps the target address to an import ID.
-	imports := addrs.MakeMap[addrs.AbsResourceInstance, string]()
+	imports := addrs.MakeMap[addrs.AbsResourceInstance, *ImportTarget]()
 	var diags tfdiags.Diagnostics
 
 	if len(n.importTargets) == 0 {
@@ -346,7 +346,7 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 			// if we have a legacy addr, it was supplied on the commandline so
 			// there is nothing to expand
 			if !imp.LegacyAddr.Equal(addrs.AbsResourceInstance{}) {
-				imports.Put(imp.LegacyAddr, imp.IDString)
+				imports.Put(imp.LegacyAddr, imp)
 				n.expandedImports.Add(imp.LegacyAddr)
 				return imports, diags
 			}
@@ -371,7 +371,9 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 				return imports, diags
 			}
 
-			imports.Put(to, importID)
+			imp.IDString = importID
+
+			imports.Put(to, imp)
 			n.expandedImports.Add(to)
 
 			log.Printf("[TRACE] expandResourceImports: found single import target %s", to)
@@ -397,7 +399,9 @@ func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr
 				return imports, diags
 			}
 
-			imports.Put(res, importID)
+			imp.IDString = importID
+
+			imports.Put(res, imp)
 			n.expandedImports.Add(res)
 			log.Printf("[TRACE] expandResourceImports: expanded import target %s", res)
 		}
@@ -447,7 +451,7 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 			if importTarget.LegacyAddr.Equal(a.Addr) {
 				return &graphNodeImportState{
 					Addr:             importTarget.LegacyAddr,
-					ID:               imports.Get(importTarget.LegacyAddr),
+					ID:               imports.Get(importTarget.LegacyAddr).IDString,
 					ResolvedProvider: n.ResolvedProvider,
 				}
 			}
@@ -476,11 +480,9 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 			forceReplace:             n.forceReplace,
 		}
 
-		importID, ok := imports.GetOk(a.Addr)
+		importTarget, ok := imports.GetOk(a.Addr)
 		if ok {
-			m.importTarget = ImportTarget{
-				IDString: importID,
-			}
+			m.importTarget = *importTarget
 		}
 
 		return m

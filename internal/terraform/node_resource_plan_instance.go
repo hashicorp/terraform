@@ -176,6 +176,16 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
+	if n.importTarget.Config != nil && n.importTarget.Config.IgnoreNotExists && diags.HasErrors() {
+		var filteredDiags tfdiags.Diagnostics
+		for _, diag := range diags {
+			if diag.Description().Summary != "Cannot import non-existent remote object" {
+				filteredDiags = append(filteredDiags, diag)
+			}
+		}
+		diags = filteredDiags
+	}
+
 	// We'll save a snapshot of what we just read from the state into the
 	// prevRunState before we do anything else, since this will capture the
 	// result of any schema upgrading that readResourceInstanceState just did,

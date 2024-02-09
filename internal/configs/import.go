@@ -5,6 +5,7 @@ package configs
 
 import (
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	hcljson "github.com/hashicorp/hcl/v2/json"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -22,6 +23,8 @@ type Import struct {
 	ToResource addrs.ConfigResource
 
 	ForEach hcl.Expression
+
+	IgnoreNotExists bool
 
 	ProviderConfigRef *ProviderConfigRef
 	Provider          addrs.Provider
@@ -41,6 +44,12 @@ func decodeImportBlock(block *hcl.Block) (*Import, hcl.Diagnostics) {
 
 	if attr, exists := content.Attributes["id"]; exists {
 		imp.ID = attr.Expr
+	}
+
+	if attr, exists := content.Attributes["ignore_not_exists"]; exists {
+		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &imp.IgnoreNotExists)
+		diags = append(diags, valDiags...)
+		imp.IgnoreNotExists = true
 	}
 
 	if attr, exists := content.Attributes["to"]; exists {
@@ -97,6 +106,9 @@ var importBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "for_each",
+		},
+		{
+			Name: "ignore_not_exists",
 		},
 		{
 			Name:     "id",
