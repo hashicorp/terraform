@@ -88,6 +88,11 @@ You can customize the default behavior using the following additional option:
 
   There is more detail on this option in the following section.
 
+* `-enable-plugin-cache` -  Enable the usage of the [globally configured plugin cache](/terraform/cli/config/config-file#provider-plugin-cache).
+  This will speed up the locking process, but the providers
+  wont be loaded from an authoritative source.
+
+
 ## Specifying Target Platforms
 
 In your environment you may, for example, have both developers who work with
