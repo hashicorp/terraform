@@ -10,6 +10,14 @@ NEW FEATURES:
 * Providers can now implement move operations between resource types, both from resource types defined by the provider and defined by other providers. Check provider documentation for supported cross-resource-type moves.
 * `issensitive` function added to detect if a value is marked as sensitive
 
+ENHANCEMENTS:
+
+* `terraform show`'s JSON rendering of a plan now includes two explicit flags `"applyable"` and `"complete"`, which both summarize characteristics of a plan that were previously only inferrable by consumers replicating some of Terraform Core's own logic. [GH-34642]
+
+    `"applyable"` means that it makes sense for a wrapping automation to offer to apply this plan.
+
+    `"complete"` means that applying this plan is expected to achieve convergence between desired and actual state. If this flag is set, wrapping automations should ideally encourage an operator to run another plan/apply round to continue making progress toward convergence.
+
 BUG FIXES:
 
 * core: Sensitive values will now be tracked more accurately in state and plans, preventing unexpected updates with no apparent changes [GH-34567]
