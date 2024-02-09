@@ -323,6 +323,13 @@ func (s *StackConfig) ResolveExpressionReference(ctx context.Context, ref stacka
 func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stackaddrs.Reference, repetition instances.RepetitionData, selfAddr stackaddrs.Referenceable) (Referenceable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	// "Test-only globals" is a special affordance we have only when running
+	// unit tests in this package. The function called in this branch will
+	// return an error itself if we're not running in a suitable test situation.
+	if addr, ok := ref.Target.(stackaddrs.TestOnlyGlobal); ok {
+		return s.main.resolveTestOnlyGlobalReference(ctx, addr, ref.SourceRange)
+	}
+
 	// TODO: Most of the below would benefit from "Did you mean..." suggestions
 	// when something is missing but there's a similarly-named object nearby.
 

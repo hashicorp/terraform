@@ -119,8 +119,11 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context) (cty.Value, tfdi
 			if moreDiags.HasErrors() {
 				return cty.UnknownVal(hcldec.ImpliedType(spec)), diags
 			}
+			// We unmark the config before making the RPC call, but will still
+			// return the original possibly-marked config if successful.
+			unmarkedConfigVal, _ := configVal.UnmarkDeep()
 			validateResp := client.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
-				Config: configVal,
+				Config: unmarkedConfigVal,
 			})
 			diags = diags.Append(validateResp.Diagnostics)
 			if validateResp.Diagnostics.HasErrors() {
