@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
@@ -577,6 +578,105 @@ func TestPlanning_RequiredComponents(t *testing.T) {
 
 		if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
 			t.Errorf("wrong result\n%s", diff)
+		}
+	})
+}
+
+func TestPlanning_DeferredChangesPropagation(t *testing.T) {
+	// This test arranges for one component's plan to signal deferred changes,
+	// and checks that a downstream component's plan also has everything
+	// deferred even though it could potentially have been plannable in
+	// isolation, since we need to respect the dependency ordering between
+	// components.
+
+	cfg := testStackConfig(t, "planning", "deferred_changes_propagation")
+	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
+		PlanningMode: plans.NormalMode,
+		InputVariableValues: map[stackaddrs.InputVariable]ExternalInputValue{
+			// This causes the first component to have a module whose
+			// instance count isn't known yet.
+			{Name: "first_count"}: {
+				Value: cty.UnknownVal(cty.Number),
+			},
+		},
+		ProviderFactories: ProviderFactories{
+			addrs.NewBuiltInProvider("test"): func() (providers.Interface, error) {
+				return &terraform.MockProvider{
+					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+						Provider: providers.Schema{
+							Block: &configschema.Block{},
+						},
+						ResourceTypes: map[string]providers.Schema{
+							"test": {
+								Block: &configschema.Block{},
+							},
+						},
+					},
+				}, nil
+			},
+		},
+	})
+	// TEMP: This test currently relies on the experimental module language
+	// feature of allowing unknown values in a resource's "count" argument.
+	// We should remove this if the experiment gets stabilized.
+	main.AllowLanguageExperiments(true)
+
+	componentFirstInstAddr := stackaddrs.AbsComponentInstance{
+		Stack: stackaddrs.RootStackInstance,
+		Item: stackaddrs.ComponentInstance{
+			Component: stackaddrs.Component{
+				Name: "first",
+			},
+		},
+	}
+	componentSecondInstAddr := stackaddrs.AbsComponentInstance{
+		Stack: stackaddrs.RootStackInstance,
+		Item: stackaddrs.ComponentInstance{
+			Component: stackaddrs.Component{
+				Name: "second",
+			},
+		},
+	}
+
+	componentPlanResourceActions := func(plan *stackplan.Component) map[string]plans.Action {
+		ret := make(map[string]plans.Action)
+		for _, elem := range plan.ResourceInstancePlanned.Elems {
+			ret[elem.Key.String()] = elem.Value.Action
+		}
+		return ret
+	}
+
+	inPromisingTask(t, func(ctx context.Context, t *testing.T) {
+		plan, diags := testPlan(t, main)
+		assertNoErrors(t, diags)
+
+		firstPlan := plan.Components.Get(componentFirstInstAddr)
+		if firstPlan.PlanComplete {
+			t.Error("first component has a complete plan; should be incomplete because it has deferred actions")
+		}
+		secondPlan := plan.Components.Get(componentSecondInstAddr)
+		if secondPlan.PlanComplete {
+			t.Error("second component has a complete plan; should be incomplete because everything in it should've been deferred")
+		}
+
+		gotFirstActions := componentPlanResourceActions(firstPlan)
+		wantFirstActions := map[string]plans.Action{
+			// Only test.a is planned, because test.b has unknown count
+			// and must therefore be deferred.
+			"test.a": plans.Create,
+		}
+		gotSecondActions := componentPlanResourceActions(secondPlan)
+		wantSecondActions := map[string]plans.Action{
+			// Nothing at all expected for the second, because all of its
+			// planned actions should've been deferred to respect the
+			// dependency on the first component.
+		}
+
+		if diff := cmp.Diff(wantFirstActions, gotFirstActions); diff != "" {
+			t.Errorf("wrong actions for first component\n%s", diff)
+		}
+		if diff := cmp.Diff(wantSecondActions, gotSecondActions); diff != "" {
+			t.Errorf("wrong actions for second component\n%s", diff)
 		}
 	})
 }

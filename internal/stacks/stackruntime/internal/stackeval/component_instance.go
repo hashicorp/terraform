@@ -529,15 +529,37 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				return nil, diags
 			}
 
+			// If any of our upstream components have incomplete plans then
+			// we need to force treating everything in this component as
+			// deferred so we can preserve the correct dependency ordering.
+			upstreamDeferred := false
+			for _, depAddr := range c.call.RequiredComponents(ctx).Elems() {
+				depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
+				if depStack == nil {
+					upstreamDeferred = true // to be conservative
+					break
+				}
+				depComponent := depStack.Component(ctx, depAddr.Item)
+				if depComponent == nil {
+					upstreamDeferred = true // to be conservative
+					break
+				}
+				if !depComponent.PlanIsComplete(ctx) {
+					upstreamDeferred = true
+					break
+				}
+			}
+
 			// NOTE: This ComponentInstance type only deals with component
 			// instances currently declared in the configuration. See
 			// [ComponentInstanceRemoved] for the model of a component instance
 			// that existed in the prior state but is not currently declared
 			// in the configuration.
 			plan, moreDiags := tfCtx.Plan(moduleTree, prevState, &terraform.PlanOpts{
-				Mode:              stackPlanOpts.PlanningMode,
-				SetVariables:      inputValues,
-				ExternalProviders: providerClients,
+				Mode:                       stackPlanOpts.PlanningMode,
+				SetVariables:               inputValues,
+				ExternalProviders:          providerClients,
+				ExternalDependencyDeferred: upstreamDeferred,
 
 				// This is set by some tests but should not be used in main code.
 				// (nil means to use the real time when tfCtx.Plan was called.)
@@ -748,14 +770,22 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		return noOpResult, diags
 	}
 
-	// NOTE: tfCtx.Apply tends to make changes to the given plan while it
-	// works, and so code after this point should not make any further use
-	// of either "modifiedPlan" or "plan" (since they share lots of the same
-	// pointers to mutable objects and so both can get modified together.)
-	newState, moreDiags := tfCtx.Apply(&modifiedPlan, moduleTree, &terraform.ApplyOpts{
-		ExternalProviders: providerClients,
-	})
-	diags = diags.Append(moreDiags)
+	var newState *states.State
+	if modifiedPlan.Applyable {
+		// NOTE: tfCtx.Apply tends to make changes to the given plan while it
+		// works, and so code after this point should not make any further use
+		// of either "modifiedPlan" or "plan" (since they share lots of the same
+		// pointers to mutable objects and so both can get modified together.)
+		newState, moreDiags = tfCtx.Apply(&modifiedPlan, moduleTree, &terraform.ApplyOpts{
+			ExternalProviders: providerClients,
+		})
+		diags = diags.Append(moreDiags)
+	} else {
+		// For a non-applyable plan, we just skip trying to apply it altogether
+		// and just propagate the prior state (including any refreshing we
+		// did during the plan phase) forward.
+		newState = modifiedPlan.PriorState
+	}
 
 	if newState != nil {
 		cic := &hooks.ComponentInstanceChange{
