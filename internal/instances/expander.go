@@ -154,6 +154,9 @@ func (e *Expander) ExpandModule(addr addrs.Module) []addrs.ModuleInstance {
 // key type: integer keys are sorted numerically, and string keys are sorted
 // lexically.
 func (e *Expander) ExpandAbsModuleCall(addr addrs.AbsModuleCall) (keyType addrs.InstanceKeyType, insts []addrs.InstanceKey, known bool) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
 	expParent, ok := e.findModule(addr.Module)
 	if !ok {
 		// This module call lives under an unknown-expansion prefix, so we
