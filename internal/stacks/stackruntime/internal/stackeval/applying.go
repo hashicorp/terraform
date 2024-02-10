@@ -26,6 +26,8 @@ type ApplyOpts struct {
 	// unrecognized then the apply phase will use this to emit the necessary
 	// "discard" events to keep the state consistent.
 	PrevStateDescKeys collections.Set[statekeys.Key]
+
+	ExperimentsAllowed bool
 }
 
 // Applyable is an interface implemented by types which represent objects

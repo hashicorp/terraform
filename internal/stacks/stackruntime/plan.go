@@ -49,6 +49,7 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 
 		ForcePlanTimestamp: req.ForcePlanTimestamp,
 	})
+	main.AllowLanguageExperiments(req.ExperimentsAllowed)
 	main.PlanAll(ctx, stackeval.PlanOutput{
 		AnnouncePlannedChange: func(ctx context.Context, change stackplan.PlannedChange) {
 			resp.PlannedChanges <- change
@@ -97,6 +98,8 @@ type PlanRequest struct {
 	// to return the given value instead of whatever real time the plan
 	// operation started. This is for testing purposes only.
 	ForcePlanTimestamp *time.Time
+
+	ExperimentsAllowed bool
 }
 
 // PlanResponse is used by [Plan] to describe the results of planning.

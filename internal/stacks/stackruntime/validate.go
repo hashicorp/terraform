@@ -19,6 +19,7 @@ func Validate(ctx context.Context, req *ValidateRequest) tfdiags.Diagnostics {
 	defer span.End()
 
 	main := stackeval.NewForValidating(req.Config, stackeval.ValidateOpts{})
+	main.AllowLanguageExperiments(req.ExperimentsAllowed)
 	diags := main.ValidateAll(ctx)
 	diags = diags.Append(
 		main.DoCleanup(ctx),
@@ -31,6 +32,8 @@ func Validate(ctx context.Context, req *ValidateRequest) tfdiags.Diagnostics {
 
 type ValidateRequest struct {
 	Config *stackconfig.Config
+
+	ExperimentsAllowed bool
 
 	// TODO: Provider factories and other similar such things
 }
