@@ -82,6 +82,13 @@ type PlanOpts struct {
 	// the actual graph.
 	ExternalReferences []*addrs.Reference
 
+	// ExternalDependencyDeferred, when set, indicates that the caller
+	// considers this configuration to depend on some other configuration
+	// that had at least one deferred change, and therefore everything in
+	// this configuration must have its changes deferred too so that the
+	// overall dependency ordering would be correct.
+	ExternalDependencyDeferred bool
+
 	// Overrides provides a set of override objects that should be applied
 	// during this plan.
 	Overrides *mocking.Overrides
@@ -664,14 +671,15 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	providerFuncResults := providers.NewFunctionResultsTable(nil)
 
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
-		Config:                  config,
-		InputState:              prevRunState,
-		ExternalProviderConfigs: externalProviderConfigs,
-		Changes:                 changes,
-		MoveResults:             moveResults,
-		Overrides:               opts.Overrides,
-		PlanTimeTimestamp:       timestamp,
-		ProviderFuncResults:     providerFuncResults,
+		Config:                     config,
+		InputState:                 prevRunState,
+		ExternalProviderConfigs:    externalProviderConfigs,
+		ExternalDependencyDeferred: opts.ExternalDependencyDeferred,
+		Changes:                    changes,
+		MoveResults:                moveResults,
+		Overrides:                  opts.Overrides,
+		PlanTimeTimestamp:          timestamp,
+		ProviderFuncResults:        providerFuncResults,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
