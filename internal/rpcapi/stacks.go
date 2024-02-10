@@ -31,14 +31,16 @@ import (
 type stacksServer struct {
 	terraform1.UnimplementedStacksServer
 
-	handles *handleTable
+	handles            *handleTable
+	experimentsAllowed bool
 }
 
 var _ terraform1.StacksServer = (*stacksServer)(nil)
 
-func newStacksServer(handles *handleTable) *stacksServer {
+func newStacksServer(handles *handleTable, opts *serviceOpts) *stacksServer {
 	return &stacksServer{
-		handles: handles,
+		handles:            handles,
+		experimentsAllowed: opts.experimentsAllowed,
 	}
 }
 
@@ -104,7 +106,8 @@ func (s *stacksServer) ValidateStackConfiguration(ctx context.Context, req *terr
 	}
 
 	diags := stackruntime.Validate(ctx, &stackruntime.ValidateRequest{
-		Config: cfg,
+		Config:             cfg,
+		ExperimentsAllowed: s.experimentsAllowed,
 	})
 	return &terraform1.ValidateStackConfiguration_Response{
 		Diagnostics: diagnosticsToProto(diags),
@@ -230,11 +233,12 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
 	rtReq := stackruntime.PlanRequest{
-		PlanMode:          planMode,
-		Config:            cfg,
-		PrevState:         prevState,
-		ProviderFactories: providerFactories,
-		InputValues:       inputValues,
+		PlanMode:           planMode,
+		Config:             cfg,
+		PrevState:          prevState,
+		ProviderFactories:  providerFactories,
+		InputValues:        inputValues,
+		ExperimentsAllowed: s.experimentsAllowed,
 	}
 	rtResp := stackruntime.PlanResponse{
 		PlannedChanges: changesCh,
@@ -368,9 +372,10 @@ func (s *stacksServer) ApplyStackChanges(req *terraform1.ApplyStackChanges_Reque
 	changesCh := make(chan stackstate.AppliedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
 	rtReq := stackruntime.ApplyRequest{
-		Config:            cfg,
-		ProviderFactories: providerFactories,
-		RawPlan:           req.PlannedChanges,
+		Config:             cfg,
+		ProviderFactories:  providerFactories,
+		RawPlan:            req.PlannedChanges,
+		ExperimentsAllowed: s.experimentsAllowed,
 	}
 	rtResp := stackruntime.ApplyResponse{
 		AppliedChanges: changesCh,
@@ -503,10 +508,11 @@ func (s *stacksServer) OpenStackInspector(ctx context.Context, req *terraform1.O
 	}
 
 	hnd := s.handles.NewStackInspector(&stacksInspector{
-		Config:            cfg,
-		State:             state,
-		ProviderFactories: providerFactories,
-		InputValues:       inputValues,
+		Config:             cfg,
+		State:              state,
+		ProviderFactories:  providerFactories,
+		InputValues:        inputValues,
+		ExperimentsAllowed: s.experimentsAllowed,
 	})
 
 	return &terraform1.OpenStackInspector_Response{

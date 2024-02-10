@@ -28,19 +28,22 @@ func (p *corePlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, 
 }
 
 func (p *corePlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
-	registerGRPCServices(s)
+	generalOpts := &serviceOpts{
+		experimentsAllowed: p.experimentsAllowed,
+	}
+	registerGRPCServices(s, generalOpts)
 	return nil
 }
 
-func registerGRPCServices(s *grpc.Server) {
+func registerGRPCServices(s *grpc.Server, opts *serviceOpts) {
 	// We initially only register the setup server, because the registration
 	// of other services can vary depending on the capabilities negotiated
 	// during handshake.
-	setup := newSetupServer(serverHandshake(s))
+	setup := newSetupServer(serverHandshake(s, opts))
 	terraform1.RegisterSetupServer(s, setup)
 }
 
-func serverHandshake(s *grpc.Server) func(context.Context, *terraform1.ClientCapabilities) (*terraform1.ServerCapabilities, error) {
+func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *terraform1.ClientCapabilities) (*terraform1.ServerCapabilities, error) {
 	dependencies := dynrpcserver.NewDependenciesStub()
 	terraform1.RegisterDependenciesServer(s, dependencies)
 	stacks := dynrpcserver.NewStacksStub()
@@ -71,11 +74,20 @@ func serverHandshake(s *grpc.Server) func(context.Context, *terraform1.ClientCap
 		// doing real work. In future the details of what we register here
 		// might vary based on the negotiated capabilities.
 		dependencies.ActivateRPCServer(newDependenciesServer(handles, services))
-		stacks.ActivateRPCServer(newStacksServer(handles))
+		stacks.ActivateRPCServer(newStacksServer(handles, opts))
 		packages.ActivateRPCServer(newPackagesServer(services))
 
 		// If the client requested any extra capabililties that we're going
 		// to honor then we should announce them in this result.
 		return &terraform1.ServerCapabilities{}, nil
 	}
+}
+
+// serviceOpts are options that could potentially apply to all of our
+// individual RPC services.
+//
+// This could potentially be embedded inside a service-specific options
+// structure, if needed.
+type serviceOpts struct {
+	experimentsAllowed bool
 }

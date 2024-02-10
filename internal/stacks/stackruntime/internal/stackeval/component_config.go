@@ -126,6 +126,7 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 			// source files on disk (an implementation detail) rather than
 			// preserving the source address abstraction.
 			parser := configs.NewParser(afero.NewOsFs())
+			parser.AllowLanguageExperiments(c.main.LanguageExperimentsAllowed())
 
 			if !parser.IsConfigDir(rootModuleDir) {
 				diags = diags.Append(&hcl.Diagnostic{

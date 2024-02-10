@@ -28,6 +28,7 @@ func EvalExpr(ctx context.Context, expr hcl.Expression, req *EvalExprRequest) (c
 		InputVariableValues: req.InputValues,
 		ProviderFactories:   req.ProviderFactories,
 	})
+	main.AllowLanguageExperiments(req.ExperimentsAllowed)
 	return main.EvalExpr(ctx, expr, req.EvalStackInstance, stackeval.InspectPhase)
 }
 
@@ -50,4 +51,6 @@ type EvalExprRequest struct {
 	// configurations corresponding to these.
 	InputValues       map[stackaddrs.InputVariable]ExternalInputValue
 	ProviderFactories map[addrs.Provider]providers.Factory
+
+	ExperimentsAllowed bool
 }
