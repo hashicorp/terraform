@@ -44,6 +44,12 @@ type graphWalkOpts struct {
 	// always take into account what walk type it's dealing with.
 	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
 
+	// ExternalDependencyDeferred indicates that something that this entire
+	// configuration depends on (outside the view of this modules runtime)
+	// has deferred changes, and therefore we must treat _all_ actions
+	// as deferred to produce the correct overall dependency ordering.
+	ExternalDependencyDeferred bool
+
 	// PlanTimeCheckResults should be populated during the apply phase with
 	// the snapshot of check results that was generated during the plan step.
 	//
@@ -163,6 +169,9 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 	// blocks, since we need that for deferral tracking.
 	resourceGraph := graph.ResourceGraph()
 	deferred := deferring.NewDeferred(resourceGraph)
+	if opts.ExternalDependencyDeferred {
+		deferred.SetExternalDependencyDeferred()
+	}
 
 	return &ContextGraphWalker{
 		Context:                 c,
