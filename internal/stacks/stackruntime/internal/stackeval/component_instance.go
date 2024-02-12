@@ -230,9 +230,9 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 
 	// Second, we also need to add any providers that were required by the
 	// component's previous runs and have since been removed from the config.
-	stateProviders := c.main.PlanPrevState().RequiredProviderInstances(c.Addr())
+	previousProviders := c.main.PreviousProviderInstances(c.Addr(), phase)
 
-	neededProviders := configProviders.Union(stateProviders)
+	neededProviders := configProviders.Union(previousProviders)
 	for _, inCalleeAddr := range neededProviders {
 
 		providerContextString := "requires"
