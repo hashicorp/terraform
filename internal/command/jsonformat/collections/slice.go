@@ -4,6 +4,7 @@
 package collections
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
@@ -35,7 +36,40 @@ func TransformSlice[Input any](before, after []Input, process TransformIndices, 
 }
 
 func ProcessSlice[Input any](before, after []Input, process ProcessIndices, isObjType IsObjType[Input]) {
+	// TODO: Put into a function
+	allValuesPrimitive := true
+
+	for _, item := range before {
+		switch any(item).(type) {
+		case int, string, bool:
+			continue
+		default:
+			allValuesPrimitive = false
+			break
+		}
+	}
+
+	// If we are dealing with primitives we just diff on an individual level
+	// TODO: Handle additions deletions
+	// TODO: Add tests
+	if allValuesPrimitive {
+		for i := range before {
+			process(i, i)
+		}
+		return
+	}
+
 	lcs := objchange.LongestCommonSubsequence(before, after, func(before, after Input) bool {
+		// strings are not necessarily deep equal, but we want to handle the diffing on a
+		// per item level
+
+		_, beforeString := any(before).(string)
+		_, afterString := any(after).(string)
+		if beforeString && afterString {
+			fmt.Println("Hey now")
+			return false
+		}
+
 		return reflect.DeepEqual(before, after)
 	})
 
