@@ -11,7 +11,8 @@ set -euo pipefail
 
 # Find all directories containing a .copywrite.hcl config file
 directories=$(find . -type f -name '.copywrite.hcl' -execdir pwd \;)
+args=${1:-}
 
 for dir in $directories; do
-    cd $dir && go run github.com/hashicorp/copywrite headers --plan
+    cd $dir && pwd && go run github.com/hashicorp/copywrite headers $args
 done

@@ -27,6 +27,9 @@ exhaustive:
 	"$(CURDIR)/scripts/exhaustive.sh"
 
 copyright:
+	"$(CURDIR)/scripts/copyright.sh" --plan
+
+copyrightfix:
 	"$(CURDIR)/scripts/copyright.sh"
 
 # Run this if working on the website locally to run in watch mode.
