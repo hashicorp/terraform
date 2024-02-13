@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"path"
+	"path/filepath"
 	"sort"
 	"time"
 
@@ -444,7 +444,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Warning,
 					"Failed to print verbose output",
-					fmt.Sprintf("Terraform failed to print the verbose output for %s, other diagnostics will contain more details as to why.", path.Join(file.Name, run.Name))))
+					fmt.Sprintf("Terraform failed to print the verbose output for %s, other diagnostics will contain more details as to why.", filepath.Join(file.Name, run.Name))))
 			} else {
 				run.Verbose = &moduletest.Verbose{
 					Plan:         plan,
@@ -532,7 +532,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Warning,
 				"Failed to print verbose output",
-				fmt.Sprintf("Terraform failed to print the verbose output for %s, other diagnostics will contain more details as to why.", path.Join(file.Name, run.Name))))
+				fmt.Sprintf("Terraform failed to print the verbose output for %s, other diagnostics will contain more details as to why.", filepath.Join(file.Name, run.Name))))
 		} else {
 			run.Verbose = &moduletest.Verbose{
 				Plan:         plan,
@@ -1252,7 +1252,7 @@ func (runner *TestFileRunner) initVariables(file *moduletest.File) {
 	for name, value := range runner.Suite.GlobalVariables {
 		runner.globalVariables[name] = value
 	}
-	if path.Dir(file.Name) == runner.Suite.TestingDirectory {
+	if filepath.Dir(file.Name) == runner.Suite.TestingDirectory {
 		// If the file is in the testing directory, then also include any
 		// variables that are defined within the default variable file also in
 		// the test directory.
