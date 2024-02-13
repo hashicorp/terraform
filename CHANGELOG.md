@@ -1,3 +1,9 @@
+## 1.7.4 (Unreleased)
+
+BUG FIXES:
+
+* `terraform test`: Fix automatic loading of variable files within the test directory on `windows` platforms. ([#34666](https://github.com/hashicorp/terraform/pull/34666))
+
 ## 1.7.3 (February 7, 2024)
 
 BUG FIXES: 
