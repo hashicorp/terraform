@@ -35,9 +35,8 @@ func TransformSlice[Input any](before, after []Input, process TransformIndices, 
 }
 
 func ProcessSlice[Input any](before, after []Input, process ProcessIndices, isObjType IsObjType[Input]) {
-	// If before and after are the same length we want to compare elements
-	// on an individual basis
-
+	// If before and after are the same length and is not a reordering
+	// we want to compare elements on an individual basis
 	if len(before) == len(after) && !isReorder(before, after) {
 		for ix := range before {
 			process(ix, ix)
