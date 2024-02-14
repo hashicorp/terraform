@@ -118,12 +118,12 @@ Given a Terraform config that includes:
 ```hcl
 resource "aws_instance" "web" {
   # ...
-  for_each = {
+  for_each = tomap({
     "terraform": "value1",
     "resource":  "value2",
     "indexing":  "value3",
     "example":   "value4",
-  }
+  })
 }
 ```
 
