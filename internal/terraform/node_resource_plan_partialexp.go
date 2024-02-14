@@ -210,6 +210,10 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 		Config:           unmarkedConfigVal,
 		PriorState:       priorVal,
 		ProposedNewState: proposedNewVal,
+		// TODO: Should we send "ProviderMeta" here? We don't have the
+		// necessary data for that wired through here right now, but
+		// we might need to do that before stabilizing support for unknown
+		// resource instance expansion.
 	})
 	diags = diags.Append(resp.Diagnostics.InConfigBody(n.config.Config, n.addr.String()))
 	if diags.HasErrors() {
