@@ -38,7 +38,7 @@ func ProcessSlice[Input any](before, after []Input, process ProcessIndices, isOb
 	// If before and after are the same length we want to compare elements
 	// on an individual basis
 
-	if len(before) == len(after) {
+	if len(before) == len(after) && !isReorder(before, after) {
 		for ix := range before {
 			process(ix, ix)
 		}
@@ -82,4 +82,28 @@ func ProcessSlice[Input any](before, after []Input, process ProcessIndices, isOb
 			lcsIx++
 		}
 	}
+}
+
+// Returns if every item of before can be found in after
+func isReorder[Input any](before, after []Input) bool {
+	// To be a reorder the length needs to be the same
+	if len(before) != len(after) {
+		return false
+	}
+
+	for _, b := range before {
+		hasMatch := false
+		for _, a := range after {
+			if reflect.DeepEqual(b, a) {
+				// Match found, no need to search anymore
+				hasMatch = true
+				break
+			}
+		}
+		if !hasMatch {
+			return false
+		}
+	}
+
+	return true
 }
