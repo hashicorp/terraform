@@ -182,7 +182,7 @@ jobs:
 
       - name: "Code consistency checks"
         run: |
-          make fmtcheck importscheck generate staticcheck exhaustive protobuf
+          make fmtcheck importscheck copyright generate staticcheck exhaustive protobuf
           if [[ -n "$(git status --porcelain)" ]]; then
             echo >&2 "ERROR: Generated files are inconsistent. Run 'make generate' and 'make protobuf' locally and then commit the updated files."
             git >&2 status --porcelain
