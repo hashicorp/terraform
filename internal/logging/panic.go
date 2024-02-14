@@ -78,7 +78,7 @@ func PanicHandler() {
 		stderr = os.Stderr
 	}
 	fmt.Fprint(stderr, panicOutput)
-	fmt.Fprint(stderr, recovered, "\n")
+	fmt.Fprint(stderr, "panic: ", recovered, "\n")
 	// The following mimics the implementation of debug.PrintStack, but
 	// without the hard-coded reference to os.Stderr.
 	stderr.Write(debug.Stack())
