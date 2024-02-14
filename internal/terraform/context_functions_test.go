@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -222,5 +223,100 @@ func TestContext2Plan_providerFunctionImpureApply(t *testing.T) {
 	errs := diags.Err().Error()
 	if !strings.Contains(errs, "provider function returned an inconsistent result") {
 		t.Fatalf("expected error with %q, got %q", "provider function returned an inconsistent result", errs)
+	}
+}
+
+func TestContext2Validate_providerFunctionDiagnostics(t *testing.T) {
+	provider := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Block: simpleTestSchema()},
+			Functions: map[string]providers.FunctionDecl{
+				"echo": providers.FunctionDecl{
+					Parameters: []providers.FunctionParam{
+						{
+							Name: "arg",
+							Type: cty.String,
+						},
+					},
+					ReturnType: cty.String,
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name         string
+		cfg          *configs.Config
+		expectedDiag string
+	}{
+		{
+			"missing provider",
+			testModuleInline(t, map[string]string{
+				"main.tf": `
+			output "first" {
+				value = provider::test::echo("input")
+			}`}),
+			`The provider "test" may need to be added to the required_providers block within the module configuration.`,
+		},
+		{
+			"invalid namespace",
+			testModuleInline(t, map[string]string{
+				"main.tf": `
+			output "first" {
+				value = test::echo("input")
+			}`}),
+			`The function namespace "test" is not valid. Provider function calls must use the "provider::" namespace prefix`,
+		},
+		{
+			"missing namespace",
+			testModuleInline(t, map[string]string{
+				"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "registry.terraform.io/hashicorp/test"
+					}
+				}
+			}
+			output "first" {
+				value = echo("input")
+			}`}),
+			`There is no function named "echo". Did you mean "provider::test::echo"?`,
+		},
+		{
+			"no function from provider",
+			testModuleInline(t, map[string]string{
+				"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "registry.terraform.io/hashicorp/test"
+					}
+				}
+			}
+			output "first" {
+				value = provider::test::missing("input")
+			}`}),
+			`Unknown provider function: The function "missing" is not available from the provider "test".`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider),
+				},
+			})
+
+			diags := ctx.Validate(test.cfg)
+			if !diags.HasErrors() {
+				t.Fatal("expected diagnsotics, got none")
+			}
+			got := diags.Err().Error()
+			if !strings.Contains(got, test.expectedDiag) {
+				t.Fatalf("expected %q, got %q", test.expectedDiag, got)
+			}
+		})
 	}
 }
