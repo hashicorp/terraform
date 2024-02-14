@@ -35,6 +35,16 @@ func TransformSlice[Input any](before, after []Input, process TransformIndices, 
 }
 
 func ProcessSlice[Input any](before, after []Input, process ProcessIndices, isObjType IsObjType[Input]) {
+	// If before and after are the same length we want to compare elements
+	// on an individual basis
+
+	if len(before) == len(after) {
+		for ix := range before {
+			process(ix, ix)
+		}
+		return
+	}
+
 	lcs := objchange.LongestCommonSubsequence(before, after, func(before, after Input) bool {
 		return reflect.DeepEqual(before, after)
 	})
