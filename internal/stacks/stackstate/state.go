@@ -4,12 +4,13 @@
 package stackstate
 
 import (
+	"google.golang.org/protobuf/types/known/anypb"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/states"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // State represents a previous run's state snapshot.
@@ -116,6 +117,30 @@ func (s *State) ResourceInstanceObjectSrc(addr stackaddrs.AbsResourceInstanceObj
 		return nil
 	}
 	return rios.src
+}
+
+// RequiredProviderInstances returns a description of all of the provider
+// instance slots that are required to satisfy the resource instances
+// belonging to the given component instance.
+//
+// See also stackeval.ComponentConfig.RequiredProviderInstances for a similar
+// function that operates on the configuration of a component instance rather
+// than the state of one.
+func (s *State) RequiredProviderInstances(component stackaddrs.AbsComponentInstance) addrs.Set[addrs.RootProviderConfig] {
+	state, ok := s.componentInstances.GetOk(component)
+	if !ok {
+		// Then we have no state for this component, which is fine.
+		return addrs.MakeSet[addrs.RootProviderConfig]()
+	}
+
+	providerInstances := addrs.MakeSet[addrs.RootProviderConfig]()
+	for _, elem := range state.resourceInstanceObjects.Elems {
+		providerInstances.Add(addrs.RootProviderConfig{
+			Provider: elem.Value.providerConfigAddr.Provider,
+			Alias:    elem.Value.providerConfigAddr.Alias,
+		})
+	}
+	return providerInstances
 }
 
 func (s *State) resourceInstanceObjectState(addr stackaddrs.AbsResourceInstanceObject) *resourceInstanceObjectState {

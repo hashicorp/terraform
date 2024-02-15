@@ -5,8 +5,11 @@ package stackruntime
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"path"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,6 +27,8 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
@@ -613,6 +618,117 @@ func TestPlanWithProviderConfig(t *testing.T) {
 			t.Error("provider wasn't closed")
 		}
 	})
+}
+func TestPlanWithRemovedResource(t *testing.T) {
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	attrs := map[string]interface{}{
+		"id": "FE1D5830765C",
+		"input": map[string]interface{}{
+			"value": "hello",
+			"type":  "string",
+		},
+		"output": map[string]interface{}{
+			"value": nil,
+			"type":  "string",
+		},
+		"triggers_replace": nil,
+	}
+	attrsJSON, err := json.Marshal(attrs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// We want to see that it's adding the extra context for when a provider is
+	// missing for a resource that's in state and not in config.
+	expectedDiagnostic := "has resources in state that"
+
+	tcs := make(map[string]*string)
+	tcs["missing-providers"] = &expectedDiagnostic
+	tcs["valid-providers"] = nil
+
+	for name, diag := range tcs {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			cfg := loadMainBundleConfigForTest(t, path.Join("empty-component", name))
+
+			req := PlanRequest{
+				Config: cfg,
+				ProviderFactories: map[addrs.Provider]providers.Factory{
+					addrs.NewBuiltInProvider("terraform"): func() (providers.Interface, error) {
+						return terraformProvider.NewProvider(), nil
+					},
+				},
+
+				ForcePlanTimestamp: &fakePlanTimestamp,
+
+				// PrevState specifies a state with a resource that is not present in
+				// the current configuration. This is a common situation when a resource
+				// is removed from the configuration but still exists in the state.
+				PrevState: stackstate.NewStateBuilder().
+					AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+						SetAddr(stackaddrs.AbsResourceInstanceObject{
+							Component: stackaddrs.AbsComponentInstance{
+								Stack: stackaddrs.RootStackInstance,
+								Item: stackaddrs.ComponentInstance{
+									Component: stackaddrs.Component{
+										Name: "self",
+									},
+									Key: addrs.NoKey,
+								},
+							},
+							Item: addrs.AbsResourceInstanceObject{
+								ResourceInstance: addrs.AbsResourceInstance{
+									Module: addrs.RootModuleInstance,
+									Resource: addrs.ResourceInstance{
+										Resource: addrs.Resource{
+											Mode: addrs.ManagedResourceMode,
+											Type: "terraform_data",
+											Name: "main",
+										},
+										Key: addrs.NoKey,
+									},
+								},
+								DeposedKey: addrs.NotDeposed,
+							},
+						}).
+						SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+							SchemaVersion: 0,
+							AttrsJSON:     attrsJSON,
+							Status:        states.ObjectReady,
+						}).
+						SetProviderAddr(addrs.AbsProviderConfig{
+							Module:   addrs.RootModule,
+							Provider: addrs.MustParseProviderSourceString("terraform.io/builtin/terraform"),
+						})).
+					Build(),
+			}
+
+			changesCh := make(chan stackplan.PlannedChange)
+			diagsCh := make(chan tfdiags.Diagnostic)
+			resp := PlanResponse{
+				PlannedChanges: changesCh,
+				Diagnostics:    diagsCh,
+			}
+
+			go Plan(ctx, &req, &resp)
+			_, diags := collectPlanOutput(changesCh, diagsCh)
+
+			if diag != nil {
+				if len(diags) == 0 {
+					t.Fatalf("expected diagnostics, got none")
+				}
+				if !strings.Contains(diags[0].Description().Detail, *diag) {
+					t.Fatalf("expected diagnostic %q, got %q", *diag, diags[0].Description().Detail)
+				}
+			} else if len(diags) > 0 {
+				t.Fatalf("unexpected diagnostics: %s", diags.ErrWithWarnings().Error())
+			}
+		})
+	}
 }
 
 // collectPlanOutput consumes the two output channels emitting results from

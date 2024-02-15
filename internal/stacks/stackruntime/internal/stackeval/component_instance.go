@@ -220,8 +220,30 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 	stack := c.call.Stack(ctx)
 	stackConfig := stack.StackConfig(ctx)
 	declConfigs := c.call.Declaration(ctx).ProviderConfigs
-	neededConfigs := c.call.Config(ctx).RequiredProviderInstances(ctx)
-	for _, inCalleeAddr := range neededConfigs {
+
+	// We'll iterate over the set of providers actually required for this
+	// operation, and make sure they have been properly declared and are
+	// available.
+
+	// First, gather all the providers implied by the configuration.
+	configProviders := c.call.Config(ctx).RequiredProviderInstances(ctx)
+
+	// Second, we also need to add any providers that were required by the
+	// component's previous runs and have since been removed from the config.
+	previousProviders := c.main.PreviousProviderInstances(c.Addr(), phase)
+
+	neededProviders := configProviders.Union(previousProviders)
+	for _, inCalleeAddr := range neededProviders {
+
+		providerContextString := "requires"
+		if !configProviders.Has(inCalleeAddr) {
+			// This provider was required by the previous state but is no
+			// longer required by the configuration, so we'll add a bit of
+			// extra context to the diagnostic to help the user understand
+			// what's going on.
+			providerContextString = "has resources in state that require"
+		}
+
 		// declConfigs is based on _local_ provider references so we'll
 		// need to translate based on the stack configuration's
 		// required_providers block.
@@ -237,8 +259,8 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 				Severity: hcl.DiagError,
 				Summary:  "Component requires undeclared provider",
 				Detail: fmt.Sprintf(
-					"The root module for %s requires a configuration for provider %q, which isn't declared as a dependency of this stack configuration.\n\nDeclare this provider in the stack's required_providers block, and then assign a configuration for that provider in this component's \"providers\" argument.",
-					c.Addr(), typeAddr.ForDisplay(),
+					"The root module for %s %s a configuration for provider %q, which isn't declared as a dependency of this stack configuration.\n\nDeclare this provider in the stack's required_providers block, and then assign a configuration for that provider in this component's \"providers\" argument.",
+					c.Addr(), providerContextString, typeAddr.ForDisplay(),
 				),
 				Subject: c.call.Declaration(ctx).DeclRange.ToHCL().Ptr(),
 			})
@@ -254,8 +276,8 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 				Severity: hcl.DiagError,
 				Summary:  "Missing required provider configuration",
 				Detail: fmt.Sprintf(
-					"The root module for %s requires provider configuration named %q for provider %q, which is not assigned in the component's \"providers\" argument.",
-					c.Addr(), localAddr.StringCompact(), typeAddr.ForDisplay(),
+					"The root module for %s %s a provider configuration named %q for provider %q, which is not assigned in the component's \"providers\" argument.",
+					c.Addr(), providerContextString, localAddr.StringCompact(), typeAddr.ForDisplay(),
 				),
 				Subject: c.call.Declaration(ctx).DeclRange.ToHCL().Ptr(),
 			})

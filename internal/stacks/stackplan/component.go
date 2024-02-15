@@ -118,3 +118,22 @@ func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 
 	return plan, nil
 }
+
+// RequiredProviderInstances returns a description of all the provider instance
+// slots that are required to satisfy the resource instances planned for this
+// component.
+//
+// See also stackstate.State.RequiredProviderInstances and
+// stackeval.ComponentConfig.RequiredProviderInstances for similar functions
+// that retrieve the provider instances for a components in the config and in
+// the state.
+func (c *Component) RequiredProviderInstances() addrs.Set[addrs.RootProviderConfig] {
+	providerInstances := addrs.MakeSet[addrs.RootProviderConfig]()
+	for _, elem := range c.ResourceInstanceProviderConfig.Elems {
+		providerInstances.Add(addrs.RootProviderConfig{
+			Provider: elem.Value.Provider,
+			Alias:    elem.Value.Alias,
+		})
+	}
+	return providerInstances
+}
