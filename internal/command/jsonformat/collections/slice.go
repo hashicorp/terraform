@@ -83,7 +83,7 @@ func ProcessSlice[Input any](before, after []Input, process ProcessIndices, isOb
 	}
 }
 
-// Returns if every item of before can be found in after
+// isReorder returns true if every item of before can be found in after
 func isReorder[Input any](before, after []Input) bool {
 	// To be a reorder the length needs to be the same
 	if len(before) != len(after) {
