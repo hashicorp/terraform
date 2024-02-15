@@ -4,15 +4,18 @@
 package stackruntime
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // This file has helper functions used by other tests. It doesn't contain any
@@ -117,4 +120,21 @@ func mustPlanDynamicValueDynamicType(v cty.Value) plans.DynamicValue {
 		panic(err)
 	}
 	return ret
+}
+
+func mustPlanDynamicValueSchema(v cty.Value, block *configschema.Block) plans.DynamicValue {
+	ty := block.ImpliedType()
+	ret, err := plans.NewDynamicValue(v, ty)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
+
+func mustMarshalJSONAttrs(attrs map[string]interface{}) []byte {
+	jsonAttrs, err := json.Marshal(attrs)
+	if err != nil {
+		panic(err)
+	}
+	return jsonAttrs
 }
