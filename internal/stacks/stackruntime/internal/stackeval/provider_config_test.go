@@ -9,22 +9,23 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty-debug/ctydebug"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty-debug/ctydebug"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestProviderConfigCheckProviderArgs(t *testing.T) {
 	cfg := testStackConfig(t, "provider", "single_instance_configured")
 	providerTypeAddr := addrs.NewBuiltInProvider("foo")
-	newMockProvider := func(t *testing.T) (*terraform.MockProvider, providers.Factory) {
+	newMockProvider := func(t *testing.T) (*testing_provider.MockProvider, providers.Factory) {
 		t.Helper()
-		mockProvider := &terraform.MockProvider{
+		mockProvider := &testing_provider.MockProvider{
 			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 				Provider: providers.Schema{
 					Block: &configschema.Block{

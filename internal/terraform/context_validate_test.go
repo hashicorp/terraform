@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -1852,7 +1853,7 @@ func TestContext2Validate_sensitiveProvisionerConfig(t *testing.T) {
 }
 
 func TestContext2Plan_validateMinMaxDynamicBlock(t *testing.T) {
-	p := new(MockProvider)
+	p := new(testing_provider.MockProvider)
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
@@ -2010,7 +2011,7 @@ resource "test_object" "t" {
 }
 
 func TestContext2Plan_lookupMismatchedObjectTypes(t *testing.T) {
-	p := new(MockProvider)
+	p := new(testing_provider.MockProvider)
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
@@ -2517,7 +2518,7 @@ resource "aws_instance" "follow" {
 }
 
 func TestContext2Validate_providerContributedFunctions(t *testing.T) {
-	mockProvider := func() *MockProvider {
+	mockProvider := func() *testing_provider.MockProvider {
 		p := testProvider("test")
 		p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 			Functions: map[string]providers.FunctionDecl{

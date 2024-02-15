@@ -9,12 +9,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/msgpack"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/msgpack"
 )
 
 func TestContext2Plan_providerFunctionBasic(t *testing.T) {
@@ -47,7 +49,7 @@ output "noop_equals" {
 `,
 	})
 
-	p := new(MockProvider)
+	p := new(testing_provider.MockProvider)
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Functions: map[string]providers.FunctionDecl{
 			"noop": providers.FunctionDecl{
@@ -109,7 +111,7 @@ output "second" {
 `,
 	})
 
-	p := new(MockProvider)
+	p := new(testing_provider.MockProvider)
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Functions: map[string]providers.FunctionDecl{
 			"echo": providers.FunctionDecl{
@@ -163,7 +165,7 @@ output "second" {
 func TestContext2Plan_providerFunctionImpureApply(t *testing.T) {
 	m, snap := testModuleWithSnapshot(t, "provider-function-echo")
 
-	p := &MockProvider{
+	p := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{Block: simpleTestSchema()},
 			ResourceTypes: map[string]providers.Schema{

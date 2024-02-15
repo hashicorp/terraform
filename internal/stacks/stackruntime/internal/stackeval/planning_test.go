@@ -20,12 +20,12 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -156,7 +156,7 @@ func TestPlanning_DestroyMode(t *testing.T) {
 		PlanningMode: plans.DestroyMode,
 		ProviderFactories: ProviderFactories{
 			addrs.NewBuiltInProvider("test"): func() (providers.Interface, error) {
-				return &terraform.MockProvider{
+				return &testing_provider.MockProvider{
 					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 						Provider: providers.Schema{
 							Block: &configschema.Block{},
@@ -343,7 +343,7 @@ func TestPlanning_RequiredComponents(t *testing.T) {
 		PlanningMode: plans.NormalMode,
 		ProviderFactories: ProviderFactories{
 			addrs.NewBuiltInProvider("foo"): func() (providers.Interface, error) {
-				return &terraform.MockProvider{
+				return &testing_provider.MockProvider{
 					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 						Provider: providers.Schema{
 							Block: &configschema.Block{
@@ -601,7 +601,7 @@ func TestPlanning_DeferredChangesPropagation(t *testing.T) {
 		},
 		ProviderFactories: ProviderFactories{
 			addrs.NewBuiltInProvider("test"): func() (providers.Interface, error) {
-				return &terraform.MockProvider{
+				return &testing_provider.MockProvider{
 					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 						Provider: providers.Schema{
 							Block: &configschema.Block{},

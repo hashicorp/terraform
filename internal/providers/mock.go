@@ -30,6 +30,9 @@ var _ Interface = (*Mock)(nil)
 // data to return for any computed fields within the provider schema. The
 // provider will make up random / junk data for any computed fields for which
 // preset data is not available.
+//
+// This is distinct from the testing.MockProvider, which is a mock provider
+// that is used by the Terraform core itself to test it's own behavior.
 type Mock struct {
 	Provider Interface
 	Data     *configs.MockData

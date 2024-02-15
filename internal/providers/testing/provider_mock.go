@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package testing
 
 import (
 	"fmt"
@@ -19,6 +19,10 @@ var _ providers.Interface = (*MockProvider)(nil)
 
 // MockProvider implements providers.Interface but mocks out all the
 // calls for testing purposes.
+//
+// This is distinct from providers.Mock which is actually available to Terraform
+// configuration and test authors. This type is only for use in internal testing
+// of Terraform itself.
 type MockProvider struct {
 	sync.Mutex
 

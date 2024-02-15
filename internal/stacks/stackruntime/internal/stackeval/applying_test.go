@@ -23,9 +23,9 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
-	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 func TestApply_componentOrdering(t *testing.T) {
@@ -119,7 +119,7 @@ func TestApply_componentOrdering(t *testing.T) {
 			PlanningMode: plans.NormalMode,
 			ProviderFactories: ProviderFactories{
 				testProviderAddr: func() (providers.Interface, error) {
-					return &terraform.MockProvider{
+					return &testing_provider.MockProvider{
 						GetProviderSchemaResponse: &testProviderSchema,
 						PlanResourceChangeFn: func(prcr providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 							return providers.PlanResourceChangeResponse{
@@ -200,7 +200,7 @@ func TestApply_componentOrdering(t *testing.T) {
 		main, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
 			ProviderFactories: ProviderFactories{
 				testProviderAddr: func() (providers.Interface, error) {
-					return &terraform.MockProvider{
+					return &testing_provider.MockProvider{
 						GetProviderSchemaResponse: &testProviderSchema,
 						ApplyResourceChangeFn: func(arcr providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 							markerStr := arcr.PlannedState.GetAttr("marker").AsString()
@@ -279,7 +279,7 @@ func TestApply_componentOrdering(t *testing.T) {
 			PlanningMode: plans.DestroyMode,
 			ProviderFactories: ProviderFactories{
 				testProviderAddr: func() (providers.Interface, error) {
-					return &terraform.MockProvider{
+					return &testing_provider.MockProvider{
 						GetProviderSchemaResponse: &testProviderSchema,
 						PlanResourceChangeFn: func(prcr providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 							return providers.PlanResourceChangeResponse{
@@ -327,7 +327,7 @@ func TestApply_componentOrdering(t *testing.T) {
 		main, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
 			ProviderFactories: ProviderFactories{
 				testProviderAddr: func() (providers.Interface, error) {
-					return &terraform.MockProvider{
+					return &testing_provider.MockProvider{
 						GetProviderSchemaResponse: &testProviderSchema,
 						ApplyResourceChangeFn: func(arcr providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 							markerStr := arcr.PriorState.GetAttr("marker").AsString()

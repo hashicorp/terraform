@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 )
 
 func TestBuiltinEvalContextProviderInput(t *testing.T) {
@@ -58,7 +59,7 @@ func TestBuiltinEvalContextProviderInput(t *testing.T) {
 func TestBuildingEvalContextInitProvider(t *testing.T) {
 	var lock sync.Mutex
 
-	testP := &MockProvider{}
+	testP := &testing_provider.MockProvider{}
 
 	ctx := testBuiltinEvalContext(t)
 	ctx = ctx.withScope(evalContextModuleInstance{Addr: addrs.RootModuleInstance}).(*BuiltinEvalContext)

@@ -19,6 +19,7 @@ import (
 	// "github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 
 	// "github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -161,7 +162,7 @@ data "test_data_source" "foo" {
 `,
 	})
 
-	p := new(MockProvider)
+	p := new(testing_provider.MockProvider)
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		DataSources: map[string]*configschema.Block{
 			"test_data_source": {
@@ -1150,7 +1151,7 @@ output "result" {
 `,
 	})
 
-	p := new(MockProvider)
+	p := new(testing_provider.MockProvider)
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_resource": {
@@ -1737,7 +1738,7 @@ func TestContext2Plan_crossResourceMoveBasic(t *testing.T) {
 		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 	})
 
-	p := &MockProvider{}
+	p := &testing_provider.MockProvider{}
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_object_one": {
@@ -1835,7 +1836,7 @@ func TestContext2Plan_crossProviderMove(t *testing.T) {
 		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/one"]`))
 	})
 
-	one := &MockProvider{}
+	one := &testing_provider.MockProvider{}
 	one.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"one_object": {
@@ -1851,7 +1852,7 @@ func TestContext2Plan_crossProviderMove(t *testing.T) {
 		},
 	}
 
-	two := &MockProvider{}
+	two := &testing_provider.MockProvider{}
 	two.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"two_object": {
@@ -1937,7 +1938,7 @@ func TestContext2Plan_crossResourceMoveMissingConfig(t *testing.T) {
 		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 	})
 
-	p := &MockProvider{}
+	p := &testing_provider.MockProvider{}
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{},
 		ResourceTypes: map[string]providers.Schema{
@@ -2591,7 +2592,7 @@ data "test_data_source" "foo" {
 `,
 	})
 
-	p := new(MockProvider)
+	p := new(testing_provider.MockProvider)
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 		resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
 			"sensitive": cty.UnknownVal(cty.String),
@@ -3985,7 +3986,7 @@ data "test_object" "a" {
 `,
 	})
 
-	p := new(MockProvider)
+	p := new(testing_provider.MockProvider)
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		DataSources: map[string]*configschema.Block{
 			"test_object": {
@@ -4223,7 +4224,7 @@ resource "test_object" "b" {
 }
 `})
 
-	testProvider := &MockProvider{
+	testProvider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
 				Block: &configschema.Block{
@@ -4469,7 +4470,7 @@ resource "test_object" "a" {
 }
 `})
 
-	testProvider := &MockProvider{
+	testProvider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"test_object": providers.Schema{
@@ -4622,7 +4623,7 @@ func TestContext2Plan_externalProviders(t *testing.T) {
 	fooConfigAddr := addrs.RootProviderConfig{
 		Provider: fooAddr,
 	}
-	fooProvider := &MockProvider{
+	fooProvider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
 				Block: &configschema.Block{
@@ -4655,7 +4656,7 @@ func TestContext2Plan_externalProviders(t *testing.T) {
 	barConfigAddr := addrs.RootProviderConfig{
 		Provider: barAddr,
 	}
-	barProvider := &MockProvider{
+	barProvider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"bar": {
@@ -4670,7 +4671,7 @@ func TestContext2Plan_externalProviders(t *testing.T) {
 		Provider: bazAddr,
 		Alias:    "beep",
 	}
-	bazProvider := &MockProvider{
+	bazProvider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"baz": {
@@ -4770,7 +4771,7 @@ func TestContext2Apply_externalDependencyDeferred(t *testing.T) {
 		`,
 	})
 
-	p := &MockProvider{
+	p := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				"test": {
