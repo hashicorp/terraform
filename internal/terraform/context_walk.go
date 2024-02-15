@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
@@ -43,6 +44,12 @@ type graphWalkOpts struct {
 	// always take into account what walk type it's dealing with.
 	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
 
+	// ExternalDependencyDeferred indicates that something that this entire
+	// configuration depends on (outside the view of this modules runtime)
+	// has deferred changes, and therefore we must treat _all_ actions
+	// as deferred to produce the correct overall dependency ordering.
+	ExternalDependencyDeferred bool
+
 	// PlanTimeCheckResults should be populated during the apply phase with
 	// the snapshot of check results that was generated during the plan step.
 	//
@@ -68,7 +75,7 @@ type graphWalkOpts struct {
 func (c *Context) walk(graph *Graph, operation walkOperation, opts *graphWalkOpts) (*ContextGraphWalker, tfdiags.Diagnostics) {
 	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
 
-	walker := c.graphWalker(operation, opts)
+	walker := c.graphWalker(graph, operation, opts)
 
 	// Watch for a stop so we can call the provider Stop() API.
 	watchStop, watchWait := c.watchStop(walker)
@@ -83,7 +90,7 @@ func (c *Context) walk(graph *Graph, operation walkOperation, opts *graphWalkOpt
 	return walker, diags
 }
 
-func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *ContextGraphWalker {
+func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graphWalkOpts) *ContextGraphWalker {
 	var state *states.SyncState
 	var refreshState *states.SyncState
 	var prevRunState *states.SyncState
@@ -158,6 +165,14 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 		}
 	}
 
+	// We'll produce a derived graph that only includes the static resource
+	// blocks, since we need that for deferral tracking.
+	resourceGraph := graph.ResourceGraph()
+	deferred := deferring.NewDeferred(resourceGraph)
+	if opts.ExternalDependencyDeferred {
+		deferred.SetExternalDependencyDeferred()
+	}
+
 	return &ContextGraphWalker{
 		Context:                 c,
 		State:                   state,
@@ -167,6 +182,7 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 		PrevRunState:            prevRunState,
 		Changes:                 changes.SyncWrapper(),
 		NamedValues:             namedvals.NewState(),
+		Deferrals:               deferred,
 		Checks:                  checkState,
 		InstanceExpander:        instances.NewExpander(),
 		ExternalProviderConfigs: opts.ExternalProviderConfigs,

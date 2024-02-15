@@ -110,6 +110,8 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 			if !ret.Components.HasKey(addr) {
 				ret.Components.Put(addr, &Component{
 					PlannedAction:       plannedAction,
+					PlanApplyable:       msg.PlanApplyable,
+					PlanComplete:        msg.PlanComplete,
 					Dependencies:        dependencies,
 					Dependents:          collections.NewSet[stackaddrs.AbsComponent](),
 					PlannedOutputValues: outputVals,

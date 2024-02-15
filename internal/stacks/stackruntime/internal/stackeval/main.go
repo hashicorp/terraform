@@ -65,6 +65,11 @@ type Main struct {
 	// This must never be used outside of test code in this package.
 	testOnlyGlobals map[string]cty.Value
 
+	// languageExperimentsAllowed gets set if our caller enables the use
+	// of language experiments by calling [Main.AllowLanguageExperiments]
+	// shortly after creating this object.
+	languageExperimentsAllowed bool
+
 	// The remaining fields memoize other objects we might create in response
 	// to method calls. Must lock "mu" before interacting with them.
 	mu              sync.Mutex
@@ -154,6 +159,22 @@ func NewForInspecting(config *stackconfig.Config, state *stackstate.State, opts 
 		providerTypes:     make(map[addrs.Provider]*ProviderType),
 		testOnlyGlobals:   opts.TestOnlyGlobals,
 	}
+}
+
+// AllowLanguageExperiments changes the flag for whether language experiments
+// are allowed during evaluation.
+//
+// Call this very shortly after creating a [Main], before performing any other
+// actions on it. Changing this setting after other methods have been called
+// will produce unpredictable results.
+func (m *Main) AllowLanguageExperiments(allow bool) {
+	m.languageExperimentsAllowed = allow
+}
+
+// LanguageExperimentsAllowed returns true if language experiments are allowed
+// to be used during evaluation.
+func (m *Main) LanguageExperimentsAllowed() bool {
+	return m.languageExperimentsAllowed
 }
 
 // Validating returns true if the receiving [Main] is configured for validating.

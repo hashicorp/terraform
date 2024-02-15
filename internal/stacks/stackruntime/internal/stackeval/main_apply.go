@@ -199,6 +199,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 		})
 
 		main := NewForApplying(config, plan.RootInputValues, plan, results, opts)
+		main.AllowLanguageExperiments(opts.ExperimentsAllowed)
 		begin(ctx, main) // the change tasks registered above become runnable
 
 		// With the planned changes now in progress, we'll visit everything and

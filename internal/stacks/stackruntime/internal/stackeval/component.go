@@ -239,6 +239,42 @@ func (c *Component) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 	}
 }
 
+// PlanIsComplete can be called only during the planning phase, and returns
+// true only if all instances of this component have "complete" plans.
+//
+// A component instance plan is "incomplete" if it was either created with
+// resource targets set in its planning options or if the modules runtime
+// decided it needed to defer at least one action for a future round.
+func (c *Component) PlanIsComplete(ctx context.Context) bool {
+	if !c.main.Planning() {
+		panic("PlanIsComplete used when not in the planning phase")
+	}
+	insts := c.Instances(ctx, PlanPhase)
+	if insts == nil {
+		// Suggests that the configuration was not even valid enough to
+		// decide what the instances are, so we'll return false to be
+		// conservative and let the error be returned by a different path.
+		return false
+	}
+
+	for _, inst := range insts {
+		plan := inst.ModuleTreePlan(ctx)
+		if plan == nil {
+			// Seems that we weren't even able to create a plan for this
+			// one, so we'll just assume it was incomplete to be conservative,
+			// and assume that whatever errors caused this nil result will
+			// get returned by a different return path.
+			return false
+		}
+		if !plan.Complete {
+			return false
+		}
+	}
+	// If we get here without returning false then we can say that
+	// all of the instance plans are complete.
+	return true
+}
+
 // ExprReferenceValue implements Referenceable.
 func (c *Component) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
 	return c.ResultValue(ctx, phase)

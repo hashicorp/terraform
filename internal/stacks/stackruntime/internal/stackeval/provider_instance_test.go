@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -38,6 +39,9 @@ func TestProviderInstanceCheckProviderArgs(t *testing.T) {
 				},
 			},
 			ValidateProviderConfigFn: func(vpcr providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
+				if vpcr.Config.ContainsMarked() {
+					panic("config has marks")
+				}
 				var diags tfdiags.Diagnostics
 				if vpcr.Config.Type().HasAttribute("test") {
 					if vpcr.Config.GetAttr("test").RawEquals(cty.StringVal("invalid")) {
@@ -86,6 +90,43 @@ func TestProviderInstanceCheckProviderArgs(t *testing.T) {
 
 		want := cty.ObjectVal(map[string]cty.Value{
 			"test": cty.StringVal("yep"),
+		})
+		got, diags := inst.CheckProviderArgs(ctx, InspectPhase)
+		assertNoDiags(t, diags)
+
+		if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
+			t.Errorf("wrong result\n%s", diff)
+		}
+
+		if !mockProvider.ValidateProviderConfigCalled {
+			t.Error("ValidateProviderConfig was not called; should've been")
+		} else {
+			got := mockProvider.ValidateProviderConfigRequest
+			want := providers.ValidateProviderConfigRequest{
+				Config: cty.ObjectVal(map[string]cty.Value{
+					"test": cty.StringVal("yep"),
+				}),
+			}
+			if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
+				t.Errorf("wrong request\n%s", diff)
+			}
+		}
+	})
+	subtestInPromisingTask(t, "valid with marks", func(ctx context.Context, t *testing.T) {
+		mockProvider, providerFactory := newMockProvider(t)
+		main := testEvaluator(t, testEvaluatorOpts{
+			Config: cfg,
+			TestOnlyGlobals: map[string]cty.Value{
+				"provider_configuration": cty.StringVal("yep").Mark("nope"),
+			},
+			ProviderFactories: ProviderFactories{
+				providerTypeAddr: providerFactory,
+			},
+		})
+		inst := getProviderInstance(ctx, t, main)
+
+		want := cty.ObjectVal(map[string]cty.Value{
+			"test": cty.StringVal("yep").Mark("nope"),
 		})
 		got, diags := inst.CheckProviderArgs(ctx, InspectPhase)
 		assertNoDiags(t, diags)
@@ -250,5 +291,138 @@ func TestProviderInstanceCheckProviderArgs(t *testing.T) {
 		assertMatchingDiag(t, diags, func(diag tfdiags.Diagnostic) bool {
 			return diag.Severity() == tfdiags.Error && diag.Description().Summary == `Failed to read provider schema`
 		})
+	})
+}
+
+func TestProviderInstanceCheckClient(t *testing.T) {
+	cfg := testStackConfig(t, "provider", "single_instance_configured")
+	providerTypeAddr := addrs.NewBuiltInProvider("foo")
+	newMockProvider := func(t *testing.T) (*terraform.MockProvider, providers.Factory) {
+		t.Helper()
+		mockProvider := &terraform.MockProvider{
+			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+				Provider: providers.Schema{
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"test": {
+								Type:     cty.String,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+			ConfigureProviderFn: func(vpcr providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+				if vpcr.Config.ContainsMarked() {
+					panic("config has marks")
+				}
+				var diags tfdiags.Diagnostics
+				if vpcr.Config.Type().HasAttribute("test") {
+					if vpcr.Config.GetAttr("test").RawEquals(cty.StringVal("invalid")) {
+						diags = diags.Append(fmt.Errorf("invalid value checked by provider itself"))
+					}
+				}
+				return providers.ConfigureProviderResponse{
+					Diagnostics: diags,
+				}
+			},
+		}
+		providerFactory := providers.FactoryFixed(mockProvider)
+		return mockProvider, providerFactory
+	}
+	getProviderInstance := func(ctx context.Context, t *testing.T, main *Main) *ProviderInstance {
+		t.Helper()
+		mainStack := main.MainStack(ctx)
+		provider := mainStack.Provider(ctx, stackaddrs.ProviderConfig{
+			Provider: providerTypeAddr,
+			Name:     "bar",
+		})
+		if provider == nil {
+			t.Fatal("no provider.foo.bar is available")
+		}
+		insts := provider.Instances(ctx, InspectPhase)
+		inst, ok := insts[addrs.NoKey]
+		if !ok {
+			t.Fatal("missing NoKey instance of provider.foo.bar")
+		}
+		return inst
+	}
+
+	subtestInPromisingTask(t, "valid", func(ctx context.Context, t *testing.T) {
+		mockProvider, providerFactory := newMockProvider(t)
+		main := testEvaluator(t, testEvaluatorOpts{
+			Config: cfg,
+			TestOnlyGlobals: map[string]cty.Value{
+				"provider_configuration": cty.StringVal("yep"),
+			},
+			ProviderFactories: ProviderFactories{
+				providerTypeAddr: providerFactory,
+			},
+		})
+		inst := getProviderInstance(ctx, t, main)
+
+		client, diags := inst.CheckClient(ctx, InspectPhase)
+		assertNoDiags(t, diags)
+
+		switch c := client.(type) {
+		case providerClose:
+			break
+		default:
+			t.Errorf("unexpected client type %#T", c)
+		}
+
+		if !mockProvider.ConfigureProviderCalled {
+			t.Error("ConfigureProvider was not called; should've been")
+		} else {
+			got := mockProvider.ConfigureProviderRequest
+			want := providers.ConfigureProviderRequest{
+				TerraformVersion: version.SemVer.String(),
+				Config: cty.ObjectVal(map[string]cty.Value{
+					"test": cty.StringVal("yep"),
+				}),
+			}
+			if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
+				t.Errorf("wrong request\n%s", diff)
+			}
+		}
+	})
+
+	subtestInPromisingTask(t, "valid with marks", func(ctx context.Context, t *testing.T) {
+		mockProvider, providerFactory := newMockProvider(t)
+		main := testEvaluator(t, testEvaluatorOpts{
+			Config: cfg,
+			TestOnlyGlobals: map[string]cty.Value{
+				"provider_configuration": cty.StringVal("yep").Mark("nope"),
+			},
+			ProviderFactories: ProviderFactories{
+				providerTypeAddr: providerFactory,
+			},
+		})
+		inst := getProviderInstance(ctx, t, main)
+
+		client, diags := inst.CheckClient(ctx, InspectPhase)
+		assertNoDiags(t, diags)
+
+		switch c := client.(type) {
+		case providerClose:
+			break
+		default:
+			t.Errorf("unexpected client type %#T", c)
+		}
+
+		if !mockProvider.ConfigureProviderCalled {
+			t.Error("ConfigureProvider was not called; should've been")
+		} else {
+			got := mockProvider.ConfigureProviderRequest
+			want := providers.ConfigureProviderRequest{
+				TerraformVersion: version.SemVer.String(),
+				Config: cty.ObjectVal(map[string]cty.Value{
+					"test": cty.StringVal("yep"),
+				}),
+			}
+			if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
+				t.Errorf("wrong request\n%s", diff)
+			}
+		}
 	})
 }

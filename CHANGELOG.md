@@ -10,6 +10,14 @@ NEW FEATURES:
 * Providers can now implement move operations between resource types, both from resource types defined by the provider and defined by other providers. Check provider documentation for supported cross-resource-type moves.
 * `issensitive` function added to detect if a value is marked as sensitive
 
+ENHANCEMENTS:
+
+* `terraform show`'s JSON rendering of a plan now includes two explicit flags `"applyable"` and `"complete"`, which both summarize characteristics of a plan that were previously only inferrable by consumers replicating some of Terraform Core's own logic. [GH-34642]
+
+    `"applyable"` means that it makes sense for a wrapping automation to offer to apply this plan.
+
+    `"complete"` means that applying this plan is expected to achieve convergence between desired and actual state. If this flag is set, wrapping automations should ideally encourage an operator to run another plan/apply round to continue making progress toward convergence.
+
 BUG FIXES:
 
 * core: Sensitive values will now be tracked more accurately in state and plans, preventing unexpected updates with no apparent changes [GH-34567]
@@ -23,6 +31,11 @@ Experiments are only enabled in alpha releases of Terraform CLI. The following f
 * The [language-level experiment](https://developer.hashicorp.com/terraform/language/settings#experimental-language-features) `unknown_instances` permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values.
 
     This is at an early stage and so currently setting these arguments to unknown values will only yield broken behavior, and so it's not yet useful to participate in this experiment. Future work will improve support for this new possibility, gradually making this experiment viable.
+* `terraform provider lock` accepts a new boolean option `-enable-plugin-cache`. If specified, and if a [global plugin cache](https://developer.hashicorp.com/terraform/cli/config/config-file#provider-plugin-cache) is configured Terraform will use the cache in the provider lock process.
+
+## ENHANCEMENTS:
+
+* In import-generated code represent JSON values in HCL instead of as strings
 
 ## Previous Releases
 

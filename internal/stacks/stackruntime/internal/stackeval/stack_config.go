@@ -9,13 +9,14 @@ import (
 	"sync"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // StackConfig represents a stack as represented in the configuration: either the
@@ -323,6 +324,13 @@ func (s *StackConfig) ResolveExpressionReference(ctx context.Context, ref stacka
 func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stackaddrs.Reference, repetition instances.RepetitionData, selfAddr stackaddrs.Referenceable) (Referenceable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	// "Test-only globals" is a special affordance we have only when running
+	// unit tests in this package. The function called in this branch will
+	// return an error itself if we're not running in a suitable test situation.
+	if addr, ok := ref.Target.(stackaddrs.TestOnlyGlobal); ok {
+		return s.main.resolveTestOnlyGlobalReference(ctx, addr, ref.SourceRange)
+	}
+
 	// TODO: Most of the below would benefit from "Did you mean..." suggestions
 	// when something is missing but there's a similarly-named object nearby.
 
@@ -336,6 +344,7 @@ func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stacka
 				Detail:   fmt.Sprintf("There is no variable %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
+			return nil, diags
 		}
 		return ret, diags
 	case stackaddrs.Component:
@@ -347,6 +356,7 @@ func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stacka
 				Detail:   fmt.Sprintf("There is no component %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
+			return nil, diags
 		}
 		return ret, diags
 	case stackaddrs.StackCall:
@@ -358,6 +368,7 @@ func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stacka
 				Detail:   fmt.Sprintf("There is no stack %q block declared this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
+			return nil, diags
 		}
 		return ret, diags
 	default:

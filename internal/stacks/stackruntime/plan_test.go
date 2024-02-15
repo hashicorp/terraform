@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 
@@ -32,6 +33,57 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 )
+
+func TestPlanWithMissingInputVariable(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "plan-undeclared-variable-in-component")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange, 8)
+	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewBuiltInProvider("terraform"): func() (providers.Interface, error) {
+				return terraformProvider.NewProvider(), nil
+			},
+		},
+
+		ForcePlanTimestamp: &fakePlanTimestamp,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	_, gotDiags := collectPlanOutput(changesCh, diagsCh)
+
+	// We'll normalize the diagnostics to be of consistent underlying type
+	// using ForRPC, so that we can easily diff them; we don't actually care
+	// about which underlying implementation is in use.
+	gotDiags = gotDiags.ForRPC()
+	var wantDiags tfdiags.Diagnostics
+	wantDiags = wantDiags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Reference to undeclared input variable",
+		Detail:   `There is no variable "input" block declared in this stack.`,
+		Subject: &hcl.Range{
+			Filename: mainBundleSourceAddrStr("plan-undeclared-variable-in-component/undeclared-variable.tfstack.hcl"),
+			Start:    hcl.Pos{Line: 17, Column: 13, Byte: 250},
+			End:      hcl.Pos{Line: 17, Column: 22, Byte: 259},
+		},
+	})
+	wantDiags = wantDiags.ForRPC()
+
+	if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
+		t.Errorf("wrong diagnostics\n%s", diff)
+	}
+}
 
 func TestPlanWithSingleResource(t *testing.T) {
 	ctx := context.Background()
@@ -88,6 +140,8 @@ func TestPlanWithSingleResource(t *testing.T) {
 				},
 			),
 			Action:             plans.Create,
+			PlanApplyable:      true,
+			PlanComplete:       true,
 			PlannedInputValues: make(map[string]plans.DynamicValue),
 			PlannedOutputValues: map[string]cty.Value{
 				"input":  cty.StringVal("hello"),
@@ -296,6 +350,8 @@ func TestPlanSensitiveOutput(t *testing.T) {
 				},
 			),
 			Action:             plans.Create,
+			PlanApplyable:      true,
+			PlanComplete:       true,
 			PlannedInputValues: make(map[string]plans.DynamicValue),
 			PlannedOutputValues: map[string]cty.Value{
 				"out": cty.StringVal("secret").Mark(marks.Sensitive),
@@ -362,6 +418,8 @@ func TestPlanSensitiveOutputNested(t *testing.T) {
 				},
 			),
 			Action:             plans.Create,
+			PlanApplyable:      true,
+			PlanComplete:       true,
 			PlannedInputValues: make(map[string]plans.DynamicValue),
 			PlannedOutputValues: map[string]cty.Value{
 				"out": cty.StringVal("secret").Mark(marks.Sensitive),
@@ -428,6 +486,8 @@ func TestPlanSensitiveOutputAsInput(t *testing.T) {
 				},
 			),
 			Action:             plans.Create,
+			PlanApplyable:      true,
+			PlanComplete:       true,
 			PlannedInputValues: make(map[string]plans.DynamicValue),
 			PlannedOutputValues: map[string]cty.Value{
 				"out": cty.StringVal("secret").Mark(marks.Sensitive),
@@ -441,7 +501,9 @@ func TestPlanSensitiveOutputAsInput(t *testing.T) {
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
-			Action: plans.Create,
+			Action:        plans.Create,
+			PlanApplyable: true,
+			PlanComplete:  true,
 			PlannedInputValues: map[string]plans.DynamicValue{
 				"secret": mustPlanDynamicValueDynamicType(cty.StringVal("secret")),
 			},

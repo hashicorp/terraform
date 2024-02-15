@@ -24,6 +24,8 @@ func TestTFPlanRoundTrip(t *testing.T) {
 	})
 
 	plan := &plans.Plan{
+		Applyable: true,
+		Complete:  true,
 		VariableValues: map[string]plans.DynamicValue{
 			"foo": mustNewDynamicValueStr("foo value"),
 		},

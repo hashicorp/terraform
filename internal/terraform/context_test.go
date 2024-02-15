@@ -1018,6 +1018,59 @@ func assertDiagnosticsMatch(t *testing.T, got, want tfdiags.Diagnostics) {
 	}
 }
 
+// checkPlanCompleteAndApplyable reports testing errors if the plan is not
+// flagged as being both complete and applyable.
+//
+// It does not prevent the test from continuing if those flags are not
+// set, since downstream test assertions are likely to add extra context
+// as to what went wrong.
+func checkPlanCompleteAndApplyable(t *testing.T, plan *plans.Plan) {
+	t.Helper()
+	checkPlanComplete(t, plan)
+	checkPlanApplyable(t, plan)
+}
+
+// checkPlanComplete reports a testing error if the plan is not flagged
+// as being "complete".
+//
+// It does not prevent the test from continuing if that flag is not
+// set, since downstream test assertions are likely to add extra context
+// as to what went wrong.
+func checkPlanComplete(t *testing.T, plan *plans.Plan) {
+	t.Helper()
+	if !plan.Complete {
+		t.Error("plan is incomplete; should be complete")
+	}
+}
+
+// checkPlanApplyable reports a testing error if the plan is not flagged
+// as being "applyable".
+//
+// It does not prevent the test from continuing if that flag is not
+// set, since downstream test assertions are likely to add extra context
+// as to what went wrong.
+func checkPlanApplyable(t *testing.T, plan *plans.Plan) {
+	t.Helper()
+	if !plan.Applyable {
+		t.Error("plan is not applyable; should be applyable")
+	}
+}
+
+// checkPlanErrored reports a testing error if the plan is not flagged
+// as "errored" and non-applyable.
+//
+// It does not prevent the test from continuing if those flags are not
+// set, since downstream test assertions are likely to add extra context
+// as to what went wrong.
+func checkPlanErrored(t *testing.T, plan *plans.Plan) {
+	t.Helper()
+	if !plan.Errored {
+		t.Error("plan is not marked as errored; should be")
+	} else if plan.Applyable {
+		t.Error("plan is applyable; plans with errors should never be applyable")
+	}
+}
+
 // logDiagnostics is a test helper that logs the given diagnostics to to the
 // given testing.T using t.Log, in a way that is hopefully useful in debugging
 // a test. It does not generate any errors or fail the test. See

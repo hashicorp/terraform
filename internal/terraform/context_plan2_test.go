@@ -13,6 +13,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 
 	// "github.com/hashicorp/hcl/v2"
@@ -2214,6 +2215,7 @@ func TestContext2Plan_refreshOnlyMode(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
+	checkPlanCompleteAndApplyable(t, plan)
 
 	if !p.UpgradeResourceStateCalled {
 		t.Errorf("Provider's UpgradeResourceState wasn't called; should've been")
@@ -4739,6 +4741,102 @@ func TestContext2Plan_externalProviders(t *testing.T) {
 	if !bazProvider.PlanResourceChangeCalled {
 		t.Errorf("did not call PlanResourceChange for %s", bazConfigAddr)
 	}
+}
+
+func TestContext2Apply_externalDependencyDeferred(t *testing.T) {
+	// This test deals with the situation where the stacks runtime knows
+	// that an upstream component already has deferred actions and so
+	// it's telling us that we need to artifically treat everything in
+	// the current configuration as deferred.
+
+	cfg := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test" "a" {
+				name = "a"
+			}
+
+			resource "test" "b" {
+				name           = "b"
+				upstream_names = [test.a.name]
+			}
+
+			resource "test" "c" {
+				name = "c"
+				upstream_names = toset([
+					test.a.name,
+					test.b.name,
+				])
+			}
+		`,
+	})
+
+	p := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"name": {
+								Type:     cty.String,
+								Required: true,
+							},
+							"upstream_names": {
+								Type:     cty.Set(cty.String),
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+		},
+		PlanResourceChangeFn: func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+			return providers.PlanResourceChangeResponse{
+				PlannedState: req.ProposedNewState,
+			}
+		},
+	}
+	resourceInstancesActionsInPlan := func(p *plans.Plan) map[string]plans.Action {
+		ret := make(map[string]plans.Action)
+		for _, cs := range p.Changes.Resources {
+			// Anything that was deferred will not appear in the result at
+			// all. Non-deferred actions that don't actually need to do anything
+			// _will_ appear, but with action set to [plans.NoOp].
+			ret[cs.Addr.String()] = cs.Action
+		}
+		return ret
+	}
+	cmpOpts := cmp.Options{
+		ctydebug.CmpOptions,
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(cfg, states.NewState(), &PlanOpts{
+		Mode:                       plans.NormalMode,
+		ExternalDependencyDeferred: true,
+	})
+	assertNoDiagnostics(t, diags)
+	if plan.Applyable {
+		t.Fatal("plan is applyable; should not be, because there's nothing to do yet")
+	}
+	if plan.Complete {
+		t.Fatal("plan is complete; should have deferred actions")
+	}
+
+	gotActions := resourceInstancesActionsInPlan(plan)
+	wantActions := map[string]plans.Action{
+		// No actions at all, because everything was deferred!
+	}
+	if diff := cmp.Diff(wantActions, gotActions, cmpOpts); diff != "" {
+		t.Fatalf("wrong actions in plan\n%s", diff)
+	}
+	// TODO: Once we are including information about the individual
+	// deferred actions in the plan, this would be a good place to
+	// assert that they are correct!
 }
 
 func TestContext2Plan_removedResourceForgetBasic(t *testing.T) {

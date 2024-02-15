@@ -812,6 +812,11 @@
       { "title": "formatlist", "path": "functions/formatlist", "hidden": true },
       { "title": "indent", "path": "functions/indent", "hidden": true },
       { "title": "index", "path": "functions/index_function", "hidden": true },
+      {
+        "title": "issensitive",
+        "path": "functions/issensitive",
+        "hidden": true
+      },
       { "title": "join", "path": "functions/join", "hidden": true },
       { "title": "jsondecode", "path": "functions/jsondecode", "hidden": true },
       { "title": "jsonencode", "path": "functions/jsonencode", "hidden": true },

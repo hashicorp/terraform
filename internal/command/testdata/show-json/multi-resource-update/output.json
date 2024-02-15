@@ -1,6 +1,8 @@
 {
     "format_version": "1.0",
     "terraform_version": "0.13.0",
+    "applyable": true,
+    "complete": true,
     "variables": {
         "test_var": {
             "value": "bar"

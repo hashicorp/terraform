@@ -75,6 +75,12 @@ func (d *Dir) BasePath() string {
 	return filepath.Clean(d.baseDir)
 }
 
+// WithPlatform creates a new dir with the provided platform based
+// on this dir
+func (d *Dir) WithPlatform(platform getproviders.Platform) *Dir {
+	return NewDirWithPlatform(d.baseDir, platform)
+}
+
 // AllAvailablePackages returns a description of all of the packages already
 // present in the directory. The cache entries are grouped by the provider
 // they relate to and then sorted by version precedence, with highest

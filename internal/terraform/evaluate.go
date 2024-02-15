@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -50,6 +51,11 @@ type Evaluator struct {
 	// NamedValues is where we keep the values of already-evaluated input
 	// variables, local values, and output values.
 	NamedValues *namedvals.State
+
+	// Deferrals tracks resources and modules that have had either their
+	// expansion or their specific planned actions deferred to a future
+	// plan/apply round.
+	Deferrals *deferring.Deferred
 
 	// Plugins is the library of available plugin components (providers and
 	// provisioners) that we have available to help us evaluate expressions
@@ -566,6 +572,34 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.DynamicVal, diags
+	}
+
+	// Much of this function was written before we had factored out the
+	// handling of instance keys into the separate instance expander model,
+	// and so it does a bunch of instance-related work itself below. While
+	// the possibility of unknown instance keys remains experimental
+	// (behind the unknown_instances language experiment) we'll use this
+	// function only for detecting that experimental situation, but leave
+	// the rest of this function unchanged for now to minimize the chances
+	// of the experiment code affecting someone who isn't participating.
+	//
+	// TODO: If we decide to stabilize the unknown_instances experiment
+	// then it would be nice to finally rework this function to rely
+	// on the ResourceInstanceKeys result for _all_ of its work, rather
+	// than continuing to duplicate a bunch of the logic we've tried to
+	// encapsulate over ther already.
+	if d.Operation == walkPlan {
+		if _, _, hasUnknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(addr.Absolute(moduleAddr)); hasUnknownKeys {
+			// There really isn't anything interesting we can do in this situation,
+			// because it means we have an unknown for_each/count, in which case
+			// we can't even predict what the result type will be because it
+			// would be either an object or tuple type decided based on the instance
+			// keys.
+			// (We can't get in here for a single-instance resource because in that
+			// case we would know that there's only one key and it's addrs.NoKey,
+			// so we'll fall through to the other logic below.)
+			return cty.DynamicVal, diags
+		}
 	}
 
 	// Build the provider address from configuration, since we may not have

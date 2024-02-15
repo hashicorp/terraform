@@ -1,5 +1,7 @@
 {
     "format_version": "1.2",
+    "applyable": false,
+    "complete": false,
     "planned_values": {
         "root_module": {}
     },

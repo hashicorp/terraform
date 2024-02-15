@@ -323,6 +323,34 @@ func (per PartialExpandedResource) KnownModuleInstancePrefix() ModuleInstance {
 	return per.module.KnownPrefix()
 }
 
+// ModuleInstance returns the fully-qualified [ModuleInstance] that this
+// partial-expanded resource belongs to, but only if its module instance
+// address is fully known.
+//
+// The second return value is false if the module instance address is not
+// fully expanded, in which case the first return value is invalid. Use
+// [PartialExpandedResource.PartialExpandedModule] instead in that case.
+func (per PartialExpandedResource) ModuleInstance() (ModuleInstance, bool) {
+	if len(per.module.unexpandedSuffix) != 0 {
+		return nil, false
+	}
+	return per.module.expandedPrefix, true
+}
+
+// PartialExpandedModule returns a [PartialExpandedModule] address describing
+// the partially-unknown module instance address that the resource belongs to,
+// but only if the module instance address is not fully known.
+//
+// The second return value is false if the module instance address is actually
+// fully expanded, in which case the first return value is invalid. Use
+// [PartialExpandedResource.ModuleInstance] instead in that case.
+func (per PartialExpandedResource) PartialExpandedModule() (PartialExpandedModule, bool) {
+	if len(per.module.unexpandedSuffix) == 0 {
+		return PartialExpandedModule{}, false
+	}
+	return per.module, true
+}
+
 // String returns a string representation of the pattern which uses the special
 // placeholder "[*]" to represent positions where instance keys are not yet
 // known.

@@ -116,11 +116,15 @@ func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 
 	// Side load some data that we can't extract from the JSON plan.
 	var opts []plans.Quality
-	if !plan.CanApply() {
-		opts = append(opts, plans.NoChanges)
-	}
 	if plan.Errored {
 		opts = append(opts, plans.Errored)
+	} else if !plan.Applyable {
+		// FIXME: There might be other reasons for "non-applyable" in future,
+		// so maybe we should check plan.Changes.IsEmpty here and use a more
+		// generic fallback message if the plan doesn't seem to be empty.
+		// There are currently no other cases though, so we'll keep it
+		// simple for now.
+		opts = append(opts, plans.NoChanges)
 	}
 
 	renderer.RenderHumanPlan(jplan, plan.UIMode, opts...)

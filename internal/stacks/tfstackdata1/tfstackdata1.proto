@@ -115,6 +115,18 @@ message PlanComponentInstance {
     // the apply phase.
     tfplan.Action planned_action = 4;
 
+    // The appliability flag decided by the modules runtime for this component's
+    // plan. See the docs for plans.Plan.Applyable for details on what this
+    // represents. (It's here largely just so that we can repopulate it
+    // faithfully when we rebuild a plans.Plan object at apply time.)
+    bool plan_applyable = 7;
+
+    // The completion flag decided by the modules runtime for this component's
+    // plan. See the docs for plans.Plan.Complete for details on what this
+    // represents. (It's here largely just so that we can repopulate it
+    // faithfully when we rebuild a plans.Plan object at apply time.)
+    bool plan_complete = 8;
+
     // A list of absolute component addresses that this component
     // instance depends on according to the configuration the plan was
     // created from. (These are components rather than component instances

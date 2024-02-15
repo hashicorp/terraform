@@ -1,6 +1,8 @@
 {
   "format_version": "1.2",
   "terraform_version": "1.8.0-dev",
+  "applyable": false,
+  "complete": true,
   "variables": {
     "ami": {
       "value": "bad-ami"

@@ -82,6 +82,13 @@ type PlanOpts struct {
 	// the actual graph.
 	ExternalReferences []*addrs.Reference
 
+	// ExternalDependencyDeferred, when set, indicates that the caller
+	// considers this configuration to depend on some other configuration
+	// that had at least one deferred change, and therefore everything in
+	// this configuration must have its changes deferred too so that the
+	// overall dependency ordering would be correct.
+	ExternalDependencyDeferred bool
+
 	// Overrides provides a set of override objects that should be applied
 	// during this plan.
 	Overrides *mocking.Overrides
@@ -664,14 +671,15 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	providerFuncResults := providers.NewFunctionResultsTable(nil)
 
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
-		Config:                  config,
-		InputState:              prevRunState,
-		ExternalProviderConfigs: externalProviderConfigs,
-		Changes:                 changes,
-		MoveResults:             moveResults,
-		Overrides:               opts.Overrides,
-		PlanTimeTimestamp:       timestamp,
-		ProviderFuncResults:     providerFuncResults,
+		Config:                     config,
+		InputState:                 prevRunState,
+		ExternalProviderConfigs:    externalProviderConfigs,
+		ExternalDependencyDeferred: opts.ExternalDependencyDeferred,
+		Changes:                    changes,
+		MoveResults:                moveResults,
+		Overrides:                  opts.Overrides,
+		PlanTimeTimestamp:          timestamp,
+		ProviderFuncResults:        providerFuncResults,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -743,6 +751,38 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		ProviderFunctionResults: providerFuncResults.GetHashes(),
 
 		// Other fields get populated by Context.Plan after we return
+	}
+
+	// Our final rulings on whether the plan is "complete" and "applyable".
+	// See the documentation for these plan fields to learn what exactly they
+	// are intended to mean.
+	if !diags.HasErrors() {
+		if len(opts.Targets) == 0 && !walker.Deferrals.HaveAnyDeferrals() {
+			// A plan without any targets or deferred actions should be
+			// complete if we didn't encounter errors while producing it.
+			log.Println("[TRACE] Plan is complete")
+			plan.Complete = true
+		} else {
+			log.Println("[TRACE] Plan is incomplete")
+		}
+		if opts.Mode == plans.RefreshOnlyMode {
+			// In refresh-only mode we explicitly don't expect to propose any
+			// actions, but the plan is applyable if the state was changed
+			// in an interesting way by the refresh step.
+			plan.Applyable = !plan.PriorState.ManagedResourcesEqual(plan.PrevRunState)
+		} else {
+			// For other planning modes a plan is applyable if its "changes"
+			// are not considered empty (by whatever rules the plans package
+			// uses to decide that).
+			plan.Applyable = !plan.Changes.Empty()
+		}
+		if plan.Applyable {
+			log.Println("[TRACE] Plan is applyable")
+		} else {
+			log.Println("[TRACE] Plan is not applyable")
+		}
+	} else {
+		log.Println("[WARN] Planning encountered errors, so plan is not applyable")
 	}
 
 	// The caller also gets access to an expression evaluation scope in the

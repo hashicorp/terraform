@@ -96,6 +96,8 @@ type ApplyRequest struct {
 	RawPlan []*anypb.Any
 
 	ProviderFactories map[addrs.Provider]providers.Factory
+
+	ExperimentsAllowed bool
 }
 
 // ApplyResponse is used by [Apply] to describe the results of applying.

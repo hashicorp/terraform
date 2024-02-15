@@ -106,7 +106,7 @@ func (b *Local) opApply(
 			return
 		}
 
-		trivialPlan := !plan.CanApply()
+		trivialPlan := !plan.Applyable
 		hasUI := op.UIOut != nil && op.UIIn != nil
 		mustConfirm := hasUI && !op.AutoApprove && !trivialPlan
 		op.View.Plan(plan, schemas)

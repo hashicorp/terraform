@@ -420,6 +420,7 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 				Detail:   fmt.Sprintf("There is no variable %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
+			return nil, diags
 		}
 		return ret, diags
 	case stackaddrs.Component:
@@ -431,6 +432,7 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 				Detail:   fmt.Sprintf("There is no component %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
+			return nil, diags
 		}
 		return ret, diags
 	case stackaddrs.StackCall:
@@ -442,6 +444,7 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 				Detail:   fmt.Sprintf("There is no stack %q block declared this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
+			return nil, diags
 		}
 		return ret, diags
 	case stackaddrs.ProviderConfigRef:
@@ -453,6 +456,7 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 				Detail:   fmt.Sprintf("There is no provider %q %q block declared this stack.", addr.ProviderLocalName, addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
+			return nil, diags
 		}
 		return ret, diags
 	case stackaddrs.ContextualRef:

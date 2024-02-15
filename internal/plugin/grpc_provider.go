@@ -483,7 +483,12 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	}
 
 	if metaSchema.Block != nil {
-		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Block.ImpliedType())
+		metaTy := metaSchema.Block.ImpliedType()
+		metaVal := r.ProviderMeta
+		if metaVal == cty.NilVal {
+			metaVal = cty.NullVal(metaTy)
+		}
+		metaMP, err := msgpack.Marshal(metaVal, metaTy)
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 			return resp
@@ -558,7 +563,12 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	}
 
 	if metaSchema.Block != nil {
-		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Block.ImpliedType())
+		metaTy := metaSchema.Block.ImpliedType()
+		metaVal := r.ProviderMeta
+		if metaVal == cty.NilVal {
+			metaVal = cty.NullVal(metaTy)
+		}
+		metaMP, err := msgpack.Marshal(metaVal, metaTy)
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 			return resp

@@ -88,6 +88,20 @@ func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*terraform1.Planned
 type PlannedChangeComponentInstance struct {
 	Addr stackaddrs.AbsComponentInstance
 
+	// PlanApplyable is true if the modules runtime ruled that this particular
+	// component's plan is applyable.
+	//
+	// See the documentation for [plans.Plan.Applyable] for details on what
+	// exactly this represents.
+	PlanApplyable bool
+
+	// PlanApplyable is true if the modules runtime ruled that this particular
+	// component's plan is complete.
+	//
+	// See the documentation for [plans.Plan.Complete] for details on what
+	// exactly this represents.
+	PlanComplete bool
+
 	// Action describes any difference in the existence of this component
 	// instance compared to the prior state.
 	//
@@ -175,6 +189,8 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 		PlanTimestamp:           planTimestampStr,
 		PlannedInputValues:      plannedInputValues,
 		PlannedAction:           planproto.NewAction(pc.Action),
+		PlanApplyable:           pc.PlanApplyable,
+		PlanComplete:            pc.PlanComplete,
 		DependsOnComponentAddrs: componentAddrsRaw,
 		PlannedOutputValues:     plannedOutputValues,
 	}, proto.MarshalOptions{})
@@ -197,7 +213,12 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 							ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(pc.Addr).String(),
 							ComponentInstanceAddr: pc.Addr.String(),
 						},
-						Actions: protoChangeTypes,
+						Actions:      protoChangeTypes,
+						PlanComplete: pc.PlanComplete,
+						// We don't include "applyable" in here since for a
+						// stack operation it's the overall stack plan applyable
+						// flag that matters, and the per-component flags
+						// are just an implementation detail.
 					},
 				},
 			},
