@@ -256,7 +256,7 @@ func TestContext2Validate_providerFunctionDiagnostics(t *testing.T) {
 			output "first" {
 				value = provider::test::echo("input")
 			}`}),
-			`The provider "test" may need to be added to the required_providers block within the module configuration.`,
+			`Ensure that provider name "test" is declared in this module's required_providers block, and that this provider offers a function named "echo"`,
 		},
 		{
 			"invalid namespace",

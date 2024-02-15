@@ -2631,7 +2631,7 @@ output "result" {
 		if !diags.HasErrors() {
 			t.Fatal("unexpected success")
 		}
-		if got, want := diags.Err().Error(), "Call to unknown function: There is no function named \"cout_e\" in namespace provider::test::."; !strings.Contains(got, want) {
+		if got, want := diags.Err().Error(), `Unknown provider function: The function "cout_e" is not available from the provider "test"`; !strings.Contains(got, want) {
 			t.Errorf("wrong error message\nwant substring: %s\ngot: %s", want, got)
 		}
 
@@ -2666,7 +2666,7 @@ output "result" {
 		if !diags.HasErrors() {
 			t.Fatal("unexpected success")
 		}
-		if got, want := diags.Err().Error(), "Call to unknown function: There are no functions in namespace \"provider::toast::\"."; !strings.Contains(got, want) {
+		if got, want := diags.Err().Error(), `Unknown provider function: There is no function named "provider::toast::count_e`; !strings.Contains(got, want) {
 			t.Errorf("wrong error message\nwant substring: %s\ngot: %s", want, got)
 		}
 	})
@@ -2870,7 +2870,7 @@ output "result" {
 		}
 		// Module author must declare a provider requirement in order to
 		// import a provider's functions.
-		if got, want := diags.Err().Error(), "Call to unknown function: There are no functions in namespace \"provider::test::\"."; !strings.Contains(got, want) {
+		if got, want := diags.Err().Error(), `Unknown provider function: There is no function named "provider::test::count_e"`; !strings.Contains(got, want) {
 			t.Errorf("wrong error message\nwant substring: %s\ngot: %s", want, got)
 		}
 	})

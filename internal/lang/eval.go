@@ -571,7 +571,7 @@ func checkForUnknownFunctionDiags(diags hcl.Diagnostics) hcl.Diagnostics {
 
 		// no other functions exist for this provider, so hint that the user may
 		// need to include it in the configuration.
-		d.Detail = fmt.Sprintf(`There is no function named "%s%s". The provider %q may need to be added to the required_providers block within the module configuration.`, namespace, name, namespaceParts[1])
+		d.Detail = fmt.Sprintf(`There is no function named "%s%s". Ensure that provider name %q is declared in this module's required_providers block, and that this provider offers a function named %q.`, namespace, name, namespaceParts[1], name)
 	}
 
 	return diags
