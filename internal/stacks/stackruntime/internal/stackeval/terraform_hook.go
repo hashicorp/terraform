@@ -31,17 +31,20 @@ type componentInstanceTerraformHook struct {
 	hooks *Hooks
 	addr  stackaddrs.AbsComponentInstance
 
-	mu                                 sync.Mutex
-	resourceInstanceObjectApplyAction  addrs.Map[addrs.AbsResourceInstanceObject, plans.Action]
+	mu sync.Mutex
+
+	// We record the current action for a resource instance during the
+	// pre-apply hook, so that we can refer to it in the post-apply hook, and
+	// report on the apply action to our caller.
+	resourceInstanceObjectApplyAction addrs.Map[addrs.AbsResourceInstanceObject, plans.Action]
+
+	// Only successfully applied resource instances should be included in the
+	// change counts for the apply operation, so we record whether or not apply
+	// failed here.
 	resourceInstanceObjectApplySuccess addrs.Set[addrs.AbsResourceInstanceObject]
 }
 
-func (h *componentInstanceTerraformHook) resourceInstanceAddr(addr addrs.AbsResourceInstance) stackaddrs.AbsResourceInstance {
-	return stackaddrs.AbsResourceInstance{
-		Component: h.addr,
-		Item:      addr,
-	}
-}
+var _ terraform.Hook = (*componentInstanceTerraformHook)(nil)
 
 func (h *componentInstanceTerraformHook) resourceInstanceObjectAddr(riAddr addrs.AbsResourceInstance, dk addrs.DeposedKey) stackaddrs.AbsResourceInstanceObject {
 	return stackaddrs.AbsResourceInstanceObject{
@@ -81,13 +84,23 @@ func (h *componentInstanceTerraformHook) PreApply(addr addrs.AbsResourceInstance
 	if h.resourceInstanceObjectApplyAction.Len() == 0 {
 		h.resourceInstanceObjectApplyAction = addrs.MakeMap[addrs.AbsResourceInstanceObject, plans.Action]()
 	}
-	h.resourceInstanceObjectApplyAction.Put(
-		addrs.AbsResourceInstanceObject{
-			ResourceInstance: addr,
-			DeposedKey:       dk,
-		},
-		action,
-	)
+	localObjAddr := addrs.AbsResourceInstanceObject{
+		ResourceInstance: addr,
+		DeposedKey:       dk,
+	}
+
+	// We may have stored a previous action for this resource instance if it is
+	// planned as create-then-destroy or destroy-then-create. For those two
+	// cases we need to synthesize the compound action so that it is reported
+	// correctly at the end of the apply process.
+	if prevAction, ok := h.resourceInstanceObjectApplyAction.GetOk(localObjAddr); ok {
+		if prevAction == plans.Delete && action == plans.Create {
+			action = plans.DeleteThenCreate
+		} else if prevAction == plans.Create && action == plans.Delete {
+			action = plans.CreateThenDelete
+		}
+	}
+	h.resourceInstanceObjectApplyAction.Put(localObjAddr, action)
 	h.mu.Unlock()
 
 	return terraform.HookActionContinue, nil
