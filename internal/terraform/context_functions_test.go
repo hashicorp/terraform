@@ -229,7 +229,7 @@ func TestContext2Plan_providerFunctionImpureApply(t *testing.T) {
 }
 
 func TestContext2Validate_providerFunctionDiagnostics(t *testing.T) {
-	provider := &MockProvider{
+	provider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{Block: simpleTestSchema()},
 			Functions: map[string]providers.FunctionDecl{
