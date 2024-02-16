@@ -1428,10 +1428,8 @@ func TestValue_Outputs(t *testing.T) {
 				},
 			},
 			validateDiff: renderers.ValidateList([]renderers.ValidateDiffFunction{
-				renderers.ValidatePrimitive("old_one", nil, plans.Delete, false),
-				renderers.ValidatePrimitive("old_two", nil, plans.Delete, false),
-				renderers.ValidatePrimitive(nil, "new_one", plans.Create, false),
-				renderers.ValidatePrimitive(nil, "new_two", plans.Create, false),
+				renderers.ValidatePrimitive("old_one", "new_one", plans.Update, false),
+				renderers.ValidatePrimitive("old_two", "new_two", plans.Update, false),
 			}, plans.Update, false),
 		},
 		"primitive_delete": {
@@ -1599,6 +1597,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 		attribute          cty.Type
 		validateDiff       renderers.ValidateDiffFunction
 		validateSliceDiffs []renderers.ValidateDiffFunction // Lists are special in some cases.
+		validateSetDiffs   []renderers.ValidateDiffFunction // Sets are special in some cases.
 	}{
 		"primitive_create": {
 			input: structured.Change{
@@ -1622,6 +1621,9 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			attribute:    cty.String,
 			validateDiff: renderers.ValidatePrimitive("old", "new", plans.Update, false),
 			validateSliceDiffs: []renderers.ValidateDiffFunction{
+				renderers.ValidatePrimitive("old", "new", plans.Update, false),
+			},
+			validateSetDiffs: []renderers.ValidateDiffFunction{
 				renderers.ValidatePrimitive("old", nil, plans.Delete, false),
 				renderers.ValidatePrimitive(nil, "new", plans.Create, false),
 			},
@@ -1635,6 +1637,9 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			attribute:    cty.String,
 			validateDiff: renderers.ValidatePrimitive("old", nil, plans.Update, false),
 			validateSliceDiffs: []renderers.ValidateDiffFunction{
+				renderers.ValidatePrimitive("old", nil, plans.Update, false),
+			},
+			validateSetDiffs: []renderers.ValidateDiffFunction{
 				renderers.ValidatePrimitive("old", nil, plans.Delete, false),
 				renderers.ValidatePrimitive(nil, nil, plans.Create, false),
 			},
@@ -1648,6 +1653,9 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			attribute:    cty.String,
 			validateDiff: renderers.ValidatePrimitive(nil, "new", plans.Update, false),
 			validateSliceDiffs: []renderers.ValidateDiffFunction{
+				renderers.ValidatePrimitive(nil, "new", plans.Update, false),
+			},
+			validateSetDiffs: []renderers.ValidateDiffFunction{
 				renderers.ValidatePrimitive(nil, nil, plans.Delete, false),
 				renderers.ValidatePrimitive(nil, "new", plans.Create, false),
 			},
@@ -1680,6 +1688,9 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			attribute:    cty.String,
 			validateDiff: renderers.ValidateSensitive(renderers.ValidatePrimitive("old", "new", plans.Update, false), true, true, plans.Update, false),
 			validateSliceDiffs: []renderers.ValidateDiffFunction{
+				renderers.ValidateSensitive(renderers.ValidatePrimitive("old", "new", plans.Update, false), true, true, plans.Update, false),
+			},
+			validateSetDiffs: []renderers.ValidateDiffFunction{
 				renderers.ValidateSensitive(renderers.ValidatePrimitive("old", nil, plans.Delete, false), true, false, plans.Delete, false),
 				renderers.ValidateSensitive(renderers.ValidatePrimitive(nil, "new", plans.Create, false), false, true, plans.Create, false),
 			},
@@ -1702,6 +1713,9 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			attribute:    cty.String,
 			validateDiff: renderers.ValidateUnknown(renderers.ValidatePrimitive("old", nil, plans.Delete, false), plans.Update, false),
 			validateSliceDiffs: []renderers.ValidateDiffFunction{
+				renderers.ValidateUnknown(renderers.ValidatePrimitive("old", nil, plans.Delete, false), plans.Update, false),
+			},
+			validateSetDiffs: []renderers.ValidateDiffFunction{
 				renderers.ValidatePrimitive("old", nil, plans.Delete, false),
 				renderers.ValidateUnknown(nil, plans.Create, false),
 			},
@@ -1719,6 +1733,9 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			attribute:    cty.String,
 			validateDiff: renderers.ValidatePrimitive("old", "new", plans.Update, true),
 			validateSliceDiffs: []renderers.ValidateDiffFunction{
+				renderers.ValidatePrimitive("old", "new", plans.Update, true),
+			},
+			validateSetDiffs: []renderers.ValidateDiffFunction{
 				renderers.ValidatePrimitive("old", nil, plans.Delete, true),
 				renderers.ValidatePrimitive(nil, "new", plans.Create, true),
 			},
@@ -1739,6 +1756,9 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			attribute:    cty.DynamicPseudoType,
 			validateDiff: renderers.ValidatePrimitive("old", "new", plans.Update, false),
 			validateSliceDiffs: []renderers.ValidateDiffFunction{
+				renderers.ValidatePrimitive("old", "new", plans.Update, false),
+			},
+			validateSetDiffs: []renderers.ValidateDiffFunction{
 				renderers.ValidatePrimitive("old", nil, plans.Delete, false),
 				renderers.ValidatePrimitive(nil, "new", plans.Create, false),
 			},
@@ -1754,6 +1774,12 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 				renderers.ValidatePrimitive(nil, 4.0, plans.Create, false),
 				plans.Update, false),
 			validateSliceDiffs: []renderers.ValidateDiffFunction{
+				renderers.ValidateTypeChange(
+					renderers.ValidatePrimitive("old", nil, plans.Delete, false),
+					renderers.ValidatePrimitive(nil, 4.0, plans.Create, false),
+					plans.Update, false),
+			},
+			validateSetDiffs: []renderers.ValidateDiffFunction{
 				renderers.ValidatePrimitive("old", nil, plans.Delete, false),
 				renderers.ValidatePrimitive(nil, 4.0, plans.Create, false),
 			},
@@ -1819,7 +1845,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 				}
 
 				if tc.validateSliceDiffs != nil {
-					validate := renderers.ValidateSet(tc.validateSliceDiffs, defaultCollectionsAction, false)
+					validate := renderers.ValidateSet(tc.validateSetDiffs, defaultCollectionsAction, false)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
@@ -2377,12 +2403,9 @@ func TestRelevantAttributes(t *testing.T) {
 				// attributes. This is deliberate.
 				"list": renderers.ValidateList([]renderers.ValidateDiffFunction{
 					renderers.ValidatePrimitive(0, 0, plans.NoOp, false),
-					renderers.ValidatePrimitive(1, nil, plans.Delete, false),
-					renderers.ValidatePrimitive(2, nil, plans.Delete, false),
-					renderers.ValidatePrimitive(3, nil, plans.Delete, false),
-					renderers.ValidatePrimitive(nil, 5, plans.Create, false),
-					renderers.ValidatePrimitive(nil, 6, plans.Create, false),
-					renderers.ValidatePrimitive(nil, 7, plans.Create, false),
+					renderers.ValidatePrimitive(1, 5, plans.Update, false),
+					renderers.ValidatePrimitive(2, 6, plans.Update, false),
+					renderers.ValidatePrimitive(3, 7, plans.Update, false),
 					renderers.ValidatePrimitive(4, 4, plans.NoOp, false),
 				}, plans.Update, false),
 			}, nil, nil, nil, nil, plans.Update, false),
