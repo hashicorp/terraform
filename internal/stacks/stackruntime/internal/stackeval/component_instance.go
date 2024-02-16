@@ -991,6 +991,16 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 					attrs[name] = cty.DynamicVal
 					continue
 				}
+
+				if changeSrc.Sensitive {
+					// For our purposes here, a static sensitive flag on the
+					// output value is indistinguishable from the value having
+					// been dynamically marked as sensitive.
+					attrs[name] = change.After.Mark(marks.Sensitive)
+					continue
+				}
+
+				// Otherwise, just use the value as-is.
 				attrs[name] = change.After
 			}
 		} else {
@@ -1101,6 +1111,16 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 		attrs := make(map[string]cty.Value, len(outputVals))
 		for _, ov := range outputVals {
 			name := ov.Addr.OutputValue.Name
+
+			if ov.Sensitive {
+				// For our purposes here, a static sensitive flag on the
+				// output value is indistinguishable from the value having
+				// been dynamically marked as sensitive.
+				attrs[name] = ov.Value.Mark(marks.Sensitive)
+				continue
+			}
+
+			// Otherwise, just set the value as is.
 			attrs[name] = ov.Value
 		}
 		return cty.ObjectVal(attrs)

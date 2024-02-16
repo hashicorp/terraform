@@ -25,9 +25,10 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
-	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	default_testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	stacks_testing_provider "github.com/hashicorp/terraform/internal/stacks/stackruntime/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -565,7 +566,7 @@ func TestPlanWithProviderConfig(t *testing.T) {
 		changesCh := make(chan stackplan.PlannedChange, 8)
 		diagsCh := make(chan tfdiags.Diagnostic, 2)
 
-		provider := &testing_provider.MockProvider{
+		provider := &default_testing_provider.MockProvider{
 			GetProviderSchemaResponse:      providerSchema,
 			ValidateProviderConfigResponse: &providers.ValidateProviderConfigResponse{},
 			ConfigureProviderResponse:      &providers.ConfigureProviderResponse{},
@@ -616,6 +617,7 @@ func TestPlanWithProviderConfig(t *testing.T) {
 		}
 	})
 }
+
 func TestPlanWithRemovedResource(t *testing.T) {
 	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
 	if err != nil {
@@ -725,6 +727,308 @@ func TestPlanWithRemovedResource(t *testing.T) {
 				t.Fatalf("unexpected diagnostics: %s", diags.ErrWithWarnings().Error())
 			}
 		})
+	}
+}
+
+func TestPlanWithSensitivePropagation(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, path.Join("with-single-input", "sensitive-input"))
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange, 8)
+	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+
+		ForcePlanTimestamp: &fakePlanTimestamp,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+
+	if len(diags) != 0 {
+		t.Errorf("unexpected diagnostics\n%s", diags.ErrWithWarnings().Error())
+	}
+
+	wantChanges := []stackplan.PlannedChange{
+		&stackplan.PlannedChangeApplyable{
+			Applyable: true,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance,
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "self"},
+				},
+			),
+			PlanApplyable: true,
+			PlanComplete:  true,
+			Action:        plans.Create,
+			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](
+				stackaddrs.AbsComponent{
+					Stack: stackaddrs.RootStackInstance,
+					Item:  stackaddrs.Component{Name: "sensitive"},
+				},
+			),
+			PlannedInputValues: map[string]plans.DynamicValue{
+				"id":    mustPlanDynamicValueDynamicType(cty.NullVal(cty.String)),
+				"input": mustPlanDynamicValueDynamicType(cty.StringVal("secret")),
+			},
+			PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+				"id": nil,
+				"input": {
+					{
+						Marks: cty.NewValueMarks(marks.Sensitive),
+					},
+				},
+			},
+			PlannedOutputValues: make(map[string]cty.Value),
+			PlanTimestamp:       fakePlanTimestamp,
+		},
+		&stackplan.PlannedChangeResourceInstancePlanned{
+			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+				Component: stackaddrs.Absolute(
+					stackaddrs.RootStackInstance,
+					stackaddrs.ComponentInstance{
+						Component: stackaddrs.Component{Name: "self"},
+					},
+				),
+				Item: addrs.AbsResourceInstanceObject{
+					ResourceInstance: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "data",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				},
+			},
+			ProviderConfigAddr: addrs.AbsProviderConfig{
+				Module:   addrs.RootModule,
+				Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+			},
+			ChangeSrc: &plans.ResourceInstanceChangeSrc{
+				Addr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "testing_resource",
+					Name: "data",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				PrevRunAddr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "testing_resource",
+					Name: "data",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				ProviderAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.NewDefaultProvider("testing"),
+				},
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+					After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.UnknownVal(cty.String),
+						"value": cty.StringVal("secret"),
+					}), stacks_testing_provider.TestingResourceSchema),
+					AfterValMarks: []cty.PathValueMarks{
+						{
+							Path:  cty.GetAttrPath("value"),
+							Marks: cty.NewValueMarks(marks.Sensitive),
+						},
+					},
+				},
+			},
+			Schema: stacks_testing_provider.TestingResourceSchema,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance,
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "sensitive"},
+				},
+			),
+			PlanApplyable:      true,
+			PlanComplete:       true,
+			Action:             plans.Create,
+			PlannedInputValues: make(map[string]plans.DynamicValue),
+			PlannedOutputValues: map[string]cty.Value{
+				"out": cty.StringVal("secret").Mark(marks.Sensitive),
+			},
+			PlanTimestamp: fakePlanTimestamp,
+		},
+		&stackplan.PlannedChangeHeader{
+			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangeRootInputValue{
+			Addr:  stackaddrs.InputVariable{Name: "id"},
+			Value: cty.NullVal(cty.String),
+		},
+	}
+
+	sort.SliceStable(gotChanges, func(i, j int) bool {
+		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
+	})
+
+	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+}
+
+func TestPlanWithSensitivePropagationNested(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, path.Join("with-single-input", "sensitive-input-nested"))
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange, 8)
+	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+
+		ForcePlanTimestamp: &fakePlanTimestamp,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+
+	if len(diags) != 0 {
+		t.Errorf("unexpected diagnostics\n%s", diags.ErrWithWarnings().Error())
+	}
+
+	wantChanges := []stackplan.PlannedChange{
+		&stackplan.PlannedChangeApplyable{
+			Applyable: true,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance,
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "self"},
+				},
+			),
+			Action:        plans.Create,
+			PlanApplyable: true,
+			PlanComplete:  true,
+			PlannedInputValues: map[string]plans.DynamicValue{
+				"id":    mustPlanDynamicValueDynamicType(cty.NullVal(cty.String)),
+				"input": mustPlanDynamicValueDynamicType(cty.StringVal("secret")),
+			},
+			PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+				"id": nil,
+				"input": {
+					{
+						Marks: cty.NewValueMarks(marks.Sensitive),
+					},
+				},
+			},
+			PlannedOutputValues: make(map[string]cty.Value),
+			PlanTimestamp:       fakePlanTimestamp,
+		},
+		&stackplan.PlannedChangeResourceInstancePlanned{
+			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+				Component: stackaddrs.Absolute(
+					stackaddrs.RootStackInstance,
+					stackaddrs.ComponentInstance{
+						Component: stackaddrs.Component{Name: "self"},
+					},
+				),
+				Item: addrs.AbsResourceInstanceObject{
+					ResourceInstance: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "data",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				},
+			},
+			ProviderConfigAddr: addrs.AbsProviderConfig{
+				Module:   addrs.RootModule,
+				Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+			},
+			ChangeSrc: &plans.ResourceInstanceChangeSrc{
+				Addr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "testing_resource",
+					Name: "data",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				PrevRunAddr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "testing_resource",
+					Name: "data",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				ProviderAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.NewDefaultProvider("testing"),
+				},
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+					After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.UnknownVal(cty.String),
+						"value": cty.StringVal("secret"),
+					}), stacks_testing_provider.TestingResourceSchema),
+					AfterValMarks: []cty.PathValueMarks{
+						{
+							Path:  cty.GetAttrPath("value"),
+							Marks: cty.NewValueMarks(marks.Sensitive),
+						},
+					},
+				},
+			},
+			Schema: stacks_testing_provider.TestingResourceSchema,
+		},
+		&stackplan.PlannedChangeHeader{
+			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance.Child("sensitive", addrs.NoKey),
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "self"},
+				},
+			),
+			Action:             plans.Create,
+			PlanApplyable:      true,
+			PlanComplete:       true,
+			PlannedInputValues: make(map[string]plans.DynamicValue),
+			PlannedOutputValues: map[string]cty.Value{
+				"out": cty.StringVal("secret").Mark(marks.Sensitive),
+			},
+			PlanTimestamp: fakePlanTimestamp,
+		},
+		&stackplan.PlannedChangeRootInputValue{
+			Addr:  stackaddrs.InputVariable{Name: "id"},
+			Value: cty.NullVal(cty.String),
+		},
+	}
+
+	sort.SliceStable(gotChanges, func(i, j int) bool {
+		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
+	})
+
+	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
 	}
 }
 
