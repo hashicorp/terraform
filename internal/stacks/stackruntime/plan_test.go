@@ -25,11 +25,11 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 )
@@ -565,10 +565,7 @@ func TestPlanWithProviderConfig(t *testing.T) {
 		changesCh := make(chan stackplan.PlannedChange, 8)
 		diagsCh := make(chan tfdiags.Diagnostic, 2)
 
-		// FIXME: The MockProvider type is still lurking in
-		// the terraform package; it would make more sense for
-		// it to be providers.Mock, in the providers package.
-		provider := &terraform.MockProvider{
+		provider := &testing_provider.MockProvider{
 			GetProviderSchemaResponse:      providerSchema,
 			ValidateProviderConfigResponse: &providers.ValidateProviderConfigResponse{},
 			ConfigureProviderResponse:      &providers.ConfigureProviderResponse{},

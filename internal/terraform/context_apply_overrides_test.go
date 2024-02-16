@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -634,7 +635,7 @@ output "id" {
 // underlyingOverridesProvider returns a provider that always panics for
 // important calls. This is to validate the behaviour of the overrides
 // functionality, in that they should stop the provider from being executed.
-var underlyingOverridesProvider = &MockProvider{
+var underlyingOverridesProvider = &testing_provider.MockProvider{
 	GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {

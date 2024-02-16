@@ -13,10 +13,11 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/zclconf/go-cty/cty"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 )
 
 func TestProvidersSchema_error(t *testing.T) {
@@ -116,7 +117,7 @@ type providerSchema struct {
 
 // testProvider returns a mock provider that is configured for basic
 // operation with the configuration in testdata/providers-schema.
-func providersSchemaFixtureProvider() *terraform.MockProvider {
+func providersSchemaFixtureProvider() *testing_provider.MockProvider {
 	p := testProvider()
 	p.GetProviderSchemaResponse = providersSchemaFixtureSchema()
 	return p
