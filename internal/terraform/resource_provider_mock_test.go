@@ -82,12 +82,12 @@ func simpleMockProvider() *testing_provider.MockProvider {
 	}
 }
 
-// ProviderSchema is a helper to convert from the internal
-// GetProviderSchemaResponse to a ProviderSchema.
-func GetProviderSchema(p *testing_provider.MockProvider) *ProviderSchema {
+// getProviderSchema is a helper to convert from the internal
+// GetProviderSchemaResponse to a providerSchema.
+func getProviderSchema(p *testing_provider.MockProvider) *providerSchema {
 	if p.GetProviderSchemaResponse == nil {
 		// Then just return an empty provider schema.
-		return &ProviderSchema{
+		return &providerSchema{
 			ResourceTypes:              make(map[string]*configschema.Block),
 			ResourceTypeSchemaVersions: make(map[string]uint64),
 			DataSources:                make(map[string]*configschema.Block),
@@ -96,7 +96,7 @@ func GetProviderSchema(p *testing_provider.MockProvider) *ProviderSchema {
 
 	resp := p.GetProviderSchemaResponse
 
-	schema := &ProviderSchema{
+	schema := &providerSchema{
 		Provider:                   resp.Provider.Block,
 		ProviderMeta:               resp.ProviderMeta.Block,
 		ResourceTypes:              map[string]*configschema.Block{},
@@ -118,7 +118,7 @@ func GetProviderSchema(p *testing_provider.MockProvider) *ProviderSchema {
 
 // the type was refactored out with all the functionality handled within the
 // provider package, but we keep this here for a shim in existing tests.
-type ProviderSchema struct {
+type providerSchema struct {
 	Provider                   *configschema.Block
 	ProviderMeta               *configschema.Block
 	ResourceTypes              map[string]*configschema.Block
@@ -127,8 +127,8 @@ type ProviderSchema struct {
 }
 
 // getProviderSchemaResponseFromProviderSchema is a test helper to convert a
-// ProviderSchema to a GetProviderSchemaResponse for use when building a mock provider.
-func getProviderSchemaResponseFromProviderSchema(providerSchema *ProviderSchema) *providers.GetProviderSchemaResponse {
+// providerSchema to a GetProviderSchemaResponse for use when building a mock provider.
+func getProviderSchemaResponseFromProviderSchema(providerSchema *providerSchema) *providers.GetProviderSchemaResponse {
 	resp := &providers.GetProviderSchemaResponse{
 		Provider:      providers.Schema{Block: providerSchema.Provider},
 		ProviderMeta:  providers.Schema{Block: providerSchema.ProviderMeta},

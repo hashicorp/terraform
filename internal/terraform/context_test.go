@@ -475,7 +475,7 @@ func testCheckDeadlock(t *testing.T, f func()) {
 }
 
 func testProviderSchema(name string) *providers.GetProviderSchemaResponse {
-	return getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	return getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"region": {
