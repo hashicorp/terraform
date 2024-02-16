@@ -771,22 +771,6 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 			Addr: stackaddrs.Absolute(
 				stackaddrs.RootStackInstance,
 				stackaddrs.ComponentInstance{
-					Component: stackaddrs.Component{Name: "sensitive"},
-				},
-			),
-			PlanApplyable:      true,
-			PlanComplete:       true,
-			Action:             plans.Create,
-			PlannedInputValues: make(map[string]plans.DynamicValue),
-			PlannedOutputValues: map[string]cty.Value{
-				"out": cty.StringVal("secret").Mark(marks.Sensitive),
-			},
-			PlanTimestamp: fakePlanTimestamp,
-		},
-		&stackplan.PlannedChangeComponentInstance{
-			Addr: stackaddrs.Absolute(
-				stackaddrs.RootStackInstance,
-				stackaddrs.ComponentInstance{
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
@@ -813,9 +797,6 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 			},
 			PlannedOutputValues: make(map[string]cty.Value),
 			PlanTimestamp:       fakePlanTimestamp,
-		},
-		&stackplan.PlannedChangeHeader{
-			TerraformVersion: version.SemVer,
 		},
 		&stackplan.PlannedChangeResourceInstancePlanned{
 			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
@@ -869,6 +850,25 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 			},
 			Schema: stacks_testing_provider.TestingResourceSchema,
 		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance,
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "sensitive"},
+				},
+			),
+			PlanApplyable:      true,
+			PlanComplete:       true,
+			Action:             plans.Create,
+			PlannedInputValues: make(map[string]plans.DynamicValue),
+			PlannedOutputValues: map[string]cty.Value{
+				"out": cty.StringVal("secret").Mark(marks.Sensitive),
+			},
+			PlanTimestamp: fakePlanTimestamp,
+		},
+		&stackplan.PlannedChangeHeader{
+			TerraformVersion: version.SemVer,
+		},
 		&stackplan.PlannedChangeRootInputValue{
 			Addr:  stackaddrs.InputVariable{Name: "id"},
 			Value: cty.NullVal(cty.String),
@@ -876,8 +876,7 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 	}
 
 	sort.SliceStable(gotChanges, func(i, j int) bool {
-		// An arbitrary sort just to make the result stable for comparison.
-		return fmt.Sprintf("%T", gotChanges[i]) < fmt.Sprintf("%T", gotChanges[j])
+		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
 	})
 
 	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
@@ -924,22 +923,6 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(
-				stackaddrs.RootStackInstance.Child("sensitive", addrs.NoKey),
-				stackaddrs.ComponentInstance{
-					Component: stackaddrs.Component{Name: "self"},
-				},
-			),
-			Action:             plans.Create,
-			PlanApplyable:      true,
-			PlanComplete:       true,
-			PlannedInputValues: make(map[string]plans.DynamicValue),
-			PlannedOutputValues: map[string]cty.Value{
-				"out": cty.StringVal("secret").Mark(marks.Sensitive),
-			},
-			PlanTimestamp: fakePlanTimestamp,
-		},
-		&stackplan.PlannedChangeComponentInstance{
-			Addr: stackaddrs.Absolute(
 				stackaddrs.RootStackInstance,
 				stackaddrs.ComponentInstance{
 					Component: stackaddrs.Component{Name: "self"},
@@ -962,9 +945,6 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 			},
 			PlannedOutputValues: make(map[string]cty.Value),
 			PlanTimestamp:       fakePlanTimestamp,
-		},
-		&stackplan.PlannedChangeHeader{
-			TerraformVersion: version.SemVer,
 		},
 		&stackplan.PlannedChangeResourceInstancePlanned{
 			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
@@ -1018,6 +998,25 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 			},
 			Schema: stacks_testing_provider.TestingResourceSchema,
 		},
+		&stackplan.PlannedChangeHeader{
+			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance.Child("sensitive", addrs.NoKey),
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "self"},
+				},
+			),
+			Action:             plans.Create,
+			PlanApplyable:      true,
+			PlanComplete:       true,
+			PlannedInputValues: make(map[string]plans.DynamicValue),
+			PlannedOutputValues: map[string]cty.Value{
+				"out": cty.StringVal("secret").Mark(marks.Sensitive),
+			},
+			PlanTimestamp: fakePlanTimestamp,
+		},
 		&stackplan.PlannedChangeRootInputValue{
 			Addr:  stackaddrs.InputVariable{Name: "id"},
 			Value: cty.NullVal(cty.String),
@@ -1025,8 +1024,7 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 	}
 
 	sort.SliceStable(gotChanges, func(i, j int) bool {
-		// An arbitrary sort just to make the result stable for comparison.
-		return fmt.Sprintf("%T", gotChanges[i]) < fmt.Sprintf("%T", gotChanges[j])
+		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
 	})
 
 	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {

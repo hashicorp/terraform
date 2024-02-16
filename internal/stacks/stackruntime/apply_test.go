@@ -280,23 +280,6 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr: stackaddrs.AbsComponent{
 				Item: stackaddrs.Component{
-					Name: "sensitive",
-				},
-			},
-			ComponentInstanceAddr: stackaddrs.AbsComponentInstance{
-				Item: stackaddrs.ComponentInstance{
-					Component: stackaddrs.Component{
-						Name: "sensitive",
-					},
-				},
-			},
-			OutputValues: map[addrs.OutputValue]cty.Value{
-				addrs.OutputValue{Name: "out"}: cty.StringVal("secret").Mark(marks.Sensitive),
-			},
-		},
-		&stackstate.AppliedChangeComponentInstance{
-			ComponentAddr: stackaddrs.AbsComponent{
-				Item: stackaddrs.Component{
 					Name: "self",
 				},
 			},
@@ -349,11 +332,27 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 			},
 			Schema: stacks_testing_provider.TestingResourceSchema,
 		},
+		&stackstate.AppliedChangeComponentInstance{
+			ComponentAddr: stackaddrs.AbsComponent{
+				Item: stackaddrs.Component{
+					Name: "sensitive",
+				},
+			},
+			ComponentInstanceAddr: stackaddrs.AbsComponentInstance{
+				Item: stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{
+						Name: "sensitive",
+					},
+				},
+			},
+			OutputValues: map[addrs.OutputValue]cty.Value{
+				addrs.OutputValue{Name: "out"}: cty.StringVal("secret").Mark(marks.Sensitive),
+			},
+		},
 	}
 
 	sort.SliceStable(applyChanges, func(i, j int) bool {
-		// An arbitrary sort just to make the result stable for comparison.
-		return fmt.Sprintf("%T", applyChanges[i]) < fmt.Sprintf("%T", applyChanges[j])
+		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
 	})
 
 	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {

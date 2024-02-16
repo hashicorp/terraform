@@ -5,6 +5,7 @@ package stackruntime
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -15,6 +16,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -103,6 +106,54 @@ func reportDiagnosticsForTest(t *testing.T, diags tfdiags.Diagnostics) {
 	}
 	if diags.HasErrors() {
 		t.FailNow()
+	}
+}
+
+// appliedChangeSortKey returns a string that can be used to sort applied
+// changes in a predictable order for testing purposes. This is used to
+// ensure that we can compare applied changes in a consistent way across
+// different test runs.
+func appliedChangeSortKey(change stackstate.AppliedChange) string {
+	switch change := change.(type) {
+	case *stackstate.AppliedChangeResourceInstanceObject:
+		return change.ResourceInstanceObjectAddr.String()
+	case *stackstate.AppliedChangeComponentInstance:
+		return change.ComponentInstanceAddr.String()
+	case *stackstate.AppliedChangeDiscardKeys:
+		// There should only be a single discard keys in a plan, so we can just
+		// return a static string here.
+		return "discard"
+	default:
+		// This is only going to happen during tests, so we can panic here.
+		panic(fmt.Errorf("unrecognized applied change type: %T", change))
+	}
+}
+
+// plannedChangeSortKey returns a string that can be used to sort planned
+// changes in a predictable order for testing purposes. This is used to
+// ensure that we can compare planned changes in a consistent way across
+// different test runs.
+func plannedChangeSortKey(change stackplan.PlannedChange) string {
+	switch change := change.(type) {
+	case *stackplan.PlannedChangeRootInputValue:
+		return change.Addr.String()
+	case *stackplan.PlannedChangeComponentInstance:
+		return change.Addr.String()
+	case *stackplan.PlannedChangeResourceInstancePlanned:
+		return change.ResourceInstanceObjectAddr.String()
+	case *stackplan.PlannedChangeOutputValue:
+		return change.Addr.String()
+	case *stackplan.PlannedChangeHeader:
+		// There should only be a single header in a plan, so we can just return
+		// a static string here.
+		return "header"
+	case *stackplan.PlannedChangeApplyable:
+		// There should only be a single applyable marker in a plan, so we can
+		// just return a static string here.
+		return "applyable"
+	default:
+		// This is only going to happen during tests, so we can panic here.
+		panic(fmt.Errorf("unrecognized planned change type: %T", change))
 	}
 }
 
