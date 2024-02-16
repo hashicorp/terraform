@@ -52,7 +52,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/hcl v1.0.0
-	github.com/hashicorp/hcl/v2 v2.19.2-0.20231109190535-c964a71ca320
+	github.com/hashicorp/hcl/v2 v2.19.2-0.20240214205714-fe0951f68911
 	github.com/hashicorp/jsonapi v1.2.0
 	github.com/hashicorp/terraform-registry-address v0.2.0
 	github.com/hashicorp/terraform-svchost v0.1.1

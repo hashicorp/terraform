@@ -59,7 +59,8 @@ func Apply(ctx context.Context, req *ApplyRequest, resp *ApplyResponse) {
 		req.Config,
 		req.RawPlan,
 		stackeval.ApplyOpts{
-			ProviderFactories: req.ProviderFactories,
+			ProviderFactories:  req.ProviderFactories,
+			ExperimentsAllowed: req.ExperimentsAllowed,
 		},
 		outp,
 	)
