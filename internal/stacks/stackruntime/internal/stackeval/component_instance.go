@@ -825,13 +825,15 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		// for each resource instance object before counting it.
 		applied := tfHook.ResourceInstanceObjectsSuccessfullyApplied()
 		for _, rioAddr := range applied {
-			action := tfHook.ResourceInstanceObjectAppliedAction(rioAddr)
+			actions := tfHook.ResourceInstanceObjectAppliedActions(rioAddr)
 
 			// FIXME: We can't count imports here because they aren't "actions"
 			// in the sense that our hook gets informed about, and so the
 			// import number will always be zero in the apply phase.
 
-			cic.CountNewAction(action)
+			for _, action := range actions {
+				cic.CountNewAction(action)
+			}
 		}
 
 		hookMore(ctx, seq, h.ReportComponentInstanceApplied, cic)

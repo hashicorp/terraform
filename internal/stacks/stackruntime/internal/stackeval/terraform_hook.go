@@ -33,10 +33,10 @@ type componentInstanceTerraformHook struct {
 
 	mu sync.Mutex
 
-	// We record the current action for a resource instance during the
-	// pre-apply hook, so that we can refer to it in the post-apply hook, and
-	// report on the apply action to our caller.
-	resourceInstanceObjectApplyAction addrs.Map[addrs.AbsResourceInstanceObject, plans.Action]
+	// We record the actions for a resource instance during the pre-apply hook,
+	// so that we can refer to the current action in the post-apply hook, and
+	// finally report on all successfully applied actions to our caller.
+	resourceInstanceObjectApplyActions addrs.Map[addrs.AbsResourceInstanceObject, []plans.Action]
 
 	// Only successfully applied resource instances should be included in the
 	// change counts for the apply operation, so we record whether or not apply
@@ -81,8 +81,8 @@ func (h *componentInstanceTerraformHook) PreApply(addr addrs.AbsResourceInstance
 	}
 
 	h.mu.Lock()
-	if h.resourceInstanceObjectApplyAction.Len() == 0 {
-		h.resourceInstanceObjectApplyAction = addrs.MakeMap[addrs.AbsResourceInstanceObject, plans.Action]()
+	if h.resourceInstanceObjectApplyActions.Len() == 0 {
+		h.resourceInstanceObjectApplyActions = addrs.MakeMap[addrs.AbsResourceInstanceObject, []plans.Action]()
 	}
 	localObjAddr := addrs.AbsResourceInstanceObject{
 		ResourceInstance: addr,
@@ -93,14 +93,12 @@ func (h *componentInstanceTerraformHook) PreApply(addr addrs.AbsResourceInstance
 	// planned as create-then-destroy or destroy-then-create. For those two
 	// cases we need to synthesize the compound action so that it is reported
 	// correctly at the end of the apply process.
-	if prevAction, ok := h.resourceInstanceObjectApplyAction.GetOk(localObjAddr); ok {
-		if prevAction == plans.Delete && action == plans.Create {
-			action = plans.DeleteThenCreate
-		} else if prevAction == plans.Create && action == plans.Delete {
-			action = plans.CreateThenDelete
-		}
+	actions, ok := h.resourceInstanceObjectApplyActions.GetOk(localObjAddr)
+	if !ok {
+		actions = make([]plans.Action, 0, 1)
 	}
-	h.resourceInstanceObjectApplyAction.Put(localObjAddr, action)
+	actions = append(actions, action)
+	h.resourceInstanceObjectApplyActions.Put(localObjAddr, actions)
 	h.mu.Unlock()
 
 	return terraform.HookActionContinue, nil
@@ -111,14 +109,14 @@ func (h *componentInstanceTerraformHook) PostApply(addr addrs.AbsResourceInstanc
 	localObjAddr := addr.DeposedObject(dk)
 
 	h.mu.Lock()
-	action, ok := h.resourceInstanceObjectApplyAction.GetOk(localObjAddr)
+	actions, ok := h.resourceInstanceObjectApplyActions.GetOk(localObjAddr)
 	h.mu.Unlock()
 	if !ok {
 		// Weird, but we'll just tolerate it to be robust.
 		return terraform.HookActionContinue, nil
 	}
 
-	if action == plans.NoOp {
+	if len(actions) == 0 || actions[len(actions)-1] == plans.NoOp {
 		// We don't emit starting hooks for no-op changes and so we shouldn't
 		// emit ending hooks for them either.
 		return terraform.HookActionContinue, nil
@@ -186,12 +184,12 @@ func (h *componentInstanceTerraformHook) PostProvisionInstanceStep(addr addrs.Ab
 	return terraform.HookActionContinue, nil
 }
 
-func (h *componentInstanceTerraformHook) ResourceInstanceObjectAppliedAction(addr addrs.AbsResourceInstanceObject) plans.Action {
+func (h *componentInstanceTerraformHook) ResourceInstanceObjectAppliedActions(addr addrs.AbsResourceInstanceObject) []plans.Action {
 	h.mu.Lock()
-	ret, ok := h.resourceInstanceObjectApplyAction.GetOk(addr)
+	ret, ok := h.resourceInstanceObjectApplyActions.GetOk(addr)
 	h.mu.Unlock()
 	if !ok {
-		return plans.NoOp
+		return []plans.Action{}
 	}
 	return ret
 }

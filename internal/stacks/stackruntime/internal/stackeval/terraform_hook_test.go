@@ -190,51 +190,21 @@ func TestTerraformHook(t *testing.T) {
 	})
 
 	t.Run("ResourceInstanceObjectAppliedAction", func(t *testing.T) {
-		testCases := []struct {
-			actions []plans.Action
-			want    plans.Action
-		}{
-			{
-				actions: []plans.Action{plans.NoOp},
-				want:    plans.NoOp,
-			},
-			{
-				actions: []plans.Action{plans.Create},
-				want:    plans.Create,
-			},
-			{
-				actions: []plans.Action{plans.Delete},
-				want:    plans.Delete,
-			},
-			{
-				actions: []plans.Action{plans.Update},
-				want:    plans.Update,
-			},
-			{
-				// We return a fallback of no-op if the object has no recorded
-				// applied action.
-				actions: []plans.Action{},
-				want:    plans.NoOp,
-			},
-			{
-				// Create-then-delete plans result in two separate apply
-				// operations, which we need to recombine into a single one in
-				// order to correctly count the operations.
-				actions: []plans.Action{plans.Create, plans.Delete},
-				want:    plans.CreateThenDelete,
-			},
-			{
-				// See above: same for delete-then-create.
-				actions: []plans.Action{plans.Delete, plans.Create},
-				want:    plans.DeleteThenCreate,
-			},
+		testCases := [][]plans.Action{
+			[]plans.Action{plans.NoOp},
+			[]plans.Action{plans.Create},
+			[]plans.Action{plans.Delete},
+			[]plans.Action{plans.Update},
+			[]plans.Action{},
+			[]plans.Action{plans.Create, plans.Delete},
+			[]plans.Action{plans.Delete, plans.Create},
 		}
 
-		for _, tc := range testCases {
-			t.Run(fmt.Sprintf("%v", tc.actions), func(t *testing.T) {
+		for _, actions := range testCases {
+			t.Run(fmt.Sprintf("%v", actions), func(t *testing.T) {
 				hook := makeHook()
 
-				for _, action := range tc.actions {
+				for _, action := range actions {
 					_, err := hook.PreApply(resourceAddr, addrs.NotDeposed, action, cty.NilVal, cty.NilVal)
 					if err != nil {
 						t.Fatalf("unexpected error in PreApply: %s", err)
@@ -246,10 +216,10 @@ func TestTerraformHook(t *testing.T) {
 					}
 				}
 
-				got := hook.ResourceInstanceObjectAppliedAction(resourceAddr.CurrentObject())
+				got := hook.ResourceInstanceObjectAppliedActions(resourceAddr.CurrentObject())
 
-				if got != tc.want {
-					t.Errorf("wrong result: got %v, want %v", got, tc.want)
+				if diff := cmp.Diff(got, actions); diff != "" {
+					t.Errorf("wrong result:\n%s", diff)
 				}
 			})
 		}
