@@ -262,8 +262,11 @@ to reduce the time taken to retrieve the remote repository.
 
 The `depth` URL argument corresponds to
 [the `--depth` argument to `git clone`](https://git-scm.com/docs/git-clone#Documentation/git-clone.txt---depthltdepthgt),
-telling Git to create a shallow clone with the history truncated to only
-the specified number of commits.
+instructs the Git to create a shallow clone with the history truncated to only
+the specified number of commits. For example, if you want to perform a shallow clone with only the last 3 commits
+of a repository, you would use the `--depth=3` parameter in the clone URL
+like git::https://example.com/vpc.git?depth=3&ref=v1.2.0. This would fetch only the most recent 3 commits along with
+the necessary data, making the clone faster and more efficient, especially for large repositories.
 
 However, because shallow clone requires different Git protocol behavior,
 setting the `depth` argument makes Terraform pass your [`ref` argument](#selecting-a-revision),
