@@ -7,6 +7,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
@@ -44,4 +45,19 @@ type Plan struct {
 	// instances defined in the overall stack configuration, including any
 	// nested component instances from embedded stacks.
 	Components collections.Map[stackaddrs.AbsComponentInstance, *Component]
+}
+
+// RequiredProviderInstances returns a description of all of the provider
+// instance slots that are required to satisfy the resource instances
+// belonging to the given component instance.
+//
+// See also stackeval.ComponentConfig.RequiredProviderInstances for a similar
+// function that operates on the configuration of a component instance rather
+// than the plan of one.
+func (p *Plan) RequiredProviderInstances(addr stackaddrs.AbsComponentInstance) addrs.Set[addrs.RootProviderConfig] {
+	component, ok := p.Components.GetOk(addr)
+	if !ok {
+		return addrs.MakeSet[addrs.RootProviderConfig]()
+	}
+	return component.RequiredProviderInstances()
 }

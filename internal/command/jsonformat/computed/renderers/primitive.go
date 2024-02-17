@@ -167,6 +167,12 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 				return
 			}
 
+			if beforeLines[beforeIx] != afterLines[afterIx] {
+				lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.Delete, opts), beforeLines[beforeIx]))
+				lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.Create, opts), afterLines[afterIx]))
+				return
+			}
+
 			lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts), beforeLines[beforeIx]))
 		}
 		isObjType := func(_ string) bool {

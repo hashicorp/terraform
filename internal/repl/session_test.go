@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 
@@ -261,7 +262,7 @@ func TestSession_stateless(t *testing.T) {
 func testSession(t *testing.T, test testSessionTest) {
 	t.Helper()
 
-	p := &terraform.MockProvider{}
+	p := &testing_provider.MockProvider{}
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {

@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -37,7 +38,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 		plan         *plans.Plan
 		variables    terraform.InputValues
 		testOnlyVars terraform.InputValues
-		provider     *terraform.MockProvider
+		provider     *testing_provider.MockProvider
 		priorOutputs map[string]cty.Value
 
 		expectedDiags   []tfdiags.Description
@@ -81,7 +82,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 						Provider: addrs.NewDefaultProvider("test"),
 					})
 			}),
-			provider: &terraform.MockProvider{
+			provider: &testing_provider.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
@@ -150,7 +151,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					Value: cty.StringVal("Hello, world!"),
 				},
 			},
-			provider: &terraform.MockProvider{
+			provider: &testing_provider.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
@@ -206,7 +207,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 						Provider: addrs.NewDefaultProvider("test"),
 					})
 			}),
-			provider: &terraform.MockProvider{
+			provider: &testing_provider.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
@@ -273,7 +274,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 						Provider: addrs.NewDefaultProvider("test"),
 					})
 			}),
-			provider: &terraform.MockProvider{
+			provider: &testing_provider.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
@@ -338,7 +339,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			provider:        &terraform.MockProvider{},
+			provider:        &testing_provider.MockProvider{},
 			expectedStatus:  Pass,
 			expectedOutputs: cty.EmptyObjectVal,
 			expectedDiags:   []tfdiags.Description{},
@@ -379,7 +380,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			provider:        &terraform.MockProvider{},
+			provider:        &testing_provider.MockProvider{},
 			expectedStatus:  Fail,
 			expectedOutputs: cty.EmptyObjectVal,
 			expectedDiags: []tfdiags.Description{
@@ -452,7 +453,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			provider: &terraform.MockProvider{
+			provider: &testing_provider.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
@@ -531,7 +532,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					},
 				},
 			},
-			provider: &terraform.MockProvider{
+			provider: &testing_provider.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
@@ -600,7 +601,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 					"value": cty.StringVal("Hello, world!"),
 				}),
 			},
-			provider: &terraform.MockProvider{
+			provider: &testing_provider.MockProvider{
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 					ResourceTypes: map[string]providers.Schema{
 						"test_resource": {
@@ -637,7 +638,7 @@ func TestEvalContext_Evaluate(t *testing.T) {
 				Changes: plans.NewChanges(),
 			},
 			state:          states.NewState(),
-			provider:       &terraform.MockProvider{},
+			provider:       &testing_provider.MockProvider{},
 			expectedStatus: Pass,
 			expectedOutputs: cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.StringVal("foo value"),

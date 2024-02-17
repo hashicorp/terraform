@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/states"
@@ -170,7 +171,7 @@ func testSetResourceInstanceTainted(module *states.Module, resource, attrsJson, 
 }
 
 func testProviderFuncFixed(rp providers.Interface) providers.Factory {
-	if p, ok := rp.(*MockProvider); ok {
+	if p, ok := rp.(*testing_provider.MockProvider); ok {
 		// make sure none of the methods were "called" on this new instance
 		p.GetProviderSchemaCalled = false
 		p.ValidateProviderConfigCalled = false

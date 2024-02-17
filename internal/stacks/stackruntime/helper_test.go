@@ -4,15 +4,21 @@
 package stackruntime
 
 import (
+	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // This file has helper functions used by other tests. It doesn't contain any
@@ -103,6 +109,54 @@ func reportDiagnosticsForTest(t *testing.T, diags tfdiags.Diagnostics) {
 	}
 }
 
+// appliedChangeSortKey returns a string that can be used to sort applied
+// changes in a predictable order for testing purposes. This is used to
+// ensure that we can compare applied changes in a consistent way across
+// different test runs.
+func appliedChangeSortKey(change stackstate.AppliedChange) string {
+	switch change := change.(type) {
+	case *stackstate.AppliedChangeResourceInstanceObject:
+		return change.ResourceInstanceObjectAddr.String()
+	case *stackstate.AppliedChangeComponentInstance:
+		return change.ComponentInstanceAddr.String()
+	case *stackstate.AppliedChangeDiscardKeys:
+		// There should only be a single discard keys in a plan, so we can just
+		// return a static string here.
+		return "discard"
+	default:
+		// This is only going to happen during tests, so we can panic here.
+		panic(fmt.Errorf("unrecognized applied change type: %T", change))
+	}
+}
+
+// plannedChangeSortKey returns a string that can be used to sort planned
+// changes in a predictable order for testing purposes. This is used to
+// ensure that we can compare planned changes in a consistent way across
+// different test runs.
+func plannedChangeSortKey(change stackplan.PlannedChange) string {
+	switch change := change.(type) {
+	case *stackplan.PlannedChangeRootInputValue:
+		return change.Addr.String()
+	case *stackplan.PlannedChangeComponentInstance:
+		return change.Addr.String()
+	case *stackplan.PlannedChangeResourceInstancePlanned:
+		return change.ResourceInstanceObjectAddr.String()
+	case *stackplan.PlannedChangeOutputValue:
+		return change.Addr.String()
+	case *stackplan.PlannedChangeHeader:
+		// There should only be a single header in a plan, so we can just return
+		// a static string here.
+		return "header"
+	case *stackplan.PlannedChangeApplyable:
+		// There should only be a single applyable marker in a plan, so we can
+		// just return a static string here.
+		return "applyable"
+	default:
+		// This is only going to happen during tests, so we can panic here.
+		panic(fmt.Errorf("unrecognized planned change type: %T", change))
+	}
+}
+
 func mustPlanDynamicValue(v cty.Value) plans.DynamicValue {
 	ret, err := plans.NewDynamicValue(v, v.Type())
 	if err != nil {
@@ -117,4 +171,21 @@ func mustPlanDynamicValueDynamicType(v cty.Value) plans.DynamicValue {
 		panic(err)
 	}
 	return ret
+}
+
+func mustPlanDynamicValueSchema(v cty.Value, block *configschema.Block) plans.DynamicValue {
+	ty := block.ImpliedType()
+	ret, err := plans.NewDynamicValue(v, ty)
+	if err != nil {
+		panic(err)
+	}
+	return ret
+}
+
+func mustMarshalJSONAttrs(attrs map[string]interface{}) []byte {
+	jsonAttrs, err := json.Marshal(attrs)
+	if err != nil {
+		panic(err)
+	}
+	return jsonAttrs
 }

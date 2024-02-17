@@ -5,10 +5,13 @@ package lang
 
 import (
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/dynblock"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
@@ -69,7 +72,7 @@ func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value,
 	body = blocktoattr.FixUpBlockAttrs(body, schema)
 
 	val, evalDiags := hcldec.Decode(body, spec, ctx)
-	diags = diags.Append(evalDiags)
+	diags = diags.Append(checkForUnknownFunctionDiags(evalDiags))
 
 	return val, diags
 }
@@ -147,7 +150,7 @@ func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschem
 	}
 
 	val, decDiags := hcldec.Decode(body, schema.DecoderSpec(), ctx)
-	diags = diags.Append(decDiags)
+	diags = diags.Append(checkForUnknownFunctionDiags(decDiags))
 	return val, diags
 }
 
@@ -173,7 +176,7 @@ func (s *Scope) EvalExpr(expr hcl.Expression, wantType cty.Type) (cty.Value, tfd
 	}
 
 	val, evalDiags := expr.Value(ctx)
-	diags = diags.Append(evalDiags)
+	diags = diags.Append(checkForUnknownFunctionDiags(evalDiags))
 
 	if wantType != cty.DynamicPseudoType {
 		var convErr error
@@ -488,4 +491,88 @@ func normalizeRefValue(val cty.Value, diags tfdiags.Diagnostics) (cty.Value, tfd
 		return cty.UnknownVal(val.Type()), diags
 	}
 	return val, diags
+}
+
+// checkForUnknownFunctionDiags inspects the diagnostics for errors from unknown
+// function calls, and tailors the messages to better suit Terraform. We now
+// have multiple namespaces where functions may be declared, and it's up to the
+// user to have properly configured the module to populate the provider
+// namespace. The generic unknown function diagnostic from hcl does not direct
+// the user on how to remedy the situation in Terraform, and we can give more
+// useful information in a few Terraform specific cases here.
+func checkForUnknownFunctionDiags(diags hcl.Diagnostics) hcl.Diagnostics {
+	for _, d := range diags {
+		extra, ok := hcl.DiagnosticExtra[hclsyntax.FunctionCallUnknownDiagExtra](d)
+		if !ok {
+			continue
+		}
+		name := extra.CalledFunctionName()
+		namespace := extra.CalledFunctionNamespace()
+		namespaceParts := strings.Split(namespace, "::")
+		if len(namespaceParts) < 2 {
+			// no namespace (namespace includes ::, so will have at least 2
+			// parts), but check if there is a matching name in a provider
+			// namspace.
+			if d.EvalContext == nil {
+				continue
+			}
+
+			for funcName := range d.EvalContext.Functions {
+				if strings.HasSuffix(funcName, "::"+name) {
+					d.Detail = fmt.Sprintf("%s Did you mean %q?", d.Detail, funcName)
+					break
+				}
+			}
+			continue
+		}
+
+		// the diagnostic isn't really shared with anything, and copying would
+		// still retain the internal pointers, so we're going to modify the
+		// diagnostic in-place if we want to change the output. Log the original
+		// diagnostic for debugging purposes in case we overwrite something
+		// potentially useful in the future from hcl.
+		log.Printf("[ERROR] UnknownFunctionCall: %s", d.Error())
+		d.Summary = "Unknown provider function"
+
+		if namespaceParts[0] != "provider" {
+			// help if the user is skipping the provider:: prefix before the
+			// provider name.
+			d.Detail = fmt.Sprintf(`The function namespace %q is not valid. Provider function calls must use the "provider::" namespace prefix.`, namespaceParts[0])
+			continue
+		}
+
+		if namespaceParts[1] == "" {
+			// missing provider name entirely
+			d.Detail = `The function call must include the provider name after the "provider::" prefix.`
+			continue
+		}
+
+		if d.EvalContext == nil {
+			// There's no eval context for some reason, so we can't inspect the
+			// available functions.
+			d.Detail = fmt.Sprintf(`There is no function named "%s%s".`, namespace, name)
+			continue
+		}
+
+		otherProviderFuncs := false
+		for funcName := range d.EvalContext.Functions {
+			// there are other functions in this provider namespace, so it must
+			// have been included in the configuration, and we can be clear that
+			// this a function which the provider does not support.
+			if strings.HasPrefix(funcName, namespace) {
+				otherProviderFuncs = true
+				break
+			}
+		}
+		if otherProviderFuncs {
+			d.Detail = fmt.Sprintf("The function %q is not available from the provider %q.", name, namespaceParts[1])
+			continue
+		}
+
+		// no other functions exist for this provider, so hint that the user may
+		// need to include it in the configuration.
+		d.Detail = fmt.Sprintf(`There is no function named "%s%s". Ensure that provider name %q is declared in this module's required_providers block, and that this provider offers a function named %q.`, namespace, name, namespaceParts[1], name)
+	}
+
+	return diags
 }

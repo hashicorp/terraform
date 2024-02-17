@@ -2125,8 +2125,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ list_field = [
             "aaaa",
-          - "bbbb",
-          + (known after apply),
+          ~ "bbbb" -> (known after apply),
             "cccc",
         ]
         # (1 unchanged attribute hidden)
@@ -6213,8 +6212,9 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
       ~ list_field  = [
             # (1 unchanged element hidden)
             "friends",
-          - (sensitive value),
-          + ".",
+          # Warning: this attribute value will no longer be marked as sensitive
+          # after applying this change.
+          ~ (sensitive value),
         ]
       ~ map_key     = {
           # Warning: this attribute value will no longer be marked as sensitive
@@ -6332,8 +6332,9 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
   ~ resource "test_instance" "example" {
         id         = "i-02ae66f368e8518a9"
       ~ list_field = [
-          - "hello",
-          + (sensitive value),
+          # Warning: this attribute value will be marked as sensitive and will not
+          # display in UI output after applying this change.
+          ~ (sensitive value),
             "friends",
         ]
       ~ map_key    = {
@@ -6468,8 +6469,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
       ~ ami        = (sensitive value)
         id         = "i-02ae66f368e8518a9"
       ~ list_field = [
-          - (sensitive value),
-          + (sensitive value),
+          ~ (sensitive value),
             "friends",
         ]
       ~ map_key    = {

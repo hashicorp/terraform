@@ -17,6 +17,8 @@ ENHANCEMENTS:
     `"applyable"` means that it makes sense for a wrapping automation to offer to apply this plan.
 
     `"complete"` means that applying this plan is expected to achieve convergence between desired and actual state. If this flag is set, wrapping automations should ideally encourage an operator to run another plan/apply round to continue making progress toward convergence.
+* Improve plan UI for lists to display item-level diffs on lists with unchanged length
+
 
 BUG FIXES:
 

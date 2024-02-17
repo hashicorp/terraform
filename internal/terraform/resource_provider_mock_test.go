@@ -6,13 +6,15 @@ package terraform
 import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+
 	"github.com/zclconf/go-cty/cty"
 )
 
 // mockProviderWithConfigSchema is a test helper to concisely create a mock
 // provider with the given schema for its own configuration.
-func mockProviderWithConfigSchema(schema *configschema.Block) *MockProvider {
-	return &MockProvider{
+func mockProviderWithConfigSchema(schema *configschema.Block) *testing_provider.MockProvider {
+	return &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{Block: schema},
 		},
@@ -21,8 +23,8 @@ func mockProviderWithConfigSchema(schema *configschema.Block) *MockProvider {
 
 // mockProviderWithResourceTypeSchema is a test helper to concisely create a mock
 // provider with a schema containing a single resource type.
-func mockProviderWithResourceTypeSchema(name string, schema *configschema.Block) *MockProvider {
-	return &MockProvider{
+func mockProviderWithResourceTypeSchema(name string, schema *configschema.Block) *testing_provider.MockProvider {
+	return &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
 				Block: &configschema.Block{
@@ -66,8 +68,8 @@ func mockProviderWithResourceTypeSchema(name string, schema *configschema.Block)
 // the default schema stored in the field GetSchemaReturn. Each new call to
 // simpleTestProvider produces entirely new instances of all of the nested
 // objects so that callers can mutate without affecting mock objects.
-func simpleMockProvider() *MockProvider {
-	return &MockProvider{
+func simpleMockProvider() *testing_provider.MockProvider {
+	return &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{Block: simpleTestSchema()},
 			ResourceTypes: map[string]providers.Schema{
@@ -80,12 +82,21 @@ func simpleMockProvider() *MockProvider {
 	}
 }
 
-// ProviderSchema is a helper to convert from the internal GetProviderSchemaResponse to
-// a ProviderSchema.
-func (p *MockProvider) ProviderSchema() *ProviderSchema {
-	resp := p.getProviderSchema()
+// getProviderSchema is a helper to convert from the internal
+// GetProviderSchemaResponse to a providerSchema.
+func getProviderSchema(p *testing_provider.MockProvider) *providerSchema {
+	if p.GetProviderSchemaResponse == nil {
+		// Then just return an empty provider schema.
+		return &providerSchema{
+			ResourceTypes:              make(map[string]*configschema.Block),
+			ResourceTypeSchemaVersions: make(map[string]uint64),
+			DataSources:                make(map[string]*configschema.Block),
+		}
+	}
 
-	schema := &ProviderSchema{
+	resp := p.GetProviderSchemaResponse
+
+	schema := &providerSchema{
 		Provider:                   resp.Provider.Block,
 		ProviderMeta:               resp.ProviderMeta.Block,
 		ResourceTypes:              map[string]*configschema.Block{},
@@ -107,7 +118,7 @@ func (p *MockProvider) ProviderSchema() *ProviderSchema {
 
 // the type was refactored out with all the functionality handled within the
 // provider package, but we keep this here for a shim in existing tests.
-type ProviderSchema struct {
+type providerSchema struct {
 	Provider                   *configschema.Block
 	ProviderMeta               *configschema.Block
 	ResourceTypes              map[string]*configschema.Block
@@ -116,8 +127,8 @@ type ProviderSchema struct {
 }
 
 // getProviderSchemaResponseFromProviderSchema is a test helper to convert a
-// ProviderSchema to a GetProviderSchemaResponse for use when building a mock provider.
-func getProviderSchemaResponseFromProviderSchema(providerSchema *ProviderSchema) *providers.GetProviderSchemaResponse {
+// providerSchema to a GetProviderSchemaResponse for use when building a mock provider.
+func getProviderSchemaResponseFromProviderSchema(providerSchema *providerSchema) *providers.GetProviderSchemaResponse {
 	resp := &providers.GetProviderSchemaResponse{
 		Provider:      providers.Schema{Block: providerSchema.Provider},
 		ProviderMeta:  providers.Schema{Block: providerSchema.ProviderMeta},

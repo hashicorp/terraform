@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -21,7 +22,7 @@ import (
 
 func TestContext2Validate_badCount(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{},
@@ -44,7 +45,7 @@ func TestContext2Validate_badCount(t *testing.T) {
 
 func TestContext2Validate_badResource_reference(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{},
@@ -67,7 +68,7 @@ func TestContext2Validate_badResource_reference(t *testing.T) {
 
 func TestContext2Validate_badVar(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -1852,8 +1853,8 @@ func TestContext2Validate_sensitiveProvisionerConfig(t *testing.T) {
 }
 
 func TestContext2Plan_validateMinMaxDynamicBlock(t *testing.T) {
-	p := new(MockProvider)
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2010,8 +2011,8 @@ resource "test_object" "t" {
 }
 
 func TestContext2Plan_lookupMismatchedObjectTypes(t *testing.T) {
-	p := new(MockProvider)
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2101,7 +2102,7 @@ func TestContext2Validate_nonNullableVariableDefaultValidation(t *testing.T) {
 
 func TestContext2Validate_precondition_good(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2144,7 +2145,7 @@ resource "aws_instance" "test" {
 
 func TestContext2Validate_precondition_badCondition(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2190,7 +2191,7 @@ resource "aws_instance" "test" {
 
 func TestContext2Validate_precondition_badErrorMessage(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2236,7 +2237,7 @@ resource "aws_instance" "test" {
 
 func TestContext2Validate_postcondition_good(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2274,7 +2275,7 @@ resource "aws_instance" "test" {
 
 func TestContext2Validate_postcondition_badCondition(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2326,7 +2327,7 @@ resource "aws_instance" "test" {
 
 func TestContext2Validate_postcondition_badErrorMessage(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2367,7 +2368,7 @@ resource "aws_instance" "test" {
 
 func TestContext2Validate_precondition_count(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2410,7 +2411,7 @@ resource "aws_instance" "test" {
 
 func TestContext2Validate_postcondition_forEach(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2453,7 +2454,7 @@ resource "aws_instance" "test" {
 
 func TestContext2Validate_deprecatedAttr(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2517,7 +2518,7 @@ resource "aws_instance" "follow" {
 }
 
 func TestContext2Validate_providerContributedFunctions(t *testing.T) {
-	mockProvider := func() *MockProvider {
+	mockProvider := func() *testing_provider.MockProvider {
 		p := testProvider("test")
 		p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 			Functions: map[string]providers.FunctionDecl{
@@ -2631,7 +2632,7 @@ output "result" {
 		if !diags.HasErrors() {
 			t.Fatal("unexpected success")
 		}
-		if got, want := diags.Err().Error(), "Call to unknown function: There is no function named \"cout_e\" in namespace provider::test::."; !strings.Contains(got, want) {
+		if got, want := diags.Err().Error(), `Unknown provider function: The function "cout_e" is not available from the provider "test"`; !strings.Contains(got, want) {
 			t.Errorf("wrong error message\nwant substring: %s\ngot: %s", want, got)
 		}
 
@@ -2666,7 +2667,7 @@ output "result" {
 		if !diags.HasErrors() {
 			t.Fatal("unexpected success")
 		}
-		if got, want := diags.Err().Error(), "Call to unknown function: There are no functions in namespace \"provider::toast::\"."; !strings.Contains(got, want) {
+		if got, want := diags.Err().Error(), `Unknown provider function: There is no function named "provider::toast::count_e`; !strings.Contains(got, want) {
 			t.Errorf("wrong error message\nwant substring: %s\ngot: %s", want, got)
 		}
 	})
@@ -2870,7 +2871,7 @@ output "result" {
 		}
 		// Module author must declare a provider requirement in order to
 		// import a provider's functions.
-		if got, want := diags.Err().Error(), "Call to unknown function: There are no functions in namespace \"provider::test::\"."; !strings.Contains(got, want) {
+		if got, want := diags.Err().Error(), `Unknown provider function: There is no function named "provider::test::count_e"`; !strings.Contains(got, want) {
 			t.Errorf("wrong error message\nwant substring: %s\ngot: %s", want, got)
 		}
 	})

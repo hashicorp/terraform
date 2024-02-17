@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/providers/testing"
 )
 
 func simpleTestSchemas() *Schemas {
@@ -37,7 +38,7 @@ func schemaOnlyProvidersForTesting(schemas map[addrs.Provider]providers.Provider
 	for providerAddr, schema := range schemas {
 		schema := schema
 
-		provider := &MockProvider{
+		provider := &testing.MockProvider{
 			GetProviderSchemaResponse: &schema,
 		}
 

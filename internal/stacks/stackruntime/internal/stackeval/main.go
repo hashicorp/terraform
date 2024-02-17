@@ -418,6 +418,27 @@ func (m *Main) ProviderInstance(ctx context.Context, addr stackaddrs.AbsProvider
 	return insts[addr.Item.Key]
 }
 
+// PreviousProviderInstances fetches the set of providers that are required
+// based on the current plan or state file. They are previous in the sense that
+// they're not based on the current config. So if a provider has been removed
+// from the config, this function will still find it.
+func (m *Main) PreviousProviderInstances(addr stackaddrs.AbsComponentInstance, phase EvalPhase) addrs.Set[addrs.RootProviderConfig] {
+	switch phase {
+	case ApplyPhase:
+		return m.PlanBeingApplied().RequiredProviderInstances(addr)
+	case PlanPhase:
+		return m.PlanPrevState().RequiredProviderInstances(addr)
+	case InspectPhase:
+		return m.InspectingState().RequiredProviderInstances(addr)
+	default:
+		// We don't have the required information (like a plan or a state file)
+		// in the other phases so we can't do anything even if we wanted to.
+		// In general, for the other phases we're not doing anything with the
+		// previous provider instances anyway, so we don't need them.
+		return addrs.MakeSet[addrs.RootProviderConfig]()
+	}
+}
+
 func (m *Main) RootVariableValue(ctx context.Context, addr stackaddrs.InputVariable, phase EvalPhase) ExternalInputValue {
 	switch phase {
 	case PlanPhase:

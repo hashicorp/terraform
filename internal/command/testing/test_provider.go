@@ -15,7 +15,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -69,7 +69,7 @@ var (
 // TestProvider is a wrapper around terraform.MockProvider that defines dynamic
 // schemas, and keeps track of the resources and data sources that it contains.
 type TestProvider struct {
-	Provider *terraform.MockProvider
+	Provider *testing.MockProvider
 
 	data, resource cty.Value
 
@@ -86,7 +86,7 @@ func NewProvider(store *ResourceStore) *TestProvider {
 	}
 
 	provider := &TestProvider{
-		Provider: new(terraform.MockProvider),
+		Provider: new(testing.MockProvider),
 		Store:    store,
 	}
 
