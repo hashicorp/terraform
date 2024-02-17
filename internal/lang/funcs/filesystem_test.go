@@ -665,6 +665,12 @@ func TestDirectorySet(t *testing.T) {
 			}),
 			``,
 		},
+		{
+			cty.StringVal("./testdata/unreadable"),
+			cty.StringVal("*"),
+			cty.SetValEmpty(cty.String),
+			``,
+		},
 	}
 
 	// Ensure "unreadable" directory cannot be listed during the test run
