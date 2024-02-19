@@ -71,7 +71,7 @@ func TestProviderConfig(t *testing.T) {
 				"input": cty.StringVal("string"),
 			},
 			expectedErrors: []string{
-				"The input variable \"missing\" is not available to the current run block. You can only reference variables defined at the file or global levels when populating the variables block within a run block.",
+				"The input variable \"missing\" is not available to the current context. Within the variables block of a run block you can only reference variables defined at the file or global levels; within the variables block of a suite you can only reference variables defined at the global levels.",
 			},
 			validate: func(t *testing.T, content *hcl.BodyContent) {
 				if len(content.Attributes) > 0 {
