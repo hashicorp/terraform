@@ -4,8 +4,8 @@
 package renderers
 
 import (
+	"encoding/json"
 	"fmt"
-	"math/big"
 	"strings"
 
 	"github.com/zclconf/go-cty/cty"
@@ -67,8 +67,8 @@ func renderPrimitiveValue(value interface{}, t cty.Type, opts computed.RenderHum
 		}
 		return "false"
 	case t == cty.Number:
-		bf := big.NewFloat(value.(float64))
-		return bf.Text('f', -1)
+		number := value.(json.Number)
+		return number.String()
 	default:
 		panic("unrecognized primitive type: " + t.FriendlyName())
 	}
