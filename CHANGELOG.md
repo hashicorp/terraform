@@ -17,8 +17,8 @@ ENHANCEMENTS:
     `"applyable"` means that it makes sense for a wrapping automation to offer to apply this plan.
 
     `"complete"` means that applying this plan is expected to achieve convergence between desired and actual state. If this flag is set, wrapping automations should ideally encourage an operator to run another plan/apply round to continue making progress toward convergence.
-* Improve plan UI for lists to display item-level diffs on lists with unchanged length
-
+* Improved plan diff rendering for lists to display item-level differences on lists with unchanged length.
+* `terraform provider lock` accepts a new boolean option `-enable-plugin-cache`. If specified, and if a [global plugin cache](https://developer.hashicorp.com/terraform/cli/config/config-file#provider-plugin-cache) is configured Terraform will use the cache in the provider lock process. [GH-34632]
 
 BUG FIXES:
 
@@ -33,7 +33,6 @@ Experiments are only enabled in alpha releases of Terraform CLI. The following f
 * The [language-level experiment](https://developer.hashicorp.com/terraform/language/settings#experimental-language-features) `unknown_instances` permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values.
 
     This is at an early stage and so currently setting these arguments to unknown values will only yield broken behavior, and so it's not yet useful to participate in this experiment. Future work will improve support for this new possibility, gradually making this experiment viable.
-* `terraform provider lock` accepts a new boolean option `-enable-plugin-cache`. If specified, and if a [global plugin cache](https://developer.hashicorp.com/terraform/cli/config/config-file#provider-plugin-cache) is configured Terraform will use the cache in the provider lock process.
 
 ## ENHANCEMENTS:
 
