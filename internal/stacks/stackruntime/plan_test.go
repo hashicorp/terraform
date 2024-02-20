@@ -289,8 +289,7 @@ func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 		},
 	}
 	sort.SliceStable(gotChanges, func(i, j int) bool {
-		// An arbitrary sort just to make the result stable for comparison.
-		return fmt.Sprintf("%T", gotChanges[i]) < fmt.Sprintf("%T", gotChanges[j])
+		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
 	})
 
 	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions); diff != "" {
@@ -371,8 +370,7 @@ func TestPlanSensitiveOutput(t *testing.T) {
 		},
 	}
 	sort.SliceStable(gotChanges, func(i, j int) bool {
-		// An arbitrary sort just to make the result stable for comparison.
-		return fmt.Sprintf("%T", gotChanges[i]) < fmt.Sprintf("%T", gotChanges[j])
+		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
 	})
 
 	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
@@ -411,6 +409,16 @@ func TestPlanSensitiveOutputNested(t *testing.T) {
 		&stackplan.PlannedChangeApplyable{
 			Applyable: true,
 		},
+		&stackplan.PlannedChangeHeader{
+			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangeOutputValue{
+			Addr:          stackaddrs.OutputValue{Name: "result"},
+			Action:        plans.Create,
+			OldValue:      plans.DynamicValue{0xc0}, // MessagePack nil
+			NewValue:      mustPlanDynamicValue(cty.StringVal("secret")),
+			NewValueMarks: []cty.PathValueMarks{{Marks: cty.NewValueMarks(marks.Sensitive)}},
+		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(
 				stackaddrs.RootStackInstance.Child("child", addrs.NoKey),
@@ -427,20 +435,9 @@ func TestPlanSensitiveOutputNested(t *testing.T) {
 			},
 			PlanTimestamp: fakePlanTimestamp,
 		},
-		&stackplan.PlannedChangeHeader{
-			TerraformVersion: version.SemVer,
-		},
-		&stackplan.PlannedChangeOutputValue{
-			Addr:          stackaddrs.OutputValue{Name: "result"},
-			Action:        plans.Create,
-			OldValue:      plans.DynamicValue{0xc0}, // MessagePack nil
-			NewValue:      mustPlanDynamicValue(cty.StringVal("secret")),
-			NewValueMarks: []cty.PathValueMarks{{Marks: cty.NewValueMarks(marks.Sensitive)}},
-		},
 	}
 	sort.SliceStable(gotChanges, func(i, j int) bool {
-		// An arbitrary sort just to make the result stable for comparison.
-		return fmt.Sprintf("%T", gotChanges[i]) < fmt.Sprintf("%T", gotChanges[j])
+		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
 	})
 
 	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
@@ -481,22 +478,6 @@ func TestPlanSensitiveOutputAsInput(t *testing.T) {
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(
-				stackaddrs.RootStackInstance.Child("sensitive", addrs.NoKey),
-				stackaddrs.ComponentInstance{
-					Component: stackaddrs.Component{Name: "self"},
-				},
-			),
-			Action:             plans.Create,
-			PlanApplyable:      true,
-			PlanComplete:       true,
-			PlannedInputValues: make(map[string]plans.DynamicValue),
-			PlannedOutputValues: map[string]cty.Value{
-				"out": cty.StringVal("secret").Mark(marks.Sensitive),
-			},
-			PlanTimestamp: fakePlanTimestamp,
-		},
-		&stackplan.PlannedChangeComponentInstance{
-			Addr: stackaddrs.Absolute(
 				stackaddrs.RootStackInstance,
 				stackaddrs.ComponentInstance{
 					Component: stackaddrs.Component{Name: "self"},
@@ -530,10 +511,25 @@ func TestPlanSensitiveOutputAsInput(t *testing.T) {
 			NewValue:      mustPlanDynamicValue(cty.StringVal("SECRET")),
 			NewValueMarks: []cty.PathValueMarks{{Marks: cty.NewValueMarks(marks.Sensitive)}},
 		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance.Child("sensitive", addrs.NoKey),
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "self"},
+				},
+			),
+			Action:             plans.Create,
+			PlanApplyable:      true,
+			PlanComplete:       true,
+			PlannedInputValues: make(map[string]plans.DynamicValue),
+			PlannedOutputValues: map[string]cty.Value{
+				"out": cty.StringVal("secret").Mark(marks.Sensitive),
+			},
+			PlanTimestamp: fakePlanTimestamp,
+		},
 	}
 	sort.SliceStable(gotChanges, func(i, j int) bool {
-		// An arbitrary sort just to make the result stable for comparison.
-		return fmt.Sprintf("%T", gotChanges[i]) < fmt.Sprintf("%T", gotChanges[j])
+		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
 	})
 
 	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
