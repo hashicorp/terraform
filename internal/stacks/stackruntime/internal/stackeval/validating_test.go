@@ -10,6 +10,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -25,7 +28,15 @@ func TestValidate_modulesWithProviderConfigs(t *testing.T) {
 	// more confusing error message to be emited by the modules runtime.
 
 	cfg := testStackConfig(t, "validating", "modules_with_provider_configs")
-	main := NewForValidating(cfg, ValidateOpts{})
+	main := NewForValidating(cfg, ValidateOpts{
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewBuiltInProvider("test"): func() (providers.Interface, error) {
+				// The test fails before it has to do any schema validation so
+				// we can safely return an empty mock provider here.
+				return &testing_provider.MockProvider{}, nil
+			},
+		},
+	})
 
 	inPromisingTask(t, func(ctx context.Context, t *testing.T) {
 		diags := main.ValidateAll(ctx)

@@ -6,10 +6,13 @@ package stackruntime
 import (
 	"context"
 
+	"go.opentelemetry.io/otel/codes"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"go.opentelemetry.io/otel/codes"
 )
 
 // Validate performs static validation of a full stack configuration, returning
@@ -18,7 +21,9 @@ func Validate(ctx context.Context, req *ValidateRequest) tfdiags.Diagnostics {
 	ctx, span := tracer.Start(ctx, "validate stack configuration")
 	defer span.End()
 
-	main := stackeval.NewForValidating(req.Config, stackeval.ValidateOpts{})
+	main := stackeval.NewForValidating(req.Config, stackeval.ValidateOpts{
+		ProviderFactories: req.ProviderFactories,
+	})
 	main.AllowLanguageExperiments(req.ExperimentsAllowed)
 	diags := main.ValidateAll(ctx)
 	diags = diags.Append(
@@ -31,9 +36,8 @@ func Validate(ctx context.Context, req *ValidateRequest) tfdiags.Diagnostics {
 }
 
 type ValidateRequest struct {
-	Config *stackconfig.Config
+	Config            *stackconfig.Config
+	ProviderFactories map[addrs.Provider]providers.Factory
 
 	ExperimentsAllowed bool
-
-	// TODO: Provider factories and other similar such things
 }

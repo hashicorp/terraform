@@ -14,8 +14,11 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	fileProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/file"
+	remoteExecProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
+	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
@@ -584,5 +587,34 @@ func (m *Main) reportNamedPromises(cb func(id promising.PromiseID, name string))
 	defer m.mu.Unlock()
 	if m.mainStackConfig != nil {
 		m.mainStackConfig.reportNamedPromises(cb)
+	}
+}
+
+// availableProvisioners returns the table of provisioner factories that should
+// be made available to modules in this component.
+func (m *Main) availableProvisioners() map[string]provisioners.Factory {
+	return map[string]provisioners.Factory{
+		"remote-exec": func() (provisioners.Interface, error) {
+			return remoteExecProvisioner.New(), nil
+		},
+		"file": func() (provisioners.Interface, error) {
+			return fileProvisioner.New(), nil
+		},
+		"local-exec": func() (provisioners.Interface, error) {
+			// We don't yet have any way to ensure a consistent execution
+			// environment for local-exec, which means that use of this
+			// provisioner is very likely to hurt portability between
+			// local and remote usage of stacks. Existing use of local-exec
+			// also tends to assume a writable module directory, whereas
+			// stack components execute from a read-only directory.
+			//
+			// Therefore we'll leave this unavailable for now with an explicit
+			// error message, although we might revisit this later if there's
+			// a strong reason to allow it and if we can find a suitable
+			// way to avoid the portability pitfalls that might inhibit
+			// moving execution of a stack from one execution environment to
+			// another.
+			return nil, fmt.Errorf("local-exec provisioners are not supported in stack components; use provider functionality or remote provisioners instead")
+		},
 	}
 }

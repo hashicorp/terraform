@@ -438,6 +438,8 @@ message CloseStackConfiguration {
 message ValidateStackConfiguration {
     message Request {
         int64 stack_config_handle = 1;
+        int64 dependency_locks_handle = 2;
+        int64 provider_cache_handle = 3;
     }
     message Response {
         repeated Diagnostic diagnostics = 1;
