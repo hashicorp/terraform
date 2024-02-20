@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * `terraform test`: Fix automatic loading of variable files within the test directory on `windows` platforms. ([#34666](https://github.com/hashicorp/terraform/pull/34666))
+* plan renderer: Very large numbers (> 2^63) will no longer be truncated in the human-readable plan ([#34702](https://github.com/hashicorp/terraform/pull/34702))
 
 ## 1.7.3 (February 7, 2024)
 
