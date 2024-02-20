@@ -30,8 +30,12 @@ func evaluatePrimitiveString(value interface{}, opts computed.RenderHumanOpts) e
 	str := value.(string)
 
 	if strings.HasPrefix(str, "{") || strings.HasPrefix(str, "[") {
+
+		decoder := json.NewDecoder(strings.NewReader(str))
+		decoder.UseNumber()
+
 		var jv interface{}
-		if err := json.Unmarshal([]byte(str), &jv); err == nil {
+		if err := decoder.Decode(&jv); err == nil {
 			return evaluatedString{
 				String: str,
 				Json:   jv,

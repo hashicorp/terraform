@@ -4,6 +4,7 @@
 package structured
 
 import (
+	"bytes"
 	"encoding/json"
 	"reflect"
 
@@ -273,8 +274,11 @@ func unmarshalGeneric(raw json.RawMessage) interface{} {
 		return nil
 	}
 
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber() // We support very big (> 2^64) numbers.
+
 	var out interface{}
-	if err := json.Unmarshal(raw, &out); err != nil {
+	if err := decoder.Decode(&out); err != nil {
 		panic("unrecognized json type: " + err.Error())
 	}
 	return out
