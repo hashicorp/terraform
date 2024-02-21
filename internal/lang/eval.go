@@ -41,18 +41,18 @@ func (s *Scope) ExpandBlock(body hcl.Body, schema *configschema.Block) (hcl.Body
 	return dynblock.Expand(body, ctx, dynblock.OptCheckForEach(checkForEachSensitive)), diags
 }
 
-// checkForEachSensitive checks if the given value contains a sensitive value
+// checkForEachSensitive checks if the given value is a sensitive value
 // and, if so, returns an error explaining why the value cannot be used in the
 // given for_each expression.
 //
 // This function is intended to be passed to dynblock.OptCheckForEach.
 func checkForEachSensitive(val cty.Value, expr hcl.Expression, ec *hcl.EvalContext) (hDiags hcl.Diagnostics) {
-	if marks.Contains(val, marks.Sensitive) {
+	if marks.Has(val, marks.Sensitive) {
 		hDiags = hcl.Diagnostics{
 			&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     "Invalid for_each argument",
-				Detail:      "Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
+				Detail:      "Sensitive values cannot be used as for_each arguments in dynamic blocks, because a sensitive collection's length and content would be revealed in the plan output.",
 				Expression:  expr,
 				EvalContext: ec,
 				Subject:     expr.Range().Ptr(),
