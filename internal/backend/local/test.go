@@ -583,7 +583,7 @@ func (runner *TestFileRunner) validate(config *configs.Config, run *moduletest.R
 		defer done()
 
 		log.Printf("[DEBUG] TestFileRunner: starting validate for %s/%s", file.Name, run.Name)
-		validateDiags = tfCtx.Validate(config)
+		validateDiags = tfCtx.Validate(config, nil)
 		log.Printf("[DEBUG] TestFileRunner: completed validate for  %s/%s", file.Name, run.Name)
 	}()
 	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, nil, moduletest.Running, start)

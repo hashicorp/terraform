@@ -12,8 +12,6 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	fileProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/file"
-	remoteExecProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
@@ -21,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
@@ -189,7 +186,7 @@ func (c *ComponentInstance) inputValuesForModulesRuntime(ctx context.Context, ph
 	return ret
 }
 
-// CheckProviders evaluates the "providers" argument from the component
+// Providers evaluates the "providers" argument from the component
 // configuration and returns a mapping from the provider configuration
 // addresses that the component's root module expect to have populated
 // to the address of the [ProviderInstance] from the stack configuration
@@ -200,7 +197,7 @@ func (c *ComponentInstance) inputValuesForModulesRuntime(ctx context.Context, ph
 // then there are some problems with the providers argument and so the
 // map might be incomplete, and so callers should use it only with a great
 // deal of care.
-func (c *ComponentInstance) Providers(ctx context.Context, phase EvalPhase) (selections map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance, valid bool) {
+func (c *ComponentInstance) Providers(ctx context.Context, phase EvalPhase) (map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance, bool) {
 	ret, diags := c.CheckProviders(ctx, phase)
 	return ret, !diags.HasErrors()
 }
@@ -250,11 +247,13 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 		typeAddr := inCalleeAddr.Provider
 		localName, ok := stackConfig.ProviderLocalName(ctx, typeAddr)
 		if !ok {
-			// TODO: We should probably catch this as a one-time error during
-			// validation of the component config block, rather than raising
-			// it separately for each instance, since the set of required
-			// providers for both this stack and the root module of the
-			// component are statically-declared.
+			// We perform a similar check within component_config.go during
+			// the validation. At the validation stage we are only verifying the
+			// configuration, while this check is also checking the state. We
+			// can't check the state during validation, so we perform this check
+			// again. In reality, we will not even reach this if there are
+			// problems with the configuration as the validation will have
+			// failed before the plan/apply was even started.
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Component requires undeclared provider",
@@ -515,7 +514,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					},
 				},
 				PreloadedProviderSchemas: providerSchemas,
-				Provisioners:             c.availableProvisioners(),
+				Provisioners:             c.main.availableProvisioners(),
 			})
 			if err != nil {
 				// Should not get here because we should always pass a valid
@@ -717,7 +716,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 			tfHook,
 		},
 		PreloadedProviderSchemas: providerSchemas,
-		Provisioners:             c.availableProvisioners(),
+		Provisioners:             c.main.availableProvisioners(),
 	})
 	if err != nil {
 		// Should not get here because we should always pass a valid
@@ -1472,35 +1471,6 @@ func (c *ComponentInstance) resourceTypeSchema(ctx context.Context, providerType
 		return nil, fmt.Errorf("schema does not include %v %q", mode, typ)
 	}
 	return ret, nil
-}
-
-// availableProvisioners returns the table of provisioner factories that should
-// be made available to modules in this component.
-func (c *ComponentInstance) availableProvisioners() map[string]provisioners.Factory {
-	return map[string]provisioners.Factory{
-		"remote-exec": func() (provisioners.Interface, error) {
-			return remoteExecProvisioner.New(), nil
-		},
-		"file": func() (provisioners.Interface, error) {
-			return fileProvisioner.New(), nil
-		},
-		"local-exec": func() (provisioners.Interface, error) {
-			// We don't yet have any way to ensure a consistent execution
-			// environment for local-exec, which means that use of this
-			// provisioner is very likely to hurt portability between
-			// local and remote usage of stacks. Existing use of local-exec
-			// also tends to assume a writable module directory, whereas
-			// stack components execute from a read-only directory.
-			//
-			// Therefore we'll leave this unavailable for now with an explicit
-			// error message, although we might revisit this later if there's
-			// a strong reason to allow it and if we can find a suitable
-			// way to avoid the portability pitfalls that might inhibit
-			// moving execution of a stack from one execution environment to
-			// another.
-			return nil, fmt.Errorf("local-exec provisioners are not supported in stack components; use provider functionality or remote provisioners instead")
-		},
-	}
 }
 
 func (c *ComponentInstance) tracingName() string {

@@ -53,6 +53,8 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 					"testing_resource": {
 						Block: TestingResourceSchema,
 					},
+				},
+				DataSources: map[string]providers.Schema{
 					"testing_data_source": {
 						Block: TestingDataSourceSchema,
 					},

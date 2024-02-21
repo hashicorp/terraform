@@ -141,7 +141,7 @@ output "second" {
 		},
 	})
 
-	diags := ctx.Validate(m)
+	diags := ctx.Validate(m, nil)
 	if !diags.HasErrors() {
 		t.Fatal("expected error")
 	}
@@ -311,7 +311,7 @@ func TestContext2Validate_providerFunctionDiagnostics(t *testing.T) {
 				},
 			})
 
-			diags := ctx.Validate(test.cfg)
+			diags := ctx.Validate(test.cfg, nil)
 			if !diags.HasErrors() {
 				t.Fatal("expected diagnsotics, got none")
 			}
