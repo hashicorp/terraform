@@ -104,10 +104,35 @@ func (s *stacksServer) ValidateStackConfiguration(ctx context.Context, req *terr
 	if cfg == nil {
 		return nil, status.Error(codes.InvalidArgument, "the given stack configuration handle is invalid")
 	}
+	depsHnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
+	var deps *depsfile.Locks
+	if !depsHnd.IsNil() {
+		deps = s.handles.DependencyLocks(depsHnd)
+		if deps == nil {
+			return nil, status.Error(codes.InvalidArgument, "the given dependency locks handle is invalid")
+		}
+	} else {
+		deps = depsfile.NewLocks()
+	}
+	providerCacheHnd := handle[*providercache.Dir](req.ProviderCacheHandle)
+	var providerCache *providercache.Dir
+	if !providerCacheHnd.IsNil() {
+		providerCache = s.handles.ProviderPluginCache(providerCacheHnd)
+		if providerCache == nil {
+			return nil, status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
+		}
+	}
+
+	// (providerFactoriesForLocks explicitly supports a nil providerCache)
+	providerFactories, err := providerFactoriesForLocks(deps, providerCache)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+	}
 
 	diags := stackruntime.Validate(ctx, &stackruntime.ValidateRequest{
 		Config:             cfg,
 		ExperimentsAllowed: s.experimentsAllowed,
+		ProviderFactories:  providerFactories,
 	})
 	return &terraform1.ValidateStackConfiguration_Response{
 		Diagnostics: diagnosticsToProto(diags),

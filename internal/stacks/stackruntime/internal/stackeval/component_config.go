@@ -21,9 +21,11 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/promising"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -33,6 +35,7 @@ type ComponentConfig struct {
 
 	main *Main
 
+	validate   promising.Once[tfdiags.Diagnostics]
 	moduleTree promising.Once[withDiagnostics[*configs.Config]]
 }
 
@@ -279,6 +282,105 @@ func (c *ComponentConfig) RequiredProviderInstances(ctx context.Context) addrs.S
 	return moduleTree.Root.EffectiveRequiredProviderConfigs()
 }
 
+func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (addrs.Set[addrs.RootProviderConfig], tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	stackConfig := c.main.StackConfig(ctx, c.Addr().Stack)
+	declConfigs := c.Declaration(ctx).ProviderConfigs
+	neededProviders := c.RequiredProviderInstances(ctx)
+
+	ret := addrs.MakeSet[addrs.RootProviderConfig]()
+	for _, inCalleeAddr := range neededProviders {
+		typeAddr := inCalleeAddr.Provider
+		localName, ok := stackConfig.ProviderLocalName(ctx, typeAddr)
+		if !ok {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Component requires undeclared provider",
+				Detail: fmt.Sprintf(
+					"The root module for %s requires a configuration for provider %q, which isn't declared as a dependency of this stack configuration.\n\nDeclare this provider in the stack's required_providers block, and then assign a configuration for that provider in this component's \"providers\" argument.",
+					c.Addr(), typeAddr.ForDisplay(),
+				),
+				Subject: c.Declaration(ctx).DeclRange.ToHCL().Ptr(),
+			})
+			continue
+		}
+
+		localAddr := addrs.LocalProviderConfig{
+			LocalName: localName,
+			Alias:     inCalleeAddr.Alias,
+		}
+		if _, exists := declConfigs[localAddr]; !exists {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing required provider configuration",
+				Detail: fmt.Sprintf(
+					"The root module for %s requires a provider configuration named %q for provider %q, which is not assigned in the component's \"providers\" argument.",
+					c.Addr(), localAddr.StringCompact(), typeAddr.ForDisplay(),
+				),
+				Subject: c.Declaration(ctx).DeclRange.ToHCL().Ptr(),
+			})
+			continue
+		}
+
+		// TODO: Also validate the provider types are the same.
+
+		ret.Add(inCalleeAddr)
+	}
+	return ret, diags
+}
+
+func (c *ComponentConfig) neededProviderClients(ctx context.Context, phase EvalPhase) (map[addrs.RootProviderConfig]providers.Interface, bool) {
+	insts := make(map[addrs.RootProviderConfig]providers.Interface)
+	valid := true
+
+	providers, _ := c.CheckProviders(ctx, phase)
+	for _, provider := range providers {
+		pTy := c.main.ProviderType(ctx, provider.Provider)
+		if pTy == nil {
+			valid = false
+			continue // not our job to report a missing provider
+		}
+
+		// We don't need to configure the client for validate functionality.
+		inst, err := pTy.UnconfiguredClient(ctx)
+		if err != nil {
+			valid = false
+			continue
+		}
+		insts[provider] = inst
+	}
+
+	return insts, valid
+}
+
+func (c *ComponentConfig) neededProviderSchemas(ctx context.Context, phase EvalPhase) (map[addrs.Provider]providers.ProviderSchema, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	config := c.ModuleTree(ctx)
+	decl := c.Declaration(ctx)
+
+	providerSchemas := make(map[addrs.Provider]providers.ProviderSchema)
+	for _, sourceAddr := range config.ProviderTypes() {
+		pTy := c.main.ProviderType(ctx, sourceAddr)
+		if pTy == nil {
+			continue // not our job to report a missing provider
+		}
+		schema, err := pTy.Schema(ctx)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Provider initialization error",
+				Detail:   fmt.Sprintf("Failed to fetch the provider schema for %s: %s.", sourceAddr, err),
+				Subject:  decl.DeclRange.ToHCL().Ptr(),
+			})
+			continue
+		}
+		providerSchemas[sourceAddr] = schema
+	}
+	return providerSchemas, diags
+}
+
 // ExprReferenceValue implements Referenceable.
 func (c *ComponentConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
 	// Currently we don't say anything at all about component results during
@@ -291,10 +393,70 @@ func (c *ComponentConfig) ExprReferenceValue(ctx context.Context, phase EvalPhas
 }
 
 func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
+	diags, err := c.validate.Do(ctx, func(ctx context.Context) (tfdiags.Diagnostics, error) {
+		var diags tfdiags.Diagnostics
 
-	_, moreDiags := c.CheckModuleTree(ctx)
-	diags = diags.Append(moreDiags)
+		moduleTree, moreDiags := c.CheckModuleTree(ctx)
+		diags = diags.Append(moreDiags)
+		if moduleTree == nil {
+			return diags, nil
+		}
+		decl := c.Declaration(ctx)
+
+		// TODO: Also check if the providers are valid.
+		// TODO: Also check if the input variables are valid.
+
+		providerSchemas, moreDiags := c.neededProviderSchemas(ctx, phase)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			return diags, nil
+		}
+
+		// TODO: Manually validate the provider configs.
+
+		tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
+			PreloadedProviderSchemas: providerSchemas,
+			Provisioners:             c.main.availableProvisioners(),
+		})
+		if err != nil {
+			// Should not get here because we should always pass a valid
+			// ContextOpts above.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to instantiate Terraform modules runtime",
+				fmt.Sprintf("Could not load the main Terraform language runtime: %s.\n\nThis is a bug in Terraform; please report it!", err),
+			))
+			return diags, nil
+		}
+
+		providerClients, valid := c.neededProviderClients(ctx, phase)
+		if !valid {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Cannot validate component",
+				Detail:   fmt.Sprintf("Cannot validate %s because its provider configuration assignments are invalid.", c.Addr()),
+				Subject:  decl.DeclRange.ToHCL().Ptr(),
+			})
+			return diags, nil
+		}
+		defer func() {
+			// Close the unconfigured provider clients that we opened in
+			// neededProviderClients.
+			for _, client := range providerClients {
+				client.Close()
+			}
+		}()
+
+		diags = diags.Append(tfCtx.Validate(moduleTree, &terraform.ValidateOpts{
+			ExternalProviders: providerClients,
+		}))
+		return diags, nil
+	})
+	if err != nil {
+		// this is crazy, we never return an error from the inner function so
+		// this really shouldn't happen.
+		panic(fmt.Sprintf("unexpected error from validate.Do: %s", err))
+	}
 
 	return diags
 }
