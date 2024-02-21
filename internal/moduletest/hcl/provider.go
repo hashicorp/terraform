@@ -8,9 +8,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 var _ hcl.Body = (*ProviderConfig)(nil)
@@ -27,7 +27,7 @@ type ProviderConfig struct {
 	Original hcl.Body
 
 	ConfigVariables     map[string]*configs.Variable
-	AvailableVariables  map[string]backend.UnparsedVariableValue
+	AvailableVariables  terraform.InputValues
 	AvailableRunOutputs map[addrs.Run]cty.Value
 }
 
@@ -88,17 +88,7 @@ func (p *ProviderConfig) transformAttributes(originals hcl.Attributes) (hcl.Attr
 					continue
 				}
 
-				if variable, exists := p.AvailableVariables[addr.Name]; exists {
-					// Then we have a value for this variable! So we think we'll
-					// be able to process it - let's parse it now.
-
-					parsingMode := configs.VariableParseHCL
-					if config, exists := p.ConfigVariables[addr.Name]; exists {
-						parsingMode = config.ParsingMode
-					}
-
-					value, valueDiags := variable.ParseVariableValue(parsingMode)
-					diags = append(diags, valueDiags.ToHCL()...)
+				if value, exists := p.AvailableVariables[addr.Name]; exists {
 					if value != nil {
 						availableVariables[addr.Name] = value.Value
 					}

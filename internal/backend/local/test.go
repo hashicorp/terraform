@@ -382,9 +382,11 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	}
 	runner.gatherProviders(key, config)
 
+	vars, diag := runner.GetGlobalAndSuiteVariables(runner.Suite.Config)
+	run.Diagnostics = run.Diagnostics.Append(diag)
 	// TODO: Merge local variables and suite-level variables
 	// It might be necessary to change the format or add an extra parameter, not sure yet
-	resetConfig, configDiags := configtest.TransformConfigForTest(config, run, file, runner.globalVariables, runner.PriorOutputs, runner.Suite.configProviders[key])
+	resetConfig, configDiags := configtest.TransformConfigForTest(config, run, file, vars, runner.PriorOutputs, runner.Suite.configProviders[key])
 	defer resetConfig()
 
 	run.Diagnostics = run.Diagnostics.Append(configDiags)
@@ -949,7 +951,10 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 			key = state.Run.Config.Module.Source.String()
 		}
 
-		reset, configDiags := configtest.TransformConfigForTest(config, state.Run, file, runner.globalVariables, runner.PriorOutputs, runner.Suite.configProviders[key])
+		vars, varsDiags := runner.GetGlobalAndSuiteVariables(config)
+		diags = diags.Append(varsDiags)
+
+		reset, configDiags := configtest.TransformConfigForTest(config, state.Run, file, vars, runner.PriorOutputs, runner.Suite.configProviders[key])
 		diags = diags.Append(configDiags)
 
 		updated := state.State
@@ -1044,33 +1049,7 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 			continue
 		}
 
-		// By default, we parse global variables as HCL inputs.
-		parsingMode := configs.VariableParseHCL
-
-		cfg, exists := config.Module.Variables[name]
-
-		if exists {
-			// Unless we have some configuration that can actually tell us
-			// what parsing mode to use.
-			parsingMode = cfg.ParsingMode
-		}
-
-		value, valueDiags := variable.ParseVariableValue(parsingMode)
-		diags = diags.Append(valueDiags)
-		if diags.HasErrors() {
-			// We still add a value for this variable even though we couldn't
-			// parse it as we don't want to compound errors later. For example,
-			// the system would report this variable didn't have a value which
-			// would confuse the user because it does have a value, it's just
-			// not a valid value. We have added the diagnostics so the user
-			// will be informed about the error, and the test won't run. We'll
-			// just report only the relevant errors.
-			values[name] = &terraform.InputValue{
-				Value: cty.NilVal,
-			}
-			continue
-		}
-		values[name] = value
+		values[name] = runner.getGlobalVariable(name, variable, config)
 	}
 
 	// Second, we'll check the file level variables
@@ -1128,6 +1107,34 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 	}
 
 	return values, diags
+}
+
+func (runner *TestFileRunner) getGlobalVariable(name string, variable backend.UnparsedVariableValue, config *configs.Config) *terraform.InputValue {
+	// By default, we parse global variables as HCL inputs.
+	parsingMode := configs.VariableParseHCL
+
+	cfg, exists := config.Module.Variables[name]
+
+	if exists {
+		// Unless we have some configuration that can actually tell us
+		// what parsing mode to use.
+		parsingMode = cfg.ParsingMode
+	}
+
+	value, diags := variable.ParseVariableValue(parsingMode)
+	if diags.HasErrors() {
+		// We still add a value for this variable even though we couldn't
+		// parse it as we don't want to compound errors later. For example,
+		// the system would report this variable didn't have a value which
+		// would confuse the user because it does have a value, it's just
+		// not a valid value. We have added the diagnostics so the user
+		// will be informed about the error, and the test won't run. We'll
+		// just report only the relevant errors.
+		return &terraform.InputValue{
+			Value: cty.NilVal,
+		}
+	}
+	return value
 }
 
 // getVariablesFromConfiguration will process the variables from the configuration
@@ -1189,6 +1196,25 @@ func (runner *TestFileRunner) getVariablesFromConfiguration(knownVariables terra
 	}
 
 	return variableValues, diags
+}
+
+// GetGlobalAndSuiteVariables returns the global and suite level variables
+func (runner *TestFileRunner) GetGlobalAndSuiteVariables(config *configs.Config) (terraform.InputValues, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	values := make(terraform.InputValues)
+	// TODO: Verify it's not problematic that we don't care about the variables being used
+	// First, let's look at the global variables.
+	for name, variable := range runner.globalVariables {
+		values[name] = runner.getGlobalVariable(name, variable, config)
+	}
+
+	fileValues, fileDiags := runner.getVariablesFromConfiguration(values, nil, "TODO: Rewrite error to either not mention run block or wrap the error", runner.fileVariables)
+	diags = diags.Append(fileDiags)
+	for name, value := range fileValues {
+		values[name] = value
+	}
+
+	return values, diags
 }
 
 // FilterVariablesToModule splits the provided values into two disjoint maps:

@@ -183,10 +183,12 @@ func TestProviderConfig(t *testing.T) {
 					}
 					return variables
 				}(),
-				AvailableVariables: func() map[string]backend.UnparsedVariableValue {
-					variables := make(map[string]backend.UnparsedVariableValue)
+				AvailableVariables: func() terraform.InputValues {
+					variables := make(terraform.InputValues)
 					for name, value := range tc.variables {
-						variables[name] = &variable{value}
+						variables[name] = &terraform.InputValue{
+							Value: value,
+						}
 					}
 					return variables
 				}(),
