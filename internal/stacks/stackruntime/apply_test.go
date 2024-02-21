@@ -5,7 +5,6 @@ package stackruntime
 
 import (
 	"context"
-	"fmt"
 	"path"
 	"sort"
 	"testing"
@@ -196,8 +195,7 @@ func TestApplyWithRemovedResource(t *testing.T) {
 	}
 
 	sort.SliceStable(applyChanges, func(i, j int) bool {
-		// An arbitrary sort just to make the result stable for comparison.
-		return fmt.Sprintf("%T", applyChanges[i]) < fmt.Sprintf("%T", applyChanges[j])
+		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
 	})
 
 	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
