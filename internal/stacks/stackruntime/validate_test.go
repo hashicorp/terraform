@@ -5,6 +5,7 @@ package stackruntime
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -25,14 +26,24 @@ import (
 // potentially be included in here unless it depends on provider plugins
 // to complete validation, since this test cannot supply provider plugins.
 func TestValidate_valid(t *testing.T) {
-	validConfigDirs := []string{
-		"empty",
-		"variable-output-roundtrip",
-		"variable-output-roundtrip-nested",
+	validConfigDirs := map[string]struct {
+		skip bool
+	}{
+		"empty":                            {},
+		"variable-output-roundtrip":        {},
+		"variable-output-roundtrip-nested": {},
+		filepath.Join("with-single-input", "provider-name-clash"): {
+			skip: true,
+		},
 	}
 
-	for _, name := range validConfigDirs {
+	for name, tc := range validConfigDirs {
 		t.Run(name, func(t *testing.T) {
+			if tc.skip {
+				// We've added this test before the implementation was ready.
+				t.SkipNow()
+			}
+
 			ctx := context.Background()
 			cfg := loadMainBundleConfigForTest(t, name)
 
@@ -55,6 +66,7 @@ func TestValidate_valid(t *testing.T) {
 func TestValidate_invalid(t *testing.T) {
 	tcs := map[string]struct {
 		diags func() tfdiags.Diagnostics
+		skip  bool
 	}{
 		"validate-undeclared-variable": {
 			diags: func() tfdiags.Diagnostics {
@@ -88,10 +100,53 @@ func TestValidate_invalid(t *testing.T) {
 				return diags
 			},
 		},
+		filepath.Join("with-single-input", "undeclared-provider"): {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Component requires undeclared provider",
+					Detail:   "The root module for component.self requires a configuration for provider \"hashicorp/testing\", which isn't declared as a dependency of this stack configuration.\n\nDeclare this provider in the stack's required_providers block, and then assign a configuration for that provider in this component's \"providers\" argument.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/undeclared-provider/undeclared-provider.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 5, Column: 1, Byte: 38},
+						End:      hcl.Pos{Line: 5, Column: 17, Byte: 54},
+					},
+				})
+				return diags
+			},
+		},
+		filepath.Join("with-single-input", "missing-provider"): {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Missing required provider configuration",
+					Detail:   "The root module for component.self requires a provider configuration named \"testing\" for provider \"hashicorp/testing\", which is not assigned in the component's \"providers\" argument.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/missing-provider/missing-provider.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 14, Column: 1, Byte: 169},
+						End:      hcl.Pos{Line: 14, Column: 17, Byte: 185},
+					},
+				})
+				return diags
+			},
+		},
+		filepath.Join("with-single-input", "invalid-provider"): {
+			// TODO: Enable this test case, when we have a good error message
+			//  for provider type mismatches. Currently, we return the same
+			//  error as for missing provider, which is not ideal.
+			skip: true,
+		},
 	}
 
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
+			if tc.skip {
+				// We've added this test before the implementation was ready.
+				t.SkipNow()
+			}
+
 			ctx := context.Background()
 			cfg := loadMainBundleConfigForTest(t, name)
 

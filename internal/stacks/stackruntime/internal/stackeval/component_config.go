@@ -323,7 +323,23 @@ func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (
 			continue
 		}
 
-		// TODO: Also validate the provider types are the same.
+		// TODO: It's not currently possible to assign a provider configuration
+		//  with a different local name even if the types match. Find out if
+		//  this is deliberate. Note, the component_instance CheckProviders
+		//  function also enforces this.
+		//
+		// In theory you should be able to do this:
+		//   provider_one = provider.provider_two.default
+		//
+		// Assuming the underlying types of the providers are the same, even if
+		// the local names are not. This is not possible at the moment, the
+		// local names must match up.
+		//
+		// We'll have to partially parse the reference here to get the local
+		// configuration block (uninstanced), and then resolve the underlying
+		// type. And then make sure it matches the type of the provider we're
+		// assigning it to in the module. Also, we should fix the equivalent
+		// function in component_instance at the same time.
 
 		ret.Add(inCalleeAddr)
 	}
@@ -403,8 +419,13 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 		}
 		decl := c.Declaration(ctx)
 
-		// TODO: Also check if the providers are valid.
 		// TODO: Also check if the input variables are valid.
+
+		_, providerDiags := c.CheckProviders(ctx, phase)
+		diags = diags.Append(providerDiags)
+		if providerDiags.HasErrors() {
+			return diags, nil
+		}
 
 		providerSchemas, moreDiags := c.neededProviderSchemas(ctx, phase)
 		diags = diags.Append(moreDiags)
