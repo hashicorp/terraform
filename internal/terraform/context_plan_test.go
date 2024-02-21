@@ -1864,7 +1864,7 @@ func TestContext2Plan_computedInFunction(t *testing.T) {
 		},
 	})
 
-	diags := ctx.Validate(m)
+	diags := ctx.Validate(m, nil)
 	assertNoErrors(t, diags)
 
 	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
@@ -5264,7 +5264,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		},
 	})
 
-	diags := ctx.Validate(m)
+	diags := ctx.Validate(m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("validate errors: %s", diags.Err())
 	}
@@ -5348,7 +5348,7 @@ func TestContext2Plan_selfRef(t *testing.T) {
 		},
 	})
 
-	diags := c.Validate(m)
+	diags := c.Validate(m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected validation failure: %s", diags.Err())
 	}
@@ -5384,7 +5384,7 @@ func TestContext2Plan_selfRefMulti(t *testing.T) {
 		},
 	})
 
-	diags := c.Validate(m)
+	diags := c.Validate(m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected validation failure: %s", diags.Err())
 	}
@@ -5420,7 +5420,7 @@ func TestContext2Plan_selfRefMultiAll(t *testing.T) {
 		},
 	})
 
-	diags := c.Validate(m)
+	diags := c.Validate(m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected validation failure: %s", diags.Err())
 	}
