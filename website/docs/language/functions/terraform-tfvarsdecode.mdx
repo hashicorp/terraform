@@ -1,0 +1,70 @@
+---
+page_title: provider::terraform::tfvarsdecode - Functions - Configuration Language
+description: >-
+  The tfvarsencode function parses a string containing syntax like that used
+  in a ".tfvars" file.
+---
+
+# `provider::terraform::tfvarsdecode` Function
+
+-> **Note:** This function is supported only in Terraform v1.8 and later.
+
+`provider::terraform::tfvarsdecode` is a rarely-needed function which takes
+a string containing the content of a
+[`.tfvars` file](/terraform/language/values/variables#variable-definitions-tfvars-files)
+and returns an object describing the raw variable values it defines.
+
+To use this function, your module must declare a dependency on the built-in
+`terraform` provider, which contains this function:
+
+```hcl
+terraform {
+  required_providers {
+    terraform = {
+      source = "terraform.io/builtin/terraform"
+    }
+  }
+}
+```
+
+Elsewhere in your module you can then call this function:
+
+```hcl
+provider::terraform::tfvarsdecode(
+  <<EOT
+    example = "Hello!"
+  EOT
+)
+```
+
+The call above would produce an object value like the following:
+
+```hcl
+{
+  example = "Hello!"
+}
+```
+
+## Result Types
+
+When interpreting a `.tfvars` file, Terraform CLI normally uses the variable
+declarations from the related module to find a target type to convert the
+definitions for use in the module.
+
+`tfvarsdecode` does not have access to that type information, and so the result
+always uses the most general type that a particular syntax could represent.
+The supported value types for attributes of the result are:
+
+* `string`, `number`, and `bool`
+* `object` types
+* `tuple` types
+
+If you need to interpret object or tuple values as collection types, use
+the type conversion functions to convert the returned values. There is no way
+to represent list, set, or map values directly in the `.tfvars` format.
+
+## Related Functions
+
+* [`tfvarsencode`](/terraform/language/functions/terraform-tfvarsencode)
+  performs the opposite operation: producing `.tfvars` content from an
+  object value.
