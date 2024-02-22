@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/providers"
 )
 
@@ -26,6 +28,37 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		},
 		ResourceTypes: map[string]providers.Schema{
 			"terraform_data": dataStoreResourceSchema(),
+		},
+		Functions: map[string]providers.FunctionDecl{
+			"tfvarsencode": {
+				Parameters: []providers.FunctionParam{
+					{
+						Name:               "value",
+						Type:               cty.DynamicPseudoType,
+						AllowUnknownValues: true, // to perform refinements
+					},
+				},
+				ReturnType: cty.String,
+			},
+			"tfvarsdecode": {
+				Parameters: []providers.FunctionParam{
+					{
+						Name: "src",
+						Type: cty.String,
+					},
+				},
+				ReturnType: cty.DynamicPseudoType,
+			},
+			"exprencode": {
+				Parameters: []providers.FunctionParam{
+					{
+						Name:               "value",
+						Type:               cty.DynamicPseudoType,
+						AllowUnknownValues: true, // to perform refinements
+					},
+				},
+				ReturnType: cty.String,
+			},
 		},
 	}
 }
@@ -143,8 +176,31 @@ func (p *Provider) ValidateResourceConfig(req providers.ValidateResourceConfigRe
 
 // CallFunction would call a function contributed by this provider, but this
 // provider has no functions and so this function just panics.
-func (p *Provider) CallFunction(providers.CallFunctionRequest) providers.CallFunctionResponse {
-	panic("unimplemented - terraform.io/builtin/terraform provider has no functions")
+func (p *Provider) CallFunction(req providers.CallFunctionRequest) providers.CallFunctionResponse {
+	fn, ok := functions[req.FunctionName]
+	if !ok {
+		// Should not get here if the caller is behaving correctly, because
+		// we don't declare any functions in our schema that we don't have
+		// implementations for.
+		return providers.CallFunctionResponse{
+			Err: fmt.Errorf("provider has no function named %q", req.FunctionName),
+		}
+	}
+
+	// NOTE: We assume that none of the arguments can be marked, because we're
+	// expecting to be called from logic in Terraform Core that strips marks
+	// before calling a provider-contributed function, and then reapplies them
+	// afterwards.
+
+	result, err := fn(req.Arguments)
+	if err != nil {
+		return providers.CallFunctionResponse{
+			Err: err,
+		}
+	}
+	return providers.CallFunctionResponse{
+		Result: result,
+	}
 }
 
 // Close is a noop for this provider, since it's run in-process.

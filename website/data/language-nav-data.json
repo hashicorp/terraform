@@ -730,6 +730,14 @@
           { "title": "<code>type</code>", "href": "/language/functions/type" }
         ]
       },
+      {
+        "title": "Terraform-specific Functions",
+        "routes": [
+          { "title": "<code>provider::terraform::tfvarsencode</code>", "href": "/language/functions/terraform-tfvarsencode" },
+          { "title": "<code>provider::terraform::tfvarsdecode</code>", "href": "/language/functions/terraform-tfvarsdecode" },
+          { "title": "<code>provider::terraform::exprencode</code>", "href": "/language/functions/terraform-exprencode" }
+        ]
+      },
       { "title": "abs", "path": "functions/abs", "hidden": true },
       { "title": "abspath", "path": "functions/abspath", "hidden": true },
       { "title": "alltrue", "path": "functions/alltrue", "hidden": true },
@@ -878,6 +886,9 @@
         "path": "functions/templatefile",
         "hidden": true
       },
+      { "title": "terraform-tfvarsencode", "path": "functions/terraform-tfvarsencode", "hidden": true },
+      { "title": "terraform-tfvarsdecode", "path": "functions/terraform-tfvarsdecode", "hidden": true },
+      { "title": "terraform-exprencode", "path": "functions/terraform-exprencode", "hidden": true },
       {
         "title": "textdecodebase64",
         "path": "functions/textdecodebase64",
