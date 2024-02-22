@@ -796,7 +796,7 @@ message PlannedChange {
         }
     }
     // Note: this is only for output values from the topmost
-    // stack configuration, because all other output values are 
+    // stack configuration, because all other output values are
     // internal to the configuration and not part of its public API.
     message OutputValue {
         string name = 1;
@@ -970,6 +970,7 @@ message StackChangeProgress {
     message ResourceInstanceStatus {
         ResourceInstanceObjectInStackAddr addr = 1;
         Status status = 2;
+        string provider_addr = 3;
 
         enum Status {
             INVALID = 0;
@@ -994,6 +995,7 @@ message StackChangeProgress {
         repeated ChangeType actions = 2;
         Moved moved = 3;
         Imported imported = 4;
+        string provider_addr = 5;
 
         message Moved {
             ResourceInstanceInStackAddr prev_addr = 1;
