@@ -23,7 +23,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * core: Sensitive values will now be tracked more accurately in state and plans, preventing unexpected updates with no apparent changes [GH-34567]
-* CLI-driven runs were colorizing strings returned as error messages when a policy soft fails. The fix removes this call to colorize in #34473.
+* cloud: Fixed unparsed color codes in policy failure error messages #34473
 
 EXPERIMENTS:
 
