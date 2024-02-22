@@ -384,6 +384,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 
 	vars, diag := runner.GetGlobalAndSuiteVariables(runner.Suite.Config)
 	run.Diagnostics = run.Diagnostics.Append(diag)
+
 	// TODO: Merge local variables and suite-level variables
 	// It might be necessary to change the format or add an extra parameter, not sure yet
 	resetConfig, configDiags := configtest.TransformConfigForTest(config, run, file, vars, runner.PriorOutputs, runner.Suite.configProviders[key])
@@ -1052,17 +1053,37 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 		values[name] = runner.getGlobalVariable(name, variable, config)
 	}
 
+	// We don't care if the file level variables are relevant or not
+	ignoreRelevance := func(name string, expr hcl.Expression) (diags tfdiags.Diagnostics) {
+		return diags
+	}
+
 	// Second, we'll check the file level variables
 	// This is a bit more complicated, as the file and run level variables can reference
 	// previously defined variables.
-	fileValues, fileDiags := runner.getVariablesFromConfiguration(values, relevantVariables, run.Name, runner.fileVariables)
+	fileValues, fileDiags := runner.getVariablesFromConfiguration(values, ignoreRelevance, runner.fileVariables)
 	diags = diags.Append(fileDiags)
 	for name, value := range fileValues {
 		values[name] = value
 	}
 
+	// We want to make sure every variable declared in the run block is actually relevant.
+	validateRelevance := func(name string, expr hcl.Expression) (diags tfdiags.Diagnostics) {
+		if !relevantVariables[name] {
+			// We'll add a warning for this. Since we're right in the run block
+			// users shouldn't be defining variables that are not relevant.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Value for undeclared variable",
+				Detail:   fmt.Sprintf("The module under test does not declare a variable named %q, but it is declared in run block %q.", name, run.Name),
+				Subject:  expr.Range().Ptr(),
+			})
+		}
+		return diags
+	}
+
 	// Third, we'll check the run level variables.
-	runValues, runDiags := runner.getVariablesFromConfiguration(values, relevantVariables, run.Name, run.Config.Variables)
+	runValues, runDiags := runner.getVariablesFromConfiguration(values, validateRelevance, run.Config.Variables)
 	diags = diags.Append(runDiags)
 	for name, value := range runValues {
 		values[name] = value
@@ -1103,7 +1124,6 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 				SourceRange: tfdiags.SourceRangeFromHCL(variable.DeclRange),
 			}
 		}
-
 	}
 
 	return values, diags
@@ -1139,7 +1159,7 @@ func (runner *TestFileRunner) getGlobalVariable(name string, variable backend.Un
 
 // getVariablesFromConfiguration will process the variables from the configuration
 // and return a map of the variables and their values.
-func (runner *TestFileRunner) getVariablesFromConfiguration(knownVariables terraform.InputValues, relevantVariables map[string]bool, runName string, variableConfig map[string]hcl.Expression) (terraform.InputValues, tfdiags.Diagnostics) {
+func (runner *TestFileRunner) getVariablesFromConfiguration(knownVariables terraform.InputValues, validateRelevance func(string, hcl.Expression) tfdiags.Diagnostics, variableConfig map[string]hcl.Expression) (terraform.InputValues, tfdiags.Diagnostics) {
 	var exprs []hcl.Expression
 	var diags tfdiags.Diagnostics
 	variableValues := make(terraform.InputValues)
@@ -1169,15 +1189,9 @@ func (runner *TestFileRunner) getVariablesFromConfiguration(knownVariables terra
 	}
 
 	for name, expr := range variableConfig {
-		if relevantVariables != nil && !relevantVariables[name] {
-			// We'll add a warning for this. Since we're right in the run block
-			// users shouldn't be defining variables that are not relevant.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagWarning,
-				Summary:  "Value for undeclared variable",
-				Detail:   fmt.Sprintf("The module under test does not declare a variable named %q, but it is declared in run block %q.", name, runName),
-				Subject:  expr.Range().Ptr(),
-			})
+		relevanceDiags := validateRelevance(name, expr)
+		if relevanceDiags.HasWarnings() {
+			diags = diags.Append(relevanceDiags)
 			continue
 		}
 
@@ -1208,7 +1222,7 @@ func (runner *TestFileRunner) GetGlobalAndSuiteVariables(config *configs.Config)
 		values[name] = runner.getGlobalVariable(name, variable, config)
 	}
 
-	fileValues, fileDiags := runner.getVariablesFromConfiguration(values, nil, "TODO: Rewrite error to either not mention run block or wrap the error", runner.fileVariables)
+	fileValues, fileDiags := runner.getVariablesFromConfiguration(values, func(s string, e hcl.Expression) tfdiags.Diagnostics { return tfdiags.Diagnostics{} }, runner.fileVariables)
 	diags = diags.Append(fileDiags)
 	for name, value := range fileValues {
 		values[name] = value
