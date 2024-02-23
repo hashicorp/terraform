@@ -1,7 +1,7 @@
 
 variables {
   input = {
-      organization_name = var.org_name
+    organization_name = var.org_name
   }
 }
 
