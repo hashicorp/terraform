@@ -1196,7 +1196,7 @@ func (runner *TestFileRunner) getVariablesFromConfiguration(knownVariables terra
 	for name, expr := range variableConfig {
 		relevanceDiags := validateRelevance(name, expr)
 		diags = diags.Append(relevanceDiags)
-		if relevanceDiags.HasWarnings() {
+		if len(relevanceDiags) > 0 {
 			continue
 		}
 
