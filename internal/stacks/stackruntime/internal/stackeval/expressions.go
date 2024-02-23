@@ -10,10 +10,15 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
+	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 type EvalPhase rune
@@ -201,6 +206,72 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 	}
 
 	return hclCtx, diags
+}
+
+func EvalComponentInputVariables(ctx context.Context, wantTy cty.Type, defs *typeexpr.Defaults, decl *stackconfig.Component, phase EvalPhase, scope ExpressionScope) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	v := cty.EmptyObjectVal
+	expr := decl.Inputs
+	rng := decl.DeclRange
+	var hclCtx *hcl.EvalContext
+	if expr != nil {
+		result, moreDiags := EvalExprAndEvalContext(ctx, expr, phase, scope)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			return cty.DynamicVal, diags
+		}
+		expr = result.Expression
+		hclCtx = result.EvalContext
+		v = result.Value
+		rng = tfdiags.SourceRangeFromHCL(result.Expression.Range())
+	}
+
+	if defs != nil {
+		v = defs.Apply(v)
+	}
+	v, err := convert.Convert(v, wantTy)
+	if err != nil {
+		// A conversion failure here could either be caused by an author-provided
+		// expression that's invalid or by the author omitting the argument
+		// altogether when there's at least one required attribute, so we'll
+		// return slightly different messages in each case.
+		if expr != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     "Invalid inputs for component",
+				Detail:      fmt.Sprintf("Invalid input variable definition object: %s.", tfdiags.FormatError(err)),
+				Subject:     rng.ToHCL().Ptr(),
+				Expression:  expr,
+				EvalContext: hclCtx,
+			})
+		} else {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing required inputs for component",
+				Detail:   fmt.Sprintf("Must provide \"inputs\" argument to define the component's input variables: %s.", tfdiags.FormatError(err)),
+				Subject:  rng.ToHCL().Ptr(),
+			})
+		}
+		return cty.DynamicVal, diags
+	}
+
+	for _, path := range stackconfigtypes.ProviderInstancePathsInValue(v) {
+		err := path.NewErrorf("cannot send provider configuration reference to Terraform module input variable")
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid inputs for component",
+			Detail: fmt.Sprintf(
+				"Invalid input variable definition object: %s.\n\nUse the separate \"providers\" argument to specify the provider configurations to use for this component's root module.",
+				tfdiags.FormatError(err),
+			),
+			Subject:     rng.ToHCL().Ptr(),
+			Expression:  expr,
+			EvalContext: hclCtx,
+		})
+	}
+
+	return v, diags
 }
 
 // EvalExprAndEvalContext evaluates the given HCL expression in the given

@@ -62,7 +62,21 @@ func TestPlan_valid(t *testing.T) {
 			changesCh := make(chan stackplan.PlannedChange, 8)
 			diagsCh := make(chan tfdiags.Diagnostic, 2)
 			req := PlanRequest{
-				Config:             cfg,
+				Config: cfg,
+				ProviderFactories: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProvider(), nil
+					},
+				},
+				InputValues: func() map[stackaddrs.InputVariable]ExternalInputValue {
+					inputs := map[stackaddrs.InputVariable]ExternalInputValue{}
+					for k, v := range tc.planInputVars {
+						inputs[stackaddrs.InputVariable{Name: k}] = ExternalInputValue{
+							Value: v,
+						}
+					}
+					return inputs
+				}(),
 				ForcePlanTimestamp: &fakePlanTimestamp,
 			}
 			resp := PlanResponse{
@@ -128,6 +142,15 @@ func TestPlan_invalid(t *testing.T) {
 						return stacks_testing_provider.NewProvider(), nil
 					},
 				},
+				InputValues: func() map[stackaddrs.InputVariable]ExternalInputValue {
+					inputs := map[stackaddrs.InputVariable]ExternalInputValue{}
+					for k, v := range tc.planInputVars {
+						inputs[stackaddrs.InputVariable{Name: k}] = ExternalInputValue{
+							Value: v,
+						}
+					}
+					return inputs
+				}(),
 				ForcePlanTimestamp: &fakePlanTimestamp,
 			}
 			resp := PlanResponse{
@@ -1136,6 +1159,48 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 
 	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
+	}
+}
+
+func TestPlanWithForEach(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, path.Join("with-single-input", "input-from-component-list"))
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange, 8)
+	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+
+		ForcePlanTimestamp: &fakePlanTimestamp,
+
+		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
+			stackaddrs.InputVariable{Name: "components"}: {
+				Value:    cty.ListVal([]cty.Value{cty.StringVal("one"), cty.StringVal("two"), cty.StringVal("three")}),
+				DefRange: tfdiags.SourceRange{},
+			},
+		},
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	_, diags := collectPlanOutput(changesCh, diagsCh)
+
+	reportDiagnosticsForTest(t, diags)
+	if len(diags) != 0 {
+		t.FailNow() // We reported the diags above/
 	}
 }
 

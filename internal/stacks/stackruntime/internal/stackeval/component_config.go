@@ -257,6 +257,21 @@ func (c *ComponentConfig) InputsType(ctx context.Context) (cty.Type, *typeexpr.D
 	return retTy, defs
 }
 
+func (c *ComponentConfig) CheckInputVariableValues(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
+	wantTy, defs := c.InputsType(ctx)
+	if wantTy == cty.NilType {
+		// Suggests that the module tree is invalid. We validate the full module
+		// tree elsewhere, which will hopefully detect the problems here.
+		return nil
+	}
+
+	decl := c.Declaration(ctx)
+
+	// We don't care about the returned value, only that it has no errors.
+	_, diags := EvalComponentInputVariables(ctx, wantTy, defs, decl, phase, c)
+	return diags
+}
+
 // RequiredProviderInstances returns a description of all of the provider
 // instance slots ("provider configurations" in main Terraform language
 // terminology) that are either explicitly declared or implied by the
@@ -434,11 +449,18 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 		}
 		decl := c.Declaration(ctx)
 
-		// TODO: Also check if the input variables are valid.
+		variableDiags := c.CheckInputVariableValues(ctx, phase)
+		diags = diags.Append(variableDiags)
+		// We don't actually exit if we found errors with the input variables,
+		// we can still validate the actual module tree without them.
 
 		_, providerDiags := c.CheckProviders(ctx, phase)
 		diags = diags.Append(providerDiags)
 		if providerDiags.HasErrors() {
+			// If there's invalid provider configuration, we can't actually go
+			// on and validate the module tree. We need the providers and if
+			// they're invalid we'll just get crazy and confusing errors
+			// later if we try and carry on.
 			return diags, nil
 		}
 
@@ -448,7 +470,9 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			return diags, nil
 		}
 
-		// TODO: Manually validate the provider configs.
+		// TODO: Manually validate the provider configs. Probably shouldn't
+		// actually do this here though. We can validate all the provider
+		// configs in the stack configuration in one go at a higher level.
 
 		tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
 			PreloadedProviderSchemas: providerSchemas,
