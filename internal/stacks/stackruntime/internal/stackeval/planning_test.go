@@ -13,6 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
@@ -20,7 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
-	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	providerTesting "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
@@ -156,7 +157,7 @@ func TestPlanning_DestroyMode(t *testing.T) {
 		PlanningMode: plans.DestroyMode,
 		ProviderFactories: ProviderFactories{
 			addrs.NewBuiltInProvider("test"): func() (providers.Interface, error) {
-				return &testing_provider.MockProvider{
+				return &providerTesting.MockProvider{
 					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 						Provider: providers.Schema{
 							Block: &configschema.Block{},
@@ -343,7 +344,7 @@ func TestPlanning_RequiredComponents(t *testing.T) {
 		PlanningMode: plans.NormalMode,
 		ProviderFactories: ProviderFactories{
 			addrs.NewBuiltInProvider("foo"): func() (providers.Interface, error) {
-				return &testing_provider.MockProvider{
+				return &providerTesting.MockProvider{
 					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 						Provider: providers.Schema{
 							Block: &configschema.Block{
@@ -601,7 +602,7 @@ func TestPlanning_DeferredChangesPropagation(t *testing.T) {
 		},
 		ProviderFactories: ProviderFactories{
 			addrs.NewBuiltInProvider("test"): func() (providers.Interface, error) {
-				return &testing_provider.MockProvider{
+				return &providerTesting.MockProvider{
 					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 						Provider: providers.Schema{
 							Block: &configschema.Block{},
@@ -679,6 +680,204 @@ func TestPlanning_DeferredChangesPropagation(t *testing.T) {
 			t.Errorf("wrong actions for second component\n%s", diff)
 		}
 	})
+}
+
+func TestPlanning_RemoveDataResource(t *testing.T) {
+	// This test is here because there was a historical bug where we'd generate
+	// an invalid plan (unparsable) whenever the plan included deletion of
+	// a previously-declared data resource, where the provider configuration
+	// address would not be populated correctly.
+	//
+	// Therefore this test is narrowly focused on that specific situation.
+	// Anything else it's exercising as a side-effect is not crucial for
+	// this test in particular, although of course unrelated regressions might
+	// still be important in some other way beyond this test's scope.
+
+	providerFactories := map[addrs.Provider]providers.Factory{
+		addrs.NewBuiltInProvider("test"): func() (providers.Interface, error) {
+			return &providerTesting.MockProvider{
+				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+					DataSources: map[string]providers.Schema{
+						"test": {
+							Block: &configschema.Block{},
+						},
+					},
+				},
+				ReadDataSourceFn: func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+					return providers.ReadDataSourceResponse{
+						State: cty.EmptyObjectVal,
+					}
+				},
+			}, nil
+		},
+	}
+	objAddr := stackaddrs.AbsResourceInstanceObject{
+		Component: stackaddrs.AbsComponentInstance{
+			Stack: stackaddrs.RootStackInstance,
+			Item: stackaddrs.ComponentInstance{
+				Component: stackaddrs.Component{Name: "main"},
+			},
+		},
+		Item: addrs.AbsResourceInstanceObject{
+			ResourceInstance: addrs.AbsResourceInstance{
+				Module: addrs.RootModuleInstance,
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.DataResourceMode,
+						Type: "test",
+						Name: "test",
+					},
+				},
+			},
+			DeposedKey: addrs.NotDeposed,
+		},
+	}
+
+	var state *stackstate.State
+
+	// Round 1: data.test.test is present inside component.main
+	{
+		ctx := context.Background()
+		cfg := testStackConfig(t, "planning", "remove_data_resource/step1")
+
+		// Plan
+		rawPlan, err := promising.MainTask(ctx, func(ctx context.Context) ([]*anypb.Any, error) {
+			main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
+				PlanningMode:      plans.NormalMode,
+				ProviderFactories: providerFactories,
+			})
+			outp, outpTest := testPlanOutput(t)
+			main.PlanAll(ctx, outp)
+			rawPlan := outpTest.RawChanges(t)
+			_, diags := outpTest.Close(t)
+			assertNoDiagnostics(t, diags)
+			return rawPlan, nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Apply
+		newState, err := promising.MainTask(ctx, func(ctx context.Context) (*stackstate.State, error) {
+			outp, outpTest := testApplyOutput(t, nil)
+			_, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+				ProviderFactories: providerFactories,
+			}, outp)
+			if err != nil {
+				t.Fatal(err)
+			}
+			state, diags := outpTest.Close(t)
+			assertNoDiagnostics(t, diags)
+
+			// This test is only valid if the data resource instance is actually
+			// tracked in the state.
+			obj := state.ResourceInstanceObjectSrc(objAddr)
+			if obj == nil {
+				t.Fatalf("data.test.test is not in the final state for round 1")
+			}
+
+			return state, nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// We'll use the new state as the input for the next round.
+		state = newState
+	}
+
+	// Round 2: data.test.test has its remnant left in the prior state, but
+	// it's no longer present in the configuration.
+	{
+		ctx := context.Background()
+		cfg := testStackConfig(t, "planning", "remove_data_resource/step2")
+
+		// Plan
+		type Plans struct {
+			Nice *stackplan.Plan
+			Raw  []*anypb.Any
+		}
+		plans, err := promising.MainTask(ctx, func(ctx context.Context) (Plans, error) {
+			main := NewForPlanning(cfg, state, PlanOpts{
+				PlanningMode:      plans.NormalMode,
+				ProviderFactories: providerFactories,
+			})
+			outp, outpTest := testPlanOutput(t)
+			main.PlanAll(ctx, outp)
+			rawPlan := outpTest.RawChanges(t)
+			// The original bug would occur at this point, because
+			// outpTest.Close attempts to parse the raw plan, which fails if
+			// any part of that structure is not syntactically valid.
+			plan, diags := outpTest.Close(t)
+			assertNoDiagnostics(t, diags)
+			return Plans{plan, rawPlan}, nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		plan := plans.Nice
+		rawPlan := plans.Raw
+
+		// We'll check whether the data resource even appears in the plan,
+		// because if not then this test is no longer testing what it thinks
+		// it's testing and should probably be revised.
+		//
+		// (That doesn't necessarily mean that any new behavior is wrong: if
+		// plan at all anymore then we can update this test to agree with that.)
+		//
+		// Specifically we expect to have a prior state and a provider config
+		// address for this data resource, but no planned action because
+		// dropping a data resource from the state is not an "action" in the
+		// usual sense (it doesn't cause any calls to the provider).
+		mainPlan := plan.Components.Get(stackaddrs.AbsComponentInstance{
+			Stack: stackaddrs.RootStackInstance,
+			Item: stackaddrs.ComponentInstance{
+				Component: stackaddrs.Component{Name: "main"},
+			},
+		})
+		if mainPlan == nil {
+			t.Fatalf("main component not appear in the plan at all")
+		}
+		riAddr := objAddr.Item
+		_, ok := mainPlan.ResourceInstancePriorState.GetOk(riAddr)
+		if !ok {
+			t.Fatalf("data resource instance does not appear in the prior state at all")
+		}
+		providerConfig, ok := mainPlan.ResourceInstanceProviderConfig.GetOk(riAddr)
+		if !ok {
+			t.Fatalf("data resource instance does not have a provider config in the plan")
+		}
+		if got, want := providerConfig.Provider, addrs.NewBuiltInProvider("test"); got != want {
+			t.Errorf("wrong provider configuration address\ngot:  %s\nwant: %s", got, want)
+		}
+
+		// For good measure we'll also apply this new plan, to make sure that
+		// we're left with no remnant of the data resource in the updated state.
+		newState, err := promising.MainTask(ctx, func(ctx context.Context) (*stackstate.State, error) {
+			outp, outpTest := testApplyOutput(t, nil)
+			_, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+				ProviderFactories: providerFactories,
+			}, outp)
+			if err != nil {
+				t.Fatal(err)
+			}
+			state, diags := outpTest.Close(t)
+			assertNoDiagnostics(t, diags)
+
+			return state, nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		state = newState
+	}
+
+	// Our final state should not include the data resource at all.
+	objState := state.ResourceInstanceObjectSrc(objAddr)
+	if objState != nil {
+		t.Errorf("%s is still in the state after it should've been dropped", objAddr)
+	}
 }
 
 func TestPlanning_NoWorkspaceNameRef(t *testing.T) {

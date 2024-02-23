@@ -274,6 +274,7 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 			ComponentInstanceAddr: rioAddr.Component.String(),
 			ResourceInstanceAddr:  rioAddr.Item.ResourceInstance.String(),
 			DeposedKey:            rioAddr.Item.DeposedKey.String(),
+			ProviderConfigAddr:    pc.ProviderConfigAddr.String(),
 		}, proto.MarshalOptions{})
 		if err != nil {
 			return nil, err
