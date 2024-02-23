@@ -91,7 +91,6 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 				Version:    testProvider.Version,
 				Config: &hcltest.ProviderConfig{
 					Original:            testProvider.Config,
-					ConfigVariables:     config.Module.Variables,
 					AvailableVariables:  availableVariables,
 					AvailableRunOutputs: availableRunOutputs,
 				},
@@ -119,7 +118,6 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 				Version:    provider.Version,
 				Config: &hcltest.ProviderConfig{
 					Original:            provider.Config,
-					ConfigVariables:     config.Module.Variables,
 					AvailableVariables:  availableVariables,
 					AvailableRunOutputs: availableRunOutputs,
 				},

@@ -174,15 +174,6 @@ func TestProviderConfig(t *testing.T) {
 
 			config := ProviderConfig{
 				Original: file.Body,
-				ConfigVariables: func() map[string]*configs.Variable {
-					variables := make(map[string]*configs.Variable)
-					for variable := range tc.variables {
-						variables[variable] = &configs.Variable{
-							Name: variable,
-						}
-					}
-					return variables
-				}(),
 				AvailableVariables: func() terraform.InputValues {
 					variables := make(terraform.InputValues)
 					for name, value := range tc.variables {
