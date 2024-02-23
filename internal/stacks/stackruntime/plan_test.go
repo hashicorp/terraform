@@ -35,6 +35,120 @@ import (
 	"github.com/hashicorp/terraform/version"
 )
 
+// TestPlan_valid runs the same set of configurations as TestValidate_valid.
+//
+// Plan should execute the same set of validations as validate, so we expect
+// all of the following to be valid for both plan and validate.
+//
+// We also want to make sure the static and dynamic evaluations are not
+// returning duplicate / conflicting diagnostics. This test will tell us if
+// either plan or validate is reporting diagnostics the others are missing.
+func TestPlan_valid(t *testing.T) {
+	for name, tc := range validConfigurations {
+		t.Run(name, func(t *testing.T) {
+			if tc.skip {
+				// We've added this test before the implementation was ready.
+				t.SkipNow()
+			}
+
+			ctx := context.Background()
+			cfg := loadMainBundleConfigForTest(t, name)
+
+			fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			changesCh := make(chan stackplan.PlannedChange, 8)
+			diagsCh := make(chan tfdiags.Diagnostic, 2)
+			req := PlanRequest{
+				Config:             cfg,
+				ForcePlanTimestamp: &fakePlanTimestamp,
+			}
+			resp := PlanResponse{
+				PlannedChanges: changesCh,
+				Diagnostics:    diagsCh,
+			}
+
+			go Plan(ctx, &req, &resp)
+			_, diags := collectPlanOutput(changesCh, diagsCh)
+
+			// We don't care about the planned changes here, just the
+			// diagnostics.
+
+			// The following will fail the test if there are any error
+			// diagnostics.
+			reportDiagnosticsForTest(t, diags)
+
+			// We also want to fail if there are just warnings, since the
+			// configurations here are supposed to be totally problem-free.
+			if len(diags) != 0 {
+				// reportDiagnosticsForTest already showed the diagnostics in
+				// the log
+				t.FailNow()
+			}
+		})
+	}
+}
+
+// TestPlan_invalid runs the same set of configurations as TestValidate_invalid.
+//
+// Plan should execute the same set of validations as validate, so we expect
+// all of the following to be invalid for both plan and validate.
+//
+// We also want to make sure the static and dynamic evaluations are not
+// returning duplicate / conflicting diagnostics. This test will tell us if
+// either plan or validate is reporting diagnostics the others are missing.
+//
+// The dynamic validation that happens during the plan *might* introduce
+// additional diagnostics that are not present in the static validation. These
+// should be added manually into this function.
+func TestPlan_invalid(t *testing.T) {
+	for name, tc := range invalidConfigurations {
+		t.Run(name, func(t *testing.T) {
+			if tc.skip {
+				// We've added this test before the implementation was ready.
+				t.SkipNow()
+			}
+
+			ctx := context.Background()
+			cfg := loadMainBundleConfigForTest(t, name)
+
+			fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			changesCh := make(chan stackplan.PlannedChange, 8)
+			diagsCh := make(chan tfdiags.Diagnostic, 2)
+			req := PlanRequest{
+				Config: cfg,
+				ProviderFactories: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProvider(), nil
+					},
+				},
+				ForcePlanTimestamp: &fakePlanTimestamp,
+			}
+			resp := PlanResponse{
+				PlannedChanges: changesCh,
+				Diagnostics:    diagsCh,
+			}
+
+			go Plan(ctx, &req, &resp)
+			_, gotDiags := collectPlanOutput(changesCh, diagsCh)
+			wantDiags := tc.diags()
+			if tc.planHook != nil {
+				wantDiags = tc.planHook(wantDiags)
+			}
+
+			if diff := cmp.Diff(wantDiags.ForRPC(), gotDiags.ForRPC()); diff != "" {
+				t.Errorf("wrong diagnostics\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestPlanWithMissingInputVariable(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, "plan-undeclared-variable-in-component")

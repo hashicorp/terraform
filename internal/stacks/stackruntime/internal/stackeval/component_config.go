@@ -282,14 +282,14 @@ func (c *ComponentConfig) RequiredProviderInstances(ctx context.Context) addrs.S
 	return moduleTree.Root.EffectiveRequiredProviderConfigs()
 }
 
-func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (addrs.Set[addrs.RootProviderConfig], tfdiags.Diagnostics) {
+func (c *ComponentConfig) configProviders(ctx context.Context) (addrs.Map[addrs.RootProviderConfig, addrs.LocalProviderConfig], tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	stackConfig := c.main.StackConfig(ctx, c.Addr().Stack)
 	declConfigs := c.Declaration(ctx).ProviderConfigs
 	neededProviders := c.RequiredProviderInstances(ctx)
 
-	ret := addrs.MakeSet[addrs.RootProviderConfig]()
+	ret := addrs.MakeMap[addrs.RootProviderConfig, addrs.LocalProviderConfig]()
 	for _, inCalleeAddr := range neededProviders {
 		typeAddr := inCalleeAddr.Provider
 		localName, ok := stackConfig.ProviderLocalName(ctx, typeAddr)
@@ -341,17 +341,24 @@ func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (
 		// assigning it to in the module. Also, we should fix the equivalent
 		// function in component_instance at the same time.
 
-		ret.Add(inCalleeAddr)
+		ret.Put(inCalleeAddr, localAddr)
 	}
 	return ret, diags
 }
 
-func (c *ComponentConfig) neededProviderClients(ctx context.Context, phase EvalPhase) (map[addrs.RootProviderConfig]providers.Interface, bool) {
+func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (addrs.Set[addrs.RootProviderConfig], tfdiags.Diagnostics) {
+	// Short circuit this through the configProviders function to share
+	// with the equivalent function in component_instance.go.
+	providers, diags := c.configProviders(ctx)
+	return providers.Keys(), diags
+
+}
+
+func (c *ComponentConfig) neededProviderClients(ctx context.Context, providerAddrs addrs.Set[addrs.RootProviderConfig], phase EvalPhase) (map[addrs.RootProviderConfig]providers.Interface, bool) {
 	insts := make(map[addrs.RootProviderConfig]providers.Interface)
 	valid := true
 
-	providers, _ := c.CheckProviders(ctx, phase)
-	for _, provider := range providers {
+	for _, provider := range providerAddrs {
 		pTy := c.main.ProviderType(ctx, provider.Provider)
 		if pTy == nil {
 			valid = false
@@ -421,7 +428,7 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 
 		// TODO: Also check if the input variables are valid.
 
-		_, providerDiags := c.CheckProviders(ctx, phase)
+		providers, providerDiags := c.CheckProviders(ctx, phase)
 		diags = diags.Append(providerDiags)
 		if providerDiags.HasErrors() {
 			return diags, nil
@@ -450,7 +457,7 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			return diags, nil
 		}
 
-		providerClients, valid := c.neededProviderClients(ctx, phase)
+		providerClients, valid := c.neededProviderClients(ctx, providers, phase)
 		if !valid {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
