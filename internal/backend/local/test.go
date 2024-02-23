@@ -1024,7 +1024,7 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 		return getVarsDiags
 	}
 
-	// Second, we'll check to see which variables the suites global variables
+	// Second, we'll check to see which variables the file variables
 	// themselves reference.
 	diags = diags.Append(getRelevantVariables(runner.fileVariableExpressions))
 
