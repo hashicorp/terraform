@@ -19,9 +19,7 @@ on:
   pull_request:
   push:
     branches:
-      - main
-      - 'v[0-9]+.[0-9]+'
-      - checks-workflow-dev/*
+      - '*'
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
 
