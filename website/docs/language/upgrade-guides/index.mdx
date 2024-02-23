@@ -43,17 +43,6 @@ Terraform versions prior to v1.3.0 and equal to or after v1.6.0 are not affected
 
 ## S3 Backend
 
-In Terraform 1.7.0 the S3 backend will begin phasing out the legacy credential chain evaluation order by defaulting `use_legacy_workflow` to `false` and deprecating the argument.
+In Terraform 1.8.0 the S3 backend will remove the `use_legacy_workflow` argument, eliminating use of the legacy credential provider chain evaluation order.
 This will bring the default behavior of the backend into alignment with the AWS SDKs and CLI.
-The legacy behavior can be preserved by setting this argument to `true`.
-
-```hcl
-terraform {
-  backend "s3" {
-    # additional configuration omitted for brevity
-    use_legacy_workflow = true
-  }
-}
-```
-
-In Terraform 1.8.0 this argument will be removed, and the S3 backend will always use the default AWS SDK for Go credential chain evaluation order.
+Configurations relying on this previously deprecated behavior should adjust credential provider chain sources to align with the [evaluation order documented by AWS](https://docs.aws.amazon.com/sdkref/latest/guide/standardized-credentials.html).

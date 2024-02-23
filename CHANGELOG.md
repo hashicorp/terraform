@@ -4,6 +4,8 @@ UPGRADE NOTES:
 
 * The first plan after upgrading may show resource updates with no apparent changes if `-refresh-only` or `-refresh=false` is used. The fix introduced for #34567 may require rewriting the state for some resources, which will be done automatically during the first normal plan and apply operation.
 
+* backend/s3: The `use_legacy_workflow` argument has been removed to encourage consistency with the AWS SDKs. The backend will now search for credentials in the same order as the default provider chain in the AWS SDKs and AWS CLI.
+
 NEW FEATURES:
 
 * Providers can now implement functions which can be used from within the Terraform configuration language. The syntax for calling a provider supplied function is `provider::provider_name::function_name()`. [GH-34394]
