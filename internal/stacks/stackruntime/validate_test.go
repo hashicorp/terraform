@@ -18,17 +18,14 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// TestValidate_valid tests that a variety of configurations under the main
-// test source bundle each generate no diagnostics at all, as a
-// relatively-simple way to detect accidental regressions.
-//
-// Any stack configuration directory that we expect should be valid can
-// potentially be included in here unless it depends on provider plugins
-// to complete validation, since this test cannot supply provider plugins.
-func TestValidate_valid(t *testing.T) {
-	validConfigDirs := map[string]struct {
-		skip bool
-	}{
+type validateTestInput struct {
+	skip  bool
+	diags func() tfdiags.Diagnostics
+}
+
+var (
+	// validConfigurations are shared between the validate and plan tests.
+	validConfigurations = map[string]validateTestInput{
 		"empty":                            {},
 		"variable-output-roundtrip":        {},
 		"variable-output-roundtrip-nested": {},
@@ -37,37 +34,8 @@ func TestValidate_valid(t *testing.T) {
 		},
 	}
 
-	for name, tc := range validConfigDirs {
-		t.Run(name, func(t *testing.T) {
-			if tc.skip {
-				// We've added this test before the implementation was ready.
-				t.SkipNow()
-			}
-
-			ctx := context.Background()
-			cfg := loadMainBundleConfigForTest(t, name)
-
-			diags := Validate(ctx, &ValidateRequest{
-				Config: cfg,
-			})
-
-			// The following will fail the test if there are any error diagnostics.
-			reportDiagnosticsForTest(t, diags)
-
-			// We also want to fail if there are just warnings, since the
-			// configurations here are supposed to be totally problem-free.
-			if len(diags) != 0 {
-				t.FailNow() // reportDiagnosticsForTest already showed the diagnostics in the log
-			}
-		})
-	}
-}
-
-func TestValidate_invalid(t *testing.T) {
-	tcs := map[string]struct {
-		diags func() tfdiags.Diagnostics
-		skip  bool
-	}{
+	// invalidConfigurations are shared between the validate and plan tests.
+	invalidConfigurations = map[string]validateTestInput{
 		"validate-undeclared-variable": {
 			diags: func() tfdiags.Diagnostics {
 				var diags tfdiags.Diagnostics
@@ -139,8 +107,47 @@ func TestValidate_invalid(t *testing.T) {
 			skip: true,
 		},
 	}
+)
 
-	for name, tc := range tcs {
+// TestValidate_valid tests that a variety of configurations under the main
+// test source bundle each generate no diagnostics at all, as a
+// relatively-simple way to detect accidental regressions.
+//
+// Any stack configuration directory that we expect should be valid can
+// potentially be included in here unless it depends on provider plugins
+// to complete validation, since this test cannot supply provider plugins.
+func TestValidate_valid(t *testing.T) {
+	for name, tc := range validConfigurations {
+		t.Run(name, func(t *testing.T) {
+			if tc.skip {
+				// We've added this test before the implementation was ready.
+				t.SkipNow()
+			}
+
+			ctx := context.Background()
+			cfg := loadMainBundleConfigForTest(t, name)
+
+			diags := Validate(ctx, &ValidateRequest{
+				Config: cfg,
+			})
+
+			// The following will fail the test if there are any error
+			// diagnostics.
+			reportDiagnosticsForTest(t, diags)
+
+			// We also want to fail if there are just warnings, since the
+			// configurations here are supposed to be totally problem-free.
+			if len(diags) != 0 {
+				// reportDiagnosticsForTest already showed the diagnostics in
+				// the log
+				t.FailNow()
+			}
+		})
+	}
+}
+
+func TestValidate_invalid(t *testing.T) {
+	for name, tc := range invalidConfigurations {
 		t.Run(name, func(t *testing.T) {
 			if tc.skip {
 				// We've added this test before the implementation was ready.
