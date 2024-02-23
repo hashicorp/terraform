@@ -250,9 +250,9 @@ type TestFileRunner struct {
 	fileVariables terraform.InputValues
 	// fileVariableExpressions are the hcl expressions for the fileVariables
 	fileVariableExpressions map[string]hcl.Expression
-	// GlobalAndSuiteVariables is a combination of globalVariables and fileVariables
+	// globalAndFileVariables is a combination of globalVariables and fileVariables
 	// created for convenience
-	GlobalAndSuiteVariables terraform.InputValues
+	globalAndFileVariables terraform.InputValues
 }
 
 // TestFileState is a helper struct that just maps a run block to the state that
@@ -395,7 +395,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	}
 	runner.gatherProviders(key, config)
 
-	resetConfig, configDiags := configtest.TransformConfigForTest(config, run, file, runner.GlobalAndSuiteVariables, runner.PriorOutputs, runner.Suite.configProviders[key])
+	resetConfig, configDiags := configtest.TransformConfigForTest(config, run, file, runner.globalAndFileVariables, runner.PriorOutputs, runner.Suite.configProviders[key])
 	defer resetConfig()
 
 	run.Diagnostics = run.Diagnostics.Append(configDiags)
@@ -960,7 +960,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 			key = state.Run.Config.Module.Source.String()
 		}
 
-		reset, configDiags := configtest.TransformConfigForTest(config, state.Run, file, runner.GlobalAndSuiteVariables, runner.PriorOutputs, runner.Suite.configProviders[key])
+		reset, configDiags := configtest.TransformConfigForTest(config, state.Run, file, runner.globalAndFileVariables, runner.PriorOutputs, runner.Suite.configProviders[key])
 		diags = diags.Append(configDiags)
 
 		updated := state.State
@@ -1342,12 +1342,12 @@ func (runner *TestFileRunner) initVariables(file *moduletest.File) {
 
 	// Finally, we merge the global and file variables together to get all
 	// available variables outside the run specific ones
-	runner.GlobalAndSuiteVariables = make(terraform.InputValues)
+	runner.globalAndFileVariables = make(terraform.InputValues)
 	for name, value := range runner.globalVariables {
-		runner.GlobalAndSuiteVariables[name] = value
+		runner.globalAndFileVariables[name] = value
 	}
 	for name, value := range runner.fileVariables {
-		runner.GlobalAndSuiteVariables[name] = value
+		runner.globalAndFileVariables[name] = value
 	}
 }
 
