@@ -132,7 +132,7 @@ func EvalContext(target EvalContextTarget, expressions []hcl.Expression, availab
 				if _, exists := availableVariables[addr.Name]; !exists {
 					// This variable reference doesn't exist.
 
-					detail := fmt.Sprintf("The input variable %q is not available to the current run block. You can only reference variables defined at the file or global levels when populating the variables block within a run block.", addr.Name)
+					detail := fmt.Sprintf("The input variable %q is not available to the current context. Within the variables block of a run block you can only reference variables defined at the file or global levels; within the variables block of a suite you can only reference variables defined at the global levels.", addr.Name)
 					if availableRunOutputs == nil {
 						detail = fmt.Sprintf("The input variable %q is not available to the current provider configuration. You can only reference variables defined at the file or global levels within provider configurations.", addr.Name)
 					}

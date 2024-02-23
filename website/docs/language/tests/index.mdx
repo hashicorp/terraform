@@ -8,7 +8,7 @@ description: >-
 
 -> **Note:** This testing framework is available in Terraform v1.6.0 and later.
 
-Terraform tests let authors validate that module configuration updates do not introduce breaking changes. Tests run against test-specific, short-lived resources, preventing any risk to your existing infrastructure or state. 
+Terraform tests let authors validate that module configuration updates do not introduce breaking changes. Tests run against test-specific, short-lived resources, preventing any risk to your existing infrastructure or state.
 
 ## Integration or Unit testing
 
@@ -174,7 +174,7 @@ For tests defined in a test directory, any variable values defined in automatic 
 
 ### Variable References
 
-Variables you define within `run` blocks can refer to outputs from modules executed in earlier `run` blocks and variables defined at higher precedence levels.
+Variables you define within `run` blocks can refer to outputs from modules executed in earlier `run` blocks and variables defined at higher precedence levels. Variables defined within the file level `variables` block can only refer to global variables.
 
 For example, the following code block shows how a variable can refer to higher precedence variables and previous run blocks:
 
