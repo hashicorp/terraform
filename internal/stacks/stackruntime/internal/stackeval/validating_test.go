@@ -52,16 +52,6 @@ func TestValidate_modulesWithProviderConfigs(t *testing.T) {
 		gotDiags := diags.ForRPC()
 
 		var wantDiags tfdiags.Diagnostics
-		// TEMP: Because we're currently essentially just tricking the module
-		// loader into reading from a source bundle without actually knowing
-		// that's what its doing, these diagnostics show local filesystem
-		// paths instead of source addresses. Once we fix that in future,
-		// the following wanted diagnostics should switch to refer to
-		// source addresses starting with:
-		//   https://testing.invalid/validating.tar.gz//modules_with_provider_configs/
-		// ...which is the fake source address form used by the testStackConfig
-		// helper we used above.
-
 		// Configurations in the root module get a different detail message
 		// than those in descendent modules, because for descendents we don't
 		// assume that the author is empowered to make the module
@@ -73,7 +63,7 @@ func TestValidate_modulesWithProviderConfigs(t *testing.T) {
 			Summary:  "Inline provider configuration not allowed",
 			Detail:   `A module used as a stack component must have all of its provider configurations passed from the stack configuration, using the "providers" argument within the component configuration block.`,
 			Subject: &hcl.Range{
-				Filename: "testdata/sourcebundle/validating/modules_with_provider_configs/module-a/modules-with-provider-configs-a.tf",
+				Filename: "https://testing.invalid/validating.tar.gz//modules_with_provider_configs/module-a/modules-with-provider-configs-a.tf",
 				Start:    hcl.Pos{Line: 9, Column: 1, Byte: 104},
 				End:      hcl.Pos{Line: 9, Column: 16, Byte: 119},
 			},
@@ -83,7 +73,7 @@ func TestValidate_modulesWithProviderConfigs(t *testing.T) {
 			Summary:  "Inline provider configuration not allowed",
 			Detail:   "This module is not compatible with Terraform Stacks, because it declares an inline provider configuration.\n\nTo be used with stacks, this module must instead accept provider configurations from its caller.",
 			Subject: &hcl.Range{
-				Filename: "testdata/sourcebundle/validating/modules_with_provider_configs/module-b/modules-with-provider-configs-b.tf",
+				Filename: "https://testing.invalid/validating.tar.gz//modules_with_provider_configs/module-b/modules-with-provider-configs-b.tf",
 				Start:    hcl.Pos{Line: 9, Column: 1, Byte: 104},
 				End:      hcl.Pos{Line: 9, Column: 16, Byte: 119},
 			},

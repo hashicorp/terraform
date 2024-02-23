@@ -92,7 +92,7 @@ func TestValidate_invalid(t *testing.T) {
 					Summary:  "Unsupported argument",
 					Detail:   "An argument named \"invalid\" is not expected here.",
 					Subject: &hcl.Range{
-						Filename: mainBundleLocalAddrStr("invalid-configuration/invalid-configuration.tf"),
+						Filename: mainBundleSourceAddrStr("invalid-configuration/invalid-configuration.tf"),
 						Start:    hcl.Pos{Line: 11, Column: 3, Byte: 163},
 						End:      hcl.Pos{Line: 11, Column: 10, Byte: 170},
 					},
