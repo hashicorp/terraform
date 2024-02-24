@@ -8,9 +8,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 var _ hcl.Body = (*ProviderConfig)(nil)
@@ -26,8 +25,7 @@ var _ hcl.Body = (*ProviderConfig)(nil)
 type ProviderConfig struct {
 	Original hcl.Body
 
-	ConfigVariables     map[string]*configs.Variable
-	AvailableVariables  map[string]backend.UnparsedVariableValue
+	AvailableVariables  terraform.InputValues
 	AvailableRunOutputs map[addrs.Run]cty.Value
 }
 
@@ -52,7 +50,7 @@ func (p *ProviderConfig) PartialContent(schema *hcl.BodySchema) (*hcl.BodyConten
 		Attributes:       attrs,
 		Blocks:           p.transformBlocks(content.Blocks),
 		MissingItemRange: content.MissingItemRange,
-	}, &ProviderConfig{rest, p.ConfigVariables, p.AvailableVariables, p.AvailableRunOutputs}, diags
+	}, &ProviderConfig{rest, p.AvailableVariables, p.AvailableRunOutputs}, diags
 }
 
 func (p *ProviderConfig) JustAttributes() (hcl.Attributes, hcl.Diagnostics) {
@@ -88,17 +86,7 @@ func (p *ProviderConfig) transformAttributes(originals hcl.Attributes) (hcl.Attr
 					continue
 				}
 
-				if variable, exists := p.AvailableVariables[addr.Name]; exists {
-					// Then we have a value for this variable! So we think we'll
-					// be able to process it - let's parse it now.
-
-					parsingMode := configs.VariableParseHCL
-					if config, exists := p.ConfigVariables[addr.Name]; exists {
-						parsingMode = config.ParsingMode
-					}
-
-					value, valueDiags := variable.ParseVariableValue(parsingMode)
-					diags = append(diags, valueDiags.ToHCL()...)
+				if value, exists := p.AvailableVariables[addr.Name]; exists {
 					if value != nil {
 						availableVariables[addr.Name] = value.Value
 					}
@@ -137,7 +125,7 @@ func (p *ProviderConfig) transformBlocks(originals hcl.Blocks) hcl.Blocks {
 		blocks[name] = &hcl.Block{
 			Type:        block.Type,
 			Labels:      block.Labels,
-			Body:        &ProviderConfig{block.Body, p.ConfigVariables, p.AvailableVariables, p.AvailableRunOutputs},
+			Body:        &ProviderConfig{block.Body, p.AvailableVariables, p.AvailableRunOutputs},
 			DefRange:    block.DefRange,
 			TypeRange:   block.TypeRange,
 			LabelRanges: block.LabelRanges,

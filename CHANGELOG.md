@@ -19,10 +19,12 @@ ENHANCEMENTS:
     `"complete"` means that applying this plan is expected to achieve convergence between desired and actual state. If this flag is set, wrapping automations should ideally encourage an operator to run another plan/apply round to continue making progress toward convergence.
 * Improved plan diff rendering for lists to display item-level differences on lists with unchanged length.
 * `terraform provider lock` accepts a new boolean option `-enable-plugin-cache`. If specified, and if a [global plugin cache](https://developer.hashicorp.com/terraform/cli/config/config-file#provider-plugin-cache) is configured Terraform will use the cache in the provider lock process. [GH-34632]
+* `terraform test`: File-level variables can now reference global variables. [GH-34699]
 
 BUG FIXES:
 
 * core: Sensitive values will now be tracked more accurately in state and plans, preventing unexpected updates with no apparent changes [GH-34567]
+* cloud: Fixed unparsed color codes in policy failure error messages #34473
 
 EXPERIMENTS:
 

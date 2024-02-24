@@ -71,7 +71,7 @@ func TestProviderConfig(t *testing.T) {
 				"input": cty.StringVal("string"),
 			},
 			expectedErrors: []string{
-				"The input variable \"missing\" is not available to the current run block. You can only reference variables defined at the file or global levels when populating the variables block within a run block.",
+				"The input variable \"missing\" is not available to the current context. Within the variables block of a run block you can only reference variables defined at the file or global levels; within the variables block of a suite you can only reference variables defined at the global levels.",
 			},
 			validate: func(t *testing.T, content *hcl.BodyContent) {
 				if len(content.Attributes) > 0 {
@@ -174,19 +174,12 @@ func TestProviderConfig(t *testing.T) {
 
 			config := ProviderConfig{
 				Original: file.Body,
-				ConfigVariables: func() map[string]*configs.Variable {
-					variables := make(map[string]*configs.Variable)
-					for variable := range tc.variables {
-						variables[variable] = &configs.Variable{
-							Name: variable,
-						}
-					}
-					return variables
-				}(),
-				AvailableVariables: func() map[string]backend.UnparsedVariableValue {
-					variables := make(map[string]backend.UnparsedVariableValue)
+				AvailableVariables: func() terraform.InputValues {
+					variables := make(terraform.InputValues)
 					for name, value := range tc.variables {
-						variables[name] = &variable{value}
+						variables[name] = &terraform.InputValue{
+							Value: value,
+						}
 					}
 					return variables
 				}(),
