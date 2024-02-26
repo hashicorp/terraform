@@ -52,16 +52,6 @@ func TestValidate_modulesWithProviderConfigs(t *testing.T) {
 		gotDiags := diags.ForRPC()
 
 		var wantDiags tfdiags.Diagnostics
-		// TEMP: Because we're currently essentially just tricking the module
-		// loader into reading from a source bundle without actually knowing
-		// that's what its doing, these diagnostics show local filesystem
-		// paths instead of source addresses. Once we fix that in future,
-		// the following wanted diagnostics should switch to refer to
-		// source addresses starting with:
-		//   https://testing.invalid/validating.tar.gz//modules_with_provider_configs/
-		// ...which is the fake source address form used by the testStackConfig
-		// helper we used above.
-
 		// Configurations in the root module get a different detail message
 		// than those in descendent modules, because for descendents we don't
 		// assume that the author is empowered to make the module
@@ -73,7 +63,7 @@ func TestValidate_modulesWithProviderConfigs(t *testing.T) {
 			Summary:  "Inline provider configuration not allowed",
 			Detail:   `A module used as a stack component must have all of its provider configurations passed from the stack configuration, using the "providers" argument within the component configuration block.`,
 			Subject: &hcl.Range{
-				Filename: "testdata/sourcebundle/validating/modules_with_provider_configs/module-a/modules-with-provider-configs-a.tf",
+				Filename: "https://testing.invalid/validating.tar.gz//modules_with_provider_configs/module-a/modules-with-provider-configs-a.tf",
 				Start:    hcl.Pos{Line: 9, Column: 1, Byte: 104},
 				End:      hcl.Pos{Line: 9, Column: 16, Byte: 119},
 			},
@@ -83,7 +73,7 @@ func TestValidate_modulesWithProviderConfigs(t *testing.T) {
 			Summary:  "Inline provider configuration not allowed",
 			Detail:   "This module is not compatible with Terraform Stacks, because it declares an inline provider configuration.\n\nTo be used with stacks, this module must instead accept provider configurations from its caller.",
 			Subject: &hcl.Range{
-				Filename: "testdata/sourcebundle/validating/modules_with_provider_configs/module-b/modules-with-provider-configs-b.tf",
+				Filename: "https://testing.invalid/validating.tar.gz//modules_with_provider_configs/module-b/modules-with-provider-configs-b.tf",
 				Start:    hcl.Pos{Line: 9, Column: 1, Byte: 104},
 				End:      hcl.Pos{Line: 9, Column: 16, Byte: 119},
 			},
@@ -91,6 +81,63 @@ func TestValidate_modulesWithProviderConfigs(t *testing.T) {
 		wantDiags = wantDiags.ForRPC()
 
 		if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
+			t.Errorf("wrong diagnostics\n%s", diff)
+		}
+	})
+}
+
+func TestValidate_nestedModuleDiagnostics(t *testing.T) {
+	// This test verifies that our source bundle aware module loader correctly
+	// builds diagnostic source addresses for various kinds of nested modules.
+	// It covers both in-repo components and remote components, both having
+	// top-level and nested diagnostic errors.
+
+	cfg := testStackConfig(t, "validating", "nested_module_diagnostics")
+	main := NewForValidating(cfg, ValidateOpts{})
+
+	inPromisingTask(t, func(ctx context.Context, t *testing.T) {
+		diags := main.ValidateAll(ctx)
+		if !diags.HasErrors() {
+			t.Fatalf("succeeded; want errors")
+		}
+		diags.Sort()
+
+		// We'll use the ForRPC method just as a convenient way to discard
+		// the specific diagnostic object types, so that we can compare
+		// the objects without worrying about exactly which diagnostic
+		// implementation each is using.
+		gotDiags := diags.ForRPC()
+
+		var wantDiags tfdiags.Diagnostics
+		// This configuration has the same errors repeated multiple times,
+		// varying only on filename (source address).
+		filenames := []string{
+			"https://testing.invalid/invalid.tar.gz//invalid.tf",
+			"https://testing.invalid/invalid_child.tar.gz//child/invalid_child.tf",
+			"https://testing.invalid/invalid_child.tar.gz//child/invalid_child.tf",
+			"https://testing.invalid/invalid_grandchildren.tar.gz//first/child/invalid_child.tf",
+			"https://testing.invalid/invalid_grandchildren.tar.gz//second/child/invalid_child.tf",
+			"https://testing.invalid/validating.tar.gz//nested_module_diagnostics/invalid/invalid.tf",
+			"https://testing.invalid/validating.tar.gz//nested_module_diagnostics/invalid_child/child/invalid_child.tf",
+		}
+		for _, filename := range filenames {
+			wantDiags = wantDiags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unsupported block type",
+				Detail:   `Blocks of type "invalid" are not expected here.`,
+				Subject: &hcl.Range{
+					Filename: filename,
+					Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
+					End:      hcl.Pos{Line: 1, Column: 8, Byte: 7},
+				},
+			})
+		}
+		wantDiags = wantDiags.ForRPC()
+
+		if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
+			for i, diag := range gotDiags {
+				t.Logf("diagnostic %d: %s", i, diag)
+			}
 			t.Errorf("wrong diagnostics\n%s", diff)
 		}
 	})

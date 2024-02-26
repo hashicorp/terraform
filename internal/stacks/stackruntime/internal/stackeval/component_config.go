@@ -6,8 +6,6 @@ package stackeval
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/go-slug/sourceaddrs"
@@ -15,7 +13,6 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/typeexpr"
-	"github.com/spf13/afero"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -83,13 +80,6 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 			decl := c.Declaration(ctx)
 			sources := c.main.SourceBundle(ctx)
 
-			// The "configs" package predates the idea of explicit source
-			// bundles, so for now we need to do some adaptation to
-			// help it interact with the files in the source bundle despite
-			// not being aware of that abstraction.
-			// TODO: Introduce source bundle support into the "configs" package
-			// API, and factor out some of this complexity onto there.
-
 			rootModuleSource := decl.FinalSourceAddr
 			if rootModuleSource == nil {
 				// If we get here then the configuration was loaded incorrectly,
@@ -97,46 +87,11 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 				// stackconfig package using the wrong loading function.
 				panic("component configuration lacks final source address")
 			}
-			rootModuleDir, err := sources.LocalPathForSource(rootModuleSource)
-			if err != nil {
-				// We should not get here if the source bundle was constructed
-				// correctly.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Can't load module for component",
-					Detail:   fmt.Sprintf("Failed to load this component's root module: %s.", tfdiags.FormatError(err)),
-					Subject:  decl.SourceAddrRange.ToHCL().Ptr(),
-				})
-				return nil, diags
-			}
 
-			// Since the module config loader doesn't yet understand source
-			// bundles, any diagnostics we return from here will contain the
-			// real filesystem path of the problematic file rather than
-			// preserving the source bundle abstraction. As a compromise
-			// though, we'll make the path relative to the current working
-			// directory so at least it won't be quite so obnoxiously long
-			// when we're running in situations like a remote executor that
-			// uses a separate directory per job.
-			// FIXME: Make the module loader aware of source bundles and use
-			// source addresses in its diagnostics, etc.
-			if cwd, err := os.Getwd(); err == nil {
-				relPath, err := filepath.Rel(cwd, rootModuleDir)
-				if err == nil {
-					rootModuleDir = filepath.ToSlash(relPath)
-				}
-			}
-
-			// With rootModuleDir we can now have the configs package work
-			// directly with the real filesystem, rather than with the source
-			// bundle. However, this does mean that any error messages generated
-			// from this process will disclose the real locations of the
-			// source files on disk (an implementation detail) rather than
-			// preserving the source address abstraction.
-			parser := configs.NewParser(afero.NewOsFs())
+			parser := configs.NewSourceBundleParser(sources)
 			parser.AllowLanguageExperiments(c.main.LanguageExperimentsAllowed())
 
-			if !parser.IsConfigDir(rootModuleDir) {
+			if !parser.IsConfigDir(rootModuleSource) {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Can't load module for component",
@@ -146,16 +101,14 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 				return nil, diags
 			}
 
-			rootMod, hclDiags := parser.LoadConfigDir(rootModuleDir)
+			rootMod, hclDiags := parser.LoadConfigDir(rootModuleSource)
 			diags = diags.Append(hclDiags)
 			if hclDiags.HasErrors() {
 				return nil, diags
 			}
 
-			configRoot, hclDiags := configs.BuildConfig(rootMod, &sourceBundleModuleWalker{
-				sources: sources,
-				parser:  parser,
-			}, nil)
+			walker := newSourceBundleModuleWalker(rootModuleSource, sources, parser)
+			configRoot, hclDiags := configs.BuildConfig(rootMod, walker, nil)
 			diags = diags.Append(hclDiags)
 			if hclDiags.HasErrors() {
 				return nil, diags
@@ -538,8 +491,19 @@ func (c *ComponentConfig) tracingName() string {
 // sourceBundleModuleWalker is an implementation of [configs.ModuleWalker]
 // that loads all modules from a single source bundle.
 type sourceBundleModuleWalker struct {
-	sources *sourcebundle.Bundle
-	parser  *configs.Parser
+	absoluteSourceAddrs map[string]sourceaddrs.FinalSource
+	sources             *sourcebundle.Bundle
+	parser              *configs.SourceBundleParser
+}
+
+func newSourceBundleModuleWalker(rootModuleSource sourceaddrs.FinalSource, sources *sourcebundle.Bundle, parser *configs.SourceBundleParser) *sourceBundleModuleWalker {
+	absoluteSourceAddrs := make(map[string]sourceaddrs.FinalSource, 1)
+	absoluteSourceAddrs[addrs.RootModule.String()] = rootModuleSource
+	return &sourceBundleModuleWalker{
+		absoluteSourceAddrs: absoluteSourceAddrs,
+		sources:             sources,
+		parser:              parser,
+	}
 }
 
 // LoadModule implements configs.ModuleWalker.
@@ -566,7 +530,25 @@ func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*conf
 		return nil, nil, diags
 	}
 
-	moduleDir, err := w.sources.LocalPathForSource(finalSourceAddr)
+	absoluteSourceAddr, err := w.absoluteSourceAddr(finalSourceAddr, req.Parent)
+	if err != nil {
+		// Again, this should not happen, but let's ensure we can debug if it
+		// does.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Can't load module for component",
+			Detail:   fmt.Sprintf("Unable to determin absolute source address: %s.", err),
+			Subject:  req.SourceAddrRange.Ptr(),
+		})
+		return nil, nil, diags
+	}
+
+	// We store the absolute source address for this module so that any in-repo
+	// child modules can use it to construct their absolute source addresses
+	// too.
+	w.absoluteSourceAddrs[req.Path.String()] = absoluteSourceAddr
+
+	_, err = w.sources.LocalPathForSource(absoluteSourceAddr)
 	if err != nil {
 		// We should not get here if the source bundle was constructed
 		// correctly.
@@ -579,30 +561,7 @@ func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*conf
 		return nil, nil, diags
 	}
 
-	// If the moduleDir is relative then it's relative to the parent module's
-	// source directory, we'll make it absolute.
-	if !filepath.IsAbs(moduleDir) {
-		moduleDir = filepath.Clean(filepath.Join(req.Parent.Module.SourceDir, moduleDir))
-	}
-
-	// Since the module config loader doesn't yet understand source
-	// bundles, any diagnostics we return from here will contain the
-	// real filesystem path of the problematic file rather than
-	// preserving the source bundle abstraction. As a compromise
-	// though, we'll make the path relative to the current working
-	// directory so at least it won't be quite so obnoxiously long
-	// when we're running in situations like a remote executor that
-	// uses a separate directory per job.
-	// FIXME: Make the module loader aware of source bundles and use
-	// source addresses in its diagnostics, etc.
-	if cwd, err := os.Getwd(); err == nil {
-		relPath, err := filepath.Rel(cwd, moduleDir)
-		if err == nil {
-			moduleDir = filepath.ToSlash(relPath)
-		}
-	}
-
-	mod, moreDiags := w.parser.LoadConfigDir(moduleDir)
+	mod, moreDiags := w.parser.LoadConfigDir(absoluteSourceAddr)
 	diags = append(diags, moreDiags...)
 
 	// Annoyingly we now need to translate our version selection back into
@@ -677,6 +636,23 @@ func (w *sourceBundleModuleWalker) bundleSourceAddrForTerraformSourceAddr(tfSour
 		// Should not get here because the above should be exhaustive for all
 		// possible address types.
 		return nil, fmt.Errorf("unsupported source address type %T", tfSourceAddr)
+	}
+}
+
+func (w *sourceBundleModuleWalker) absoluteSourceAddr(sourceAddr sourceaddrs.FinalSource, parent *configs.Config) (sourceaddrs.FinalSource, error) {
+	switch source := sourceAddr.(type) {
+	case sourceaddrs.LocalSource:
+		parentPath := addrs.RootModule
+		if parent != nil {
+			parentPath = parent.Path
+		}
+		absoluteParentSourceAddr, ok := w.absoluteSourceAddrs[parentPath.String()]
+		if !ok {
+			return nil, fmt.Errorf("unexpected missing source address for module parent %q", parentPath)
+		}
+		return sourceaddrs.ResolveRelativeFinalSource(absoluteParentSourceAddr, source)
+	default:
+		return sourceAddr, nil
 	}
 }
 

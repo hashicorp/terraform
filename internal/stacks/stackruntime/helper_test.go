@@ -55,12 +55,6 @@ func mainBundleSourceAddrStr(dirName string) string {
 	return "git::https://example.com/test.git//" + dirName
 }
 
-func mainBundleLocalAddrStr(dirName string) string {
-	// For now, the internal Terraform graph doesn't know about source bundles
-	// so diagnostics returned from there use the relative path.
-	return "testdata/mainbundle/test/" + dirName
-}
-
 // loadMainBundleConfigForTest is a convenience wrapper around
 // loadConfigForTest that knows the location and package address of our
 // "main" source bundle, in ./testdata/mainbundle, so that we can use that
