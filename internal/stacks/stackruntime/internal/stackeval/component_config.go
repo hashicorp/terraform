@@ -470,10 +470,6 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			return diags, nil
 		}
 
-		// TODO: Manually validate the provider configs. Probably shouldn't
-		// actually do this here though. We can validate all the provider
-		// configs in the stack configuration in one go at a higher level.
-
 		tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
 			PreloadedProviderSchemas: providerSchemas,
 			Provisioners:             c.main.availableProvisioners(),
