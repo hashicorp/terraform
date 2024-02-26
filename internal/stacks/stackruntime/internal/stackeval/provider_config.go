@@ -10,6 +10,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -18,7 +20,6 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // ProviderConfig represents a single "provider" block in a stack configuration.
@@ -147,9 +148,34 @@ func (p *ProviderConfig) ResolveExpressionReference(ctx context.Context, ref sta
 		repetition.EachKey = cty.UnknownVal(cty.String).RefineNotNull()
 		repetition.EachValue = cty.DynamicVal
 	}
-	return p.main.
+	ret, diags := p.main.
 		mustStackConfig(ctx, p.Addr().Stack).
-		resolveExpressionReference(ctx, ref, repetition, nil)
+		resolveExpressionReference(ctx, ref, nil, repetition)
+
+	if _, ok := ret.(*ProviderConfig); ok {
+		// We can't reference other providers from anywhere inside a provider
+		// configuration block.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid reference",
+			Detail:   fmt.Sprintf("The object %s is not in scope at this location.", ref.Target.String()),
+			Subject:  ref.SourceRange.ToHCL().Ptr(),
+		})
+	}
+
+	return ret, diags
+}
+
+// ExprReferenceValue implements Referenceable.
+func (p *ProviderConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
+	// We don't say anything about the contents of a provider during the
+	// static evaluation phase. We still return the type of the provider so
+	// we can use it to verify type constraints, but we don't return any
+	// actual values.
+	if p.config.ForEach != nil {
+		return cty.UnknownVal(cty.Map(p.InstRefValueType(ctx)))
+	}
+	return cty.UnknownVal(p.InstRefValueType(ctx))
 }
 
 var providerInstanceRefTypes = map[addrs.Provider]cty.Type{}

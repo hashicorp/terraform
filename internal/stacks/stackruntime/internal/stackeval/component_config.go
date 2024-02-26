@@ -20,6 +20,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -53,6 +54,10 @@ func (c *ComponentConfig) Addr() stackaddrs.ConfigComponent {
 
 func (c *ComponentConfig) Declaration(ctx context.Context) *stackconfig.Component {
 	return c.config
+}
+
+func (c *ComponentConfig) StackConfig(ctx context.Context) *StackConfig {
+	return c.main.mustStackConfig(ctx, c.addr.Stack)
 }
 
 // ModuleTree returns the static representation of the tree of modules starting
@@ -285,7 +290,7 @@ func (c *ComponentConfig) RequiredProviderInstances(ctx context.Context) addrs.S
 func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (addrs.Set[addrs.RootProviderConfig], tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	stackConfig := c.main.StackConfig(ctx, c.Addr().Stack)
+	stackConfig := c.StackConfig(ctx)
 	declConfigs := c.Declaration(ctx).ProviderConfigs
 	neededProviders := c.RequiredProviderInstances(ctx)
 
@@ -406,6 +411,16 @@ func (c *ComponentConfig) ExprReferenceValue(ctx context.Context, phase EvalPhas
 	// phase, so this is sufficient for all phases. (See [Component] for how
 	// component results get calculated during the plan and apply phases.)
 	return cty.DynamicVal
+}
+
+func (c *ComponentConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
+	repetition := instances.RepetitionData{}
+	if c.Declaration(ctx).ForEach != nil {
+		// For validation, we'll return unknown for the instance data.
+		repetition.EachKey = cty.UnknownVal(cty.String).RefineNotNull()
+		repetition.EachValue = cty.DynamicVal
+	}
+	return c.StackConfig(ctx).resolveExpressionReference(ctx, ref, nil, repetition)
 }
 
 func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {

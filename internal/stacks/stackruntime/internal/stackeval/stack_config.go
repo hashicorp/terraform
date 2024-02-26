@@ -224,6 +224,42 @@ func (s *StackConfig) Provider(ctx context.Context, addr stackaddrs.ProviderConf
 	return ret
 }
 
+// ProviderByLocalAddr returns a [ProviderConfig] representing the provider
+// configuration block within the stack configuration that matches the given
+// local address, or nil if there is no such declaration.
+//
+// This is equivalent to calling [Provider] just using a reference address
+// instead of a config address.
+func (s *StackConfig) ProviderByLocalAddr(ctx context.Context, localAddr stackaddrs.ProviderConfigRef) *ProviderConfig {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	provider, ok := s.config.Stack.RequiredProviders.ProviderForLocalName(localAddr.ProviderLocalName)
+	if !ok {
+		return nil
+	}
+
+	addr := stackaddrs.ProviderConfig{
+		Provider: provider,
+		Name:     localAddr.Name,
+	}
+	ret, ok := s.providers[addr]
+	if !ok {
+		configAddr := addrs.LocalProviderConfig{
+			LocalName: localAddr.ProviderLocalName,
+			Alias:     localAddr.Name,
+		}
+		cfg, ok := s.config.Stack.ProviderConfigs[configAddr]
+		if !ok {
+			return nil
+		}
+		cfgAddr := stackaddrs.Config(s.Addr(), addr)
+		ret = newProviderConfig(s.main, cfgAddr, cfg)
+		s.providers[addr] = ret
+	}
+	return ret
+}
+
 // ProviderLocalName returns the local name used for the given provider
 // in this particular stack configuration, based on the declarations in
 // the required_providers configuration block.
@@ -315,13 +351,13 @@ func (s *StackConfig) Components(ctx context.Context) map[stackaddrs.Component]*
 // global scope for evaluation within an unexpanded stack during the validate
 // phase.
 func (s *StackConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	return s.resolveExpressionReference(ctx, ref, instances.RepetitionData{}, nil)
+	return s.resolveExpressionReference(ctx, ref, nil, instances.RepetitionData{})
 }
 
 // resolveExpressionReference is the shared implementation of various
 // validation-time ResolveExpressionReference methods, factoring out all
 // of the common parts into one place.
-func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stackaddrs.Reference, repetition instances.RepetitionData, selfAddr stackaddrs.Referenceable) (Referenceable, tfdiags.Diagnostics) {
+func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stackaddrs.Reference, selfAddr stackaddrs.Referenceable, repetition instances.RepetitionData) (Referenceable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// "Test-only globals" is a special affordance we have only when running
@@ -371,6 +407,72 @@ func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stacka
 			return nil, diags
 		}
 		return ret, diags
+	case stackaddrs.ProviderConfigRef:
+		ret := s.ProviderByLocalAddr(ctx, addr)
+		if ret == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reference to undeclared provider configuration",
+				Detail:   fmt.Sprintf("There is no provider %q %q block declared this stack.", addr.ProviderLocalName, addr.Name),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+			return nil, diags
+		}
+		return ret, diags
+	case stackaddrs.ContextualRef:
+		switch addr {
+		case stackaddrs.EachKey:
+			if repetition.EachKey == cty.NilVal {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid 'each' reference",
+					Detail:   "The special symbol 'each' is not defined in this location. This symbol is valid only inside multi-instance blocks that use the 'for_each' argument.",
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+				return nil, diags
+			}
+			return JustValue{repetition.EachKey}, diags
+		case stackaddrs.EachValue:
+			if repetition.EachValue == cty.NilVal {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid 'each' reference",
+					Detail:   "The special symbol 'each' is not defined in this location. This symbol is valid only inside multi-instance blocks that use the 'for_each' argument.",
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+				return nil, diags
+			}
+			return JustValue{repetition.EachValue}, diags
+		case stackaddrs.CountIndex:
+			if repetition.CountIndex == cty.NilVal {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid 'count' reference",
+					Detail:   "The special symbol 'count' is not defined in this location. This symbol is valid only inside multi-instance blocks that use the 'count' argument.",
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+				return nil, diags
+			}
+			return JustValue{repetition.CountIndex}, diags
+		case stackaddrs.Self:
+			if selfAddr != nil {
+				// We'll just pretend the reference was to whatever "self"
+				// is referring to, then.
+				ref.Target = selfAddr
+				return s.resolveExpressionReference(ctx, ref, nil, repetition)
+			} else {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid 'self' reference",
+					Detail:   "The special symbol 'self' is not defined in this location.",
+					Context:  ref.SourceRange.ToHCL().Ptr(),
+				})
+				return nil, diags
+			}
+		default:
+			// The above should be exhaustive for all defined values of this type.
+			panic(fmt.Sprintf("unsupported ContextualRef %#v", addr))
+		}
 	default:
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
