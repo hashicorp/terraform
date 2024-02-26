@@ -102,11 +102,8 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 				return nil, diags
 			}
 
-			configRoot, hclDiags := configs.BuildConfig(rootMod, &sourceBundleModuleWalker{
-				rootModuleSource: rootModuleSource,
-				sources:          sources,
-				parser:           parser,
-			}, nil)
+			walker := newSourceBundleModuleWalker(rootModuleSource, sources, parser)
+			configRoot, hclDiags := configs.BuildConfig(rootMod, walker, nil)
 			diags = diags.Append(hclDiags)
 			if hclDiags.HasErrors() {
 				return nil, diags
@@ -455,9 +452,19 @@ func (c *ComponentConfig) tracingName() string {
 // sourceBundleModuleWalker is an implementation of [configs.ModuleWalker]
 // that loads all modules from a single source bundle.
 type sourceBundleModuleWalker struct {
-	rootModuleSource sourceaddrs.FinalSource
-	sources          *sourcebundle.Bundle
-	parser           *configs.SourceBundleParser
+	rootModuleSource    sourceaddrs.FinalSource
+	absoluteSourceAddrs map[addrs.ModuleSource]sourceaddrs.FinalSource
+	sources             *sourcebundle.Bundle
+	parser              *configs.SourceBundleParser
+}
+
+func newSourceBundleModuleWalker(rootModuleSource sourceaddrs.FinalSource, sources *sourcebundle.Bundle, parser *configs.SourceBundleParser) *sourceBundleModuleWalker {
+	return &sourceBundleModuleWalker{
+		rootModuleSource:    rootModuleSource,
+		absoluteSourceAddrs: make(map[addrs.ModuleSource]sourceaddrs.FinalSource),
+		sources:             sources,
+		parser:              parser,
+	}
 }
 
 // LoadModule implements configs.ModuleWalker.
@@ -484,7 +491,25 @@ func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*conf
 		return nil, nil, diags
 	}
 
-	_, err = w.sources.LocalPathForSource(finalSourceAddr)
+	absoluteSourceAddr, err := w.absoluteSourceAddr(finalSourceAddr, req.Parent)
+	if err != nil {
+		// Again, this should not happen, but let's ensure we can debug if it
+		// does.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Can't load module for component",
+			Detail:   fmt.Sprintf("Unable to determin absolute source address: %s.", err),
+			Subject:  req.SourceAddrRange.Ptr(),
+		})
+		return nil, nil, diags
+	}
+
+	// We store the absolute source address for this module so that any in-repo
+	// child modules can use it to construct their absolute source addresses
+	// too.
+	w.absoluteSourceAddrs[req.SourceAddr] = absoluteSourceAddr
+
+	_, err = w.sources.LocalPathForSource(absoluteSourceAddr)
 	if err != nil {
 		// We should not get here if the source bundle was constructed
 		// correctly.
@@ -497,7 +522,7 @@ func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*conf
 		return nil, nil, diags
 	}
 
-	mod, moreDiags := w.parser.LoadConfigDir(finalSourceAddr)
+	mod, moreDiags := w.parser.LoadConfigDir(absoluteSourceAddr)
 	diags = append(diags, moreDiags...)
 
 	// Annoyingly we now need to translate our version selection back into
@@ -540,10 +565,6 @@ func (w *sourceBundleModuleWalker) finalSourceForModule(tfSourceAddr addrs.Modul
 	}
 
 	switch sourceAddr := sourceAddr.(type) {
-	case sourceaddrs.LocalSource:
-		// Local sources must be combined with the root module source to give
-		// an absolute address.
-		return sourceaddrs.ResolveRelativeFinalSource(w.rootModuleSource, sourceAddr)
 	case sourceaddrs.FinalSource:
 		// Most source address types are already final source addresses.
 		return sourceAddr, nil
@@ -576,6 +597,21 @@ func (w *sourceBundleModuleWalker) bundleSourceAddrForTerraformSourceAddr(tfSour
 		// Should not get here because the above should be exhaustive for all
 		// possible address types.
 		return nil, fmt.Errorf("unsupported source address type %T", tfSourceAddr)
+	}
+}
+
+func (w *sourceBundleModuleWalker) absoluteSourceAddr(sourceAddr sourceaddrs.FinalSource, parent *configs.Config) (sourceaddrs.FinalSource, error) {
+	switch source := sourceAddr.(type) {
+	case sourceaddrs.LocalSource:
+		parentSourceAddr := w.rootModuleSource
+		if parent != nil {
+			if p, ok := w.absoluteSourceAddrs[parent.SourceAddr]; ok {
+				parentSourceAddr = p
+			}
+		}
+		return sourceaddrs.ResolveRelativeFinalSource(parentSourceAddr, source)
+	default:
+		return sourceAddr, nil
 	}
 }
 
