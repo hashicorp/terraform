@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -21,6 +22,11 @@ import (
 type validateTestInput struct {
 	skip  bool
 	diags func() tfdiags.Diagnostics
+
+	// planInputVars is used only in the plan tests to provide a set of input
+	// variables to use for the plan request. Validate operates statically so
+	// does not need any input variables.
+	planInputVars map[string]cty.Value
 }
 
 var (
@@ -29,6 +35,16 @@ var (
 		"empty":                            {},
 		"variable-output-roundtrip":        {},
 		"variable-output-roundtrip-nested": {},
+		filepath.Join("with-single-input", "input-from-component"): {},
+		filepath.Join("with-single-input", "input-from-component-list"): {
+			planInputVars: map[string]cty.Value{
+				"components": cty.SetVal([]cty.Value{
+					cty.StringVal("one"),
+					cty.StringVal("two"),
+					cty.StringVal("three"),
+				}),
+			},
+		},
 		filepath.Join("with-single-input", "provider-name-clash"): {
 			skip: true,
 		},
@@ -106,6 +122,70 @@ var (
 			//  error as for missing provider, which is not ideal.
 			skip: true,
 		},
+		filepath.Join("with-single-input", "undeclared-variable"): {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to undeclared input variable",
+					Detail:   `There is no variable "input" block declared in this stack.`,
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/undeclared-variable/undeclared-variable.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 19, Column: 13, Byte: 284},
+						End:      hcl.Pos{Line: 19, Column: 22, Byte: 293},
+					},
+				})
+				return diags
+			},
+		},
+		filepath.Join("with-single-input", "missing-variable"): {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid inputs for component",
+					Detail:   "Invalid input variable definition object: attribute \"input\" is required.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/missing-variable/missing-variable.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 22, Column: 12, Byte: 338},
+						End:      hcl.Pos{Line: 22, Column: 14, Byte: 340},
+					},
+				})
+				return diags
+			},
+		},
+		filepath.Join("with-single-input", "input-from-missing-component"): {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to undeclared component",
+					Detail:   "There is no component \"output\" block declared in this stack.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/input-from-missing-component/input-from-missing-component.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 19, Column: 13, Byte: 314},
+						End:      hcl.Pos{Line: 19, Column: 29, Byte: 330},
+					},
+				})
+				return diags
+			},
+		},
+		filepath.Join("with-single-input", "input-from-provider"): {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid inputs for component",
+					Detail:   "Invalid input variable definition object: attribute \"input\": string required.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/input-from-provider/input-from-provider.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 17, Column: 12, Byte: 239},
+						End:      hcl.Pos{Line: 20, Column: 4, Byte: 339},
+					},
+				})
+				return diags
+			},
+		},
 	}
 )
 
@@ -129,6 +209,11 @@ func TestValidate_valid(t *testing.T) {
 
 			diags := Validate(ctx, &ValidateRequest{
 				Config: cfg,
+				ProviderFactories: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProvider(), nil
+					},
+				},
 			})
 
 			// The following will fail the test if there are any error
