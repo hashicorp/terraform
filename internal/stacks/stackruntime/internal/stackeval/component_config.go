@@ -452,16 +452,16 @@ func (c *ComponentConfig) tracingName() string {
 // sourceBundleModuleWalker is an implementation of [configs.ModuleWalker]
 // that loads all modules from a single source bundle.
 type sourceBundleModuleWalker struct {
-	rootModuleSource    sourceaddrs.FinalSource
-	absoluteSourceAddrs map[addrs.ModuleSource]sourceaddrs.FinalSource
+	absoluteSourceAddrs map[string]sourceaddrs.FinalSource
 	sources             *sourcebundle.Bundle
 	parser              *configs.SourceBundleParser
 }
 
 func newSourceBundleModuleWalker(rootModuleSource sourceaddrs.FinalSource, sources *sourcebundle.Bundle, parser *configs.SourceBundleParser) *sourceBundleModuleWalker {
+	absoluteSourceAddrs := make(map[string]sourceaddrs.FinalSource, 1)
+	absoluteSourceAddrs[addrs.RootModule.String()] = rootModuleSource
 	return &sourceBundleModuleWalker{
-		rootModuleSource:    rootModuleSource,
-		absoluteSourceAddrs: make(map[addrs.ModuleSource]sourceaddrs.FinalSource),
+		absoluteSourceAddrs: absoluteSourceAddrs,
 		sources:             sources,
 		parser:              parser,
 	}
@@ -507,7 +507,7 @@ func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*conf
 	// We store the absolute source address for this module so that any in-repo
 	// child modules can use it to construct their absolute source addresses
 	// too.
-	w.absoluteSourceAddrs[req.SourceAddr] = absoluteSourceAddr
+	w.absoluteSourceAddrs[req.Path.String()] = absoluteSourceAddr
 
 	_, err = w.sources.LocalPathForSource(absoluteSourceAddr)
 	if err != nil {
@@ -603,13 +603,15 @@ func (w *sourceBundleModuleWalker) bundleSourceAddrForTerraformSourceAddr(tfSour
 func (w *sourceBundleModuleWalker) absoluteSourceAddr(sourceAddr sourceaddrs.FinalSource, parent *configs.Config) (sourceaddrs.FinalSource, error) {
 	switch source := sourceAddr.(type) {
 	case sourceaddrs.LocalSource:
-		parentSourceAddr := w.rootModuleSource
+		parentPath := addrs.RootModule
 		if parent != nil {
-			if p, ok := w.absoluteSourceAddrs[parent.SourceAddr]; ok {
-				parentSourceAddr = p
-			}
+			parentPath = parent.Path
 		}
-		return sourceaddrs.ResolveRelativeFinalSource(parentSourceAddr, source)
+		absoluteParentSourceAddr, ok := w.absoluteSourceAddrs[parentPath.String()]
+		if !ok {
+			return nil, fmt.Errorf("unexpected missing source address for module parent %q", parentPath)
+		}
+		return sourceaddrs.ResolveRelativeFinalSource(absoluteParentSourceAddr, source)
 	default:
 		return sourceAddr, nil
 	}
