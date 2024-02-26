@@ -24,3 +24,9 @@ component "remote_invalid" {
 component "remote_invalid_child" {
   source = "https://testing.invalid/invalid_child.tar.gz"
 }
+
+// This remote source component has two invalid grandchildren which are both
+// in-repo modules and share the same relative source
+component "remote_invalid_grandchildren" {
+  source = "https://testing.invalid/invalid_grandchildren.tar.gz"
+}

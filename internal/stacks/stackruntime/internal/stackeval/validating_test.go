@@ -109,57 +109,29 @@ func TestValidate_nestedModuleDiagnostics(t *testing.T) {
 		gotDiags := diags.ForRPC()
 
 		var wantDiags tfdiags.Diagnostics
-		// This configuration has the same errors repeated multiple times, varying only on filename (source address).
-		wantDiags = wantDiags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Unsupported block type",
-			Detail:   `Blocks of type "invalid" are not expected here.`,
-			Subject: &hcl.Range{
-				Filename: "https://testing.invalid/invalid.tar.gz//invalid.tf",
-				Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
-				End:      hcl.Pos{Line: 1, Column: 8, Byte: 7},
-			},
-		})
-		wantDiags = wantDiags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Unsupported block type",
-			Detail:   `Blocks of type "invalid" are not expected here.`,
-			Subject: &hcl.Range{
-				Filename: "https://testing.invalid/invalid_child.tar.gz//child/invalid_child.tf",
-				Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
-				End:      hcl.Pos{Line: 1, Column: 8, Byte: 7},
-			},
-		})
-		wantDiags = wantDiags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Unsupported block type",
-			Detail:   `Blocks of type "invalid" are not expected here.`,
-			Subject: &hcl.Range{
-				Filename: "https://testing.invalid/invalid_child.tar.gz//child/invalid_child.tf",
-				Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
-				End:      hcl.Pos{Line: 1, Column: 8, Byte: 7},
-			},
-		})
-		wantDiags = wantDiags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Unsupported block type",
-			Detail:   `Blocks of type "invalid" are not expected here.`,
-			Subject: &hcl.Range{
-				Filename: "https://testing.invalid/validating.tar.gz//nested_module_diagnostics/invalid/invalid.tf",
-				Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
-				End:      hcl.Pos{Line: 1, Column: 8, Byte: 7},
-			},
-		})
-		wantDiags = wantDiags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Unsupported block type",
-			Detail:   `Blocks of type "invalid" are not expected here.`,
-			Subject: &hcl.Range{
-				Filename: "https://testing.invalid/validating.tar.gz//nested_module_diagnostics/invalid_child/child/invalid_child.tf",
-				Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
-				End:      hcl.Pos{Line: 1, Column: 8, Byte: 7},
-			},
-		})
+		// This configuration has the same errors repeated multiple times,
+		// varying only on filename (source address).
+		filenames := []string{
+			"https://testing.invalid/invalid.tar.gz//invalid.tf",
+			"https://testing.invalid/invalid_child.tar.gz//child/invalid_child.tf",
+			"https://testing.invalid/invalid_child.tar.gz//child/invalid_child.tf",
+			"https://testing.invalid/invalid_grandchildren.tar.gz//first/child/invalid_child.tf",
+			"https://testing.invalid/invalid_grandchildren.tar.gz//second/child/invalid_child.tf",
+			"https://testing.invalid/validating.tar.gz//nested_module_diagnostics/invalid/invalid.tf",
+			"https://testing.invalid/validating.tar.gz//nested_module_diagnostics/invalid_child/child/invalid_child.tf",
+		}
+		for _, filename := range filenames {
+			wantDiags = wantDiags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unsupported block type",
+				Detail:   `Blocks of type "invalid" are not expected here.`,
+				Subject: &hcl.Range{
+					Filename: filename,
+					Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
+					End:      hcl.Pos{Line: 1, Column: 8, Byte: 7},
+				},
+			})
+		}
 		wantDiags = wantDiags.ForRPC()
 
 		if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {

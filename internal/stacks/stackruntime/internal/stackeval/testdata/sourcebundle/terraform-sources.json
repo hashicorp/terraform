@@ -40,6 +40,10 @@
     {
       "source": "https://testing.invalid/invalid_child.tar.gz",
       "local": "invalid_child"
+    },
+    {
+      "source": "https://testing.invalid/invalid_grandchildren.tar.gz",
+      "local": "invalid_grandchildren"
     }
   ]
 }
