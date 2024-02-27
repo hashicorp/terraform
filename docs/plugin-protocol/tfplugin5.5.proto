@@ -41,10 +41,13 @@ message Diagnostic {
     string summary = 2;
     string detail = 3;
     AttributePath attribute = 4;
+}
 
-    // function_argument is the positional function argument for aligning
-    // configuration source.
-    optional int64 function_argument = 5;
+message FunctionError {
+    string text = 1;
+    // The optional function_argument records the index position of the
+    // argument which caused the error.
+    optional int64 function_argument = 2;
 }
 
 message AttributePath {
@@ -569,6 +572,6 @@ message CallFunction {
     }
     message Response {
         DynamicValue result = 1;
-        repeated Diagnostic diagnostics = 2;
+        FunctionError error = 2;
     }
 }
