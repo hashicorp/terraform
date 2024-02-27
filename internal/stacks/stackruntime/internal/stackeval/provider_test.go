@@ -5,6 +5,7 @@ package stackeval
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -151,7 +152,7 @@ func TestProviderCheckInstances(t *testing.T) {
 			provider := getProvider(ctx, t, main)
 			gotVal, diags := provider.CheckForEachValue(ctx, InspectPhase)
 			assertMatchingDiag(t, diags, func(diag tfdiags.Diagnostic) bool {
-				return diag.Severity() == tfdiags.Error && diag.Description().Detail == "The for_each value must not be null."
+				return diag.Severity() == tfdiags.Error && strings.Contains(diag.Description().Detail, "The for_each expression produced a null value")
 			})
 			wantVal := cty.DynamicVal // placeholder for invalid result
 			if !wantVal.RawEquals(gotVal) {
