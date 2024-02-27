@@ -31,7 +31,7 @@ func checkExternalProviders(rootCfg *configs.Config, got map[addrs.RootProviderC
 	for _, addr := range rootCfg.ProviderTypes() {
 		allowedProviders[addr] = struct{}{}
 	}
-	requiredConfigs := rootCfg.EffectiveRequiredProviderConfigs()
+	requiredConfigs := rootCfg.EffectiveRequiredProviderConfigs().Keys()
 
 	// Passed-in provider configurations can only be for providers that this
 	// configuration actually contains some use of.

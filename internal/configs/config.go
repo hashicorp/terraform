@@ -907,7 +907,7 @@ func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Pro
 //
 // This function assumes that the configuration is valid. It may produce under-
 // or over-constrained results if called on an invalid configuration.
-func (c *Config) EffectiveRequiredProviderConfigs() addrs.Set[addrs.RootProviderConfig] {
+func (c *Config) EffectiveRequiredProviderConfigs() addrs.Map[addrs.RootProviderConfig, addrs.LocalProviderConfig] {
 	// The Terraform language has accumulated so many different ways to imply
 	// the need for a provider configuration that answering this is quite a
 	// complicated process that ends up potentially needing to visit the
@@ -916,67 +916,79 @@ func (c *Config) EffectiveRequiredProviderConfigs() addrs.Set[addrs.RootProvider
 	// can avoid any recursion, but that case is rare in practice.
 
 	if c == nil {
-		return nil
+		return addrs.MakeMap[addrs.RootProviderConfig, addrs.LocalProviderConfig]()
 	}
 
 	// We'll start by visiting all of the "provider" blocks in the module and
 	// figuring out which provider configuration address they each declare. Any
 	// configuration addresses we find here cannot be "required" provider
 	// configs because the module instantiates them itself.
-	selfConfigured := addrs.MakeSet[addrs.RootProviderConfig]()
+	selfConfigured := addrs.MakeMap[addrs.RootProviderConfig, addrs.LocalProviderConfig]()
 	for _, pc := range c.Module.ProviderConfigs {
 		localAddr := pc.Addr()
 		sourceAddr := c.Module.ProviderForLocalConfig(localAddr)
-		selfConfigured.Add(addrs.RootProviderConfig{
+		selfConfigured.Put(addrs.RootProviderConfig{
 			Provider: sourceAddr,
 			Alias:    localAddr.Alias,
-		})
+		}, localAddr)
 	}
-	ret := addrs.MakeSet[addrs.RootProviderConfig]()
-	maybeAdd := func(addr addrs.RootProviderConfig) {
+	ret := addrs.MakeMap[addrs.RootProviderConfig, addrs.LocalProviderConfig]()
+
+	// maybePut looks up the default local provider for the given root provider.
+	maybePut := func(addr addrs.RootProviderConfig) {
+		localName := c.Module.LocalNameForProvider(addr.Provider)
+		localAddr := addrs.LocalProviderConfig{
+			LocalName: localName,
+			Alias:     addr.Alias,
+		}
 		if !selfConfigured.Has(addr) {
-			ret.Add(addr)
+			ret.Put(addr, localAddr)
 		}
 	}
-	maybeAddLocal := func(addr addrs.LocalProviderConfig) {
+
+	// maybePutLocal looks up the default provider for the given local provider
+	// address.
+	maybePutLocal := func(localAddr addrs.LocalProviderConfig) {
 		// Caution: this function is only correct to use for LocalProviderConfig
 		// in the _current_ module c.Module. It will produce incorrect results
 		// if used for addresses from any child module.
-		sourceAddr := c.Module.ProviderForLocalConfig(addr)
-		maybeAdd(addrs.RootProviderConfig{
-			Provider: sourceAddr,
-			Alias:    addr.Alias,
-		})
+		addr := addrs.RootProviderConfig{
+			Provider: c.Module.ProviderForLocalConfig(localAddr),
+			Alias:    localAddr.Alias,
+		}
+		if !selfConfigured.Has(addr) {
+			ret.Put(addr, localAddr)
+		}
 	}
 
 	if c.Module.ProviderRequirements != nil {
 		for _, req := range c.Module.ProviderRequirements.RequiredProviders {
 			for _, addr := range req.Aliases {
-				maybeAddLocal(addr)
+				maybePutLocal(addr)
 			}
 		}
 	}
 	for _, rc := range c.Module.ManagedResources {
-		maybeAddLocal(rc.ProviderConfigAddr())
+		maybePutLocal(rc.ProviderConfigAddr())
 	}
 	for _, rc := range c.Module.DataResources {
-		maybeAddLocal(rc.ProviderConfigAddr())
+		maybePutLocal(rc.ProviderConfigAddr())
 	}
 	for _, ic := range c.Module.Import {
 		if ic.ProviderConfigRef != nil {
-			maybeAddLocal(addrs.LocalProviderConfig{
+			maybePutLocal(addrs.LocalProviderConfig{
 				LocalName: ic.ProviderConfigRef.Name,
 				Alias:     ic.ProviderConfigRef.Alias,
 			})
 		} else {
-			maybeAdd(addrs.RootProviderConfig{
+			maybePut(addrs.RootProviderConfig{
 				Provider: ic.Provider,
 			})
 		}
 	}
 	for _, mc := range c.Module.ModuleCalls {
 		for _, pp := range mc.Providers {
-			maybeAddLocal(pp.InParent.Addr())
+			maybePutLocal(pp.InParent.Addr())
 		}
 		// If there aren't any explicitly-passed providers then
 		// the module implicitly requires a default configuration
@@ -989,13 +1001,13 @@ func (c *Config) EffectiveRequiredProviderConfigs() addrs.Set[addrs.RootProvider
 		if len(mc.Providers) == 0 {
 			child := c.Children[mc.Name]
 			childReqs := child.EffectiveRequiredProviderConfigs()
-			for _, childReq := range childReqs {
+			for _, childReq := range childReqs.Keys() {
 				if childReq.Alias != "" {
 					continue // only default provider configs are eligible for this implicit treatment
 				}
 				// We must reinterpret the child address to appear as
 				// if written in its parent (our current module).
-				maybeAdd(addrs.RootProviderConfig{
+				maybePut(addrs.RootProviderConfig{
 					Provider: childReq.Provider,
 				})
 			}

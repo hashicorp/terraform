@@ -20,7 +20,12 @@ import (
 )
 
 type validateTestInput struct {
-	skip  bool
+	// skip lets us write tests for behaviour we want to add in the future. Set
+	// this to true for any tests that are not yet implemented.
+	skip bool
+
+	// diags is a function that returns the expected diagnostics for the
+	// test.
 	diags func() tfdiags.Diagnostics
 
 	// planInputVars is used only in the plan tests to provide a set of input
@@ -45,9 +50,8 @@ var (
 				}),
 			},
 		},
-		filepath.Join("with-single-input", "provider-name-clash"): {
-			skip: true,
-		},
+		filepath.Join("with-single-input", "provider-name-clash"): {},
+		filepath.Join("with-single-input", "valid"):               {},
 	}
 
 	// invalidConfigurations are shared between the validate and plan tests.
@@ -117,10 +121,20 @@ var (
 			},
 		},
 		filepath.Join("with-single-input", "invalid-provider-type"): {
-			// TODO: Enable this test case, when we have a good error message
-			//  for provider type mismatches. Currently, we return the same
-			//  error as for missing provider, which is not ideal.
-			skip: true,
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid provider configuration",
+					Detail:   "The provider configuration slot testing requires a configuration for provider \"registry.terraform.io/hashicorp/testing\", not for provider \"terraform.io/builtin/testing\".",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/invalid-provider-type/invalid-provider-type.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 22, Column: 15, Byte: 378},
+						End:      hcl.Pos{Line: 22, Column: 39, Byte: 402},
+					},
+				})
+				return diags
+			},
 		},
 		filepath.Join("with-single-input", "invalid-provider-config"): {
 			diags: func() tfdiags.Diagnostics {
@@ -226,7 +240,14 @@ func TestValidate_valid(t *testing.T) {
 			diags := Validate(ctx, &ValidateRequest{
 				Config: cfg,
 				ProviderFactories: map[addrs.Provider]providers.Factory{
+					// We support both hashicorp/testing and
+					// terraform.io/builtin/testing as providers. This lets us
+					// test the provider aliasing feature. Both providers
+					// support the same set of resources and data sources.
 					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProvider(), nil
+					},
+					addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
 						return stacks_testing_provider.NewProvider(), nil
 					},
 				},
@@ -261,7 +282,14 @@ func TestValidate_invalid(t *testing.T) {
 			gotDiags := Validate(ctx, &ValidateRequest{
 				Config: cfg,
 				ProviderFactories: map[addrs.Provider]providers.Factory{
+					// We support both hashicorp/testing and
+					// terraform.io/builtin/testing as providers. This lets us
+					// test the provider aliasing feature. Both providers
+					// support the same set of resources and data sources.
 					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProvider(), nil
+					},
+					addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
 						return stacks_testing_provider.NewProvider(), nil
 					},
 				},
