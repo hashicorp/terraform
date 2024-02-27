@@ -116,11 +116,27 @@ var (
 				return diags
 			},
 		},
-		filepath.Join("with-single-input", "invalid-provider"): {
+		filepath.Join("with-single-input", "invalid-provider-type"): {
 			// TODO: Enable this test case, when we have a good error message
 			//  for provider type mismatches. Currently, we return the same
 			//  error as for missing provider, which is not ideal.
 			skip: true,
+		},
+		filepath.Join("with-single-input", "invalid-provider-config"): {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unsupported argument",
+					Detail:   "An argument named \"imaginary\" is not expected here.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/invalid-provider-config/invalid-provider-config.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 11, Column: 5, Byte: 218},
+						End:      hcl.Pos{Line: 11, Column: 14, Byte: 227},
+					},
+				})
+				return diags
+			},
 		},
 		filepath.Join("with-single-input", "undeclared-variable"): {
 			diags: func() tfdiags.Diagnostics {

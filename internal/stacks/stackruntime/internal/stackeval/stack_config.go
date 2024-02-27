@@ -180,8 +180,8 @@ func (s *StackConfig) OutputValue(ctx context.Context, addr stackaddrs.OutputVal
 	return ret
 }
 
-// InputVariables returns a map of the objects representing all of the
-// input variables declared inside this stack configuration.
+// OutputValues returns a map of the objects representing all of the
+// output values declared inside this stack configuration.
 func (s *StackConfig) OutputValues(ctx context.Context) map[stackaddrs.OutputValue]*OutputValueConfig {
 	if len(s.config.Stack.OutputValues) == 0 {
 		return nil
@@ -190,6 +190,42 @@ func (s *StackConfig) OutputValues(ctx context.Context) map[stackaddrs.OutputVal
 	for name := range s.config.Stack.OutputValues {
 		addr := stackaddrs.OutputValue{Name: name}
 		ret[addr] = s.OutputValue(ctx, addr)
+	}
+	return ret
+}
+
+// ResultType returns the type of the result object that will be produced
+// by this stack configuration, based on the output values declared within
+// it.
+func (s *StackConfig) ResultType(ctx context.Context) cty.Type {
+	os := s.OutputValues(ctx)
+	atys := make(map[string]cty.Type, len(os))
+	for addr, o := range os {
+		atys[addr.Name] = o.ValueTypeConstraint(ctx)
+	}
+	return cty.Object(atys)
+}
+
+// Providers returns a map of the objects representing all of the provider
+// configurations declared inside this stack configuration.
+func (s *StackConfig) Providers(ctx context.Context) map[stackaddrs.ProviderConfig]*ProviderConfig {
+	if len(s.config.Stack.ProviderConfigs) == 0 {
+		return nil
+	}
+	ret := make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(s.config.Stack.ProviderConfigs))
+	for configAddr := range s.config.Stack.ProviderConfigs {
+		provider, ok := s.config.Stack.RequiredProviders.ProviderForLocalName(configAddr.LocalName)
+		if !ok {
+			// Then we are missing a provider declaration, this will be caught
+			// elsewhere so we'll just skip it here.
+			continue
+		}
+
+		addr := stackaddrs.ProviderConfig{
+			Provider: provider,
+			Name:     configAddr.Alias,
+		}
+		ret[addr] = s.Provider(ctx, addr)
 	}
 	return ret
 }
@@ -268,15 +304,6 @@ func (s *StackConfig) ProviderByLocalAddr(ctx context.Context, localAddr stackad
 // for the given provider, and so the first return value is invalid.
 func (s *StackConfig) ProviderLocalName(ctx context.Context, addr addrs.Provider) (string, bool) {
 	return s.config.Stack.RequiredProviders.LocalNameForProvider(addr)
-}
-
-func (s *StackConfig) ResultType(ctx context.Context) cty.Type {
-	os := s.OutputValues(ctx)
-	atys := make(map[string]cty.Type, len(os))
-	for addr, o := range os {
-		atys[addr.Name] = o.ValueTypeConstraint(ctx)
-	}
-	return cty.Object(atys)
 }
 
 // StackCall returns a [StackCallConfig] representing the "stack" block
