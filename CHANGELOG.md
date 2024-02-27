@@ -16,7 +16,7 @@ ENHANCEMENTS:
 
     `"applyable"` means that it makes sense for a wrapping automation to offer to apply this plan.
 
-    `"complete"` means that applying this plan is expected to achieve convergence between desired and actual state. If this flag is set, wrapping automations should ideally encourage an operator to run another plan/apply round to continue making progress toward convergence.
+    `"complete"` means that applying this plan is expected to achieve convergence between desired and actual state. If this flag is present and set to `false` then wrapping automations should ideally encourage an operator to run another plan/apply round to continue making progress toward convergence.
 * Improved plan diff rendering for lists to display item-level differences on lists with unchanged length.
 * `terraform provider lock` accepts a new boolean option `-enable-plugin-cache`. If specified, and if a [global plugin cache](https://developer.hashicorp.com/terraform/cli/config/config-file#provider-plugin-cache) is configured Terraform will use the cache in the provider lock process. [GH-34632]
 * `terraform test`: File-level variables can now reference global variables. [GH-34699]
