@@ -33,6 +33,10 @@ type ChangeMap struct {
 
 	// RelevantAttributes matches the same attributes in Change exactly.
 	RelevantAttributes attribute_path.Matcher
+
+	// this reflects the parent NonLegacyValue, so that any behavior is
+	// automatically inherited into child changes.
+	nonLegacySchema bool
 }
 
 // AsMap converts the Change into an object or map representation by converting
@@ -47,6 +51,7 @@ func (change Change) AsMap() ChangeMap {
 		AfterSensitive:     genericToMap(change.AfterSensitive),
 		ReplacePaths:       change.ReplacePaths,
 		RelevantAttributes: change.RelevantAttributes,
+		nonLegacySchema:    change.NonLegacySchema,
 	}
 }
 
@@ -69,6 +74,7 @@ func (m ChangeMap) GetChild(key string) Change {
 		AfterSensitive:     afterSensitive,
 		ReplacePaths:       m.ReplacePaths.GetChildWithKey(key),
 		RelevantAttributes: m.RelevantAttributes.GetChildWithKey(key),
+		NonLegacySchema:    m.nonLegacySchema,
 	}
 }
 

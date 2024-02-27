@@ -21,6 +21,10 @@ func ComputeDiffForBlock(change structured.Change, block *jsonprovider.Block) co
 		return unknown
 	}
 
+	// NonLegacyValue is only ever switched from false to true, since the
+	// behavior would be for the entire resource.
+	change.NonLegacySchema = change.NonLegacySchema || containsNonLegacyFeatures(block)
+
 	current := change.GetDefaultActionForIteration()
 
 	blockValue := change.AsMap()
@@ -32,15 +36,6 @@ func ComputeDiffForBlock(change structured.Change, block *jsonprovider.Block) co
 		if !childValue.RelevantAttributes.MatchesPartial() {
 			// Mark non-relevant attributes as unchanged.
 			childValue = childValue.AsNoOp()
-		}
-
-		// Empty strings in blocks should be considered null for legacy reasons.
-		// The SDK doesn't support null strings yet, so we work around this now.
-		if before, ok := childValue.Before.(string); ok && len(before) == 0 {
-			childValue.Before = nil
-		}
-		if after, ok := childValue.After.(string); ok && len(after) == 0 {
-			childValue.After = nil
 		}
 
 		// Always treat changes to blocks as implicit.
@@ -118,4 +113,41 @@ func ComputeDiffForBlock(change structured.Change, block *jsonprovider.Block) co
 	}
 
 	return computed.NewDiff(renderers.Block(attributes, blocks), current, change.ReplacePaths.Matches())
+}
+
+// containsNonLegacyFeatures checks for features not supported by the legacy
+// SDK, so that we can skip the empty string -> null fixup for them.
+func containsNonLegacyFeatures(block *jsonprovider.Block) bool {
+	for _, blockType := range block.BlockTypes {
+		switch NestingMode(blockType.NestingMode) {
+		case nestingModeMap, nestingModeGroup:
+			// these block types were not possible in the SDK
+			return true
+		}
+	}
+
+	for _, attribute := range block.Attributes {
+		//nested object types were not possible in the SDK
+		if attribute.AttributeNestedType != nil {
+			return true
+		}
+
+		ty := unmarshalAttribute(attribute)
+		// these types were not possible in the SDK
+		switch {
+		case ty.HasDynamicTypes():
+			return true
+		case ty.IsTupleType() || ty.IsObjectType():
+			return true
+		case ty.IsCollectionType():
+			// Nested collections were not really supported, but could be
+			// generated with string types (though we conservatively limit this
+			// to primitive types)
+			ety := ty.ElementType()
+			if ety.IsCollectionType() && !ety.ElementType().IsPrimitiveType() {
+				return true
+			}
+		}
+	}
+	return false
 }

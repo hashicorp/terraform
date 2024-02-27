@@ -565,7 +565,8 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example will be destroyed
   - resource "test_instance" "example" {
-      - id = "i-02ae66f368e8518a9" -> null
+      - id                 = "i-02ae66f368e8518a9" -> null
+        # (1 unchanged attribute hidden)
     }`,
 		},
 		"forget": {
@@ -724,24 +725,95 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 				"id":        cty.StringVal("i-02ae66f368e8518a9"),
 				"ami":       cty.StringVal("ami-BEFORE"),
 				"unchanged": cty.NullVal(cty.String),
+				"empty":     cty.StringVal(""),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":        cty.StringVal("i-02ae66f368e8518a9"),
 				"ami":       cty.StringVal("ami-AFTER"),
 				"unchanged": cty.NullVal(cty.String),
+				"empty":     cty.NullVal(cty.String),
 			}),
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":        {Type: cty.String, Optional: true, Computed: true},
 					"ami":       {Type: cty.String, Optional: true},
 					"unchanged": {Type: cty.String, Optional: true},
+					"empty":     {Type: cty.String, Optional: true},
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+        id    = "i-02ae66f368e8518a9"
+        # (1 unchanged attribute hidden)
+    }`,
+		},
+		"string update (non-legacy)": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":        cty.StringVal("i-02ae66f368e8518a9"),
+				"from_null": cty.NullVal(cty.String),
+				"to_null":   cty.StringVal(""),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":        cty.StringVal("i-02ae66f368e8518a9"),
+				"from_null": cty.StringVal(""),
+				"to_null":   cty.NullVal(cty.String),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":        {Type: cty.String, Optional: true, Computed: true},
+					"from_null": {Type: cty.DynamicPseudoType, Optional: true},
+					"to_null":   {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      + from_null = ""
+        id        = "i-02ae66f368e8518a9"
+      - to_null   = "" -> null
+    }`,
+		},
+		"string update (non-legacy nested object)": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"obj": cty.ObjectVal(map[string]cty.Value{
+					"from_null": cty.NullVal(cty.String),
+					"to_null":   cty.StringVal(""),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"obj": cty.ObjectVal(map[string]cty.Value{
+					"from_null": cty.StringVal(""),
+					"to_null":   cty.NullVal(cty.String),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+					"obj": {NestedType: &configschema.Object{
+						Nesting: configschema.NestingSingle,
+						Attributes: map[string]*configschema.Attribute{
+							"from_null": {Type: cty.DynamicPseudoType, Optional: true},
+							"to_null":   {Type: cty.String, Optional: true},
+						},
+					}},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
         id  = "i-02ae66f368e8518a9"
+      ~ obj = {
+          + from_null = ""
+          - to_null   = "" -> null
+        }
     }`,
 		},
 		"in-place update of multi-line string field": {
