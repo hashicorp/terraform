@@ -20,6 +20,7 @@ ENHANCEMENTS:
 * Improved plan diff rendering for lists to display item-level differences on lists with unchanged length.
 * `terraform provider lock` accepts a new boolean option `-enable-plugin-cache`. If specified, and if a [global plugin cache](https://developer.hashicorp.com/terraform/cli/config/config-file#provider-plugin-cache) is configured Terraform will use the cache in the provider lock process. [GH-34632]
 * `terraform test`: File-level variables can now reference global variables. [GH-34699]
+* In import-generated code represent JSON values in HCL instead of as strings
 
 BUG FIXES:
 
@@ -35,10 +36,6 @@ Experiments are only enabled in alpha releases of Terraform CLI. The following f
 * The [language-level experiment](https://developer.hashicorp.com/terraform/language/settings#experimental-language-features) `unknown_instances` permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values.
 
     This is at an early stage and so currently setting these arguments to unknown values will only yield broken behavior, and so it's not yet useful to participate in this experiment. Future work will improve support for this new possibility, gradually making this experiment viable.
-
-## ENHANCEMENTS:
-
-* In import-generated code represent JSON values in HCL instead of as strings
 
 ## Previous Releases
 
