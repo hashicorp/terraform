@@ -155,9 +155,12 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 	ret := make(map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance)
 
 	declConfigs := c.call.Declaration(ctx).ProviderConfigs
-	neededProviders := c.call.Config(ctx).RequiredProviderInstances(ctx)
+	configProviders := c.call.Config(ctx).RequiredProviderInstances(ctx)
 
-	for _, elem := range neededProviders.Elems {
+	// First, we'll iterate through the configProviders and check that we have
+	// a definition for each of them. We'll also resolve the reference that we
+	// have and make sure it points to an actual provider instance.
+	for _, elem := range configProviders.Elems {
 
 		// sourceAddr is the addrs.RootProviderConfig that should be used to
 		// set this provider in the component later.
@@ -171,11 +174,6 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 		// know this expression exists and resolves to the correct type.
 		expr := declConfigs[componentAddr]
 
-		// We've now found the entry in declConfigs that should handle this
-		// provider so we'll remove it. This helps us later to find any unused
-		// entries that might be assignable to removed configurations.
-		delete(declConfigs, componentAddr)
-
 		inst, instDiags, ok := c.checkProvider(ctx, sourceAddr, componentAddr, expr, phase)
 		diags = diags.Append(instDiags)
 		if ok {
@@ -183,12 +181,12 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 		}
 	}
 
-	// Now, we've got types for all the providers that are required by the
-	// current configuration. We don't currently store enough information to
-	// be able to retrieve the original provider directly from the stack
-	// configuration. We only store the provider type and alias of the original
-	// provider within the state. Stacks can have multiple instances of the same
-	// provider type, local name, and alias. This means we need the user to
+	// Second, we want to iterate through the providers that are required by
+	// the state and not required by the configuration. Unfortunately, we don't
+	// currently store enough information to be able to retrieve the original
+	// provider directly from the state. We only store the provider type and
+	// alias of the original provider. Stacks can have multiple instances of the
+	// same provider type, local name, and alias. This means we need the user to
 	// still provide an entry for this provider in the declConfigs.
 	// TODO: There's another TODO in the state package that suggests we should
 	//   store the additional information we need. Once this is fixed we can
@@ -197,6 +195,11 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 	stack := c.call.Stack(ctx)
 	stackConfig := stack.StackConfig(ctx)
 	moduleTree := c.call.Config(ctx).ModuleTree(ctx)
+
+	// We'll search through the declConfigs to find any keys that match the
+	// type and alias of a any provider needed by the state. This is backwards
+	// when compared to how we resolved the configProviders. But we don't have
+	// the information we need to do it the other way around.
 
 	previousProviders := c.main.PreviousProviderInstances(c.Addr(), phase)
 	for localProviderAddr, expr := range declConfigs {
@@ -207,16 +210,19 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 			Alias:    localProviderAddr.Alias,
 		}
 
-		if !previousProviders.Has(sourceAddr) {
-			// Then this entry in declConfigs is just referring to a provider
-			// that we don't need. This is okay, just redundant.
-			// TODO: We could raise a warning here?
+		if _, exists := ret[sourceAddr]; exists || !previousProviders.Has(sourceAddr) {
+			// Then this declConfig either matches a configProvider and we've
+			// already processed it, or it matches a provider that isn't
+			// required by the config or the state. In the first case, this is
+			// fine we have matched the right provider already. In the second
+			// case, we could raise a warning or something but it's not a big
+			// deal so we can ignore it.
 			continue
 		}
 
-		// We do have an entry for this provider so remove it from the list of
-		// previous providers. This helps us later to find any unused entries.
-		previousProviders.Remove(sourceAddr)
+		// Otherwise, this is a declConfig for a provider that is not in the
+		// configProviders and is in the previousProviders. So, we should
+		// process it.
 
 		inst, instDiags, ok := c.checkProvider(ctx, sourceAddr, localProviderAddr, expr, phase)
 		diags = diags.Append(instDiags)
@@ -240,12 +246,18 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 		}
 	}
 
+	// Finally, let's check that we have a provider configuration for every
+	// provider needed by the state.
+
 	for _, previousProvider := range previousProviders {
 		if _, ok := ret[previousProvider]; ok {
-			// Then this provider is needed by the configuration anyway, so we
-			// don't need to raise an error about it being missed.
+			// Then we have a provider for this, so great!
 			continue
 		}
+
+		// If we get here, then we didn't find an entry for this provider in
+		// the declConfigs. This is an error because we need to have an entry
+		// for every provider that we have in the state.
 
 		// localAddr helps with the error message.
 		localAddr := addrs.LocalProviderConfig{
@@ -253,9 +265,6 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 			Alias:     previousProvider.Alias,
 		}
 
-		// If we get here, then we didn't find an entry for this provider in
-		// the declConfigs. This is an error because we need to have an entry
-		// for every provider that we have in the state.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Missing required provider configuration",

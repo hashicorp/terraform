@@ -263,11 +263,6 @@ func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (
 	declConfigs := c.Declaration(ctx).ProviderConfigs
 	neededProviders := c.RequiredProviderInstances(ctx)
 
-	// neededProviders are the providers that are required by the module tree itself.
-	// We need to make sure all the neededProviders are included in the `providers` argument of the declaration.
-	// Then we need to make sure all the providers in the `providers` argument exist.
-	// Then we need to make sure the types of the providers in the `providers` argument match the types of the neededProviders.
-
 	ret := addrs.MakeSet[addrs.RootProviderConfig]()
 	for _, elem := range neededProviders.Elems {
 
