@@ -84,8 +84,9 @@ func TestTerraformHook(t *testing.T) {
 		}
 
 		wantRihd := &hooks.ResourceInstanceStatusHookData{
-			Addr:   stackAddr,
-			Status: hooks.ResourceInstancePlanning,
+			Addr:         stackAddr,
+			ProviderAddr: providerAddr,
+			Status:       hooks.ResourceInstancePlanning,
 		}
 		if diff := cmp.Diff(gotRihd, wantRihd); diff != "" {
 			t.Errorf("wrong status hook data:\n%s", diff)
@@ -106,8 +107,9 @@ func TestTerraformHook(t *testing.T) {
 		}
 
 		wantRihd := &hooks.ResourceInstanceStatusHookData{
-			Addr:   stackAddr,
-			Status: hooks.ResourceInstancePlanned,
+			Addr:         stackAddr,
+			ProviderAddr: providerAddr,
+			Status:       hooks.ResourceInstancePlanned,
 		}
 		if diff := cmp.Diff(gotRihd, wantRihd); diff != "" {
 			t.Errorf("wrong status hook data:\n%s", diff)
@@ -128,8 +130,9 @@ func TestTerraformHook(t *testing.T) {
 		}
 
 		wantRihd := &hooks.ResourceInstanceStatusHookData{
-			Addr:   stackAddr,
-			Status: hooks.ResourceInstanceApplying,
+			Addr:         stackAddr,
+			ProviderAddr: providerAddr,
+			Status:       hooks.ResourceInstanceApplying,
 		}
 		if diff := cmp.Diff(gotRihd, wantRihd); diff != "" {
 			t.Errorf("wrong status hook data:\n%s", diff)
@@ -159,8 +162,9 @@ func TestTerraformHook(t *testing.T) {
 		}
 
 		wantRihd := &hooks.ResourceInstanceStatusHookData{
-			Addr:   stackAddr,
-			Status: hooks.ResourceInstanceApplied,
+			Addr:         stackAddr,
+			ProviderAddr: providerAddr,
+			Status:       hooks.ResourceInstanceApplied,
 		}
 		if diff := cmp.Diff(gotRihd, wantRihd); diff != "" {
 			t.Errorf("wrong status hook data:\n%s", diff)
@@ -190,8 +194,9 @@ func TestTerraformHook(t *testing.T) {
 		}
 
 		wantRihd := &hooks.ResourceInstanceStatusHookData{
-			Addr:   stackAddr,
-			Status: hooks.ResourceInstanceErrored,
+			Addr:         stackAddr,
+			ProviderAddr: providerAddr,
+			Status:       hooks.ResourceInstanceErrored,
 		}
 		if diff := cmp.Diff(gotRihd, wantRihd); diff != "" {
 			t.Errorf("wrong status hook data:\n%s", diff)
