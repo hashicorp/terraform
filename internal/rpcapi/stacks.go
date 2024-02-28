@@ -697,11 +697,19 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 		// When Terraform core reports a resource instance plan status, we
 		// forward it to the events client.
 		ReportResourceInstanceStatus: func(ctx context.Context, span any, rihd *hooks.ResourceInstanceStatusHookData) any {
+			// addrs.Provider.String() will panic if called on the zero value.
+			// Which we shouldn't ever be holding at this point!! So this
+			// paranoia is probably unnecessary.
+			providerAddr := rihd.Addr.Item.ResourceInstance.Resource.Resource.ImpliedProvider()
+			if !rihd.ProviderAddr.IsZero() {
+				providerAddr = rihd.ProviderAddr.String()
+			}
 			send(&terraform1.StackChangeProgress{
 				Event: &terraform1.StackChangeProgress_ResourceInstanceStatus_{
 					ResourceInstanceStatus: &terraform1.StackChangeProgress_ResourceInstanceStatus{
-						Addr:   terraform1.NewResourceInstanceObjectInStackAddr(rihd.Addr),
-						Status: rihd.Status.ForProtobuf(),
+						Addr:         terraform1.NewResourceInstanceObjectInStackAddr(rihd.Addr),
+						Status:       rihd.Status.ForProtobuf(),
+						ProviderAddr: providerAddr,
 					},
 				},
 			})
@@ -742,10 +750,11 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 			send(&terraform1.StackChangeProgress{
 				Event: &terraform1.StackChangeProgress_ResourceInstancePlannedChange_{
 					ResourceInstancePlannedChange: &terraform1.StackChangeProgress_ResourceInstancePlannedChange{
-						Addr:     terraform1.NewResourceInstanceObjectInStackAddr(ric.Addr),
-						Actions:  actions,
-						Moved:    moved,
-						Imported: imported,
+						Addr:         terraform1.NewResourceInstanceObjectInStackAddr(ric.Addr),
+						Actions:      actions,
+						Moved:        moved,
+						Imported:     imported,
+						ProviderAddr: ric.Change.ProviderAddr.Provider.String(),
 					},
 				},
 			})
