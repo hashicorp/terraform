@@ -310,7 +310,7 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 	}
 }
 
-func TestPreProvisionInstanceStep(t *testing.T) {
+func TestUiHookPreProvisionInstanceStep(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
@@ -337,7 +337,7 @@ func TestPreProvisionInstanceStep(t *testing.T) {
 
 // Test ProvisionOutput, including lots of edge cases for the output
 // whitespace/line ending logic.
-func TestProvisionOutput(t *testing.T) {
+func TestUiHookProvisionOutput(t *testing.T) {
 	addr := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
 		Type: "test_instance",
@@ -420,7 +420,7 @@ test_instance.foo (winrm): bar
 
 // Test the PreRefresh hook in the normal path where the resource exists with
 // an ID key and value in the state.
-func TestPreRefresh(t *testing.T) {
+func TestUiHookPreRefresh(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
@@ -453,7 +453,7 @@ func TestPreRefresh(t *testing.T) {
 
 // Test that PreRefresh still works if no ID key and value can be determined
 // from state.
-func TestPreRefresh_noID(t *testing.T) {
+func TestUiHookPreRefresh_noID(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
@@ -484,7 +484,7 @@ func TestPreRefresh_noID(t *testing.T) {
 }
 
 // Test the very simple PreImportState hook.
-func TestPreImportState(t *testing.T) {
+func TestUiHookPreImportState(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
@@ -513,7 +513,7 @@ func TestPreImportState(t *testing.T) {
 // Test the PostImportState UI hook. Again, this hook behaviour seems odd to
 // me (see below), so please don't consider these tests as justification for
 // keeping this behaviour.
-func TestPostImportState(t *testing.T) {
+func TestUiHookPostImportState(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
