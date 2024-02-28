@@ -64,7 +64,14 @@ func TestPlan_valid(t *testing.T) {
 			req := PlanRequest{
 				Config: cfg,
 				ProviderFactories: map[addrs.Provider]providers.Factory{
+					// We support both hashicorp/testing and
+					// terraform.io/builtin/testing as providers. This lets us
+					// test the provider aliasing feature. Both providers
+					// support the same set of resources and data sources.
 					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProvider(), nil
+					},
+					addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
 						return stacks_testing_provider.NewProvider(), nil
 					},
 				},
@@ -138,7 +145,14 @@ func TestPlan_invalid(t *testing.T) {
 			req := PlanRequest{
 				Config: cfg,
 				ProviderFactories: map[addrs.Provider]providers.Factory{
+					// We support both hashicorp/testing and
+					// terraform.io/builtin/testing as providers. This lets us
+					// test the provider aliasing feature. Both providers
+					// support the same set of resources and data sources.
 					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProvider(), nil
+					},
+					addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
 						return stacks_testing_provider.NewProvider(), nil
 					},
 				},

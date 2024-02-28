@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -244,13 +245,13 @@ func (c *ComponentConfig) CheckInputVariableValues(ctx context.Context, phase Ev
 // If any modules in the component's root module tree are invalid then this
 // result could under-promise or over-promise depending on the kind of
 // invalidity.
-func (c *ComponentConfig) RequiredProviderInstances(ctx context.Context) addrs.Set[addrs.RootProviderConfig] {
+func (c *ComponentConfig) RequiredProviderInstances(ctx context.Context) addrs.Map[addrs.RootProviderConfig, addrs.LocalProviderConfig] {
 	moduleTree := c.ModuleTree(ctx)
 	if moduleTree == nil || moduleTree.Root == nil {
 		// If we get here then we presumably failed to load the module, and
 		// so we'll just unwind quickly so a different return path can return
 		// the error diagnostics.
-		return nil
+		return addrs.MakeMap[addrs.RootProviderConfig, addrs.LocalProviderConfig]()
 	}
 	return moduleTree.Root.EffectiveRequiredProviderConfigs()
 }
@@ -263,10 +264,23 @@ func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (
 	neededProviders := c.RequiredProviderInstances(ctx)
 
 	ret := addrs.MakeSet[addrs.RootProviderConfig]()
-	for _, inCalleeAddr := range neededProviders {
-		typeAddr := inCalleeAddr.Provider
-		localName, ok := stackConfig.ProviderLocalName(ctx, typeAddr)
-		if !ok {
+	for _, elem := range neededProviders.Elems {
+
+		// sourceAddr is the addrs.RootProviderConfig that should be used to
+		// set this provider in the component later.
+		sourceAddr := elem.Key
+
+		// componentAddr is the addrs.LocalProviderConfig that specifies the
+		// local name and (optional) alias of the provider in the component.
+		componentAddr := elem.Value
+
+		// typeAddr is the absolute address of the provider type itself.
+		typeAddr := sourceAddr.Provider
+
+		// This type should be in the stack's required_providers list.
+		if _, ok := stackConfig.ProviderLocalName(ctx, typeAddr); !ok {
+			// This means we haven't got this provider in the stacks
+			// required_provider list.
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Component requires undeclared provider",
@@ -279,42 +293,69 @@ func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (
 			continue
 		}
 
-		localAddr := addrs.LocalProviderConfig{
-			LocalName: localName,
-			Alias:     inCalleeAddr.Alias,
-		}
-		if _, exists := declConfigs[localAddr]; !exists {
+		expr, exists := declConfigs[componentAddr]
+		if !exists {
+			// Then this provider isn't listed in the `providers` block of this
+			// component. Which is bad!
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Missing required provider configuration",
 				Detail: fmt.Sprintf(
 					"The root module for %s requires a provider configuration named %q for provider %q, which is not assigned in the component's \"providers\" argument.",
-					c.Addr(), localAddr.StringCompact(), typeAddr.ForDisplay(),
+					c.Addr(), componentAddr.StringCompact(), typeAddr.ForDisplay(),
 				),
 				Subject: c.Declaration(ctx).DeclRange.ToHCL().Ptr(),
 			})
 			continue
 		}
 
-		// TODO: It's not currently possible to assign a provider configuration
-		//  with a different local name even if the types match. Find out if
-		//  this is deliberate. Note, the component_instance CheckProviders
-		//  function also enforces this.
-		//
-		// In theory you should be able to do this:
-		//   provider_one = provider.provider_two.default
-		//
-		// Assuming the underlying types of the providers are the same, even if
-		// the local names are not. This is not possible at the moment, the
-		// local names must match up.
-		//
-		// We'll have to partially parse the reference here to get the local
-		// configuration block (uninstanced), and then resolve the underlying
-		// type. And then make sure it matches the type of the provider we're
-		// assigning it to in the module. Also, we should fix the equivalent
-		// function in component_instance at the same time.
+		// At the validation stage, it's really likely the result here is
+		// unknown. But, we can still check the returned type to make sure it
+		// matches everything expected.
+		result, hclDiags := EvalExprAndEvalContext(ctx, expr, phase, c)
+		diags = diags.Append(hclDiags)
+		if hclDiags.HasErrors() {
+			continue
+		}
 
-		ret.Add(inCalleeAddr)
+		const errSummary = "Invalid provider configuration"
+		if actualTy := result.Value.Type(); stackconfigtypes.IsProviderConfigType(actualTy) {
+			// Then we at least got a provider reference of some kind.
+			actualTypeAddr := stackconfigtypes.ProviderForProviderConfigType(actualTy)
+			if actualTypeAddr != typeAddr {
+				// But, unfortunately, the underlying types of the providers
+				// do not match up.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  errSummary,
+					Detail: fmt.Sprintf(
+						"The provider configuration slot %s requires a configuration for provider %q, not for provider %q.",
+						componentAddr.StringCompact(), typeAddr, actualTypeAddr,
+					),
+					Subject: result.Expression.Range().Ptr(),
+				})
+				continue
+			}
+		} else {
+			// We got something that isn't a provider reference at all.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  errSummary,
+				Detail: fmt.Sprintf(
+					"The provider configuration slot %s requires a configuration for provider %q.",
+					componentAddr.StringCompact(), typeAddr,
+				),
+				Subject: result.Expression.Range().Ptr(),
+			})
+			continue
+		}
+
+		// If we made it here, the types all matched up so we've done everything
+		// we can. component_instance.go will do additional checks to make sure
+		// the result is known and not null when it comes time to actually
+		// check the plan.
+
+		ret.Add(sourceAddr)
 	}
 	return ret, diags
 }
