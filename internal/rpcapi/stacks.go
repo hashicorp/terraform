@@ -697,10 +697,11 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 		// When Terraform core reports a resource instance plan status, we
 		// forward it to the events client.
 		ReportResourceInstanceStatus: func(ctx context.Context, span any, rihd *hooks.ResourceInstanceStatusHookData) any {
-			// addrs.Provider.String() will panic if called on the zero value.
-			// Which we shouldn't ever be holding at this point!! So this
-			// paranoia is probably unnecessary.
-			providerAddr := rihd.Addr.Item.ResourceInstance.Resource.Resource.ImpliedProvider()
+			// addrs.Provider.String() will panic on the zero value. In this
+			// case, holding a zero provider would mean a bug in our event
+			// logging code rather than in core logic, so avoid exploding, but
+			// send a blank string to expose the error later.
+			providerAddr := ""
 			if !rihd.ProviderAddr.IsZero() {
 				providerAddr = rihd.ProviderAddr.String()
 			}
