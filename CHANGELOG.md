@@ -21,6 +21,7 @@ ENHANCEMENTS:
 * `terraform provider lock` accepts a new boolean option `-enable-plugin-cache`. If specified, and if a [global plugin cache](https://developer.hashicorp.com/terraform/cli/config/config-file#provider-plugin-cache) is configured Terraform will use the cache in the provider lock process. [GH-34632]
 * `terraform test`: File-level variables can now reference global variables. [GH-34699]
 * In import-generated code represent JSON values in HCL instead of as strings
+* built-in "terraform" provider: new `tfvarsdecode`, `tfvarsencode`, and `exprencode` functions, for unusual situations where it's helpful to manually generate or read from Terraform's "tfvars" format.
 
 BUG FIXES:
 
