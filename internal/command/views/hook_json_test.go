@@ -16,6 +16,17 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+func testJSONHookResourceID(addr addrs.AbsResourceInstance) terraform.HookResourceIdentity {
+	return terraform.HookResourceIdentity{
+		Addr: addr,
+		ProviderAddr: addrs.Provider{
+			Type:      "test",
+			Namespace: "hashicorp",
+			Hostname:  "example.com",
+		},
+	}
+}
+
 // Test a sequence of hooks associated with creating a resource
 func TestJSONHook_create(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
@@ -48,15 +59,15 @@ func TestJSONHook_create(t *testing.T) {
 		}),
 	})
 
-	action, err := hook.PreApply(addr, addrs.NotDeposed, plans.Create, priorState, plannedNewState)
+	action, err := hook.PreApply(testJSONHookResourceID(addr), addrs.NotDeposed, plans.Create, priorState, plannedNewState)
 	testHookReturnValues(t, action, err)
 
-	action, err = hook.PreProvisionInstanceStep(addr, "local-exec")
+	action, err = hook.PreProvisionInstanceStep(testJSONHookResourceID(addr), "local-exec")
 	testHookReturnValues(t, action, err)
 
-	hook.ProvisionOutput(addr, "local-exec", `Executing: ["/bin/sh" "-c" "touch /etc/motd"]`)
+	hook.ProvisionOutput(testJSONHookResourceID(addr), "local-exec", `Executing: ["/bin/sh" "-c" "touch /etc/motd"]`)
 
-	action, err = hook.PostProvisionInstanceStep(addr, "local-exec", nil)
+	action, err = hook.PostProvisionInstanceStep(testJSONHookResourceID(addr), "local-exec", nil)
 	testHookReturnValues(t, action, err)
 
 	// Travel 10s into the future, notify the progress goroutine, and sleep
@@ -80,7 +91,7 @@ func TestJSONHook_create(t *testing.T) {
 	now = now.Add(2 * time.Second)
 	nowMu.Unlock()
 
-	action, err = hook.PostApply(addr, addrs.NotDeposed, plannedNewState, nil)
+	action, err = hook.PostApply(testJSONHookResourceID(addr), addrs.NotDeposed, plannedNewState, nil)
 	testHookReturnValues(t, action, err)
 
 	// Shut down the progress goroutine if still active
@@ -203,15 +214,15 @@ func TestJSONHook_errors(t *testing.T) {
 		}),
 	})
 
-	action, err := hook.PreApply(addr, addrs.NotDeposed, plans.Delete, priorState, plannedNewState)
+	action, err := hook.PreApply(testJSONHookResourceID(addr), addrs.NotDeposed, plans.Delete, priorState, plannedNewState)
 	testHookReturnValues(t, action, err)
 
 	provisionError := fmt.Errorf("provisioner didn't want to")
-	action, err = hook.PostProvisionInstanceStep(addr, "local-exec", provisionError)
+	action, err = hook.PostProvisionInstanceStep(testJSONHookResourceID(addr), "local-exec", provisionError)
 	testHookReturnValues(t, action, err)
 
 	applyError := fmt.Errorf("provider was sad")
-	action, err = hook.PostApply(addr, addrs.NotDeposed, plannedNewState, applyError)
+	action, err = hook.PostApply(testJSONHookResourceID(addr), addrs.NotDeposed, plannedNewState, applyError)
 	testHookReturnValues(t, action, err)
 
 	// Shut down the progress goroutine
@@ -285,10 +296,10 @@ func TestJSONHook_refresh(t *testing.T) {
 		}),
 	})
 
-	action, err := hook.PreRefresh(addr, addrs.NotDeposed, state)
+	action, err := hook.PreRefresh(testJSONHookResourceID(addr), addrs.NotDeposed, state)
 	testHookReturnValues(t, action, err)
 
-	action, err = hook.PostRefresh(addr, addrs.NotDeposed, state, state)
+	action, err = hook.PostRefresh(testJSONHookResourceID(addr), addrs.NotDeposed, state, state)
 	testHookReturnValues(t, action, err)
 
 	wantResource := map[string]interface{}{

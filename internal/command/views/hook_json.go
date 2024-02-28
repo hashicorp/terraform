@@ -61,21 +61,21 @@ type applyProgress struct {
 	heartbeatDone chan struct{}
 }
 
-func (h *jsonHook) PreApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *jsonHook) PreApply(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	if action != plans.NoOp {
 		idKey, idValue := format.ObjectValueIDOrName(priorState)
-		h.view.Hook(json.NewApplyStart(addr, action, idKey, idValue))
+		h.view.Hook(json.NewApplyStart(id.Addr, action, idKey, idValue))
 	}
 
 	progress := applyProgress{
-		addr:          addr,
+		addr:          id.Addr,
 		action:        action,
 		start:         h.timeNow().Round(time.Second),
 		done:          make(chan struct{}),
 		heartbeatDone: make(chan struct{}),
 	}
 	h.applyingLock.Lock()
-	h.applying[addr.String()] = progress
+	h.applying[id.Addr.String()] = progress
 	h.applyingLock.Unlock()
 
 	if action != plans.NoOp {
@@ -98,8 +98,8 @@ func (h *jsonHook) applyingHeartbeat(progress applyProgress) {
 	}
 }
 
-func (h *jsonHook) PostApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, newState cty.Value, err error) (terraform.HookAction, error) {
-	key := addr.String()
+func (h *jsonHook) PostApply(id terraform.HookResourceIdentity, dk addrs.DeposedKey, newState cty.Value, err error) (terraform.HookAction, error) {
+	key := id.Addr.String()
 	h.applyingLock.Lock()
 	progress := h.applying[key]
 	if progress.done != nil {
@@ -118,50 +118,50 @@ func (h *jsonHook) PostApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey
 		// Errors are collected and displayed post-apply, so no need to
 		// re-render them here. Instead just signal that this resource failed
 		// to apply.
-		h.view.Hook(json.NewApplyErrored(addr, progress.action, elapsed))
+		h.view.Hook(json.NewApplyErrored(id.Addr, progress.action, elapsed))
 	} else {
 		idKey, idValue := format.ObjectValueID(newState)
-		h.view.Hook(json.NewApplyComplete(addr, progress.action, idKey, idValue, elapsed))
+		h.view.Hook(json.NewApplyComplete(id.Addr, progress.action, idKey, idValue, elapsed))
 	}
 	return terraform.HookActionContinue, nil
 }
 
-func (h *jsonHook) PreProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string) (terraform.HookAction, error) {
-	h.view.Hook(json.NewProvisionStart(addr, typeName))
+func (h *jsonHook) PreProvisionInstanceStep(id terraform.HookResourceIdentity, typeName string) (terraform.HookAction, error) {
+	h.view.Hook(json.NewProvisionStart(id.Addr, typeName))
 	return terraform.HookActionContinue, nil
 }
 
-func (h *jsonHook) PostProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string, err error) (terraform.HookAction, error) {
+func (h *jsonHook) PostProvisionInstanceStep(id terraform.HookResourceIdentity, typeName string, err error) (terraform.HookAction, error) {
 	if err != nil {
 		// Errors are collected and displayed post-apply, so no need to
 		// re-render them here. Instead just signal that this provisioner step
 		// failed.
-		h.view.Hook(json.NewProvisionErrored(addr, typeName))
+		h.view.Hook(json.NewProvisionErrored(id.Addr, typeName))
 	} else {
-		h.view.Hook(json.NewProvisionComplete(addr, typeName))
+		h.view.Hook(json.NewProvisionComplete(id.Addr, typeName))
 	}
 	return terraform.HookActionContinue, nil
 }
 
-func (h *jsonHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName string, msg string) {
+func (h *jsonHook) ProvisionOutput(id terraform.HookResourceIdentity, typeName string, msg string) {
 	s := bufio.NewScanner(strings.NewReader(msg))
 	s.Split(scanLines)
 	for s.Scan() {
 		line := strings.TrimRightFunc(s.Text(), unicode.IsSpace)
 		if line != "" {
-			h.view.Hook(json.NewProvisionProgress(addr, typeName, line))
+			h.view.Hook(json.NewProvisionProgress(id.Addr, typeName, line))
 		}
 	}
 }
 
-func (h *jsonHook) PreRefresh(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState cty.Value) (terraform.HookAction, error) {
+func (h *jsonHook) PreRefresh(id terraform.HookResourceIdentity, dk addrs.DeposedKey, priorState cty.Value) (terraform.HookAction, error) {
 	idKey, idValue := format.ObjectValueID(priorState)
-	h.view.Hook(json.NewRefreshStart(addr, idKey, idValue))
+	h.view.Hook(json.NewRefreshStart(id.Addr, idKey, idValue))
 	return terraform.HookActionContinue, nil
 }
 
-func (h *jsonHook) PostRefresh(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState cty.Value, newState cty.Value) (terraform.HookAction, error) {
+func (h *jsonHook) PostRefresh(id terraform.HookResourceIdentity, dk addrs.DeposedKey, priorState cty.Value, newState cty.Value) (terraform.HookAction, error) {
 	idKey, idValue := format.ObjectValueID(newState)
-	h.view.Hook(json.NewRefreshComplete(addr, idKey, idValue))
+	h.view.Hook(json.NewRefreshComplete(id.Addr, idKey, idValue))
 	return terraform.HookActionContinue, nil
 }

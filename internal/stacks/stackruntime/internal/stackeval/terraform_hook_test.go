@@ -56,6 +56,15 @@ func TestTerraformHook(t *testing.T) {
 			Key: addrs.NoKey,
 		},
 	}
+	providerAddr := addrs.Provider{
+		Type:      "foo",
+		Namespace: "hashicorp",
+		Hostname:  "example.com",
+	}
+	resourceIdentity := terraform.HookResourceIdentity{
+		Addr:         resourceAddr,
+		ProviderAddr: providerAddr,
+	}
 	stackAddr := stackaddrs.AbsResourceInstanceObject{
 		Component: componentAddr,
 		Item:      resourceAddr.CurrentObject(),
@@ -63,7 +72,7 @@ func TestTerraformHook(t *testing.T) {
 
 	t.Run("PreDiff", func(t *testing.T) {
 		hook := makeHook()
-		action, err := hook.PreDiff(resourceAddr, addrs.NotDeposed, cty.NilVal, cty.NilVal)
+		action, err := hook.PreDiff(resourceIdentity, addrs.NotDeposed, cty.NilVal, cty.NilVal)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}
@@ -85,7 +94,7 @@ func TestTerraformHook(t *testing.T) {
 
 	t.Run("PostDiff", func(t *testing.T) {
 		hook := makeHook()
-		action, err := hook.PostDiff(resourceAddr, addrs.NotDeposed, plans.Create, cty.NilVal, cty.NilVal)
+		action, err := hook.PostDiff(resourceIdentity, addrs.NotDeposed, plans.Create, cty.NilVal, cty.NilVal)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}
@@ -107,7 +116,7 @@ func TestTerraformHook(t *testing.T) {
 
 	t.Run("PreApply", func(t *testing.T) {
 		hook := makeHook()
-		action, err := hook.PreApply(resourceAddr, addrs.NotDeposed, plans.Create, cty.NilVal, cty.NilVal)
+		action, err := hook.PreApply(resourceIdentity, addrs.NotDeposed, plans.Create, cty.NilVal, cty.NilVal)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}
@@ -130,7 +139,7 @@ func TestTerraformHook(t *testing.T) {
 	t.Run("PostApply", func(t *testing.T) {
 		hook := makeHook()
 		// It is invalid to call PostApply without first calling PreApply
-		action, err := hook.PreApply(resourceAddr, addrs.NotDeposed, plans.Create, cty.NilVal, cty.NilVal)
+		action, err := hook.PreApply(resourceIdentity, addrs.NotDeposed, plans.Create, cty.NilVal, cty.NilVal)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}
@@ -138,7 +147,7 @@ func TestTerraformHook(t *testing.T) {
 			t.Errorf("wrong action: %#v", action)
 		}
 
-		action, err = hook.PostApply(resourceAddr, addrs.NotDeposed, cty.NilVal, nil)
+		action, err = hook.PostApply(resourceIdentity, addrs.NotDeposed, cty.NilVal, nil)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}
@@ -161,7 +170,7 @@ func TestTerraformHook(t *testing.T) {
 	t.Run("PostApply errored", func(t *testing.T) {
 		hook := makeHook()
 		// It is invalid to call PostApply without first calling PreApply
-		action, err := hook.PreApply(resourceAddr, addrs.NotDeposed, plans.Create, cty.NilVal, cty.NilVal)
+		action, err := hook.PreApply(resourceIdentity, addrs.NotDeposed, plans.Create, cty.NilVal, cty.NilVal)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}
@@ -169,7 +178,7 @@ func TestTerraformHook(t *testing.T) {
 			t.Errorf("wrong action: %#v", action)
 		}
 
-		action, err = hook.PostApply(resourceAddr, addrs.NotDeposed, cty.NilVal, errors.New("splines unreticulatable"))
+		action, err = hook.PostApply(resourceIdentity, addrs.NotDeposed, cty.NilVal, errors.New("splines unreticulatable"))
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}
@@ -235,12 +244,12 @@ func TestTerraformHook(t *testing.T) {
 				hook := makeHook()
 
 				for _, action := range tc.actions {
-					_, err := hook.PreApply(resourceAddr, addrs.NotDeposed, action, cty.NilVal, cty.NilVal)
+					_, err := hook.PreApply(resourceIdentity, addrs.NotDeposed, action, cty.NilVal, cty.NilVal)
 					if err != nil {
 						t.Fatalf("unexpected error in PreApply: %s", err)
 					}
 
-					_, err = hook.PostApply(resourceAddr, addrs.NotDeposed, cty.NilVal, nil)
+					_, err = hook.PostApply(resourceIdentity, addrs.NotDeposed, cty.NilVal, nil)
 					if err != nil {
 						t.Fatalf("unexpected error in PostApply: %s", err)
 					}

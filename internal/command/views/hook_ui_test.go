@@ -22,6 +22,17 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
+func testUiHookResourceID(addr addrs.AbsResourceInstance) terraform.HookResourceIdentity {
+	return terraform.HookResourceIdentity{
+		Addr: addr,
+		ProviderAddr: addrs.Provider{
+			Type:      "test",
+			Namespace: "hashicorp",
+			Hostname:  "example.com",
+		},
+	}
+}
+
 // Test the PreApply hook for creating a new resource
 func TestUiHookPreApply_create(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
@@ -51,7 +62,7 @@ func TestUiHookPreApply_create(t *testing.T) {
 		}),
 	})
 
-	action, err := h.PreApply(addr, addrs.NotDeposed, plans.Create, priorState, plannedNewState)
+	action, err := h.PreApply(testUiHookResourceID(addr), addrs.NotDeposed, plans.Create, priorState, plannedNewState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,7 +120,7 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 		}),
 	})
 
-	action, err := h.PreApply(addr, addrs.NotDeposed, plans.Update, priorState, plannedNewState)
+	action, err := h.PreApply(testUiHookResourceID(addr), addrs.NotDeposed, plans.Update, priorState, plannedNewState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +184,7 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 	}))
 
 	key := states.NewDeposedKey()
-	action, err := h.PreApply(addr, key, plans.Delete, priorState, plannedNewState)
+	action, err := h.PreApply(testUiHookResourceID(addr), key, plans.Delete, priorState, plannedNewState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +235,7 @@ func TestUiHookPostApply_colorInterpolation(t *testing.T) {
 		"id": cty.StringVal("[blue]"),
 	})
 
-	action, err := h.PostApply(addr, addrs.NotDeposed, newState, nil)
+	action, err := h.PostApply(testUiHookResourceID(addr), addrs.NotDeposed, newState, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -277,7 +288,7 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 		"names": cty.List(cty.String),
 	}))
 
-	action, err := h.PostApply(addr, addrs.NotDeposed, newState, nil)
+	action, err := h.PostApply(testUiHookResourceID(addr), addrs.NotDeposed, newState, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -310,7 +321,7 @@ func TestPreProvisionInstanceStep(t *testing.T) {
 		Name: "foo",
 	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	action, err := h.PreProvisionInstanceStep(addr, "local-exec")
+	action, err := h.PreProvisionInstanceStep(testUiHookResourceID(addr), "local-exec")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -397,7 +408,7 @@ test_instance.foo (winrm): bar
 			view := NewView(streams)
 			h := NewUiHook(view)
 
-			h.ProvisionOutput(addr, tc.provisioner, tc.input)
+			h.ProvisionOutput(testUiHookResourceID(addr), tc.provisioner, tc.input)
 			result := done(t)
 
 			if got := result.Stdout(); got != tc.wantOutput {
@@ -425,7 +436,7 @@ func TestPreRefresh(t *testing.T) {
 		"bar": cty.ListValEmpty(cty.String),
 	})
 
-	action, err := h.PreRefresh(addr, addrs.NotDeposed, priorState)
+	action, err := h.PreRefresh(testUiHookResourceID(addr), addrs.NotDeposed, priorState)
 
 	if err != nil {
 		t.Fatal(err)
@@ -457,7 +468,7 @@ func TestPreRefresh_noID(t *testing.T) {
 		"bar": cty.ListValEmpty(cty.String),
 	})
 
-	action, err := h.PreRefresh(addr, addrs.NotDeposed, priorState)
+	action, err := h.PreRefresh(testUiHookResourceID(addr), addrs.NotDeposed, priorState)
 
 	if err != nil {
 		t.Fatal(err)
@@ -484,7 +495,7 @@ func TestPreImportState(t *testing.T) {
 		Name: "foo",
 	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	action, err := h.PreImportState(addr, "test")
+	action, err := h.PreImportState(testUiHookResourceID(addr), "test")
 
 	if err != nil {
 		t.Fatal(err)
@@ -532,7 +543,7 @@ func TestPostImportState(t *testing.T) {
 		},
 	}
 
-	action, err := h.PostImportState(addr, imported)
+	action, err := h.PostImportState(testUiHookResourceID(addr), imported)
 
 	if err != nil {
 		t.Fatal(err)

@@ -443,9 +443,13 @@ func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repDat
 func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, importId string, provider providers.Interface, providerSchema providers.ProviderSchema) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	absAddr := addr.Resource.Absolute(ctx.Path())
+	hookResourceID := HookResourceIdentity{
+		Addr:         absAddr,
+		ProviderAddr: n.ResolvedProvider.Provider,
+	}
 
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PrePlanImport(absAddr, importId)
+		return h.PrePlanImport(hookResourceID, importId)
 	}))
 	if diags.HasErrors() {
 		return nil, diags
@@ -553,7 +557,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 
 	// call post-import hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostPlanImport(absAddr, imported)
+		return h.PostPlanImport(hookResourceID, imported)
 	}))
 
 	if imported[0].TypeName == "" {
