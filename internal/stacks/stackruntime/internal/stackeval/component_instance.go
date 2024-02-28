@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
@@ -74,7 +73,6 @@ func (c *ComponentInstance) InputVariableValues(ctx context.Context, phase EvalP
 }
 
 func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
 	wantTy, defs := c.call.Config(ctx).InputsType(ctx)
 	decl := c.call.Declaration(ctx)
 
@@ -83,70 +81,12 @@ func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase 
 		// just report that we don't know the input variable values and trust
 		// that the module's problems will be reported by some other return
 		// path.
-		return cty.DynamicVal, diags
+		return cty.DynamicVal, nil
 	}
 
-	v := cty.EmptyObjectVal
-	expr := decl.Inputs
-	rng := decl.DeclRange
-	var hclCtx *hcl.EvalContext
-	if expr != nil {
-		result, moreDiags := EvalExprAndEvalContext(ctx, expr, phase, c)
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
-			return cty.DynamicVal, diags
-		}
-		expr = result.Expression
-		hclCtx = result.EvalContext
-		v = result.Value
-		rng = tfdiags.SourceRangeFromHCL(result.Expression.Range())
-	}
-
-	if defs != nil {
-		v = defs.Apply(v)
-	}
-	v, err := convert.Convert(v, wantTy)
-	if err != nil {
-		// A conversion failure here could either be caused by an author-provided
-		// expression that's invalid or by the author omitting the argument
-		// altogether when there's at least one required attribute, so we'll
-		// return slightly different messages in each case.
-		if expr != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    hcl.DiagError,
-				Summary:     "Invalid inputs for component",
-				Detail:      fmt.Sprintf("Invalid input variable definition object: %s.", tfdiags.FormatError(err)),
-				Subject:     rng.ToHCL().Ptr(),
-				Expression:  expr,
-				EvalContext: hclCtx,
-			})
-		} else {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Missing required inputs for component",
-				Detail:   fmt.Sprintf("Must provide \"inputs\" argument to define the component's input variables: %s.", tfdiags.FormatError(err)),
-				Subject:  rng.ToHCL().Ptr(),
-			})
-		}
-		return cty.DynamicVal, diags
-	}
-
-	for _, path := range stackconfigtypes.ProviderInstancePathsInValue(v) {
-		err := path.NewErrorf("cannot send provider configuration reference to Terraform module input variable")
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid inputs for component",
-			Detail: fmt.Sprintf(
-				"Invalid input variable definition object: %s.\n\nUse the separate \"providers\" argument to specify the provider configurations to use for this component's root module.",
-				tfdiags.FormatError(err),
-			),
-			Subject:     rng.ToHCL().Ptr(),
-			Expression:  expr,
-			EvalContext: hclCtx,
-		})
-	}
-
-	return v, diags
+	// We actually checked the errors statically already, so we only care about
+	// the value here.
+	return EvalComponentInputVariables(ctx, wantTy, defs, decl, phase, c)
 }
 
 // inputValuesForModulesRuntime adapts the result of
@@ -214,181 +154,246 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 	var diags tfdiags.Diagnostics
 	ret := make(map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance)
 
-	stack := c.call.Stack(ctx)
-	stackConfig := stack.StackConfig(ctx)
 	declConfigs := c.call.Declaration(ctx).ProviderConfigs
-
-	// We'll iterate over the set of providers actually required for this
-	// operation, and make sure they have been properly declared and are
-	// available.
-
-	// First, gather all the providers implied by the configuration.
 	configProviders := c.call.Config(ctx).RequiredProviderInstances(ctx)
 
-	// Second, we also need to add any providers that were required by the
-	// component's previous runs and have since been removed from the config.
+	// First, we'll iterate through the configProviders and check that we have
+	// a definition for each of them. We'll also resolve the reference that we
+	// have and make sure it points to an actual provider instance.
+	for _, elem := range configProviders.Elems {
+
+		// sourceAddr is the addrs.RootProviderConfig that should be used to
+		// set this provider in the component later.
+		sourceAddr := elem.Key
+
+		// componentAddr is the addrs.LocalProviderConfig that specifies the
+		// local name and (optional) alias of the provider in the component.
+		componentAddr := elem.Value
+
+		// We validated the config providers during the static analysis, so we
+		// know this expression exists and resolves to the correct type.
+		expr := declConfigs[componentAddr]
+
+		inst, instDiags, ok := c.checkProvider(ctx, sourceAddr, componentAddr, expr, phase)
+		diags = diags.Append(instDiags)
+		if ok {
+			ret[sourceAddr] = inst
+		}
+	}
+
+	// Second, we want to iterate through the providers that are required by
+	// the state and not required by the configuration. Unfortunately, we don't
+	// currently store enough information to be able to retrieve the original
+	// provider directly from the state. We only store the provider type and
+	// alias of the original provider. Stacks can have multiple instances of the
+	// same provider type, local name, and alias. This means we need the user to
+	// still provide an entry for this provider in the declConfigs.
+	// TODO: There's another TODO in the state package that suggests we should
+	//   store the additional information we need. Once this is fixed we can
+	//   come and tidy this up as well.
+
+	stack := c.call.Stack(ctx)
+	stackConfig := stack.StackConfig(ctx)
+	moduleTree := c.call.Config(ctx).ModuleTree(ctx)
+
+	// We'll search through the declConfigs to find any keys that match the
+	// type and alias of a any provider needed by the state. This is backwards
+	// when compared to how we resolved the configProviders. But we don't have
+	// the information we need to do it the other way around.
+
 	previousProviders := c.main.PreviousProviderInstances(c.Addr(), phase)
+	for localProviderAddr, expr := range declConfigs {
+		provider := moduleTree.ProviderForConfigAddr(localProviderAddr)
 
-	neededProviders := configProviders.Union(previousProviders)
-	for _, inCalleeAddr := range neededProviders {
-
-		providerContextString := "requires"
-		if !configProviders.Has(inCalleeAddr) {
-			// This provider was required by the previous state but is no
-			// longer required by the configuration, so we'll add a bit of
-			// extra context to the diagnostic to help the user understand
-			// what's going on.
-			providerContextString = "has resources in state that require"
+		sourceAddr := addrs.RootProviderConfig{
+			Provider: provider,
+			Alias:    localProviderAddr.Alias,
 		}
 
-		// declConfigs is based on _local_ provider references so we'll
-		// need to translate based on the stack configuration's
-		// required_providers block.
-		typeAddr := inCalleeAddr.Provider
-		localName, ok := stackConfig.ProviderLocalName(ctx, typeAddr)
-		if !ok {
-			// We perform a similar check within component_config.go during
-			// the validation. At the validation stage we are only verifying the
-			// configuration, while this check is also checking the state. We
-			// can't check the state during validation, so we perform this check
-			// again. In reality, we will not even reach this if there are
-			// problems with the configuration as the validation will have
-			// failed before the plan/apply was even started.
+		if _, exists := ret[sourceAddr]; exists || !previousProviders.Has(sourceAddr) {
+			// Then this declConfig either matches a configProvider and we've
+			// already processed it, or it matches a provider that isn't
+			// required by the config or the state. In the first case, this is
+			// fine we have matched the right provider already. In the second
+			// case, we could raise a warning or something but it's not a big
+			// deal so we can ignore it.
+			continue
+		}
+
+		// Otherwise, this is a declConfig for a provider that is not in the
+		// configProviders and is in the previousProviders. So, we should
+		// process it.
+
+		inst, instDiags, ok := c.checkProvider(ctx, sourceAddr, localProviderAddr, expr, phase)
+		diags = diags.Append(instDiags)
+		if ok {
+			ret[sourceAddr] = inst
+		}
+
+		if _, ok := stackConfig.ProviderLocalName(ctx, provider); !ok {
+			// Even though we have an entry for this provider in the declConfigs
+			// doesn't mean we have an entry for this in our required providers.
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Component requires undeclared provider",
 				Detail: fmt.Sprintf(
-					"The root module for %s %s a configuration for provider %q, which isn't declared as a dependency of this stack configuration.\n\nDeclare this provider in the stack's required_providers block, and then assign a configuration for that provider in this component's \"providers\" argument.",
-					c.Addr(), providerContextString, typeAddr.ForDisplay(),
+					"The root module for %s has resources in state that require a configuration for provider %q, which isn't declared as a dependency of this stack configuration.\n\nDeclare this provider in the stack's required_providers block, and then assign a configuration for that provider in this component's \"providers\" argument.",
+					c.Addr(), provider.ForDisplay(),
 				),
 				Subject: c.call.Declaration(ctx).DeclRange.ToHCL().Ptr(),
 			})
 			continue
 		}
+	}
+
+	// Finally, let's check that we have a provider configuration for every
+	// provider needed by the state.
+
+	for _, previousProvider := range previousProviders {
+		if _, ok := ret[previousProvider]; ok {
+			// Then we have a provider for this, so great!
+			continue
+		}
+
+		// If we get here, then we didn't find an entry for this provider in
+		// the declConfigs. This is an error because we need to have an entry
+		// for every provider that we have in the state.
+
+		// localAddr helps with the error message.
 		localAddr := addrs.LocalProviderConfig{
-			LocalName: localName,
-			Alias:     inCalleeAddr.Alias,
-		}
-		expr, ok := declConfigs[localAddr]
-		if !ok {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Missing required provider configuration",
-				Detail: fmt.Sprintf(
-					"The root module for %s %s a provider configuration named %q for provider %q, which is not assigned in the component's \"providers\" argument.",
-					c.Addr(), providerContextString, localAddr.StringCompact(), typeAddr.ForDisplay(),
-				),
-				Subject: c.call.Declaration(ctx).DeclRange.ToHCL().Ptr(),
-			})
-			continue
+			LocalName: moduleTree.Module.LocalNameForProvider(previousProvider.Provider),
+			Alias:     previousProvider.Alias,
 		}
 
-		// If we've got this far then expr is an expression that should
-		// evaluate to a special cty capsule type that acts as a reference
-		// to a provider configuration declared elsewhere in the tree
-		// of stack configurations.
-		result, hclDiags := EvalExprAndEvalContext(ctx, expr, phase, c)
-		diags = diags.Append(hclDiags)
-		if hclDiags.HasErrors() {
-			continue
-		}
-
-		const errSummary = "Invalid provider reference"
-		if actualTy := result.Value.Type(); stackconfigtypes.IsProviderConfigType(actualTy) {
-			actualTypeAddr := stackconfigtypes.ProviderForProviderConfigType(actualTy)
-			if actualTypeAddr != typeAddr {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  errSummary,
-					Detail: fmt.Sprintf(
-						"The provider configuration slot %s requires a configuration for provider %q, not for provider %q.",
-						localAddr.StringCompact(), typeAddr, actualTypeAddr,
-					),
-					Subject: result.Expression.Range().Ptr(),
-				})
-				continue
-			}
-		} else {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  errSummary,
-				Detail: fmt.Sprintf(
-					"The provider configuration slot %s requires a configuration for provider %q.",
-					localAddr.StringCompact(), typeAddr,
-				),
-				Subject: result.Expression.Range().Ptr(),
-			})
-		}
-		v := result.Value
-
-		// If the tests succeeded above then "v" should definitely
-		// be of the expected type, but might be unknown or null.
-		if v.IsNull() {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  errSummary,
-				Detail: fmt.Sprintf(
-					"The provider configuration slot %s is required, but this definition returned null.",
-					localAddr.StringCompact(),
-				),
-				Subject: result.Expression.Range().Ptr(),
-			})
-			continue
-		}
-		if !v.IsKnown() {
-			// TODO: Once we support deferred changes we should return
-			// something that lets the caller know the configuration is
-			// incomplete so it can defer planning the entire component.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  errSummary,
-				Detail: fmt.Sprintf(
-					"This expression depends on values that won't be known until the apply phase, so Terraform cannot determine which provider configuration to use while planning changes for %s.",
-					c.Addr().String(),
-				),
-				Subject: result.Expression.Range().Ptr(),
-			})
-			continue
-		}
-
-		// If it's of the correct type, known, and not null then we should
-		// be able to retrieve a specific provider instance address that
-		// this value refers to.
-		providerInstAddr := stackconfigtypes.ProviderInstanceForValue(v)
-		ret[inCalleeAddr] = providerInstAddr
-
-		// The reference must be to a provider instance that's actually
-		// configured.
-		providerInstStack := c.main.Stack(ctx, providerInstAddr.Stack, phase)
-		if providerInstStack != nil {
-			provider := providerInstStack.Provider(ctx, providerInstAddr.Item.ProviderConfig)
-			if provider != nil {
-				insts := provider.Instances(ctx, phase)
-				if insts == nil {
-					// If we get here then we don't yet know which instances
-					// this provider has, so we'll be optimistic that it'll
-					// show up in a later phase.
-					continue
-				}
-				if _, exists := insts[providerInstAddr.Item.Key]; exists {
-					continue
-				}
-			}
-		}
-		// If we fall here then something on the path to the provider instance
-		// doesn't exist, and so effectively the provider instance doesn't exist.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  errSummary,
+			Summary:  "Missing required provider configuration",
 			Detail: fmt.Sprintf(
-				"Expression result refers to undefined provider instance %s.",
-				providerInstAddr,
+				"The root module for %s has resources in state that require a provider configuration named %q for provider %q, which is not assigned in the component's \"providers\" argument.",
+				c.Addr(), localAddr.StringCompact(), previousProvider.Provider.ForDisplay(),
 			),
-			Subject: result.Expression.Range().Ptr(),
+			Subject: c.call.Declaration(ctx).DeclRange.ToHCL().Ptr(),
 		})
 	}
 
 	return ret, diags
+}
+
+func (c *ComponentInstance) checkProvider(ctx context.Context, sourceAddr addrs.RootProviderConfig, componentAddr addrs.LocalProviderConfig, expr hcl.Expression, phase EvalPhase) (stackaddrs.AbsProviderConfigInstance, tfdiags.Diagnostics, bool) {
+	var diags tfdiags.Diagnostics
+	var ret stackaddrs.AbsProviderConfigInstance
+
+	result, hclDiags := EvalExprAndEvalContext(ctx, expr, phase, c)
+	diags = diags.Append(hclDiags)
+	if hclDiags.HasErrors() {
+		return ret, diags, false
+	}
+	v := result.Value
+
+	// The first set of checks can perform a redundant check in some cases. For
+	// providers required by the configuration the type validation should have
+	// been performed by the static analysis. However, we'll repeat the checks
+	// here to also catch the case where providers are required by the existing
+	// state but are not defined in the configuration. This isn't checked by
+	// the static analysis.
+	const errSummary = "Invalid provider configuration"
+	if actualTy := result.Value.Type(); stackconfigtypes.IsProviderConfigType(actualTy) {
+		// Then we at least got a provider reference of some kind.
+		actualTypeAddr := stackconfigtypes.ProviderForProviderConfigType(actualTy)
+		if actualTypeAddr != sourceAddr.Provider {
+			// But, unfortunately, the underlying types of the providers
+			// do not match up.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  errSummary,
+				Detail: fmt.Sprintf(
+					"The provider configuration slot %s requires a configuration for provider %q, not for provider %q.",
+					componentAddr.StringCompact(), sourceAddr.Provider, actualTypeAddr,
+				),
+				Subject: result.Expression.Range().Ptr(),
+			})
+			return ret, diags, false
+		}
+	} else {
+		// We got something that isn't a provider reference at all.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  errSummary,
+			Detail: fmt.Sprintf(
+				"The provider configuration slot %s requires a configuration for provider %q.",
+				componentAddr.StringCompact(), sourceAddr.Provider,
+			),
+			Subject: result.Expression.Range().Ptr(),
+		})
+		return ret, diags, false
+	}
+
+	// Now, we differ from the static analysis in that we should have
+	// returned a concrete value while we may have got unknown during the
+	// static analysis.
+	if v.IsNull() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  errSummary,
+			Detail: fmt.Sprintf(
+				"The provider configuration slot %s is required, but this definition returned null.",
+				componentAddr.StringCompact(),
+			),
+			Subject: result.Expression.Range().Ptr(),
+		})
+		return ret, diags, false
+	}
+	if !v.IsKnown() {
+		// TODO: Once we support deferred changes we should return
+		// something that lets the caller know the configuration is
+		// incomplete so it can defer planning the entire component.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  errSummary,
+			Detail: fmt.Sprintf(
+				"This expression depends on values that won't be known until the apply phase, so Terraform cannot determine which provider configuration to use while planning changes for %s.",
+				c.Addr().String(),
+			),
+			Subject: result.Expression.Range().Ptr(),
+		})
+		return ret, diags, false
+	}
+
+	// If it's of the correct type, known, and not null then we should
+	// be able to retrieve a specific provider instance address that
+	// this value refers to.
+	ret = stackconfigtypes.ProviderInstanceForValue(v)
+
+	// The reference must be to a provider instance that's actually
+	// configured.
+	providerInstStack := c.main.Stack(ctx, ret.Stack, phase)
+	if providerInstStack != nil {
+		provider := providerInstStack.Provider(ctx, ret.Item.ProviderConfig)
+		if provider != nil {
+			insts := provider.Instances(ctx, phase)
+			if insts == nil {
+				// If we get here then we don't yet know which instances
+				// this provider has, so we'll be optimistic that it'll
+				// show up in a later phase.
+				return ret, diags, true
+			}
+			if _, exists := insts[ret.Item.Key]; exists {
+				return ret, diags, true
+			}
+		}
+	}
+	// If we fall here then something on the path to the provider instance
+	// doesn't exist, and so effectively the provider instance doesn't exist.
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  errSummary,
+		Detail: fmt.Sprintf(
+			"Expression result refers to undefined provider instance %s.",
+			ret,
+		),
+		Subject: result.Expression.Range().Ptr(),
+	})
+	return ret, diags, true
 }
 
 func (c *ComponentInstance) neededProviderSchemas(ctx context.Context) (map[addrs.Provider]providers.ProviderSchema, tfdiags.Diagnostics) {

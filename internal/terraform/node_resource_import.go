@@ -81,10 +81,14 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 
 	// import state
 	absAddr := n.Addr.Resource.Absolute(ctx.Path())
+	hookResourceID := HookResourceIdentity{
+		Addr:         absAddr,
+		ProviderAddr: n.ResolvedProvider.Provider,
+	}
 
 	// Call pre-import hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreImportState(absAddr, n.ID)
+		return h.PreImportState(hookResourceID, n.ID)
 	}))
 	if diags.HasErrors() {
 		return diags
@@ -107,7 +111,7 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 
 	// Call post-import hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostImportState(absAddr, imported)
+		return h.PostImportState(hookResourceID, imported)
 	}))
 	return diags
 }

@@ -169,7 +169,7 @@ func (s *Stack) StackConfig(ctx context.Context) *StackConfig {
 func (s *Stack) ConfigDeclarations(ctx context.Context) *stackconfig.Declarations {
 	// The declarations really belong to the static StackConfig, since
 	// all instances of a particular stack configuration share the same
-	// source code.
+	// source code.ResolveExpressionReference
 	return s.StackConfig(ctx).ConfigDeclarations(ctx)
 }
 
@@ -410,6 +410,13 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 	// TODO: Most of the below would benefit from "Did you mean..." suggestions
 	// when something is missing but there's a similarly-named object nearby.
 
+	// See also a very similar function in stack_config.go. Both are returning
+	// similar referenceable objects but the context is different. For example,
+	// in this function we return an instanced Component, while in the other
+	// function we return a static ComponentConfig.
+	//
+	// Some of the returned types are the same across both functions, but most
+	// are different in terms of static vs dynamic types.
 	switch addr := ref.Target.(type) {
 	case stackaddrs.InputVariable:
 		ret := s.InputVariable(ctx, addr)

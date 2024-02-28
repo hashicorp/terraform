@@ -264,7 +264,7 @@ type HookRecordApplyOrder struct {
 	l sync.Mutex
 }
 
-func (h *HookRecordApplyOrder) PreApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (h *HookRecordApplyOrder) PreApply(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	if plannedNewState.RawEquals(priorState) {
 		return HookActionContinue, nil
 	}
@@ -273,7 +273,7 @@ func (h *HookRecordApplyOrder) PreApply(addr addrs.AbsResourceInstance, dk addrs
 		h.l.Lock()
 		defer h.l.Unlock()
 
-		h.IDs = append(h.IDs, addr.String())
+		h.IDs = append(h.IDs, id.Addr.String())
 		h.Diffs = append(h.Diffs, &plans.Change{
 			Action: action,
 			Before: priorState,

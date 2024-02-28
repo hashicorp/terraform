@@ -180,8 +180,8 @@ func (s *StackConfig) OutputValue(ctx context.Context, addr stackaddrs.OutputVal
 	return ret
 }
 
-// InputVariables returns a map of the objects representing all of the
-// input variables declared inside this stack configuration.
+// OutputValues returns a map of the objects representing all of the
+// output values declared inside this stack configuration.
 func (s *StackConfig) OutputValues(ctx context.Context) map[stackaddrs.OutputValue]*OutputValueConfig {
 	if len(s.config.Stack.OutputValues) == 0 {
 		return nil
@@ -190,6 +190,42 @@ func (s *StackConfig) OutputValues(ctx context.Context) map[stackaddrs.OutputVal
 	for name := range s.config.Stack.OutputValues {
 		addr := stackaddrs.OutputValue{Name: name}
 		ret[addr] = s.OutputValue(ctx, addr)
+	}
+	return ret
+}
+
+// ResultType returns the type of the result object that will be produced
+// by this stack configuration, based on the output values declared within
+// it.
+func (s *StackConfig) ResultType(ctx context.Context) cty.Type {
+	os := s.OutputValues(ctx)
+	atys := make(map[string]cty.Type, len(os))
+	for addr, o := range os {
+		atys[addr.Name] = o.ValueTypeConstraint(ctx)
+	}
+	return cty.Object(atys)
+}
+
+// Providers returns a map of the objects representing all of the provider
+// configurations declared inside this stack configuration.
+func (s *StackConfig) Providers(ctx context.Context) map[stackaddrs.ProviderConfig]*ProviderConfig {
+	if len(s.config.Stack.ProviderConfigs) == 0 {
+		return nil
+	}
+	ret := make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(s.config.Stack.ProviderConfigs))
+	for configAddr := range s.config.Stack.ProviderConfigs {
+		provider, ok := s.config.Stack.RequiredProviders.ProviderForLocalName(configAddr.LocalName)
+		if !ok {
+			// Then we are missing a provider declaration, this will be caught
+			// elsewhere so we'll just skip it here.
+			continue
+		}
+
+		addr := stackaddrs.ProviderConfig{
+			Provider: provider,
+			Name:     configAddr.Alias,
+		}
+		ret[addr] = s.Provider(ctx, addr)
 	}
 	return ret
 }
@@ -224,6 +260,42 @@ func (s *StackConfig) Provider(ctx context.Context, addr stackaddrs.ProviderConf
 	return ret
 }
 
+// ProviderByLocalAddr returns a [ProviderConfig] representing the provider
+// configuration block within the stack configuration that matches the given
+// local address, or nil if there is no such declaration.
+//
+// This is equivalent to calling [Provider] just using a reference address
+// instead of a config address.
+func (s *StackConfig) ProviderByLocalAddr(ctx context.Context, localAddr stackaddrs.ProviderConfigRef) *ProviderConfig {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	provider, ok := s.config.Stack.RequiredProviders.ProviderForLocalName(localAddr.ProviderLocalName)
+	if !ok {
+		return nil
+	}
+
+	addr := stackaddrs.ProviderConfig{
+		Provider: provider,
+		Name:     localAddr.Name,
+	}
+	ret, ok := s.providers[addr]
+	if !ok {
+		configAddr := addrs.LocalProviderConfig{
+			LocalName: localAddr.ProviderLocalName,
+			Alias:     localAddr.Name,
+		}
+		cfg, ok := s.config.Stack.ProviderConfigs[configAddr]
+		if !ok {
+			return nil
+		}
+		cfgAddr := stackaddrs.Config(s.Addr(), addr)
+		ret = newProviderConfig(s.main, cfgAddr, cfg)
+		s.providers[addr] = ret
+	}
+	return ret
+}
+
 // ProviderLocalName returns the local name used for the given provider
 // in this particular stack configuration, based on the declarations in
 // the required_providers configuration block.
@@ -232,15 +304,6 @@ func (s *StackConfig) Provider(ctx context.Context, addr stackaddrs.ProviderConf
 // for the given provider, and so the first return value is invalid.
 func (s *StackConfig) ProviderLocalName(ctx context.Context, addr addrs.Provider) (string, bool) {
 	return s.config.Stack.RequiredProviders.LocalNameForProvider(addr)
-}
-
-func (s *StackConfig) ResultType(ctx context.Context) cty.Type {
-	os := s.OutputValues(ctx)
-	atys := make(map[string]cty.Type, len(os))
-	for addr, o := range os {
-		atys[addr.Name] = o.ValueTypeConstraint(ctx)
-	}
-	return cty.Object(atys)
 }
 
 // StackCall returns a [StackCallConfig] representing the "stack" block
@@ -315,13 +378,13 @@ func (s *StackConfig) Components(ctx context.Context) map[stackaddrs.Component]*
 // global scope for evaluation within an unexpanded stack during the validate
 // phase.
 func (s *StackConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	return s.resolveExpressionReference(ctx, ref, instances.RepetitionData{}, nil)
+	return s.resolveExpressionReference(ctx, ref, nil, instances.RepetitionData{})
 }
 
 // resolveExpressionReference is the shared implementation of various
 // validation-time ResolveExpressionReference methods, factoring out all
 // of the common parts into one place.
-func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stackaddrs.Reference, repetition instances.RepetitionData, selfAddr stackaddrs.Referenceable) (Referenceable, tfdiags.Diagnostics) {
+func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stackaddrs.Reference, selfAddr stackaddrs.Referenceable, repetition instances.RepetitionData) (Referenceable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// "Test-only globals" is a special affordance we have only when running
@@ -371,6 +434,72 @@ func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stacka
 			return nil, diags
 		}
 		return ret, diags
+	case stackaddrs.ProviderConfigRef:
+		ret := s.ProviderByLocalAddr(ctx, addr)
+		if ret == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reference to undeclared provider configuration",
+				Detail:   fmt.Sprintf("There is no provider %q %q block declared this stack.", addr.ProviderLocalName, addr.Name),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+			return nil, diags
+		}
+		return ret, diags
+	case stackaddrs.ContextualRef:
+		switch addr {
+		case stackaddrs.EachKey:
+			if repetition.EachKey == cty.NilVal {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid 'each' reference",
+					Detail:   "The special symbol 'each' is not defined in this location. This symbol is valid only inside multi-instance blocks that use the 'for_each' argument.",
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+				return nil, diags
+			}
+			return JustValue{repetition.EachKey}, diags
+		case stackaddrs.EachValue:
+			if repetition.EachValue == cty.NilVal {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid 'each' reference",
+					Detail:   "The special symbol 'each' is not defined in this location. This symbol is valid only inside multi-instance blocks that use the 'for_each' argument.",
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+				return nil, diags
+			}
+			return JustValue{repetition.EachValue}, diags
+		case stackaddrs.CountIndex:
+			if repetition.CountIndex == cty.NilVal {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid 'count' reference",
+					Detail:   "The special symbol 'count' is not defined in this location. This symbol is valid only inside multi-instance blocks that use the 'count' argument.",
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+				return nil, diags
+			}
+			return JustValue{repetition.CountIndex}, diags
+		case stackaddrs.Self:
+			if selfAddr != nil {
+				// We'll just pretend the reference was to whatever "self"
+				// is referring to, then.
+				ref.Target = selfAddr
+				return s.resolveExpressionReference(ctx, ref, nil, repetition)
+			} else {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid 'self' reference",
+					Detail:   "The special symbol 'self' is not defined in this location.",
+					Context:  ref.SourceRange.ToHCL().Ptr(),
+				})
+				return nil, diags
+			}
+		default:
+			// The above should be exhaustive for all defined values of this type.
+			panic(fmt.Sprintf("unsupported ContextualRef %#v", addr))
+		}
 	default:
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,

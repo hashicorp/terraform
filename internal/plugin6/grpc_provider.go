@@ -12,6 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	plugin "github.com/hashicorp/go-plugin"
+	"github.com/zclconf/go-cty/cty/function"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc"
@@ -740,7 +741,7 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 
 	schema := p.GetProviderSchema()
 	if schema.Diagnostics.HasErrors() {
-		resp.Diagnostics = schema.Diagnostics
+		resp.Err = schema.Diagnostics.Err()
 		return resp
 	}
 
@@ -754,15 +755,15 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 		// Should only get here if the caller has a bug, because we should
 		// have detected earlier any attempt to call a function that the
 		// provider didn't declare.
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("provider has no function named %q", r.FunctionName))
+		resp.Err = fmt.Errorf("provider has no function named %q", r.FunctionName)
 		return resp
 	}
 	if len(r.Arguments) < len(funcDecl.Parameters) {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("not enough arguments for function %q", r.FunctionName))
+		resp.Err = fmt.Errorf("not enough arguments for function %q", r.FunctionName)
 		return resp
 	}
 	if funcDecl.VariadicParameter == nil && len(r.Arguments) > len(funcDecl.Parameters) {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("too many arguments for function %q", r.FunctionName))
+		resp.Err = fmt.Errorf("too many arguments for function %q", r.FunctionName)
 		return resp
 	}
 	args := make([]*proto6.DynamicValue, len(r.Arguments))
@@ -776,7 +777,7 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 
 		argValRaw, err := msgpack.Marshal(argVal, paramDecl.Type)
 		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
+			resp.Err = err
 			return resp
 		}
 		args[i] = &proto6.DynamicValue{
@@ -789,17 +790,28 @@ func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp provi
 		Arguments: args,
 	})
 	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		// functions can only support simple errors, but use our grpcError
+		// diagnostic function to format common problems is a more
+		// user-friendly manner.
+		resp.Err = grpcErr(err).Err()
 		return resp
 	}
-	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
-	if resp.Diagnostics.HasErrors() {
+
+	if protoResp.Error != nil {
+		resp.Err = errors.New(protoResp.Error.Text)
+
+		// If this is a problem with a specific argument, we can wrap the error
+		// in a function.ArgError
+		if protoResp.Error.FunctionArgument != nil {
+			resp.Err = function.NewArgError(int(*protoResp.Error.FunctionArgument), resp.Err)
+		}
+
 		return resp
 	}
 
 	resultVal, err := decodeDynamicValue(protoResp.Result, funcDecl.ReturnType)
 	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
+		resp.Err = err
 		return resp
 	}
 

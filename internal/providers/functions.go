@@ -114,11 +114,8 @@ func (d FunctionDecl) BuildFunction(providerAddr addrs.Provider, name string, re
 				FunctionName: name,
 				Arguments:    args,
 			})
-			// NOTE: We don't actually have any way to surface warnings
-			// from the function here, because functions just return normal
-			// Go errors rather than diagnostics.
-			if resp.Diagnostics.HasErrors() {
-				return cty.UnknownVal(retType), resp.Diagnostics.Err()
+			if resp.Err != nil {
+				return cty.UnknownVal(retType), resp.Err
 			}
 
 			if resp.Result == cty.NilVal {

@@ -501,6 +501,8 @@ type CallFunctionResponse struct {
 	// so can be left as cty.NilVal to represent the absense of a value.
 	Result cty.Value
 
-	// Diagnostics contains any warnings or errors from the function call.
-	Diagnostics tfdiags.Diagnostics
+	// Err is the error value from the function call. This may be an instance
+	// of function.ArgError from the go-cty package to specify a problem with a
+	// specific argument.
+	Err error
 }

@@ -113,13 +113,13 @@ indirectly with a [bastion host](https://en.wikipedia.org/wiki/Bastion_host).
 | `bastion_private_key` | The contents of an SSH key file to use for the bastion host. These can be loaded from a file on disk using [the `file` function](/terraform/language/functions/file). | The value of the `private_key` field. |
 | `bastion_certificate` |  The contents of a signed CA Certificate. The certificate argument must be used in conjunction with a `bastion_private_key`. These can be loaded from a file on disk using the [the `file` function](/terraform/language/functions/file). |
 
-## Connection through a HTTP Proxy with SSH
+## Connection through HTTP and SOCKS5 proxies with SSH
 
-The `ssh` connection also supports the following fields to facilitate connections by SSH over HTTP proxy.
+The `ssh` connection also supports the following fields to facilitate connections by SSH over HTTP or SOCKS5 proxy.
 
 | Argument | Description | Default |
 |---------------|-------------|---------|
-| `proxy_scheme` | http or https | |
+| `proxy_scheme` | You can specify one of the following values: `http`, `https`, `socks5` | |
 | `proxy_host` | Setting this enables the SSH over HTTP connection. This host will be connected to first, and then the `host` or `bastion_host` connection will be made from there. | |
 | `proxy_port` | The port to use connect to the proxy host. | |
 | `proxy_user_name` | The username to use connect to the private proxy host. This argument should be specified only if authentication is required for the HTTP Proxy server. | |
