@@ -37,7 +37,7 @@ func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPha
 	ty := result.Value.Type()
 
 	const invalidForEachSummary = "Invalid for_each value"
-	const invalidForEachDetail = "The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this embedded stack."
+	const invalidForEachDetail = "The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this resource / data source / provider / component."
 	const sensitiveForEachDetail = "Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key."
 	switch {
 	case result.Value.HasMark(marks.Sensitive):

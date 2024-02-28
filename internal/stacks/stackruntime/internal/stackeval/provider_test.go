@@ -171,7 +171,7 @@ func TestProviderCheckInstances(t *testing.T) {
 			gotVal, diags := provider.CheckForEachValue(ctx, InspectPhase)
 			assertMatchingDiag(t, diags, func(diag tfdiags.Diagnostic) bool {
 				return (diag.Severity() == tfdiags.Error &&
-					diag.Description().Detail == "The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this embedded stack.")
+					diag.Description().Detail == "The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this resource / data source / provider / component.")
 			})
 			wantVal := cty.DynamicVal // placeholder for invalid result
 			if !wantVal.RawEquals(gotVal) {
