@@ -198,7 +198,7 @@ func (m *Meta) providerDevOverrideInitWarnings() tfdiags.Diagnostics {
 //
 // See providerDevOverrideInitWarnings for warnings specific to the init
 // command.
-func (m *Meta) providerDevOverrideRuntimeWarnings() tfdiags.Diagnostics {
+func (m *Meta) providerDevOverrideRuntimeWarnings(backendIsRemote bool) tfdiags.Diagnostics {
 	if len(m.ProviderDevOverrides) == 0 {
 		return nil
 	}
@@ -208,6 +208,9 @@ func (m *Meta) providerDevOverrideRuntimeWarnings() tfdiags.Diagnostics {
 		detailMsg.WriteString(fmt.Sprintf(" - %s in %s\n", addr.ForDisplay(), path))
 	}
 	detailMsg.WriteString("\nThe behavior may therefore not match any released version of the provider and applying changes may cause the state to become incompatible with published releases.")
+	if backendIsRemote {
+		detailMsg.WriteString("\n\nNote that provider development overrides have only been configured locally and the remote operation won't be affected by them")
+	}
 	return tfdiags.Diagnostics{
 		tfdiags.Sourceless(
 			tfdiags.Warning,
