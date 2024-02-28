@@ -110,7 +110,7 @@ func (c *Component) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty
 			switch {
 
 			case cfg.ForEach != nil:
-				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.Stack(ctx))
+				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.Stack(ctx), "component")
 				diags = diags.Append(moreDiags)
 				if diags.HasErrors() {
 					return cty.DynamicVal, diags

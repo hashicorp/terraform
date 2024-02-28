@@ -21,7 +21,7 @@ import (
 // The caller might still need to do some further validation or post-processing
 // of the result for concerns that are specific to a particular phase or
 // evaluation context.
-func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope ExpressionScope) (ExprResultValue, tfdiags.Diagnostics) {
+func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope ExpressionScope, callerDiagName string) (ExprResultValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	result, moreDiags := EvalExprAndEvalContext(
 		ctx, expr, phase, scope,
@@ -37,7 +37,7 @@ func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPha
 	ty := result.Value.Type()
 
 	const invalidForEachSummary = "Invalid for_each value"
-	const invalidForEachDetail = "The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this resource / data source / provider / component."
+	invalidForEachDetail := fmt.Sprintf("The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this %s.", callerDiagName)
 	const sensitiveForEachDetail = "Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key."
 	switch {
 	case result.Value.HasMark(marks.Sensitive):

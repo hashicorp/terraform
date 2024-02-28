@@ -144,7 +144,7 @@ func TestEvaluateForEachExpr(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			gotResult, diags := evaluateForEachExpr(ctx, test.Expr, PlanPhase, scope)
+			gotResult, diags := evaluateForEachExpr(ctx, test.Expr, PlanPhase, scope, "test")
 			got := gotResult.Value
 
 			if test.WantErr != "" {

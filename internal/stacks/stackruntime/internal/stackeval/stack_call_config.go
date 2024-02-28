@@ -115,7 +115,7 @@ func (s *StackCallConfig) validateForEachValueInner(ctx context.Context) (cty.Va
 		return cty.NilVal, diags
 	}
 
-	result, moreDiags := evaluateForEachExpr(ctx, s.config.ForEach, ValidatePhase, s.CallerConfig(ctx))
+	result, moreDiags := evaluateForEachExpr(ctx, s.config.ForEach, ValidatePhase, s.CallerConfig(ctx), "stack")
 	diags = diags.Append(moreDiags)
 	return result.Value, diags
 }
