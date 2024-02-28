@@ -17,6 +17,17 @@ import (
 	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
+func testCountHookResourceID(addr addrs.AbsResourceInstance) terraform.HookResourceIdentity {
+	return terraform.HookResourceIdentity{
+		Addr: addr,
+		ProviderAddr: addrs.Provider{
+			Type:      "test",
+			Namespace: "hashicorp",
+			Hostname:  "example.com",
+		},
+	}
+}
+
 func TestCountHook_impl(t *testing.T) {
 	var _ terraform.Hook = new(countHook)
 }
@@ -25,7 +36,7 @@ func TestCountHookPostDiff_DestroyDeposed(t *testing.T) {
 	h := new(countHook)
 
 	resources := map[string]*legacy.InstanceDiff{
-		"lorem": &legacy.InstanceDiff{DestroyDeposed: true},
+		"lorem": {DestroyDeposed: true},
 	}
 
 	for k := range resources {
@@ -35,7 +46,7 @@ func TestCountHookPostDiff_DestroyDeposed(t *testing.T) {
 			Name: k,
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-		h.PostDiff(addr, states.DeposedKey("deadbeef"), plans.Delete, cty.DynamicVal, cty.DynamicVal)
+		h.PostDiff(testCountHookResourceID(addr), states.DeposedKey("deadbeef"), plans.Delete, cty.DynamicVal, cty.DynamicVal)
 	}
 
 	expected := new(countHook)
@@ -53,10 +64,10 @@ func TestCountHookPostDiff_DestroyOnly(t *testing.T) {
 	h := new(countHook)
 
 	resources := map[string]*legacy.InstanceDiff{
-		"foo":   &legacy.InstanceDiff{Destroy: true},
-		"bar":   &legacy.InstanceDiff{Destroy: true},
-		"lorem": &legacy.InstanceDiff{Destroy: true},
-		"ipsum": &legacy.InstanceDiff{Destroy: true},
+		"foo":   {Destroy: true},
+		"bar":   {Destroy: true},
+		"lorem": {Destroy: true},
+		"ipsum": {Destroy: true},
 	}
 
 	for k := range resources {
@@ -66,7 +77,7 @@ func TestCountHookPostDiff_DestroyOnly(t *testing.T) {
 			Name: k,
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-		h.PostDiff(addr, addrs.NotDeposed, plans.Delete, cty.DynamicVal, cty.DynamicVal)
+		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, plans.Delete, cty.DynamicVal, cty.DynamicVal)
 	}
 
 	expected := new(countHook)
@@ -84,19 +95,19 @@ func TestCountHookPostDiff_AddOnly(t *testing.T) {
 	h := new(countHook)
 
 	resources := map[string]*legacy.InstanceDiff{
-		"foo": &legacy.InstanceDiff{
+		"foo": {
 			Attributes: map[string]*legacy.ResourceAttrDiff{
-				"foo": &legacy.ResourceAttrDiff{RequiresNew: true},
+				"foo": {RequiresNew: true},
 			},
 		},
-		"bar": &legacy.InstanceDiff{
+		"bar": {
 			Attributes: map[string]*legacy.ResourceAttrDiff{
-				"foo": &legacy.ResourceAttrDiff{RequiresNew: true},
+				"foo": {RequiresNew: true},
 			},
 		},
-		"lorem": &legacy.InstanceDiff{
+		"lorem": {
 			Attributes: map[string]*legacy.ResourceAttrDiff{
-				"foo": &legacy.ResourceAttrDiff{RequiresNew: true},
+				"foo": {RequiresNew: true},
 			},
 		},
 	}
@@ -108,7 +119,7 @@ func TestCountHookPostDiff_AddOnly(t *testing.T) {
 			Name: k,
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-		h.PostDiff(addr, addrs.NotDeposed, plans.Create, cty.DynamicVal, cty.DynamicVal)
+		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, plans.Create, cty.DynamicVal, cty.DynamicVal)
 	}
 
 	expected := new(countHook)
@@ -126,22 +137,22 @@ func TestCountHookPostDiff_ChangeOnly(t *testing.T) {
 	h := new(countHook)
 
 	resources := map[string]*legacy.InstanceDiff{
-		"foo": &legacy.InstanceDiff{
+		"foo": {
 			Destroy: false,
 			Attributes: map[string]*legacy.ResourceAttrDiff{
-				"foo": &legacy.ResourceAttrDiff{},
+				"foo": {},
 			},
 		},
-		"bar": &legacy.InstanceDiff{
+		"bar": {
 			Destroy: false,
 			Attributes: map[string]*legacy.ResourceAttrDiff{
-				"foo": &legacy.ResourceAttrDiff{},
+				"foo": {},
 			},
 		},
-		"lorem": &legacy.InstanceDiff{
+		"lorem": {
 			Destroy: false,
 			Attributes: map[string]*legacy.ResourceAttrDiff{
-				"foo": &legacy.ResourceAttrDiff{},
+				"foo": {},
 			},
 		},
 	}
@@ -153,7 +164,7 @@ func TestCountHookPostDiff_ChangeOnly(t *testing.T) {
 			Name: k,
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-		h.PostDiff(addr, addrs.NotDeposed, plans.Update, cty.DynamicVal, cty.DynamicVal)
+		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, plans.Update, cty.DynamicVal, cty.DynamicVal)
 	}
 
 	expected := new(countHook)
@@ -184,7 +195,7 @@ func TestCountHookPostDiff_Mixed(t *testing.T) {
 			Name: k,
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-		h.PostDiff(addr, addrs.NotDeposed, a, cty.DynamicVal, cty.DynamicVal)
+		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, a, cty.DynamicVal, cty.DynamicVal)
 	}
 
 	expected := new(countHook)
@@ -203,10 +214,10 @@ func TestCountHookPostDiff_NoChange(t *testing.T) {
 	h := new(countHook)
 
 	resources := map[string]*legacy.InstanceDiff{
-		"foo":   &legacy.InstanceDiff{},
-		"bar":   &legacy.InstanceDiff{},
-		"lorem": &legacy.InstanceDiff{},
-		"ipsum": &legacy.InstanceDiff{},
+		"foo":   {},
+		"bar":   {},
+		"lorem": {},
+		"ipsum": {},
 	}
 
 	for k := range resources {
@@ -216,7 +227,7 @@ func TestCountHookPostDiff_NoChange(t *testing.T) {
 			Name: k,
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-		h.PostDiff(addr, addrs.NotDeposed, plans.NoOp, cty.DynamicVal, cty.DynamicVal)
+		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, plans.NoOp, cty.DynamicVal, cty.DynamicVal)
 	}
 
 	expected := new(countHook)
@@ -248,7 +259,7 @@ func TestCountHookPostDiff_DataSource(t *testing.T) {
 			Name: k,
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-		h.PostDiff(addr, addrs.NotDeposed, a, cty.DynamicVal, cty.DynamicVal)
+		h.PostDiff(testCountHookResourceID(addr), addrs.NotDeposed, a, cty.DynamicVal, cty.DynamicVal)
 	}
 
 	expected := new(countHook)
@@ -267,22 +278,22 @@ func TestCountHookApply_ChangeOnly(t *testing.T) {
 	h := new(countHook)
 
 	resources := map[string]*legacy.InstanceDiff{
-		"foo": &legacy.InstanceDiff{
+		"foo": {
 			Destroy: false,
 			Attributes: map[string]*legacy.ResourceAttrDiff{
-				"foo": &legacy.ResourceAttrDiff{},
+				"foo": {},
 			},
 		},
-		"bar": &legacy.InstanceDiff{
+		"bar": {
 			Destroy: false,
 			Attributes: map[string]*legacy.ResourceAttrDiff{
-				"foo": &legacy.ResourceAttrDiff{},
+				"foo": {},
 			},
 		},
-		"lorem": &legacy.InstanceDiff{
+		"lorem": {
 			Destroy: false,
 			Attributes: map[string]*legacy.ResourceAttrDiff{
-				"foo": &legacy.ResourceAttrDiff{},
+				"foo": {},
 			},
 		},
 	}
@@ -294,8 +305,8 @@ func TestCountHookApply_ChangeOnly(t *testing.T) {
 			Name: k,
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-		h.PreApply(addr, addrs.NotDeposed, plans.Update, cty.DynamicVal, cty.DynamicVal)
-		h.PostApply(addr, addrs.NotDeposed, cty.DynamicVal, nil)
+		h.PreApply(testCountHookResourceID(addr), addrs.NotDeposed, plans.Update, cty.DynamicVal, cty.DynamicVal)
+		h.PostApply(testCountHookResourceID(addr), addrs.NotDeposed, cty.DynamicVal, nil)
 	}
 
 	expected := &countHook{pending: make(map[string]plans.Action)}
@@ -312,10 +323,10 @@ func TestCountHookApply_DestroyOnly(t *testing.T) {
 	h := new(countHook)
 
 	resources := map[string]*legacy.InstanceDiff{
-		"foo":   &legacy.InstanceDiff{Destroy: true},
-		"bar":   &legacy.InstanceDiff{Destroy: true},
-		"lorem": &legacy.InstanceDiff{Destroy: true},
-		"ipsum": &legacy.InstanceDiff{Destroy: true},
+		"foo":   {Destroy: true},
+		"bar":   {Destroy: true},
+		"lorem": {Destroy: true},
+		"ipsum": {Destroy: true},
 	}
 
 	for k := range resources {
@@ -325,8 +336,8 @@ func TestCountHookApply_DestroyOnly(t *testing.T) {
 			Name: k,
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-		h.PreApply(addr, addrs.NotDeposed, plans.Delete, cty.DynamicVal, cty.DynamicVal)
-		h.PostApply(addr, addrs.NotDeposed, cty.DynamicVal, nil)
+		h.PreApply(testCountHookResourceID(addr), addrs.NotDeposed, plans.Delete, cty.DynamicVal, cty.DynamicVal)
+		h.PostApply(testCountHookResourceID(addr), addrs.NotDeposed, cty.DynamicVal, nil)
 	}
 
 	expected := &countHook{pending: make(map[string]plans.Action)}
