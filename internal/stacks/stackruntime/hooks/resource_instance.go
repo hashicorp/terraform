@@ -4,6 +4,7 @@
 package hooks
 
 import (
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -85,8 +86,9 @@ func (s ProvisionerStatus) ForProtobuf() terraform1.StackChangeProgress_Provisio
 // ResourceInstanceStatusHookData is the argument type for hook callbacks which
 // signal a resource instance's status updates.
 type ResourceInstanceStatusHookData struct {
-	Addr   stackaddrs.AbsResourceInstanceObject
-	Status ResourceInstanceStatus
+	Addr         stackaddrs.AbsResourceInstanceObject
+	ProviderAddr addrs.Provider
+	Status       ResourceInstanceStatus
 }
 
 // ResourceInstanceProvisionerHookData is the argument type for hook callbacks

@@ -58,16 +58,18 @@ func (h *componentInstanceTerraformHook) resourceInstanceObjectAddr(riAddr addrs
 
 func (h *componentInstanceTerraformHook) PreDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (terraform.HookAction, error) {
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
-		Addr:   h.resourceInstanceObjectAddr(id.Addr, dk),
-		Status: hooks.ResourceInstancePlanning,
+		Addr:         h.resourceInstanceObjectAddr(id.Addr, dk),
+		ProviderAddr: id.ProviderAddr,
+		Status:       hooks.ResourceInstancePlanning,
 	})
 	return terraform.HookActionContinue, nil
 }
 
 func (h *componentInstanceTerraformHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
-		Addr:   h.resourceInstanceObjectAddr(id.Addr, dk),
-		Status: hooks.ResourceInstancePlanned,
+		Addr:         h.resourceInstanceObjectAddr(id.Addr, dk),
+		ProviderAddr: id.ProviderAddr,
+		Status:       hooks.ResourceInstancePlanned,
 	})
 	return terraform.HookActionContinue, nil
 }
@@ -75,8 +77,9 @@ func (h *componentInstanceTerraformHook) PostDiff(id terraform.HookResourceIdent
 func (h *componentInstanceTerraformHook) PreApply(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	if action != plans.NoOp {
 		hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
-			Addr:   h.resourceInstanceObjectAddr(id.Addr, dk),
-			Status: hooks.ResourceInstanceApplying,
+			Addr:         h.resourceInstanceObjectAddr(id.Addr, dk),
+			ProviderAddr: id.ProviderAddr,
+			Status:       hooks.ResourceInstanceApplying,
 		})
 	}
 
@@ -137,8 +140,9 @@ func (h *componentInstanceTerraformHook) PostApply(id terraform.HookResourceIden
 	}
 
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
-		Addr:   objAddr,
-		Status: status,
+		Addr:         objAddr,
+		ProviderAddr: id.ProviderAddr,
+		Status:       status,
 	})
 	return terraform.HookActionContinue, nil
 }
