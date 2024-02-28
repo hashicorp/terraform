@@ -1,4 +1,4 @@
-## 1.8.0 (Unreleased)
+## 1.8.0-alpha20240228 (February 28, 2024)
 
 UPGRADE NOTES:
 
