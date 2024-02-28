@@ -2,7 +2,8 @@
 
 UPGRADE NOTES:
 
-* The first plan after upgrading may show resource updates with no apparent changes if `-refresh-only` or `-refresh=false` is used. The fix introduced for #34567 may require rewriting the state for some resources, which will be done automatically during the first normal plan and apply operation.
+If you are upgrading from Terraform v1.7 or earlier, please refer to
+[the Terraform v1.8 Upgrade Guide](https://developer.hashicorp.com/terraform/language/v1.8.x/upgrade-guides).
 
 NEW FEATURES:
 
