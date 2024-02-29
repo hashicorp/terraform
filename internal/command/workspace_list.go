@@ -68,7 +68,7 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 	var out bytes.Buffer
 	for _, s := range states {
 		if s == env {
-			out.WriteString("* ")
+			out.WriteString("> ")
 		} else {
 			out.WriteString("  ")
 		}
