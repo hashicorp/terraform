@@ -39,6 +39,14 @@ func Contains(val cty.Value, mark valueMark) bool {
 // Terraform.
 const Sensitive = valueMark("Sensitive")
 
+// Ephemeral indicates that a value exists only in memory during a single
+// phase, and thus cannot persist between phases or between rounds.
+//
+// Ephemeral values can be used only in locations that don't require Terraform
+// to persist them as part of artifacts such as state snapshots or saved plan
+// files.
+const Ephemeral = valueMark("Ephemeral")
+
 // TypeType is used to indicate that the value contains a representation of
 // another value's type. This is part of the implementation of the console-only
 // `type` function.
