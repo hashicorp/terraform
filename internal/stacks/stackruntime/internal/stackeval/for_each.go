@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -20,7 +21,7 @@ import (
 // The caller might still need to do some further validation or post-processing
 // of the result for concerns that are specific to a particular phase or
 // evaluation context.
-func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope ExpressionScope) (ExprResultValue, tfdiags.Diagnostics) {
+func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope ExpressionScope, callerDiagName string) (ExprResultValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	result, moreDiags := EvalExprAndEvalContext(
 		ctx, expr, phase, scope,
@@ -36,38 +37,85 @@ func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPha
 	ty := result.Value.Type()
 
 	const invalidForEachSummary = "Invalid for_each value"
-	const invalidForEachDetail = "The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this embedded stack."
+	invalidForEachDetail := fmt.Sprintf("The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this %s.", callerDiagName)
+	const sensitiveForEachDetail = "Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key."
 	switch {
+	case result.Value.HasMark(marks.Sensitive):
+		// Sensitive values are not allowed as for_each arguments because
+		// they could be exposed as resource instance keys.
+		// TODO: This should have Extra: tdiagnosticCausedBySensitive(true),
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     invalidForEachSummary,
+			Detail:      sensitiveForEachDetail,
+			Subject:     result.Expression.Range().Ptr(),
+			Expression:  result.Expression,
+			EvalContext: result.EvalContext,
+		})
+		return result, diags
+
+	case result.Value.IsNull():
+		// we don't alllow null values
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     invalidForEachSummary,
+			Detail:      fmt.Sprintf("%s The for_each expression produced a null value.", invalidForEachDetail),
+			Subject:     result.Expression.Range().Ptr(),
+			Expression:  result.Expression,
+			EvalContext: result.EvalContext,
+		})
+		return DerivedExprResult(result, cty.DynamicVal), diags
+
 	case ty.IsObjectType() || ty.IsMapType():
 		// okay
+
+	case !result.Value.IsKnown():
+		// we can't validate further without knowing the value
+		return result, diags
+
 	case ty.IsSetType():
+		if markSafeLengthInt(result.Value) == 0 {
+			// we are okay with an empty set
+			return result, diags
+		}
+
+		// since we can't use a set values that are unknown, we treat the
+		// entire set as unknown
+		if !result.Value.IsWhollyKnown() {
+			return result, diags
+		}
+
 		if !ty.ElementType().Equals(cty.String) {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     invalidForEachSummary,
-				Detail:      invalidForEachDetail,
+				Detail:      fmt.Sprintf(`%s "for_each" supports maps and sets of strings, but you have provided a set containing type %s.`, invalidForEachDetail, ty.ElementType().FriendlyName()),
 				Subject:     result.Expression.Range().Ptr(),
 				Expression:  result.Expression,
 				EvalContext: result.EvalContext,
 			})
 			return DerivedExprResult(result, cty.DynamicVal), diags
 		}
+
+		// Check if one of the values in the set is null
+		for k, v := range result.Value.AsValueSet().Values() {
+			if v.IsNull() {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity:    hcl.DiagError,
+					Summary:     invalidForEachSummary,
+					Detail:      fmt.Sprintf("%s The for_each value must not contain null elements, but the element at index %d was null.", invalidForEachDetail, k),
+					Subject:     result.Expression.Range().Ptr(),
+					Expression:  result.Expression,
+					EvalContext: result.EvalContext,
+				})
+			}
+		}
+
 	default:
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity:    hcl.DiagError,
 			Summary:     invalidForEachSummary,
 			Detail:      invalidForEachDetail,
-			Subject:     result.Expression.Range().Ptr(),
-			Expression:  result.Expression,
-			EvalContext: result.EvalContext,
-		})
-		return DerivedExprResult(result, cty.DynamicVal), diags
-	}
-	if result.Value.IsNull() {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity:    hcl.DiagError,
-			Summary:     invalidForEachSummary,
-			Detail:      "The for_each value must not be null.",
 			Subject:     result.Expression.Range().Ptr(),
 			Expression:  result.Expression,
 			EvalContext: result.EvalContext,
@@ -155,6 +203,11 @@ func forEachInstancesMap[T any](forEachVal cty.Value, makeInst func(addrs.Instan
 		return ret
 
 	case ty.IsSetType():
+		if markSafeLengthInt(forEachVal) == 0 {
+			// Zero-length for_each, so we have no instances.
+			return make(map[addrs.InstanceKey]T)
+		}
+
 		// evaluateForEachExpr should have already guaranteed us a set of
 		// strings, but we'll check again here just so we can panic more
 		// intellgibly if that function is buggy.
@@ -184,4 +237,10 @@ func noForEachInstancesMap[T any](makeInst func(addrs.InstanceKey, instances.Rep
 			// no repetition symbols available in this case
 		}),
 	}
+}
+
+// markSafeLengthInt allows calling LengthInt on marked values safely
+func markSafeLengthInt(val cty.Value) int {
+	v, _ := val.UnmarkDeep()
+	return v.LengthInt()
 }
