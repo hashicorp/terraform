@@ -35,9 +35,11 @@ type Variable struct {
 	ParsingMode VariableParsingMode
 	Validations []*CheckRule
 	Sensitive   bool
+	Ephemeral   bool
 
 	DescriptionSet bool
 	SensitiveSet   bool
+	EphemeralSet   bool
 
 	// Nullable indicates that null is a valid value for this variable. Setting
 	// Nullable to false means that the module can expect this variable to
@@ -118,6 +120,12 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &v.Sensitive)
 		diags = append(diags, valDiags...)
 		v.SensitiveSet = true
+	}
+
+	if attr, exists := content.Attributes["ephemeral"]; exists {
+		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &v.Ephemeral)
+		diags = append(diags, valDiags...)
+		v.EphemeralSet = true
 	}
 
 	if attr, exists := content.Attributes["nullable"]; exists {
@@ -331,11 +339,13 @@ type Output struct {
 	Expr        hcl.Expression
 	DependsOn   []hcl.Traversal
 	Sensitive   bool
+	Ephemeral   bool
 
 	Preconditions []*CheckRule
 
 	DescriptionSet bool
 	SensitiveSet   bool
+	EphemeralSet   bool
 
 	DeclRange hcl.Range
 }
@@ -379,6 +389,12 @@ func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostic
 		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &o.Sensitive)
 		diags = append(diags, valDiags...)
 		o.SensitiveSet = true
+	}
+
+	if attr, exists := content.Attributes["ephemeral"]; exists {
+		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &o.Ephemeral)
+		diags = append(diags, valDiags...)
+		o.EphemeralSet = true
 	}
 
 	if attr, exists := content.Attributes["depends_on"]; exists {
@@ -473,6 +489,9 @@ var variableBlockSchema = &hcl.BodySchema{
 			Name: "sensitive",
 		},
 		{
+			Name: "ephemeral",
+		},
+		{
 			Name: "nullable",
 		},
 	},
@@ -497,6 +516,9 @@ var outputBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "sensitive",
+		},
+		{
+			Name: "ephemeral",
 		},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
