@@ -4,6 +4,7 @@
 package stackconfig
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/apparentlymart/go-versions/versions/constraints"
@@ -71,6 +72,12 @@ type Component struct {
 	// provider names.
 	ProviderConfigs map[addrs.LocalProviderConfig]hcl.Expression
 
+	// Correlator is a computed string that is used to correlate components
+	// with their corresponding resources in UI representations. Think of it
+	// as a primary key for the component. It is hashed so no one mistakenly
+	// uses its value for anything other than correlation.
+	Correlator string
+
 	DeclRange tfdiags.SourceRange
 }
 
@@ -113,6 +120,8 @@ func decodeComponentBlock(block *hcl.Block) (*Component, tfdiags.Diagnostics) {
 	// safely return a partial ret if we encounter any further errors, as
 	// long as we leave the other fields either unset or in some other
 	// reasonable state for careful partial analysis.
+
+	ret.Correlator = componentCorrelator(ret.SourceAddr, ret.Name)
 
 	if attr, ok := content.Attributes["for_each"]; ok {
 		ret.ForEach = attr.Expr
@@ -278,4 +287,23 @@ var componentBlockSchema = &hcl.BodySchema{
 		{Name: "inputs", Required: false},
 		{Name: "providers", Required: false},
 	},
+}
+
+// currently we use a static salt to make the correlation opaque
+// this is not ideal, but it's a start. Since the correlation should
+// only be made within one prepare / plan / apply cycle we could use
+// the stack_config_handle as a salt.
+const componentCorrelatorSalt = "component"
+
+// componentCorrelator returns an opaque string that can be used to correlate
+// the given component with resources using this component.
+func componentCorrelator(sourceAddr sourceaddrs.Source, name string) string {
+	h := sha256.New()
+
+	h.Write([]byte(componentCorrelatorSalt))
+	h.Write([]byte(sourceAddr.String()))
+	h.Write([]byte(name))
+
+	bs := h.Sum(nil)
+	return fmt.Sprintf("%x", bs)
 }

@@ -471,6 +471,7 @@ message FindStackConfigurationComponents {
     message Component {
         string source_addr = 1;
         Instances instances = 2;
+        string correlator = 3;
     }
 }
 

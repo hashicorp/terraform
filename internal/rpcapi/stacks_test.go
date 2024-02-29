@@ -186,10 +186,12 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 			Components: map[string]*terraform1.FindStackConfigurationComponents_Component{
 				"single": {
 					SourceAddr: "git::https://example.com/foo.git//non-empty-stack/empty-module",
+					Correlator: "41cca195222e7a3f1e90b39473173ae5af79ebbe32bc0bfb04c1215e1cc7e4d5",
 				},
 				"for_each": {
 					SourceAddr: "git::https://example.com/foo.git//non-empty-stack/empty-module",
 					Instances:  terraform1.FindStackConfigurationComponents_FOR_EACH,
+					Correlator: "bef14ba5a22f5a18717acd4460fb30bdf538f497f33faf3c023f1079a4fc81bd",
 				},
 			},
 			EmbeddedStacks: map[string]*terraform1.FindStackConfigurationComponents_EmbeddedStack{
@@ -199,6 +201,7 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 						Components: map[string]*terraform1.FindStackConfigurationComponents_Component{
 							"foo": {
 								SourceAddr: "git::https://example.com/foo.git//non-empty-stack/empty-module",
+								Correlator: "5cdb6a924662e14f565965a2a170adfb90ffbb1d84630de7bce68bc70b8edc60",
 							},
 						},
 					},
@@ -210,6 +213,7 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 						Components: map[string]*terraform1.FindStackConfigurationComponents_Component{
 							"foo": {
 								SourceAddr: "git::https://example.com/foo.git//non-empty-stack/empty-module",
+								Correlator: "5cdb6a924662e14f565965a2a170adfb90ffbb1d84630de7bce68bc70b8edc60",
 							},
 						},
 					},
