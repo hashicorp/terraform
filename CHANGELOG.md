@@ -5,6 +5,8 @@ UPGRADE NOTES:
 If you are upgrading from Terraform v1.7 or earlier, please refer to
 [the Terraform v1.8 Upgrade Guide](https://developer.hashicorp.com/terraform/language/v1.8.x/upgrade-guides).
 
+* backend/s3: The `use_legacy_workflow` argument has been removed to encourage consistency with the AWS SDKs. The backend will now search for credentials in the same order as the default provider chain in the AWS SDKs and AWS CLI.
+
 NEW FEATURES:
 
 * Providers can now implement functions which can be used from within the Terraform configuration language. The syntax for calling a provider supplied function is `provider::provider_name::function_name()`. ([#34394](https://github.com/hashicorp/terraform/issues/34394))
