@@ -28,6 +28,16 @@ type ApplyOpts struct {
 	// the providers that were passed when creating the plan that's being
 	// applied, or the results will be erratic.
 	ExternalProviders map[addrs.RootProviderConfig]providers.Interface
+
+	// SetVariables are the raw values for root module variables as provided
+	// by the user who is requesting the run, prior to any normalization or
+	// substitution of defaults. See the documentation for the InputValue
+	// type for more information on how to correctly populate this.
+	//
+	// During the apply phase it's only valid to specify values for input
+	// values that were declared as ephemeral, because all other input
+	// values must retain the values that were specified during planning.
+	SetVariables InputValues
 }
 
 // ApplyOpts creates an [ApplyOpts] with copies of all of the elements that

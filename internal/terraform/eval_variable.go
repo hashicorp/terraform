@@ -189,6 +189,36 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 		}
 	}
 
+	if cfg.Ephemeral {
+		// An ephemeral input variable always has an ephemeral value inside the
+		// module, even if the value assigned to it from outside is not. This
+		// is a useful simplification so that module authors can be explicit
+		// about what guarantees they are intending to make (regardless of
+		// current implementation details). Changing the ephemerality of an
+		// input variable is a breaking change to a module's API.
+		val = val.Mark(marks.Ephemeral)
+	} else {
+		if marks.Contains(val, marks.Ephemeral) {
+			var subject hcl.Range
+			if raw.HasSourceRange() {
+				subject = raw.SourceRange.ToHCL()
+			} else {
+				// We shouldn't typically get here for ephemeral values, because
+				// all of the source types that can represent expressions that
+				// could potentially produce ephemeral values are those which
+				// have source locations. This is just here for robustness.
+				subject = cfg.DeclRange
+			}
+
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Ephemeral value not allowed",
+				Detail:   "This input variable is not declared as accepting a ephemeral values, so it cannot be set to a result derived from an ephemeral value.",
+				Subject:  subject.Ptr(),
+			})
+		}
+	}
+
 	return val, diags
 }
 

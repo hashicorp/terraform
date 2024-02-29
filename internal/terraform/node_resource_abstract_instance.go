@@ -841,7 +841,10 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	origConfigVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
-	if configDiags.HasErrors() {
+	diags = diags.Append(
+		validateResourceForbiddenEphemeralValues(ctx, origConfigVal, schema).InConfigBody(n.Config.Config, n.Addr.String()),
+	)
+	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
 	}
 
@@ -1711,7 +1714,10 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	var configDiags tfdiags.Diagnostics
 	configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
-	if configDiags.HasErrors() {
+	diags = diags.Append(
+		validateResourceForbiddenEphemeralValues(ctx, configVal, schema).InConfigBody(n.Config.Config, n.Addr.String()),
+	)
+	if diags.HasErrors() {
 		return nil, nil, keyData, diags
 	}
 	unmarkedConfigVal, unmarkedPaths := configVal.UnmarkDeepWithPaths()
