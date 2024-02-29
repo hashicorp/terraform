@@ -471,6 +471,11 @@ message FindStackConfigurationComponents {
     message Component {
         string source_addr = 1;
         Instances instances = 2;
+
+        // correlator is a computed string that is used to correlate components
+    	// with their corresponding resources in UI representations. Think of it
+    	// as a primary key for the component. It is hashed so no one mistakenly
+    	// uses its value for anything other than correlation.
         string correlator = 3;
     }
 }
@@ -753,6 +758,18 @@ message PlannedChange {
         // unexpected differences caused by such situations as contradictory
         // configuration or provider bugs.
         bool plan_complete = 3;
+
+        // component_correlator is a computed string that is used to correlate components
+    	// with their corresponding resources in UI representations. Think of it
+    	// as a primary key for the component. It is hashed so no one mistakenly
+    	// uses its value for anything other than correlation.
+        string component_correlator = 4;
+
+        // instance_correlator is a computed string that is used to correlate this
+        // specific instance with its corresponding resource in UI representations.
+        // It is hashed so no one mistakenly uses its value for anything other
+        // than correlation.
+        string instance_correlator = 5;
     }
     message ResourceInstance {
         ResourceInstanceObjectInStackAddr addr = 1;
@@ -785,6 +802,11 @@ message PlannedChange {
         // by default, although it could still be shown behind an
         // optional disclosure in UI contexts where such things are possible.
         bool notable_change_outside = 10;
+
+        // component_instance_correlator is a computed string that is used to correlate
+        // this specific resource instance with its corresponding component instance
+        // in UI representations.
+        string component_instance_correlator = 11;
 
         // TODO: Everything else we need for feature-parity with the
         // existing JSON plan export format.
@@ -924,6 +946,18 @@ message AppliedChange {
         string component_addr = 3;
         string component_instance_addr = 1;
         map<string,DynamicValue> output_values = 2;
+
+        // component_correlator is a computed string that is used to correlate components
+    	// with their corresponding resources in UI representations. Think of it
+    	// as a primary key for the component. It is hashed so no one mistakenly
+    	// uses its value for anything other than correlation.
+        string component_correlator = 4;
+
+        // instance_correlator is a computed string that is used to correlate this
+        // specific instance with its corresponding resource in UI representations.
+        // It is hashed so no one mistakenly uses its value for anything other
+        // than correlation.
+        string instance_correlator = 5;
     }
     message OutputValue {
         string name = 1;

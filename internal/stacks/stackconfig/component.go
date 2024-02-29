@@ -121,7 +121,7 @@ func decodeComponentBlock(block *hcl.Block) (*Component, tfdiags.Diagnostics) {
 	// long as we leave the other fields either unset or in some other
 	// reasonable state for careful partial analysis.
 
-	ret.Correlator = componentCorrelator(ret.SourceAddr, ret.Name)
+	ret.Correlator = ComponentCorrelator(ret.SourceAddr, ret.Name)
 
 	if attr, ok := content.Attributes["for_each"]; ok {
 		ret.ForEach = attr.Expr
@@ -295,9 +295,9 @@ var componentBlockSchema = &hcl.BodySchema{
 // the stack_config_handle as a salt.
 const componentCorrelatorSalt = "component"
 
-// componentCorrelator returns an opaque string that can be used to correlate
+// ComponentCorrelator returns an opaque string that can be used to correlate
 // the given component with resources using this component.
-func componentCorrelator(sourceAddr sourceaddrs.Source, name string) string {
+func ComponentCorrelator(sourceAddr sourceaddrs.Source, name string) string {
 	h := sha256.New()
 
 	h.Write([]byte(componentCorrelatorSalt))

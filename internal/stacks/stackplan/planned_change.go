@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackutils"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/internal/states"
@@ -219,6 +220,8 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 						// stack operation it's the overall stack plan applyable
 						// flag that matters, and the per-component flags
 						// are just an implementation detail.
+
+						ComponentCorrelator: stackconfig.ComponentCorrelator(),
 					},
 				},
 			},
