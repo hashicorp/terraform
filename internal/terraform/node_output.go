@@ -471,6 +471,33 @@ If you do intend to export this data, annotate the output value as sensitive by 
 		}
 		return diags
 	}
+
+	// The checks below this point are intentionally not opted out by
+	// "flagWarnOutputErrors", because they relate to features that were added
+	// more recently than the historical change to treat invalid output values
+	// as errors rather than warnings.
+
+	if n.Config.Ephemeral {
+		// An ephemeral output value always produces an ephemeral result,
+		// even if the value assigned to it internally is not. This is
+		// a useful simplification so that module authors can be
+		// explicit about what guarantees they are intending to make
+		// (regardless of current implementation details). Marking an
+		// output value as ephemeral when it wasn't before is always a
+		// breaking change to a module's API.
+		val = val.Mark(marks.Ephemeral)
+	} else {
+		if marks.Contains(val, marks.Ephemeral) {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Ephemeral value not allowed",
+				Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+				Subject:  n.Config.Expr.Range().Ptr(),
+			})
+			return diags
+		}
+	}
+
 	n.setValue(ctx.NamedValues(), state, changes, val)
 
 	// If we were able to evaluate a new value, we can update that in the
@@ -694,23 +721,26 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 			action = plans.NoOp
 		}
 
-		change := &plans.OutputChange{
-			Addr:      n.Addr,
-			Sensitive: sensitiveChange,
-			Change: plans.Change{
-				Action: action,
-				Before: before,
-				After:  val,
-			},
-		}
+		// Non-ephemeral output values get their changes recorded in the plan
+		if !n.Config.Ephemeral {
+			change := &plans.OutputChange{
+				Addr:      n.Addr,
+				Sensitive: sensitiveChange,
+				Change: plans.Change{
+					Action: action,
+					Before: before,
+					After:  val,
+				},
+			}
 
-		cs, err := change.Encode()
-		if err != nil {
-			// Should never happen, since we just constructed this right above
-			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
+			cs, err := change.Encode()
+			if err != nil {
+				// Should never happen, since we just constructed this right above
+				panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
+			}
+			log.Printf("[TRACE] setValue: Saving %s change for %s in changeset", change.Action, n.Addr)
+			changes.AppendOutputChange(cs) // add the new planned change
 		}
-		log.Printf("[TRACE] setValue: Saving %s change for %s in changeset", change.Action, n.Addr)
-		changes.AppendOutputChange(cs) // add the new planned change
 	}
 
 	if changes != nil && !n.Planning {
@@ -732,19 +762,27 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 	// with a different state, since we only have one namedVals regardless
 	// of how many states are involved in an operation.
 	if namedVals != nil {
-		namedVals.SetOutputValue(n.Addr, val)
+		saveVal := val
+		if n.Config.Ephemeral {
+			// Downstream uses of this output value must propagate the
+			// ephemerality.
+			saveVal = saveVal.Mark(marks.Ephemeral)
+		}
+		namedVals.SetOutputValue(n.Addr, saveVal)
 	}
 
-	// The state itself doesn't represent unknown values, so we null them
-	// out here and then we'll save the real unknown value in the planned
-	// changeset, if we have one on this graph walk.
-	log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
-	// non-root outputs need to keep sensitive marks for evaluation, but are
-	// not serialized.
-	if n.Addr.Module.IsRoot() {
-		val, _ = val.UnmarkDeep()
-		val = cty.UnknownAsNull(val)
+	// Non-ephemeral output values get saved in the state too
+	if !n.Config.Ephemeral {
+		// The state itself doesn't represent unknown values, so we null them
+		// out here and then we'll save the real unknown value in the planned
+		// changeset, if we have one on this graph walk.
+		log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
+		// non-root outputs need to keep sensitive marks for evaluation, but are
+		// not serialized.
+		if n.Addr.Module.IsRoot() {
+			val, _ = val.UnmarkDeep()
+			val = cty.UnknownAsNull(val)
+		}
+		state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
 	}
-
-	state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
 }
