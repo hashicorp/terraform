@@ -29,6 +29,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * core: Sensitive values will now be tracked more accurately in state and plans, preventing unexpected updates with no apparent changes ([#34567](https://github.com/hashicorp/terraform/issues/34567))
+* core: Fix incorrect error message when using in invalid iterator within a dynamic block [GH-34751]
 * cloud: Fixed unparsed color codes in policy failure error messages ([#34473](https://github.com/hashicorp/terraform/issues/34473))
 
 EXPERIMENTS:
