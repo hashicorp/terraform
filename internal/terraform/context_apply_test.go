@@ -4909,6 +4909,57 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_provisionerDestroyRemoved(t *testing.T) {
+	m := testModule(t, "apply-provisioner-destroy-removed")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.PlanResourceChangeFn = testDiffFn
+	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
+		val := req.Config.GetAttr("command").AsString()
+		// The following is "destroy ${each.key} ${self.foo}"
+		if val != "destroy a bar" {
+			t.Fatalf("wrong value for command: %q", val)
+		}
+
+		return
+	}
+
+	state := states.NewState()
+	root := state.RootModule()
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr(`aws_instance.foo["a"]`).Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","foo":"bar"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]provisioners.Factory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	state, diags = ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	checkStateString(t, state, `<no state>`)
+
+	// Verify apply was invoked
+	if !pr.ProvisionResourceCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+}
+
 // Verify that on destroy provisioner failure, nothing happens to the instance
 func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
 	m := testModule(t, "apply-provisioner-destroy")
