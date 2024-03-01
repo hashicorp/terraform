@@ -317,6 +317,10 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 		if err != nil {
 			return nil, err
 		}
+		replacePaths, err := encodePathSet(pc.ChangeSrc.RequiredReplace)
+		if err != nil {
+			return nil, err
+		}
 		descs = []*terraform1.PlannedChange_ChangeDescription{
 			{
 				Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
@@ -331,6 +335,7 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 							Old: terraform1.NewDynamicValue(pc.ChangeSrc.Before, pc.ChangeSrc.BeforeValMarks),
 							New: terraform1.NewDynamicValue(pc.ChangeSrc.After, pc.ChangeSrc.AfterValMarks),
 						},
+						ReplacePaths: replacePaths,
 						// TODO: Moved, Imported
 					},
 				},
@@ -341,6 +346,64 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 	return &terraform1.PlannedChange{
 		Raw:          []*anypb.Any{&raw},
 		Descriptions: descs,
+	}, nil
+}
+
+func encodePathSet(pathSet cty.PathSet) ([]*terraform1.AttributePath, error) {
+	if pathSet.Empty() {
+		return nil, nil
+	}
+
+	pathList := pathSet.List()
+	paths := make([]*terraform1.AttributePath, 0, len(pathList))
+
+	for _, path := range pathList {
+		jsonPath, err := encodePath(path)
+		if err != nil {
+			return nil, err
+		}
+		paths = append(paths, jsonPath)
+	}
+	return paths, nil
+}
+
+func encodePath(path cty.Path) (*terraform1.AttributePath, error) {
+	steps := make([]*terraform1.AttributePath_Step, 0, len(path))
+	for _, step := range path {
+		switch s := step.(type) {
+		case cty.IndexStep:
+			switch s.Key.Type() {
+			case cty.Number:
+				elementInt, _ := s.Key.AsBigFloat().Int64()
+				steps = append(steps, &terraform1.AttributePath_Step{
+					Selector: &terraform1.AttributePath_Step_ElementKeyInt{
+						ElementKeyInt: elementInt,
+					},
+				})
+
+			case cty.String:
+				steps = append(steps, &terraform1.AttributePath_Step{
+					Selector: &terraform1.AttributePath_Step_ElementKeyString{
+						ElementKeyString: s.Key.AsString(),
+					},
+				})
+
+			default:
+				return nil, fmt.Errorf("Unsupported index step type %s", s.Key.Type())
+			}
+		case cty.GetAttrStep:
+			steps = append(steps, &terraform1.AttributePath_Step{
+				Selector: &terraform1.AttributePath_Step_AttributeName{
+					AttributeName: s.Name,
+				},
+			})
+		default:
+			return nil, fmt.Errorf("Unsupported step type %t", s)
+		}
+	}
+
+	return &terraform1.AttributePath{
+		Steps: steps,
 	}, nil
 }
 
