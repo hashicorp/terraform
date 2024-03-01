@@ -7,11 +7,12 @@ import (
 	"context"
 	"sync/atomic"
 
+	"google.golang.org/protobuf/types/known/anypb"
+
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // PlanAll visits all of the objects in the configuration and the prior state,
@@ -183,7 +184,7 @@ func (m *Main) walkPlanObjectChanges(ctx context.Context, walk *planWalk, obj Pl
 			walk.out.AnnouncePlannedChange(ctx, change)
 		}
 		if len(diags) != 0 {
-			walk.out.AnnounceDiagnostics(ctx, diags)
+			walk.state.AddDiags(diags)
 		}
 	})
 }

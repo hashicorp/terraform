@@ -44,6 +44,18 @@ func computeDiffForNestedAttribute(change structured.Change, nested *jsonprovide
 }
 
 func ComputeDiffForType(change structured.Change, ctype cty.Type) computed.Diff {
+	if !change.NonLegacySchema {
+		// Empty strings in blocks should be considered null, because the legacy
+		// SDK can't always differentiate between null and empty strings and may
+		// return either.
+		if before, ok := change.Before.(string); ok && len(before) == 0 {
+			change.Before = nil
+		}
+		if after, ok := change.After.(string); ok && len(after) == 0 {
+			change.After = nil
+		}
+	}
+
 	if sensitive, ok := checkForSensitiveType(change, ctype); ok {
 		return sensitive
 	}

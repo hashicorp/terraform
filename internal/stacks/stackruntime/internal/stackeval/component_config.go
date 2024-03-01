@@ -6,8 +6,6 @@ package stackeval
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/go-slug/sourceaddrs"
@@ -15,15 +13,16 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/typeexpr"
-	"github.com/spf13/afero"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -55,6 +54,10 @@ func (c *ComponentConfig) Declaration(ctx context.Context) *stackconfig.Componen
 	return c.config
 }
 
+func (c *ComponentConfig) StackConfig(ctx context.Context) *StackConfig {
+	return c.main.mustStackConfig(ctx, c.addr.Stack)
+}
+
 // ModuleTree returns the static representation of the tree of modules starting
 // at the component's configured source address, or nil if any of the
 // modules have errors that prevent even static decoding.
@@ -78,13 +81,6 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 			decl := c.Declaration(ctx)
 			sources := c.main.SourceBundle(ctx)
 
-			// The "configs" package predates the idea of explicit source
-			// bundles, so for now we need to do some adaptation to
-			// help it interact with the files in the source bundle despite
-			// not being aware of that abstraction.
-			// TODO: Introduce source bundle support into the "configs" package
-			// API, and factor out some of this complexity onto there.
-
 			rootModuleSource := decl.FinalSourceAddr
 			if rootModuleSource == nil {
 				// If we get here then the configuration was loaded incorrectly,
@@ -92,46 +88,11 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 				// stackconfig package using the wrong loading function.
 				panic("component configuration lacks final source address")
 			}
-			rootModuleDir, err := sources.LocalPathForSource(rootModuleSource)
-			if err != nil {
-				// We should not get here if the source bundle was constructed
-				// correctly.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Can't load module for component",
-					Detail:   fmt.Sprintf("Failed to load this component's root module: %s.", tfdiags.FormatError(err)),
-					Subject:  decl.SourceAddrRange.ToHCL().Ptr(),
-				})
-				return nil, diags
-			}
 
-			// Since the module config loader doesn't yet understand source
-			// bundles, any diagnostics we return from here will contain the
-			// real filesystem path of the problematic file rather than
-			// preserving the source bundle abstraction. As a compromise
-			// though, we'll make the path relative to the current working
-			// directory so at least it won't be quite so obnoxiously long
-			// when we're running in situations like a remote executor that
-			// uses a separate directory per job.
-			// FIXME: Make the module loader aware of source bundles and use
-			// source addresses in its diagnostics, etc.
-			if cwd, err := os.Getwd(); err == nil {
-				relPath, err := filepath.Rel(cwd, rootModuleDir)
-				if err == nil {
-					rootModuleDir = filepath.ToSlash(relPath)
-				}
-			}
-
-			// With rootModuleDir we can now have the configs package work
-			// directly with the real filesystem, rather than with the source
-			// bundle. However, this does mean that any error messages generated
-			// from this process will disclose the real locations of the
-			// source files on disk (an implementation detail) rather than
-			// preserving the source address abstraction.
-			parser := configs.NewParser(afero.NewOsFs())
+			parser := configs.NewSourceBundleParser(sources)
 			parser.AllowLanguageExperiments(c.main.LanguageExperimentsAllowed())
 
-			if !parser.IsConfigDir(rootModuleDir) {
+			if !parser.IsConfigDir(rootModuleSource) {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Can't load module for component",
@@ -141,16 +102,14 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 				return nil, diags
 			}
 
-			rootMod, hclDiags := parser.LoadConfigDir(rootModuleDir)
+			rootMod, hclDiags := parser.LoadConfigDir(rootModuleSource)
 			diags = diags.Append(hclDiags)
 			if hclDiags.HasErrors() {
 				return nil, diags
 			}
 
-			configRoot, hclDiags := configs.BuildConfig(rootMod, &sourceBundleModuleWalker{
-				sources: sources,
-				parser:  parser,
-			}, nil)
+			walker := newSourceBundleModuleWalker(rootModuleSource, sources, parser)
+			configRoot, hclDiags := configs.BuildConfig(rootMod, walker, nil)
 			diags = diags.Append(hclDiags)
 			if hclDiags.HasErrors() {
 				return nil, diags
@@ -252,6 +211,21 @@ func (c *ComponentConfig) InputsType(ctx context.Context) (cty.Type, *typeexpr.D
 	return retTy, defs
 }
 
+func (c *ComponentConfig) CheckInputVariableValues(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
+	wantTy, defs := c.InputsType(ctx)
+	if wantTy == cty.NilType {
+		// Suggests that the module tree is invalid. We validate the full module
+		// tree elsewhere, which will hopefully detect the problems here.
+		return nil
+	}
+
+	decl := c.Declaration(ctx)
+
+	// We don't care about the returned value, only that it has no errors.
+	_, diags := EvalComponentInputVariables(ctx, wantTy, defs, decl, phase, c)
+	return diags
+}
+
 // RequiredProviderInstances returns a description of all of the provider
 // instance slots ("provider configurations" in main Terraform language
 // terminology) that are either explicitly declared or implied by the
@@ -271,13 +245,13 @@ func (c *ComponentConfig) InputsType(ctx context.Context) (cty.Type, *typeexpr.D
 // If any modules in the component's root module tree are invalid then this
 // result could under-promise or over-promise depending on the kind of
 // invalidity.
-func (c *ComponentConfig) RequiredProviderInstances(ctx context.Context) addrs.Set[addrs.RootProviderConfig] {
+func (c *ComponentConfig) RequiredProviderInstances(ctx context.Context) addrs.Map[addrs.RootProviderConfig, addrs.LocalProviderConfig] {
 	moduleTree := c.ModuleTree(ctx)
 	if moduleTree == nil || moduleTree.Root == nil {
 		// If we get here then we presumably failed to load the module, and
 		// so we'll just unwind quickly so a different return path can return
 		// the error diagnostics.
-		return nil
+		return addrs.MakeMap[addrs.RootProviderConfig, addrs.LocalProviderConfig]()
 	}
 	return moduleTree.Root.EffectiveRequiredProviderConfigs()
 }
@@ -285,15 +259,28 @@ func (c *ComponentConfig) RequiredProviderInstances(ctx context.Context) addrs.S
 func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (addrs.Set[addrs.RootProviderConfig], tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	stackConfig := c.main.StackConfig(ctx, c.Addr().Stack)
+	stackConfig := c.StackConfig(ctx)
 	declConfigs := c.Declaration(ctx).ProviderConfigs
 	neededProviders := c.RequiredProviderInstances(ctx)
 
 	ret := addrs.MakeSet[addrs.RootProviderConfig]()
-	for _, inCalleeAddr := range neededProviders {
-		typeAddr := inCalleeAddr.Provider
-		localName, ok := stackConfig.ProviderLocalName(ctx, typeAddr)
-		if !ok {
+	for _, elem := range neededProviders.Elems {
+
+		// sourceAddr is the addrs.RootProviderConfig that should be used to
+		// set this provider in the component later.
+		sourceAddr := elem.Key
+
+		// componentAddr is the addrs.LocalProviderConfig that specifies the
+		// local name and (optional) alias of the provider in the component.
+		componentAddr := elem.Value
+
+		// typeAddr is the absolute address of the provider type itself.
+		typeAddr := sourceAddr.Provider
+
+		// This type should be in the stack's required_providers list.
+		if _, ok := stackConfig.ProviderLocalName(ctx, typeAddr); !ok {
+			// This means we haven't got this provider in the stacks
+			// required_provider list.
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Component requires undeclared provider",
@@ -306,42 +293,69 @@ func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (
 			continue
 		}
 
-		localAddr := addrs.LocalProviderConfig{
-			LocalName: localName,
-			Alias:     inCalleeAddr.Alias,
-		}
-		if _, exists := declConfigs[localAddr]; !exists {
+		expr, exists := declConfigs[componentAddr]
+		if !exists {
+			// Then this provider isn't listed in the `providers` block of this
+			// component. Which is bad!
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Missing required provider configuration",
 				Detail: fmt.Sprintf(
 					"The root module for %s requires a provider configuration named %q for provider %q, which is not assigned in the component's \"providers\" argument.",
-					c.Addr(), localAddr.StringCompact(), typeAddr.ForDisplay(),
+					c.Addr(), componentAddr.StringCompact(), typeAddr.ForDisplay(),
 				),
 				Subject: c.Declaration(ctx).DeclRange.ToHCL().Ptr(),
 			})
 			continue
 		}
 
-		// TODO: It's not currently possible to assign a provider configuration
-		//  with a different local name even if the types match. Find out if
-		//  this is deliberate. Note, the component_instance CheckProviders
-		//  function also enforces this.
-		//
-		// In theory you should be able to do this:
-		//   provider_one = provider.provider_two.default
-		//
-		// Assuming the underlying types of the providers are the same, even if
-		// the local names are not. This is not possible at the moment, the
-		// local names must match up.
-		//
-		// We'll have to partially parse the reference here to get the local
-		// configuration block (uninstanced), and then resolve the underlying
-		// type. And then make sure it matches the type of the provider we're
-		// assigning it to in the module. Also, we should fix the equivalent
-		// function in component_instance at the same time.
+		// At the validation stage, it's really likely the result here is
+		// unknown. But, we can still check the returned type to make sure it
+		// matches everything expected.
+		result, hclDiags := EvalExprAndEvalContext(ctx, expr, phase, c)
+		diags = diags.Append(hclDiags)
+		if hclDiags.HasErrors() {
+			continue
+		}
 
-		ret.Add(inCalleeAddr)
+		const errSummary = "Invalid provider configuration"
+		if actualTy := result.Value.Type(); stackconfigtypes.IsProviderConfigType(actualTy) {
+			// Then we at least got a provider reference of some kind.
+			actualTypeAddr := stackconfigtypes.ProviderForProviderConfigType(actualTy)
+			if actualTypeAddr != typeAddr {
+				// But, unfortunately, the underlying types of the providers
+				// do not match up.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  errSummary,
+					Detail: fmt.Sprintf(
+						"The provider configuration slot %s requires a configuration for provider %q, not for provider %q.",
+						componentAddr.StringCompact(), typeAddr, actualTypeAddr,
+					),
+					Subject: result.Expression.Range().Ptr(),
+				})
+				continue
+			}
+		} else {
+			// We got something that isn't a provider reference at all.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  errSummary,
+				Detail: fmt.Sprintf(
+					"The provider configuration slot %s requires a configuration for provider %q.",
+					componentAddr.StringCompact(), typeAddr,
+				),
+				Subject: result.Expression.Range().Ptr(),
+			})
+			continue
+		}
+
+		// If we made it here, the types all matched up so we've done everything
+		// we can. component_instance.go will do additional checks to make sure
+		// the result is known and not null when it comes time to actually
+		// check the plan.
+
+		ret.Add(sourceAddr)
 	}
 	return ret, diags
 }
@@ -408,6 +422,16 @@ func (c *ComponentConfig) ExprReferenceValue(ctx context.Context, phase EvalPhas
 	return cty.DynamicVal
 }
 
+func (c *ComponentConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
+	repetition := instances.RepetitionData{}
+	if c.Declaration(ctx).ForEach != nil {
+		// For validation, we'll return unknown for the instance data.
+		repetition.EachKey = cty.UnknownVal(cty.String).RefineNotNull()
+		repetition.EachValue = cty.DynamicVal
+	}
+	return c.StackConfig(ctx).resolveExpressionReference(ctx, ref, nil, repetition)
+}
+
 func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	diags, err := c.validate.Do(ctx, func(ctx context.Context) (tfdiags.Diagnostics, error) {
 		var diags tfdiags.Diagnostics
@@ -419,11 +443,18 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 		}
 		decl := c.Declaration(ctx)
 
-		// TODO: Also check if the input variables are valid.
+		variableDiags := c.CheckInputVariableValues(ctx, phase)
+		diags = diags.Append(variableDiags)
+		// We don't actually exit if we found errors with the input variables,
+		// we can still validate the actual module tree without them.
 
 		_, providerDiags := c.CheckProviders(ctx, phase)
 		diags = diags.Append(providerDiags)
 		if providerDiags.HasErrors() {
+			// If there's invalid provider configuration, we can't actually go
+			// on and validate the module tree. We need the providers and if
+			// they're invalid we'll just get crazy and confusing errors
+			// later if we try and carry on.
 			return diags, nil
 		}
 
@@ -432,8 +463,6 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 		if moreDiags.HasErrors() {
 			return diags, nil
 		}
-
-		// TODO: Manually validate the provider configs.
 
 		tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
 			PreloadedProviderSchemas: providerSchemas,
@@ -499,8 +528,19 @@ func (c *ComponentConfig) tracingName() string {
 // sourceBundleModuleWalker is an implementation of [configs.ModuleWalker]
 // that loads all modules from a single source bundle.
 type sourceBundleModuleWalker struct {
-	sources *sourcebundle.Bundle
-	parser  *configs.Parser
+	absoluteSourceAddrs map[string]sourceaddrs.FinalSource
+	sources             *sourcebundle.Bundle
+	parser              *configs.SourceBundleParser
+}
+
+func newSourceBundleModuleWalker(rootModuleSource sourceaddrs.FinalSource, sources *sourcebundle.Bundle, parser *configs.SourceBundleParser) *sourceBundleModuleWalker {
+	absoluteSourceAddrs := make(map[string]sourceaddrs.FinalSource, 1)
+	absoluteSourceAddrs[addrs.RootModule.String()] = rootModuleSource
+	return &sourceBundleModuleWalker{
+		absoluteSourceAddrs: absoluteSourceAddrs,
+		sources:             sources,
+		parser:              parser,
+	}
 }
 
 // LoadModule implements configs.ModuleWalker.
@@ -527,7 +567,25 @@ func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*conf
 		return nil, nil, diags
 	}
 
-	moduleDir, err := w.sources.LocalPathForSource(finalSourceAddr)
+	absoluteSourceAddr, err := w.absoluteSourceAddr(finalSourceAddr, req.Parent)
+	if err != nil {
+		// Again, this should not happen, but let's ensure we can debug if it
+		// does.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Can't load module for component",
+			Detail:   fmt.Sprintf("Unable to determin absolute source address: %s.", err),
+			Subject:  req.SourceAddrRange.Ptr(),
+		})
+		return nil, nil, diags
+	}
+
+	// We store the absolute source address for this module so that any in-repo
+	// child modules can use it to construct their absolute source addresses
+	// too.
+	w.absoluteSourceAddrs[req.Path.String()] = absoluteSourceAddr
+
+	_, err = w.sources.LocalPathForSource(absoluteSourceAddr)
 	if err != nil {
 		// We should not get here if the source bundle was constructed
 		// correctly.
@@ -540,30 +598,7 @@ func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*conf
 		return nil, nil, diags
 	}
 
-	// If the moduleDir is relative then it's relative to the parent module's
-	// source directory, we'll make it absolute.
-	if !filepath.IsAbs(moduleDir) {
-		moduleDir = filepath.Clean(filepath.Join(req.Parent.Module.SourceDir, moduleDir))
-	}
-
-	// Since the module config loader doesn't yet understand source
-	// bundles, any diagnostics we return from here will contain the
-	// real filesystem path of the problematic file rather than
-	// preserving the source bundle abstraction. As a compromise
-	// though, we'll make the path relative to the current working
-	// directory so at least it won't be quite so obnoxiously long
-	// when we're running in situations like a remote executor that
-	// uses a separate directory per job.
-	// FIXME: Make the module loader aware of source bundles and use
-	// source addresses in its diagnostics, etc.
-	if cwd, err := os.Getwd(); err == nil {
-		relPath, err := filepath.Rel(cwd, moduleDir)
-		if err == nil {
-			moduleDir = filepath.ToSlash(relPath)
-		}
-	}
-
-	mod, moreDiags := w.parser.LoadConfigDir(moduleDir)
+	mod, moreDiags := w.parser.LoadConfigDir(absoluteSourceAddr)
 	diags = append(diags, moreDiags...)
 
 	// Annoyingly we now need to translate our version selection back into
@@ -638,6 +673,23 @@ func (w *sourceBundleModuleWalker) bundleSourceAddrForTerraformSourceAddr(tfSour
 		// Should not get here because the above should be exhaustive for all
 		// possible address types.
 		return nil, fmt.Errorf("unsupported source address type %T", tfSourceAddr)
+	}
+}
+
+func (w *sourceBundleModuleWalker) absoluteSourceAddr(sourceAddr sourceaddrs.FinalSource, parent *configs.Config) (sourceaddrs.FinalSource, error) {
+	switch source := sourceAddr.(type) {
+	case sourceaddrs.LocalSource:
+		parentPath := addrs.RootModule
+		if parent != nil {
+			parentPath = parent.Path
+		}
+		absoluteParentSourceAddr, ok := w.absoluteSourceAddrs[parentPath.String()]
+		if !ok {
+			return nil, fmt.Errorf("unexpected missing source address for module parent %q", parentPath)
+		}
+		return sourceaddrs.ResolveRelativeFinalSource(absoluteParentSourceAddr, source)
+	default:
+		return sourceAddr, nil
 	}
 }
 

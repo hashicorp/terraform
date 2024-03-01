@@ -10,6 +10,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -17,8 +19,8 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // ProviderConfig represents a single "provider" block in a stack configuration.
@@ -72,12 +74,12 @@ func (p *ProviderConfig) ProviderArgsDecoderSpec(ctx context.Context) (hcldec.Sp
 // provider instances declared by this provider configuration, or
 // an unknown value (possibly [cty.DynamicVal]) if the configuration is too
 // invalid to produce any answer at all.
-func (p *ProviderConfig) ProviderArgs(ctx context.Context) cty.Value {
-	v, _ := p.CheckProviderArgs(ctx)
+func (p *ProviderConfig) ProviderArgs(ctx context.Context, phase EvalPhase) cty.Value {
+	v, _ := p.CheckProviderArgs(ctx, phase)
 	return v
 }
 
-func (p *ProviderConfig) CheckProviderArgs(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
 		ctx, &p.providerArgs, p.main,
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
@@ -114,7 +116,15 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context) (cty.Value, tfdi
 			}
 			defer client.Close()
 
-			configVal, moreDiags := EvalBody(ctx, decl.Config, spec, ValidatePhase, p)
+			body := decl.Config
+			if body == nil {
+				// A provider with no configuration is valid (just means no
+				// attributes or blocks), but we need to pass an empty body to
+				// the evaluator to avoid a panic.
+				body = hcl.EmptyBody()
+			}
+
+			configVal, moreDiags := EvalBody(ctx, body, spec, phase, p)
 			diags = diags.Append(moreDiags)
 			if moreDiags.HasErrors() {
 				return cty.UnknownVal(hcldec.ImpliedType(spec)), diags
@@ -147,9 +157,34 @@ func (p *ProviderConfig) ResolveExpressionReference(ctx context.Context, ref sta
 		repetition.EachKey = cty.UnknownVal(cty.String).RefineNotNull()
 		repetition.EachValue = cty.DynamicVal
 	}
-	return p.main.
+	ret, diags := p.main.
 		mustStackConfig(ctx, p.Addr().Stack).
-		resolveExpressionReference(ctx, ref, repetition, nil)
+		resolveExpressionReference(ctx, ref, nil, repetition)
+
+	if _, ok := ret.(*ProviderConfig); ok {
+		// We can't reference other providers from anywhere inside a provider
+		// configuration block.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid reference",
+			Detail:   fmt.Sprintf("The object %s is not in scope at this location.", ref.Target.String()),
+			Subject:  ref.SourceRange.ToHCL().Ptr(),
+		})
+	}
+
+	return ret, diags
+}
+
+// ExprReferenceValue implements Referenceable.
+func (p *ProviderConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
+	// We don't say anything about the contents of a provider during the
+	// static evaluation phase. We still return the type of the provider so
+	// we can use it to verify type constraints, but we don't return any
+	// actual values.
+	if p.config.ForEach != nil {
+		return cty.UnknownVal(cty.Map(p.InstRefValueType(ctx)))
+	}
+	return cty.UnknownVal(p.InstRefValueType(ctx))
 }
 
 var providerInstanceRefTypes = map[addrs.Provider]cty.Type{}
@@ -170,17 +205,19 @@ func providerInstanceRefType(sourceAddr addrs.Provider) cty.Type {
 	return providerInstanceRefTypes[sourceAddr]
 }
 
+func (p *ProviderConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
+	_, diags := p.CheckProviderArgs(ctx, phase)
+	return diags
+}
+
 // Validate implements Validatable.
 func (p *ProviderConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
+	return p.checkValid(ctx, ValidatePhase)
+}
 
-	// TODO: Actually validate the configuration against the schema.
-	// Currently we're doing that only during the plan phase, but
-	// it would be better to catch statically-detectable problems
-	// earlier and only once per provider block, rather than repeatedly
-	// for each instance of a provider.
-
-	return diags
+// PlanChanges implements Plannable.
+func (p *ProviderConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+	return nil, p.checkValid(ctx, PlanPhase)
 }
 
 // tracingName implements Validatable.

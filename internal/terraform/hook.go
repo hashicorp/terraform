@@ -25,6 +25,14 @@ const (
 	HookActionHalt
 )
 
+// HookResourceIdentity is passed to Hook interface methods to fully identify
+// the resource instance being operated on. It currently includes the resource
+// address and the provider address.
+type HookResourceIdentity struct {
+	Addr         addrs.AbsResourceInstance
+	ProviderAddr addrs.Provider
+}
+
 // Hook is the interface that must be implemented to hook into various
 // parts of Terraform, allowing you to inspect or change behavior at runtime.
 //
@@ -36,14 +44,14 @@ type Hook interface {
 	// PreApply and PostApply are called before and after an action for a
 	// single instance is applied. The error argument in PostApply is the
 	// error, if any, that was returned from the provider Apply call itself.
-	PreApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error)
-	PostApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, newState cty.Value, err error) (HookAction, error)
+	PreApply(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error)
+	PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newState cty.Value, err error) (HookAction, error)
 
 	// PreDiff and PostDiff are called before and after a provider is given
 	// the opportunity to customize the proposed new state to produce the
 	// planned new state.
-	PreDiff(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error)
-	PostDiff(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error)
+	PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error)
+	PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error)
 
 	// The provisioning hooks signal both the overall start end end of
 	// provisioning for a particular instance and of each of the individual
@@ -63,32 +71,32 @@ type Hook interface {
 	// This will be called multiple times as output comes in, with each call
 	// representing one line of output. It cannot control whether the
 	// provisioner continues running.
-	PreProvisionInstance(addr addrs.AbsResourceInstance, state cty.Value) (HookAction, error)
-	PostProvisionInstance(addr addrs.AbsResourceInstance, state cty.Value) (HookAction, error)
-	PreProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string) (HookAction, error)
-	PostProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string, err error) (HookAction, error)
-	ProvisionOutput(addr addrs.AbsResourceInstance, typeName string, line string)
+	PreProvisionInstance(id HookResourceIdentity, state cty.Value) (HookAction, error)
+	PostProvisionInstance(id HookResourceIdentity, state cty.Value) (HookAction, error)
+	PreProvisionInstanceStep(id HookResourceIdentity, typeName string) (HookAction, error)
+	PostProvisionInstanceStep(id HookResourceIdentity, typeName string, err error) (HookAction, error)
+	ProvisionOutput(id HookResourceIdentity, typeName string, line string)
 
 	// PreRefresh and PostRefresh are called before and after a single
 	// resource state is refreshed, respectively.
-	PreRefresh(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState cty.Value) (HookAction, error)
-	PostRefresh(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState cty.Value, newState cty.Value) (HookAction, error)
+	PreRefresh(id HookResourceIdentity, dk addrs.DeposedKey, priorState cty.Value) (HookAction, error)
+	PostRefresh(id HookResourceIdentity, dk addrs.DeposedKey, priorState cty.Value, newState cty.Value) (HookAction, error)
 
 	// PreImportState and PostImportState are called before and after
 	// (respectively) each state import operation for a given resource address when
 	// using the legacy import command.
-	PreImportState(addr addrs.AbsResourceInstance, importID string) (HookAction, error)
-	PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error)
+	PreImportState(id HookResourceIdentity, importID string) (HookAction, error)
+	PostImportState(id HookResourceIdentity, imported []providers.ImportedResource) (HookAction, error)
 
 	// PrePlanImport and PostPlanImport are called during a plan before and after planning to import
 	// a new resource using the configuration-driven import workflow.
-	PrePlanImport(addr addrs.AbsResourceInstance, importID string) (HookAction, error)
-	PostPlanImport(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error)
+	PrePlanImport(id HookResourceIdentity, importID string) (HookAction, error)
+	PostPlanImport(id HookResourceIdentity, imported []providers.ImportedResource) (HookAction, error)
 
 	// PreApplyImport and PostApplyImport are called during an apply for each imported resource when
 	// using the configuration-driven import workflow.
-	PreApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (HookAction, error)
-	PostApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (HookAction, error)
+	PreApplyImport(id HookResourceIdentity, importing plans.ImportingSrc) (HookAction, error)
+	PostApplyImport(id HookResourceIdentity, importing plans.ImportingSrc) (HookAction, error)
 
 	// Stopping is called if an external signal requests that Terraform
 	// gracefully abort an operation in progress.
@@ -119,70 +127,70 @@ type NilHook struct{}
 
 var _ Hook = (*NilHook)(nil)
 
-func (*NilHook) PreApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (*NilHook) PreApply(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, newState cty.Value, err error) (HookAction, error) {
+func (*NilHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newState cty.Value, err error) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PreDiff(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error) {
+func (*NilHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostDiff(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (*NilHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PreProvisionInstance(addr addrs.AbsResourceInstance, state cty.Value) (HookAction, error) {
+func (*NilHook) PreProvisionInstance(id HookResourceIdentity, state cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostProvisionInstance(addr addrs.AbsResourceInstance, state cty.Value) (HookAction, error) {
+func (*NilHook) PostProvisionInstance(id HookResourceIdentity, state cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PreProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string) (HookAction, error) {
+func (*NilHook) PreProvisionInstanceStep(id HookResourceIdentity, typeName string) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string, err error) (HookAction, error) {
+func (*NilHook) PostProvisionInstanceStep(id HookResourceIdentity, typeName string, err error) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName string, line string) {
+func (*NilHook) ProvisionOutput(id HookResourceIdentity, typeName string, line string) {
 }
 
-func (*NilHook) PreRefresh(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState cty.Value) (HookAction, error) {
+func (*NilHook) PreRefresh(id HookResourceIdentity, dk addrs.DeposedKey, priorState cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostRefresh(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState cty.Value, newState cty.Value) (HookAction, error) {
+func (*NilHook) PostRefresh(id HookResourceIdentity, dk addrs.DeposedKey, priorState cty.Value, newState cty.Value) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PreImportState(addr addrs.AbsResourceInstance, importID string) (HookAction, error) {
+func (*NilHook) PreImportState(id HookResourceIdentity, importID string) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error) {
+func (*NilHook) PostImportState(id HookResourceIdentity, imported []providers.ImportedResource) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (h *NilHook) PrePlanImport(addr addrs.AbsResourceInstance, importID string) (HookAction, error) {
+func (h *NilHook) PrePlanImport(id HookResourceIdentity, importID string) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (h *NilHook) PostPlanImport(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error) {
+func (h *NilHook) PostPlanImport(id HookResourceIdentity, imported []providers.ImportedResource) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (h *NilHook) PreApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (HookAction, error) {
+func (h *NilHook) PreApplyImport(id HookResourceIdentity, importing plans.ImportingSrc) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (h *NilHook) PostApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (HookAction, error) {
+func (h *NilHook) PostApplyImport(id HookResourceIdentity, importing plans.ImportingSrc) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

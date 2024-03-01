@@ -1,37 +1,49 @@
 {
-    "terraform_source_bundle": 1,
-    "packages": [
-      {
-        "source": "https://testing.invalid/input_variable.tar.gz",
-        "local": "input_variable"
-      },
-      {
-        "source": "https://testing.invalid/output_value.tar.gz",
-        "local": "output_value"
-      },
-      {
-        "source": "https://testing.invalid/stack_call.tar.gz",
-        "local": "stack_call"
-      },
-      {
-        "source": "https://testing.invalid/component.tar.gz",
-        "local": "component"
-      },
-      {
-        "source": "https://testing.invalid/provider.tar.gz",
-        "local": "provider"
-      },
-      {
-        "source": "https://testing.invalid/planning.tar.gz",
-        "local": "planning"
-      },
-      {
-        "source": "https://testing.invalid/applying.tar.gz",
-        "local": "applying"
-      },
-      {
-        "source": "https://testing.invalid/validating.tar.gz",
-        "local": "validating"
-      }
-    ]
-  }
+  "terraform_source_bundle": 1,
+  "packages": [
+    {
+      "source": "https://testing.invalid/input_variable.tar.gz",
+      "local": "input_variable"
+    },
+    {
+      "source": "https://testing.invalid/output_value.tar.gz",
+      "local": "output_value"
+    },
+    {
+      "source": "https://testing.invalid/stack_call.tar.gz",
+      "local": "stack_call"
+    },
+    {
+      "source": "https://testing.invalid/component.tar.gz",
+      "local": "component"
+    },
+    {
+      "source": "https://testing.invalid/provider.tar.gz",
+      "local": "provider"
+    },
+    {
+      "source": "https://testing.invalid/planning.tar.gz",
+      "local": "planning"
+    },
+    {
+      "source": "https://testing.invalid/applying.tar.gz",
+      "local": "applying"
+    },
+    {
+      "source": "https://testing.invalid/validating.tar.gz",
+      "local": "validating"
+    },
+    {
+      "source": "https://testing.invalid/invalid.tar.gz",
+      "local": "invalid"
+    },
+    {
+      "source": "https://testing.invalid/invalid_child.tar.gz",
+      "local": "invalid_child"
+    },
+    {
+      "source": "https://testing.invalid/invalid_grandchildren.tar.gz",
+      "local": "invalid_grandchildren"
+    }
+  ]
+}

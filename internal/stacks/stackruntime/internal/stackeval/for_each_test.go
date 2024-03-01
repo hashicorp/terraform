@@ -66,8 +66,8 @@ func TestEvaluateForEachExpr(t *testing.T) {
 			Want: cty.UnknownVal(cty.Map(cty.String)),
 		},
 		"sensitive map of string": {
-			Expr: hcltest.MockExprLiteral(cty.MapValEmpty(cty.String).Mark(marks.Sensitive)),
-			Want: cty.MapValEmpty(cty.String).Mark(marks.Sensitive),
+			Expr:    hcltest.MockExprLiteral(cty.MapValEmpty(cty.String).Mark(marks.Sensitive)),
+			WantErr: `Invalid for_each value`,
 		},
 		"map of object": {
 			Expr: hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
@@ -103,12 +103,20 @@ func TestEvaluateForEachExpr(t *testing.T) {
 			Expr: hcltest.MockExprLiteral(cty.UnknownVal(cty.Set(cty.String))),
 			Want: cty.UnknownVal(cty.Set(cty.String)),
 		},
+		"empty set": {
+			Expr: hcltest.MockExprLiteral(cty.SetValEmpty(cty.EmptyTuple)),
+			Want: cty.SetValEmpty(cty.EmptyTuple),
+		},
 		"sensitive set of string": {
-			Expr: hcltest.MockExprLiteral(cty.SetValEmpty(cty.String).Mark(marks.Sensitive)),
-			Want: cty.SetValEmpty(cty.String).Mark(marks.Sensitive),
+			Expr:    hcltest.MockExprLiteral(cty.SetValEmpty(cty.String).Mark(marks.Sensitive)),
+			WantErr: `Invalid for_each value`,
 		},
 		"empty set of object": {
-			Expr:    hcltest.MockExprLiteral(cty.SetValEmpty(cty.EmptyObject)),
+			Expr: hcltest.MockExprLiteral(cty.SetValEmpty(cty.EmptyObject)),
+			Want: cty.SetValEmpty(cty.EmptyObject),
+		},
+		"set with null": {
+			Expr:    hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.StringVal("valid"), cty.NullVal(cty.String)})),
 			WantErr: `Invalid for_each value`,
 		},
 
@@ -136,7 +144,7 @@ func TestEvaluateForEachExpr(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			gotResult, diags := evaluateForEachExpr(ctx, test.Expr, PlanPhase, scope)
+			gotResult, diags := evaluateForEachExpr(ctx, test.Expr, PlanPhase, scope, "test")
 			got := gotResult.Value
 
 			if test.WantErr != "" {

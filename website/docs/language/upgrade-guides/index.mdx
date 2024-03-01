@@ -1,59 +1,105 @@
 ---
-page_title: Upgrading to Terraform v1.7
-description: Upgrading to Terraform v1.7
+page_title: Upgrading to Terraform v1.8
+description: Upgrading to Terraform v1.8
 ---
 
-# Upgrading to Terraform v1.7
+# Upgrading to Terraform v1.8
 
 -> **Tip:** Use the version selector to view the upgrade guides for older Terraform versions.
 
-Terraform v1.7 is a minor release in the stable Terraform v1.0 series.
+Terraform v1.8 is a minor release in the stable Terraform v1.0 series.
 
-Terraform v1.7 honors the
+Terraform v1.8 honors the
 [Terraform v1.0 Compatibility Promises](https://developer.hashicorp.com/terraform/language/v1-compatibility-promises),
 but there are some behavior changes outside of those promises that may affect a
 small number of users. Specifically, the following updates may require
 additional upgrade steps:
-* [Validations and checks in the state file](#validations-and-checks)
-* [Deprecated parameters for the S3 backend](#s3-backend)
+* [`use_legacy_workflow` is no longer available for the S3 backend](#s3-backend-authentication-changes)
+* [Possible spurious changes when refreshing](#possible-spurious-changes-when-refreshing)
+* [Ending support for macOS 10.15 Catalina](#ending-support-for-macos-1015-catalina)
+* [Minor change to `jsonencode` function results](#minor-change-to-jsonencode-function-results)
 
-See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.6/CHANGELOG.md)
+See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.8/CHANGELOG.md)
 for more details. If you encounter any problems during upgrading which are not
 covered this guide, please start a new topic in
 [the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core)
 to discuss it.
 
-## Validations and Checks
+## S3 Backend authentication changes
 
-Due to a state interoperability issue ([#33770](https://github.com/hashicorp/terraform/issues/33770), [#34014](https://github.com/hashicorp/terraform/issues/34014)) in earlier versions of Terraform, state files created by the Terraform v1.7.x series may not be compatible with the following Terraform versions:
+Terraform v1.7 began the deprecation of a legacy approach to authentication,
+making the `use_legacy_workflow` argument default to `false` and thus making the
+old authentication workflow opt-in.
 
-* Terraform v1.3.0 through v1.3.9
-* Terraform v1.4.0 through v1.4.6
-* Terraform v1.5.0 through v1.5.6
+Terraform v1.8 completes this deprecation process by removing the
+`use_legacy_workflow` argument. The old behavior is no longer available, and
+so you will need to adopt the new behavior when upgrading to Terraform v1.8.
 
-If your v1.7.x state file contains `check` blocks or input validations, it will not be compatible with the above versions. Attempting to load a state file created by Terraform v1.7.x in one of the above versions will result in an error similar to `Error refreshing state: unsupported checkable object "var"`. This will particularly affect configurations using the `terraform_remote_state` data source to load state files created by the `v1.7.x` series.
+The new implementation follows the authentication process implemented in the
+official AWS SDK for Go, which is therefore more consistent with other AWS
+tools such as the official AWS CLI.
 
-To prevent this issue, users should upgrade any usage of the affected versions to the following patch releases in the relevant minor release series before attempting to process state files created by Terraform v1.7.x:
+## Possible spurious changes when refreshing
 
-* Terraform v1.3.x series users should upgrade to v1.3.10
-* Terraform v1.4.x series users should upgrade to v1.4.7
-* Terraform v1.5.x series users should upgrade to v1.5.7
+If you use the `-refresh-only` or `-refresh=false` planning options for your
+first plan after upgrading, Terraform might show resource instance diffs without
+any visible changes. This does not affect plans created with both of those
+options disabled.
 
-Terraform versions prior to v1.3.0 and equal to or after v1.6.0 are not affected by this issue.
+Previous versions of Terraform used a mixture of both dynamic and static
+tracking of sensitive values in resource instance attributes. That meant that,
+for example, correctly honoring sensitive valeus when interpreting the
+`terraform show -json` output required considering both the dynamic sensitivity
+information directly in the output _and_ static sensitivity information in the
+provider schema.
 
-## S3 Backend
+To simplify handling of sensitivity in these cases, Terraform now copies the
+schema-based sensitivity information into the state along with the dynamic
+information. Terraform must therefore perform a one-time backfill update
+of the state metadata for resource types which have sensitive attributes.
 
-In Terraform 1.7.0 the S3 backend will begin phasing out the legacy credential chain evaluation order by defaulting `use_legacy_workflow` to `false` and deprecating the argument.
-This will bring the default behavior of the backend into alignment with the AWS SDKs and CLI.
-The legacy behavior can be preserved by setting this argument to `true`.
+When using the default planning options Terraform should handle this update
+quietly, as part of the refresh step performed during planning. However, if
+you use the `-refresh-only` or `-refresh=false` option then you will effectively
+disable one half of this process, causing the UI to report spurious changes
+that affect only the metadata in the state.
 
-```hcl
-terraform {
-  backend "s3" {
-    # additional configuration omitted for brevity
-    use_legacy_workflow = true
-  }
-}
-```
+These no-change metadata updates should not cause any problems, and will be
+resolved once a plan has been applied using Terraform v1.8. If you are concerned
+about a particular plan then try removing the `-refresh-only` or `-refresh=false`
+option, which should then quiet the spurious change.
 
-In Terraform 1.8.0 this argument will be removed, and the S3 backend will always use the default AWS SDK for Go credential chain evaluation order.
+## Ending support for macOS 10.15 Catalina
+
+Terraform v1.8 is the last series that will support macOS 10.15 Catalina. The
+next minor release series will require macOS 11 Big Sur or later.
+
+## Minor change to `jsonencode` function results
+
+In previous versions of Terraform, the `jsonencode` function encoded the
+control characters U+0008 (backspace) and U+000C (form feed) in strings using
+the unicode escape syntax: `\u0008` and `\u000c` respectively.
+
+Terraform now follows the JSON idiom more closely by using `\b` for backspace
+and `\f` for form feed. These shorter encodings are equivalent for a correct
+JSON parser, but are more readable for humans due to being mnemonics.
+
+These two control characters are relatively rarely used in practical JSON
+and so we don't expect that this change will have significant impact. If you
+are using them then this may cause the following effects:
+
+- If you are using `jsonencode` to produce JSON-encoded data for consumption
+  by a JSON parser that doesn't correctly support these short encoding forms
+  then it may not be able to parse the new results. Terraform implements
+  JSON encoding as defined in IETF RFC 7159, which requires that parsers
+  support these shorter encodings.
+
+- If you are using `jsonencode` to populate a resource argument where the
+  underlying provider does not perform JSON normalization, the provider might
+  propose changing the affected object to use the new encoding form. As long
+  as the remote system correctly implements JSON, this update should not
+  change the meaning of the JSON document.
+
+This change only affects strings that include these two specific control
+characters. If you do not use these control characters in the strings you pass
+to `jsonencode` then this change will have no effect for you.

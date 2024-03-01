@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -18,56 +19,43 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// TestValidate_valid tests that a variety of configurations under the main
-// test source bundle each generate no diagnostics at all, as a
-// relatively-simple way to detect accidental regressions.
-//
-// Any stack configuration directory that we expect should be valid can
-// potentially be included in here unless it depends on provider plugins
-// to complete validation, since this test cannot supply provider plugins.
-func TestValidate_valid(t *testing.T) {
-	validConfigDirs := map[string]struct {
-		skip bool
-	}{
+type validateTestInput struct {
+	// skip lets us write tests for behaviour we want to add in the future. Set
+	// this to true for any tests that are not yet implemented.
+	skip bool
+
+	// diags is a function that returns the expected diagnostics for the
+	// test.
+	diags func() tfdiags.Diagnostics
+
+	// planInputVars is used only in the plan tests to provide a set of input
+	// variables to use for the plan request. Validate operates statically so
+	// does not need any input variables.
+	planInputVars map[string]cty.Value
+}
+
+var (
+	// validConfigurations are shared between the validate and plan tests.
+	validConfigurations = map[string]validateTestInput{
 		"empty":                            {},
 		"variable-output-roundtrip":        {},
 		"variable-output-roundtrip-nested": {},
-		filepath.Join("with-single-input", "provider-name-clash"): {
-			skip: true,
+		filepath.Join("with-single-input", "input-from-component"): {},
+		filepath.Join("with-single-input", "input-from-component-list"): {
+			planInputVars: map[string]cty.Value{
+				"components": cty.SetVal([]cty.Value{
+					cty.StringVal("one"),
+					cty.StringVal("two"),
+					cty.StringVal("three"),
+				}),
+			},
 		},
+		filepath.Join("with-single-input", "provider-name-clash"): {},
+		filepath.Join("with-single-input", "valid"):               {},
 	}
 
-	for name, tc := range validConfigDirs {
-		t.Run(name, func(t *testing.T) {
-			if tc.skip {
-				// We've added this test before the implementation was ready.
-				t.SkipNow()
-			}
-
-			ctx := context.Background()
-			cfg := loadMainBundleConfigForTest(t, name)
-
-			diags := Validate(ctx, &ValidateRequest{
-				Config: cfg,
-			})
-
-			// The following will fail the test if there are any error diagnostics.
-			reportDiagnosticsForTest(t, diags)
-
-			// We also want to fail if there are just warnings, since the
-			// configurations here are supposed to be totally problem-free.
-			if len(diags) != 0 {
-				t.FailNow() // reportDiagnosticsForTest already showed the diagnostics in the log
-			}
-		})
-	}
-}
-
-func TestValidate_invalid(t *testing.T) {
-	tcs := map[string]struct {
-		diags func() tfdiags.Diagnostics
-		skip  bool
-	}{
+	// invalidConfigurations are shared between the validate and plan tests.
+	invalidConfigurations = map[string]validateTestInput{
 		"validate-undeclared-variable": {
 			diags: func() tfdiags.Diagnostics {
 				var diags tfdiags.Diagnostics
@@ -92,7 +80,7 @@ func TestValidate_invalid(t *testing.T) {
 					Summary:  "Unsupported argument",
 					Detail:   "An argument named \"invalid\" is not expected here.",
 					Subject: &hcl.Range{
-						Filename: mainBundleLocalAddrStr("invalid-configuration/invalid-configuration.tf"),
+						Filename: mainBundleSourceAddrStr("invalid-configuration/invalid-configuration.tf"),
 						Start:    hcl.Pos{Line: 11, Column: 3, Byte: 163},
 						End:      hcl.Pos{Line: 11, Column: 10, Byte: 170},
 					},
@@ -132,15 +120,156 @@ func TestValidate_invalid(t *testing.T) {
 				return diags
 			},
 		},
-		filepath.Join("with-single-input", "invalid-provider"): {
-			// TODO: Enable this test case, when we have a good error message
-			//  for provider type mismatches. Currently, we return the same
-			//  error as for missing provider, which is not ideal.
-			skip: true,
+		filepath.Join("with-single-input", "invalid-provider-type"): {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid provider configuration",
+					Detail:   "The provider configuration slot testing requires a configuration for provider \"registry.terraform.io/hashicorp/testing\", not for provider \"terraform.io/builtin/testing\".",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/invalid-provider-type/invalid-provider-type.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 22, Column: 15, Byte: 378},
+						End:      hcl.Pos{Line: 22, Column: 39, Byte: 402},
+					},
+				})
+				return diags
+			},
+		},
+		filepath.Join("with-single-input", "invalid-provider-config"): {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unsupported argument",
+					Detail:   "An argument named \"imaginary\" is not expected here.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/invalid-provider-config/invalid-provider-config.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 11, Column: 5, Byte: 218},
+						End:      hcl.Pos{Line: 11, Column: 14, Byte: 227},
+					},
+				})
+				return diags
+			},
+		},
+		filepath.Join("with-single-input", "undeclared-variable"): {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to undeclared input variable",
+					Detail:   `There is no variable "input" block declared in this stack.`,
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/undeclared-variable/undeclared-variable.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 19, Column: 13, Byte: 284},
+						End:      hcl.Pos{Line: 19, Column: 22, Byte: 293},
+					},
+				})
+				return diags
+			},
+		},
+		filepath.Join("with-single-input", "missing-variable"): {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid inputs for component",
+					Detail:   "Invalid input variable definition object: attribute \"input\" is required.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/missing-variable/missing-variable.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 22, Column: 12, Byte: 338},
+						End:      hcl.Pos{Line: 22, Column: 14, Byte: 340},
+					},
+				})
+				return diags
+			},
+		},
+		filepath.Join("with-single-input", "input-from-missing-component"): {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to undeclared component",
+					Detail:   "There is no component \"output\" block declared in this stack.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/input-from-missing-component/input-from-missing-component.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 19, Column: 13, Byte: 314},
+						End:      hcl.Pos{Line: 19, Column: 29, Byte: 330},
+					},
+				})
+				return diags
+			},
+		},
+		filepath.Join("with-single-input", "input-from-provider"): {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid inputs for component",
+					Detail:   "Invalid input variable definition object: attribute \"input\": string required.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/input-from-provider/input-from-provider.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 17, Column: 12, Byte: 239},
+						End:      hcl.Pos{Line: 20, Column: 4, Byte: 339},
+					},
+				})
+				return diags
+			},
 		},
 	}
+)
 
-	for name, tc := range tcs {
+// TestValidate_valid tests that a variety of configurations under the main
+// test source bundle each generate no diagnostics at all, as a
+// relatively-simple way to detect accidental regressions.
+//
+// Any stack configuration directory that we expect should be valid can
+// potentially be included in here unless it depends on provider plugins
+// to complete validation, since this test cannot supply provider plugins.
+func TestValidate_valid(t *testing.T) {
+	for name, tc := range validConfigurations {
+		t.Run(name, func(t *testing.T) {
+			if tc.skip {
+				// We've added this test before the implementation was ready.
+				t.SkipNow()
+			}
+
+			ctx := context.Background()
+			cfg := loadMainBundleConfigForTest(t, name)
+
+			diags := Validate(ctx, &ValidateRequest{
+				Config: cfg,
+				ProviderFactories: map[addrs.Provider]providers.Factory{
+					// We support both hashicorp/testing and
+					// terraform.io/builtin/testing as providers. This lets us
+					// test the provider aliasing feature. Both providers
+					// support the same set of resources and data sources.
+					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProvider(), nil
+					},
+					addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProvider(), nil
+					},
+				},
+			})
+
+			// The following will fail the test if there are any error
+			// diagnostics.
+			reportDiagnosticsForTest(t, diags)
+
+			// We also want to fail if there are just warnings, since the
+			// configurations here are supposed to be totally problem-free.
+			if len(diags) != 0 {
+				// reportDiagnosticsForTest already showed the diagnostics in
+				// the log
+				t.FailNow()
+			}
+		})
+	}
+}
+
+func TestValidate_invalid(t *testing.T) {
+	for name, tc := range invalidConfigurations {
 		t.Run(name, func(t *testing.T) {
 			if tc.skip {
 				// We've added this test before the implementation was ready.
@@ -153,7 +282,14 @@ func TestValidate_invalid(t *testing.T) {
 			gotDiags := Validate(ctx, &ValidateRequest{
 				Config: cfg,
 				ProviderFactories: map[addrs.Provider]providers.Factory{
+					// We support both hashicorp/testing and
+					// terraform.io/builtin/testing as providers. This lets us
+					// test the provider aliasing feature. Both providers
+					// support the same set of resources and data sources.
 					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProvider(), nil
+					},
+					addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
 						return stacks_testing_provider.NewProvider(), nil
 					},
 				},

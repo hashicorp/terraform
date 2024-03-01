@@ -121,11 +121,15 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		// Import is a no-op change during an apply (all the real action happens during the plan) but we'd
 		// like to show some helpful output that mirrors the way we show other changes.
 		if rc.Importing != nil {
+			hookResourceID := HookResourceIdentity{
+				Addr:         rc.Addr,
+				ProviderAddr: rc.ProviderAddr.Provider,
+			}
 			for _, h := range c.hooks {
 				// In future, we may need to call PostApplyImport separately elsewhere in the apply
 				// operation. For now, though, we'll call Pre and Post hooks together.
-				h.PreApplyImport(rc.Addr, *rc.Importing)
-				h.PostApplyImport(rc.Addr, *rc.Importing)
+				h.PreApplyImport(hookResourceID, *rc.Importing)
+				h.PostApplyImport(hookResourceID, *rc.Importing)
 			}
 		}
 	}
