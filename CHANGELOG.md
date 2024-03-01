@@ -30,6 +30,8 @@ BUG FIXES:
 
 * core: Sensitive values will now be tracked more accurately in state and plans, preventing unexpected updates with no apparent changes ([#34567](https://github.com/hashicorp/terraform/issues/34567))
 * core: Fix incorrect error message when using in invalid iterator within a dynamic block [GH-34751]
+* core: Fixed edge-case bug that could cause loss of floating point precision when round-tripping due to incorrectly using a MessagePack integer to represent a large non-integral number [GH-24576]
+* config: Converting from an unknown map value to an object type now correctly handles the situation where the map element type disagrees with an optional attribute of the target type, since when a map value is unknown we don't yet know which keys it has and thus cannot predict what subset of the elements will get converted as attributes in the resulting object [GH-34756]
 * cloud: Fixed unparsed color codes in policy failure error messages ([#34473](https://github.com/hashicorp/terraform/issues/34473))
 
 EXPERIMENTS:
