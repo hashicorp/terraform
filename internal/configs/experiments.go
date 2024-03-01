@@ -235,5 +235,18 @@ func checkModuleExperiments(m *Module) hcl.Diagnostics {
 		}
 	*/
 
+	if !m.ActiveExperiments.Has(experiments.RemovedProvisioners) {
+		for _, c := range m.Removed {
+			if c.Managed != nil && (c.Managed.Connection != nil || len(c.Managed.Provisioners) > 0) {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Provisioners for removed resources are experimental",
+					Detail:   "This feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding removed_provisioners to the list of active experiments.",
+					Subject:  c.DeclRange.Ptr(),
+				})
+			}
+		}
+	}
+
 	return diags
 }
