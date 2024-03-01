@@ -2091,7 +2091,15 @@ func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, st
 		return nil
 	}
 
-	provs := filterProvisioners(n.Config, when)
+	var allProvs []*configs.Provisioner
+	switch {
+	case n.Config != nil && n.Config.Managed != nil:
+		allProvs = n.Config.Managed.Provisioners
+	case n.RemovedConfig != nil && n.RemovedConfig.Managed != nil:
+		allProvs = n.RemovedConfig.Managed.Provisioners
+	}
+
+	provs := filterProvisioners(allProvs, when)
 	if len(provs) == 0 {
 		// We have no provisioners, so don't do anything
 		return nil
@@ -2121,18 +2129,13 @@ func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, st
 
 // filterProvisioners filters the provisioners on the resource to only
 // the provisioners specified by the "when" option.
-func filterProvisioners(config *configs.Resource, when configs.ProvisionerWhen) []*configs.Provisioner {
-	// Fast path the zero case
-	if config == nil || config.Managed == nil {
+func filterProvisioners(configured []*configs.Provisioner, when configs.ProvisionerWhen) []*configs.Provisioner {
+	if len(configured) == 0 {
 		return nil
 	}
 
-	if len(config.Managed.Provisioners) == 0 {
-		return nil
-	}
-
-	result := make([]*configs.Provisioner, 0, len(config.Managed.Provisioners))
-	for _, p := range config.Managed.Provisioners {
+	result := make([]*configs.Provisioner, 0, len(configured))
+	for _, p := range configured {
 		if p.When == when {
 			result = append(result, p)
 		}
@@ -2161,8 +2164,11 @@ func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state 
 	// then it'll serve as a base connection configuration for all of the
 	// provisioners.
 	var baseConn hcl.Body
-	if n.Config.Managed != nil && n.Config.Managed.Connection != nil {
+	switch {
+	case n.Config != nil && n.Config.Managed != nil && n.Config.Managed.Connection != nil:
 		baseConn = n.Config.Managed.Connection.Config
+	case n.RemovedConfig != nil && n.RemovedConfig.Managed != nil && n.RemovedConfig.Managed.Connection != nil:
+		baseConn = n.RemovedConfig.Managed.Connection.Config
 	}
 
 	for _, prov := range provs {
