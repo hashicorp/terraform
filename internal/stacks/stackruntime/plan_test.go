@@ -14,7 +14,9 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 
@@ -288,10 +290,11 @@ func TestPlanWithSingleResource(t *testing.T) {
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
-			Action:             plans.Create,
-			PlanApplyable:      true,
-			PlanComplete:       true,
-			PlannedInputValues: make(map[string]plans.DynamicValue),
+			Action:              plans.Create,
+			PlanApplyable:       true,
+			PlanComplete:        true,
+			PlannedCheckResults: &states.CheckResults{},
+			PlannedInputValues:  make(map[string]plans.DynamicValue),
 			PlannedOutputValues: map[string]cty.Value{
 				"input":  cty.StringVal("hello"),
 				"output": cty.UnknownVal(cty.String),
@@ -497,10 +500,11 @@ func TestPlanSensitiveOutput(t *testing.T) {
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
-			Action:             plans.Create,
-			PlanApplyable:      true,
-			PlanComplete:       true,
-			PlannedInputValues: make(map[string]plans.DynamicValue),
+			Action:              plans.Create,
+			PlanApplyable:       true,
+			PlanComplete:        true,
+			PlannedCheckResults: &states.CheckResults{},
+			PlannedInputValues:  make(map[string]plans.DynamicValue),
 			PlannedOutputValues: map[string]cty.Value{
 				"out": cty.StringVal("secret").Mark(marks.Sensitive),
 			},
@@ -574,10 +578,11 @@ func TestPlanSensitiveOutputNested(t *testing.T) {
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
-			Action:             plans.Create,
-			PlanApplyable:      true,
-			PlanComplete:       true,
-			PlannedInputValues: make(map[string]plans.DynamicValue),
+			Action:              plans.Create,
+			PlanApplyable:       true,
+			PlanComplete:        true,
+			PlannedCheckResults: &states.CheckResults{},
+			PlannedInputValues:  make(map[string]plans.DynamicValue),
 			PlannedOutputValues: map[string]cty.Value{
 				"out": cty.StringVal("secret").Mark(marks.Sensitive),
 			},
@@ -631,9 +636,10 @@ func TestPlanSensitiveOutputAsInput(t *testing.T) {
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
-			Action:        plans.Create,
-			PlanApplyable: true,
-			PlanComplete:  true,
+			Action:              plans.Create,
+			PlanApplyable:       true,
+			PlanComplete:        true,
+			PlannedCheckResults: &states.CheckResults{},
 			PlannedInputValues: map[string]plans.DynamicValue{
 				"secret": mustPlanDynamicValueDynamicType(cty.StringVal("secret")),
 			},
@@ -666,10 +672,11 @@ func TestPlanSensitiveOutputAsInput(t *testing.T) {
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
-			Action:             plans.Create,
-			PlanApplyable:      true,
-			PlanComplete:       true,
-			PlannedInputValues: make(map[string]plans.DynamicValue),
+			Action:              plans.Create,
+			PlanApplyable:       true,
+			PlanComplete:        true,
+			PlannedCheckResults: &states.CheckResults{},
+			PlannedInputValues:  make(map[string]plans.DynamicValue),
 			PlannedOutputValues: map[string]cty.Value{
 				"out": cty.StringVal("secret").Mark(marks.Sensitive),
 			},
@@ -927,6 +934,7 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 					Item:  stackaddrs.Component{Name: "sensitive"},
 				},
 			),
+			PlannedCheckResults: &states.CheckResults{},
 			PlannedInputValues: map[string]plans.DynamicValue{
 				"id":    mustPlanDynamicValueDynamicType(cty.NullVal(cty.String)),
 				"input": mustPlanDynamicValueDynamicType(cty.StringVal("secret")),
@@ -1001,10 +1009,11 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 					Component: stackaddrs.Component{Name: "sensitive"},
 				},
 			),
-			PlanApplyable:      true,
-			PlanComplete:       true,
-			Action:             plans.Create,
-			PlannedInputValues: make(map[string]plans.DynamicValue),
+			PlanApplyable:       true,
+			PlanComplete:        true,
+			Action:              plans.Create,
+			PlannedCheckResults: &states.CheckResults{},
+			PlannedInputValues:  make(map[string]plans.DynamicValue),
 			PlannedOutputValues: map[string]cty.Value{
 				"out": cty.StringVal("secret").Mark(marks.Sensitive),
 			},
@@ -1072,9 +1081,10 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
-			Action:        plans.Create,
-			PlanApplyable: true,
-			PlanComplete:  true,
+			Action:              plans.Create,
+			PlanApplyable:       true,
+			PlanComplete:        true,
+			PlannedCheckResults: &states.CheckResults{},
 			PlannedInputValues: map[string]plans.DynamicValue{
 				"id":    mustPlanDynamicValueDynamicType(cty.NullVal(cty.String)),
 				"input": mustPlanDynamicValueDynamicType(cty.StringVal("secret")),
@@ -1152,10 +1162,11 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
-			Action:             plans.Create,
-			PlanApplyable:      true,
-			PlanComplete:       true,
-			PlannedInputValues: make(map[string]plans.DynamicValue),
+			Action:              plans.Create,
+			PlanApplyable:       true,
+			PlanComplete:        true,
+			PlannedCheckResults: &states.CheckResults{},
+			PlannedInputValues:  make(map[string]plans.DynamicValue),
 			PlannedOutputValues: map[string]cty.Value{
 				"out": cty.StringVal("secret").Mark(marks.Sensitive),
 			},
@@ -1215,6 +1226,215 @@ func TestPlanWithForEach(t *testing.T) {
 	reportDiagnosticsForTest(t, diags)
 	if len(diags) != 0 {
 		t.FailNow() // We reported the diags above/
+	}
+}
+
+func TestPlanWithCheckableObjects(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "checkable-objects")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange, 8)
+	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+
+		ForcePlanTimestamp: &fakePlanTimestamp,
+
+		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
+			stackaddrs.InputVariable{Name: "foo"}: {
+				Value: cty.StringVal("bar"),
+			},
+		},
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+	var wantDiags tfdiags.Diagnostics
+	wantDiags = wantDiags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+
+		Summary: "Check block assertion failed",
+		Detail:  `value must be 'baz'`,
+		Subject: &hcl.Range{
+			Filename: mainBundleSourceAddrStr("checkable-objects/checkable-objects.tf"),
+			Start:    hcl.Pos{Line: 32, Column: 21, Byte: 532},
+			End:      hcl.Pos{Line: 32, Column: 57, Byte: 568},
+		},
+	})
+
+	go Plan(ctx, &req, &resp)
+	gotChanges, gotDiags := collectPlanOutput(changesCh, diagsCh)
+
+	if diff := cmp.Diff(wantDiags.ForRPC(), gotDiags.ForRPC()); diff != "" {
+		t.Errorf("wrong diagnostics\n%s", diff)
+	}
+
+	// The order of emission for our planned changes is unspecified since it
+	// depends on how the various goroutines get scheduled, and so we'll
+	// arbitrarily sort gotChanges lexically by the name of the change type
+	// so that we have some dependable order to diff against below.
+	sort.Slice(gotChanges, func(i, j int) bool {
+		ic := gotChanges[i]
+		jc := gotChanges[j]
+		return fmt.Sprintf("%T", ic) < fmt.Sprintf("%T", jc)
+	})
+
+	wantChanges := []stackplan.PlannedChange{
+		&stackplan.PlannedChangeApplyable{
+			Applyable: true,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance,
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "single"},
+				},
+			),
+			Action:        plans.Create,
+			PlanApplyable: true,
+			PlanComplete:  true,
+			PlannedInputValues: map[string]plans.DynamicValue{
+				"foo": mustPlanDynamicValueDynamicType(cty.StringVal("bar")),
+			},
+			PlannedInputValueMarks: map[string][]cty.PathValueMarks{"foo": nil},
+			PlannedOutputValues:    make(map[string]cty.Value),
+			PlannedCheckResults: &states.CheckResults{
+				ConfigResults: addrs.MakeMap(
+					addrs.MakeMapElem[addrs.ConfigCheckable](
+						addrs.Check{
+							Name: "value_is_baz",
+						}.InModule(addrs.RootModule),
+						&states.CheckResultAggregate{
+							Status: checks.StatusFail,
+							ObjectResults: addrs.MakeMap(
+								addrs.MakeMapElem[addrs.Checkable](
+									addrs.Check{
+										Name: "value_is_baz",
+									}.Absolute(addrs.RootModuleInstance),
+									&states.CheckResultObject{
+										Status:          checks.StatusFail,
+										FailureMessages: []string{"value must be 'baz'"},
+									},
+								),
+							),
+						},
+					),
+					addrs.MakeMapElem[addrs.ConfigCheckable](
+						addrs.InputVariable{
+							Name: "foo",
+						}.InModule(addrs.RootModule),
+						&states.CheckResultAggregate{
+							Status: checks.StatusPass,
+							ObjectResults: addrs.MakeMap(
+								addrs.MakeMapElem[addrs.Checkable](
+									addrs.InputVariable{
+										Name: "foo",
+									}.Absolute(addrs.RootModuleInstance),
+									&states.CheckResultObject{
+										Status: checks.StatusPass,
+									},
+								),
+							),
+						},
+					),
+					addrs.MakeMapElem[addrs.ConfigCheckable](
+						addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "testing_resource",
+							Name: "main",
+						}.InModule(addrs.RootModule),
+						&states.CheckResultAggregate{
+							Status: checks.StatusPass,
+							ObjectResults: addrs.MakeMap(
+								addrs.MakeMapElem[addrs.Checkable](
+									addrs.Resource{
+										Mode: addrs.ManagedResourceMode,
+										Type: "testing_resource",
+										Name: "main",
+									}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+									&states.CheckResultObject{
+										Status: checks.StatusPass,
+									},
+								),
+							),
+						},
+					),
+				),
+			},
+			PlanTimestamp: fakePlanTimestamp,
+		},
+		&stackplan.PlannedChangeHeader{
+			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangeResourceInstancePlanned{
+			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+				Component: stackaddrs.Absolute(
+					stackaddrs.RootStackInstance,
+					stackaddrs.ComponentInstance{
+						Component: stackaddrs.Component{Name: "single"},
+					},
+				),
+				Item: addrs.AbsResourceInstanceObject{
+					ResourceInstance: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "main",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				},
+			},
+			ProviderConfigAddr: addrs.AbsProviderConfig{
+				Module:   addrs.RootModule,
+				Provider: addrs.NewDefaultProvider("testing"),
+			},
+			ChangeSrc: &plans.ResourceInstanceChangeSrc{
+				Addr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "testing_resource",
+					Name: "main",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				PrevRunAddr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "testing_resource",
+					Name: "main",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				ProviderAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.NewDefaultProvider("testing"),
+				},
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+					After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("test"),
+						"value": cty.StringVal("bar"),
+					}), stacks_testing_provider.TestingResourceSchema),
+				},
+			},
+
+			Schema: stacks_testing_provider.TestingResourceSchema,
+		},
+	}
+
+	cmpOptions := cmp.Options{
+		ctydebug.CmpOptions,
+		collections.CmpOptions,
+		cmp.Options{
+			cmpopts.IgnoreUnexported(addrs.InputVariable{}),
+		},
+	}
+	if diff := cmp.Diff(wantChanges, gotChanges, cmpOptions); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
 	}
 }
 

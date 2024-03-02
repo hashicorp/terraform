@@ -129,6 +129,8 @@ type PlannedChangeComponentInstance struct {
 
 	PlannedOutputValues map[string]cty.Value
 
+	PlannedCheckResults *states.CheckResults
+
 	// PlanTimestamp is the timestamp that would be returned from the
 	// "plantimestamp" function in modules inside this component. We
 	// must preserve this in the raw plan data to ensure that we can
@@ -183,8 +185,13 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 		plannedOutputValues[k] = dv
 	}
 
+	plannedCheckResults, err := planfile.CheckResultsToPlanProto(pc.PlannedCheckResults)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode check results: %s", err)
+	}
+
 	var raw anypb.Any
-	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanComponentInstance{
+	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanComponentInstance{
 		ComponentInstanceAddr:   pc.Addr.String(),
 		PlanTimestamp:           planTimestampStr,
 		PlannedInputValues:      plannedInputValues,
@@ -193,6 +200,7 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 		PlanComplete:            pc.PlanComplete,
 		DependsOnComponentAddrs: componentAddrsRaw,
 		PlannedOutputValues:     plannedOutputValues,
+		PlannedCheckResults:     plannedCheckResults,
 	}, proto.MarshalOptions{})
 	if err != nil {
 		return nil, err

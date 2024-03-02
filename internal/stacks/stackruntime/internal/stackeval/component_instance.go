@@ -1200,6 +1200,7 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 			PlannedInputValues:     corePlan.VariableValues,
 			PlannedInputValueMarks: corePlan.VariableMarks,
 			PlannedOutputValues:    outputVals,
+			PlannedCheckResults:    corePlan.Checks,
 
 			// We must remember the plan timestamp so that the plantimestamp
 			// function can return a consistent result during a later apply phase.
