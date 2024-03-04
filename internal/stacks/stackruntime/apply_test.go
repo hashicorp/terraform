@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -346,6 +347,151 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 			OutputValues: map[addrs.OutputValue]cty.Value{
 				addrs.OutputValue{Name: "out"}: cty.StringVal("secret").Mark(marks.Sensitive),
 			},
+		},
+	}
+
+	sort.SliceStable(applyChanges, func(i, j int) bool {
+		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
+	})
+
+	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+}
+
+func TestApplyWithCheckableObjects(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "checkable-objects")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+
+		ForcePlanTimestamp: &fakePlanTimestamp,
+
+		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
+			stackaddrs.InputVariable{Name: "foo"}: {
+				Value: cty.StringVal("bar"),
+			},
+		},
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+	var wantDiags tfdiags.Diagnostics
+	wantDiags = wantDiags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+
+		Summary: "Check block assertion failed",
+		Detail:  `value must be 'baz'`,
+		Subject: &hcl.Range{
+			Filename: mainBundleSourceAddrStr("checkable-objects/checkable-objects.tf"),
+			Start:    hcl.Pos{Line: 32, Column: 21, Byte: 532},
+			End:      hcl.Pos{Line: 32, Column: 57, Byte: 568},
+		},
+	})
+
+	go Plan(ctx, &req, &resp)
+	planChanges, planDiags := collectPlanOutput(changesCh, diagsCh)
+
+	if diff := cmp.Diff(wantDiags.ForRPC(), planDiags.ForRPC()); diff != "" {
+		t.Errorf("wrong diagnostics\n%s", diff)
+	}
+
+	var raw []*anypb.Any
+	for _, change := range planChanges {
+		proto, err := change.PlannedChangeProto()
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw = append(raw, proto.Raw...)
+	}
+
+	applyReq := ApplyRequest{
+		Config:  cfg,
+		RawPlan: raw,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+	}
+
+	applyChangesCh := make(chan stackstate.AppliedChange)
+	diagsCh = make(chan tfdiags.Diagnostic)
+
+	applyResp := ApplyResponse{
+		AppliedChanges: applyChangesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Apply(ctx, &applyReq, &applyResp)
+	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, diagsCh)
+	if diff := cmp.Diff(wantDiags.ForRPC(), applyDiags.ForRPC()); diff != "" {
+		t.Errorf("wrong diagnostics\n%s", diff)
+	}
+
+	wantChanges := []stackstate.AppliedChange{
+		&stackstate.AppliedChangeComponentInstance{
+			ComponentAddr: stackaddrs.AbsComponent{
+				Item: stackaddrs.Component{
+					Name: "single",
+				},
+			},
+			ComponentInstanceAddr: stackaddrs.AbsComponentInstance{
+				Item: stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{
+						Name: "single",
+					},
+				},
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
+		},
+		&stackstate.AppliedChangeResourceInstanceObject{
+			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+				Component: stackaddrs.AbsComponentInstance{
+					Item: stackaddrs.ComponentInstance{
+						Component: stackaddrs.Component{
+							Name: "single",
+						},
+					},
+				},
+				Item: addrs.AbsResourceInstanceObject{
+					ResourceInstance: addrs.AbsResourceInstance{
+						Resource: addrs.ResourceInstance{
+							Resource: addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "testing_resource",
+								Name: "main",
+							},
+						},
+					},
+				},
+			},
+			NewStateSrc: &states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+					"id":    "test",
+					"value": "bar",
+				}),
+				Status:       states.ObjectReady,
+				Dependencies: make([]addrs.ConfigResource, 0),
+			},
+			ProviderConfigAddr: addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("testing"),
+			},
+			Schema: stacks_testing_provider.TestingResourceSchema,
 		},
 	}
 

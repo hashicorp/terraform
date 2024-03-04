@@ -99,95 +99,11 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		})
 	}
 
-	plan.Checks.ConfigResults = addrs.MakeMap[addrs.ConfigCheckable, *states.CheckResultAggregate]()
-	for _, rawCRs := range rawPlan.CheckResults {
-		aggr := &states.CheckResultAggregate{}
-		switch rawCRs.Status {
-		case planproto.CheckResults_UNKNOWN:
-			aggr.Status = checks.StatusUnknown
-		case planproto.CheckResults_PASS:
-			aggr.Status = checks.StatusPass
-		case planproto.CheckResults_FAIL:
-			aggr.Status = checks.StatusFail
-		case planproto.CheckResults_ERROR:
-			aggr.Status = checks.StatusError
-		default:
-			return nil, fmt.Errorf("aggregate check results for %s have unsupported status %#v", rawCRs.ConfigAddr, rawCRs.Status)
-		}
-
-		var objKind addrs.CheckableKind
-		switch rawCRs.Kind {
-		case planproto.CheckResults_RESOURCE:
-			objKind = addrs.CheckableResource
-		case planproto.CheckResults_OUTPUT_VALUE:
-			objKind = addrs.CheckableOutputValue
-		case planproto.CheckResults_CHECK:
-			objKind = addrs.CheckableCheck
-		case planproto.CheckResults_INPUT_VARIABLE:
-			objKind = addrs.CheckableInputVariable
-		default:
-			return nil, fmt.Errorf("aggregate check results for %s have unsupported object kind %s", rawCRs.ConfigAddr, objKind)
-		}
-
-		// Some trickiness here: we only have an address parser for
-		// addrs.Checkable and not for addrs.ConfigCheckable, but that's okay
-		// because once we have an addrs.Checkable we can always derive an
-		// addrs.ConfigCheckable from it, and a ConfigCheckable should always
-		// be the same syntax as a Checkable with no index information and
-		// thus we can reuse the same parser for both here.
-		configAddrProxy, diags := addrs.ParseCheckableStr(objKind, rawCRs.ConfigAddr)
-		if diags.HasErrors() {
-			return nil, diags.Err()
-		}
-		configAddr := configAddrProxy.ConfigCheckable()
-		if configAddr.String() != configAddrProxy.String() {
-			// This is how we catch if the config address included index
-			// information that would be allowed in a Checkable but not
-			// in a ConfigCheckable.
-			return nil, fmt.Errorf("invalid checkable config address %s", rawCRs.ConfigAddr)
-		}
-
-		aggr.ObjectResults = addrs.MakeMap[addrs.Checkable, *states.CheckResultObject]()
-		for _, rawCR := range rawCRs.Objects {
-			objectAddr, diags := addrs.ParseCheckableStr(objKind, rawCR.ObjectAddr)
-			if diags.HasErrors() {
-				return nil, diags.Err()
-			}
-			if !addrs.Equivalent(objectAddr.ConfigCheckable(), configAddr) {
-				return nil, fmt.Errorf("checkable object %s should not be grouped under %s", objectAddr, configAddr)
-			}
-
-			obj := &states.CheckResultObject{
-				FailureMessages: rawCR.FailureMessages,
-			}
-			switch rawCR.Status {
-			case planproto.CheckResults_UNKNOWN:
-				obj.Status = checks.StatusUnknown
-			case planproto.CheckResults_PASS:
-				obj.Status = checks.StatusPass
-			case planproto.CheckResults_FAIL:
-				obj.Status = checks.StatusFail
-			case planproto.CheckResults_ERROR:
-				obj.Status = checks.StatusError
-			default:
-				return nil, fmt.Errorf("object check results for %s has unsupported status %#v", rawCR.ObjectAddr, rawCR.Status)
-			}
-
-			aggr.ObjectResults.Put(objectAddr, obj)
-		}
-		// If we ended up with no elements in the map then we'll just nil it,
-		// primarily just to make life easier for our round-trip tests.
-		if aggr.ObjectResults.Len() == 0 {
-			aggr.ObjectResults.Elems = nil
-		}
-
-		plan.Checks.ConfigResults.Put(configAddr, aggr)
+	checkResults, err := CheckResultsFromPlanProto(rawPlan.CheckResults)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode check results: %s", err)
 	}
-	// If we ended up with no elements in the map then we'll just nil it,
-	// primarily just to make life easier for our round-trip tests.
-	if plan.Checks.ConfigResults.Len() == 0 {
-		plan.Checks.ConfigResults.Elems = nil
-	}
+	plan.Checks = checkResults
 
 	for _, rawRC := range rawPlan.ResourceChanges {
 		change, err := resourceChangeFromTfplan(rawRC)
@@ -578,61 +494,11 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		})
 	}
 
-	if plan.Checks != nil {
-		for _, configElem := range plan.Checks.ConfigResults.Elems {
-			crs := configElem.Value
-			pcrs := &planproto.CheckResults{
-				ConfigAddr: configElem.Key.String(),
-			}
-			switch crs.Status {
-			case checks.StatusUnknown:
-				pcrs.Status = planproto.CheckResults_UNKNOWN
-			case checks.StatusPass:
-				pcrs.Status = planproto.CheckResults_PASS
-			case checks.StatusFail:
-				pcrs.Status = planproto.CheckResults_FAIL
-			case checks.StatusError:
-				pcrs.Status = planproto.CheckResults_ERROR
-			default:
-				return fmt.Errorf("checkable configuration %s has unsupported aggregate status %s", configElem.Key, crs.Status)
-			}
-			switch kind := configElem.Key.CheckableKind(); kind {
-			case addrs.CheckableResource:
-				pcrs.Kind = planproto.CheckResults_RESOURCE
-			case addrs.CheckableOutputValue:
-				pcrs.Kind = planproto.CheckResults_OUTPUT_VALUE
-			case addrs.CheckableCheck:
-				pcrs.Kind = planproto.CheckResults_CHECK
-			case addrs.CheckableInputVariable:
-				pcrs.Kind = planproto.CheckResults_INPUT_VARIABLE
-			default:
-				return fmt.Errorf("checkable configuration %s has unsupported object type kind %s", configElem.Key, kind)
-			}
-
-			for _, objectElem := range configElem.Value.ObjectResults.Elems {
-				cr := objectElem.Value
-				pcr := &planproto.CheckResults_ObjectResult{
-					ObjectAddr:      objectElem.Key.String(),
-					FailureMessages: objectElem.Value.FailureMessages,
-				}
-				switch cr.Status {
-				case checks.StatusUnknown:
-					pcr.Status = planproto.CheckResults_UNKNOWN
-				case checks.StatusPass:
-					pcr.Status = planproto.CheckResults_PASS
-				case checks.StatusFail:
-					pcr.Status = planproto.CheckResults_FAIL
-				case checks.StatusError:
-					pcr.Status = planproto.CheckResults_ERROR
-				default:
-					return fmt.Errorf("checkable object %s has unsupported status %s", objectElem.Key, crs.Status)
-				}
-				pcrs.Objects = append(pcrs.Objects, pcr)
-			}
-
-			rawPlan.CheckResults = append(rawPlan.CheckResults, pcrs)
-		}
+	checkResults, err := CheckResultsToPlanProto(plan.Checks)
+	if err != nil {
+		return fmt.Errorf("failed to encode check results: %s", err)
 	}
+	rawPlan.CheckResults = checkResults
 
 	for _, rc := range plan.Changes.Resources {
 		rawRC, err := resourceChangeToTfplan(rc)
@@ -987,4 +853,183 @@ func pathFromTfplan(path *planproto.Path) (cty.Path, error) {
 
 func pathToTfplan(path cty.Path) (*planproto.Path, error) {
 	return planproto.NewPath(path)
+}
+
+// CheckResultsFromPlanProto decodes a slice of check results from their protobuf
+// representation into the "states" package's representation.
+//
+// It's used by the stackplan package, which includes an identical representation
+// of check results within a different overall container.
+func CheckResultsFromPlanProto(proto []*planproto.CheckResults) (*states.CheckResults, error) {
+	configResults := addrs.MakeMap[addrs.ConfigCheckable, *states.CheckResultAggregate]()
+
+	for _, rawCheckResults := range proto {
+		aggr := &states.CheckResultAggregate{}
+		switch rawCheckResults.Status {
+		case planproto.CheckResults_UNKNOWN:
+			aggr.Status = checks.StatusUnknown
+		case planproto.CheckResults_PASS:
+			aggr.Status = checks.StatusPass
+		case planproto.CheckResults_FAIL:
+			aggr.Status = checks.StatusFail
+		case planproto.CheckResults_ERROR:
+			aggr.Status = checks.StatusError
+		default:
+			return nil,
+				fmt.Errorf("aggregate check results for %s have unsupported status %#v",
+					rawCheckResults.ConfigAddr, rawCheckResults.Status)
+		}
+
+		var objKind addrs.CheckableKind
+		switch rawCheckResults.Kind {
+		case planproto.CheckResults_RESOURCE:
+			objKind = addrs.CheckableResource
+		case planproto.CheckResults_OUTPUT_VALUE:
+			objKind = addrs.CheckableOutputValue
+		case planproto.CheckResults_CHECK:
+			objKind = addrs.CheckableCheck
+		case planproto.CheckResults_INPUT_VARIABLE:
+			objKind = addrs.CheckableInputVariable
+		default:
+			return nil, fmt.Errorf("aggregate check results for %s have unsupported object kind %s",
+				rawCheckResults.ConfigAddr, objKind)
+		}
+
+		// Some trickiness here: we only have an address parser for
+		// addrs.Checkable and not for addrs.ConfigCheckable, but that's okay
+		// because once we have an addrs.Checkable we can always derive an
+		// addrs.ConfigCheckable from it, and a ConfigCheckable should always
+		// be the same syntax as a Checkable with no index information and
+		// thus we can reuse the same parser for both here.
+		configAddrProxy, diags := addrs.ParseCheckableStr(objKind, rawCheckResults.ConfigAddr)
+		if diags.HasErrors() {
+			return nil, diags.Err()
+		}
+		configAddr := configAddrProxy.ConfigCheckable()
+		if configAddr.String() != configAddrProxy.String() {
+			// This is how we catch if the config address included index
+			// information that would be allowed in a Checkable but not
+			// in a ConfigCheckable.
+			return nil, fmt.Errorf("invalid checkable config address %s", rawCheckResults.ConfigAddr)
+		}
+
+		aggr.ObjectResults = addrs.MakeMap[addrs.Checkable, *states.CheckResultObject]()
+		for _, rawCheckResult := range rawCheckResults.Objects {
+			objectAddr, diags := addrs.ParseCheckableStr(objKind, rawCheckResult.ObjectAddr)
+			if diags.HasErrors() {
+				return nil, diags.Err()
+			}
+			if !addrs.Equivalent(objectAddr.ConfigCheckable(), configAddr) {
+				return nil, fmt.Errorf("checkable object %s should not be grouped under %s", objectAddr, configAddr)
+			}
+
+			obj := &states.CheckResultObject{
+				FailureMessages: rawCheckResult.FailureMessages,
+			}
+			switch rawCheckResult.Status {
+			case planproto.CheckResults_UNKNOWN:
+				obj.Status = checks.StatusUnknown
+			case planproto.CheckResults_PASS:
+				obj.Status = checks.StatusPass
+			case planproto.CheckResults_FAIL:
+				obj.Status = checks.StatusFail
+			case planproto.CheckResults_ERROR:
+				obj.Status = checks.StatusError
+			default:
+				return nil, fmt.Errorf("object check results for %s has unsupported status %#v",
+					rawCheckResult.ObjectAddr, rawCheckResult.Status)
+			}
+
+			aggr.ObjectResults.Put(objectAddr, obj)
+		}
+
+		// If we ended up with no elements in the map then we'll just nil it,
+		// primarily just to make life easier for our round-trip tests.
+		if aggr.ObjectResults.Len() == 0 {
+			aggr.ObjectResults.Elems = nil
+		}
+
+		configResults.Put(configAddr, aggr)
+	}
+
+	// If we ended up with no elements in the map then we'll just nil it,
+	// primarily just to make life easier for our round-trip tests.
+	if configResults.Len() == 0 {
+		configResults.Elems = nil
+	}
+
+	return &states.CheckResults{
+		ConfigResults: configResults,
+	}, nil
+}
+
+// CheckResultsToPlanProto encodes a slice of check results from the "states"
+// package's representation into their protobuf representation.
+//
+// It's used by the stackplan package, which includes identical representation
+// of check results within a different overall container.
+func CheckResultsToPlanProto(checkResults *states.CheckResults) ([]*planproto.CheckResults, error) {
+	if checkResults != nil {
+		protoResults := make([]*planproto.CheckResults, 0)
+		for _, configElem := range checkResults.ConfigResults.Elems {
+			crs := configElem.Value
+			pcrs := &planproto.CheckResults{
+				ConfigAddr: configElem.Key.String(),
+			}
+			switch crs.Status {
+			case checks.StatusUnknown:
+				pcrs.Status = planproto.CheckResults_UNKNOWN
+			case checks.StatusPass:
+				pcrs.Status = planproto.CheckResults_PASS
+			case checks.StatusFail:
+				pcrs.Status = planproto.CheckResults_FAIL
+			case checks.StatusError:
+				pcrs.Status = planproto.CheckResults_ERROR
+			default:
+				return nil,
+					fmt.Errorf("checkable configuration %s has unsupported aggregate status %s", configElem.Key, crs.Status)
+			}
+			switch kind := configElem.Key.CheckableKind(); kind {
+			case addrs.CheckableResource:
+				pcrs.Kind = planproto.CheckResults_RESOURCE
+			case addrs.CheckableOutputValue:
+				pcrs.Kind = planproto.CheckResults_OUTPUT_VALUE
+			case addrs.CheckableCheck:
+				pcrs.Kind = planproto.CheckResults_CHECK
+			case addrs.CheckableInputVariable:
+				pcrs.Kind = planproto.CheckResults_INPUT_VARIABLE
+			default:
+				return nil,
+					fmt.Errorf("checkable configuration %s has unsupported object type kind %s", configElem.Key, kind)
+			}
+
+			for _, objectElem := range configElem.Value.ObjectResults.Elems {
+				cr := objectElem.Value
+				pcr := &planproto.CheckResults_ObjectResult{
+					ObjectAddr:      objectElem.Key.String(),
+					FailureMessages: objectElem.Value.FailureMessages,
+				}
+				switch cr.Status {
+				case checks.StatusUnknown:
+					pcr.Status = planproto.CheckResults_UNKNOWN
+				case checks.StatusPass:
+					pcr.Status = planproto.CheckResults_PASS
+				case checks.StatusFail:
+					pcr.Status = planproto.CheckResults_FAIL
+				case checks.StatusError:
+					pcr.Status = planproto.CheckResults_ERROR
+				default:
+					return nil,
+						fmt.Errorf("checkable object %s has unsupported status %s", objectElem.Key, crs.Status)
+				}
+				pcrs.Objects = append(pcrs.Objects, pcr)
+			}
+
+			protoResults = append(protoResults, pcrs)
+		}
+
+		return protoResults, nil
+	} else {
+		return nil, nil
+	}
 }

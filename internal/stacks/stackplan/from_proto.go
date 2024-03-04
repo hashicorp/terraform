@@ -107,6 +107,11 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 				outputVals[addrs.OutputValue{Name: name}] = v
 			}
 
+			checkResults, err := planfile.CheckResultsFromPlanProto(msg.PlannedCheckResults)
+			if err != nil {
+				return nil, fmt.Errorf("decoding check results: %w", err)
+			}
+
 			if !ret.Components.HasKey(addr) {
 				ret.Components.Put(addr, &Component{
 					PlannedAction:       plannedAction,
@@ -115,6 +120,7 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 					Dependencies:        dependencies,
 					Dependents:          collections.NewSet[stackaddrs.AbsComponent](),
 					PlannedOutputValues: outputVals,
+					PlannedChecks:       checkResults,
 
 					ResourceInstancePlanned:        addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.ResourceInstanceChangeSrc](),
 					ResourceInstancePriorState:     addrs.MakeMap[addrs.AbsResourceInstanceObject, *states.ResourceInstanceObjectSrc](),
