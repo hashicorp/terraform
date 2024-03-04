@@ -109,8 +109,34 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 
 			switch {
 			case v.Addr().Stack.IsRoot():
-				extVal := v.main.RootVariableValue(ctx, v.Addr().Item, phase)
 				wantTy := v.Declaration(ctx).Type.Constraint
+
+				extVal := v.main.RootVariableValue(ctx, v.Addr().Item, phase)
+
+				// If the calling context does not define a value for this
+				// variable, we need to fall back to the default.
+				if extVal.Value == cty.NilVal {
+					cfg := v.Config(ctx)
+
+					// A separate code path will validate the default value, so
+					// we don't need to do that here.
+					defVal := cfg.DefaultValue(ctx)
+					if defVal == cty.NilVal {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "No value for required variable",
+							Detail:   fmt.Sprintf("The root input variable %q is not set, and has no default value.", v.Addr()),
+							Subject:  cfg.config.DeclRange.ToHCL().Ptr(),
+						})
+						return cty.UnknownVal(wantTy), diags
+					}
+
+					extVal = ExternalInputValue{
+						Value:    defVal,
+						DefRange: cfg.Declaration().DeclRange,
+					}
+				}
+
 				val, err := convert.Convert(extVal.Value, wantTy)
 				const errSummary = "Invalid value for root input variable"
 				if err != nil {

@@ -50,8 +50,16 @@ var (
 				}),
 			},
 		},
-		filepath.Join("with-single-input", "provider-name-clash"): {},
-		filepath.Join("with-single-input", "valid"):               {},
+		filepath.Join("with-single-input", "provider-name-clash"): {
+			planInputVars: map[string]cty.Value{
+				"input": cty.StringVal("input"),
+			},
+		},
+		filepath.Join("with-single-input", "valid"): {
+			planInputVars: map[string]cty.Value{
+				"input": cty.StringVal("input"),
+			},
+		},
 	}
 
 	// invalidConfigurations are shared between the validate and plan tests.

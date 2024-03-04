@@ -234,6 +234,57 @@ func TestPlanWithMissingInputVariable(t *testing.T) {
 	}
 }
 
+func TestPlanWithNoValueForRequiredVariable(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "plan-no-value-for-required-variable")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange, 8)
+	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewBuiltInProvider("terraform"): func() (providers.Interface, error) {
+				return terraformProvider.NewProvider(), nil
+			},
+		},
+
+		ForcePlanTimestamp: &fakePlanTimestamp,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	_, gotDiags := collectPlanOutput(changesCh, diagsCh)
+
+	// We'll normalize the diagnostics to be of consistent underlying type
+	// using ForRPC, so that we can easily diff them; we don't actually care
+	// about which underlying implementation is in use.
+	gotDiags = gotDiags.ForRPC()
+	var wantDiags tfdiags.Diagnostics
+	wantDiags = wantDiags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "No value for required variable",
+		Detail:   `The root input variable "var.beep" is not set, and has no default value.`,
+		Subject: &hcl.Range{
+			Filename: mainBundleSourceAddrStr("plan-no-value-for-required-variable/unset-variable.tfstack.hcl"),
+			Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
+			End:      hcl.Pos{Line: 1, Column: 16, Byte: 15},
+		},
+	})
+	wantDiags = wantDiags.ForRPC()
+
+	if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
+		t.Errorf("wrong diagnostics\n%s", diff)
+	}
+}
+
 func TestPlanWithSingleResource(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, "with-single-resource")
@@ -433,7 +484,7 @@ func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 			Addr: stackaddrs.InputVariable{
 				Name: "msg",
 			},
-			Value: cty.NullVal(cty.String),
+			Value: cty.StringVal("default"),
 		},
 	}
 	sort.SliceStable(gotChanges, func(i, j int) bool {
