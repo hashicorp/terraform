@@ -66,8 +66,12 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 
 	// Prepare the backend with the backend-specific arguments
 	be, beDiags := c.PrepareBackend(args.State, args.ViewType)
-	_, isRemoteBackend := be.(BackendWithRemoteTerraformVersion)
-	diags = diags.Append(c.providerDevOverrideRuntimeWarnings(isRemoteBackend))
+	b, isRemoteBackend := be.(BackendWithRemoteTerraformVersion)
+	if isRemoteBackend && !b.IsLocalOperations() {
+		diags = diags.Append(c.providerDevOverrideRuntimeWarningsRemoteExecution())
+	} else {
+		diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
+	}
 	diags = diags.Append(beDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
