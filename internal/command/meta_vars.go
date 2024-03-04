@@ -237,7 +237,30 @@ func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSource
 	} else {
 		var hclDiags hcl.Diagnostics
 		f, hclDiags = hclsyntax.ParseConfig(src, filename, hcl.Pos{Line: 1, Column: 1})
+
+		// FIXME: TEST PARSE VARIABLE NAME
+		for _, hclDiag := range hclDiags {
+			// Retrieve metadata on variables from f and match to hclDiags metadata
+			// if it matches, save associated variable name to Extra attribute.
+			attributes, _ := f.Body.JustAttributes()
+			for varName, attr := range attributes {
+				attrRange := attr.Expr.Range()
+				if attrRange.Start == hclDiag.Context.Start && attrRange.End == hclDiag.Context.End {
+					// Fingerprint matches
+					hclDiag.Extra = map[string]string{
+						"variable": varName,
+						"file":     attr.NameRange.Filename,
+					}
+				}
+			}
+		}
+		// FIXME: END TEST. Test located here because lossy conversion between hcl and tf diags.
+
 		diags = diags.Append(hclDiags)
+		for file, bytes := range loader.Sources() {
+			print(file)
+			print(bytes)
+		}
 		if f == nil || f.Body == nil {
 			return diags
 		}
