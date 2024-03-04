@@ -235,7 +235,7 @@ func (m *Meta) providerDevOverrideRuntimeWarningsRemoteExecution() tfdiags.Diagn
 	for addr, path := range m.ProviderDevOverrides {
 		detailMsg.WriteString(fmt.Sprintf(" - %s in %s\n", addr.ForDisplay(), path))
 	}
-	detailMsg.WriteString("\n\nProvider development overrides are only configured locally and the remote operation won't be affected by them")
+	detailMsg.WriteString("\nProvider development overrides are only configured locally and the remote operation won't be affected by them")
 
 	return tfdiags.Diagnostics{
 		tfdiags.Sourceless(
