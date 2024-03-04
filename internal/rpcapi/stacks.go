@@ -159,7 +159,8 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode) *terraform1.FindSt
 
 	for name, cc := range cfgNode.Stack.Components {
 		cProto := &terraform1.FindStackConfigurationComponents_Component{
-			SourceAddr: cc.FinalSourceAddr.String(),
+			SourceAddr:    cc.FinalSourceAddr.String(),
+			ComponentAddr: stackaddrs.Component{Name: cc.Name}.String(),
 		}
 		switch {
 		case cc.ForEach != nil:
