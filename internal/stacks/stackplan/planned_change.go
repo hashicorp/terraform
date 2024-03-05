@@ -358,53 +358,9 @@ func encodePathSet(pathSet cty.PathSet) ([]*terraform1.AttributePath, error) {
 	paths := make([]*terraform1.AttributePath, 0, len(pathList))
 
 	for _, path := range pathList {
-		jsonPath, err := encodePath(path)
-		if err != nil {
-			return nil, err
-		}
-		paths = append(paths, jsonPath)
+		paths = append(paths, terraform1.NewAttributePath(path))
 	}
 	return paths, nil
-}
-
-func encodePath(path cty.Path) (*terraform1.AttributePath, error) {
-	steps := make([]*terraform1.AttributePath_Step, 0, len(path))
-	for _, step := range path {
-		switch s := step.(type) {
-		case cty.IndexStep:
-			switch s.Key.Type() {
-			case cty.Number:
-				elementInt, _ := s.Key.AsBigFloat().Int64()
-				steps = append(steps, &terraform1.AttributePath_Step{
-					Selector: &terraform1.AttributePath_Step_ElementKeyInt{
-						ElementKeyInt: elementInt,
-					},
-				})
-
-			case cty.String:
-				steps = append(steps, &terraform1.AttributePath_Step{
-					Selector: &terraform1.AttributePath_Step_ElementKeyString{
-						ElementKeyString: s.Key.AsString(),
-					},
-				})
-
-			default:
-				return nil, fmt.Errorf("Unsupported index step type %s", s.Key.Type())
-			}
-		case cty.GetAttrStep:
-			steps = append(steps, &terraform1.AttributePath_Step{
-				Selector: &terraform1.AttributePath_Step_AttributeName{
-					AttributeName: s.Name,
-				},
-			})
-		default:
-			return nil, fmt.Errorf("Unsupported step type %t", s)
-		}
-	}
-
-	return &terraform1.AttributePath{
-		Steps: steps,
-	}, nil
 }
 
 // PlannedChangeOutputValue announces the change action for one output value
