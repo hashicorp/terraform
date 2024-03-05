@@ -5371,3 +5371,60 @@ resource "test_resource" "a" {
 		}
 	}
 }
+func TestContext2Plan_dataSourceSensitiveRead(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "test_data_source" "foo" {
+}
+
+resource "test_object" "obj" {
+	test_string = data.test_data_source.foo.bar
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		DataSources: map[string]*configschema.Block{
+			"test_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"bar": {
+						Type:      cty.String,
+						Computed:  true,
+						Sensitive: true,
+					},
+				},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_object": simpleTestSchema(),
+		},
+	})
+
+	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"bar": cty.StringVal("data_id"),
+		}),
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	ch := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.obj"))
+	if len(ch.AfterValMarks) == 0 {
+		t.Fatal("expected marked values in test_object.obj")
+	}
+
+	data := plan.PlannedState.RootModule().ResourceInstance(mustResourceInstanceAddr("data.test_data_source.foo").Resource)
+	if len(data.Current.AttrSensitivePaths) == 0 {
+		// we may not always store data source states in the future, but for now
+		// this is a good indication that the read value was correctly marked.
+		t.Fatal("data.test_data_source.foo schema contains a sensitive attribute, should be marked in state")
+	}
+}
