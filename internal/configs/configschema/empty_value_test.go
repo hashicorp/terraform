@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/apparentlymart/go-dump/dump"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -165,8 +166,8 @@ func TestBlockEmptyValue(t *testing.T) {
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%#v", test.Schema), func(t *testing.T) {
 			got := test.Schema.EmptyValue()
-			if !test.Want.RawEquals(got) {
-				t.Errorf("wrong result\nschema: %s\ngot: %s\nwant: %s", spew.Sdump(test.Schema), dump.Value(got), dump.Value(test.Want))
+			if diff := cmp.Diff(test.Want, got, ctydebug.CmpOptions); diff != "" {
+				t.Errorf("wrong result\nschema: %s\ndiff:\n%s", spew.Sdump(test.Schema), diff)
 			}
 		})
 	}
@@ -252,8 +253,8 @@ func TestAttributeEmptyValue(t *testing.T) {
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%#v", test.Schema), func(t *testing.T) {
 			got := test.Schema.EmptyValue()
-			if !test.Want.RawEquals(got) {
-				t.Errorf("wrong result\nschema: %s\ngot: %s\nwant: %s", spew.Sdump(test.Schema), dump.Value(got), dump.Value(test.Want))
+			if diff := cmp.Diff(test.Want, got, ctydebug.CmpOptions); diff != "" {
+				t.Errorf("wrong result\nschema: %s\ndiff:\n%s", spew.Sdump(test.Schema), diff)
 			}
 		})
 	}

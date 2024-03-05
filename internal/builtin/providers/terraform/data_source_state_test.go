@@ -8,12 +8,14 @@ import (
 	"log"
 	"testing"
 
-	"github.com/apparentlymart/go-dump/dump"
+	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty-debug/ctydebug"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestResource(t *testing.T) {
@@ -276,7 +278,13 @@ func TestState_basic(t *testing.T) {
 				"backend": cty.StringVal("local"),
 				"config":  cty.NullVal(cty.DynamicPseudoType),
 			}),
-			cty.NilVal,
+			cty.ObjectVal(map[string]cty.Value{
+				"backend":   cty.StringVal("local"),
+				"config":    cty.NullVal(cty.DynamicPseudoType),
+				"defaults":  cty.NullVal(cty.DynamicPseudoType),
+				"outputs":   cty.EmptyObjectVal,
+				"workspace": cty.NullVal(cty.String),
+			}),
 			true,
 		},
 	}
@@ -305,8 +313,8 @@ func TestState_basic(t *testing.T) {
 				t.Fatalf("unexpected errors: %s", diags.Err())
 			}
 
-			if test.Want != cty.NilVal && !test.Want.RawEquals(got) {
-				t.Errorf("wrong result\nconfig: %sgot:    %swant:   %s", dump.Value(config), dump.Value(got), dump.Value(test.Want))
+			if diff := cmp.Diff(test.Want, got, ctydebug.CmpOptions); diff != "" {
+				t.Errorf("wrong result\n%s", diff)
 			}
 		})
 	}
