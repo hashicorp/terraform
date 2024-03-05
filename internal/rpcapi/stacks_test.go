@@ -201,7 +201,7 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 						Components: map[string]*terraform1.FindStackConfigurationComponents_Component{
 							"foo": {
 								SourceAddr:    "git::https://example.com/foo.git//non-empty-stack/empty-module",
-								ComponentAddr: "component.foo",
+								ComponentAddr: "stack.single.component.foo",
 							},
 						},
 					},
@@ -213,7 +213,7 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 						Components: map[string]*terraform1.FindStackConfigurationComponents_Component{
 							"foo": {
 								SourceAddr:    "git::https://example.com/foo.git//non-empty-stack/empty-module",
-								ComponentAddr: "component.foo",
+								ComponentAddr: "stack.for_each.component.foo",
 							},
 						},
 					},
