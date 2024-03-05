@@ -27,6 +27,19 @@ func TestPlannedChangeAsProto(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	nonEmptyType := cty.Map(cty.String)
+	beforeObjectForPlan, err := plans.NewDynamicValue(cty.MapVal(map[string]cty.Value{
+		"foo": cty.StringVal("bar"),
+	}), nonEmptyType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterObjectForPlan, err := plans.NewDynamicValue(cty.MapVal(map[string]cty.Value{
+		"foo": cty.StringVal("baz"),
+	}), nonEmptyType)
+	if err != nil {
+		t.Fatal(err)
+	}
 	nullObjectForPlan, err := plans.NewDynamicValue(cty.NullVal(cty.EmptyObject), cty.EmptyObject)
 	if err != nil {
 		t.Fatal(err)
@@ -274,6 +287,120 @@ func TestPlannedChangeAsProto(t *testing.T) {
 									},
 									New: &terraform1.DynamicValue{
 										Msgpack: []byte{'\x80'}, // zero-length mapping
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"resource instance planned replace": {
+			Receiver: &PlannedChangeResourceInstancePlanned{
+				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+					Component: stackaddrs.AbsComponentInstance{
+						Stack: stackaddrs.RootStackInstance.Child("a", addrs.StringKey("boop")),
+						Item: stackaddrs.ComponentInstance{
+							Component: stackaddrs.Component{Name: "foo"},
+							Key:       addrs.StringKey("beep"),
+						},
+					},
+					Item: addrs.AbsResourceInstanceObject{
+						ResourceInstance: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "thingy",
+							Name: "wotsit",
+						}.Instance(addrs.IntKey(1)).Absolute(
+							addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+						),
+						DeposedKey: addrs.DeposedKey("aaaaaaaa"),
+					},
+				},
+				ProviderConfigAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
+				},
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "thingy",
+						Name: "wotsit",
+					}.Instance(addrs.IntKey(1)).Absolute(
+						addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+					),
+					DeposedKey: addrs.DeposedKey("aaaaaaaa"),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.DeleteThenCreate,
+						Before: beforeObjectForPlan,
+						After:  afterObjectForPlan,
+					},
+					RequiredReplace: cty.NewPathSet(cty.GetAttrPath("foo")),
+				},
+			},
+			Want: &terraform1.PlannedChange{
+				Raw: []*anypb.Any{
+					mustMarshalAnyPb(&tfstackdata1.PlanResourceInstanceChangePlanned{
+						ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+						ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
+						DeposedKey:            "aaaaaaaa",
+						ProviderConfigAddr:    `provider["example.com/thingers/thingy"]`,
+						Change: &planproto.ResourceInstanceChange{
+							Addr:       `module.pizza["chicken"].thingy.wotsit[1]`,
+							DeposedKey: "aaaaaaaa",
+							Change: &planproto.Change{
+								Action: planproto.Action_DELETE_THEN_CREATE,
+								Values: []*planproto.DynamicValue{
+									{Msgpack: []byte("\x81\xa3foo\xa3bar")},
+									{Msgpack: []byte("\x81\xa3foo\xa3baz")},
+								},
+							},
+							Provider: `provider["example.com/thingers/thingy"]`,
+							RequiredReplace: []*planproto.Path{
+								{
+									Steps: []*planproto.Path_Step{
+										{
+											Selector: &planproto.Path_Step_AttributeName{AttributeName: "foo"},
+										},
+									},
+								},
+							},
+						},
+					}),
+				},
+				Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+					{
+						Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
+							ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
+								Addr: &terraform1.ResourceInstanceObjectInStackAddr{
+									ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+									ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
+									DeposedKey:            "aaaaaaaa",
+								},
+								ResourceMode: terraform1.ResourceMode_MANAGED,
+								ResourceType: "thingy",
+								ProviderAddr: "example.com/thingers/thingy",
+								Actions:      []terraform1.ChangeType{terraform1.ChangeType_DELETE, terraform1.ChangeType_CREATE},
+								Values: &terraform1.DynamicValueChange{
+									Old: &terraform1.DynamicValue{
+										Msgpack: []byte("\x81\xa3foo\xa3bar"),
+									},
+									New: &terraform1.DynamicValue{
+										Msgpack: []byte("\x81\xa3foo\xa3baz"),
+									},
+								},
+								ReplacePaths: []*terraform1.AttributePath{
+									{
+										Steps: []*terraform1.AttributePath_Step{
+											{
+												Selector: &terraform1.AttributePath_Step_AttributeName{
+													AttributeName: "foo",
+												},
+											},
+										},
 									},
 								},
 							},

@@ -6414,7 +6414,8 @@ type PlannedChange_ResourceInstance struct {
 	// difference is probably not worth mentioning to the user
 	// by default, although it could still be shown behind an
 	// optional disclosure in UI contexts where such things are possible.
-	NotableChangeOutside bool `protobuf:"varint,10,opt,name=notable_change_outside,json=notableChangeOutside,proto3" json:"notable_change_outside,omitempty"`
+	NotableChangeOutside bool             `protobuf:"varint,10,opt,name=notable_change_outside,json=notableChangeOutside,proto3" json:"notable_change_outside,omitempty"`
+	ReplacePaths         []*AttributePath `protobuf:"bytes,11,rep,name=replace_paths,json=replacePaths,proto3" json:"replace_paths,omitempty"`
 }
 
 func (x *PlannedChange_ResourceInstance) Reset() {
@@ -6517,6 +6518,13 @@ func (x *PlannedChange_ResourceInstance) GetNotableChangeOutside() bool {
 		return x.NotableChangeOutside
 	}
 	return false
+}
+
+func (x *PlannedChange_ResourceInstance) GetReplacePaths() []*AttributePath {
+	if x != nil {
+		return x.ReplacePaths
+	}
+	return nil
 }
 
 // Note: this is only for output values from the topmost
@@ -9287,7 +9295,7 @@ var file_terraform1_proto_rawDesc = []byte{
 	0x63, 0x65, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x6f, 0x75,
 	0x72, 0x63, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x6f, 0x75, 0x72, 0x63,
 	0x65, 0x12, 0x1a, 0x0a, 0x08, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x18, 0x02, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x08, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x22, 0xa1, 0x0c,
+	0x01, 0x28, 0x09, 0x52, 0x08, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x22, 0xe1, 0x0c,
 	0x0a, 0x0d, 0x50, 0x6c, 0x61, 0x6e, 0x6e, 0x65, 0x64, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x12,
 	0x26, 0x0a, 0x03, 0x72, 0x61, 0x77, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x67,
 	0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x41,
@@ -9331,7 +9339,7 @@ var file_terraform1_proto_rawDesc = []byte{
 	0x65, 0x54, 0x79, 0x70, 0x65, 0x52, 0x07, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x12, 0x23,
 	0x0a, 0x0d, 0x70, 0x6c, 0x61, 0x6e, 0x5f, 0x63, 0x6f, 0x6d, 0x70, 0x6c, 0x65, 0x74, 0x65, 0x18,
 	0x03, 0x20, 0x01, 0x28, 0x08, 0x52, 0x0c, 0x70, 0x6c, 0x61, 0x6e, 0x43, 0x6f, 0x6d, 0x70, 0x6c,
-	0x65, 0x74, 0x65, 0x1a, 0xd7, 0x05, 0x0a, 0x10, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
+	0x65, 0x74, 0x65, 0x1a, 0x97, 0x06, 0x0a, 0x10, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
 	0x49, 0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x12, 0x41, 0x0a, 0x04, 0x61, 0x64, 0x64, 0x72,
 	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2d, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f,
 	0x72, 0x6d, 0x31, 0x2e, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x49, 0x6e, 0x73, 0x74,
@@ -9369,7 +9377,11 @@ var file_terraform1_proto_rawDesc = []byte{
 	0x34, 0x0a, 0x16, 0x6e, 0x6f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x5f, 0x63, 0x68, 0x61, 0x6e, 0x67,
 	0x65, 0x5f, 0x6f, 0x75, 0x74, 0x73, 0x69, 0x64, 0x65, 0x18, 0x0a, 0x20, 0x01, 0x28, 0x08, 0x52,
 	0x14, 0x6e, 0x6f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x4f, 0x75,
-	0x74, 0x73, 0x69, 0x64, 0x65, 0x1a, 0x4d, 0x0a, 0x05, 0x4d, 0x6f, 0x76, 0x65, 0x64, 0x12, 0x44,
+	0x74, 0x73, 0x69, 0x64, 0x65, 0x12, 0x3e, 0x0a, 0x0d, 0x72, 0x65, 0x70, 0x6c, 0x61, 0x63, 0x65,
+	0x5f, 0x70, 0x61, 0x74, 0x68, 0x73, 0x18, 0x0b, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x19, 0x2e, 0x74,
+	0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x41, 0x74, 0x74, 0x72, 0x69, 0x62,
+	0x75, 0x74, 0x65, 0x50, 0x61, 0x74, 0x68, 0x52, 0x0c, 0x72, 0x65, 0x70, 0x6c, 0x61, 0x63, 0x65,
+	0x50, 0x61, 0x74, 0x68, 0x73, 0x1a, 0x4d, 0x0a, 0x05, 0x4d, 0x6f, 0x76, 0x65, 0x64, 0x12, 0x44,
 	0x0a, 0x09, 0x70, 0x72, 0x65, 0x76, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28,
 	0x0b, 0x32, 0x27, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x52,
 	0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x49,
@@ -10277,108 +10289,109 @@ var file_terraform1_proto_depIdxs = []int32{
 	123, // 90: terraform1.PlannedChange.ResourceInstance.imported:type_name -> terraform1.PlannedChange.ResourceInstance.Imported
 	0,   // 91: terraform1.PlannedChange.ResourceInstance.resource_mode:type_name -> terraform1.ResourceMode
 	37,  // 92: terraform1.PlannedChange.ResourceInstance.previous_run_value:type_name -> terraform1.DynamicValue
-	2,   // 93: terraform1.PlannedChange.OutputValue.actions:type_name -> terraform1.ChangeType
-	38,  // 94: terraform1.PlannedChange.OutputValue.values:type_name -> terraform1.DynamicValueChange
-	42,  // 95: terraform1.PlannedChange.ResourceInstance.Moved.prev_addr:type_name -> terraform1.ResourceInstanceInStackAddr
-	156, // 96: terraform1.AppliedChange.RawChange.value:type_name -> google.protobuf.Any
-	129, // 97: terraform1.AppliedChange.ChangeDescription.deleted:type_name -> terraform1.AppliedChange.Nothing
-	126, // 98: terraform1.AppliedChange.ChangeDescription.resource_instance:type_name -> terraform1.AppliedChange.ResourceInstance
-	128, // 99: terraform1.AppliedChange.ChangeDescription.output_value:type_name -> terraform1.AppliedChange.OutputValue
-	127, // 100: terraform1.AppliedChange.ChangeDescription.component_instance:type_name -> terraform1.AppliedChange.ComponentInstance
-	43,  // 101: terraform1.AppliedChange.ResourceInstance.addr:type_name -> terraform1.ResourceInstanceObjectInStackAddr
-	37,  // 102: terraform1.AppliedChange.ResourceInstance.new_value:type_name -> terraform1.DynamicValue
-	0,   // 103: terraform1.AppliedChange.ResourceInstance.resource_mode:type_name -> terraform1.ResourceMode
-	130, // 104: terraform1.AppliedChange.ComponentInstance.output_values:type_name -> terraform1.AppliedChange.ComponentInstance.OutputValuesEntry
-	37,  // 105: terraform1.AppliedChange.OutputValue.new_value:type_name -> terraform1.DynamicValue
-	37,  // 106: terraform1.AppliedChange.ComponentInstance.OutputValuesEntry.value:type_name -> terraform1.DynamicValue
-	41,  // 107: terraform1.StackChangeProgress.ComponentInstanceStatus.addr:type_name -> terraform1.ComponentInstanceInStackAddr
-	5,   // 108: terraform1.StackChangeProgress.ComponentInstanceStatus.status:type_name -> terraform1.StackChangeProgress.ComponentInstanceStatus.Status
-	43,  // 109: terraform1.StackChangeProgress.ResourceInstanceStatus.addr:type_name -> terraform1.ResourceInstanceObjectInStackAddr
-	6,   // 110: terraform1.StackChangeProgress.ResourceInstanceStatus.status:type_name -> terraform1.StackChangeProgress.ResourceInstanceStatus.Status
-	43,  // 111: terraform1.StackChangeProgress.ResourceInstancePlannedChange.addr:type_name -> terraform1.ResourceInstanceObjectInStackAddr
-	2,   // 112: terraform1.StackChangeProgress.ResourceInstancePlannedChange.actions:type_name -> terraform1.ChangeType
-	138, // 113: terraform1.StackChangeProgress.ResourceInstancePlannedChange.moved:type_name -> terraform1.StackChangeProgress.ResourceInstancePlannedChange.Moved
-	139, // 114: terraform1.StackChangeProgress.ResourceInstancePlannedChange.imported:type_name -> terraform1.StackChangeProgress.ResourceInstancePlannedChange.Imported
-	43,  // 115: terraform1.StackChangeProgress.ProvisionerStatus.addr:type_name -> terraform1.ResourceInstanceObjectInStackAddr
-	134, // 116: terraform1.StackChangeProgress.ProvisionerStatus.status:type_name -> terraform1.StackChangeProgress.ProvisionerStatus
-	43,  // 117: terraform1.StackChangeProgress.ProvisionerOutput.addr:type_name -> terraform1.ResourceInstanceObjectInStackAddr
-	41,  // 118: terraform1.StackChangeProgress.ComponentInstanceChanges.addr:type_name -> terraform1.ComponentInstanceInStackAddr
-	42,  // 119: terraform1.StackChangeProgress.ResourceInstancePlannedChange.Moved.prev_addr:type_name -> terraform1.ResourceInstanceInStackAddr
-	141, // 120: terraform1.Schema.Block.attributes:type_name -> terraform1.Schema.Attribute
-	142, // 121: terraform1.Schema.Block.block_types:type_name -> terraform1.Schema.NestedBlock
-	144, // 122: terraform1.Schema.Block.description:type_name -> terraform1.Schema.DocString
-	143, // 123: terraform1.Schema.Attribute.nested_type:type_name -> terraform1.Schema.Object
-	144, // 124: terraform1.Schema.Attribute.description:type_name -> terraform1.Schema.DocString
-	140, // 125: terraform1.Schema.NestedBlock.block:type_name -> terraform1.Schema.Block
-	9,   // 126: terraform1.Schema.NestedBlock.nesting:type_name -> terraform1.Schema.NestedBlock.NestingMode
-	141, // 127: terraform1.Schema.Object.attributes:type_name -> terraform1.Schema.Attribute
-	10,  // 128: terraform1.Schema.Object.nesting:type_name -> terraform1.Schema.Object.NestingMode
-	11,  // 129: terraform1.Schema.DocString.format:type_name -> terraform1.Schema.DocString.Format
-	48,  // 130: terraform1.ProviderPackageVersions.Response.diagnostics:type_name -> terraform1.Diagnostic
-	149, // 131: terraform1.FetchProviderPackage.Response.results:type_name -> terraform1.FetchProviderPackage.PlatformResult
-	48,  // 132: terraform1.FetchProviderPackage.Response.diagnostics:type_name -> terraform1.Diagnostic
-	27,  // 133: terraform1.FetchProviderPackage.PlatformResult.provider:type_name -> terraform1.ProviderPackage
-	48,  // 134: terraform1.FetchProviderPackage.PlatformResult.diagnostics:type_name -> terraform1.Diagnostic
-	48,  // 135: terraform1.ModulePackageVersions.Response.diagnostics:type_name -> terraform1.Diagnostic
-	48,  // 136: terraform1.ModulePackageSourceAddr.Response.diagnostics:type_name -> terraform1.Diagnostic
-	48,  // 137: terraform1.FetchModulePackage.Response.diagnostics:type_name -> terraform1.Diagnostic
-	57,  // 138: terraform1.Setup.Handshake:input_type -> terraform1.Handshake.Request
-	59,  // 139: terraform1.Dependencies.OpenSourceBundle:input_type -> terraform1.OpenSourceBundle.Request
-	61,  // 140: terraform1.Dependencies.CloseSourceBundle:input_type -> terraform1.CloseSourceBundle.Request
-	63,  // 141: terraform1.Dependencies.OpenDependencyLockFile:input_type -> terraform1.OpenDependencyLockFile.Request
-	65,  // 142: terraform1.Dependencies.CreateDependencyLocks:input_type -> terraform1.CreateDependencyLocks.Request
-	67,  // 143: terraform1.Dependencies.CloseDependencyLocks:input_type -> terraform1.CloseDependencyLocks.Request
-	69,  // 144: terraform1.Dependencies.GetLockedProviderDependencies:input_type -> terraform1.GetLockedProviderDependencies.Request
-	71,  // 145: terraform1.Dependencies.BuildProviderPluginCache:input_type -> terraform1.BuildProviderPluginCache.Request
-	80,  // 146: terraform1.Dependencies.OpenProviderPluginCache:input_type -> terraform1.OpenProviderPluginCache.Request
-	82,  // 147: terraform1.Dependencies.CloseProviderPluginCache:input_type -> terraform1.CloseProviderPluginCache.Request
-	84,  // 148: terraform1.Dependencies.GetCachedProviders:input_type -> terraform1.GetCachedProviders.Request
-	86,  // 149: terraform1.Dependencies.GetBuiltInProviders:input_type -> terraform1.GetBuiltInProviders.Request
-	88,  // 150: terraform1.Dependencies.GetProviderSchema:input_type -> terraform1.GetProviderSchema.Request
-	92,  // 151: terraform1.Stacks.OpenStackConfiguration:input_type -> terraform1.OpenStackConfiguration.Request
-	94,  // 152: terraform1.Stacks.CloseStackConfiguration:input_type -> terraform1.CloseStackConfiguration.Request
-	96,  // 153: terraform1.Stacks.ValidateStackConfiguration:input_type -> terraform1.ValidateStackConfiguration.Request
-	98,  // 154: terraform1.Stacks.FindStackConfigurationComponents:input_type -> terraform1.FindStackConfigurationComponents.Request
-	105, // 155: terraform1.Stacks.PlanStackChanges:input_type -> terraform1.PlanStackChanges.Request
-	109, // 156: terraform1.Stacks.ApplyStackChanges:input_type -> terraform1.ApplyStackChanges.Request
-	111, // 157: terraform1.Stacks.OpenStackInspector:input_type -> terraform1.OpenStackInspector.Request
-	115, // 158: terraform1.Stacks.InspectExpressionResult:input_type -> terraform1.InspectExpressionResult.Request
-	145, // 159: terraform1.Packages.ProviderPackageVersions:input_type -> terraform1.ProviderPackageVersions.Request
-	147, // 160: terraform1.Packages.FetchProviderPackage:input_type -> terraform1.FetchProviderPackage.Request
-	150, // 161: terraform1.Packages.ModulePackageVersions:input_type -> terraform1.ModulePackageVersions.Request
-	152, // 162: terraform1.Packages.ModulePackageSourceAddr:input_type -> terraform1.ModulePackageSourceAddr.Request
-	154, // 163: terraform1.Packages.FetchModulePackage:input_type -> terraform1.FetchModulePackage.Request
-	58,  // 164: terraform1.Setup.Handshake:output_type -> terraform1.Handshake.Response
-	60,  // 165: terraform1.Dependencies.OpenSourceBundle:output_type -> terraform1.OpenSourceBundle.Response
-	62,  // 166: terraform1.Dependencies.CloseSourceBundle:output_type -> terraform1.CloseSourceBundle.Response
-	64,  // 167: terraform1.Dependencies.OpenDependencyLockFile:output_type -> terraform1.OpenDependencyLockFile.Response
-	66,  // 168: terraform1.Dependencies.CreateDependencyLocks:output_type -> terraform1.CreateDependencyLocks.Response
-	68,  // 169: terraform1.Dependencies.CloseDependencyLocks:output_type -> terraform1.CloseDependencyLocks.Response
-	70,  // 170: terraform1.Dependencies.GetLockedProviderDependencies:output_type -> terraform1.GetLockedProviderDependencies.Response
-	72,  // 171: terraform1.Dependencies.BuildProviderPluginCache:output_type -> terraform1.BuildProviderPluginCache.Event
-	81,  // 172: terraform1.Dependencies.OpenProviderPluginCache:output_type -> terraform1.OpenProviderPluginCache.Response
-	83,  // 173: terraform1.Dependencies.CloseProviderPluginCache:output_type -> terraform1.CloseProviderPluginCache.Response
-	85,  // 174: terraform1.Dependencies.GetCachedProviders:output_type -> terraform1.GetCachedProviders.Response
-	87,  // 175: terraform1.Dependencies.GetBuiltInProviders:output_type -> terraform1.GetBuiltInProviders.Response
-	89,  // 176: terraform1.Dependencies.GetProviderSchema:output_type -> terraform1.GetProviderSchema.Response
-	93,  // 177: terraform1.Stacks.OpenStackConfiguration:output_type -> terraform1.OpenStackConfiguration.Response
-	95,  // 178: terraform1.Stacks.CloseStackConfiguration:output_type -> terraform1.CloseStackConfiguration.Response
-	97,  // 179: terraform1.Stacks.ValidateStackConfiguration:output_type -> terraform1.ValidateStackConfiguration.Response
-	99,  // 180: terraform1.Stacks.FindStackConfigurationComponents:output_type -> terraform1.FindStackConfigurationComponents.Response
-	106, // 181: terraform1.Stacks.PlanStackChanges:output_type -> terraform1.PlanStackChanges.Event
-	110, // 182: terraform1.Stacks.ApplyStackChanges:output_type -> terraform1.ApplyStackChanges.Event
-	112, // 183: terraform1.Stacks.OpenStackInspector:output_type -> terraform1.OpenStackInspector.Response
-	116, // 184: terraform1.Stacks.InspectExpressionResult:output_type -> terraform1.InspectExpressionResult.Response
-	146, // 185: terraform1.Packages.ProviderPackageVersions:output_type -> terraform1.ProviderPackageVersions.Response
-	148, // 186: terraform1.Packages.FetchProviderPackage:output_type -> terraform1.FetchProviderPackage.Response
-	151, // 187: terraform1.Packages.ModulePackageVersions:output_type -> terraform1.ModulePackageVersions.Response
-	153, // 188: terraform1.Packages.ModulePackageSourceAddr:output_type -> terraform1.ModulePackageSourceAddr.Response
-	155, // 189: terraform1.Packages.FetchModulePackage:output_type -> terraform1.FetchModulePackage.Response
-	164, // [164:190] is the sub-list for method output_type
-	138, // [138:164] is the sub-list for method input_type
-	138, // [138:138] is the sub-list for extension type_name
-	138, // [138:138] is the sub-list for extension extendee
-	0,   // [0:138] is the sub-list for field type_name
+	40,  // 93: terraform1.PlannedChange.ResourceInstance.replace_paths:type_name -> terraform1.AttributePath
+	2,   // 94: terraform1.PlannedChange.OutputValue.actions:type_name -> terraform1.ChangeType
+	38,  // 95: terraform1.PlannedChange.OutputValue.values:type_name -> terraform1.DynamicValueChange
+	42,  // 96: terraform1.PlannedChange.ResourceInstance.Moved.prev_addr:type_name -> terraform1.ResourceInstanceInStackAddr
+	156, // 97: terraform1.AppliedChange.RawChange.value:type_name -> google.protobuf.Any
+	129, // 98: terraform1.AppliedChange.ChangeDescription.deleted:type_name -> terraform1.AppliedChange.Nothing
+	126, // 99: terraform1.AppliedChange.ChangeDescription.resource_instance:type_name -> terraform1.AppliedChange.ResourceInstance
+	128, // 100: terraform1.AppliedChange.ChangeDescription.output_value:type_name -> terraform1.AppliedChange.OutputValue
+	127, // 101: terraform1.AppliedChange.ChangeDescription.component_instance:type_name -> terraform1.AppliedChange.ComponentInstance
+	43,  // 102: terraform1.AppliedChange.ResourceInstance.addr:type_name -> terraform1.ResourceInstanceObjectInStackAddr
+	37,  // 103: terraform1.AppliedChange.ResourceInstance.new_value:type_name -> terraform1.DynamicValue
+	0,   // 104: terraform1.AppliedChange.ResourceInstance.resource_mode:type_name -> terraform1.ResourceMode
+	130, // 105: terraform1.AppliedChange.ComponentInstance.output_values:type_name -> terraform1.AppliedChange.ComponentInstance.OutputValuesEntry
+	37,  // 106: terraform1.AppliedChange.OutputValue.new_value:type_name -> terraform1.DynamicValue
+	37,  // 107: terraform1.AppliedChange.ComponentInstance.OutputValuesEntry.value:type_name -> terraform1.DynamicValue
+	41,  // 108: terraform1.StackChangeProgress.ComponentInstanceStatus.addr:type_name -> terraform1.ComponentInstanceInStackAddr
+	5,   // 109: terraform1.StackChangeProgress.ComponentInstanceStatus.status:type_name -> terraform1.StackChangeProgress.ComponentInstanceStatus.Status
+	43,  // 110: terraform1.StackChangeProgress.ResourceInstanceStatus.addr:type_name -> terraform1.ResourceInstanceObjectInStackAddr
+	6,   // 111: terraform1.StackChangeProgress.ResourceInstanceStatus.status:type_name -> terraform1.StackChangeProgress.ResourceInstanceStatus.Status
+	43,  // 112: terraform1.StackChangeProgress.ResourceInstancePlannedChange.addr:type_name -> terraform1.ResourceInstanceObjectInStackAddr
+	2,   // 113: terraform1.StackChangeProgress.ResourceInstancePlannedChange.actions:type_name -> terraform1.ChangeType
+	138, // 114: terraform1.StackChangeProgress.ResourceInstancePlannedChange.moved:type_name -> terraform1.StackChangeProgress.ResourceInstancePlannedChange.Moved
+	139, // 115: terraform1.StackChangeProgress.ResourceInstancePlannedChange.imported:type_name -> terraform1.StackChangeProgress.ResourceInstancePlannedChange.Imported
+	43,  // 116: terraform1.StackChangeProgress.ProvisionerStatus.addr:type_name -> terraform1.ResourceInstanceObjectInStackAddr
+	134, // 117: terraform1.StackChangeProgress.ProvisionerStatus.status:type_name -> terraform1.StackChangeProgress.ProvisionerStatus
+	43,  // 118: terraform1.StackChangeProgress.ProvisionerOutput.addr:type_name -> terraform1.ResourceInstanceObjectInStackAddr
+	41,  // 119: terraform1.StackChangeProgress.ComponentInstanceChanges.addr:type_name -> terraform1.ComponentInstanceInStackAddr
+	42,  // 120: terraform1.StackChangeProgress.ResourceInstancePlannedChange.Moved.prev_addr:type_name -> terraform1.ResourceInstanceInStackAddr
+	141, // 121: terraform1.Schema.Block.attributes:type_name -> terraform1.Schema.Attribute
+	142, // 122: terraform1.Schema.Block.block_types:type_name -> terraform1.Schema.NestedBlock
+	144, // 123: terraform1.Schema.Block.description:type_name -> terraform1.Schema.DocString
+	143, // 124: terraform1.Schema.Attribute.nested_type:type_name -> terraform1.Schema.Object
+	144, // 125: terraform1.Schema.Attribute.description:type_name -> terraform1.Schema.DocString
+	140, // 126: terraform1.Schema.NestedBlock.block:type_name -> terraform1.Schema.Block
+	9,   // 127: terraform1.Schema.NestedBlock.nesting:type_name -> terraform1.Schema.NestedBlock.NestingMode
+	141, // 128: terraform1.Schema.Object.attributes:type_name -> terraform1.Schema.Attribute
+	10,  // 129: terraform1.Schema.Object.nesting:type_name -> terraform1.Schema.Object.NestingMode
+	11,  // 130: terraform1.Schema.DocString.format:type_name -> terraform1.Schema.DocString.Format
+	48,  // 131: terraform1.ProviderPackageVersions.Response.diagnostics:type_name -> terraform1.Diagnostic
+	149, // 132: terraform1.FetchProviderPackage.Response.results:type_name -> terraform1.FetchProviderPackage.PlatformResult
+	48,  // 133: terraform1.FetchProviderPackage.Response.diagnostics:type_name -> terraform1.Diagnostic
+	27,  // 134: terraform1.FetchProviderPackage.PlatformResult.provider:type_name -> terraform1.ProviderPackage
+	48,  // 135: terraform1.FetchProviderPackage.PlatformResult.diagnostics:type_name -> terraform1.Diagnostic
+	48,  // 136: terraform1.ModulePackageVersions.Response.diagnostics:type_name -> terraform1.Diagnostic
+	48,  // 137: terraform1.ModulePackageSourceAddr.Response.diagnostics:type_name -> terraform1.Diagnostic
+	48,  // 138: terraform1.FetchModulePackage.Response.diagnostics:type_name -> terraform1.Diagnostic
+	57,  // 139: terraform1.Setup.Handshake:input_type -> terraform1.Handshake.Request
+	59,  // 140: terraform1.Dependencies.OpenSourceBundle:input_type -> terraform1.OpenSourceBundle.Request
+	61,  // 141: terraform1.Dependencies.CloseSourceBundle:input_type -> terraform1.CloseSourceBundle.Request
+	63,  // 142: terraform1.Dependencies.OpenDependencyLockFile:input_type -> terraform1.OpenDependencyLockFile.Request
+	65,  // 143: terraform1.Dependencies.CreateDependencyLocks:input_type -> terraform1.CreateDependencyLocks.Request
+	67,  // 144: terraform1.Dependencies.CloseDependencyLocks:input_type -> terraform1.CloseDependencyLocks.Request
+	69,  // 145: terraform1.Dependencies.GetLockedProviderDependencies:input_type -> terraform1.GetLockedProviderDependencies.Request
+	71,  // 146: terraform1.Dependencies.BuildProviderPluginCache:input_type -> terraform1.BuildProviderPluginCache.Request
+	80,  // 147: terraform1.Dependencies.OpenProviderPluginCache:input_type -> terraform1.OpenProviderPluginCache.Request
+	82,  // 148: terraform1.Dependencies.CloseProviderPluginCache:input_type -> terraform1.CloseProviderPluginCache.Request
+	84,  // 149: terraform1.Dependencies.GetCachedProviders:input_type -> terraform1.GetCachedProviders.Request
+	86,  // 150: terraform1.Dependencies.GetBuiltInProviders:input_type -> terraform1.GetBuiltInProviders.Request
+	88,  // 151: terraform1.Dependencies.GetProviderSchema:input_type -> terraform1.GetProviderSchema.Request
+	92,  // 152: terraform1.Stacks.OpenStackConfiguration:input_type -> terraform1.OpenStackConfiguration.Request
+	94,  // 153: terraform1.Stacks.CloseStackConfiguration:input_type -> terraform1.CloseStackConfiguration.Request
+	96,  // 154: terraform1.Stacks.ValidateStackConfiguration:input_type -> terraform1.ValidateStackConfiguration.Request
+	98,  // 155: terraform1.Stacks.FindStackConfigurationComponents:input_type -> terraform1.FindStackConfigurationComponents.Request
+	105, // 156: terraform1.Stacks.PlanStackChanges:input_type -> terraform1.PlanStackChanges.Request
+	109, // 157: terraform1.Stacks.ApplyStackChanges:input_type -> terraform1.ApplyStackChanges.Request
+	111, // 158: terraform1.Stacks.OpenStackInspector:input_type -> terraform1.OpenStackInspector.Request
+	115, // 159: terraform1.Stacks.InspectExpressionResult:input_type -> terraform1.InspectExpressionResult.Request
+	145, // 160: terraform1.Packages.ProviderPackageVersions:input_type -> terraform1.ProviderPackageVersions.Request
+	147, // 161: terraform1.Packages.FetchProviderPackage:input_type -> terraform1.FetchProviderPackage.Request
+	150, // 162: terraform1.Packages.ModulePackageVersions:input_type -> terraform1.ModulePackageVersions.Request
+	152, // 163: terraform1.Packages.ModulePackageSourceAddr:input_type -> terraform1.ModulePackageSourceAddr.Request
+	154, // 164: terraform1.Packages.FetchModulePackage:input_type -> terraform1.FetchModulePackage.Request
+	58,  // 165: terraform1.Setup.Handshake:output_type -> terraform1.Handshake.Response
+	60,  // 166: terraform1.Dependencies.OpenSourceBundle:output_type -> terraform1.OpenSourceBundle.Response
+	62,  // 167: terraform1.Dependencies.CloseSourceBundle:output_type -> terraform1.CloseSourceBundle.Response
+	64,  // 168: terraform1.Dependencies.OpenDependencyLockFile:output_type -> terraform1.OpenDependencyLockFile.Response
+	66,  // 169: terraform1.Dependencies.CreateDependencyLocks:output_type -> terraform1.CreateDependencyLocks.Response
+	68,  // 170: terraform1.Dependencies.CloseDependencyLocks:output_type -> terraform1.CloseDependencyLocks.Response
+	70,  // 171: terraform1.Dependencies.GetLockedProviderDependencies:output_type -> terraform1.GetLockedProviderDependencies.Response
+	72,  // 172: terraform1.Dependencies.BuildProviderPluginCache:output_type -> terraform1.BuildProviderPluginCache.Event
+	81,  // 173: terraform1.Dependencies.OpenProviderPluginCache:output_type -> terraform1.OpenProviderPluginCache.Response
+	83,  // 174: terraform1.Dependencies.CloseProviderPluginCache:output_type -> terraform1.CloseProviderPluginCache.Response
+	85,  // 175: terraform1.Dependencies.GetCachedProviders:output_type -> terraform1.GetCachedProviders.Response
+	87,  // 176: terraform1.Dependencies.GetBuiltInProviders:output_type -> terraform1.GetBuiltInProviders.Response
+	89,  // 177: terraform1.Dependencies.GetProviderSchema:output_type -> terraform1.GetProviderSchema.Response
+	93,  // 178: terraform1.Stacks.OpenStackConfiguration:output_type -> terraform1.OpenStackConfiguration.Response
+	95,  // 179: terraform1.Stacks.CloseStackConfiguration:output_type -> terraform1.CloseStackConfiguration.Response
+	97,  // 180: terraform1.Stacks.ValidateStackConfiguration:output_type -> terraform1.ValidateStackConfiguration.Response
+	99,  // 181: terraform1.Stacks.FindStackConfigurationComponents:output_type -> terraform1.FindStackConfigurationComponents.Response
+	106, // 182: terraform1.Stacks.PlanStackChanges:output_type -> terraform1.PlanStackChanges.Event
+	110, // 183: terraform1.Stacks.ApplyStackChanges:output_type -> terraform1.ApplyStackChanges.Event
+	112, // 184: terraform1.Stacks.OpenStackInspector:output_type -> terraform1.OpenStackInspector.Response
+	116, // 185: terraform1.Stacks.InspectExpressionResult:output_type -> terraform1.InspectExpressionResult.Response
+	146, // 186: terraform1.Packages.ProviderPackageVersions:output_type -> terraform1.ProviderPackageVersions.Response
+	148, // 187: terraform1.Packages.FetchProviderPackage:output_type -> terraform1.FetchProviderPackage.Response
+	151, // 188: terraform1.Packages.ModulePackageVersions:output_type -> terraform1.ModulePackageVersions.Response
+	153, // 189: terraform1.Packages.ModulePackageSourceAddr:output_type -> terraform1.ModulePackageSourceAddr.Response
+	155, // 190: terraform1.Packages.FetchModulePackage:output_type -> terraform1.FetchModulePackage.Response
+	165, // [165:191] is the sub-list for method output_type
+	139, // [139:165] is the sub-list for method input_type
+	139, // [139:139] is the sub-list for extension type_name
+	139, // [139:139] is the sub-list for extension extendee
+	0,   // [0:139] is the sub-list for field type_name
 }
 
 func init() { file_terraform1_proto_init() }

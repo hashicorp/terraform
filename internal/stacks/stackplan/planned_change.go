@@ -325,6 +325,10 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 		if err != nil {
 			return nil, err
 		}
+		replacePaths, err := encodePathSet(pc.ChangeSrc.RequiredReplace)
+		if err != nil {
+			return nil, err
+		}
 		descs = []*terraform1.PlannedChange_ChangeDescription{
 			{
 				Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
@@ -339,6 +343,7 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 							Old: terraform1.NewDynamicValue(pc.ChangeSrc.Before, pc.ChangeSrc.BeforeValMarks),
 							New: terraform1.NewDynamicValue(pc.ChangeSrc.After, pc.ChangeSrc.AfterValMarks),
 						},
+						ReplacePaths: replacePaths,
 						// TODO: Moved, Imported
 					},
 				},
@@ -350,6 +355,20 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 		Raw:          []*anypb.Any{&raw},
 		Descriptions: descs,
 	}, nil
+}
+
+func encodePathSet(pathSet cty.PathSet) ([]*terraform1.AttributePath, error) {
+	if pathSet.Empty() {
+		return nil, nil
+	}
+
+	pathList := pathSet.List()
+	paths := make([]*terraform1.AttributePath, 0, len(pathList))
+
+	for _, path := range pathList {
+		paths = append(paths, terraform1.NewAttributePath(path))
+	}
+	return paths, nil
 }
 
 // PlannedChangeOutputValue announces the change action for one output value
