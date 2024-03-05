@@ -6,7 +6,8 @@ package objchange
 import (
 	"testing"
 
-	"github.com/apparentlymart/go-dump/dump"
+	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -2733,8 +2734,8 @@ func TestProposedNew(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			got := ProposedNew(test.Schema, test.Prior, test.Config)
-			if !got.RawEquals(test.Want) {
-				t.Errorf("wrong result\ngot:  %swant: %s", dump.Value(got), dump.Value(test.Want))
+			if diff := cmp.Diff(test.Want, got, ctydebug.CmpOptions); diff != "" {
+				t.Errorf("wrong result\n%s", diff)
 			}
 		})
 	}

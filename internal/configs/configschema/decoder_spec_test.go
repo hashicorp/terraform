@@ -7,13 +7,12 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/apparentlymart/go-dump/dump"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
-
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/hcl/v2/hcltest"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -410,9 +409,9 @@ func TestBlockDecoderSpec(t *testing.T) {
 				}
 			}
 
-			if !got.RawEquals(test.Want) {
-				t.Logf("[INFO] implied schema is %s", spew.Sdump(hcldec.ImpliedSchema(spec)))
-				t.Errorf("wrong result\ngot:  %s\nwant: %s", dump.Value(got), dump.Value(test.Want))
+			if diff := cmp.Diff(test.Want, got, ctydebug.CmpOptions); diff != "" {
+				t.Logf("implied schema is %s", spew.Sdump(hcldec.ImpliedSchema(spec)))
+				t.Errorf("wrong result\n%s", diff)
 			}
 
 			// Double-check that we're producing consistent results for DecoderSpec
@@ -852,9 +851,9 @@ func TestAttributeDecoderSpec(t *testing.T) {
 				}
 			}
 
-			if !got.RawEquals(test.Want) {
-				t.Logf("[INFO] implied schema is %s", spew.Sdump(hcldec.ImpliedSchema(spec)))
-				t.Errorf("wrong result\ngot:  %s\nwant: %s", dump.Value(got), dump.Value(test.Want))
+			if diff := cmp.Diff(test.Want, got, ctydebug.CmpOptions); diff != "" {
+				t.Logf("implied schema is %s", spew.Sdump(hcldec.ImpliedSchema(spec)))
+				t.Errorf("wrong result\n%s", diff)
 			}
 		})
 	}
