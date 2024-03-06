@@ -4,18 +4,21 @@
 package inmem
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"sort"
 	"sync"
 	"time"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
+	"github.com/hashicorp/terraform/internal/backend/backendbase"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	statespkg "github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // we keep the states and locks in package-level variables, so that they can be
@@ -45,26 +48,26 @@ func Reset() {
 
 // New creates a new backend for Inmem remote state.
 func New() backend.Backend {
-	// Set the schema
-	s := &schema.Backend{
-		Schema: map[string]*schema.Schema{
-			"lock_id": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "initializes the state in a locked configuration",
+	return &Backend{
+		Base: backendbase.Base{
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"lock_id": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "initializes the state in a locked configuration",
+					},
+				},
 			},
 		},
 	}
-	backend := &Backend{Backend: s}
-	backend.Backend.ConfigureFunc = backend.configure
-	return backend
 }
 
 type Backend struct {
-	*schema.Backend
+	backendbase.Base
 }
 
-func (b *Backend) configure(ctx context.Context) error {
+func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 	states.Lock()
 	defer states.Unlock()
 
@@ -77,10 +80,9 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	// set the default client lock info per the test config
-	data := schema.FromContextBackendConfig(ctx)
-	if v, ok := data.GetOk("lock_id"); ok && v.(string) != "" {
+	if v := configVal.GetAttr("lock_id"); !v.IsNull() {
 		info := statemgr.NewLockInfo()
-		info.ID = v.(string)
+		info.ID = v.AsString()
 		info.Operation = "test"
 		info.Info = "test config"
 
