@@ -12,7 +12,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
+	"github.com/hashicorp/terraform/internal/backend/backendbase"
 )
 
 // logEntry avoids log entries showing up in test output
@@ -41,10 +41,10 @@ func decodeCertificate(clientCertificate string) ([]byte, error) {
 	return pfx, nil
 }
 
-func getOidcToken(d *schema.ResourceData) (*string, error) {
-	idToken := strings.TrimSpace(d.Get("oidc_token").(string))
+func getOidcToken(d *backendbase.SDKLikeData) (*string, error) {
+	idToken := strings.TrimSpace(d.String("oidc_token"))
 
-	if path := d.Get("oidc_token_file_path").(string); path != "" {
+	if path := d.String("oidc_token_file_path"); path != "" {
 		fileTokenRaw, err := os.ReadFile(path)
 
 		if err != nil {
@@ -60,7 +60,7 @@ func getOidcToken(d *schema.ResourceData) (*string, error) {
 		idToken = fileToken
 	}
 
-	if d.Get("use_aks_workload_identity").(bool) && os.Getenv("AZURE_FEDERATED_TOKEN_FILE") != "" {
+	if d.Bool("use_aks_workload_identity") && os.Getenv("AZURE_FEDERATED_TOKEN_FILE") != "" {
 		path := os.Getenv("AZURE_FEDERATED_TOKEN_FILE")
 		fileTokenRaw, err := os.ReadFile(os.Getenv("AZURE_FEDERATED_TOKEN_FILE"))
 
@@ -80,10 +80,10 @@ func getOidcToken(d *schema.ResourceData) (*string, error) {
 	return &idToken, nil
 }
 
-func getClientId(d *schema.ResourceData) (*string, error) {
-	clientId := strings.TrimSpace(d.Get("client_id").(string))
+func getClientId(d *backendbase.SDKLikeData) (*string, error) {
+	clientId := strings.TrimSpace(d.String("client_id"))
 
-	if path := d.Get("client_id_file_path").(string); path != "" {
+	if path := d.String("client_id_file_path"); path != "" {
 		fileClientIdRaw, err := os.ReadFile(path)
 
 		if err != nil {
@@ -99,7 +99,7 @@ func getClientId(d *schema.ResourceData) (*string, error) {
 		clientId = fileClientId
 	}
 
-	if d.Get("use_aks_workload_identity").(bool) && os.Getenv("AZURE_CLIENT_ID") != "" {
+	if d.Bool("use_aks_workload_identity") && os.Getenv("AZURE_CLIENT_ID") != "" {
 		aksClientId := os.Getenv("AZURE_CLIENT_ID")
 		if clientId != "" && clientId != aksClientId {
 			return nil, fmt.Errorf("mismatch between supplied Client ID and that provided by AKS Workload Identity - please remove, ensure they match, or disable use_aks_workload_identity")
@@ -110,10 +110,10 @@ func getClientId(d *schema.ResourceData) (*string, error) {
 	return &clientId, nil
 }
 
-func getClientSecret(d *schema.ResourceData) (*string, error) {
-	clientSecret := strings.TrimSpace(d.Get("client_secret").(string))
+func getClientSecret(d *backendbase.SDKLikeData) (*string, error) {
+	clientSecret := strings.TrimSpace(d.String("client_secret"))
 
-	if path := d.Get("client_secret_file_path").(string); path != "" {
+	if path := d.String("client_secret_file_path"); path != "" {
 		fileSecretRaw, err := os.ReadFile(path)
 
 		if err != nil {
@@ -132,10 +132,10 @@ func getClientSecret(d *schema.ResourceData) (*string, error) {
 	return &clientSecret, nil
 }
 
-func getTenantId(d *schema.ResourceData) (*string, error) {
-	tenantId := strings.TrimSpace(d.Get("tenant_id").(string))
+func getTenantId(d *backendbase.SDKLikeData) (*string, error) {
+	tenantId := strings.TrimSpace(d.String("tenant_id"))
 
-	if d.Get("use_aks_workload_identity").(bool) && os.Getenv("AZURE_TENANT_ID") != "" {
+	if d.Bool("use_aks_workload_identity") && os.Getenv("AZURE_TENANT_ID") != "" {
 		aksTenantId := os.Getenv("AZURE_TENANT_ID")
 		if tenantId != "" && tenantId != aksTenantId {
 			return nil, fmt.Errorf("mismatch between supplied Tenant ID and that provided by AKS Workload Identity - please remove, ensure they match, or disable use_aks_workload_identity")
