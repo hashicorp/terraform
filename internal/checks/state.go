@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 )
 
-// State is a container for state tracking of all of the the checks declared in
+// State is a container for state tracking of all of the checks declared in
 // a particular Terraform configuration and their current statuses.
 //
 // A State object is mutable during plan and apply operations but should

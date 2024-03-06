@@ -634,7 +634,7 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 		t.Fatal("plan should not be empty")
 	}
 
-	// Data source should still exist in the the plan file
+	// Data source should still exist in the plan file
 	plan := testReadPlan(t, planPath)
 	if len(plan.Changes.Resources) != 2 {
 		t.Fatalf("Expected exactly 1 resource for destruction, %d given: %q",
