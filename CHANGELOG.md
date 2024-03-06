@@ -1,4 +1,4 @@
-## 1.8.0 (Unreleased)
+## 1.8.0-beta1 (March 6, 2024)
 
 UPGRADE NOTES:
 
@@ -29,20 +29,10 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * core: Sensitive values will now be tracked more accurately in state and plans, preventing unexpected updates with no apparent changes ([#34567](https://github.com/hashicorp/terraform/issues/34567))
-* core: Fix incorrect error message when using in invalid iterator within a dynamic block [GH-34751]
-* core: Fixed edge-case bug that could cause loss of floating point precision when round-tripping due to incorrectly using a MessagePack integer to represent a large non-integral number [GH-24576]
-* config: Converting from an unknown map value to an object type now correctly handles the situation where the map element type disagrees with an optional attribute of the target type, since when a map value is unknown we don't yet know which keys it has and thus cannot predict what subset of the elements will get converted as attributes in the resulting object [GH-34756]
+* core: Fix incorrect error message when using in invalid iterator within a dynamic block ([#34751](https://github.com/hashicorp/terraform/issues/34751))
+* core: Fixed edge-case bug that could cause loss of floating point precision when round-tripping due to incorrectly using a MessagePack integer to represent a large non-integral number ([#24576](https://github.com/hashicorp/terraform/issues/24576))
+* config: Converting from an unknown map value to an object type now correctly handles the situation where the map element type disagrees with an optional attribute of the target type, since when a map value is unknown we don't yet know which keys it has and thus cannot predict what subset of the elements will get converted as attributes in the resulting object ([#34756](https://github.com/hashicorp/terraform/issues/34756))
 * cloud: Fixed unparsed color codes in policy failure error messages ([#34473](https://github.com/hashicorp/terraform/issues/34473))
-
-EXPERIMENTS:
-
-Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
-
-* `terraform test` accepts a new option `-junit-xml=FILENAME`. If specified, and if the test configuration is valid enough to begin executing, then Terraform writes a JUnit XML test result report to the given filename, describing similar information as included in the normal test output. ([#34291](https://github.com/hashicorp/terraform/issues/34291))
-* The new command `terraform rpcapi` exposes some Terraform Core functionality through an RPC interface compatible with [`go-plugin`](https://github.com/hashicorp/go-plugin). The exact RPC API exposed here is currently subject to change at any time, because it's here primarily as a vehicle to support the [Terraform Stacks](https://www.hashicorp.com/blog/terraform-stacks-explained) private preview and so will be broken if necessary to respond to feedback from private preview participants, or possibly for other reasons. Do not use this mechanism yet outside of Terraform Stacks private preview.
-* The [language-level experiment](https://developer.hashicorp.com/terraform/language/settings#experimental-language-features) `unknown_instances` permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values.
-
-    This is at an early stage and so currently setting these arguments to unknown values will only yield broken behavior, and so it's not yet useful to participate in this experiment. Future work will improve support for this new possibility, gradually making this experiment viable.
 
 ## Previous Releases
 
