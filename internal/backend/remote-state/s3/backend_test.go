@@ -2626,7 +2626,7 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 // an s3 backend Block
 //
 // This serves as a smoke test for use of the terraform_remote_state
-// data source with the s3 backend, replicating the the process that
+// data source with the s3 backend, replicating the process that
 // data source uses. The returned value is ignored as the object is
 // large (representing the entire s3 backend schema) and the focus of
 // this test is early detection of coercion failures.

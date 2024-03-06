@@ -879,7 +879,7 @@ func UnmarshalActions(actions []string) plans.Action {
 // indexes.
 //
 // JavaScript (or similar dynamic language) consumers of these values can
-// iterate over the the steps starting from the root object to reach the
+// iterate over the steps starting from the root object to reach the
 // value that each path is describing.
 func encodePaths(pathSet cty.PathSet) (json.RawMessage, error) {
 	if pathSet.Empty() {
