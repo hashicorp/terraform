@@ -708,7 +708,7 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 	// * Specifically for a migration from the "remote" backend using 'prefix', we will
 	//   instead 'migrate' the workspaces using a pattern based on the old prefix+name,
 	//   not allowing a user to accidentally input the wrong pattern to line up with
-	//   what the the remote backend was already using before (which presumably already
+	//   what the remote backend was already using before (which presumably already
 	//   meets the naming considerations for Terraform Cloud).
 	//   In other words, this is a fast-track migration path from the remote backend, retaining
 	//   how things already are in Terraform Cloud with no user intervention needed.
