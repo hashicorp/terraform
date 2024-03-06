@@ -92,3 +92,28 @@ func GetAttrEnvDefaultFallback(v cty.Value, attrName string, defEnv string, fall
 	}
 	return ret
 }
+
+// ErrorAsDiagnostics wraps a non-nil error as a tfdiags.Diagnostics.
+//
+// Panics if the given error is nil, since the caller should only be using
+// this if they've encountered a non-nil error.
+//
+// This is here just as a temporary measure to preserve the old treatment of
+// errors returned from legacy helper/schema-based backend implementations,
+// so that we can minimize the churn caused in the first iteration of adopting
+// backendbase.
+//
+// In the long run backends should produce higher-quality diagnostics directly
+// themselves, but we wanted to first complete the deprecation of the
+// legacy/helper/schema package with only mechanical code updates and then
+// save diagnostic quality improvements for a later time.
+func ErrorAsDiagnostics(err error) tfdiags.Diagnostics {
+	if err == nil {
+		panic("ErrorAsDiagnostics with nil error")
+	}
+	var diags tfdiags.Diagnostics
+	// This produces a very low-quality diagnostic message, but it matches
+	// how legacy helper/schema dealt with the same situation.
+	diags = diags.Append(err)
+	return diags
+}
