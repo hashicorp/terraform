@@ -1,4 +1,4 @@
-## 1.8.0-beta1 (March 6, 2024)
+## 1.8.0 (Unreleased)
 
 UPGRADE NOTES:
 
