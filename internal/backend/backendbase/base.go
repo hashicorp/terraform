@@ -29,6 +29,19 @@ type Base struct {
 	// schema are only use for input based on the configuration, and can't
 	// export any data for use elsewhere in the configuration.
 	Schema *configschema.Block
+
+	// SDKLikeDefaults is an optional addition for backends that were built
+	// to rely heavily on the legacy SDK's support for default values, both
+	// hard-coded and taken from environment variables.
+	//
+	// If this is non-empty then any key specified here must match a
+	// primitive-typed toplevel attribute in Schema, and PrepareConfig will
+	// arrange for the default values to be inserted before it returns.
+	//
+	// In particular, note that any attribute with an entry in this definition
+	// is guaranteed to never be null, since PrepareConfig will replace any
+	// nulls with an SDK-like "zero value".
+	SDKLikeDefaults SDKLikeDefaults
 }
 
 // ConfigSchema returns the configuration schema for the backend.
@@ -88,6 +101,14 @@ func (b Base) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnostics
 
 		return false, nil
 	})
+
+	if len(b.SDKLikeDefaults) != 0 {
+		var err error
+		v, err = b.SDKLikeDefaults.ApplyTo(v)
+		if err != nil {
+			diags = diags.Append(err)
+		}
+	}
 
 	return v, diags
 }

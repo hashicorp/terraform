@@ -6,6 +6,8 @@ package backendbase
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -199,6 +201,83 @@ func TestSDKLikeData(t *testing.T) {
 		want := false
 		if got != want {
 			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+		}
+	})
+}
+
+func TestSDKLikeApplyEnvDefaults(t *testing.T) {
+	t.Setenv("FALLBACK_BEEP", "beep from environment")
+	t.Setenv("FALLBACK_UNUSED", "unused from environment")
+	t.Setenv("FALLBACK_EMPTY", "")
+
+	t.Run("success", func(t *testing.T) {
+		defs := SDKLikeDefaults{
+			"string_set_fallback": {
+				Fallback: "fallback not used",
+			},
+			"string_set_env": {
+				EnvVars: []string{"FALLBACK_UNUSED"},
+			},
+			"string_fallback_null": {
+				Fallback: "boop from fallback",
+			},
+			"string_fallback_empty": {
+				Fallback: "boop from fallback",
+			},
+			"string_env_null": {
+				EnvVars:  []string{"FALLBACK_BEEP", "FALLBACK_UNUSED"},
+				Fallback: "unused",
+			},
+			"string_env_empty": {
+				EnvVars:  []string{"FALLBACK_BEEP", "FALLBACK_UNUSED"},
+				Fallback: "unused",
+			},
+			"string_env_unsetfirst": {
+				EnvVars:  []string{"FALLBACK_EMPTY", "FALLBACK_BEEP"},
+				Fallback: "unused",
+			},
+			"string_env_unsetsecond": {
+				EnvVars:  []string{"FALLBACK_BEEP", "FALLBACK_EMPTY"},
+				Fallback: "unused",
+			},
+			"string_nothing_null": {
+				EnvVars: []string{"FALLBACK_EMPTY"},
+			},
+			"string_nothing_empty": {
+				EnvVars: []string{"FALLBACK_EMPTY"},
+			},
+		}
+		got, err := defs.ApplyTo(cty.ObjectVal(map[string]cty.Value{
+			"string_set_fallback":    cty.StringVal("set in config"),
+			"string_set_env":         cty.StringVal("set in config"),
+			"string_fallback_null":   cty.NullVal(cty.String),
+			"string_fallback_empty":  cty.StringVal(""),
+			"string_env_null":        cty.NullVal(cty.String),
+			"string_env_empty":       cty.StringVal(""),
+			"string_env_unsetfirst":  cty.NullVal(cty.String),
+			"string_env_unsetsecond": cty.NullVal(cty.String),
+			"string_nothing_null":    cty.NullVal(cty.String),
+			"string_nothing_empty":   cty.StringVal(""),
+			"passthru":               cty.EmptyObjectVal,
+		}))
+		want := cty.ObjectVal(map[string]cty.Value{
+			"string_set_fallback":    cty.StringVal("set in config"),
+			"string_set_env":         cty.StringVal("set in config"),
+			"string_fallback_null":   cty.StringVal("boop from fallback"),
+			"string_fallback_empty":  cty.StringVal("boop from fallback"),
+			"string_env_null":        cty.StringVal("beep from environment"),
+			"string_env_empty":       cty.StringVal("beep from environment"),
+			"string_env_unsetfirst":  cty.StringVal("beep from environment"),
+			"string_env_unsetsecond": cty.StringVal("beep from environment"),
+			"string_nothing_null":    cty.StringVal(""),
+			"string_nothing_empty":   cty.StringVal(""),
+			"passthru":               cty.EmptyObjectVal,
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
+			t.Errorf("wrong result\n%s", diff)
 		}
 	})
 }
