@@ -5,6 +5,7 @@ package backendbase
 
 import (
 	"fmt"
+	"math/big"
 	"os"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -91,6 +92,23 @@ func GetAttrEnvDefaultFallback(v cty.Value, attrName string, defEnv string, fall
 		return fallback
 	}
 	return ret
+}
+
+// IntValue converts a cty value of type cty.Number into a Go int64, or returns
+// an error if that's not possible.
+func IntValue(v cty.Value) (int64, error) {
+	if v.Type() != cty.Number {
+		return 0, fmt.Errorf("a number is required")
+	}
+	if v.IsNull() {
+		return 0, fmt.Errorf("must not be null")
+	}
+	bf := v.AsBigFloat()
+	ret, acc := bf.Int64()
+	if acc != big.Exact {
+		return 0, fmt.Errorf("must not be a whole number")
+	}
+	return ret, nil
 }
 
 // ErrorAsDiagnostics wraps a non-nil error as a tfdiags.Diagnostics.
