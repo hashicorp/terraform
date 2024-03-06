@@ -108,17 +108,12 @@ event "promote-production" {
     workflow = "promote-production"
   }
 
-  notification {
-    on = "always"
-  }
-}
-
-event "crt-hook-tfc-upload" {
-  depends = ["promote-production"]
-  action "crt-hook-tfc-upload" {
-    organization = "hashicorp"
-    repository = "terraform-releases"
-    workflow = "crt-hook-tfc-upload"
+  promotion-events  {
+    post-promotion {
+      organization = "hashicorp"
+      repository = "terraform-releases"
+      workflow = "crt-hook-tfc-upload"
+    }
   }
 
   notification {
