@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // GetPathDefault traverses the steps of the given path through the given
@@ -94,11 +95,12 @@ func GetAttrEnvDefaultFallback(v cty.Value, attrName string, defEnv string, fall
 	return ret
 }
 
-// IntValue converts a cty value of type cty.Number into a Go int64, or returns
-// an error if that's not possible.
+// IntValue converts a cty value into a Go int64, or returns an error if that's
+// not possible.
 func IntValue(v cty.Value) (int64, error) {
-	if v.Type() != cty.Number {
-		return 0, fmt.Errorf("a number is required")
+	v, err := convert.Convert(v, cty.Number)
+	if err != nil {
+		return 0, err
 	}
 	if v.IsNull() {
 		return 0, fmt.Errorf("must not be null")
@@ -109,6 +111,28 @@ func IntValue(v cty.Value) (int64, error) {
 		return 0, fmt.Errorf("must not be a whole number")
 	}
 	return ret, nil
+}
+
+// BoolValue converts a cty value Go bool, or returns an error if that's not
+// possible.
+func BoolValue(v cty.Value) (bool, error) {
+	v, err := convert.Convert(v, cty.Bool)
+	if err != nil {
+		return false, err
+	}
+	if v.IsNull() {
+		return false, fmt.Errorf("must not be null")
+	}
+	return v.True(), nil
+}
+
+// MustBoolValue converts a cty value Go bool, or panics if that's not possible.
+func MustBoolValue(v cty.Value) bool {
+	ret, err := BoolValue(v)
+	if err != nil {
+		panic(fmt.Sprintf("MustBoolValue: %s", err))
+	}
+	return ret
 }
 
 // ErrorAsDiagnostics wraps a non-nil error as a tfdiags.Diagnostics.
