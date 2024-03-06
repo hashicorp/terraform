@@ -156,3 +156,120 @@ func SDKLikeRequiredWithEnvDefault(attrPath string, v string, envNames ...string
 	}
 	return ret, nil
 }
+
+// SDKLikeDefaults captures legacy-SDK-like default values to help fill the
+// gap in abstraction level between the legacy SDK and Terraform's own
+// configuration schema model.
+type SDKLikeDefaults map[string]SDKLikeDefault
+
+type SDKLikeDefault struct {
+	EnvVars  []string
+	Fallback string
+
+	// Required is for situations where an argument is optional to set
+	// in the configuration but _must_ eventually be set through the
+	// combination of the configuration and the environment variables
+	// in this object.
+	//
+	// It doesn't make sense to set Fallback non-empty when this flag is
+	// set, because an attribute with a non-empty fallback is always
+	// effectively present.
+	Required bool
+}
+
+// ApplyTo is a convenience helper that allows inserting default
+// values from environment variables into many different string attributes of
+// an object value all at once, approximating what the legacy SDK would've
+// done when the schema included an "EnvDefaultFunc".
+//
+// Like all of the "SDK-like" helpers. this expects that the base object has
+// already been coerced into the correct type for a backend's schema and
+// so this will panic if any of the keys in envVars do not match existing
+// attributes in base, and if the value in any of those attributes is not
+// of a cty primitive type.
+func (d SDKLikeDefaults) ApplyTo(base cty.Value) (cty.Value, error) {
+	attrTypes := base.Type().AttributeTypes()
+	retAttrs := make(map[string]cty.Value, len(attrTypes))
+	for attrName, ty := range attrTypes {
+		defs, hasDefs := d[attrName]
+		givenVal := base.GetAttr(attrName)
+		if !hasDefs {
+			// Just pass through verbatim any attributes that are not
+			// accounted for in our defaults.
+			retAttrs[attrName] = givenVal
+			continue
+		}
+
+		// The legacy SDK shims convert all values into strings (for flatmap)
+		// and then do their work in terms of that, so we'll follow suit here.
+		vStr, err := convert.Convert(givenVal, cty.String)
+		if err != nil {
+			panic("cannot apply environment variable defaults for " + ty.GoString())
+		}
+
+		rawStr := ""
+		if !vStr.IsNull() {
+			rawStr = vStr.AsString()
+		}
+
+		if rawStr == "" {
+			for _, envName := range defs.EnvVars {
+				rawStr = os.Getenv(envName)
+				if rawStr != "" {
+					break
+				}
+			}
+		}
+		if rawStr == "" {
+			rawStr = defs.Fallback
+		}
+		if defs.Required && rawStr == "" {
+			return cty.NilVal, fmt.Errorf("argument %q is required", attrName)
+		}
+
+		// By the time we get here, rawStr should be empty only if the original
+		// value was unset and all of the fallback environment variables were
+		// also unset. Otherwise, rawStr contains a string representation of
+		// a value that we now need to convert back to the type that was
+		// originally wanted.
+		switch ty {
+		case cty.String:
+			retAttrs[attrName] = cty.StringVal(rawStr)
+		case cty.Bool:
+			if rawStr == "" {
+				rawStr = "false"
+			}
+
+			// Legacy SDK uses strconv.ParseBool and therefore tolerates a
+			// variety of different string representations of true and false,
+			// so we'll do the same here. The config itself can't use those
+			// alternate forms because HCL's definition of bool prevails there,
+			// but the environment variables can use any of these forms.
+			bv, err := strconv.ParseBool(rawStr)
+			if err != nil {
+				return cty.NilVal, fmt.Errorf("invalid value for %q: %s", attrName, err)
+			}
+			retAttrs[attrName] = cty.BoolVal(bv)
+		case cty.Number:
+			if rawStr == "" {
+				rawStr = "0"
+			}
+
+			// This case is a little trickier because cty.Number could be
+			// representing either an integer or a float, which each have
+			// different interpretations in the legacy SDK. Therefore we'll
+			// try integer first and use its result if successful, but then
+			// try float as a fallback if not.
+			if iv, err := strconv.ParseInt(rawStr, 0, 0); err == nil {
+				retAttrs[attrName] = cty.NumberIntVal(iv)
+			} else if fv, err := strconv.ParseFloat(rawStr, 64); err == nil {
+				retAttrs[attrName] = cty.NumberFloatVal(fv)
+			} else {
+				return cty.NilVal, fmt.Errorf("invalid value for %q: must be a number", attrName)
+			}
+		default:
+			panic("cannot apply environment variable defaults for " + ty.GoString())
+		}
+	}
+	return cty.ObjectVal(retAttrs), nil
+}
