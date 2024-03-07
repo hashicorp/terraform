@@ -113,9 +113,10 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 
 				extVal := v.main.RootVariableValue(ctx, v.Addr().Item, phase)
 
-				// If the calling context does not define a value for this
-				// variable, we need to fall back to the default.
-				if extVal.Value == cty.NilVal {
+				// We treat a null value as equivalent to an unspecified value,
+				// and replace it with the variable's default value. This is
+				// consistent with how embedded stacks handle defaults.
+				if extVal.Value.IsNull() {
 					cfg := v.Config(ctx)
 
 					// A separate code path will validate the default value, so

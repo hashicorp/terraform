@@ -38,6 +38,7 @@ var (
 	// validConfigurations are shared between the validate and plan tests.
 	validConfigurations = map[string]validateTestInput{
 		"empty":                            {},
+		"plan-variable-defaults":           {},
 		"variable-output-roundtrip":        {},
 		"variable-output-roundtrip-nested": {},
 		filepath.Join("with-single-input", "input-from-component"): {},

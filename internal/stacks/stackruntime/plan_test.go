@@ -285,6 +285,91 @@ func TestPlanWithNoValueForRequiredVariable(t *testing.T) {
 	}
 }
 
+func TestPlanWithVariableDefaults(t *testing.T) {
+	// Test that defaults are applied correctly for both unspecified input
+	// variables and those with an explicit null value.
+	testCases := map[string]struct {
+		inputs map[stackaddrs.InputVariable]ExternalInputValue
+	}{
+		"unspecified": {
+			inputs: make(map[stackaddrs.InputVariable]ExternalInputValue),
+		},
+		"explicit null": {
+			inputs: map[stackaddrs.InputVariable]ExternalInputValue{
+				stackaddrs.InputVariable{Name: "beep"}: ExternalInputValue{
+					Value:    cty.NullVal(cty.DynamicPseudoType),
+					DefRange: tfdiags.SourceRange{Filename: "fake.tfstack.hcl"},
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			cfg := loadMainBundleConfigForTest(t, "plan-variable-defaults")
+
+			changesCh := make(chan stackplan.PlannedChange, 8)
+			diagsCh := make(chan tfdiags.Diagnostic, 2)
+			req := PlanRequest{
+				Config:      cfg,
+				InputValues: tc.inputs,
+			}
+			resp := PlanResponse{
+				PlannedChanges: changesCh,
+				Diagnostics:    diagsCh,
+			}
+
+			go Plan(ctx, &req, &resp)
+			gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+
+			if len(diags) != 0 {
+				t.Errorf("unexpected diagnostics\n%s", diags.ErrWithWarnings().Error())
+			}
+
+			wantChanges := []stackplan.PlannedChange{
+				&stackplan.PlannedChangeApplyable{
+					Applyable: true,
+				},
+				&stackplan.PlannedChangeHeader{
+					TerraformVersion: version.SemVer,
+				},
+				&stackplan.PlannedChangeOutputValue{
+					Addr:     stackaddrs.OutputValue{Name: "beep"},
+					Action:   plans.Create,
+					OldValue: plans.DynamicValue{0xc0},               // MessagePack nil
+					NewValue: plans.DynamicValue([]byte("\xa4BEEP")), // MessagePack string "BEEP"
+				},
+				&stackplan.PlannedChangeOutputValue{
+					Addr:     stackaddrs.OutputValue{Name: "defaulted"},
+					Action:   plans.Create,
+					OldValue: plans.DynamicValue{0xc0},               // MessagePack nil
+					NewValue: plans.DynamicValue([]byte("\xa4BOOP")), // MessagePack string "BOOP"
+				},
+				&stackplan.PlannedChangeOutputValue{
+					Addr:     stackaddrs.OutputValue{Name: "specified"},
+					Action:   plans.Create,
+					OldValue: plans.DynamicValue{0xc0},               // MessagePack nil
+					NewValue: plans.DynamicValue([]byte("\xa4BEEP")), // MessagePack string "BEEP"
+				},
+				&stackplan.PlannedChangeRootInputValue{
+					Addr: stackaddrs.InputVariable{
+						Name: "beep",
+					},
+					Value: cty.StringVal("BEEP"),
+				},
+			}
+			sort.SliceStable(gotChanges, func(i, j int) bool {
+				return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
+			})
+
+			if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions); diff != "" {
+				t.Errorf("wrong changes\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestPlanWithSingleResource(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, "with-single-resource")

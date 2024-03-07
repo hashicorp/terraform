@@ -455,11 +455,11 @@ func (m *Main) RootVariableValue(ctx context.Context, addr stackaddrs.InputVaria
 		ret, ok := m.planning.opts.InputVariableValues[addr]
 		if !ok {
 			// If no value is specified for the given input variable, we return
-			// a nil placeholder. Nil can never be specified, so the caller can
-			// determine that the variable's default value should be used (if
-			// present) or an error raised (if not).
+			// a null value. Callers should treat a null value as equivalent to
+			// an unspecified one, applying default (if present) or raising an
+			// error (if not).
 			return ExternalInputValue{
-				Value: cty.NilVal,
+				Value: cty.NullVal(cty.DynamicPseudoType),
 			}
 		}
 		return ret
