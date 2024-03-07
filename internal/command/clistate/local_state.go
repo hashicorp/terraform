@@ -4,7 +4,6 @@
 package clistate
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
@@ -42,13 +41,13 @@ type LocalState struct {
 	// hurt to remove file we never wrote to.
 	created bool
 
-	state     *terraform.State
-	readState *terraform.State
+	state     *workdir.BackendStateFile
+	readState *workdir.BackendStateFile
 	written   bool
 }
 
 // SetState will force a specific state in-memory for this local state.
-func (s *LocalState) SetState(state *terraform.State) {
+func (s *LocalState) SetState(state *workdir.BackendStateFile) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -57,7 +56,7 @@ func (s *LocalState) SetState(state *terraform.State) {
 }
 
 // StateReader impl.
-func (s *LocalState) State() *terraform.State {
+func (s *LocalState) State() *workdir.BackendStateFile {
 	return s.state.DeepCopy()
 }
 
@@ -67,7 +66,7 @@ func (s *LocalState) State() *terraform.State {
 // the original.
 //
 // StateWriter impl.
-func (s *LocalState) WriteState(state *terraform.State) error {
+func (s *LocalState) WriteState(state *workdir.BackendStateFile) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -79,13 +78,6 @@ func (s *LocalState) WriteState(state *terraform.State) error {
 	defer s.stateFileOut.Sync()
 
 	s.state = state.DeepCopy() // don't want mutations before we actually get this written to disk
-
-	if s.readState != nil && s.state != nil {
-		// We don't trust callers to properly manage serials. Instead, we assume
-		// that a WriteState is always for the next version after what was
-		// most recently read.
-		s.state.Serial = s.readState.Serial
-	}
 
 	if _, err := s.stateFileOut.Seek(0, io.SeekStart); err != nil {
 		return err
@@ -99,11 +91,12 @@ func (s *LocalState) WriteState(state *terraform.State) error {
 		return nil
 	}
 
-	if !s.state.MarshalEqual(s.readState) {
-		s.state.Serial++
+	raw, err := workdir.EncodeBackendStateFile(state)
+	if err != nil {
+		return err
 	}
-
-	if err := terraform.WriteState(s.state, s.stateFileOut); err != nil {
+	_, err = s.stateFileOut.Write(raw)
+	if err != nil {
 		return err
 	}
 
@@ -145,9 +138,8 @@ func (s *LocalState) RefreshState() error {
 				return err
 			}
 
-			// we need a non-nil reader for ReadState and an empty buffer works
-			// to return EOF immediately
-			reader = bytes.NewBuffer(nil)
+			// a nil reader means no state at all, handled below
+			reader = nil
 
 		} else {
 			defer f.Close()
@@ -164,10 +156,16 @@ func (s *LocalState) RefreshState() error {
 		reader = s.stateFileOut
 	}
 
-	state, err := terraform.ReadState(reader)
-	// if there's no state we just assign the nil return value
-	if err != nil && err != terraform.ErrNoState {
-		return err
+	var state *workdir.BackendStateFile
+	if reader != nil { // otherwise we'll leave state as nil
+		raw, err := io.ReadAll(reader)
+		if err != nil {
+			return err
+		}
+		state, err = workdir.ParseBackendStateFile(raw)
+		if err != nil {
+			return err
+		}
 	}
 
 	s.state = state

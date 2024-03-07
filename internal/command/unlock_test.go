@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/cli"
-	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 
-	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 )
 
 // Since we can't unlock a local state file, just test that calling unlock
@@ -23,12 +23,12 @@ func TestUnlock(t *testing.T) {
 	// Write the legacy state
 	statePath := DefaultStateFilename
 	{
-		f, err := os.Create(statePath)
+		emptyStateFile := workdir.NewBackendStateFile()
+		emptyStateFileRaw, err := workdir.EncodeBackendStateFile(emptyStateFile)
 		if err != nil {
-			t.Fatalf("err: %s", err)
+			t.Fatal(err)
 		}
-		err = legacy.WriteState(legacy.NewState(), f)
-		f.Close()
+		err = os.WriteFile(statePath, emptyStateFileRaw, os.ModePerm)
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}

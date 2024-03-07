@@ -6,8 +6,8 @@ package cloud
 import (
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
-	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 func TestDetectConfigChangeType(t *testing.T) {
@@ -101,10 +101,10 @@ func TestDetectConfigChangeType(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			var state *legacy.BackendState
+			var state *workdir.BackendState
 			var config *configs.Backend
 			if test.stateType != "" {
-				state = &legacy.BackendState{
+				state = &workdir.BackendState{
 					Type: test.stateType,
 					// everything else is irrelevant for our purposes here
 				}
