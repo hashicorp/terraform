@@ -1,7 +1,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: BUSL-1.1
 
-schema = "1"
+schema = "2"
 
 project "terraform" {
   // the team key is not used by CRT currently
@@ -69,32 +69,6 @@ event "promote-staging" {
   }
 }
 
-event "promote-staging-docker" {
-  depends = ["promote-staging"]
-  action "promote-staging-docker" {
-    organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "promote-staging-docker"
-  }
-
-  notification {
-    on = "always"
-  }
-}
-
-event "promote-staging-packaging" {
-  depends = ["promote-staging-docker"]
-  action "promote-staging-packaging" {
-    organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "promote-staging-packaging"
-  }
-
-  notification {
-    on = "always"
-  }
-}
-
 event "trigger-production" {
 // This event is dispatched by the bob trigger-promotion command
 // and is required - do not delete.
@@ -108,56 +82,13 @@ event "promote-production" {
     workflow = "promote-production"
   }
 
-  notification {
-    on = "always"
-  }
-}
-
-event "crt-hook-tfc-upload" {
-  depends = ["promote-production"]
-  action "crt-hook-tfc-upload" {
-    organization = "hashicorp"
-    repository = "terraform-releases"
-    workflow = "crt-hook-tfc-upload"
-  }
-
-  notification {
-    on = "always"
-  }
-}
-
-event "promote-production-docker" {
-  depends = ["crt-hook-tfc-upload"]
-  action "promote-production-docker" {
-    organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "promote-production-docker"
-  }
-
-  notification {
-    on = "always"
-  }
-}
-
-event "promote-production-packaging" {
-  depends = ["promote-production-docker"]
-  action "promote-production-packaging" {
-    organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "promote-production-packaging"
-  }
-
-  notification {
-    on = "always"
-  }
-}
-
-event "update-ironbank" {
-  depends = ["promote-production-packaging"]
-  action "update-ironbank" {
-    organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "update-ironbank"
+  promotion-events  {
+    update-ironbank = true
+    post-promotion {
+      organization = "hashicorp"
+      repository = "terraform-releases"
+      workflow = "crt-hook-tfc-upload"
+    }
   }
 
   notification {
