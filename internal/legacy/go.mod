@@ -6,7 +6,6 @@ go 1.22.0
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/errwrap v1.1.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-uuid v1.0.3
@@ -14,7 +13,6 @@ require (
 	github.com/hashicorp/hcl/v2 v2.20.0
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
 	github.com/mitchellh/copystructure v1.2.0
-	github.com/mitchellh/mapstructure v1.5.0
 	github.com/mitchellh/reflectwalk v1.0.2
 	github.com/zclconf/go-cty v1.14.3
 )
@@ -39,6 +37,7 @@ require (
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/s2a-go v0.1.4 // indirect
 	github.com/google/uuid v1.3.1 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
