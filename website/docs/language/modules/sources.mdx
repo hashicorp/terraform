@@ -262,11 +262,9 @@ to reduce the time taken to retrieve the remote repository.
 
 The `depth` URL argument corresponds to
 [the `--depth` argument to `git clone`](https://git-scm.com/docs/git-clone#Documentation/git-clone.txt---depthltdepthgt),
-instructs the Git to create a shallow clone with the history truncated to only
-the specified number of commits. 
-Because Terraform only uses the most recent selected commit to find the source
-code of your specified module, it is not typically useful to set `depth`
-to any value other than `1`.
+which instructs Git to create a shallow clone that includes
+only the specified number of commits in the history. 
+Setting `depth` to `1` is suitable for most cases. This is because Terraform only uses the most recently selected commit to find the source.
 ```hcl
 module "vpc" {
   source = "git::https://example.com/vpc.git?depth=1&ref=v1.2.0"
