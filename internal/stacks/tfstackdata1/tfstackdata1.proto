@@ -160,6 +160,12 @@ message PlanComponentInstance {
     // dependent objects must also be pending DELETE and their delete must
     // happen before this instance is destroyed.
     map<string, DynamicValue> planned_output_values = 6;
+
+    // A list of check results for this component instance, as produced by
+    // the modules runtime during the planning phase. The apply expects to
+    // update check results which were unknown during planning to reflect
+    // the actual results from the apply phase.
+    repeated tfplan.CheckResults planned_check_results = 9;
 }
 
 // Represents a planned change to a particular resource instance within a

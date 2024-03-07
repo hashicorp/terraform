@@ -64,6 +64,8 @@ type Component struct {
 	Dependents collections.Set[stackaddrs.AbsComponent]
 
 	PlannedOutputValues map[addrs.OutputValue]cty.Value
+
+	PlannedChecks *states.CheckResults
 }
 
 // ForModulesRuntime translates the component instance plan into the form
@@ -87,6 +89,7 @@ func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 		Timestamp: c.PlanTimestamp,
 		Applyable: c.PlanApplyable,
 		Complete:  c.PlanComplete,
+		Checks:    c.PlannedChecks,
 	}
 
 	sc := changes.SyncWrapper()

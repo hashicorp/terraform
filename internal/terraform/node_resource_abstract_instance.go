@@ -1647,6 +1647,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		newVal = cty.UnknownAsNull(newVal)
 	}
 
+	pvm = dedupePathValueMarks(append(pvm, schema.ValueMarks(newVal, nil)...))
 	if len(pvm) > 0 {
 		newVal = newVal.MarkWithPaths(pvm)
 	}
@@ -1736,6 +1737,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	if configDiags.HasErrors() {
 		return nil, nil, keyData, diags
 	}
+	unmarkedConfigVal, unmarkedPaths := configVal.UnmarkDeepWithPaths()
 
 	check, nested := n.nestedInCheckBlock()
 	if nested {
@@ -1794,9 +1796,15 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 			reason = plans.ResourceInstanceReadBecauseDependencyPending
 		}
 
-		unmarkedConfigVal, configMarkPaths := configVal.UnmarkDeepWithPaths()
 		proposedNewVal := objchange.PlannedDataResourceObject(schema, unmarkedConfigVal)
-		proposedNewVal = proposedNewVal.MarkWithPaths(configMarkPaths)
+
+		// even though we are only returning the config value because we can't
+		// yet read the data source, we need to incorporate the schema marks so
+		// that downstream consumers can detect them when planning.
+		unmarkedPaths = dedupePathValueMarks(append(unmarkedPaths, schema.ValueMarks(proposedNewVal, nil)...))
+		if len(unmarkedPaths) > 0 {
+			proposedNewVal = proposedNewVal.MarkWithPaths(unmarkedPaths)
+		}
 
 		// Apply detects that the data source will need to be read by the After
 		// value containing unknowns from PlanDataResourceObject.
@@ -1826,6 +1834,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 
 	// We have a complete configuration with no dependencies to wait on, so we
 	// can read the data source into the state.
+	// newVal is fully marked by the readDataSource method.
 	newVal, readDiags := n.readDataSource(ctx, configVal)
 
 	// Now we've loaded the data, and diags tells us whether we were successful
@@ -1855,9 +1864,16 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 		if readDiags.HasErrors() {
 			// If we had errors, then we can cover that up by marking the new
 			// state as unknown.
-			unmarkedConfigVal, configMarkPaths := configVal.UnmarkDeepWithPaths()
 			newVal = objchange.PlannedDataResourceObject(schema, unmarkedConfigVal)
-			newVal = newVal.MarkWithPaths(configMarkPaths)
+
+			// not only do we want to ensure this synthetic value has the marks,
+			// but since this is the value being returned from the data source
+			// we need to ensure the schema marks are added as well.
+			unmarkedPaths = dedupePathValueMarks(append(unmarkedPaths, schema.ValueMarks(newVal, nil)...))
+
+			if len(unmarkedPaths) > 0 {
+				newVal = newVal.MarkWithPaths(unmarkedPaths)
+			}
 
 			// We still want to report the check as failed even if we are still
 			// letting it run again during the apply stage.

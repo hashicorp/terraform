@@ -88,24 +88,6 @@ func sniffActiveExperiments(body hcl.Body, allowed bool) (experiments.Set, hcl.D
 
 		exps, expDiags := decodeExperimentsAttr(attr)
 
-		// Because we concluded this particular experiment in the same
-		// release as we made experiments alpha-releases-only, we need to
-		// treat it as special to avoid masking the "experiment has concluded"
-		// error with the more general "experiments are not available at all"
-		// error. Note that this experiment is marked as concluded so this
-		// only "allows" showing the different error message that it is
-		// concluded, and does not allow actually using the experiment outside
-		// of an alpha.
-		// NOTE: We should be able to remove this special exception a release
-		// or two after v1.3 when folks have had a chance to notice that the
-		// experiment has concluded and update their modules accordingly.
-		// When we do so, we might also consider changing decodeExperimentsAttr
-		// to _not_ include concluded experiments in the returned set, since
-		// we're doing that right now only to make this condition work.
-		if exps.Has(experiments.ModuleVariableOptionalAttrs) && len(exps) == 1 {
-			allowed = true
-		}
-
 		if allowed {
 			diags = append(diags, expDiags...)
 			if !expDiags.HasErrors() {
@@ -156,15 +138,6 @@ func decodeExperimentsAttr(attr *hcl.Attribute) (experiments.Set, hcl.Diagnostic
 				Subject:  expr.Range().Ptr(),
 			})
 		case experiments.ConcludedError:
-			// As a special case we still include the optional attributes
-			// experiment if it's present, because our caller treats that
-			// as special. See the comment in sniffActiveExperiments for
-			// more information, and remove this special case here one the
-			// special case up there is also removed.
-			if kw == "module_variable_optional_attrs" {
-				ret.Add(experiments.ModuleVariableOptionalAttrs)
-			}
-
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Experiment has concluded",

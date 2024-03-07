@@ -260,7 +260,12 @@ func (c *ApplyCommand) OperationRequest(
 	// Applying changes with dev overrides in effect could make it impossible
 	// to switch back to a release version if the schema isn't compatible,
 	// so we'll warn about it.
-	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
+	b, isRemoteBackend := be.(BackendWithRemoteTerraformVersion)
+	if isRemoteBackend && !b.IsLocalOperations() {
+		diags = diags.Append(c.providerDevOverrideRuntimeWarningsRemoteExecution())
+	} else {
+		diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
+	}
 
 	// Build the operation
 	opReq := c.Operation(be, viewType)

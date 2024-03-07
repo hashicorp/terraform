@@ -129,6 +129,8 @@ type PlannedChangeComponentInstance struct {
 
 	PlannedOutputValues map[string]cty.Value
 
+	PlannedCheckResults *states.CheckResults
+
 	// PlanTimestamp is the timestamp that would be returned from the
 	// "plantimestamp" function in modules inside this component. We
 	// must preserve this in the raw plan data to ensure that we can
@@ -183,8 +185,13 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 		plannedOutputValues[k] = dv
 	}
 
+	plannedCheckResults, err := planfile.CheckResultsToPlanProto(pc.PlannedCheckResults)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode check results: %s", err)
+	}
+
 	var raw anypb.Any
-	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanComponentInstance{
+	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanComponentInstance{
 		ComponentInstanceAddr:   pc.Addr.String(),
 		PlanTimestamp:           planTimestampStr,
 		PlannedInputValues:      plannedInputValues,
@@ -193,6 +200,7 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 		PlanComplete:            pc.PlanComplete,
 		DependsOnComponentAddrs: componentAddrsRaw,
 		PlannedOutputValues:     plannedOutputValues,
+		PlannedCheckResults:     plannedCheckResults,
 	}, proto.MarshalOptions{})
 	if err != nil {
 		return nil, err
@@ -317,6 +325,10 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 		if err != nil {
 			return nil, err
 		}
+		replacePaths, err := encodePathSet(pc.ChangeSrc.RequiredReplace)
+		if err != nil {
+			return nil, err
+		}
 		descs = []*terraform1.PlannedChange_ChangeDescription{
 			{
 				Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
@@ -331,6 +343,7 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 							Old: terraform1.NewDynamicValue(pc.ChangeSrc.Before, pc.ChangeSrc.BeforeValMarks),
 							New: terraform1.NewDynamicValue(pc.ChangeSrc.After, pc.ChangeSrc.AfterValMarks),
 						},
+						ReplacePaths: replacePaths,
 						// TODO: Moved, Imported
 					},
 				},
@@ -342,6 +355,20 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 		Raw:          []*anypb.Any{&raw},
 		Descriptions: descs,
 	}, nil
+}
+
+func encodePathSet(pathSet cty.PathSet) ([]*terraform1.AttributePath, error) {
+	if pathSet.Empty() {
+		return nil, nil
+	}
+
+	pathList := pathSet.List()
+	paths := make([]*terraform1.AttributePath, 0, len(pathList))
+
+	for _, path := range pathList {
+		paths = append(paths, terraform1.NewAttributePath(path))
+	}
+	return paths, nil
 }
 
 // PlannedChangeOutputValue announces the change action for one output value
