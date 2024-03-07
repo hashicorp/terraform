@@ -9,19 +9,20 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
-	"strconv"
-	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 	sts "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sts/v20180813"
 	tag "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/tag/v20180813"
 	"github.com/tencentyun/cos-go-sdk-v5"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendbase"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Default value from environment variable
@@ -39,7 +40,8 @@ const (
 
 // Backend implements "backend".Backend for tencentCloud cos
 type Backend struct {
-	*schema.Backend
+	backendbase.Base
+
 	credential *common.Credential
 
 	cosContext context.Context
@@ -58,151 +60,188 @@ type Backend struct {
 
 // New creates a new backend for TencentCloud cos remote state.
 func New() backend.Backend {
-	s := &schema.Backend{
-		Schema: map[string]*schema.Schema{
-			"secret_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc(PROVIDER_SECRET_ID, nil),
-				Description: "Secret id of Tencent Cloud",
-			},
-			"secret_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc(PROVIDER_SECRET_KEY, nil),
-				Description: "Secret key of Tencent Cloud",
-				Sensitive:   true,
-			},
-			"security_token": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc(PROVIDER_SECURITY_TOKEN, nil),
-				Description: "TencentCloud Security Token of temporary access credentials. It can be sourced from the `TENCENTCLOUD_SECURITY_TOKEN` environment variable. Notice: for supported products, please refer to: [temporary key supported products](https://intl.cloud.tencent.com/document/product/598/10588).",
-				Sensitive:   true,
-			},
-			"region": {
-				Type:         schema.TypeString,
-				Required:     true,
-				DefaultFunc:  schema.EnvDefaultFunc(PROVIDER_REGION, nil),
-				Description:  "The region of the COS bucket",
-				InputDefault: "ap-guangzhou",
-			},
-			"bucket": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the COS bucket",
-			},
-			"endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The custom endpoint for the COS API, e.g. http://cos-internal.{Region}.tencentcos.cn. Both HTTP and HTTPS are accepted.",
-				DefaultFunc: schema.EnvDefaultFunc(PROVIDER_ENDPOINT, nil),
-			},
-			"domain": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc(PROVIDER_DOMAIN, nil),
-				Description: "The root domain of the API request. Default is tencentcloudapi.com.",
-			},
-			"prefix": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The directory for saving the state file in bucket",
-				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-					prefix := v.(string)
-					if strings.HasPrefix(prefix, "/") || strings.HasPrefix(prefix, "./") {
-						return nil, []error{fmt.Errorf("prefix must not start with '/' or './'")}
-					}
-					return nil, nil
-				},
-			},
-			"key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The path for saving the state file in bucket",
-				Default:     "terraform.tfstate",
-				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-					if strings.HasPrefix(v.(string), "/") || strings.HasSuffix(v.(string), "/") {
-						return nil, []error{fmt.Errorf("key can not start and end with '/'")}
-					}
-					return nil, nil
-				},
-			},
-			"encrypt": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Whether to enable server side encryption of the state file",
-				Default:     true,
-			},
-			"acl": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Object ACL to be applied to the state file",
-				Default:     "private",
-				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-					value := v.(string)
-					if value != "private" && value != "public-read" {
-						return nil, []error{fmt.Errorf(
-							"acl value invalid, expected %s or %s, got %s",
-							"private", "public-read", value)}
-					}
-					return nil, nil
-				},
-			},
-			"accelerate": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Whether to enable global Acceleration",
-				Default:     false,
-			},
-			"assume_role": {
-				Type:        schema.TypeSet,
-				Optional:    true,
-				MaxItems:    1,
-				Description: "The `assume_role` block. If provided, terraform will attempt to assume this role using the supplied credentials.",
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"role_arn": {
-							Type:        schema.TypeString,
-							Required:    true,
-							DefaultFunc: schema.EnvDefaultFunc(PROVIDER_ASSUME_ROLE_ARN, nil),
-							Description: "The ARN of the role to assume. It can be sourced from the `TENCENTCLOUD_ASSUME_ROLE_ARN`.",
-						},
-						"session_name": {
-							Type:        schema.TypeString,
-							Required:    true,
-							DefaultFunc: schema.EnvDefaultFunc(PROVIDER_ASSUME_ROLE_SESSION_NAME, nil),
-							Description: "The session name to use when making the AssumeRole call. It can be sourced from the `TENCENTCLOUD_ASSUME_ROLE_SESSION_NAME`.",
-						},
-						"session_duration": {
-							Type:     schema.TypeInt,
-							Required: true,
-							DefaultFunc: func() (interface{}, error) {
-								if v := os.Getenv(PROVIDER_ASSUME_ROLE_SESSION_DURATION); v != "" {
-									return strconv.Atoi(v)
+	return &Backend{
+		Base: backendbase.Base{
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"secret_id": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "Secret id of Tencent Cloud",
+					},
+					"secret_key": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "Secret key of Tencent Cloud",
+						//Sensitive:   true,
+					},
+					"security_token": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "TencentCloud Security Token of temporary access credentials. It can be sourced from the `TENCENTCLOUD_SECURITY_TOKEN` environment variable. Notice: for supported products, please refer to: [temporary key supported products](https://intl.cloud.tencent.com/document/product/598/10588).",
+						//Sensitive:   true,
+					},
+					"region": {
+						Type:        cty.String,
+						Required:    true,
+						Description: "The region of the COS bucket",
+						//InputDefault: "ap-guangzhou",
+					},
+					"bucket": {
+						Type:        cty.String,
+						Required:    true,
+						Description: "The name of the COS bucket",
+					},
+					"endpoint": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "The custom endpoint for the COS API, e.g. http://cos-internal.{Region}.tencentcos.cn. Both HTTP and HTTPS are accepted.",
+					},
+					"domain": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "The root domain of the API request. Default is tencentcloudapi.com.",
+					},
+					"prefix": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "The directory for saving the state file in bucket",
+						/*
+							ValidateFunc: func(v interface{}, s string) ([]string, []error) {
+								prefix := v.(string)
+								if strings.HasPrefix(prefix, "/") || strings.HasPrefix(prefix, "./") {
+									return nil, []error{fmt.Errorf("prefix must not start with '/' or './'")}
 								}
-								return 7200, nil
+								return nil, nil
 							},
-							ValidateFunc: validateIntegerInRange(0, 43200),
-							Description:  "The duration of the session when making the AssumeRole call. Its value ranges from 0 to 43200(seconds), and default is 7200 seconds. It can be sourced from the `TENCENTCLOUD_ASSUME_ROLE_SESSION_DURATION`.",
-						},
-						"policy": {
-							Type:        schema.TypeString,
-							Optional:    true,
-							Description: "A more restrictive policy when making the AssumeRole call. Its content must not contains `principal` elements. Notice: more syntax references, please refer to: [policies syntax logic](https://intl.cloud.tencent.com/document/product/598/10603).",
+						*/
+					},
+					"key": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "The path for saving the state file in bucket",
+						/*
+							ValidateFunc: func(v interface{}, s string) ([]string, []error) {
+								if strings.HasPrefix(v.(string), "/") || strings.HasSuffix(v.(string), "/") {
+									return nil, []error{fmt.Errorf("key can not start and end with '/'")}
+								}
+								return nil, nil
+							},
+						*/
+					},
+					"encrypt": {
+						Type:        cty.Bool,
+						Optional:    true,
+						Description: "Whether to enable server side encryption of the state file",
+					},
+					"acl": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "Object ACL to be applied to the state file",
+						/*
+							ValidateFunc: func(v interface{}, s string) ([]string, []error) {
+								value := v.(string)
+								if value != "private" && value != "public-read" {
+									return nil, []error{fmt.Errorf(
+										"acl value invalid, expected %s or %s, got %s",
+										"private", "public-read", value)}
+								}
+								return nil, nil
+							},
+						*/
+					},
+					"accelerate": {
+						Type:        cty.Bool,
+						Optional:    true,
+						Description: "Whether to enable global Acceleration",
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"assume_role": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"role_arn": {
+									Type:     cty.String,
+									Required: true,
+									//DefaultFunc: schema.EnvDefaultFunc(PROVIDER_ASSUME_ROLE_ARN, nil),
+									Description: "The ARN of the role to assume. It can be sourced from the `TENCENTCLOUD_ASSUME_ROLE_ARN`.",
+								},
+								"session_name": {
+									Type:     cty.String,
+									Required: true,
+									//DefaultFunc: schema.EnvDefaultFunc(PROVIDER_ASSUME_ROLE_SESSION_NAME, nil),
+									Description: "The session name to use when making the AssumeRole call. It can be sourced from the `TENCENTCLOUD_ASSUME_ROLE_SESSION_NAME`.",
+								},
+								"session_duration": {
+									Type:     cty.Number,
+									Required: true,
+									/*
+										DefaultFunc: func() (interface{}, error) {
+											if v := os.Getenv(PROVIDER_ASSUME_ROLE_SESSION_DURATION); v != "" {
+												return strconv.Atoi(v)
+											}
+											return 7200, nil
+										},
+									*/
+									// NOTE: When adapting this validation rule
+									// it'll also need to check whether the value
+									// is an integer, since cty can't guarantee
+									// a whole number.
+									// ValidateFunc: validateIntegerInRange(0, 43200),
+									Description: "The duration of the session when making the AssumeRole call. Its value ranges from 0 to 43200(seconds), and default is 7200 seconds. It can be sourced from the `TENCENTCLOUD_ASSUME_ROLE_SESSION_DURATION`.",
+								},
+								"policy": {
+									Type:        cty.String,
+									Optional:    true,
+									Description: "A more restrictive policy when making the AssumeRole call. Its content must not contains `principal` elements. Notice: more syntax references, please refer to: [policies syntax logic](https://intl.cloud.tencent.com/document/product/598/10603).",
+								},
+							},
 						},
 					},
 				},
 			},
+			SDKLikeDefaults: backendbase.SDKLikeDefaults{
+				"secret_id": {
+					EnvVars: []string{PROVIDER_SECRET_ID},
+				},
+				"secret_key": {
+					EnvVars: []string{PROVIDER_SECRET_KEY},
+				},
+				"security_token": {
+					EnvVars: []string{PROVIDER_SECURITY_TOKEN},
+				},
+				"region": {
+					EnvVars: []string{PROVIDER_REGION},
+				},
+				"endpoint": {
+					EnvVars: []string{PROVIDER_ENDPOINT},
+				},
+				"domain": {
+					EnvVars: []string{PROVIDER_DOMAIN},
+				},
+				"prefix": {
+					Fallback: "",
+				},
+				"key": {
+					Fallback: "terraform.tfstate",
+				},
+				"encrypt": {
+					Fallback: "true",
+				},
+				"acl": {
+					Fallback: "private",
+				},
+				"accelerate": {
+					Fallback: "false",
+				},
+			},
 		},
 	}
-
-	result := &Backend{Backend: s}
-	result.Backend.ConfigureFunc = result.configure
-
-	return result
 }
 
+/*
+// TODO: Adapt this for cty.Number?
 func validateIntegerInRange(min, max int64) schema.SchemaValidateFunc {
 	return func(v interface{}, k string) (ws []string, errors []error) {
 		value := int64(v.(int))
@@ -217,50 +256,55 @@ func validateIntegerInRange(min, max int64) schema.SchemaValidateFunc {
 		return
 	}
 }
+*/
 
 // configure init cos client
-func (b *Backend) configure(ctx context.Context) error {
+func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 	if b.cosClient != nil {
 		return nil
 	}
 
-	b.cosContext = ctx
-	data := schema.FromContextBackendConfig(b.cosContext)
+	data := backendbase.NewSDKLikeData(configVal)
 
-	b.region = data.Get("region").(string)
-	b.bucket = data.Get("bucket").(string)
-	b.prefix = data.Get("prefix").(string)
-	b.key = data.Get("key").(string)
-	b.encrypt = data.Get("encrypt").(bool)
-	b.acl = data.Get("acl").(string)
+	// TODO: Pre-validate configVal with similar rules to what were previously
+	// declared inline in the schema.
+
+	b.region = data.String("region")
+	b.bucket = data.String("bucket")
+	b.prefix = data.String("prefix")
+	b.key = data.String("key")
+	b.encrypt = data.Bool("encrypt")
+	b.acl = data.String("acl")
 
 	var (
 		u   *url.URL
 		err error
 	)
-	accelerate := data.Get("accelerate").(bool)
+	accelerate := data.Bool("accelerate")
 	if accelerate {
 		u, err = url.Parse(fmt.Sprintf("https://%s.cos.accelerate.myqcloud.com", b.bucket))
 	} else {
 		u, err = url.Parse(fmt.Sprintf("https://%s.cos.%s.myqcloud.com", b.bucket, b.region))
 	}
 	if err != nil {
-		return err
+		return backendbase.ErrorAsDiagnostics(err)
 	}
 
-	if v, ok := data.GetOk("domain"); ok {
-		b.domain = v.(string)
+	if v := data.String("domain"); v != "" {
+		b.domain = v
 		log.Printf("[DEBUG] Backend: set domain for TencentCloud API client. Domain: [%s]", b.domain)
 	}
 	// set url as endpoint when provided
 	// "http://{Bucket}.cos-internal.{Region}.tencentcos.cn"
-	if v, ok := data.GetOk("endpoint"); ok {
-		endpoint := v.(string)
+	if v := data.String("endpoint"); v != "" {
+		endpoint := v
 
 		re := regexp.MustCompile(`^(http(s)?)://cos-internal\.([^.]+)\.tencentcos\.cn$`)
 		matches := re.FindStringSubmatch(endpoint)
 		if len(matches) != 4 {
-			return fmt.Errorf("Invalid URL: %v must be: %v", endpoint, "http(s)://cos-internal.{Region}.tencentcos.cn")
+			return backendbase.ErrorAsDiagnostics(
+				fmt.Errorf("Invalid URL: %v must be: %v", endpoint, "http(s)://cos-internal.{Region}.tencentcos.cn"),
+			)
 		}
 
 		protocol := matches[1]
@@ -272,19 +316,19 @@ func (b *Backend) configure(ctx context.Context) error {
 		log.Printf("[DEBUG] Backend: set COS URL as: [%s]", newUrl)
 	}
 	if err != nil {
-		return err
+		return backendbase.ErrorAsDiagnostics(err)
 	}
 
-	secretId := data.Get("secret_id").(string)
-	secretKey := data.Get("secret_key").(string)
-	securityToken := data.Get("security_token").(string)
+	secretId := data.String("secret_id")
+	secretKey := data.String("secret_key")
+	securityToken := data.String("security_token")
 
 	// init credential by AKSK & TOKEN
 	b.credential = common.NewTokenCredential(secretId, secretKey, securityToken)
 	// update credential if assume role exist
 	err = handleAssumeRole(data, b)
 	if err != nil {
-		return err
+		return backendbase.ErrorAsDiagnostics(err)
 	}
 
 	b.cosClient = cos.NewClient(
@@ -300,19 +344,33 @@ func (b *Backend) configure(ctx context.Context) error {
 	)
 
 	b.tagClient = b.UseTagClient()
-	return err
+	if err != nil {
+		return backendbase.ErrorAsDiagnostics(err)
+	}
+	return nil
 }
 
-func handleAssumeRole(data *schema.ResourceData, b *Backend) error {
-	assumeRoleList := data.Get("assume_role").(*schema.Set).List()
-	if len(assumeRoleList) == 1 {
-		assumeRole := assumeRoleList[0].(map[string]interface{})
-		assumeRoleArn := assumeRole["role_arn"].(string)
-		assumeRoleSessionName := assumeRole["session_name"].(string)
-		assumeRoleSessionDuration := assumeRole["session_duration"].(int)
-		assumeRolePolicy := assumeRole["policy"].(string)
+func handleAssumeRole(data backendbase.SDKLikeData, b *Backend) error {
+	assumeRoleVal := data.GetAttr("assume_role", cty.DynamicPseudoType)
+	if !assumeRoleVal.IsNull() {
+		assumeRole := backendbase.NewSDKLikeData(assumeRoleVal)
+		// TODO: Handle the environment-variable-based defaults for these
+		// arguments, since backendbase.SDKLikeDefaults only supports
+		// top-level attributes, not nested attributes. (This is the only
+		// backend that relies on a nested block in its configuration, so
+		// probably not worth complicating the shared helpers just for this
+		// one exceptional case.)
+		assumeRoleArn := assumeRole.String("role_arn")
+		assumeRoleSessionName := assumeRole.String("session_name")
+		assumeRolePolicy := assumeRole.String("policy")
+		assumeRoleSessionDuration, err := assumeRole.Int64("session_duration")
+		if err != nil {
+			return fmt.Errorf("invalid session_duration: %w", err)
+		}
 
-		err := b.updateCredentialWithSTS(assumeRoleArn, assumeRoleSessionName, assumeRoleSessionDuration, assumeRolePolicy)
+		// NOTE: The following truncates assumeRoleSessionDuration from
+		// 64-bit to 32-bit when running on a 32-bit platform.
+		err = b.updateCredentialWithSTS(assumeRoleArn, assumeRoleSessionName, int(assumeRoleSessionDuration), assumeRolePolicy)
 		if err != nil {
 			return err
 		}
