@@ -4,7 +4,6 @@
 package oss
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -18,10 +17,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/endpoints"
-
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials"
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/endpoints"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/location"
@@ -31,56 +29,56 @@ import (
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jmespath/go-jmespath"
 	"github.com/mitchellh/go-homedir"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
+	"github.com/hashicorp/terraform/internal/backend/backendbase"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 )
 
 // Deprecated in favor of flattening assume_role_* options
-func deprecatedAssumeRoleSchema() *schema.Schema {
-	return &schema.Schema{
-		Type:     schema.TypeSet,
-		Optional: true,
-		MaxItems: 1,
-		//Deprecated: "use assume_role_* options instead",
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
+func deprecatedAssumeRoleSchema() *configschema.NestedBlock {
+	return &configschema.NestedBlock{
+		Nesting: configschema.NestingSingle,
+		Block: configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
 				"role_arn": {
-					Type:        schema.TypeString,
+					Type:        cty.String,
 					Required:    true,
 					Description: "The ARN of a RAM role to assume prior to making API calls.",
-					DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_ARN", ""),
 				},
 				"session_name": {
-					Type:        schema.TypeString,
+					Type:        cty.String,
 					Optional:    true,
 					Description: "The session name to use when assuming the role.",
-					DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_SESSION_NAME", ""),
 				},
 				"policy": {
-					Type:        schema.TypeString,
+					Type:        cty.String,
 					Optional:    true,
 					Description: "The permissions applied when assuming a role. You cannot use this policy to grant permissions which exceed those of the role that is being assumed.",
 				},
 				"session_expiration": {
-					Type:        schema.TypeInt,
+					Type:        cty.Number,
 					Optional:    true,
 					Description: "The time after which the established session for assuming role expires.",
-					ValidateFunc: func(v interface{}, k string) ([]string, []error) {
-						min := 900
-						max := 3600
-						value, ok := v.(int)
-						if !ok {
-							return nil, []error{fmt.Errorf("expected type of %s to be int", k)}
-						}
+					/*
+						ValidateFunc: func(v interface{}, k string) ([]string, []error) {
+							min := 900
+							max := 3600
+							value, ok := v.(int)
+							if !ok {
+								return nil, []error{fmt.Errorf("expected type of %s to be int", k)}
+							}
 
-						if value < min || value > max {
-							return nil, []error{fmt.Errorf("expected %s to be in the range (%d - %d), got %d", k, min, max, v)}
-						}
+							if value < min || value > max {
+								return nil, []error{fmt.Errorf("expected %s to be in the range (%d - %d), got %d", k, min, max, v)}
+							}
 
-						return nil, nil
-					},
+							return nil, nil
+						},
+					*/
 				},
 			},
 		},
@@ -89,184 +87,236 @@ func deprecatedAssumeRoleSchema() *schema.Schema {
 
 // New creates a new backend for OSS remote state.
 func New() backend.Backend {
-	s := &schema.Backend{
-		Schema: map[string]*schema.Schema{
-			"access_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Alibaba Cloud Access Key ID",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ACCESS_KEY", os.Getenv("ALICLOUD_ACCESS_KEY_ID")),
-			},
+	return &Backend{
+		Base: backendbase.Base{
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"access_key": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "Alibaba Cloud Access Key ID",
+					},
+					"secret_key": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "Alibaba Cloud Access Secret Key",
+					},
+					"security_token": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "Alibaba Cloud Security Token",
+					},
+					"ecs_role_name": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "The RAM Role Name attached on a ECS instance for API operations. You can retrieve this from the 'Access Control' section of the Alibaba Cloud console.",
+					},
+					"region": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "The region of the OSS bucket.",
+					},
+					"sts_endpoint": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "A custom endpoint for the STS API",
+					},
+					"tablestore_endpoint": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "A custom endpoint for the TableStore API",
+					},
+					"endpoint": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "A custom endpoint for the OSS API",
+					},
+					"bucket": {
+						Type:        cty.String,
+						Required:    true,
+						Description: "The name of the OSS bucket",
+					},
+					"prefix": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "The directory where state files will be saved inside the bucket",
+						/*
+							ValidateFunc: func(v interface{}, s string) ([]string, []error) {
+								prefix := v.(string)
+								if strings.HasPrefix(prefix, "/") || strings.HasPrefix(prefix, "./") {
+									return nil, []error{fmt.Errorf("workspace_key_prefix must not start with '/' or './'")}
+								}
+								return nil, nil
+							},
+						*/
+					},
+					"key": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "The path of the state file inside the bucket",
+						/*
+							ValidateFunc: func(v interface{}, s string) ([]string, []error) {
+								if strings.HasPrefix(v.(string), "/") || strings.HasSuffix(v.(string), "/") {
+									return nil, []error{fmt.Errorf("key can not start and end with '/'")}
+								}
+								return nil, nil
+							},
+						*/
+					},
+					"tablestore_table": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "TableStore table for state locking and consistency",
+					},
+					"encrypt": {
+						Type:        cty.Bool,
+						Optional:    true,
+						Description: "Whether to enable server side encryption of the state file",
+					},
+					"acl": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "Object ACL to be applied to the state file",
+						/*
+							ValidateFunc: func(v interface{}, k string) ([]string, []error) {
+								if value := v.(string); value != "" {
+									acls := oss.ACLType(value)
+									if acls != oss.ACLPrivate && acls != oss.ACLPublicRead && acls != oss.ACLPublicReadWrite {
+										return nil, []error{fmt.Errorf(
+											"%q must be a valid ACL value , expected %s, %s or %s, got %q",
+											k, oss.ACLPrivate, oss.ACLPublicRead, oss.ACLPublicReadWrite, acls)}
+									}
+								}
+								return nil, nil
+							},
+						*/
+					},
+					"shared_credentials_file": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "This is the path to the shared credentials file. If this is not set and a profile is specified, `~/.aliyun/config.json` will be used.",
+					},
+					"profile": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "This is the Alibaba Cloud profile name as set in the shared credentials file. It can also be sourced from the `ALICLOUD_PROFILE` environment variable.",
+					},
+					"assume_role_role_arn": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "The ARN of a RAM role to assume prior to making API calls.",
+					},
+					"assume_role_session_name": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "The session name to use when assuming the role.",
+					},
+					"assume_role_policy": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "The permissions applied when assuming a role. You cannot use this policy to grant permissions which exceed those of the role that is being assumed.",
+					},
+					"assume_role_session_expiration": {
+						Type:        cty.Number,
+						Optional:    true,
+						Description: "The time after which the established session for assuming role expires.",
+						/*
+							ValidateFunc: func(v interface{}, k string) ([]string, []error) {
+								min := 900
+								max := 3600
+								value, ok := v.(int)
+								if !ok {
+									return nil, []error{fmt.Errorf("expected type of %s to be int", k)}
+								}
 
-			"secret_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Alibaba Cloud Access Secret Key",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_SECRET_KEY", os.Getenv("ALICLOUD_ACCESS_KEY_SECRET")),
-			},
+								if value < min || value > max {
+									return nil, []error{fmt.Errorf("expected %s to be in the range (%d - %d), got %d", k, min, max, v)}
+								}
 
-			"security_token": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Alibaba Cloud Security Token",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_SECURITY_TOKEN", ""),
-			},
-
-			"ecs_role_name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ECS_ROLE_NAME", os.Getenv("ALICLOUD_ECS_ROLE_NAME")),
-				Description: "The RAM Role Name attached on a ECS instance for API operations. You can retrieve this from the 'Access Control' section of the Alibaba Cloud console.",
-			},
-
-			"region": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The region of the OSS bucket.",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_REGION", os.Getenv("ALICLOUD_DEFAULT_REGION")),
-			},
-			"sts_endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A custom endpoint for the STS API",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_STS_ENDPOINT", ""),
-			},
-			"tablestore_endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A custom endpoint for the TableStore API",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_TABLESTORE_ENDPOINT", ""),
-			},
-			"endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A custom endpoint for the OSS API",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_OSS_ENDPOINT", os.Getenv("OSS_ENDPOINT")),
-			},
-
-			"bucket": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the OSS bucket",
-			},
-
-			"prefix": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The directory where state files will be saved inside the bucket",
-				Default:     "env:",
-				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-					prefix := v.(string)
-					if strings.HasPrefix(prefix, "/") || strings.HasPrefix(prefix, "./") {
-						return nil, []error{fmt.Errorf("workspace_key_prefix must not start with '/' or './'")}
-					}
-					return nil, nil
+								return nil, nil
+							},
+						*/
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					// Deprecated in favor of the top-level assume_role_* arguments
+					"assume_role": deprecatedAssumeRoleSchema(),
 				},
 			},
-
-			"key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The path of the state file inside the bucket",
-				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-					if strings.HasPrefix(v.(string), "/") || strings.HasSuffix(v.(string), "/") {
-						return nil, []error{fmt.Errorf("key can not start and end with '/'")}
-					}
-					return nil, nil
+			SDKLikeDefaults: backendbase.SDKLikeDefaults{
+				"access_key": {
+					EnvVars: []string{
+						"ALICLOUD_ACCESS_KEY",
+						"ALICLOUD_ACCESS_KEY_ID",
+					},
 				},
-				Default: "terraform.tfstate",
-			},
-
-			"tablestore_table": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "TableStore table for state locking and consistency",
-				Default:     "",
-			},
-
-			"encrypt": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Whether to enable server side encryption of the state file",
-				Default:     false,
-			},
-
-			"acl": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Object ACL to be applied to the state file",
-				Default:     "",
-				ValidateFunc: func(v interface{}, k string) ([]string, []error) {
-					if value := v.(string); value != "" {
-						acls := oss.ACLType(value)
-						if acls != oss.ACLPrivate && acls != oss.ACLPublicRead && acls != oss.ACLPublicReadWrite {
-							return nil, []error{fmt.Errorf(
-								"%q must be a valid ACL value , expected %s, %s or %s, got %q",
-								k, oss.ACLPrivate, oss.ACLPublicRead, oss.ACLPublicReadWrite, acls)}
-						}
-					}
-					return nil, nil
+				"secret_key": {
+					EnvVars: []string{
+						"ALICLOUD_SECRET_KEY",
+						"ALICLOUD_ACCESS_KEY_SECRET",
+					},
 				},
-			},
-			"shared_credentials_file": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_SHARED_CREDENTIALS_FILE", ""),
-				Description: "This is the path to the shared credentials file. If this is not set and a profile is specified, `~/.aliyun/config.json` will be used.",
-			},
-			"profile": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "This is the Alibaba Cloud profile name as set in the shared credentials file. It can also be sourced from the `ALICLOUD_PROFILE` environment variable.",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_PROFILE", ""),
-			},
-			"assume_role": deprecatedAssumeRoleSchema(),
-			"assume_role_role_arn": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The ARN of a RAM role to assume prior to making API calls.",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_ARN", ""),
-			},
-			"assume_role_session_name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The session name to use when assuming the role.",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_SESSION_NAME", ""),
-			},
-			"assume_role_policy": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The permissions applied when assuming a role. You cannot use this policy to grant permissions which exceed those of the role that is being assumed.",
-			},
-			"assume_role_session_expiration": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "The time after which the established session for assuming role expires.",
-				ValidateFunc: func(v interface{}, k string) ([]string, []error) {
-					min := 900
-					max := 3600
-					value, ok := v.(int)
-					if !ok {
-						return nil, []error{fmt.Errorf("expected type of %s to be int", k)}
-					}
-
-					if value < min || value > max {
-						return nil, []error{fmt.Errorf("expected %s to be in the range (%d - %d), got %d", k, min, max, v)}
-					}
-
-					return nil, nil
+				"security_token": {
+					EnvVars: []string{"ALICLOUD_SECURITY_TOKEN"},
+				},
+				"ecs_role_name": {
+					EnvVars: []string{"ALICLOUD_ECS_ROLE_NAME"},
+				},
+				"region": {
+					EnvVars: []string{
+						"ALICLOUD_REGION",
+						"ALICLOUD_DEFAULT_REGION",
+					},
+				},
+				"sts_endpoint": {
+					EnvVars: []string{"ALICLOUD_STS_ENDPOINT"},
+				},
+				"tablestore_endpoint": {
+					EnvVars: []string{"ALICLOUD_TABLESTORE_ENDPOINT"},
+				},
+				"endpoint": {
+					EnvVars: []string{"ALICLOUD_OSS_ENDPOINT"},
+				},
+				"prefix": {
+					Fallback: "env:",
+				},
+				"key": {
+					Fallback: "terraform.tfstate",
+				},
+				"tablestore_table": {
+					Fallback: "",
+				},
+				"encrypt": {
+					Fallback: "false",
+				},
+				"acl": {
+					Fallback: "",
+				},
+				"shared_credentials_file": {
+					EnvVars: []string{"ALICLOUD_SHARED_CREDENTIALS_FILE"},
+				},
+				"profile": {
+					EnvVars: []string{"ALICLOUD_PROFILE"},
+				},
+				"assume_role_arn": {
+					EnvVars: []string{"ALICLOUD_ASSUME_ROLE_ARN"},
+				},
+				"assume_role_session_name": {
+					EnvVars: []string{"ALICLOUD_ASSUME_ROLE_SESSION_NAME"},
+				},
+				"assume_role_policy": {
+					Fallback: "",
+				},
+				"assume_role_session_expiration": {
+					Fallback: "3600",
 				},
 			},
 		},
 	}
-
-	result := &Backend{Backend: s}
-	result.Backend.ConfigureFunc = result.configure
-	return result
 }
 
 type Backend struct {
-	*schema.Backend
+	backendbase.Base
 
 	// The fields below are set from configure
 	ossClient *oss.Client
@@ -281,19 +331,21 @@ type Backend struct {
 	otsTable             string
 }
 
-func (b *Backend) configure(ctx context.Context) error {
+func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 	if b.ossClient != nil {
 		return nil
 	}
 
-	// Grab the resource data
-	d := schema.FromContextBackendConfig(ctx)
+	d := backendbase.NewSDKLikeData(configVal)
 
-	b.bucketName = d.Get("bucket").(string)
-	b.statePrefix = strings.TrimPrefix(strings.Trim(d.Get("prefix").(string), "/"), "./")
-	b.stateKey = d.Get("key").(string)
-	b.serverSideEncryption = d.Get("encrypt").(bool)
-	b.acl = d.Get("acl").(string)
+	// TODO: Validate the configuration, mimicking what was formerly written
+	// as validation functions inline in the schema.
+
+	b.bucketName = d.String("bucket")
+	b.statePrefix = strings.TrimPrefix(strings.Trim(d.String("prefix"), "/"), "./")
+	b.stateKey = d.String("key")
+	b.serverSideEncryption = d.Bool("encrypt")
+	b.acl = d.String("acl")
 
 	var getBackendConfig = func(str string, key string) string {
 		if str == "" {
@@ -305,13 +357,13 @@ func (b *Backend) configure(ctx context.Context) error {
 		return str
 	}
 
-	accessKey := getBackendConfig(d.Get("access_key").(string), "access_key_id")
-	secretKey := getBackendConfig(d.Get("secret_key").(string), "access_key_secret")
-	securityToken := getBackendConfig(d.Get("security_token").(string), "sts_token")
-	region := getBackendConfig(d.Get("region").(string), "region_id")
+	accessKey := getBackendConfig(d.String("access_key"), "access_key_id")
+	secretKey := getBackendConfig(d.String("secret_key"), "access_key_secret")
+	securityToken := getBackendConfig(d.String("security_token"), "sts_token")
+	region := getBackendConfig(d.String("region"), "region_id")
 
-	stsEndpoint := d.Get("sts_endpoint").(string)
-	endpoint := d.Get("endpoint").(string)
+	stsEndpoint := d.String("sts_endpoint")
+	endpoint := d.String("endpoint")
 	schma := "https"
 
 	roleArn := getBackendConfig("", "ram_role_arn")
@@ -323,29 +375,33 @@ func (b *Backend) configure(ctx context.Context) error {
 		sessionExpiration = (int)(expiredSeconds.(float64))
 	}
 
-	if v, ok := d.GetOk("assume_role_role_arn"); ok && v.(string) != "" {
-		roleArn = v.(string)
-		if v, ok := d.GetOk("assume_role_session_name"); ok {
-			sessionName = v.(string)
+	if v := d.String("assume_role_role_arn"); v != "" {
+		roleArn = v
+		if v := d.String("assume_role_session_name"); v != "" {
+			sessionName = v
 		}
-		if v, ok := d.GetOk("assume_role_policy"); ok {
-			policy = v.(string)
+		if v := d.String("assume_role_policy"); v != "" {
+			policy = v
 		}
-		if v, ok := d.GetOk("assume_role_session_expiration"); ok {
-			sessionExpiration = v.(int)
+		if v, err := d.Int64("assume_role_session_expiration"); err == nil && v != 0 {
+			// NOTE: This truncates from 64-bit to 32-bit on 32-bit platforms
+			sessionExpiration = int(v)
 		}
-	} else if v, ok := d.GetOk("assume_role"); ok {
+	} else if obj := d.GetAttr("assume_role", cty.DynamicPseudoType); !obj.IsNull() {
 		// deprecated assume_role block
-		for _, v := range v.(*schema.Set).List() {
-			assumeRole := v.(map[string]interface{})
-			if assumeRole["role_arn"].(string) != "" {
-				roleArn = assumeRole["role_arn"].(string)
-			}
-			if assumeRole["session_name"].(string) != "" {
-				sessionName = assumeRole["session_name"].(string)
-			}
-			policy = assumeRole["policy"].(string)
-			sessionExpiration = assumeRole["session_expiration"].(int)
+		d := backendbase.NewSDKLikeData(obj)
+		if v := d.String("assume_role_arn"); v != "" {
+			roleArn = v
+		}
+		if v := d.String("assume_role_session_name"); v != "" {
+			sessionName = v
+		}
+		if v := d.String("assume_role_policy"); v != "" {
+			policy = v
+		}
+		if v, err := d.Int64("assume_role_session_expiration"); err == nil && v != 0 {
+			// NOTE: This truncates from 64-bit to 32-bit on 32-bit platforms
+			sessionExpiration = int(v)
 		}
 	}
 
@@ -364,10 +420,10 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	if accessKey == "" {
-		ecsRoleName := getBackendConfig(d.Get("ecs_role_name").(string), "ram_role_name")
+		ecsRoleName := getBackendConfig(d.String("ecs_role_name"), "ram_role_name")
 		subAccessKeyId, subAccessKeySecret, subSecurityToken, err := getAuthCredentialByEcsRoleName(ecsRoleName)
 		if err != nil {
-			return err
+			return backendbase.ErrorAsDiagnostics(err)
 		}
 		accessKey, secretKey, securityToken = subAccessKeyId, subAccessKeySecret, subSecurityToken
 	}
@@ -375,7 +431,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	if roleArn != "" {
 		subAccessKeyId, subAccessKeySecret, subSecurityToken, err := getAssumeRoleAK(accessKey, secretKey, securityToken, region, roleArn, sessionName, policy, stsEndpoint, sessionExpiration)
 		if err != nil {
-			return err
+			return backendbase.ErrorAsDiagnostics(err)
 		}
 		accessKey, secretKey, securityToken = subAccessKeyId, subAccessKeySecret, subSecurityToken
 	}
@@ -413,7 +469,7 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	client, err := oss.New(endpoint, accessKey, secretKey, options...)
 	b.ossClient = client
-	otsEndpoint := d.Get("tablestore_endpoint").(string)
+	otsEndpoint := d.String("tablestore_endpoint")
 	if otsEndpoint != "" {
 		if !strings.HasPrefix(otsEndpoint, "http") {
 			otsEndpoint = fmt.Sprintf("%s://%s", schma, otsEndpoint)
@@ -422,9 +478,12 @@ func (b *Backend) configure(ctx context.Context) error {
 		parts := strings.Split(strings.TrimPrefix(strings.TrimPrefix(otsEndpoint, "https://"), "http://"), ".")
 		b.otsClient = tablestore.NewClientWithConfig(otsEndpoint, parts[0], accessKey, secretKey, securityToken, tablestore.NewDefaultTableStoreConfig())
 	}
-	b.otsTable = d.Get("tablestore_table").(string)
+	b.otsTable = d.String("tablestore_table")
 
-	return err
+	if err != nil {
+		return backendbase.ErrorAsDiagnostics(err)
+	}
+	return nil
 }
 
 func (b *Backend) getOSSEndpointByRegion(access_key, secret_key, security_token, region string) (*location.DescribeEndpointsResponse, error) {
@@ -546,15 +605,15 @@ func (a *Invoker) Run(f func() error) error {
 
 var providerConfig map[string]interface{}
 
-func getConfigFromProfile(d *schema.ResourceData, ProfileKey string) (interface{}, error) {
+func getConfigFromProfile(d backendbase.SDKLikeData, ProfileKey string) (interface{}, error) {
 
 	if providerConfig == nil {
-		if v, ok := d.GetOk("profile"); !ok || v.(string) == "" {
+		if v := d.String("profile"); v == "" {
 			return nil, nil
 		}
-		current := d.Get("profile").(string)
+		current := d.String("profile")
 		// Set CredsFilename, expanding home directory
-		profilePath, err := homedir.Expand(d.Get("shared_credentials_file").(string))
+		profilePath, err := homedir.Expand(d.String("shared_credentials_file"))
 		if err != nil {
 			return nil, err
 		}
