@@ -10,8 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hcl/v2"
 )
@@ -125,10 +123,10 @@ func TestBuild(t *testing.T) {
 				},
 			},
 		},
-		"multierror.Error": {
+		"errors.Join": {
 			func(diags Diagnostics) Diagnostics {
-				err := multierror.Append(nil, errors.New("bad thing A"))
-				err = multierror.Append(err, errors.New("bad thing B"))
+				err := errors.Join(nil, errors.New("bad thing A"))
+				err = errors.Join(err, errors.New("bad thing B"))
 				diags = diags.Append(err)
 				return diags
 			},
@@ -158,6 +156,42 @@ func TestBuild(t *testing.T) {
 				{
 					Severity: Error,
 					Summary:  "bad thing B",
+				},
+			},
+		},
+		"Diagnostics.Err": {
+			func(diags Diagnostics) Diagnostics {
+				var moreDiags Diagnostics
+				moreDiags = moreDiags.Append(errors.New("bad thing A"))
+				moreDiags = moreDiags.Append(errors.New("bad thing B"))
+				return diags.Append(moreDiags.Err())
+			},
+			[]diagFlat{
+				{
+					Severity: Error,
+					Summary:  "bad thing A",
+				},
+				{
+					Severity: Error,
+					Summary:  "bad thing B",
+				},
+			},
+		},
+		"Diagnostics.ErrWithWarnings": {
+			func(diags Diagnostics) Diagnostics {
+				var moreDiags Diagnostics
+				moreDiags = moreDiags.Append(SimpleWarning("Don't forget your toothbrush!"))
+				moreDiags = moreDiags.Append(SimpleWarning("Always make sure you know where your towel is"))
+				return diags.Append(moreDiags.ErrWithWarnings())
+			},
+			[]diagFlat{
+				{
+					Severity: Warning,
+					Summary:  "Don't forget your toothbrush!",
+				},
+				{
+					Severity: Warning,
+					Summary:  "Always make sure you know where your towel is",
 				},
 			},
 		},
