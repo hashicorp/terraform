@@ -236,6 +236,142 @@ func TestPlanWithMissingInputVariable(t *testing.T) {
 	}
 }
 
+func TestPlanWithNoValueForRequiredVariable(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "plan-no-value-for-required-variable")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange, 8)
+	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewBuiltInProvider("terraform"): func() (providers.Interface, error) {
+				return terraformProvider.NewProvider(), nil
+			},
+		},
+
+		ForcePlanTimestamp: &fakePlanTimestamp,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	_, gotDiags := collectPlanOutput(changesCh, diagsCh)
+
+	// We'll normalize the diagnostics to be of consistent underlying type
+	// using ForRPC, so that we can easily diff them; we don't actually care
+	// about which underlying implementation is in use.
+	gotDiags = gotDiags.ForRPC()
+	var wantDiags tfdiags.Diagnostics
+	wantDiags = wantDiags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "No value for required variable",
+		Detail:   `The root input variable "var.beep" is not set, and has no default value.`,
+		Subject: &hcl.Range{
+			Filename: mainBundleSourceAddrStr("plan-no-value-for-required-variable/unset-variable.tfstack.hcl"),
+			Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
+			End:      hcl.Pos{Line: 1, Column: 16, Byte: 15},
+		},
+	})
+	wantDiags = wantDiags.ForRPC()
+
+	if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
+		t.Errorf("wrong diagnostics\n%s", diff)
+	}
+}
+
+func TestPlanWithVariableDefaults(t *testing.T) {
+	// Test that defaults are applied correctly for both unspecified input
+	// variables and those with an explicit null value.
+	testCases := map[string]struct {
+		inputs map[stackaddrs.InputVariable]ExternalInputValue
+	}{
+		"unspecified": {
+			inputs: make(map[stackaddrs.InputVariable]ExternalInputValue),
+		},
+		"explicit null": {
+			inputs: map[stackaddrs.InputVariable]ExternalInputValue{
+				stackaddrs.InputVariable{Name: "beep"}: ExternalInputValue{
+					Value:    cty.NullVal(cty.DynamicPseudoType),
+					DefRange: tfdiags.SourceRange{Filename: "fake.tfstack.hcl"},
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			cfg := loadMainBundleConfigForTest(t, "plan-variable-defaults")
+
+			changesCh := make(chan stackplan.PlannedChange, 8)
+			diagsCh := make(chan tfdiags.Diagnostic, 2)
+			req := PlanRequest{
+				Config:      cfg,
+				InputValues: tc.inputs,
+			}
+			resp := PlanResponse{
+				PlannedChanges: changesCh,
+				Diagnostics:    diagsCh,
+			}
+
+			go Plan(ctx, &req, &resp)
+			gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+
+			if len(diags) != 0 {
+				t.Errorf("unexpected diagnostics\n%s", diags.ErrWithWarnings().Error())
+			}
+
+			wantChanges := []stackplan.PlannedChange{
+				&stackplan.PlannedChangeApplyable{
+					Applyable: true,
+				},
+				&stackplan.PlannedChangeHeader{
+					TerraformVersion: version.SemVer,
+				},
+				&stackplan.PlannedChangeOutputValue{
+					Addr:     stackaddrs.OutputValue{Name: "beep"},
+					Action:   plans.Create,
+					OldValue: plans.DynamicValue{0xc0},               // MessagePack nil
+					NewValue: plans.DynamicValue([]byte("\xa4BEEP")), // MessagePack string "BEEP"
+				},
+				&stackplan.PlannedChangeOutputValue{
+					Addr:     stackaddrs.OutputValue{Name: "defaulted"},
+					Action:   plans.Create,
+					OldValue: plans.DynamicValue{0xc0},               // MessagePack nil
+					NewValue: plans.DynamicValue([]byte("\xa4BOOP")), // MessagePack string "BOOP"
+				},
+				&stackplan.PlannedChangeOutputValue{
+					Addr:     stackaddrs.OutputValue{Name: "specified"},
+					Action:   plans.Create,
+					OldValue: plans.DynamicValue{0xc0},               // MessagePack nil
+					NewValue: plans.DynamicValue([]byte("\xa4BEEP")), // MessagePack string "BEEP"
+				},
+				&stackplan.PlannedChangeRootInputValue{
+					Addr: stackaddrs.InputVariable{
+						Name: "beep",
+					},
+					Value: cty.StringVal("BEEP"),
+				},
+			}
+			sort.SliceStable(gotChanges, func(i, j int) bool {
+				return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
+			})
+
+			if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions); diff != "" {
+				t.Errorf("wrong changes\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestPlanWithSingleResource(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, "with-single-resource")
@@ -436,7 +572,7 @@ func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 			Addr: stackaddrs.InputVariable{
 				Name: "msg",
 			},
-			Value: cty.NullVal(cty.String),
+			Value: cty.StringVal("default"),
 		},
 	}
 	sort.SliceStable(gotChanges, func(i, j int) bool {

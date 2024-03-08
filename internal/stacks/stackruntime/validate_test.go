@@ -38,6 +38,7 @@ var (
 	// validConfigurations are shared between the validate and plan tests.
 	validConfigurations = map[string]validateTestInput{
 		"empty":                            {},
+		"plan-variable-defaults":           {},
 		"variable-output-roundtrip":        {},
 		"variable-output-roundtrip-nested": {},
 		filepath.Join("with-single-input", "input-from-component"): {},
@@ -50,8 +51,16 @@ var (
 				}),
 			},
 		},
-		filepath.Join("with-single-input", "provider-name-clash"): {},
-		filepath.Join("with-single-input", "valid"):               {},
+		filepath.Join("with-single-input", "provider-name-clash"): {
+			planInputVars: map[string]cty.Value{
+				"input": cty.StringVal("input"),
+			},
+		},
+		filepath.Join("with-single-input", "valid"): {
+			planInputVars: map[string]cty.Value{
+				"input": cty.StringVal("input"),
+			},
+		},
 	}
 
 	// invalidConfigurations are shared between the validate and plan tests.

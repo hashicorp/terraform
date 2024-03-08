@@ -442,6 +442,10 @@ func (m *Main) PreviousProviderInstances(addr stackaddrs.AbsComponentInstance, p
 	}
 }
 
+// RootVariableValue returns the original root variable value specified by the
+// caller, if any. The caller of this function is responsible for replacing
+// missing values with defaults, and performing type conversion and and
+// validation.
 func (m *Main) RootVariableValue(ctx context.Context, addr stackaddrs.InputVariable, phase EvalPhase) ExternalInputValue {
 	switch phase {
 	case PlanPhase:
@@ -450,6 +454,10 @@ func (m *Main) RootVariableValue(ctx context.Context, addr stackaddrs.InputVaria
 		}
 		ret, ok := m.planning.opts.InputVariableValues[addr]
 		if !ok {
+			// If no value is specified for the given input variable, we return
+			// a null value. Callers should treat a null value as equivalent to
+			// an unspecified one, applying default (if present) or raising an
+			// error (if not).
 			return ExternalInputValue{
 				Value: cty.NullVal(cty.DynamicPseudoType),
 			}
