@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mitchellh/copystructure"
+	"github.com/hashicorp/terraform/internal/copy"
 )
 
 func upgradeStateV2ToV3(old *stateV2) (*stateV3, error) {
@@ -21,13 +21,17 @@ func upgradeStateV2ToV3(old *stateV2) (*stateV3, error) {
 
 	var new *stateV3
 	{
-		copy, err := copystructure.Config{Lock: true}.Copy(old)
-		if err != nil {
-			panic(err)
-		}
-		newWrongType := copy.(*stateV2)
-		newRightType := (stateV3)(*newWrongType)
-		new = &newRightType
+		// Trickery: the V2 and V3 types happen to match enough that we can
+		// let the language do the initial work to convert between them.
+		newCopy := (stateV3)(*old)
+		// However, we don't want our subsequent work to modify the caller's
+		// original object, so we'll deep-copy it. This copying utility is
+		// only really intended for use in tests, but this old data structure
+		// is simple enough that it does the job here, saving us from having
+		// to hand-write a bunch of copy logic for a long-forgotten, obsolete
+		// state snapshot format that is unlikely to exist in the wild anywhere
+		// anyway.
+		new = copy.DeepCopyValue(&newCopy)
 	}
 
 	// Set the new version number
