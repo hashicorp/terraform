@@ -8,6 +8,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -15,9 +16,7 @@ import (
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
-	"github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/pkg/errors"
 
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -192,7 +191,7 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 		err = fmt.Errorf("invoking PutRow got an error: %#v", err)
 		lockInfo, infoErr := c.getLockInfo()
 		if infoErr != nil {
-			err = multierror.Append(err, fmt.Errorf("\ngetting lock info got an error: %#v", infoErr))
+			err = errors.Join(err, fmt.Errorf("\ngetting lock info got an error: %#v", infoErr))
 		}
 		lockErr := &statemgr.LockError{
 			Err:  err,

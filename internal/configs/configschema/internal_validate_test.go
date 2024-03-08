@@ -7,8 +7,6 @@ import (
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
-
-	multierror "github.com/hashicorp/go-multierror"
 )
 
 func TestBlockInternalValidate(t *testing.T) {
@@ -271,7 +269,7 @@ func TestBlockInternalValidate(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			errs := multierrorErrors(test.Block.InternalValidate())
+			errs := joinedErrors(test.Block.InternalValidate())
 			if got, want := len(errs), len(test.Errs); got != want {
 				t.Errorf("wrong number of errors %d; want %d", got, want)
 				for _, err := range errs {
@@ -290,16 +288,19 @@ func TestBlockInternalValidate(t *testing.T) {
 	}
 }
 
-func multierrorErrors(err error) []error {
-	// A function like this should really be part of the multierror package...
-
+func joinedErrors(err error) []error {
 	if err == nil {
 		return nil
 	}
+	// This interface is implemented by the result of errors.Join when
+	// multiple errors are present.
+	type Unwrapper interface {
+		Unwrap() []error
+	}
 
 	switch terr := err.(type) {
-	case *multierror.Error:
-		return terr.Errors
+	case Unwrapper:
+		return terr.Unwrap()
 	default:
 		return []error{err}
 	}

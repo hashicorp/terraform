@@ -6,6 +6,7 @@ package clistate
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,7 +15,6 @@ import (
 	"sync"
 	"time"
 
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/internal/legacy/terraform"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
@@ -193,7 +193,7 @@ func (s *LocalState) Lock(info *statemgr.LockInfo) (string, error) {
 	if err := s.lock(); err != nil {
 		info, infoErr := s.lockInfo()
 		if infoErr != nil {
-			err = multierror.Append(err, infoErr)
+			err = errors.Join(err, infoErr)
 		}
 
 		lockErr := &statemgr.LockError{
@@ -220,7 +220,7 @@ func (s *LocalState) Unlock(id string) error {
 		idErr := fmt.Errorf("invalid lock id: %q. current id: %q", id, s.lockID)
 		info, err := s.lockInfo()
 		if err != nil {
-			idErr = multierror.Append(idErr, err)
+			idErr = errors.Join(idErr, err)
 		}
 
 		return &statemgr.LockError{

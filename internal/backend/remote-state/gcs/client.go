@@ -5,15 +5,16 @@ package gcs
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strconv"
 
 	"cloud.google.com/go/storage"
-	multierror "github.com/hashicorp/go-multierror"
+	"golang.org/x/net/context"
+
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"golang.org/x/net/context"
 )
 
 // remoteClient is used by "state/remote".State to read and write
@@ -134,7 +135,7 @@ func (c *remoteClient) lockError(err error) *statemgr.LockError {
 
 	info, infoErr := c.lockInfo()
 	if infoErr != nil {
-		lockErr.Err = multierror.Append(lockErr.Err, infoErr)
+		lockErr.Err = errors.Join(lockErr.Err, infoErr)
 	} else {
 		lockErr.Info = info
 	}

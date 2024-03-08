@@ -4,13 +4,12 @@
 package dag
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
-
-	"github.com/hashicorp/go-multierror"
 )
 
 // AcyclicGraph is a specialization of Graph that cannot have cycles.
@@ -131,7 +130,7 @@ func (g *AcyclicGraph) Validate() error {
 				cycleStr[j] = VertexName(vertex)
 			}
 
-			err = multierror.Append(err, fmt.Errorf(
+			err = errors.Join(err, fmt.Errorf(
 				"Cycle: %s", strings.Join(cycleStr, ", ")))
 		}
 	}
@@ -139,7 +138,7 @@ func (g *AcyclicGraph) Validate() error {
 	// Look for cycles to self
 	for _, e := range g.Edges() {
 		if e.Source() == e.Target() {
-			err = multierror.Append(err, fmt.Errorf(
+			err = errors.Join(err, fmt.Errorf(
 				"Self reference: %s", VertexName(e.Source())))
 		}
 	}
