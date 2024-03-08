@@ -20,13 +20,13 @@ import (
 	awsbase "github.com/hashicorp/aws-sdk-go-base/v2"
 	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
 	"github.com/hashicorp/aws-sdk-go-base/v2/validation"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/gocty"
-	"golang.org/x/exp/maps"
 )
 
 func New() backend.Backend {
@@ -799,7 +799,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 			validateStringLegacyURL,
 		},
 	}
-	for _, k := range maps.Keys(endpointFields) {
+	for k := range endpointFields {
 		if val := obj.GetAttr(k); !val.IsNull() {
 			attrPath := cty.GetAttrPath(k)
 			endpointValidators.ValidateAttr(val, attrPath, &diags)
