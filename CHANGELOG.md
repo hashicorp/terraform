@@ -1,5 +1,8 @@
 ## 1.7.5 (Unreleased)
 
+BUG FIXES:
+
+* backend/s3: When using s3 backend and encountering a network issue, the retry code would fail with "failed to rewind transport stream for retry". Now the retry should be successful. ([#34796](https://github.com/hashicorp/terraform/pull/34796))
 
 ## 1.7.4 (February 21, 2024)
 
