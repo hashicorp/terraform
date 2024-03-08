@@ -6,8 +6,6 @@ package statefile
 import (
 	"fmt"
 	"log"
-
-	"github.com/mitchellh/copystructure"
 )
 
 // upgradeStateV1ToV2 is used to upgrade a V1 state representation
@@ -50,14 +48,9 @@ func (old *remoteStateV1) upgradeToV2() (*remoteStateV2, error) {
 		return nil, nil
 	}
 
-	config, err := copystructure.Copy(old.Config)
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading RemoteState V1: %v", err)
-	}
-
 	return &remoteStateV2{
 		Type:   old.Type,
-		Config: config.(map[string]string),
+		Config: shallowCopyMap(old.Config),
 	}, nil
 }
 
@@ -66,14 +59,7 @@ func (old *moduleStateV1) upgradeToV2() (*moduleStateV2, error) {
 		return nil, nil
 	}
 
-	pathRaw, err := copystructure.Copy(old.Path)
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading ModuleState V1: %v", err)
-	}
-	path, ok := pathRaw.([]string)
-	if !ok {
-		return nil, fmt.Errorf("Error upgrading ModuleState V1: path is not a list of strings")
-	}
+	path := shallowCopySlice(old.Path)
 	if len(path) == 0 {
 		// We found some V1 states with a nil path. Assume root.
 		path = []string{"root"}
@@ -98,27 +84,17 @@ func (old *moduleStateV1) upgradeToV2() (*moduleStateV2, error) {
 		resources[key] = upgraded
 	}
 
-	dependencies, err := copystructure.Copy(old.Dependencies)
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading ModuleState V1: %v", err)
-	}
-
 	return &moduleStateV2{
 		Path:         path,
 		Outputs:      outputs,
 		Resources:    resources,
-		Dependencies: dependencies.([]string),
+		Dependencies: shallowCopySlice(old.Dependencies),
 	}, nil
 }
 
 func (old *resourceStateV1) upgradeToV2() (*resourceStateV2, error) {
 	if old == nil {
 		return nil, nil
-	}
-
-	dependencies, err := copystructure.Copy(old.Dependencies)
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading ResourceState V1: %v", err)
 	}
 
 	primary, err := old.Primary.upgradeToV2()
@@ -140,7 +116,7 @@ func (old *resourceStateV1) upgradeToV2() (*resourceStateV2, error) {
 
 	return &resourceStateV2{
 		Type:         old.Type,
-		Dependencies: dependencies.([]string),
+		Dependencies: shallowCopySlice(old.Dependencies),
 		Primary:      primary,
 		Deposed:      deposed,
 		Provider:     old.Provider,
@@ -152,24 +128,19 @@ func (old *instanceStateV1) upgradeToV2() (*instanceStateV2, error) {
 		return nil, nil
 	}
 
-	attributes, err := copystructure.Copy(old.Attributes)
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
-	}
-
-	meta, err := copystructure.Copy(old.Meta)
-	if err != nil {
-		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
-	}
-
-	newMeta := make(map[string]interface{})
-	for k, v := range meta.(map[string]string) {
-		newMeta[k] = v
+	// "Meta" changed from map[string]string to map[string]interface{},
+	// so we'll need to wrap all of the prior strings as interface values.
+	var newMeta map[string]interface{}
+	if old.Meta != nil {
+		newMeta = make(map[string]interface{}, len(old.Meta))
+		for k, v := range old.Meta {
+			newMeta[k] = v
+		}
 	}
 
 	return &instanceStateV2{
 		ID:         old.ID,
-		Attributes: attributes.(map[string]string),
+		Attributes: shallowCopyMap(old.Attributes),
 		Meta:       newMeta,
 	}, nil
 }
