@@ -236,7 +236,13 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 					code.WriteRune('\n')
 				}
 			}
+
 			codeStr := strings.TrimSuffix(code.String(), "\n")
+			// FIXME: Add error handing in case map conversion fails, or key doesn't exist.
+			info := diag.ExtraInfo().(map[string]string)
+			if info["sensitive"] == "true" {
+				codeStr = "(SENSITIVE)"
+			}
 			diagnostic.Snippet.Code = codeStr
 
 			// Calculate the start and end byte of the highlight range relative

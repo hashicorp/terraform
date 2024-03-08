@@ -273,7 +273,7 @@ func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSource
 								"file":      attr.NameRange.Filename,
 								"sensitive": fmt.Sprintf("%t", sens.True()),
 							}
-							// TODO: Break loop here? Ensure non-sensitive labeled false
+							// TODO: Break loop here?
 						}
 					}
 				}
