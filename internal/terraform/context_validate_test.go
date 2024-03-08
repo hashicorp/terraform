@@ -2981,3 +2981,54 @@ resource "bar_instance" "test" {
 		t.Errorf("unexpected diagnostic detail: %s", diff)
 	}
 }
+
+func TestContext2Validate_providerSchemaError(t *testing.T) {
+	// validate module and output depends_on
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
+output "foo" {
+	value = provider::test::func("foo")
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Computed: true},
+					},
+				},
+			},
+		},
+		Diagnostics: tfdiags.Diagnostics(nil).Append(errors.New("schema problem!")),
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	diags := ctx.Validate(m, nil)
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	}
+
+	// while the function in the config doesn't exist, we should not have gotten
+	// that far and stopped at the schema error first
+	for _, d := range diags {
+		if detail := d.Description().Detail; !strings.Contains(detail, "schema problem!") {
+			t.Errorf("unexpected error: %s", detail)
+		}
+	}
+}
