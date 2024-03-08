@@ -5,6 +5,7 @@ package command
 
 import (
 	"fmt"
+	"github.com/hashicorp/hcl/v2/hclparse"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -239,6 +240,15 @@ func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSource
 		f, hclDiags = hclsyntax.ParseConfig(src, filename, hcl.Pos{Line: 1, Column: 1})
 
 		// FIXME: TEST PARSE VARIABLE NAME
+		varParser := hclparse.NewParser()
+		var varSchema = &hcl.BodySchema{
+			Blocks: []hcl.BlockHeaderSchema{
+				{
+					Type:       "variable",
+					LabelNames: []string{"name"},
+				},
+			},
+		}
 		for _, hclDiag := range hclDiags {
 			// Retrieve metadata on variables from f and match to hclDiags metadata
 			// if it matches, save associated variable name to Extra attribute.
@@ -247,9 +257,24 @@ func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSource
 				attrRange := attr.Expr.Range()
 				if attrRange.Start == hclDiag.Context.Start && attrRange.End == hclDiag.Context.End {
 					// Fingerprint matches
-					hclDiag.Extra = map[string]string{
-						"variable": varName,
-						"file":     attr.NameRange.Filename,
+
+					// Parse .tf file containing variable declaration -- ignore error handling
+					// FIXME: Should loop through all .tf files to find the one containing the match
+					// FIXME: Atleast hardcoding main.tf should be fixed to parse appropriate file.
+					varFile, _ := varParser.ParseHCLFile("main.tf")
+					varBlocks, _ := varFile.Body.Content(varSchema)
+					for _, block := range varBlocks.Blocks {
+						// If variable name matches, check for sensitive label
+						if block.Labels[0] == varName {
+							varAttributes, _ := block.Body.JustAttributes()
+							sens, _ := varAttributes["sensitive"].Expr.Value(nil)
+							hclDiag.Extra = map[string]string{
+								"variable":  varName,
+								"file":      attr.NameRange.Filename,
+								"sensitive": fmt.Sprintf("%t", sens.True()),
+							}
+							// TODO: Break loop here? Ensure non-sensitive labeled false
+						}
 					}
 				}
 			}
@@ -257,10 +282,7 @@ func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSource
 		// FIXME: END TEST. Test located here because lossy conversion between hcl and tf diags.
 
 		diags = diags.Append(hclDiags)
-		for file, bytes := range loader.Sources() {
-			print(file)
-			print(bytes)
-		}
+
 		if f == nil || f.Body == nil {
 			return diags
 		}
