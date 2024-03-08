@@ -5,11 +5,12 @@ package cloud
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/go-multierror"
 	tfe "github.com/hashicorp/go-tfe"
+
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -70,7 +71,7 @@ func (b *Cloud) getTaskStageWithAllOptions(ctx *IntegrationContext, stageID stri
 }
 
 func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWriter, stageID string) error {
-	var errs *multierror.Error
+	var errs error
 
 	// Create our summarizers
 	summarizers := make([]taskStageSummarizer, 0)
@@ -134,7 +135,7 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 			}
 			cont, err := b.processStageOverrides(ctx, output, stage.ID)
 			if err != nil {
-				errs = multierror.Append(errs, err)
+				errs = errors.Join(errs, err)
 			} else {
 				return cont, nil
 			}
@@ -143,15 +144,15 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 		default:
 			return false, fmt.Errorf("Invalid Task stage status: %s ", stage.Status)
 		}
-		return false, errs.ErrorOrNil()
+		return false, errs
 	})
 }
 
-func processSummarizers(ctx *IntegrationContext, output IntegrationOutputWriter, stage *tfe.TaskStage, summarizers []taskStageSummarizer, errs *multierror.Error) (bool, *multierror.Error) {
+func processSummarizers(ctx *IntegrationContext, output IntegrationOutputWriter, stage *tfe.TaskStage, summarizers []taskStageSummarizer, errs error) (bool, error) {
 	for _, s := range summarizers {
 		cont, msg, err := s.Summarize(ctx, output, stage)
 		if err != nil {
-			errs = multierror.Append(errs, err)
+			errs = errors.Join(errs, err)
 			break
 		}
 
