@@ -1,11 +1,7 @@
 ## 1.8.0 (Unreleased)
 
-UPGRADE NOTES:
-
 If you are upgrading from Terraform v1.7 or earlier, please refer to
 [the Terraform v1.8 Upgrade Guide](https://developer.hashicorp.com/terraform/language/v1.8.x/upgrade-guides).
-
-* backend/s3: The `use_legacy_workflow` argument has been removed to encourage consistency with the AWS SDKs. The backend will now search for credentials in the same order as the default provider chain in the AWS SDKs and AWS CLI.
 
 NEW FEATURES:
 
