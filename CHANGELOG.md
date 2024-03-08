@@ -17,7 +17,7 @@ ENHANCEMENTS:
 
     `"complete"` means that applying this plan is expected to achieve convergence between desired and actual state. If this flag is present and set to `false` then wrapping automations should ideally encourage an operator to run another plan/apply round to continue making progress toward convergence.
 * Improved plan diff rendering for lists to display item-level differences on lists with unchanged length.
-* `terraform provider lock` accepts a new boolean option `-enable-plugin-cache`. If specified, and if a [global plugin cache](https://developer.hashicorp.com/terraform/cli/config/config-file#provider-plugin-cache) is configured Terraform will use the cache in the provider lock process. ([#34632](https://github.com/hashicorp/terraform/issues/34632))
+* `terraform providers lock` accepts a new boolean option `-enable-plugin-cache`. If specified, and if a [global plugin cache](https://developer.hashicorp.com/terraform/cli/config/config-file#provider-plugin-cache) is configured Terraform will use the cache in the provider lock process. ([#34632](https://github.com/hashicorp/terraform/issues/34632))
 * `terraform test`: File-level variables can now reference global variables. ([#34699](https://github.com/hashicorp/terraform/issues/34699))
 * In import-generated code represent JSON values in HCL instead of as strings
 * built-in "terraform" provider: new `tfvarsdecode`, `tfvarsencode`, and `exprencode` functions, for unusual situations where it's helpful to manually generate or read from Terraform's "tfvars" format. ([#34718](https://github.com/hashicorp/terraform/issues/34718))
