@@ -5428,3 +5428,111 @@ resource "test_object" "obj" {
 		t.Fatal("data.test_data_source.foo schema contains a sensitive attribute, should be marked in state")
 	}
 }
+
+func TestContext2Plan_importResourceWithSensitiveDataSource(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.b")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			data "test_data_source" "a" {
+			}
+			resource "test_object" "b" {
+				test_string = data.test_data_source.a.test_string
+			}
+			import {
+			  to   = test_object.b
+			  id   = "123"
+			}
+		`,
+	})
+
+	p := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Block: simpleTestSchema()},
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": {Block: simpleTestSchema()},
+			},
+			DataSources: map[string]providers.Schema{
+				"test_data_source": {Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"test_string": {
+							Type:      cty.String,
+							Computed:  true,
+							Sensitive: true,
+						},
+					},
+				}},
+			},
+		},
+	}
+	hook := new(MockHook)
+	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	t.Run(addr.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addr)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addr)
+		}
+
+		if got, want := instPlan.Addr, addr; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.PrevRunAddr, addr; !got.Equal(want) {
+			t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.Action, plans.NoOp; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+		if instPlan.Importing.ID != "123" {
+			t.Errorf("expected import change from \"123\", got non-import change")
+		}
+
+		if !hook.PrePlanImportCalled {
+			t.Fatalf("PostPlanImport hook not called")
+		}
+		if addr, wantAddr := hook.PrePlanImportAddr, instPlan.Addr; !addr.Equal(wantAddr) {
+			t.Errorf("expected addr to be %s, but was %s", wantAddr, addr)
+		}
+
+		if !hook.PostPlanImportCalled {
+			t.Fatalf("PostPlanImport hook not called")
+		}
+		if addr, wantAddr := hook.PostPlanImportAddr, instPlan.Addr; !addr.Equal(wantAddr) {
+			t.Errorf("expected addr to be %s, but was %s", wantAddr, addr)
+		}
+	})
+}
