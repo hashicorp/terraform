@@ -922,3 +922,31 @@ func TestPlanning_NoWorkspaceNameRef(t *testing.T) {
 		}
 	})
 }
+
+func TestPlanning_Locals(t *testing.T) {
+	// This test verifies that a reference to terraform.workspace is treated
+	// as invalid for modules used in a stacks context, because there's
+	// no comparable single string to use in stacks context and we expect
+	// modules used in stack components to vary declarations based only
+	// on their input variables.
+	//
+	// (If something needs to vary between stack deployments then that's
+	// a good candidate for an input variable on the root stack configuration,
+	// set differently for each deployment, and then passed in to the
+	// components that need it.)
+
+	cfg := testStackConfig(t, "local_value", "basics")
+	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
+		PlanningMode: plans.NormalMode,
+	})
+
+	inPromisingTask(t, func(ctx context.Context, t *testing.T) {
+		plan, diags := testPlan(t, main)
+		if diags.HasErrors() {
+			t.Fatalf("errors encountered\n%s", spew.Sdump(diags.ForRPC()))
+		}
+
+		fmt.Printf("plan: %v\n", plan)
+
+	})
+}
