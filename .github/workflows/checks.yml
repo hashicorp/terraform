@@ -164,9 +164,12 @@ jobs:
 
       - name: "go.mod and go.sum consistency check"
         run: |
-          go mod tidy
-          if [[ -n "$(git status --porcelain)" ]]; then
-            echo >&2 "ERROR: go.mod/go.sum are not up-to-date. Run 'go mod tidy' and then commit the updated files."
+          make syncdeps
+          CHANGED="$(git status --porcelain)"
+          if [[ -n "$CHANGED" ]]; then
+            git diff
+            echo >&2 "ERROR: go.mod/go.sum files are not up-to-date. Run 'make syncdeps' and then commit the updated files."
+            echo >&2 $'Affected files:\n'"$CHANGED"
             exit 1
           fi
 
