@@ -45,7 +45,7 @@ func (r *MapFieldReader) readMap(k string, schema *Schema) (FieldReadResult, err
 
 	// If the name of the map field is directly in the map with an
 	// empty string, it means that the map is being deleted, so mark
-	// that is is set.
+	// that is set.
 	if v, ok := r.Map.Access(k); ok && v == "" {
 		resultSet = true
 	}

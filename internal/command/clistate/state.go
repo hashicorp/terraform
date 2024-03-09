@@ -80,7 +80,7 @@ var _ Locker = (*locker)(nil)
 
 // Create a new Locker.
 // This Locker uses state.LockWithContext to retry the lock until the provided
-// timeout is reached, or the context is canceled. Lock progress will be be
+// timeout is reached, or the context is canceled. Lock progress will be
 // reported to the user through the provided UI.
 func NewLocker(timeout time.Duration, view views.StateLocker) Locker {
 	return &locker{
