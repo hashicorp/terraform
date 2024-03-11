@@ -12,6 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -39,7 +40,7 @@ func TestLocalRun(t *testing.T) {
 	view := views.NewView(streams)
 	stateLocker := clistate.NewLocker(0, views.NewStateLocker(arguments.ViewHuman, view))
 
-	op := &backend.Operation{
+	op := &backendrun.Operation{
 		ConfigDir:    configDir,
 		ConfigLoader: configLoader,
 		Workspace:    backend.DefaultStateName,
@@ -70,7 +71,7 @@ func TestLocalRun_error(t *testing.T) {
 	view := views.NewView(streams)
 	stateLocker := clistate.NewLocker(0, views.NewStateLocker(arguments.ViewHuman, view))
 
-	op := &backend.Operation{
+	op := &backendrun.Operation{
 		ConfigDir:    configDir,
 		ConfigLoader: configLoader,
 		Workspace:    backend.DefaultStateName,
@@ -104,7 +105,7 @@ func TestLocalRun_cloudPlan(t *testing.T) {
 	view := views.NewView(streams)
 	stateLocker := clistate.NewLocker(0, views.NewStateLocker(arguments.ViewHuman, view))
 
-	op := &backend.Operation{
+	op := &backendrun.Operation{
 		ConfigDir:    configDir,
 		ConfigLoader: configLoader,
 		PlanFile:     planFile,
@@ -190,7 +191,7 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	view := views.NewView(streams)
 	stateLocker := clistate.NewLocker(0, views.NewStateLocker(arguments.ViewHuman, view))
 
-	op := &backend.Operation{
+	op := &backendrun.Operation{
 		ConfigDir:    configDir,
 		ConfigLoader: configLoader,
 		PlanFile:     planFile,

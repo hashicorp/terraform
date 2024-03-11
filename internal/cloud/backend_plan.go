@@ -22,7 +22,7 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -33,7 +33,7 @@ import (
 
 var planConfigurationVersionsPollInterval = 500 * time.Millisecond
 
-func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
+func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	log.Printf("[INFO] cloud: starting Plan operation")
 
 	var diags tfdiags.Diagnostics
@@ -118,10 +118,10 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 	return run, nil
 }
 
-func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
+func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	if b.CLI != nil {
 		header := planDefaultHeader
-		if op.Type == backend.OperationTypeApply || op.Type == backend.OperationTypeRefresh {
+		if op.Type == backendrun.OperationTypeApply || op.Type == backendrun.OperationTypeRefresh {
 			header = applyDefaultHeader
 		}
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(header) + "\n"))
@@ -129,7 +129,7 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, 
 
 	// Plan-only means they ran terraform plan without -out.
 	provisional := op.PlanOutPath != ""
-	planOnly := op.Type == backend.OperationTypePlan && !provisional
+	planOnly := op.Type == backendrun.OperationTypePlan && !provisional
 
 	configOptions := tfe.ConfigurationVersionCreateOptions{
 		AutoQueueRuns: tfe.Bool(false),
@@ -436,7 +436,7 @@ func (b *Cloud) AssertImportCompatible(config *configs.Config) error {
 
 // renderPlanLogs reads the streamed plan JSON logs and calls the JSON Plan renderer (jsonformat.RenderPlan) to
 // render the plan output. The plan output is fetched from the redacted output endpoint.
-func (b *Cloud) renderPlanLogs(ctx context.Context, op *backend.Operation, run *tfe.Run) error {
+func (b *Cloud) renderPlanLogs(ctx context.Context, op *backendrun.Operation, run *tfe.Run) error {
 	logs, err := b.client.Plans.Logs(ctx, run.Plan.ID)
 	if err != nil {
 		return err

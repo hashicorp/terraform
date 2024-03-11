@@ -13,7 +13,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -228,7 +228,7 @@ func equals(t *testing.T, content *hcl.BodyContent, attribute string, expected c
 	}
 }
 
-var _ backend.UnparsedVariableValue = (*variable)(nil)
+var _ backendrun.UnparsedVariableValue = (*variable)(nil)
 
 type variable struct {
 	value cty.Value

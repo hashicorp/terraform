@@ -16,7 +16,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -43,8 +43,8 @@ type TestSuiteRunner struct {
 
 	// Global variables comes from the main configuration directory,
 	// and the Global Test Variables are loaded from the test directory.
-	GlobalVariables     map[string]backend.UnparsedVariableValue
-	GlobalTestVariables map[string]backend.UnparsedVariableValue
+	GlobalVariables     map[string]backendrun.UnparsedVariableValue
+	GlobalTestVariables map[string]backendrun.UnparsedVariableValue
 
 	Opts *terraform.ContextOpts
 
@@ -1134,7 +1134,7 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 	return values, diags
 }
 
-func (runner *TestFileRunner) getGlobalVariable(name string, variable backend.UnparsedVariableValue, config *configs.Config) *terraform.InputValue {
+func (runner *TestFileRunner) getGlobalVariable(name string, variable backendrun.UnparsedVariableValue, config *configs.Config) *terraform.InputValue {
 	// By default, we parse global variables as HCL inputs.
 	parsingMode := configs.VariableParseHCL
 
