@@ -7,19 +7,20 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 )
 
 func TestLocksEqual(t *testing.T) {
 	boopProvider := addrs.NewDefaultProvider("boop")
-	v2 := getproviders.MustParseVersion("2.0.0")
-	v2LocalBuild := getproviders.MustParseVersion("2.0.0+awesomecorp.1")
-	v2GtConstraints := getproviders.MustParseVersionConstraints(">= 2.0.0")
-	v2EqConstraints := getproviders.MustParseVersionConstraints("2.0.0")
-	hash1 := getproviders.HashScheme("test").New("1")
-	hash2 := getproviders.HashScheme("test").New("2")
-	hash3 := getproviders.HashScheme("test").New("3")
+	v2 := providerreqs.MustParseVersion("2.0.0")
+	v2LocalBuild := providerreqs.MustParseVersion("2.0.0+awesomecorp.1")
+	v2GtConstraints := providerreqs.MustParseVersionConstraints(">= 2.0.0")
+	v2EqConstraints := providerreqs.MustParseVersionConstraints("2.0.0")
+	hash1 := providerreqs.HashScheme("test").New("1")
+	hash2 := providerreqs.HashScheme("test").New("2")
+	hash3 := providerreqs.HashScheme("test").New("3")
 
 	equalBothWays := func(t *testing.T, a, b *Locks) {
 		t.Helper()
@@ -69,7 +70,7 @@ func TestLocksEqual(t *testing.T) {
 	t.Run("both have boop provider with same version and same hashes", func(t *testing.T) {
 		a := NewLocks()
 		b := NewLocks()
-		hashes := []getproviders.Hash{hash1, hash2, hash3}
+		hashes := []providerreqs.Hash{hash1, hash2, hash3}
 		a.SetProvider(boopProvider, v2, v2EqConstraints, hashes)
 		b.SetProvider(boopProvider, v2, v2EqConstraints, hashes)
 		equalBothWays(t, a, b)
@@ -77,8 +78,8 @@ func TestLocksEqual(t *testing.T) {
 	t.Run("both have boop provider with same version but different hashes", func(t *testing.T) {
 		a := NewLocks()
 		b := NewLocks()
-		hashesA := []getproviders.Hash{hash1, hash2}
-		hashesB := []getproviders.Hash{hash1, hash3}
+		hashesA := []providerreqs.Hash{hash1, hash2}
+		hashesB := []providerreqs.Hash{hash1, hash3}
 		a.SetProvider(boopProvider, v2, v2EqConstraints, hashesA)
 		b.SetProvider(boopProvider, v2, v2EqConstraints, hashesB)
 		nonEqualBothWays(t, a, b)
@@ -87,13 +88,13 @@ func TestLocksEqual(t *testing.T) {
 
 func TestLocksEqualProviderAddress(t *testing.T) {
 	boopProvider := addrs.NewDefaultProvider("boop")
-	v2 := getproviders.MustParseVersion("2.0.0")
-	v2LocalBuild := getproviders.MustParseVersion("2.0.0+awesomecorp.1")
-	v2GtConstraints := getproviders.MustParseVersionConstraints(">= 2.0.0")
-	v2EqConstraints := getproviders.MustParseVersionConstraints("2.0.0")
-	hash1 := getproviders.HashScheme("test").New("1")
-	hash2 := getproviders.HashScheme("test").New("2")
-	hash3 := getproviders.HashScheme("test").New("3")
+	v2 := providerreqs.MustParseVersion("2.0.0")
+	v2LocalBuild := providerreqs.MustParseVersion("2.0.0+awesomecorp.1")
+	v2GtConstraints := providerreqs.MustParseVersionConstraints(">= 2.0.0")
+	v2EqConstraints := providerreqs.MustParseVersionConstraints("2.0.0")
+	hash1 := providerreqs.HashScheme("test").New("1")
+	hash2 := providerreqs.HashScheme("test").New("2")
+	hash3 := providerreqs.HashScheme("test").New("3")
 
 	equalProviderAddressBothWays := func(t *testing.T, a, b *Locks) {
 		t.Helper()
@@ -135,8 +136,8 @@ func TestLocksEqualProviderAddress(t *testing.T) {
 	t.Run("both have boop provider with same version but different hashes", func(t *testing.T) {
 		a := NewLocks()
 		b := NewLocks()
-		hashesA := []getproviders.Hash{hash1, hash2}
-		hashesB := []getproviders.Hash{hash1, hash3}
+		hashesA := []providerreqs.Hash{hash1, hash2}
+		hashesB := []providerreqs.Hash{hash1, hash3}
 		a.SetProvider(boopProvider, v2, v2EqConstraints, hashesA)
 		b.SetProvider(boopProvider, v2, v2EqConstraints, hashesB)
 		equalProviderAddressBothWays(t, a, b)
@@ -146,17 +147,17 @@ func TestLocksEqualProviderAddress(t *testing.T) {
 func TestLocksProviderSetRemove(t *testing.T) {
 	beepProvider := addrs.NewDefaultProvider("beep")
 	boopProvider := addrs.NewDefaultProvider("boop")
-	v2 := getproviders.MustParseVersion("2.0.0")
-	v2EqConstraints := getproviders.MustParseVersionConstraints("2.0.0")
-	v2GtConstraints := getproviders.MustParseVersionConstraints(">= 2.0.0")
-	hash := getproviders.HashScheme("test").New("1")
+	v2 := providerreqs.MustParseVersion("2.0.0")
+	v2EqConstraints := providerreqs.MustParseVersionConstraints("2.0.0")
+	v2GtConstraints := providerreqs.MustParseVersionConstraints(">= 2.0.0")
+	hash := providerreqs.HashScheme("test").New("1")
 
 	locks := NewLocks()
 	if got, want := len(locks.AllProviders()), 0; got != want {
 		t.Fatalf("fresh locks object already has providers")
 	}
 
-	locks.SetProvider(boopProvider, v2, v2EqConstraints, []getproviders.Hash{hash})
+	locks.SetProvider(boopProvider, v2, v2EqConstraints, []providerreqs.Hash{hash})
 	{
 		got := locks.AllProviders()
 		want := map[addrs.Provider]*ProviderLock{
@@ -164,7 +165,7 @@ func TestLocksProviderSetRemove(t *testing.T) {
 				addr:               boopProvider,
 				version:            v2,
 				versionConstraints: v2EqConstraints,
-				hashes:             []getproviders.Hash{hash},
+				hashes:             []providerreqs.Hash{hash},
 			},
 		}
 		if diff := cmp.Diff(want, got, ProviderLockComparer); diff != "" {
@@ -172,7 +173,7 @@ func TestLocksProviderSetRemove(t *testing.T) {
 		}
 	}
 
-	locks.SetProvider(beepProvider, v2, v2GtConstraints, []getproviders.Hash{hash})
+	locks.SetProvider(beepProvider, v2, v2GtConstraints, []providerreqs.Hash{hash})
 	{
 		got := locks.AllProviders()
 		want := map[addrs.Provider]*ProviderLock{
@@ -180,13 +181,13 @@ func TestLocksProviderSetRemove(t *testing.T) {
 				addr:               boopProvider,
 				version:            v2,
 				versionConstraints: v2EqConstraints,
-				hashes:             []getproviders.Hash{hash},
+				hashes:             []providerreqs.Hash{hash},
 			},
 			beepProvider: {
 				addr:               beepProvider,
 				version:            v2,
 				versionConstraints: v2GtConstraints,
-				hashes:             []getproviders.Hash{hash},
+				hashes:             []providerreqs.Hash{hash},
 			},
 		}
 		if diff := cmp.Diff(want, got, ProviderLockComparer); diff != "" {
@@ -202,7 +203,7 @@ func TestLocksProviderSetRemove(t *testing.T) {
 				addr:               beepProvider,
 				version:            v2,
 				versionConstraints: v2GtConstraints,
-				hashes:             []getproviders.Hash{hash},
+				hashes:             []providerreqs.Hash{hash},
 			},
 		}
 		if diff := cmp.Diff(want, got, ProviderLockComparer); diff != "" {
@@ -222,17 +223,17 @@ func TestLocksProviderSetRemove(t *testing.T) {
 
 func TestProviderLockContainsAll(t *testing.T) {
 	provider := addrs.NewDefaultProvider("provider")
-	v2 := getproviders.MustParseVersion("2.0.0")
-	v2EqConstraints := getproviders.MustParseVersionConstraints("2.0.0")
+	v2 := providerreqs.MustParseVersion("2.0.0")
+	v2EqConstraints := providerreqs.MustParseVersionConstraints("2.0.0")
 
 	t.Run("non-symmetric", func(t *testing.T) {
-		target := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+		target := NewProviderLock(provider, v2, v2EqConstraints, []providerreqs.Hash{
 			"9r3i9a9QmASqMnQM",
 			"K43RHM2klOoywtyW",
 			"swJPXfuCNhJsTM5c",
 		})
 
-		original := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+		original := NewProviderLock(provider, v2, v2EqConstraints, []providerreqs.Hash{
 			"9r3i9a9QmASqMnQM",
 			"1ZAChGWUMWn4zmIk",
 			"K43RHM2klOoywtyW",
@@ -250,13 +251,13 @@ func TestProviderLockContainsAll(t *testing.T) {
 	})
 
 	t.Run("symmetric", func(t *testing.T) {
-		target := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+		target := NewProviderLock(provider, v2, v2EqConstraints, []providerreqs.Hash{
 			"9r3i9a9QmASqMnQM",
 			"K43RHM2klOoywtyW",
 			"swJPXfuCNhJsTM5c",
 		})
 
-		original := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+		original := NewProviderLock(provider, v2, v2EqConstraints, []providerreqs.Hash{
 			"9r3i9a9QmASqMnQM",
 			"K43RHM2klOoywtyW",
 			"swJPXfuCNhJsTM5c",
@@ -271,7 +272,7 @@ func TestProviderLockContainsAll(t *testing.T) {
 	})
 
 	t.Run("edge case - null", func(t *testing.T) {
-		original := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+		original := NewProviderLock(provider, v2, v2EqConstraints, []providerreqs.Hash{
 			"9r3i9a9QmASqMnQM",
 			"K43RHM2klOoywtyW",
 			"swJPXfuCNhJsTM5c",
@@ -283,13 +284,13 @@ func TestProviderLockContainsAll(t *testing.T) {
 	})
 
 	t.Run("edge case - empty", func(t *testing.T) {
-		original := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+		original := NewProviderLock(provider, v2, v2EqConstraints, []providerreqs.Hash{
 			"9r3i9a9QmASqMnQM",
 			"K43RHM2klOoywtyW",
 			"swJPXfuCNhJsTM5c",
 		})
 
-		target := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{})
+		target := NewProviderLock(provider, v2, v2EqConstraints, []providerreqs.Hash{})
 
 		if !original.ContainsAll(target) {
 			t.Fatalf("orginal should report true on empty")
@@ -297,9 +298,9 @@ func TestProviderLockContainsAll(t *testing.T) {
 	})
 
 	t.Run("edge case - original empty", func(t *testing.T) {
-		original := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{})
+		original := NewProviderLock(provider, v2, v2EqConstraints, []providerreqs.Hash{})
 
-		target := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+		target := NewProviderLock(provider, v2, v2EqConstraints, []providerreqs.Hash{
 			"9r3i9a9QmASqMnQM",
 			"K43RHM2klOoywtyW",
 			"swJPXfuCNhJsTM5c",

@@ -10,15 +10,14 @@ import (
 	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/zclconf/go-cty/cty"
-
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 )
 
 func TestConfigProviderTypes(t *testing.T) {
@@ -147,12 +146,12 @@ func TestConfigProviderRequirements(t *testing.T) {
 
 	got, diags := cfg.ProviderRequirements()
 	assertNoDiagnostics(t, diags)
-	want := getproviders.Requirements{
+	want := providerreqs.Requirements{
 		// the nullProvider constraints from the two modules are merged
-		nullProvider:       getproviders.MustParseVersionConstraints("~> 2.0.0, 2.0.1"),
-		randomProvider:     getproviders.MustParseVersionConstraints("~> 1.2.0"),
-		tlsProvider:        getproviders.MustParseVersionConstraints("~> 3.0"),
-		configuredProvider: getproviders.MustParseVersionConstraints("~> 1.4"),
+		nullProvider:       providerreqs.MustParseVersionConstraints("~> 2.0.0, 2.0.1"),
+		randomProvider:     providerreqs.MustParseVersionConstraints("~> 1.2.0"),
+		tlsProvider:        providerreqs.MustParseVersionConstraints("~> 3.0"),
+		configuredProvider: providerreqs.MustParseVersionConstraints("~> 1.4"),
 		impliedProvider:    nil,
 		happycloudProvider: nil,
 		terraformProvider:  nil,
@@ -185,12 +184,12 @@ func TestConfigProviderRequirementsInclTests(t *testing.T) {
 
 	got, diags := cfg.ProviderRequirements()
 	assertNoDiagnostics(t, diags)
-	want := getproviders.Requirements{
+	want := providerreqs.Requirements{
 		// the nullProvider constraints from the two modules are merged
-		nullProvider:       getproviders.MustParseVersionConstraints("~> 2.0.0"),
-		randomProvider:     getproviders.MustParseVersionConstraints("~> 1.2.0"),
-		tlsProvider:        getproviders.MustParseVersionConstraints("~> 3.0"),
-		configuredProvider: getproviders.MustParseVersionConstraints("~> 1.4"),
+		nullProvider:       providerreqs.MustParseVersionConstraints("~> 2.0.0"),
+		randomProvider:     providerreqs.MustParseVersionConstraints("~> 1.2.0"),
+		tlsProvider:        providerreqs.MustParseVersionConstraints("~> 3.0"),
+		configuredProvider: providerreqs.MustParseVersionConstraints("~> 1.4"),
 		impliedProvider:    nil,
 		terraformProvider:  nil,
 	}
@@ -227,12 +226,12 @@ func TestConfigProviderRequirementsShallow(t *testing.T) {
 
 	got, diags := cfg.ProviderRequirementsShallow()
 	assertNoDiagnostics(t, diags)
-	want := getproviders.Requirements{
+	want := providerreqs.Requirements{
 		// the nullProvider constraint is only from the root module
-		nullProvider:       getproviders.MustParseVersionConstraints("~> 2.0.0"),
-		randomProvider:     getproviders.MustParseVersionConstraints("~> 1.2.0"),
-		tlsProvider:        getproviders.MustParseVersionConstraints("~> 3.0"),
-		configuredProvider: getproviders.MustParseVersionConstraints("~> 1.4"),
+		nullProvider:       providerreqs.MustParseVersionConstraints("~> 2.0.0"),
+		randomProvider:     providerreqs.MustParseVersionConstraints("~> 1.2.0"),
+		tlsProvider:        providerreqs.MustParseVersionConstraints("~> 3.0"),
+		configuredProvider: providerreqs.MustParseVersionConstraints("~> 1.4"),
 		impliedProvider:    nil,
 		terraformProvider:  nil,
 	}
@@ -261,9 +260,9 @@ func TestConfigProviderRequirementsShallowInclTests(t *testing.T) {
 
 	got, diags := cfg.ProviderRequirementsShallow()
 	assertNoDiagnostics(t, diags)
-	want := getproviders.Requirements{
-		tlsProvider:        getproviders.MustParseVersionConstraints("~> 3.0"),
-		configuredProvider: getproviders.MustParseVersionConstraints("~> 1.4"),
+	want := providerreqs.Requirements{
+		tlsProvider:        providerreqs.MustParseVersionConstraints("~> 3.0"),
+		configuredProvider: providerreqs.MustParseVersionConstraints("~> 1.4"),
 		impliedProvider:    nil,
 		terraformProvider:  nil,
 	}
@@ -303,12 +302,12 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 		Name:       "",
 		SourceAddr: nil,
 		SourceDir:  "testdata/provider-reqs",
-		Requirements: getproviders.Requirements{
+		Requirements: providerreqs.Requirements{
 			// Only the root module's version is present here
-			nullProvider:       getproviders.MustParseVersionConstraints("~> 2.0.0"),
-			randomProvider:     getproviders.MustParseVersionConstraints("~> 1.2.0"),
-			tlsProvider:        getproviders.MustParseVersionConstraints("~> 3.0"),
-			configuredProvider: getproviders.MustParseVersionConstraints("~> 1.4"),
+			nullProvider:       providerreqs.MustParseVersionConstraints("~> 2.0.0"),
+			randomProvider:     providerreqs.MustParseVersionConstraints("~> 1.2.0"),
+			tlsProvider:        providerreqs.MustParseVersionConstraints("~> 3.0"),
+			configuredProvider: providerreqs.MustParseVersionConstraints("~> 1.4"),
 			impliedProvider:    nil,
 			terraformProvider:  nil,
 		},
@@ -317,8 +316,8 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 				Name:       "kinder",
 				SourceAddr: addrs.ModuleSourceLocal("./child"),
 				SourceDir:  "testdata/provider-reqs/child",
-				Requirements: getproviders.Requirements{
-					nullProvider:       getproviders.MustParseVersionConstraints("= 2.0.1"),
+				Requirements: providerreqs.Requirements{
+					nullProvider:       providerreqs.MustParseVersionConstraints("= 2.0.1"),
 					happycloudProvider: nil,
 				},
 				Children: map[string]*ModuleRequirements{
@@ -326,7 +325,7 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 						Name:       "nested",
 						SourceAddr: addrs.ModuleSourceLocal("./grandchild"),
 						SourceDir:  "testdata/provider-reqs/child/grandchild",
-						Requirements: getproviders.Requirements{
+						Requirements: providerreqs.Requirements{
 							grandchildProvider: nil,
 						},
 						Children: map[string]*ModuleRequirements{},
@@ -370,26 +369,26 @@ func TestConfigProviderRequirementsByModuleInclTests(t *testing.T) {
 		Name:       "",
 		SourceAddr: nil,
 		SourceDir:  "testdata/provider-reqs-with-tests",
-		Requirements: getproviders.Requirements{
+		Requirements: providerreqs.Requirements{
 			// Only the root module's version is present here
-			tlsProvider:       getproviders.MustParseVersionConstraints("~> 3.0"),
+			tlsProvider:       providerreqs.MustParseVersionConstraints("~> 3.0"),
 			impliedProvider:   nil,
 			terraformProvider: nil,
 		},
 		Children: make(map[string]*ModuleRequirements),
 		Tests: map[string]*TestFileModuleRequirements{
 			"provider-reqs-root.tftest.hcl": {
-				Requirements: getproviders.Requirements{
-					configuredProvider: getproviders.MustParseVersionConstraints("~> 1.4"),
+				Requirements: providerreqs.Requirements{
+					configuredProvider: providerreqs.MustParseVersionConstraints("~> 1.4"),
 				},
 				Runs: map[string]*ModuleRequirements{
 					"setup": {
 						Name:       "setup",
 						SourceAddr: addrs.ModuleSourceLocal("./setup"),
 						SourceDir:  "testdata/provider-reqs-with-tests/setup",
-						Requirements: getproviders.Requirements{
-							nullProvider:   getproviders.MustParseVersionConstraints("~> 2.0.0"),
-							randomProvider: getproviders.MustParseVersionConstraints("~> 1.2.0"),
+						Requirements: providerreqs.Requirements{
+							nullProvider:   providerreqs.MustParseVersionConstraints("~> 2.0.0"),
+							randomProvider: providerreqs.MustParseVersionConstraints("~> 1.2.0"),
 						},
 						Children: make(map[string]*ModuleRequirements),
 						Tests:    make(map[string]*TestFileModuleRequirements),
@@ -448,25 +447,25 @@ func TestVerifyDependencySelections(t *testing.T) {
 		},
 		"suitable locks": {
 			func(locks *depsfile.Locks) {
-				locks.SetProvider(configuredProvider, getproviders.MustParseVersion("1.4.0"), nil, nil)
-				locks.SetProvider(grandchildProvider, getproviders.MustParseVersion("0.1.0"), nil, nil)
-				locks.SetProvider(impliedProvider, getproviders.MustParseVersion("0.2.0"), nil, nil)
-				locks.SetProvider(nullProvider, getproviders.MustParseVersion("2.0.1"), nil, nil)
-				locks.SetProvider(randomProvider, getproviders.MustParseVersion("1.2.2"), nil, nil)
-				locks.SetProvider(tlsProvider, getproviders.MustParseVersion("3.0.1"), nil, nil)
-				locks.SetProvider(happycloudProvider, getproviders.MustParseVersion("0.0.1"), nil, nil)
+				locks.SetProvider(configuredProvider, providerreqs.MustParseVersion("1.4.0"), nil, nil)
+				locks.SetProvider(grandchildProvider, providerreqs.MustParseVersion("0.1.0"), nil, nil)
+				locks.SetProvider(impliedProvider, providerreqs.MustParseVersion("0.2.0"), nil, nil)
+				locks.SetProvider(nullProvider, providerreqs.MustParseVersion("2.0.1"), nil, nil)
+				locks.SetProvider(randomProvider, providerreqs.MustParseVersion("1.2.2"), nil, nil)
+				locks.SetProvider(tlsProvider, providerreqs.MustParseVersion("3.0.1"), nil, nil)
+				locks.SetProvider(happycloudProvider, providerreqs.MustParseVersion("0.0.1"), nil, nil)
 			},
 			nil,
 		},
 		"null provider constraints changed": {
 			func(locks *depsfile.Locks) {
-				locks.SetProvider(configuredProvider, getproviders.MustParseVersion("1.4.0"), nil, nil)
-				locks.SetProvider(grandchildProvider, getproviders.MustParseVersion("0.1.0"), nil, nil)
-				locks.SetProvider(impliedProvider, getproviders.MustParseVersion("0.2.0"), nil, nil)
-				locks.SetProvider(nullProvider, getproviders.MustParseVersion("3.0.0"), nil, nil)
-				locks.SetProvider(randomProvider, getproviders.MustParseVersion("1.2.2"), nil, nil)
-				locks.SetProvider(tlsProvider, getproviders.MustParseVersion("3.0.1"), nil, nil)
-				locks.SetProvider(happycloudProvider, getproviders.MustParseVersion("0.0.1"), nil, nil)
+				locks.SetProvider(configuredProvider, providerreqs.MustParseVersion("1.4.0"), nil, nil)
+				locks.SetProvider(grandchildProvider, providerreqs.MustParseVersion("0.1.0"), nil, nil)
+				locks.SetProvider(impliedProvider, providerreqs.MustParseVersion("0.2.0"), nil, nil)
+				locks.SetProvider(nullProvider, providerreqs.MustParseVersion("3.0.0"), nil, nil)
+				locks.SetProvider(randomProvider, providerreqs.MustParseVersion("1.2.2"), nil, nil)
+				locks.SetProvider(tlsProvider, providerreqs.MustParseVersion("3.0.1"), nil, nil)
+				locks.SetProvider(happycloudProvider, providerreqs.MustParseVersion("0.0.1"), nil, nil)
 			},
 			[]string{
 				`provider registry.terraform.io/hashicorp/null: locked version selection 3.0.0 doesn't match the updated version constraints "~> 2.0.0, 2.0.1"`,
@@ -477,14 +476,14 @@ func TestVerifyDependencySelections(t *testing.T) {
 				// In this case, we set the lock file version constraints to
 				// match the configuration, and so our error message changes
 				// to not assume the configuration changed anymore.
-				locks.SetProvider(nullProvider, getproviders.MustParseVersion("3.0.0"), getproviders.MustParseVersionConstraints("~> 2.0.0, 2.0.1"), nil)
+				locks.SetProvider(nullProvider, providerreqs.MustParseVersion("3.0.0"), providerreqs.MustParseVersionConstraints("~> 2.0.0, 2.0.1"), nil)
 
-				locks.SetProvider(configuredProvider, getproviders.MustParseVersion("1.4.0"), nil, nil)
-				locks.SetProvider(grandchildProvider, getproviders.MustParseVersion("0.1.0"), nil, nil)
-				locks.SetProvider(impliedProvider, getproviders.MustParseVersion("0.2.0"), nil, nil)
-				locks.SetProvider(randomProvider, getproviders.MustParseVersion("1.2.2"), nil, nil)
-				locks.SetProvider(tlsProvider, getproviders.MustParseVersion("3.0.1"), nil, nil)
-				locks.SetProvider(happycloudProvider, getproviders.MustParseVersion("0.0.1"), nil, nil)
+				locks.SetProvider(configuredProvider, providerreqs.MustParseVersion("1.4.0"), nil, nil)
+				locks.SetProvider(grandchildProvider, providerreqs.MustParseVersion("0.1.0"), nil, nil)
+				locks.SetProvider(impliedProvider, providerreqs.MustParseVersion("0.2.0"), nil, nil)
+				locks.SetProvider(randomProvider, providerreqs.MustParseVersion("1.2.2"), nil, nil)
+				locks.SetProvider(tlsProvider, providerreqs.MustParseVersion("3.0.1"), nil, nil)
+				locks.SetProvider(happycloudProvider, providerreqs.MustParseVersion("0.0.1"), nil, nil)
 			},
 			[]string{
 				`provider registry.terraform.io/hashicorp/null: version constraints "~> 2.0.0, 2.0.1" don't match the locked version selection 3.0.0`,
@@ -549,7 +548,7 @@ func TestConfigAddProviderRequirements(t *testing.T) {
 	cfg, diags := testModuleConfigFromFile("testdata/valid-files/providers-explicit-implied.tf")
 	assertNoDiagnostics(t, diags)
 
-	reqs := getproviders.Requirements{
+	reqs := providerreqs.Requirements{
 		addrs.NewDefaultProvider("null"): nil,
 	}
 	diags = cfg.addProviderRequirements(reqs, true, false)
@@ -578,7 +577,7 @@ func TestConfigImportProviderClashesWithResources(t *testing.T) {
 	cfg, diags := testModuleConfigFromFile("testdata/invalid-import-files/import-and-resource-clash.tf")
 	assertNoDiagnostics(t, diags)
 
-	diags = cfg.addProviderRequirements(getproviders.Requirements{}, true, false)
+	diags = cfg.addProviderRequirements(providerreqs.Requirements{}, true, false)
 	assertExactDiagnostics(t, diags, []string{
 		`testdata/invalid-import-files/import-and-resource-clash.tf:9,3-19: Invalid import provider argument; The provider argument can only be specified in import blocks that will generate configuration.
 
@@ -590,7 +589,7 @@ func TestConfigImportProviderWithNoResourceProvider(t *testing.T) {
 	cfg, diags := testModuleConfigFromFile("testdata/invalid-import-files/import-and-no-resource.tf")
 	assertNoDiagnostics(t, diags)
 
-	diags = cfg.addProviderRequirements(getproviders.Requirements{}, true, false)
+	diags = cfg.addProviderRequirements(providerreqs.Requirements{}, true, false)
 	assertExactDiagnostics(t, diags, []string{
 		`testdata/invalid-import-files/import-and-no-resource.tf:5,3-19: Invalid import provider argument; The provider argument can only be specified in import blocks that will generate configuration.
 

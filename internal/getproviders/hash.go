@@ -9,8 +9,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"golang.org/x/mod/sumdb/dirhash"
 )
 
@@ -28,11 +28,11 @@ import (
 // conversion. Instead, use either the HashScheme.New method on one of the
 // HashScheme contents (for a hash of a particular scheme) or the ParseHash
 // function (if hashes of any scheme are acceptable).
-type Hash string
+type Hash = providerreqs.Hash
 
 // NilHash is the zero value of Hash. It isn't a valid hash, so all of its
 // methods will panic.
-const NilHash = Hash("")
+const NilHash = providerreqs.NilHash
 
 // ParseHash parses the string representation of a Hash into a Hash value.
 //
@@ -49,89 +49,25 @@ const NilHash = Hash("")
 // If this function returns an error then the returned Hash is invalid and
 // must not be used.
 func ParseHash(s string) (Hash, error) {
-	colon := strings.Index(s, ":")
-	if colon < 1 { // 1 because a zero-length scheme is not allowed
-		return NilHash, fmt.Errorf("hash string must start with a scheme keyword followed by a colon")
-	}
-	return Hash(s), nil
+	return providerreqs.ParseHash(s)
 }
 
 // MustParseHash is a wrapper around ParseHash that panics if it returns an
 // error.
 func MustParseHash(s string) Hash {
-	hash, err := ParseHash(s)
-	if err != nil {
-		panic(err.Error())
-	}
-	return hash
-}
-
-// Scheme returns the scheme of the recieving hash. If the receiver is not
-// using valid syntax then this method will panic.
-func (h Hash) Scheme() HashScheme {
-	colon := strings.Index(string(h), ":")
-	if colon < 0 {
-		panic(fmt.Sprintf("invalid hash string %q", h))
-	}
-	return HashScheme(h[:colon+1])
-}
-
-// HasScheme returns true if the given scheme matches the receiver's scheme,
-// or false otherwise.
-//
-// If the receiver is not using valid syntax then this method will panic.
-func (h Hash) HasScheme(want HashScheme) bool {
-	return h.Scheme() == want
-}
-
-// Value returns the scheme-specific value from the recieving hash. The
-// meaning of this value depends on the scheme.
-//
-// If the receiver is not using valid syntax then this method will panic.
-func (h Hash) Value() string {
-	colon := strings.Index(string(h), ":")
-	if colon < 0 {
-		panic(fmt.Sprintf("invalid hash string %q", h))
-	}
-	return string(h[colon+1:])
-}
-
-// String returns a string representation of the receiving hash.
-func (h Hash) String() string {
-	return string(h)
-}
-
-// GoString returns a Go syntax representation of the receiving hash.
-//
-// This is here primarily to help with producing descriptive test failure
-// output; these results are not particularly useful at runtime.
-func (h Hash) GoString() string {
-	if h == NilHash {
-		return "getproviders.NilHash"
-	}
-	switch scheme := h.Scheme(); scheme {
-	case HashScheme1:
-		return fmt.Sprintf("getproviders.HashScheme1.New(%q)", h.Value())
-	case HashSchemeZip:
-		return fmt.Sprintf("getproviders.HashSchemeZip.New(%q)", h.Value())
-	default:
-		// This fallback is for when we encounter lock files or API responses
-		// with hash schemes that the current version of Terraform isn't
-		// familiar with. They were presumably introduced in a later version.
-		return fmt.Sprintf("getproviders.HashScheme(%q).New(%q)", scheme, h.Value())
-	}
+	return providerreqs.MustParseHash(s)
 }
 
 // HashScheme is an enumeration of schemes that are allowed for values of type
 // Hash.
-type HashScheme string
+type HashScheme = providerreqs.HashScheme
 
 const (
 	// HashScheme1 is the scheme identifier for the first hash scheme.
 	//
 	// Use HashV1 (or one of its wrapper functions) to calculate hashes with
 	// this scheme.
-	HashScheme1 HashScheme = HashScheme("h1:")
+	HashScheme1 HashScheme = providerreqs.HashScheme1
 
 	// HashSchemeZip is the scheme identifier for the legacy hash scheme that
 	// applies to distribution archives (.zip files) rather than package
@@ -139,17 +75,8 @@ const (
 	// distribution .zip file, not an extracted directory.
 	//
 	// Use PackageHashLegacyZipSHA to calculate hashes with this scheme.
-	HashSchemeZip HashScheme = HashScheme("zh:")
+	HashSchemeZip HashScheme = providerreqs.HashSchemeZip
 )
-
-// New creates a new Hash value with the receiver as its scheme and the given
-// raw string as its value.
-//
-// It's the caller's responsibility to make sure that the given value makes
-// sense for the selected scheme.
-func (hs HashScheme) New(value string) Hash {
-	return Hash(string(hs) + value)
-}
 
 // PackageHash computes a hash of the contents of the package at the given
 // location, using whichever hash algorithm is the current default.
@@ -163,7 +90,7 @@ func (hs HashScheme) New(value string) Hash {
 // PackageLocalDir and PackageLocalArchive, because it needs to access the
 // contents of the indicated package in order to compute the hash. If given
 // a non-local location this function will always return an error.
-func PackageHash(loc PackageLocation) (Hash, error) {
+func PackageHash(loc PackageLocation) (providerreqs.Hash, error) {
 	return PackageHashV1(loc)
 }
 
@@ -181,7 +108,7 @@ func PackageHash(loc PackageLocation) (Hash, error) {
 // PackageLocalDir and PackageLocalArchive, because it needs to access the
 // contents of the indicated package in order to compute the hash. If given
 // a non-local location this function will always return an error.
-func PackageMatchesHash(loc PackageLocation, want Hash) (bool, error) {
+func PackageMatchesHash(loc PackageLocation, want providerreqs.Hash) (bool, error) {
 	switch want.Scheme() {
 	case HashScheme1:
 		got, err := PackageHashV1(loc)
@@ -216,17 +143,17 @@ func PackageMatchesHash(loc PackageLocation, want Hash) (bool, error) {
 // types PackageLocalDir and PackageLocalArchive, because it needs to access the
 // contents of the indicated package in order to compute the hash. If given
 // a non-local location this function will always return an error.
-func PackageMatchesAnyHash(loc PackageLocation, allowed []Hash) (bool, error) {
+func PackageMatchesAnyHash(loc PackageLocation, allowed []providerreqs.Hash) (bool, error) {
 	// It's likely that we'll have multiple hashes of the same scheme in
 	// the "allowed" set, in which case we'll avoid repeatedly re-reading the
 	// given package by caching its result for each of the two
 	// currently-supported hash formats. These will be NilHash until we
 	// encounter the first hash of the corresponding scheme.
-	var v1Hash, zipHash Hash
+	var v1Hash, zipHash providerreqs.Hash
 	for _, want := range allowed {
 		switch want.Scheme() {
-		case HashScheme1:
-			if v1Hash == NilHash {
+		case providerreqs.HashScheme1:
+			if v1Hash == providerreqs.NilHash {
 				got, err := PackageHashV1(loc)
 				if err != nil {
 					return false, err
@@ -236,13 +163,13 @@ func PackageMatchesAnyHash(loc PackageLocation, allowed []Hash) (bool, error) {
 			if v1Hash == want {
 				return true, nil
 			}
-		case HashSchemeZip:
+		case providerreqs.HashSchemeZip:
 			archiveLoc, ok := loc.(PackageLocalArchive)
 			if !ok {
 				// A zip hash can never match an unpacked directory
 				continue
 			}
-			if zipHash == NilHash {
+			if zipHash == providerreqs.NilHash {
 				got, err := PackageHashLegacyZipSHA(archiveLoc)
 				if err != nil {
 					return false, err
@@ -268,24 +195,8 @@ func PackageMatchesAnyHash(loc PackageLocation, allowed []Hash) (bool, error) {
 // format. If PreferredHash returns a non-empty string then it will be one
 // of the hash strings in "given", and that hash is the one that must pass
 // verification in order for a package to be considered valid.
-func PreferredHashes(given []Hash) []Hash {
-	// For now this is just filtering for the two hash formats we support,
-	// both of which are considered equally "preferred". If we introduce
-	// a new scheme like "h2:" in future then, depending on the characteristics
-	// of that new version, it might make sense to rework this function so
-	// that it only returns "h1:" hashes if the input has no "h2:" hashes,
-	// so that h2: is preferred when possible and h1: is only a fallback for
-	// interacting with older systems that haven't been updated with the new
-	// scheme yet.
-
-	var ret []Hash
-	for _, hash := range given {
-		switch hash.Scheme() {
-		case HashScheme1, HashSchemeZip:
-			ret = append(ret, hash)
-		}
-	}
-	return ret
+func PreferredHashes(given []providerreqs.Hash) []providerreqs.Hash {
+	return providerreqs.PreferredHashes(given)
 }
 
 // PackageHashLegacyZipSHA implements the old provider package hashing scheme
@@ -300,7 +211,7 @@ func PreferredHashes(given []Hash) []Hash {
 //
 // Because this hashing scheme uses the official provider .zip file as its
 // input, it accepts only PackageLocalArchive locations.
-func PackageHashLegacyZipSHA(loc PackageLocalArchive) (Hash, error) {
+func PackageHashLegacyZipSHA(loc PackageLocalArchive) (providerreqs.Hash, error) {
 	archivePath, err := filepath.EvalSymlinks(string(loc))
 	if err != nil {
 		return "", err
@@ -327,8 +238,8 @@ func PackageHashLegacyZipSHA(loc PackageLocalArchive) (Hash, error) {
 //
 // This just adds the "zh:" prefix and encodes the string in hex, so that the
 // result is in the same format as PackageHashLegacyZipSHA.
-func HashLegacyZipSHAFromSHA(sum [sha256.Size]byte) Hash {
-	return HashSchemeZip.New(fmt.Sprintf("%x", sum[:]))
+func HashLegacyZipSHAFromSHA(sum [sha256.Size]byte) providerreqs.Hash {
+	return providerreqs.HashSchemeZip.New(fmt.Sprintf("%x", sum[:]))
 }
 
 // PackageHashV1 computes a hash of the contents of the package at the given
@@ -349,7 +260,7 @@ func HashLegacyZipSHAFromSHA(sum [sha256.Size]byte) Hash {
 // PackageLocalDir and PackageLocalArchive, because it needs to access the
 // contents of the indicated package in order to compute the hash. If given
 // a non-local location this function will always return an error.
-func PackageHashV1(loc PackageLocation) (Hash, error) {
+func PackageHashV1(loc PackageLocation) (providerreqs.Hash, error) {
 	// Our HashV1 is really just the Go Modules hash version 1, which is
 	// sufficient for our needs and already well-used for identity of
 	// Go Modules distribution packages. It is also blocked from incompatible
@@ -410,7 +321,7 @@ func PackageHashV1(loc PackageLocation) (Hash, error) {
 // PackageLocalDir and PackageLocalArchive, because it needs to access the
 // contents of the indicated package in order to compute the hash. If given
 // a non-local location this function will always return an error.
-func (m PackageMeta) Hash() (Hash, error) {
+func (m PackageMeta) Hash() (providerreqs.Hash, error) {
 	return PackageHash(m.Location)
 }
 
@@ -424,7 +335,7 @@ func (m PackageMeta) Hash() (Hash, error) {
 // PackageLocalDir and PackageLocalArchive, because it needs to access the
 // contents of the indicated package in order to compute the hash. If given
 // a non-local location this function will always return an error.
-func (m PackageMeta) MatchesHash(want Hash) (bool, error) {
+func (m PackageMeta) MatchesHash(want providerreqs.Hash) (bool, error) {
 	return PackageMatchesHash(m.Location, want)
 }
 
@@ -434,7 +345,7 @@ func (m PackageMeta) MatchesHash(want Hash) (bool, error) {
 // If it cannot read from the given location, MatchesHash returns an error.
 // Unlike the signular MatchesHash, MatchesAnyHash considers an unsupported
 // hash format to be a successful non-match.
-func (m PackageMeta) MatchesAnyHash(acceptable []Hash) (bool, error) {
+func (m PackageMeta) MatchesAnyHash(acceptable []providerreqs.Hash) (bool, error) {
 	return PackageMatchesAnyHash(m.Location, acceptable)
 }
 
@@ -449,6 +360,6 @@ func (m PackageMeta) MatchesAnyHash(acceptable []Hash) (bool, error) {
 // PackageLocalDir and PackageLocalArchive, because it needs to access the
 // contents of the indicated package in order to compute the hash. If given
 // a non-local location this function will always return an error.
-func (m PackageMeta) HashV1() (Hash, error) {
+func (m PackageMeta) HashV1() (providerreqs.Hash, error) {
 	return PackageHashV1(m.Location)
 }

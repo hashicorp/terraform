@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/depsfile"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -81,10 +81,10 @@ func TestRoundtrip(t *testing.T) {
 	locksIn := depsfile.NewLocks()
 	locksIn.SetProvider(
 		addrs.NewDefaultProvider("boop"),
-		getproviders.MustParseVersion("1.0.0"),
-		getproviders.MustParseVersionConstraints(">= 1.0.0"),
-		[]getproviders.Hash{
-			getproviders.MustParseHash("fake:hello"),
+		providerreqs.MustParseVersion("1.0.0"),
+		providerreqs.MustParseVersionConstraints(">= 1.0.0"),
+		[]providerreqs.Hash{
+			providerreqs.MustParseHash("fake:hello"),
 		},
 	)
 
