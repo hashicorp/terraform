@@ -12,14 +12,15 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
 func TestLocal_impl(t *testing.T) {
-	var _ backend.Enhanced = New()
-	var _ backend.Local = New()
-	var _ backend.CLI = New()
+	var _ backendrun.OperationsBackend = New()
+	var _ backendrun.Local = New()
+	var _ backendrun.CLI = New()
 }
 
 func TestLocal_backend(t *testing.T) {

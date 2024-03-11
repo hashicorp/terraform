@@ -21,7 +21,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/jsonapi"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -45,7 +45,7 @@ func backoff(min, max float64, iter int) time.Duration {
 	return time.Duration(backoff) * time.Millisecond
 }
 
-func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Operation, opType string, r *tfe.Run, w *tfe.Workspace) (*tfe.Run, error) {
+func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backendrun.Operation, opType string, r *tfe.Run, w *tfe.Workspace) (*tfe.Run, error) {
 	started := time.Now()
 	updated := started
 	for i := 0; ; i++ {
@@ -134,7 +134,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 						case tfe.RunApplied, tfe.RunCanceled, tfe.RunDiscarded, tfe.RunErrored:
 							continue
 						case tfe.RunPlanned:
-							if op.Type == backend.OperationTypePlan {
+							if op.Type == backendrun.OperationTypePlan {
 								continue
 							}
 						}
@@ -211,7 +211,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 	}
 }
 
-func (b *Cloud) waitTaskStage(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run, stageID string, outputTitle string) error {
+func (b *Cloud) waitTaskStage(stopCtx, cancelCtx context.Context, op *backendrun.Operation, r *tfe.Run, stageID string, outputTitle string) error {
 	integration := &IntegrationContext{
 		B:             b,
 		StopContext:   stopCtx,
@@ -222,7 +222,7 @@ func (b *Cloud) waitTaskStage(stopCtx, cancelCtx context.Context, op *backend.Op
 	return b.runTaskStage(integration, integration.BeginOutput(outputTitle), stageID)
 }
 
-func (b *Cloud) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
+func (b *Cloud) costEstimate(stopCtx, cancelCtx context.Context, op *backendrun.Operation, r *tfe.Run) error {
 	if r.CostEstimate == nil {
 		return nil
 	}
@@ -278,7 +278,7 @@ func (b *Cloud) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Ope
 				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("Resources: %d of %d estimated", ce.MatchedResourcesCount, ce.ResourcesCount)))
 				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("           $%s/mo %s$%s", ce.ProposedMonthlyCost, sign, deltaRepr)))
 
-				if len(r.PolicyChecks) == 0 && r.HasChanges && op.Type == backend.OperationTypeApply {
+				if len(r.PolicyChecks) == 0 && r.HasChanges && op.Type == backendrun.OperationTypeApply {
 					b.CLI.Output("\n------------------------------------------------------------------------")
 				}
 			}
@@ -317,7 +317,7 @@ func (b *Cloud) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Ope
 	}
 }
 
-func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
+func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backendrun.Operation, r *tfe.Run) error {
 	if b.CLI != nil {
 		b.CLI.Output("\n------------------------------------------------------------------------\n")
 	}
@@ -382,7 +382,7 @@ func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Oper
 
 		switch pc.Status {
 		case tfe.PolicyPasses:
-			if (r.HasChanges && op.Type == backend.OperationTypeApply || i < len(r.PolicyChecks)-1) && b.CLI != nil {
+			if (r.HasChanges && op.Type == backendrun.OperationTypeApply || i < len(r.PolicyChecks)-1) && b.CLI != nil {
 				b.CLI.Output("\n------------------------------------------------------------------------")
 			}
 			continue
@@ -393,7 +393,7 @@ func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Oper
 		case tfe.PolicySoftFailed:
 			runURL := fmt.Sprintf(runHeaderErr, b.Hostname, b.Organization, op.Workspace, r.ID)
 
-			if op.Type == backend.OperationTypePlan || op.UIOut == nil || op.UIIn == nil ||
+			if op.Type == backendrun.OperationTypePlan || op.UIOut == nil || op.UIIn == nil ||
 				!pc.Actions.IsOverridable || !pc.Permissions.CanOverride {
 				return fmt.Errorf(msgPrefix + " soft failed.\n" + runURL)
 			}
@@ -438,7 +438,7 @@ func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Oper
 	return nil
 }
 
-func (b *Cloud) confirm(stopCtx context.Context, op *backend.Operation, opts *terraform.InputOpts, r *tfe.Run, keyword string) error {
+func (b *Cloud) confirm(stopCtx context.Context, op *backendrun.Operation, opts *terraform.InputOpts, r *tfe.Run, keyword string) error {
 	doneCtx, cancel := context.WithCancel(stopCtx)
 	result := make(chan error, 2)
 

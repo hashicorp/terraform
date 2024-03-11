@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -28,8 +28,8 @@ var testHookStopPlanApply func()
 func (b *Local) opApply(
 	stopCtx context.Context,
 	cancelCtx context.Context,
-	op *backend.Operation,
-	runningOp *backend.RunningOperation) {
+	op *backendrun.Operation,
+	runningOp *backendrun.RunningOperation) {
 	log.Printf("[INFO] backend/local: starting Apply operation")
 
 	var diags, moreDiags tfdiags.Diagnostics
@@ -64,7 +64,7 @@ func (b *Local) opApply(
 		diags := op.StateLocker.Unlock()
 		if diags.HasErrors() {
 			op.View.Diagnostics(diags)
-			runningOp.Result = backend.OperationFailure
+			runningOp.Result = backendrun.OperationFailure
 		}
 	}()
 
@@ -122,7 +122,7 @@ func (b *Local) opApply(
 		// forced to abort, and no errors were returned from Plan.
 		if stopCtx.Err() != nil {
 			diags = diags.Append(errors.New("execution halted"))
-			runningOp.Result = backend.OperationFailure
+			runningOp.Result = backendrun.OperationFailure
 			op.ReportResult(runningOp, diags)
 			return
 		}
@@ -175,7 +175,7 @@ func (b *Local) opApply(
 			}
 			if v != "yes" {
 				op.View.Cancelled(op.PlanMode)
-				runningOp.Result = backend.OperationFailure
+				runningOp.Result = backendrun.OperationFailure
 				return
 			}
 		} else {

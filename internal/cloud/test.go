@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -61,7 +61,7 @@ type TestSuiteRunner struct {
 
 	// GlobalVariables are the variables provided by the TF_VAR_* environment
 	// variables and -var and -var-file flags.
-	GlobalVariables map[string]backend.UnparsedVariableValue
+	GlobalVariables map[string]backendrun.UnparsedVariableValue
 
 	// Stopped and Cancelled track whether the user requested the testing
 	// process to be interrupted. Stopped is a nice graceful exit, we'll still

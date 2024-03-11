@@ -25,7 +25,6 @@ import (
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/httpclient"
@@ -36,6 +35,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 )
 
@@ -353,7 +353,7 @@ func testUnconfiguredBackend(t *testing.T) (*Cloud, func()) {
 	return b, s.Close
 }
 
-func testLocalBackend(t *testing.T, cloud *Cloud) backend.Enhanced {
+func testLocalBackend(t *testing.T, cloud *Cloud) backendrun.OperationsBackend {
 	b := backendLocal.NewWithBackend(cloud)
 
 	// Add a test provider to the local backend.
@@ -600,8 +600,8 @@ func (v *unparsedVariableValue) ParseVariableValue(mode configs.VariableParsingM
 }
 
 // testVariable returns a backend.UnparsedVariableValue used for testing.
-func testVariables(s terraform.ValueSourceType, vs ...string) map[string]backend.UnparsedVariableValue {
-	vars := make(map[string]backend.UnparsedVariableValue, len(vs))
+func testVariables(s terraform.ValueSourceType, vs ...string) map[string]backendrun.UnparsedVariableValue {
+	vars := make(map[string]backendrun.UnparsedVariableValue, len(vs))
 	for _, v := range vs {
 		vars[v] = &unparsedVariableValue{
 			value:  v,

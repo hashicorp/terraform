@@ -8,8 +8,9 @@ import (
 	"strings"
 
 	"github.com/hashicorp/cli"
+
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -75,7 +76,7 @@ func (c *StateMvCommand) Run(args []string) int {
 
 		// If currentBackend is nil and diags didn't have errors,
 		// this means we have an implicit local backend
-		_, isLocalBackend := currentBackend.(backend.Local)
+		_, isLocalBackend := currentBackend.(backendrun.Local)
 		if currentBackend != nil && !isLocalBackend {
 			diags = diags.Append(
 				tfdiags.Sourceless(

@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	hcljson "github.com/hashicorp/hcl/v2/json"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -31,9 +31,9 @@ const VarEnvPrefix = "TF_VAR_"
 // This method returns diagnostics relating to the collection of the values,
 // but the values themselves may produce additional diagnostics when finally
 // parsed.
-func (m *Meta) collectVariableValuesForTests(testsFilePath string) (map[string]backend.UnparsedVariableValue, tfdiags.Diagnostics) {
+func (m *Meta) collectVariableValuesForTests(testsFilePath string) (map[string]backendrun.UnparsedVariableValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret := map[string]backend.UnparsedVariableValue{}
+	ret := map[string]backendrun.UnparsedVariableValue{}
 
 	// We collect the variables from the ./tests directory
 	// there is no other need to process environmental variables
@@ -92,9 +92,9 @@ func (m *Meta) collectVariableValuesForTests(testsFilePath string) (map[string]b
 // This method returns diagnostics relating to the collection of the values,
 // but the values themselves may produce additional diagnostics when finally
 // parsed.
-func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue, tfdiags.Diagnostics) {
+func (m *Meta) collectVariableValues() (map[string]backendrun.UnparsedVariableValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret := map[string]backend.UnparsedVariableValue{}
+	ret := map[string]backendrun.UnparsedVariableValue{}
 
 	// First we'll deal with environment variables, since they have the lowest
 	// precedence.
@@ -196,7 +196,7 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 	return ret, diags
 }
 
-func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSourceType, to map[string]backend.UnparsedVariableValue) tfdiags.Diagnostics {
+func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSourceType, to map[string]backendrun.UnparsedVariableValue) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	src, err := ioutil.ReadFile(filename)
@@ -286,7 +286,7 @@ func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSource
 	return diags
 }
 
-// unparsedVariableValueLiteral is a backend.UnparsedVariableValue
+// unparsedVariableValueLiteral is a backendrun.UnparsedVariableValue
 // implementation that was actually already parsed (!). This is
 // intended to deal with expressions inside "tfvars" files.
 type unparsedVariableValueExpression struct {
@@ -308,7 +308,7 @@ func (v unparsedVariableValueExpression) ParseVariableValue(mode configs.Variabl
 	}, diags
 }
 
-// unparsedVariableValueString is a backend.UnparsedVariableValue
+// unparsedVariableValueString is a backendrun.UnparsedVariableValue
 // implementation that parses its value from a string. This can be used
 // to deal with values given directly on the command line and via environment
 // variables.

@@ -12,18 +12,20 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
-// Context implements backend.Local.
-func (b *Remote) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Full, tfdiags.Diagnostics) {
+// Context implements backendrun.Local.
+func (b *Remote) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statemgr.Full, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret := &backend.LocalRun{
+	ret := &backendrun.LocalRun{
 		PlanOpts: &terraform.PlanOpts{
 			Mode:    op.PlanMode,
 			Targets: op.Targets,
@@ -118,7 +120,7 @@ func (b *Remote) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Fu
 			}
 			if tfeVariables != nil {
 				if op.Variables == nil {
-					op.Variables = make(map[string]backend.UnparsedVariableValue)
+					op.Variables = make(map[string]backendrun.UnparsedVariableValue)
 				}
 				for _, v := range tfeVariables.Items {
 					if v.Category == tfe.CategoryTerraform {
@@ -133,7 +135,7 @@ func (b *Remote) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Fu
 		}
 
 		if op.Variables != nil {
-			variables, varDiags := backend.ParseVariableValues(op.Variables, config.Module.Variables)
+			variables, varDiags := backendrun.ParseVariableValues(op.Variables, config.Module.Variables)
 			diags = diags.Append(varDiags)
 			if diags.HasErrors() {
 				return nil, nil, diags
@@ -186,7 +188,7 @@ func (b *Remote) getRemoteWorkspaceID(ctx context.Context, localWorkspaceName st
 	return remoteWorkspace.ID, nil
 }
 
-func stubAllVariables(vv map[string]backend.UnparsedVariableValue, decls map[string]*configs.Variable) terraform.InputValues {
+func stubAllVariables(vv map[string]backendrun.UnparsedVariableValue, decls map[string]*configs.Variable) terraform.InputValues {
 	ret := make(terraform.InputValues, len(decls))
 
 	for name, cfg := range decls {
@@ -220,7 +222,7 @@ type remoteStoredVariableValue struct {
 	definition *tfe.Variable
 }
 
-var _ backend.UnparsedVariableValue = (*remoteStoredVariableValue)(nil)
+var _ backendrun.UnparsedVariableValue = (*remoteStoredVariableValue)(nil)
 
 func (v *remoteStoredVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics

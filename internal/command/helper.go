@@ -4,7 +4,7 @@
 package command
 
 import (
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/cloud"
 )
 
@@ -24,7 +24,7 @@ of the state:
     terraform apply
 `
 
-func isCloudMode(b backend.Enhanced) bool {
+func isCloudMode(b backendrun.OperationsBackend) bool {
 	_, ok := b.(*cloud.Cloud)
 
 	return ok

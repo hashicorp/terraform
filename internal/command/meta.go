@@ -24,6 +24,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
@@ -466,7 +467,7 @@ func (m *Meta) CommandContext() context.Context {
 // If the operation runs to completion then no error is returned even if the
 // operation itself is unsuccessful. Use the "Result" field of the
 // returned operation object to recognize operation-level failure.
-func (m *Meta) RunOperation(b backend.Enhanced, opReq *backend.Operation) (*backend.RunningOperation, error) {
+func (m *Meta) RunOperation(b backendrun.OperationsBackend, opReq *backendrun.Operation) (*backendrun.RunningOperation, error) {
 	if opReq.View == nil {
 		panic("RunOperation called with nil View")
 	}

@@ -1,12 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package backend
+package backendrun
 
 import (
 	"github.com/hashicorp/cli"
 	"github.com/mitchellh/colorstring"
 
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
@@ -25,7 +26,7 @@ import (
 // on other methods (such as State, Operation) if CLI initialization was not
 // done with all required fields.
 type CLI interface {
-	Backend
+	backend.Backend
 
 	// CLIInit is called once with options. The options passed to this
 	// function may not be modified after calling this since they can be

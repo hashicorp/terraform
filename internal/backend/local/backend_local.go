@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -23,15 +23,15 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// backend.Local implementation.
-func (b *Local) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Full, tfdiags.Diagnostics) {
+// backendrun.Local implementation.
+func (b *Local) LocalRun(op *backendrun.Operation) (*backendrun.LocalRun, statemgr.Full, tfdiags.Diagnostics) {
 	// Make sure the type is invalid. We use this as a way to know not
 	// to ask for input/validate. We're modifying this through a pointer,
 	// so we're mutating an object that belongs to the caller here, which
 	// seems bad but we're preserving it for now until we have time to
 	// properly design this API, vs. just preserving whatever it currently
 	// happens to do.
-	op.Type = backend.OperationTypeInvalid
+	op.Type = backendrun.OperationTypeInvalid
 
 	op.StateLocker = op.StateLocker.WithContext(context.Background())
 
@@ -39,7 +39,7 @@ func (b *Local) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Ful
 	return lr, stateMgr, diags
 }
 
-func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.Snapshot, statemgr.Full, tfdiags.Diagnostics) {
+func (b *Local) localRun(op *backendrun.Operation) (*backendrun.LocalRun, *configload.Snapshot, statemgr.Full, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Get the latest state.
@@ -68,7 +68,7 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 		return nil, nil, nil, diags
 	}
 
-	ret := &backend.LocalRun{}
+	ret := &backendrun.LocalRun{}
 
 	// Initialize our context options
 	var coreOpts terraform.ContextOpts
@@ -94,7 +94,7 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 			m := sm.StateSnapshotMeta()
 			stateMeta = &m
 		}
-		log.Printf("[TRACE] backend/local: populating backend.LocalRun from plan file")
+		log.Printf("[TRACE] backend/local: populating backendrun.LocalRun from plan file")
 		ret, configSnap, ctxDiags = b.localRunForPlanFile(op, lp, ret, &coreOpts, stateMeta)
 		if ctxDiags.HasErrors() {
 			diags = diags.Append(ctxDiags)
@@ -105,7 +105,7 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 		// available if we need to generate diagnostic message snippets.
 		op.ConfigLoader.ImportSourcesFromSnapshot(configSnap)
 	} else {
-		log.Printf("[TRACE] backend/local: populating backend.LocalRun for current working directory")
+		log.Printf("[TRACE] backend/local: populating backendrun.LocalRun for current working directory")
 		ret, configSnap, ctxDiags = b.localRunDirect(op, ret, &coreOpts, s)
 	}
 	diags = diags.Append(ctxDiags)
@@ -115,7 +115,7 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 
 	// If we have an operation, then we automatically do the input/validate
 	// here since every option requires this.
-	if op.Type != backend.OperationTypeInvalid {
+	if op.Type != backendrun.OperationTypeInvalid {
 		// If input asking is enabled, then do that
 		if op.PlanFile == nil && b.OpInput {
 			mode := terraform.InputModeProvider
@@ -139,7 +139,7 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 	return ret, configSnap, s, diags
 }
 
-func (b *Local) localRunDirect(op *backend.Operation, run *backend.LocalRun, coreOpts *terraform.ContextOpts, s statemgr.Full) (*backend.LocalRun, *configload.Snapshot, tfdiags.Diagnostics) {
+func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRun, coreOpts *terraform.ContextOpts, s statemgr.Full) (*backendrun.LocalRun, *configload.Snapshot, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Load the configuration using the caller-provided configuration loader.
@@ -176,7 +176,7 @@ func (b *Local) localRunDirect(op *backend.Operation, run *backend.LocalRun, cor
 		))
 	}
 
-	var rawVariables map[string]backend.UnparsedVariableValue
+	var rawVariables map[string]backendrun.UnparsedVariableValue
 	if op.AllowUnsetVariables {
 		// Rather than prompting for input, we'll just stub out the required
 		// but unset variables with unknown values to represent that they are
@@ -191,7 +191,7 @@ func (b *Local) localRunDirect(op *backend.Operation, run *backend.LocalRun, cor
 		rawVariables = b.interactiveCollectVariables(context.TODO(), op.Variables, config.Module.Variables, op.UIIn)
 	}
 
-	variables, varDiags := backend.ParseVariableValues(rawVariables, config.Module.Variables)
+	variables, varDiags := backendrun.ParseVariableValues(rawVariables, config.Module.Variables)
 	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
 		return nil, nil, diags
@@ -202,7 +202,7 @@ func (b *Local) localRunDirect(op *backend.Operation, run *backend.LocalRun, cor
 		Targets:            op.Targets,
 		ForceReplace:       op.ForceReplace,
 		SetVariables:       variables,
-		SkipRefresh:        op.Type != backend.OperationTypeRefresh && !op.PlanRefresh,
+		SkipRefresh:        op.Type != backendrun.OperationTypeRefresh && !op.PlanRefresh,
 		GenerateConfigPath: op.GenerateConfigOut,
 	}
 	run.PlanOpts = planOpts
@@ -220,7 +220,7 @@ func (b *Local) localRunDirect(op *backend.Operation, run *backend.LocalRun, cor
 	return run, configSnap, diags
 }
 
-func (b *Local) localRunForPlanFile(op *backend.Operation, pf *planfile.Reader, run *backend.LocalRun, coreOpts *terraform.ContextOpts, currentStateMeta *statemgr.SnapshotMeta) (*backend.LocalRun, *configload.Snapshot, tfdiags.Diagnostics) {
+func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reader, run *backendrun.LocalRun, coreOpts *terraform.ContextOpts, currentStateMeta *statemgr.SnapshotMeta) (*backendrun.LocalRun, *configload.Snapshot, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	const errSummary = "Invalid plan file"
@@ -374,7 +374,7 @@ func (b *Local) localRunForPlanFile(op *backend.Operation, pf *planfile.Reader, 
 // messages that variables are not set rather than reporting that input failed:
 // the primary resolution to missing variables is to provide them by some other
 // means.
-func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[string]backend.UnparsedVariableValue, vcs map[string]*configs.Variable, uiInput terraform.UIInput) map[string]backend.UnparsedVariableValue {
+func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[string]backendrun.UnparsedVariableValue, vcs map[string]*configs.Variable, uiInput terraform.UIInput) map[string]backendrun.UnparsedVariableValue {
 	var needed []string
 	if b.OpInput && uiInput != nil {
 		for name, vc := range vcs {
@@ -397,7 +397,7 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 	// If we get here then we're planning to prompt for at least one additional
 	// variable's value.
 	sort.Strings(needed) // prompt in lexical order
-	ret := make(map[string]backend.UnparsedVariableValue, len(vcs))
+	ret := make(map[string]backendrun.UnparsedVariableValue, len(vcs))
 	for k, v := range existing {
 		ret[k] = v
 	}
@@ -445,7 +445,7 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 // the given map unchanged if no additions are required. If additions are
 // required then the result will be a new map containing everything in the
 // given map plus additional elements.
-func (b *Local) stubUnsetRequiredVariables(existing map[string]backend.UnparsedVariableValue, vcs map[string]*configs.Variable) map[string]backend.UnparsedVariableValue {
+func (b *Local) stubUnsetRequiredVariables(existing map[string]backendrun.UnparsedVariableValue, vcs map[string]*configs.Variable) map[string]backendrun.UnparsedVariableValue {
 	var missing bool // Do we need to add anything?
 	for name, vc := range vcs {
 		if !vc.Required() {
@@ -460,7 +460,7 @@ func (b *Local) stubUnsetRequiredVariables(existing map[string]backend.UnparsedV
 	}
 
 	// If we get down here then there's at least one variable value to add.
-	ret := make(map[string]backend.UnparsedVariableValue, len(vcs))
+	ret := make(map[string]backendrun.UnparsedVariableValue, len(vcs))
 	for k, v := range existing {
 		ret[k] = v
 	}
@@ -479,7 +479,7 @@ type unparsedInteractiveVariableValue struct {
 	Name, RawValue string
 }
 
-var _ backend.UnparsedVariableValue = unparsedInteractiveVariableValue{}
+var _ backendrun.UnparsedVariableValue = unparsedInteractiveVariableValue{}
 
 func (v unparsedInteractiveVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -499,7 +499,7 @@ type unparsedUnknownVariableValue struct {
 	WantType cty.Type
 }
 
-var _ backend.UnparsedVariableValue = unparsedUnknownVariableValue{}
+var _ backendrun.UnparsedVariableValue = unparsedUnknownVariableValue{}
 
 func (v unparsedUnknownVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	return &terraform.InputValue{
@@ -512,7 +512,7 @@ type unparsedTestVariableValue struct {
 	Expr hcl.Expression
 }
 
-var _ backend.UnparsedVariableValue = unparsedTestVariableValue{}
+var _ backendrun.UnparsedVariableValue = unparsedTestVariableValue{}
 
 func (v unparsedTestVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics

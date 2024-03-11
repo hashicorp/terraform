@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -110,7 +110,7 @@ func (c *RefreshCommand) Run(rawArgs []string) int {
 	return op.Result.ExitStatus()
 }
 
-func (c *RefreshCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backend.Enhanced, tfdiags.Diagnostics) {
+func (c *RefreshCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	// FIXME: we need to apply the state arguments to the meta object here
 	// because they are later used when initializing the backend. Carving a
 	// path to pass these arguments to the functions that need them is
@@ -135,8 +135,8 @@ func (c *RefreshCommand) PrepareBackend(args *arguments.State, viewType argument
 	return be, diags
 }
 
-func (c *RefreshCommand) OperationRequest(be backend.Enhanced, view views.Refresh, viewType arguments.ViewType, args *arguments.Operation,
-) (*backend.Operation, tfdiags.Diagnostics) {
+func (c *RefreshCommand) OperationRequest(be backendrun.OperationsBackend, view views.Refresh, viewType arguments.ViewType, args *arguments.Operation,
+) (*backendrun.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Build the operation
@@ -144,7 +144,7 @@ func (c *RefreshCommand) OperationRequest(be backend.Enhanced, view views.Refres
 	opReq.ConfigDir = "."
 	opReq.Hooks = view.Hooks()
 	opReq.Targets = args.Targets
-	opReq.Type = backend.OperationTypeRefresh
+	opReq.Type = backendrun.OperationTypeRefresh
 	opReq.View = view.Operation()
 
 	var err error
@@ -157,7 +157,7 @@ func (c *RefreshCommand) OperationRequest(be backend.Enhanced, view views.Refres
 	return opReq, diags
 }
 
-func (c *RefreshCommand) GatherVariables(opReq *backend.Operation, args *arguments.Vars) tfdiags.Diagnostics {
+func (c *RefreshCommand) GatherVariables(opReq *backendrun.Operation, args *arguments.Vars) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// FIXME the arguments package currently trivially gathers variable related

@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -178,7 +178,7 @@ func (c *ImportCommand) Run(args []string) int {
 	// operations, however that is the only current implementation. A
 	// "local.Local" backend also doesn't necessarily provide local state, as
 	// that may be delegated to a "remotestate.Backend".
-	local, ok := b.(backend.Local)
+	local, ok := b.(backendrun.Local)
 	if !ok {
 		c.Ui.Error(ErrUnsupportedLocalOp)
 		return 1
