@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -57,7 +58,7 @@ func EvalContext(target EvalContextTarget, expressions []hcl.Expression, availab
 	}
 
 	for _, expression := range expressions {
-		refs, refDiags := lang.ReferencesInExpr(addrs.ParseRefFromTestingScope, expression)
+		refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expression)
 		diags = diags.Append(refDiags)
 
 		for _, ref := range refs {

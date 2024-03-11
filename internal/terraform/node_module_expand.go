@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/experiments"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -65,11 +65,11 @@ func (n *nodeExpandModule) References() []*addrs.Reference {
 	// child module instances we might expand to during our evaluation.
 
 	if n.ModuleCall.Count != nil {
-		countRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.ModuleCall.Count)
+		countRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.ModuleCall.Count)
 		refs = append(refs, countRefs...)
 	}
 	if n.ModuleCall.ForEach != nil {
-		forEachRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.ModuleCall.ForEach)
+		forEachRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.ModuleCall.ForEach)
 		refs = append(refs, forEachRefs...)
 	}
 	return refs

@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -558,7 +558,7 @@ func decodeReplaceTriggeredBy(expr hcl.Expression) ([]hcl.Expression, hcl.Diagno
 		// re-assign the value in case it was replaced by a json expression
 		exprs[i] = expr
 
-		refs, refDiags := lang.ReferencesInExpr(addrs.ParseRef, expr)
+		refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRef, expr)
 		for _, diag := range refDiags {
 			severity := hcl.DiagError
 			if diag.Severity() == tfdiags.Warning {
