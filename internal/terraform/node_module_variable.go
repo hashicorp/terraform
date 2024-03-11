@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -136,7 +136,7 @@ func (n *nodeExpandModuleVariable) References() []*addrs.Reference {
 	// where our associated variable was declared, which is correct because
 	// our value expression is assigned within a "module" block in the parent
 	// module.
-	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.Expr)
+	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.Expr)
 	return refs
 }
 

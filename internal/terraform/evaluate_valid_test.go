@@ -12,7 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
 )
 
@@ -130,7 +130,7 @@ For example, to correlate with indices of a referring resource, use:
 				t.Fatal(hclDiags.Error())
 			}
 
-			refs, diags := lang.References(addrs.ParseRef, []hcl.Traversal{traversal})
+			refs, diags := langrefs.References(addrs.ParseRef, []hcl.Traversal{traversal})
 			if diags.HasErrors() {
 				t.Fatal(diags.Err())
 			}

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -420,7 +421,7 @@ func TestScopeEvalContext(t *testing.T) {
 		},
 	}
 
-	exec := func(t *testing.T, parseRef ParseRef, test struct {
+	exec := func(t *testing.T, parseRef langrefs.ParseRef, test struct {
 		Expr        string
 		Want        map[string]cty.Value
 		TestingOnly bool
@@ -434,7 +435,7 @@ func TestScopeEvalContext(t *testing.T) {
 			return
 		}
 
-		refs, refsDiags := ReferencesInExpr(parseRef, expr)
+		refs, refsDiags := langrefs.ReferencesInExpr(parseRef, expr)
 		if refsDiags.HasErrors() {
 			t.Fatal(refsDiags.Err())
 		}

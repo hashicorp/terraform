@@ -8,7 +8,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -76,7 +76,7 @@ func (p *ProviderConfig) transformAttributes(originals hcl.Attributes) (hcl.Attr
 		// the references from this expression now and see if they reference any
 		// input variables. If we find an input variable, we'll copy it into
 		// our availableVariables local.
-		refs, _ := lang.ReferencesInExpr(addrs.ParseRefFromTestingScope, original.Expr)
+		refs, _ := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, original.Expr)
 		for _, ref := range refs {
 			if addr, ok := ref.Subject.(addrs.InputVariable); ok {
 				if _, exists := availableVariables[addr.Name]; exists {

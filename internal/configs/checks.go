@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 )
 
 // CheckRule represents a configuration-defined validation rule, precondition,
@@ -53,7 +53,7 @@ func (cr *CheckRule) validateSelfReferences(checkType string, addr addrs.Resourc
 		if expr == nil {
 			continue
 		}
-		refs, _ := lang.References(addrs.ParseRef, expr.Variables())
+		refs, _ := langrefs.References(addrs.ParseRef, expr.Variables())
 		for _, ref := range refs {
 			var refAddr addrs.Resource
 

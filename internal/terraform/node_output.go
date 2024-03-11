@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -299,16 +299,16 @@ func (n *NodeApplyableOutput) ReferenceableAddrs() []addrs.Referenceable {
 func referencesForOutput(c *configs.Output) []*addrs.Reference {
 	var refs []*addrs.Reference
 
-	impRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, c.Expr)
-	expRefs, _ := lang.References(addrs.ParseRef, c.DependsOn)
+	impRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.Expr)
+	expRefs, _ := langrefs.References(addrs.ParseRef, c.DependsOn)
 
 	refs = append(refs, impRefs...)
 	refs = append(refs, expRefs...)
 
 	for _, check := range c.Preconditions {
-		condRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, check.Condition)
+		condRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, check.Condition)
 		refs = append(refs, condRefs...)
-		errRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, check.ErrorMessage)
+		errRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, check.ErrorMessage)
 		refs = append(refs, errRefs...)
 	}
 

@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 )
 
 // MetaReferences inspects the configuration to find the references contained
@@ -118,7 +118,7 @@ func (a *Analyzer) metaReferencesInputVariable(calleeAddr addrs.ModuleInstance, 
 	if attr == nil {
 		return nil
 	}
-	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, attr.Expr)
+	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, attr.Expr)
 	return absoluteRefs(callerAddr, refs)
 }
 
@@ -138,7 +138,7 @@ func (a *Analyzer) metaReferencesOutputValue(callerAddr addrs.ModuleInstance, ad
 
 	// We don't check for errors here because we'll make a best effort to
 	// analyze whatever partial result HCL is able to extract.
-	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, oc.Expr)
+	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, oc.Expr)
 	return absoluteRefs(calleeAddr, refs)
 }
 
@@ -155,7 +155,7 @@ func (a *Analyzer) metaReferencesLocalValue(moduleAddr addrs.ModuleInstance, add
 
 	// We don't check for errors here because we'll make a best effort to
 	// analyze whatever partial result HCL is able to extract.
-	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, local.Expr)
+	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, local.Expr)
 	return absoluteRefs(moduleAddr, refs)
 }
 
@@ -389,12 +389,12 @@ Steps:
 
 	var refs []*addrs.Reference
 	for _, expr := range exprs {
-		moreRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, expr)
+		moreRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, expr)
 		refs = append(refs, moreRefs...)
 	}
 	if schema != nil {
 		for _, body := range bodies {
-			moreRefs, _ := lang.ReferencesInBlock(addrs.ParseRef, body, schema)
+			moreRefs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, body, schema)
 			refs = append(refs, moreRefs...)
 		}
 	}

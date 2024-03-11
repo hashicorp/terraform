@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -71,9 +72,9 @@ type checkResult struct {
 func validateCheckRule(addr addrs.CheckRule, rule *configs.CheckRule, ctx EvalContext, keyData instances.RepetitionData) (string, *hcl.EvalContext, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	refs, moreDiags := lang.ReferencesInExpr(addrs.ParseRef, rule.Condition)
+	refs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRef, rule.Condition)
 	diags = diags.Append(moreDiags)
-	moreRefs, moreDiags := lang.ReferencesInExpr(addrs.ParseRef, rule.ErrorMessage)
+	moreRefs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRef, rule.ErrorMessage)
 	diags = diags.Append(moreDiags)
 	refs = append(refs, moreRefs...)
 
