@@ -12,8 +12,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -116,7 +117,7 @@ func TestLoadLocksFromFile(t *testing.T) {
 						if got, want := lock.Version().String(), "1.0.0"; got != want {
 							t.Errorf("wrong version\ngot:  %s\nwant: %s", got, want)
 						}
-						if got, want := getproviders.VersionConstraintsString(lock.VersionConstraints()), ""; got != want {
+						if got, want := providerreqs.VersionConstraintsString(lock.VersionConstraints()), ""; got != want {
 							t.Errorf("wrong version constraints\ngot:  %s\nwant: %s", got, want)
 						}
 						if got, want := len(lock.hashes), 0; got != want {
@@ -130,7 +131,7 @@ func TestLoadLocksFromFile(t *testing.T) {
 						if got, want := lock.Version().String(), "1.2.0"; got != want {
 							t.Errorf("wrong version\ngot:  %s\nwant: %s", got, want)
 						}
-						if got, want := getproviders.VersionConstraintsString(lock.VersionConstraints()), "~> 1.2"; got != want {
+						if got, want := providerreqs.VersionConstraintsString(lock.VersionConstraints()), "~> 1.2"; got != want {
 							t.Errorf("wrong version constraints\ngot:  %s\nwant: %s", got, want)
 						}
 						if got, want := len(lock.hashes), 0; got != want {
@@ -144,13 +145,13 @@ func TestLoadLocksFromFile(t *testing.T) {
 						if got, want := lock.Version().String(), "3.0.10"; got != want {
 							t.Errorf("wrong version\ngot:  %s\nwant: %s", got, want)
 						}
-						if got, want := getproviders.VersionConstraintsString(lock.VersionConstraints()), ">= 3.0.2"; got != want {
+						if got, want := providerreqs.VersionConstraintsString(lock.VersionConstraints()), ">= 3.0.2"; got != want {
 							t.Errorf("wrong version constraints\ngot:  %s\nwant: %s", got, want)
 						}
-						wantHashes := []getproviders.Hash{
-							getproviders.MustParseHash("test:placeholder-hash-1"),
-							getproviders.MustParseHash("test:placeholder-hash-2"),
-							getproviders.MustParseHash("test:placeholder-hash-3"),
+						wantHashes := []providerreqs.Hash{
+							providerreqs.MustParseHash("test:placeholder-hash-1"),
+							providerreqs.MustParseHash("test:placeholder-hash-2"),
+							providerreqs.MustParseHash("test:placeholder-hash-3"),
 						}
 						if diff := cmp.Diff(wantHashes, lock.hashes); diff != "" {
 							t.Errorf("wrong hashes\n%s", diff)
@@ -208,15 +209,15 @@ func TestSaveLocksToFile(t *testing.T) {
 	barProvider := addrs.MustParseProviderSourceString("test/bar")
 	bazProvider := addrs.MustParseProviderSourceString("test/baz")
 	booProvider := addrs.MustParseProviderSourceString("test/boo")
-	oneDotOh := getproviders.MustParseVersion("1.0.0")
-	oneDotTwo := getproviders.MustParseVersion("1.2.0")
-	atLeastOneDotOh := getproviders.MustParseVersionConstraints(">= 1.0.0")
-	pessimisticOneDotOh := getproviders.MustParseVersionConstraints("~> 1")
-	abbreviatedOneDotTwo := getproviders.MustParseVersionConstraints("1.2")
-	hashes := []getproviders.Hash{
-		getproviders.MustParseHash("test:cccccccccccccccccccccccccccccccccccccccccccccccc"),
-		getproviders.MustParseHash("test:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
-		getproviders.MustParseHash("test:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+	oneDotOh := providerreqs.MustParseVersion("1.0.0")
+	oneDotTwo := providerreqs.MustParseVersion("1.2.0")
+	atLeastOneDotOh := providerreqs.MustParseVersionConstraints(">= 1.0.0")
+	pessimisticOneDotOh := providerreqs.MustParseVersionConstraints("~> 1")
+	abbreviatedOneDotTwo := providerreqs.MustParseVersionConstraints("1.2")
+	hashes := []providerreqs.Hash{
+		providerreqs.MustParseHash("test:cccccccccccccccccccccccccccccccccccccccccccccccc"),
+		providerreqs.MustParseHash("test:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+		providerreqs.MustParseHash("test:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
 	}
 	locks.SetProvider(fooProvider, oneDotOh, atLeastOneDotOh, hashes)
 	locks.SetProvider(barProvider, oneDotTwo, pessimisticOneDotOh, nil)

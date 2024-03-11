@@ -15,7 +15,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/replacefile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
@@ -152,7 +152,7 @@ func SaveLocksToBytes(locks *Locks) ([]byte, tfdiags.Diagnostics) {
 		block := rootBody.AppendNewBlock("provider", []string{lock.addr.String()})
 		body := block.Body()
 		body.SetAttributeValue("version", cty.StringVal(lock.version.String()))
-		if constraintsStr := getproviders.VersionConstraintsString(lock.versionConstraints); constraintsStr != "" {
+		if constraintsStr := providerreqs.VersionConstraintsString(lock.versionConstraints); constraintsStr != "" {
 			body.SetAttributeValue("constraints", cty.StringVal(constraintsStr))
 		}
 		if len(lock.hashes) != 0 {
@@ -318,12 +318,12 @@ func decodeProviderLockFromHCL(block *hcl.Block) (*ProviderLock, tfdiags.Diagnos
 	return ret, diags
 }
 
-func decodeProviderVersionArgument(provider addrs.Provider, attr *hcl.Attribute) (getproviders.Version, tfdiags.Diagnostics) {
+func decodeProviderVersionArgument(provider addrs.Provider, attr *hcl.Attribute) (providerreqs.Version, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	if attr == nil {
 		// It's not okay to omit this argument, but the caller should already
 		// have generated diagnostics about that.
-		return getproviders.UnspecifiedVersion, diags
+		return providerreqs.UnspecifiedVersion, diags
 	}
 	expr := attr.Expr
 
@@ -331,7 +331,7 @@ func decodeProviderVersionArgument(provider addrs.Provider, attr *hcl.Attribute)
 	hclDiags := gohcl.DecodeExpression(expr, nil, &raw)
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
-		return getproviders.UnspecifiedVersion, diags
+		return providerreqs.UnspecifiedVersion, diags
 	}
 	if raw == nil {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -340,9 +340,9 @@ func decodeProviderVersionArgument(provider addrs.Provider, attr *hcl.Attribute)
 			Detail:   "A provider lock block must contain a \"version\" argument.",
 			Subject:  expr.Range().Ptr(), // the range for a missing argument's expression is the body's missing item range
 		})
-		return getproviders.UnspecifiedVersion, diags
+		return providerreqs.UnspecifiedVersion, diags
 	}
-	version, err := getproviders.ParseVersion(*raw)
+	version, err := providerreqs.ParseVersion(*raw)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -364,7 +364,7 @@ func decodeProviderVersionArgument(provider addrs.Provider, attr *hcl.Attribute)
 	return version, diags
 }
 
-func decodeProviderVersionConstraintsArgument(provider addrs.Provider, attr *hcl.Attribute) (getproviders.VersionConstraints, tfdiags.Diagnostics) {
+func decodeProviderVersionConstraintsArgument(provider addrs.Provider, attr *hcl.Attribute) (providerreqs.VersionConstraints, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	if attr == nil {
 		// It's okay to omit this argument.
@@ -378,7 +378,7 @@ func decodeProviderVersionConstraintsArgument(provider addrs.Provider, attr *hcl
 	if hclDiags.HasErrors() {
 		return nil, diags
 	}
-	constraints, err := getproviders.ParseVersionConstraints(raw)
+	constraints, err := providerreqs.ParseVersionConstraints(raw)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -387,7 +387,7 @@ func decodeProviderVersionConstraintsArgument(provider addrs.Provider, attr *hcl
 			Subject:  expr.Range().Ptr(),
 		})
 	}
-	if canon := getproviders.VersionConstraintsString(constraints); canon != raw {
+	if canon := providerreqs.VersionConstraintsString(constraints); canon != raw {
 		// Canonical forms are required in the lock file, to reduce the risk
 		// that a file diff will show changes that are entirely cosmetic.
 		diags = diags.Append(&hcl.Diagnostic{
@@ -401,7 +401,7 @@ func decodeProviderVersionConstraintsArgument(provider addrs.Provider, attr *hcl
 	return constraints, diags
 }
 
-func decodeProviderHashesArgument(provider addrs.Provider, attr *hcl.Attribute) ([]getproviders.Hash, tfdiags.Diagnostics) {
+func decodeProviderHashesArgument(provider addrs.Provider, attr *hcl.Attribute) ([]providerreqs.Hash, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	if attr == nil {
 		// It's okay to omit this argument.
@@ -428,7 +428,7 @@ func decodeProviderHashesArgument(provider addrs.Provider, attr *hcl.Attribute) 
 		return nil, diags
 	}
 
-	ret := make([]getproviders.Hash, 0, len(hashExprs))
+	ret := make([]providerreqs.Hash, 0, len(hashExprs))
 	for _, hashExpr := range hashExprs {
 		var raw string
 		hclDiags := gohcl.DecodeExpression(hashExpr, nil, &raw)
@@ -437,7 +437,7 @@ func decodeProviderHashesArgument(provider addrs.Provider, attr *hcl.Attribute) 
 			continue
 		}
 
-		hash, err := getproviders.ParseHash(raw)
+		hash, err := providerreqs.ParseHash(raw)
 		if err != nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -454,7 +454,7 @@ func decodeProviderHashesArgument(provider addrs.Provider, attr *hcl.Attribute) 
 	return ret, diags
 }
 
-func encodeHashSetTokens(hashes []getproviders.Hash) hclwrite.Tokens {
+func encodeHashSetTokens(hashes []providerreqs.Hash) hclwrite.Tokens {
 	// We'll generate the source code in a low-level way here (direct
 	// token manipulation) because it's desirable to maintain exactly
 	// the layout implemented here so that diffs against the locks
