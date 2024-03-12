@@ -7,8 +7,8 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // NewFullFake returns a full state manager that really only supports transient
@@ -65,7 +65,7 @@ func (m *fakeFull) RefreshState() error {
 	return m.t.WriteState(m.fakeP.State())
 }
 
-func (m *fakeFull) PersistState(schemas *terraform.Schemas) error {
+func (m *fakeFull) PersistState(schemas *schemarepo.Schemas) error {
 	return m.fakeP.WriteState(m.t.State())
 }
 
@@ -131,7 +131,7 @@ func (m *fakeErrorFull) RefreshState() error {
 	return errors.New("fake state manager error")
 }
 
-func (m *fakeErrorFull) PersistState(schemas *terraform.Schemas) error {
+func (m *fakeErrorFull) PersistState(schemas *schemarepo.Schemas) error {
 	return errors.New("fake state manager error")
 }
 
