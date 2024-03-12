@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/terraform/internal/schemarepo/loadschemas"
 )
 
 // simpleMockPluginLibrary returns a plugin library pre-configured with
@@ -22,26 +23,26 @@ import (
 // Each call to this function produces an entirely-separate set of objects,
 // so the caller can feel free to modify the returned value to further
 // customize the mocks contained within.
-func simpleMockPluginLibrary() *contextPlugins {
+func simpleMockPluginLibrary() *loadschemas.Plugins {
 	// We create these out here, rather than in the factory functions below,
 	// because we want each call to the factory to return the _same_ instance,
 	// so that test code can customize it before passing this component
 	// factory into real code under test.
 	provider := simpleMockProvider()
 	provisioner := simpleMockProvisioner()
-	ret := &contextPlugins{
-		providerFactories: map[addrs.Provider]providers.Factory{
+	return loadschemas.NewPlugins(
+		map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
 				return provider, nil
 			},
 		},
-		provisionerFactories: map[string]provisioners.Factory{
+		map[string]provisioners.Factory{
 			"test": func() (provisioners.Interface, error) {
 				return provisioner, nil
 			},
 		},
-	}
-	return ret
+		nil,
+	)
 }
 
 // simpleTestSchema returns a block schema that contains a few optional
