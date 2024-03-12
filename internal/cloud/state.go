@@ -25,7 +25,6 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	uuid "github.com/hashicorp/go-uuid"
 
-	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
@@ -88,7 +87,7 @@ remote state version.
 
 var _ statemgr.Full = (*State)(nil)
 var _ statemgr.Migrator = (*State)(nil)
-var _ local.IntermediateStateConditionalPersister = (*State)(nil)
+var _ statemgr.IntermediateStateConditionalPersister = (*State)(nil)
 
 // statemgr.Reader impl.
 func (s *State) State() *states.State {
@@ -247,8 +246,8 @@ func (s *State) PersistState(schemas *schemarepo.Schemas) error {
 	return nil
 }
 
-// ShouldPersistIntermediateState implements local.IntermediateStateConditionalPersister
-func (s *State) ShouldPersistIntermediateState(info *local.IntermediateStatePersistInfo) bool {
+// ShouldPersistIntermediateState implements statemgr.IntermediateStateConditionalPersister
+func (s *State) ShouldPersistIntermediateState(info *statemgr.IntermediateStatePersistInfo) bool {
 	if info.ForcePersist {
 		return true
 	}

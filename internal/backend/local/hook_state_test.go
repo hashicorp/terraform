@@ -42,7 +42,7 @@ func TestStateHookStopping(t *testing.T) {
 		StateMgr:        is,
 		Schemas:         &schemarepo.Schemas{},
 		PersistInterval: 4 * time.Hour,
-		intermediatePersist: IntermediateStatePersistInfo{
+		intermediatePersist: statemgr.IntermediateStatePersistInfo{
 			LastPersist: time.Now(),
 		},
 	}
@@ -141,7 +141,7 @@ func TestStateHookCustomPersistRule(t *testing.T) {
 		StateMgr:        is,
 		Schemas:         &schemarepo.Schemas{},
 		PersistInterval: 4 * time.Hour,
-		intermediatePersist: IntermediateStatePersistInfo{
+		intermediatePersist: statemgr.IntermediateStatePersistInfo{
 			LastPersist: time.Now(),
 		},
 	}
@@ -274,7 +274,7 @@ type testPersistentStateThatRefusesToPersist struct {
 
 var _ statemgr.Writer = (*testPersistentStateThatRefusesToPersist)(nil)
 var _ statemgr.Persister = (*testPersistentStateThatRefusesToPersist)(nil)
-var _ IntermediateStateConditionalPersister = (*testPersistentStateThatRefusesToPersist)(nil)
+var _ statemgr.IntermediateStateConditionalPersister = (*testPersistentStateThatRefusesToPersist)(nil)
 
 func (sm *testPersistentStateThatRefusesToPersist) WriteState(state *states.State) error {
 	sm.CallLog = append(sm.CallLog, "WriteState")
@@ -292,7 +292,7 @@ func (sm *testPersistentStateThatRefusesToPersist) PersistState(schemas *schemar
 }
 
 // ShouldPersistIntermediateState implements IntermediateStateConditionalPersister
-func (sm *testPersistentStateThatRefusesToPersist) ShouldPersistIntermediateState(info *IntermediateStatePersistInfo) bool {
+func (sm *testPersistentStateThatRefusesToPersist) ShouldPersistIntermediateState(info *statemgr.IntermediateStatePersistInfo) bool {
 	sm.CallLog = append(sm.CallLog, "ShouldPersistIntermediateState")
 	return info.ForcePersist
 }
