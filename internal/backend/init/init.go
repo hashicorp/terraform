@@ -22,6 +22,7 @@ import (
 	backendHTTP "github.com/hashicorp/terraform/internal/backend/remote-state/http"
 	backendInmem "github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	backendKubernetes "github.com/hashicorp/terraform/internal/backend/remote-state/kubernetes"
+	backendNXRM "github.com/hashicorp/terraform/internal/backend/remote-state/nxrm"
 	backendOSS "github.com/hashicorp/terraform/internal/backend/remote-state/oss"
 	backendPg "github.com/hashicorp/terraform/internal/backend/remote-state/pg"
 	backendS3 "github.com/hashicorp/terraform/internal/backend/remote-state/s3"
@@ -63,6 +64,7 @@ func Init(services *disco.Disco) {
 		"http":       func() backend.Backend { return backendHTTP.New() },
 		"inmem":      func() backend.Backend { return backendInmem.New() },
 		"kubernetes": func() backend.Backend { return backendKubernetes.New() },
+		"nxrm":       func() backend.Backend { return backendNXRM.New() },
 		"oss":        func() backend.Backend { return backendOSS.New() },
 		"pg":         func() backend.Backend { return backendPg.New() },
 		"s3":         func() backend.Backend { return backendS3.New() },

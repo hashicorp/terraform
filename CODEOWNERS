@@ -11,6 +11,7 @@
 /internal/backend/remote-state/gcs               @hashicorp/terraform-google @hashicorp/terraform-ecosystem-strategic
 /internal/backend/remote-state/http              @hashicorp/terraform-core
 /internal/backend/remote-state/manta             Unmaintained
+/internal/backend/remote-state/nxrm              @sonatype
 /internal/backend/remote-state/oss               @xiaozhu36
 /internal/backend/remote-state/pg                @remilapeyre
 /internal/backend/remote-state/s3                @hashicorp/terraform-aws
