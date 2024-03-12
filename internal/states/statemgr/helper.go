@@ -7,9 +7,9 @@ package statemgr
 // operations done against full state managers.
 
 import (
+	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -48,7 +48,7 @@ func RefreshAndRead(mgr Storage) (*states.State, error) {
 // out quickly with a user-facing error. In situations where more control
 // is required, call WriteState and PersistState on the state manager directly
 // and handle their errors.
-func WriteAndPersist(mgr Storage, state *states.State, schemas *terraform.Schemas) error {
+func WriteAndPersist(mgr Storage, state *states.State, schemas *schemarepo.Schemas) error {
 	err := mgr.WriteState(state)
 	if err != nil {
 		return err

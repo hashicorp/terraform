@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -39,7 +40,7 @@ func TestStateHookStopping(t *testing.T) {
 	is := &testPersistentState{}
 	hook := &StateHook{
 		StateMgr:        is,
-		Schemas:         &terraform.Schemas{},
+		Schemas:         &schemarepo.Schemas{},
 		PersistInterval: 4 * time.Hour,
 		intermediatePersist: IntermediateStatePersistInfo{
 			LastPersist: time.Now(),
@@ -138,7 +139,7 @@ func TestStateHookCustomPersistRule(t *testing.T) {
 	is := &testPersistentStateThatRefusesToPersist{}
 	hook := &StateHook{
 		StateMgr:        is,
-		Schemas:         &terraform.Schemas{},
+		Schemas:         &schemarepo.Schemas{},
 		PersistInterval: 4 * time.Hour,
 		intermediatePersist: IntermediateStatePersistInfo{
 			LastPersist: time.Now(),
@@ -255,7 +256,7 @@ func (sm *testPersistentState) WriteState(state *states.State) error {
 	return nil
 }
 
-func (sm *testPersistentState) PersistState(schemas *terraform.Schemas) error {
+func (sm *testPersistentState) PersistState(schemas *schemarepo.Schemas) error {
 	if schemas == nil {
 		return fmt.Errorf("no schemas")
 	}
@@ -281,7 +282,7 @@ func (sm *testPersistentStateThatRefusesToPersist) WriteState(state *states.Stat
 	return nil
 }
 
-func (sm *testPersistentStateThatRefusesToPersist) PersistState(schemas *terraform.Schemas) error {
+func (sm *testPersistentStateThatRefusesToPersist) PersistState(schemas *schemarepo.Schemas) error {
 	if schemas == nil {
 		return fmt.Errorf("no schemas")
 	}
