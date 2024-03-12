@@ -429,7 +429,7 @@ func testGetClientOptions(t *testing.T) ([]option.ClientOption, error) {
 	var opts []option.ClientOption
 	var credOptions []option.ClientOption
 
-	contents, err := backend.ReadPathOrContents(creds)
+	contents, err := readPathOrContents(creds)
 	if err != nil {
 		return nil, fmt.Errorf("error loading credentials: %s", err)
 	}

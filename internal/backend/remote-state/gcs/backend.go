@@ -164,7 +164,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	} else if creds != "" {
 
 		// to mirror how the provider works, we accept the file path or the contents
-		contents, err := backend.ReadPathOrContents(creds)
+		contents, err := readPathOrContents(creds)
 		if err != nil {
 			return fmt.Errorf("Error loading credentials: %s", err)
 		}
@@ -224,7 +224,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	// Customer-supplied encryption
 	key := data.Get("encryption_key").(string)
 	if key != "" {
-		kc, err := backend.ReadPathOrContents(key)
+		kc, err := readPathOrContents(key)
 		if err != nil {
 			return fmt.Errorf("Error loading encryption key: %s", err)
 		}

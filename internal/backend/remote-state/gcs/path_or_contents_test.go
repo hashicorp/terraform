@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package backend
+package gcs
 
 import (
 	"io"
@@ -23,7 +23,7 @@ func TestReadPathOrContents_Path(t *testing.T) {
 	}
 	f.Close()
 
-	contents, err := ReadPathOrContents(f.Name())
+	contents, err := readPathOrContents(f.Name())
 
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -48,7 +48,7 @@ func TestReadPathOrContents_TildePath(t *testing.T) {
 
 	r := strings.NewReplacer(home, "~")
 	homePath := r.Replace(f.Name())
-	contents, err := ReadPathOrContents(homePath)
+	contents, err := readPathOrContents(homePath)
 
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -79,7 +79,7 @@ func TestRead_PathNoPermission(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	contents, err := ReadPathOrContents(f.Name())
+	contents, err := readPathOrContents(f.Name())
 
 	if err == nil {
 		t.Fatal("Expected error, got none!")
@@ -92,7 +92,7 @@ func TestRead_PathNoPermission(t *testing.T) {
 func TestReadPathOrContents_Contents(t *testing.T) {
 	input := "hello"
 
-	contents, err := ReadPathOrContents(input)
+	contents, err := readPathOrContents(input)
 
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -105,7 +105,7 @@ func TestReadPathOrContents_Contents(t *testing.T) {
 func TestReadPathOrContents_TildeContents(t *testing.T) {
 	input := "~/hello/notafile"
 
-	contents, err := ReadPathOrContents(input)
+	contents, err := readPathOrContents(input)
 
 	if err != nil {
 		t.Fatalf("err: %s", err)
