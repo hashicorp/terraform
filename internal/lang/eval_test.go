@@ -12,10 +12,13 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
@@ -801,6 +804,179 @@ func formattedJSONValue(val cty.Value) string {
 	var buf bytes.Buffer
 	json.Indent(&buf, j, "", "  ")
 	return buf.String()
+}
+
+// If the value passed to for_each is a sensitive collection,
+// EvalBlock should error: see TestEvalBlockSensitiveForEachError below.
+// A non-sensitive collection with a sensitive member, however, is valid.
+func TestEvalBlockSensitiveForEachMember(t *testing.T) {
+	nestedObjTy := cty.Object(map[string]cty.Type{
+		"boop": cty.String,
+	})
+
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"foo":         {Type: cty.String, Optional: true},
+			"list_of_obj": {Type: cty.List(nestedObjTy), Optional: true},
+		},
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"bar": {
+				Nesting: configschema.NestingMap,
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"baz": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
+
+	data := &dataForTests{
+		LocalValues: map[string]cty.Value{
+			"map": cty.MapVal(map[string]cty.Value{
+				"key1": cty.StringVal("val1").Mark(marks.Sensitive),
+				"key2": cty.StringVal("val2"),
+			}),
+		},
+	}
+
+	config := `
+			dynamic "bar" {
+				for_each = local.map
+				labels = [bar.key]
+				content {
+					baz = bar.value
+				}
+			}
+			`
+	want := cty.ObjectVal(map[string]cty.Value{
+		"foo":         cty.NullVal(cty.String),
+		"list_of_obj": cty.NullVal(cty.List(nestedObjTy)),
+		"bar": cty.MapVal(map[string]cty.Value{
+			"key1": cty.ObjectVal(map[string]cty.Value{
+				"baz": cty.StringVal("val1").Mark(marks.Sensitive),
+			}),
+			"key2": cty.ObjectVal(map[string]cty.Value{
+				"baz": cty.StringVal("val2"),
+			}),
+		}),
+	})
+
+	file, parseDiags := hclsyntax.ParseConfig([]byte(config), "", hcl.Pos{Line: 1, Column: 1})
+	if len(parseDiags) != 0 {
+		t.Errorf("unexpected diagnostics during parse")
+		for _, diag := range parseDiags {
+			t.Errorf("- %s", diag)
+		}
+		return
+	}
+
+	body := file.Body
+	scope := &Scope{
+		Data:     data,
+		ParseRef: addrs.ParseRef,
+	}
+
+	body, expandDiags := scope.ExpandBlock(body, schema)
+	if expandDiags.HasErrors() {
+		t.Fatal(expandDiags.Err())
+	}
+
+	got, valDiags := scope.EvalBlock(body, schema)
+	if valDiags.HasErrors() {
+		t.Fatal(valDiags.Err())
+	}
+
+	if !got.RawEquals(want) {
+		t.Errorf("wrong result\nconfig: %+v\ngot: %+v\nwant: %+v", config, got, want)
+	}
+}
+
+func TestEvalBlockSensitiveForEachError(t *testing.T) {
+	nestedObjTy := cty.Object(map[string]cty.Type{
+		"boop": cty.String,
+	})
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"foo":         {Type: cty.String, Optional: true},
+			"list_of_obj": {Type: cty.List(nestedObjTy), Optional: true},
+		},
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"bar": {
+				Nesting: configschema.NestingMap,
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"baz": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
+
+	data := &dataForTests{
+		LocalValues: map[string]cty.Value{
+			"map": cty.MapVal(map[string]cty.Value{
+				"key1": cty.StringVal("val1"),
+				"key2": cty.StringVal("val2"),
+			}).Mark(marks.Sensitive),
+		},
+	}
+
+	config := `
+  dynamic "bar" {
+    for_each = local.map
+	labels = [bar.key]
+    content {
+      baz = bar.value
+    }
+  }`
+
+	file, parseDiags := hclsyntax.ParseConfig([]byte(config), "", hcl.Pos{Line: 1, Column: 1})
+	if len(parseDiags) != 0 {
+		t.Errorf("unexpected diagnostics during parse")
+		for _, diag := range parseDiags {
+			t.Errorf("- %s", diag)
+		}
+		return
+	}
+
+	body := file.Body
+	scope := &Scope{
+		Data:     data,
+		ParseRef: addrs.ParseRef,
+	}
+
+	body, expandDiags := scope.ExpandBlock(body, schema)
+	if expandDiags.HasErrors() {
+		t.Fatal(expandDiags.Err())
+	}
+
+	_, valDiags := scope.EvalBlock(body, schema)
+
+	if !valDiags.HasErrors() {
+		t.Fatal("expected error, but got none")
+	}
+
+	var wantDiags tfdiags.Diagnostics
+	wantDiags = wantDiags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Invalid for_each argument",
+		Detail:   "Sensitive values cannot be used as for_each arguments in dynamic blocks, because a sensitive collection's length and content would be revealed in the plan output.",
+
+		Subject: &hcl.Range{
+			Start: hcl.Pos{Line: 3, Column: 16, Byte: 34},
+			End:   hcl.Pos{Line: 3, Column: 25, Byte: 43},
+		},
+		Extra: diagnosticCausedBySensitive(true),
+	})
+
+	if diff := cmp.Diff(wantDiags.ForRPC(), valDiags.ForRPC()); diff != "" {
+		t.Errorf("wrong diagnostics\n%s", diff)
+	}
+
+	if !tfdiags.DiagnosticCausedBySensitive(valDiags[0]) {
+		t.Error("diagnostic did not populate Extra field")
+	}
 }
 
 func TestScopeEvalSelfBlock(t *testing.T) {

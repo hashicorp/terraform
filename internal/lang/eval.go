@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/blocktoattr"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -37,7 +38,28 @@ func (s *Scope) ExpandBlock(body hcl.Body, schema *configschema.Block) (hcl.Body
 	ctx, ctxDiags := s.EvalContext(refs)
 	diags = diags.Append(ctxDiags)
 
-	return dynblock.Expand(body, ctx), diags
+	return dynblock.Expand(body, ctx, dynblock.OptCheckForEach(checkForEachSensitive)), diags
+}
+
+// checkForEachSensitive checks if the given value is a sensitive value
+// and, if so, returns an error explaining why the value cannot be used in the
+// given for_each expression.
+//
+// This function is intended to be passed to dynblock.OptCheckForEach.
+func checkForEachSensitive(val cty.Value, expr hcl.Expression, ec *hcl.EvalContext) (hDiags hcl.Diagnostics) {
+	if marks.Has(val, marks.Sensitive) {
+		hDiags = hcl.Diagnostics{
+			&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     "Invalid for_each argument",
+				Detail:      "Sensitive values cannot be used as for_each arguments in dynamic blocks, because a sensitive collection's length and content would be revealed in the plan output.",
+				Expression:  expr,
+				EvalContext: ec,
+				Subject:     expr.Range().Ptr(),
+			},
+		}
+	}
+	return hDiags
 }
 
 // EvalBlock evaluates the given body using the given block schema and returns
