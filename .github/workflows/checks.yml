@@ -60,7 +60,10 @@ jobs:
 
       - name: "Unit tests"
         run: |
-          go test ./...
+          # We run tests for all packages from all modules in this repository.
+          for dir in $(go list -m -f '{{.Dir}}' github.com/hashicorp/terraform/...); do
+              (cd $dir && go test "./...")
+          done
 
   race-tests:
     name: "Race Tests"
