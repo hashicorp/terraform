@@ -733,9 +733,9 @@
       {
         "title": "Terraform-specific Functions",
         "routes": [
-          { "title": "<code>provider::terraform::tfvarsencode</code>", "href": "/language/functions/terraform-tfvarsencode" },
-          { "title": "<code>provider::terraform::tfvarsdecode</code>", "href": "/language/functions/terraform-tfvarsdecode" },
-          { "title": "<code>provider::terraform::exprencode</code>", "href": "/language/functions/terraform-exprencode" }
+          { "title": "<code>provider::terraform::encode_tfvars</code>", "href": "/language/functions/terraform-encode_tfvars" },
+          { "title": "<code>provider::terraform::decode_tfvars</code>", "href": "/language/functions/terraform-decode_tfvars" },
+          { "title": "<code>provider::terraform::encode_expr</code>", "href": "/language/functions/terraform-encode_expr" }
         ]
       },
       { "title": "abs", "path": "functions/abs", "hidden": true },
@@ -886,9 +886,9 @@
         "path": "functions/templatefile",
         "hidden": true
       },
-      { "title": "terraform-tfvarsencode", "path": "functions/terraform-tfvarsencode", "hidden": true },
-      { "title": "terraform-tfvarsdecode", "path": "functions/terraform-tfvarsdecode", "hidden": true },
-      { "title": "terraform-exprencode", "path": "functions/terraform-exprencode", "hidden": true },
+      { "title": "terraform-encode_tfvars", "path": "functions/terraform-encode_tfvars", "hidden": true },
+      { "title": "terraform-decode_tfvars", "path": "functions/terraform-decode_tfvars", "hidden": true },
+      { "title": "terraform-encode_expr", "path": "functions/terraform-encode_expr", "hidden": true },
       {
         "title": "textdecodebase64",
         "path": "functions/textdecodebase64",

@@ -16,12 +16,12 @@ import (
 )
 
 var functions = map[string]func([]cty.Value) (cty.Value, error){
-	"tfvarsencode": tfvarsencodeFunc,
-	"tfvarsdecode": tfvarsdecodeFunc,
-	"exprencode":   exprencodeFunc,
+	"encode_tfvars": encodeTfvarsFunc,
+	"decode_tfvars": decodeTfvarsFunc,
+	"encode_expr":   encodeExprFunc,
 }
 
-func tfvarsencodeFunc(args []cty.Value) (cty.Value, error) {
+func encodeTfvarsFunc(args []cty.Value) (cty.Value, error) {
 	// These error checks should not be hit in practice because the language
 	// runtime should check them before calling, so this is just for robustness
 	// and completeness.
@@ -82,7 +82,7 @@ func tfvarsencodeFunc(args []cty.Value) (cty.Value, error) {
 	return cty.StringVal(string(result)), nil
 }
 
-func tfvarsdecodeFunc(args []cty.Value) (cty.Value, error) {
+func decodeTfvarsFunc(args []cty.Value) (cty.Value, error) {
 	// These error checks should not be hit in practice because the language
 	// runtime should check them before calling, so this is just for robustness
 	// and completeness.
@@ -116,7 +116,7 @@ func tfvarsdecodeFunc(args []cty.Value) (cty.Value, error) {
 	// stuff HCL diagnostics into plain string error messages. This produces
 	// a non-ideal result but is still better than hiding the HCL-provided
 	// diagnosis altogether.
-	f, hclDiags := hclsyntax.ParseConfig(src, "<tfvarsdecode argument>", hcl.InitialPos)
+	f, hclDiags := hclsyntax.ParseConfig(src, "<decode_tfvars argument>", hcl.InitialPos)
 	if hclDiags.HasErrors() {
 		return cty.NilVal, fmt.Errorf("invalid tfvars syntax: %s", hclDiags.Error())
 	}
@@ -139,7 +139,7 @@ func tfvarsdecodeFunc(args []cty.Value) (cty.Value, error) {
 	return cty.ObjectVal(retAttrs), nil
 }
 
-func exprencodeFunc(args []cty.Value) (cty.Value, error) {
+func encodeExprFunc(args []cty.Value) (cty.Value, error) {
 	// These error checks should not be hit in practice because the language
 	// runtime should check them before calling, so this is just for robustness
 	// and completeness.
