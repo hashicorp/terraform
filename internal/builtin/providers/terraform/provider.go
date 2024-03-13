@@ -30,7 +30,7 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 			"terraform_data": dataStoreResourceSchema(),
 		},
 		Functions: map[string]providers.FunctionDecl{
-			"tfvarsencode": {
+			"encode_tfvars": {
 				Parameters: []providers.FunctionParam{
 					{
 						Name:               "value",
@@ -40,7 +40,7 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 				},
 				ReturnType: cty.String,
 			},
-			"tfvarsdecode": {
+			"decode_tfvars": {
 				Parameters: []providers.FunctionParam{
 					{
 						Name: "src",
@@ -49,7 +49,7 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 				},
 				ReturnType: cty.DynamicPseudoType,
 			},
-			"exprencode": {
+			"encode_expr": {
 				Parameters: []providers.FunctionParam{
 					{
 						Name:               "value",

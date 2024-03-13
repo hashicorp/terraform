@@ -1,15 +1,15 @@
 ---
-page_title: provider::terraform::tfvarsencode - Functions - Configuration Language
+page_title: provider::terraform::encode_tfvars - Functions - Configuration Language
 description: >-
-  The tfvarsencode function produces a string representation of an object
+  The encode_tfvars function produces a string representation of an object
   using the same syntax as for ".tfvars" files used in Terraform CLI.
 ---
 
-# `provider::terraform::tfvarsencode` Function
+# `provider::terraform::encode_tfvars` Function
 
 -> **Note:** This function is supported only in Terraform v1.8 and later.
 
-`provider::terraform::tfvarsencode` is a rarely-needed function which takes
+`provider::terraform::encode_tfvars` is a rarely-needed function which takes
 an object value and produces a string containing a description of that object
 using the same syntax as Terraform CLI would expect in a
 [`.tfvars` file](/terraform/language/values/variables#variable-definitions-tfvars-files).
@@ -35,7 +35,7 @@ terraform {
 Elsewhere in your module you can then call this function:
 
 ```hcl
-provider::terraform::tfvarsencode({
+provider::terraform::encode_tfvars({
   example = "Hello!"
 })
 ```
@@ -64,9 +64,9 @@ when upgrading Terraform in future.
 
 ## Related Functions
 
-* [`tfvarsdecode`](/terraform/language/functions/terraform-tfvarsdecode)
+* [`decode_tfvars`](/terraform/language/functions/terraform-decode_tfvars)
   performs the opposite operation: parsing `.tfvars` content to obtain
   the variable values declared inside.
-* [`exprencode`](/terraform/language/functions/terraform-exprdecode)
+* [`encode_expr`](/terraform/language/functions/terraform-encode_expr)
   encodes a single value as a plain expression, without the `.tfvars`
   container around it.
