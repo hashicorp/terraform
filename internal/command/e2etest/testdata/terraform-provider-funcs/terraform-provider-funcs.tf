@@ -14,7 +14,7 @@ terraform {
 }
 
 output "tfvarsencode" {
-  value = provider::terraform::tfvarsencode({
+  value = provider::terraform::encode_tfvars({
     a = "👋"
     b = "🐝"
     c = "👓"
@@ -22,7 +22,7 @@ output "tfvarsencode" {
 }
 
 output "tfvarsdecode" {
-  value = provider::terraform::tfvarsdecode(
+  value = provider::terraform::decode_tfvars(
     <<-EOT
       boop = "👃"
       baaa = "🐑"
@@ -31,5 +31,5 @@ output "tfvarsdecode" {
 }
 
 output "exprencode" {
-  value = provider::terraform::exprencode([1, 2, 3])
+  value = provider::terraform::encode_expr([1, 2, 3])
 }

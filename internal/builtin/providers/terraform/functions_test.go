@@ -14,7 +14,7 @@ import (
 )
 
 func TestTfvarsencode(t *testing.T) {
-	tableTestFunction(t, "tfvarsencode", []functionTest{
+	tableTestFunction(t, "encode_tfvars", []functionTest{
 		{
 			Input: cty.ObjectVal(map[string]cty.Value{
 				"string": cty.StringVal("hello"),
@@ -126,7 +126,7 @@ two   = 2
 }
 
 func TestTfvarsdecode(t *testing.T) {
-	tableTestFunction(t, "tfvarsdecode", []functionTest{
+	tableTestFunction(t, "decode_tfvars", []functionTest{
 		{
 			Input: cty.StringVal(`string = "hello"
 number = 2`),
@@ -152,25 +152,25 @@ number = 2`),
 			// This is actually not a very good diagnosis for this error,
 			// since we're expecting HCL arguments rather than HCL blocks,
 			// but that's something we'd need to address in HCL.
-			WantErr: `invalid tfvars syntax: <tfvarsdecode argument>:1,17-17: Invalid block definition; Either a quoted string block label or an opening brace ("{") is expected here.`,
+			WantErr: `invalid tfvars syntax: <decode_tfvars argument>:1,17-17: Invalid block definition; Either a quoted string block label or an opening brace ("{") is expected here.`,
 		},
 		{
 			Input:   cty.StringVal(`foo = not valid syntax`),
-			WantErr: `invalid tfvars syntax: <tfvarsdecode argument>:1,11-16: Missing newline after argument; An argument definition must end with a newline.`,
+			WantErr: `invalid tfvars syntax: <decode_tfvars argument>:1,11-16: Missing newline after argument; An argument definition must end with a newline.`,
 		},
 		{
 			Input:   cty.StringVal(`foo = var.whatever`),
-			WantErr: `invalid expression for variable "foo": <tfvarsdecode argument>:1,7-10: Variables not allowed; Variables may not be used here.`,
+			WantErr: `invalid expression for variable "foo": <decode_tfvars argument>:1,7-10: Variables not allowed; Variables may not be used here.`,
 		},
 		{
 			Input:   cty.StringVal(`foo = whatever()`),
-			WantErr: `invalid expression for variable "foo": <tfvarsdecode argument>:1,7-17: Function calls not allowed; Functions may not be called here.`,
+			WantErr: `invalid expression for variable "foo": <decode_tfvars argument>:1,7-17: Function calls not allowed; Functions may not be called here.`,
 		},
 	})
 }
 
 func TestExprencode(t *testing.T) {
-	tableTestFunction(t, "exprencode", []functionTest{
+	tableTestFunction(t, "encode_expr", []functionTest{
 		{
 			Input: cty.StringVal("hello"),
 			Want:  cty.StringVal(`"hello"`),

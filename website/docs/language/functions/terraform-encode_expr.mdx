@@ -1,15 +1,15 @@
 ---
-page_title: provider::terraform::exprencode - Functions - Configuration Language
+page_title: provider::terraform::encode_expr - Functions - Configuration Language
 description: >-
-  The exprencode function produces a string representation of an arbitrary value
+  The encode_expr function produces a string representation of an arbitrary value
   using Terraform expression syntax.
 ---
 
-# `provider::terraform::exprencode` Function
+# `provider::terraform::encode_expr` Function
 
 -> **Note:** This function is supported only in Terraform v1.8 and later.
 
-`provider::terraform::exprencode` is a rarely-needed function which takes
+`provider::terraform::encode_expr` is a rarely-needed function which takes
 any value and produces a string containing Terraform language expression syntax
 approximating that value.
 
@@ -49,7 +49,7 @@ resource "tfe_variable" "test" {
   workspace_id = tfe_workspace.example.id
 
   key   = each.key
-  value = provider::terraform::exprencode(each.value)
+  value = provider::terraform::encode_expr(each.value)
   hcl   = true
 }
 ```
@@ -67,6 +67,6 @@ when upgrading Terraform in future.
 
 ## Related Functions
 
-* [`tfvarsencode`](/terraform/language/functions/terraform-tfvarsencode)
+* [`encode_tfvars`](/terraform/language/functions/terraform-encode_tfvars)
   produces expression strings for many different values at once, in `.tfvars`
   syntax.
