@@ -57,7 +57,7 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1
 	github.com/mitchellh/gox v1.0.1
 	github.com/nishanths/exhaustive v0.12.0
-	github.com/packer-community/winrmcp v0.0.0-20180921211025-c76d91c1e7db
+	github.com/packer-community/winrmcp v0.0.0-20221126162354-6e900dd2c68f
 	github.com/pkg/browser v0.0.0-20201207095918-0426ae3fba23
 	github.com/posener/complete v1.2.3
 	github.com/spf13/afero v1.9.3
