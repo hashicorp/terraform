@@ -941,7 +941,7 @@ func TestPlanning_Locals(t *testing.T) {
 	})
 
 	inPromisingTask(t, func(ctx context.Context, t *testing.T) {
-		plan, diags := testPlan(t, main)
+		_, diags := testPlan(t, main)
 		if diags.HasErrors() {
 			t.Fatalf("errors encountered\n%s", spew.Sdump(diags.ForRPC()))
 		}

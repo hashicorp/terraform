@@ -24,10 +24,36 @@ func TestLocalValueValue(t *testing.T) {
 			LocalName: "name",
 			WantVal:   cty.StringVal("jackson"),
 		},
-		// "childName": {
-		// 	LocalName: "childName",
-		// 	WantVal:   cty.StringVal("foo"),
-		// },
+		"childName": {
+			LocalName: "childName",
+			WantVal:   cty.StringVal("outputted-child of jackson"),
+		},
+		"functional": {
+			LocalName: "functional",
+			WantVal:   cty.StringVal("Hello, Ander!"),
+		},
+		"mappy": {
+			LocalName: "mappy",
+			WantVal: cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("jackson"),
+				"age":  cty.NumberIntVal(30),
+			}),
+		},
+		"listy": {
+			LocalName: "listy",
+			WantVal: cty.TupleVal([]cty.Value{
+				cty.StringVal("jackson"),
+				cty.NumberIntVal(30),
+			}),
+		},
+		"booleany": {
+			LocalName: "booleany",
+			WantVal:   cty.BoolVal(true),
+		},
+		"conditiony": {
+			LocalName: "conditiony",
+			WantVal:   cty.StringVal("true"),
+		},
 	}
 
 	for name, test := range tests {
@@ -45,7 +71,7 @@ func TestLocalValueValue(t *testing.T) {
 					t.Errorf("unexpected errors\n%s", diags.Err().Error())
 				}
 
-				if got != test.WantVal {
+				if got.Equals(test.WantVal).False() {
 					t.Errorf("got %s, want %s", got, test.WantVal)
 				}
 
