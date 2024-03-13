@@ -1,4 +1,4 @@
-## 1.7.5 (Unreleased)
+## 1.7.5 (March 13, 2024)
 
 BUG FIXES:
 
