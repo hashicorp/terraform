@@ -61,7 +61,7 @@ require (
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/posener/complete v1.2.3
 	github.com/spf13/afero v1.9.3
-	github.com/xanzy/ssh-agent v0.3.1
+	github.com/xanzy/ssh-agent v0.3.3
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
 	github.com/zclconf/go-cty v1.14.3
 	github.com/zclconf/go-cty-debug v0.0.0-20240209213017-b8d9e32151be
@@ -109,7 +109,7 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
-	github.com/Microsoft/go-winio v0.5.0 // indirect
+	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1501 // indirect
