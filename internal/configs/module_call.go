@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getmodules"
+	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 )
 
 // ModuleCall represents a "module" block in a module or file.
@@ -80,9 +81,9 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 			var addr addrs.ModuleSource
 			var err error
 			if haveVersionArg {
-				addr, err = addrs.ParseModuleSourceRegistry(mc.SourceAddrRaw)
+				addr, err = moduleaddrs.ParseModuleSourceRegistry(mc.SourceAddrRaw)
 			} else {
-				addr, err = addrs.ParseModuleSource(mc.SourceAddrRaw)
+				addr, err = moduleaddrs.ParseModuleSource(mc.SourceAddrRaw)
 			}
 			mc.SourceAddr = addr
 			if err != nil {

@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getmodules"
+	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -636,9 +637,9 @@ func decodeTestRunModuleBlock(block *hcl.Block) (*TestRunModuleCall, hcl.Diagnos
 		if !rawDiags.HasErrors() {
 			var err error
 			if haveVersionArg {
-				module.Source, err = addrs.ParseModuleSourceRegistry(raw)
+				module.Source, err = moduleaddrs.ParseModuleSourceRegistry(raw)
 			} else {
-				module.Source, err = addrs.ParseModuleSource(raw)
+				module.Source, err = moduleaddrs.ParseModuleSource(raw)
 			}
 			if err != nil {
 				// NOTE: We leave mc.SourceAddr as nil for any situation where the

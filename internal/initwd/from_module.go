@@ -14,11 +14,11 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/getmodules"
+	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/modsdir"
@@ -129,7 +129,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 
 	// Now we need to create an artificial root module that will seed our
 	// installation process.
-	sourceAddr, err := addrs.ParseModuleSource(sourceAddrStr)
+	sourceAddr, err := moduleaddrs.ParseModuleSource(sourceAddrStr)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,

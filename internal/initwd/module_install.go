@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/getmodules"
+	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 	"github.com/hashicorp/terraform/internal/modsdir"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/registry/regsrc"
@@ -590,7 +591,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 			})
 			return nil, nil, diags
 		}
-		realAddr, err := addrs.ParseModuleSource(realAddrRaw)
+		realAddr, err := moduleaddrs.ParseModuleSource(realAddrRaw)
 		if err != nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
