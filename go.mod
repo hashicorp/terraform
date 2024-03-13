@@ -58,7 +58,7 @@ require (
 	github.com/mitchellh/gox v1.0.1
 	github.com/nishanths/exhaustive v0.12.0
 	github.com/packer-community/winrmcp v0.0.0-20221126162354-6e900dd2c68f
-	github.com/pkg/browser v0.0.0-20201207095918-0426ae3fba23
+	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/posener/complete v1.2.3
 	github.com/spf13/afero v1.9.3
 	github.com/xanzy/ssh-agent v0.3.1
