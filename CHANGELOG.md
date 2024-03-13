@@ -14,6 +14,10 @@ BUG FIXES:
 
 * `remote-exec`: Each remote connection will be closed immediately after use [GH-34137]
 
+ENHANCEMENTS:
+
+* Stacks: The `FindStackConfigurationComponents` RPC method now includes the component address in the response. [GH-34762]
+
 
 ## Previous Releases
 
