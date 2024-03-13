@@ -212,6 +212,10 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: "2 passed, 0 failed.",
 			code:        0,
 		},
+		"provider-functions-available": {
+			expectedOut: "1 passed, 0 failed.",
+			code:        0,
+		},
 		"mocking": {
 			expectedOut: "6 passed, 0 failed.",
 			code:        0,

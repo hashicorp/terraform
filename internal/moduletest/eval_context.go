@@ -59,6 +59,7 @@ func NewEvalContext(run *Run, module *configs.Module, resultScope *lang.Scope, e
 		BaseDir:       resultScope.BaseDir,
 		PureOnly:      resultScope.PureOnly,
 		PlanTimestamp: resultScope.PlanTimestamp,
+		ExternalFuncs: resultScope.ExternalFuncs,
 	}
 	return &EvalContext{
 		run:       run,
