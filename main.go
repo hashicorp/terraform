@@ -359,8 +359,13 @@ func mergeEnvArgs(envName string, cmd string, args []string) ([]string, error) {
 		return args, nil
 	}
 
+	swParser := &shellwords.Parser{
+		ParseEnv:      false,
+		ParseBacktick: false,
+	}
+
 	log.Printf("[INFO] %s value: %q", envName, v)
-	extra, err := shellwords.Parse(v)
+	extra, err := swParser.Parse(v)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"Error parsing extra CLI args from %s: %s",
