@@ -19,57 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 )
 
-// Resource is a legacy way to identify a particular resource instance.
-//
-// New code should use addrs.ResourceInstance instead. This is still here
-// only for codepaths that haven't been updated yet.
-type Resource struct {
-	// These are all used by the new EvalNode stuff.
-	Name       string
-	Type       string
-	CountIndex int
-
-	// These aren't really used anymore anywhere, but we keep them around
-	// since we haven't done a proper cleanup yet.
-	Id           string
-	Info         *InstanceInfo
-	Config       *ResourceConfig
-	Dependencies []string
-	Diff         *InstanceDiff
-	Provider     ResourceProvider
-	State        *InstanceState
-	Flags        ResourceFlag
-}
-
-// NewResource constructs a legacy Resource object from an
-// addrs.ResourceInstance value.
-//
-// This is provided to shim to old codepaths that haven't been updated away
-// from this type yet. Since this old type is not able to represent instances
-// that have string keys, this function will panic if given a resource address
-// that has a string key.
-func NewResource(addr addrs.ResourceInstance) *Resource {
-	ret := &Resource{
-		Name: addr.Resource.Name,
-		Type: addr.Resource.Type,
-	}
-
-	if addr.Key != addrs.NoKey {
-		switch tk := addr.Key.(type) {
-		case addrs.IntKey:
-			ret.CountIndex = int(tk)
-		default:
-			panic(fmt.Errorf("resource instance with key %#v is not supported", addr.Key))
-		}
-	}
-
-	return ret
-}
-
-// ResourceKind specifies what kind of instance we're working with, whether
-// its a primary instance, a tainted instance, or an orphan.
-type ResourceFlag byte
-
 // InstanceInfo is used to hold information about the instance and/or
 // resource being modified.
 type InstanceInfo struct {
@@ -138,46 +87,6 @@ func NewInstanceInfo(addr addrs.AbsResourceInstance) *InstanceInfo {
 		ModulePath: path,
 		Type:       addr.Resource.Resource.Type,
 	}
-}
-
-// ResourceAddress returns the address of the resource that the receiver is describing.
-func (i *InstanceInfo) ResourceAddress() *ResourceAddress {
-	// GROSS: for tainted and deposed instances, their status gets appended
-	// to i.Id to create a unique id for the graph node. Historically these
-	// ids were displayed to the user, so it's designed to be human-readable:
-	//   "aws_instance.bar.0 (deposed #0)"
-	//
-	// So here we detect such suffixes and try to interpret them back to
-	// their original meaning so we can then produce a ResourceAddress
-	// with a suitable InstanceType.
-	id := i.Id
-	instanceType := TypeInvalid
-	if idx := strings.Index(id, " ("); idx != -1 {
-		remain := id[idx:]
-		id = id[:idx]
-
-		switch {
-		case strings.Contains(remain, "tainted"):
-			instanceType = TypeTainted
-		case strings.Contains(remain, "deposed"):
-			instanceType = TypeDeposed
-		}
-	}
-
-	addr, err := parseResourceAddressInternal(id)
-	if err != nil {
-		// should never happen, since that would indicate a bug in the
-		// code that constructed this InstanceInfo.
-		panic(fmt.Errorf("InstanceInfo has invalid Id %s", id))
-	}
-	if len(i.ModulePath) > 1 {
-		addr.Path = i.ModulePath[1:] // trim off "root" prefix, which is implied
-	}
-	if instanceType != TypeInvalid {
-		addr.InstanceTypeSet = true
-		addr.InstanceType = instanceType
-	}
-	return addr
 }
 
 // ResourceConfig is a legacy type that was formerly used to represent

@@ -15,12 +15,10 @@
 package schema
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"reflect"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -611,68 +609,6 @@ func (m schemaMap) Diff(
 	}
 
 	return result, nil
-}
-
-// Input implements the terraform.ResourceProvider method by asking
-// for input for required configuration keys that don't have a value.
-func (m schemaMap) Input(
-	input terraform.UIInput,
-	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
-	keys := make([]string, 0, len(m))
-	for k, _ := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for _, k := range keys {
-		v := m[k]
-
-		// Skip things that don't require config, if that is even valid
-		// for a provider schema.
-		// Required XOR Optional must always be true to validate, so we only
-		// need to check one.
-		if v.Optional {
-			continue
-		}
-
-		// Deprecated fields should never prompt
-		if v.Deprecated != "" {
-			continue
-		}
-
-		// Skip things that have a value of some sort already
-		if _, ok := c.Raw[k]; ok {
-			continue
-		}
-
-		// Skip if it has a default value
-		defaultValue, err := v.DefaultValue()
-		if err != nil {
-			return nil, fmt.Errorf("%s: error loading default: %s", k, err)
-		}
-		if defaultValue != nil {
-			continue
-		}
-
-		var value interface{}
-		switch v.Type {
-		case TypeBool, TypeInt, TypeFloat, TypeSet, TypeList:
-			continue
-		case TypeString:
-			value, err = m.inputString(input, k, v)
-		default:
-			panic(fmt.Sprintf("Unknown type for input: %#v", v.Type))
-		}
-
-		if err != nil {
-			return nil, fmt.Errorf(
-				"%s: %s", k, err)
-		}
-
-		c.Config[k] = value
-	}
-
-	return c, nil
 }
 
 // Validate validates the configuration against this schema mapping.
@@ -1320,20 +1256,6 @@ func (m schemaMap) diffString(
 	)
 
 	return nil
-}
-
-func (m schemaMap) inputString(
-	input terraform.UIInput,
-	k string,
-	schema *Schema) (interface{}, error) {
-	result, err := input.Input(context.Background(), &terraform.InputOpts{
-		Id:          k,
-		Query:       k,
-		Description: schema.Description,
-		Default:     schema.InputDefault,
-	})
-
-	return result, err
 }
 
 func (m schemaMap) validate(
