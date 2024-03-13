@@ -6,6 +6,9 @@ package configs
 import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/configs/configtesting"
 )
 
 // exprIsNativeQuotedString determines whether the given expression looks like
@@ -63,4 +66,14 @@ func schemaWithDynamic(schema *hcl.BodySchema) *hcl.BodySchema {
 	})
 
 	return ret
+}
+
+// SynthBody is a forwarding alias for the old location of
+// [configtesting.SynthBody].
+//
+// Using the new name is preferable because it might avoid you needing to
+// import this entire configs package, if you didn't have some other
+// use for it anyway.
+func SynthBody(filename string, values map[string]cty.Value) hcl.Body {
+	return configtesting.SynthBody(filename, values)
 }
