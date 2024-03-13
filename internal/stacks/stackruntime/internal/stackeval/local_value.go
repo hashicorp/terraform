@@ -19,7 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// LocalValue represents an input variable belonging to a [Stack].
+// LocalValue represents a local value defined within a [Stack].
 type LocalValue struct {
 	addr stackaddrs.AbsLocalValue
 
@@ -85,10 +85,6 @@ func (v *LocalValue) CheckValue(ctx context.Context, phase EvalPhase) (cty.Value
 			stack := v.Stack(ctx, phase)
 
 			if stack == nil {
-				// TODO(mutahhir): Needs review by someone who knows the codebase better.
-				// In OutputValue, this is returning an unknown value with type, but
-				// locals don't have a type, so Dynamic makes some sense here, but
-				// I don't know how it would affect other things
 				return cty.DynamicVal, diags
 			}
 
@@ -115,8 +111,7 @@ func (v *LocalValue) CheckValue(ctx context.Context, phase EvalPhase) (cty.Value
 	))
 }
 
-// PlanChanges implements Plannable as a plan-time validation of the variable's
-// declaration and of the caller's definition of the variable.
+// PlanChanges implements Plannable as a plan-time validation of the local value
 func (v *LocalValue) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	return nil, v.checkValid(ctx, PlanPhase)
 }

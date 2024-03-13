@@ -945,8 +945,5 @@ func TestPlanning_Locals(t *testing.T) {
 		if diags.HasErrors() {
 			t.Fatalf("errors encountered\n%s", spew.Sdump(diags.ForRPC()))
 		}
-
-		fmt.Printf("plan: %v\n", plan)
-
 	})
 }
