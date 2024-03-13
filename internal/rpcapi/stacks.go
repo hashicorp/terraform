@@ -147,11 +147,11 @@ func (s *stacksServer) FindStackConfigurationComponents(ctx context.Context, req
 	}
 
 	return &terraform1.FindStackConfigurationComponents_Response{
-		Config: stackConfigMetaforProto(cfg.Root),
+		Config: stackConfigMetaforProto(cfg.Root, stackaddrs.RootStack),
 	}, nil
 }
 
-func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode) *terraform1.FindStackConfigurationComponents_StackConfig {
+func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackaddrs.Stack) *terraform1.FindStackConfigurationComponents_StackConfig {
 	ret := &terraform1.FindStackConfigurationComponents_StackConfig{
 		Components:     make(map[string]*terraform1.FindStackConfigurationComponents_Component),
 		EmbeddedStacks: make(map[string]*terraform1.FindStackConfigurationComponents_EmbeddedStack),
@@ -159,7 +159,8 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode) *terraform1.FindSt
 
 	for name, cc := range cfgNode.Stack.Components {
 		cProto := &terraform1.FindStackConfigurationComponents_Component{
-			SourceAddr: cc.FinalSourceAddr.String(),
+			SourceAddr:    cc.FinalSourceAddr.String(),
+			ComponentAddr: stackaddrs.Config(stackAddr, stackaddrs.Component{Name: cc.Name}).String(),
 		}
 		switch {
 		case cc.ForEach != nil:
@@ -174,7 +175,7 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode) *terraform1.FindSt
 		sc := cfgNode.Stack.EmbeddedStacks[name]
 		sProto := &terraform1.FindStackConfigurationComponents_EmbeddedStack{
 			SourceAddr: sn.Stack.SourceAddr.String(),
-			Config:     stackConfigMetaforProto(sn),
+			Config:     stackConfigMetaforProto(sn, stackAddr.Child(name)),
 		}
 		switch {
 		case sc.ForEach != nil:
