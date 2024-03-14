@@ -216,7 +216,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 			if mod != nil {
 				for _, mc := range mod.ModuleCalls {
 					if pathTraversesUp(mc.SourceAddrRaw) {
-						packageAddr, givenSubdir := getmodules.SplitPackageSubdir(sourceAddrStr)
+						packageAddr, givenSubdir := moduleaddrs.SplitPackageSubdir(sourceAddrStr)
 						newSubdir := filepath.Join(givenSubdir, mc.SourceAddrRaw)
 						if pathTraversesUp(newSubdir) {
 							// This should never happen in any reasonable

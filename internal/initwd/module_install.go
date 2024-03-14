@@ -713,7 +713,7 @@ func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *config
 	if err != nil {
 		// go-getter generates a poor error for an invalid relative path, so
 		// we'll detect that case and generate a better one.
-		if _, ok := err.(*getmodules.MaybeRelativePathErr); ok {
+		if _, ok := err.(*moduleaddrs.MaybeRelativePathErr); ok {
 			log.Printf(
 				"[TRACE] ModuleInstaller: %s looks like a local path but is missing ./ or ../",
 				req.SourceAddr,
@@ -745,7 +745,7 @@ func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *config
 		return nil, diags
 	}
 
-	modDir, err := getmodules.ExpandSubdirGlobs(instPath, addr.Subdir)
+	modDir, err := moduleaddrs.ExpandSubdirGlobs(instPath, addr.Subdir)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,

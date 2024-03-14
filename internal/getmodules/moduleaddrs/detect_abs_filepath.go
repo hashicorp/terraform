@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package getmodules
+package moduleaddrs
 
 import (
 	"fmt"
@@ -9,19 +9,18 @@ import (
 	"runtime"
 )
 
-// fileDetector is a replacement for go-getter's own file detector which
-// better meets Terraform's needs: specifically, it rejects relative filesystem
-// paths with a somewhat-decent error message.
+// detectAbsFilePath detects strings that seem like they are trying to be
+// file paths.
 //
-// This is a replacement for some historical hackery we did where we tried to
-// avoid calling into go-getter altogether in this situation. This is,
-// therefore, a copy of getter.FileDetector but with the "not absolute path"
-// case replaced with a similar result as Terraform's old heuristic would've
-// returned: a custom error type that the caller can react to in order to
-// produce a hint error message if desired.
-type fileDetector struct{}
-
-func (d *fileDetector) Detect(src, pwd string) (string, bool, error) {
+// If the path is absolute then it's transformed into a file:// URL. If it's
+// relative then we return an error of type *MaybeRelativePathErr, so that
+// the caller can return a special error message to diagnose that the author
+// should have written a local source address if they wanted to use a relative
+// path.
+//
+// This should always be the last detector, because unless the input is an
+// empty string this will always claim everything it's given.
+func detectAbsFilePath(src string) (string, bool, error) {
 	if len(src) == 0 {
 		return "", false, nil
 	}
@@ -30,21 +29,17 @@ func (d *fileDetector) Detect(src, pwd string) (string, bool, error) {
 		return "", true, &MaybeRelativePathErr{src}
 	}
 
-	return fmtFileURL(src), true, nil
-}
-
-func fmtFileURL(path string) string {
 	if runtime.GOOS == "windows" {
 		// Make sure we're using "/" on Windows. URLs are "/"-based.
-		path = filepath.ToSlash(path)
-		return fmt.Sprintf("file://%s", path)
+		src = filepath.ToSlash(src)
+		return fmt.Sprintf("file://%s", src), true, nil
 	}
 
 	// Make sure that we don't start with "/" since we add that below.
-	if path[0] == '/' {
-		path = path[1:]
+	if src[0] == '/' {
+		src = src[1:]
 	}
-	return fmt.Sprintf("file:///%s", path)
+	return fmt.Sprintf("file:///%s", src), true, nil
 }
 
 // MaybeRelativePathErr is the error type returned by NormalizePackageAddress
