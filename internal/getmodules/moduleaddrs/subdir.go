@@ -1,12 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package getmodules
+package moduleaddrs
 
 import (
+	"fmt"
 	"path"
-
-	getter "github.com/hashicorp/go-getter"
+	"path/filepath"
+	"strings"
 )
 
 // SplitPackageSubdir detects whether the given address string has a
@@ -23,22 +24,46 @@ import (
 // remote module package address and thus can contribute its own
 // additions to the final subdirectory selection.
 func SplitPackageSubdir(given string) (packageAddr, subDir string) {
-	// We delegate this mostly to go-getter, because older Terraform
-	// versions just used go-getter directly and so we need to preserve
-	// its various quirks for compatibility reasons.
-	//
-	// However, note that in Terraform we _always_ split off the subdirectory
-	// portion and handle it within Terraform-level code, _never_ passing
-	// a subdirectory portion down into go-getter's own Get function, because
-	// Terraform's ability to refer between local paths inside the same
-	// package depends on Terraform itself always being aware of where the
-	// package's root directory ended up on disk, and always needs the
-	// package installed wholesale.
-	packageAddr, subDir = getter.SourceDirSubdir(given)
+	packageAddr, subDir = splitPackageSubdirRaw(given)
 	if subDir != "" {
 		subDir = path.Clean(subDir)
 	}
 	return packageAddr, subDir
+}
+
+func splitPackageSubdirRaw(src string) (packageAddr, subDir string) {
+	// URL might contains another url in query parameters
+	stop := len(src)
+	if idx := strings.Index(src, "?"); idx > -1 {
+		stop = idx
+	}
+
+	// Calculate an offset to avoid accidentally marking the scheme
+	// as the dir.
+	var offset int
+	if idx := strings.Index(src[:stop], "://"); idx > -1 {
+		offset = idx + 3
+	}
+
+	// First see if we even have an explicit subdir
+	idx := strings.Index(src[offset:stop], "//")
+	if idx == -1 {
+		return src, ""
+	}
+
+	idx += offset
+	subdir := src[idx+2:]
+	src = src[:idx]
+
+	// Next, check if we have query parameters and push them onto the
+	// URL.
+	if idx = strings.Index(subdir, "?"); idx > -1 {
+		query := subdir[idx:]
+		subdir = subdir[:idx]
+		src += query
+	}
+
+	return src, subdir
 }
 
 // ExpandSubdirGlobs handles a subdir string that might contain glob syntax,
@@ -53,8 +78,20 @@ func SplitPackageSubdir(given string) (packageAddr, subDir string) {
 // will then expand into the single subdirectory found inside instDir, or
 // return an error if the result would be ambiguous.
 func ExpandSubdirGlobs(instDir string, subDir string) (string, error) {
-	// We just delegate this entirely to go-getter, because older Terraform
-	// versions just used go-getter directly and so we need to preserve
-	// its various quirks for compatibility reasons.
-	return getter.SubdirGlob(instDir, subDir)
+	pattern := filepath.Join(instDir, subDir)
+
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return "", err
+	}
+
+	if len(matches) == 0 {
+		return "", fmt.Errorf("subdir %q not found", subDir)
+	}
+
+	if len(matches) > 1 {
+		return "", fmt.Errorf("subdir %q matches multiple paths", subDir)
+	}
+
+	return matches[0], nil
 }

@@ -11,7 +11,6 @@ import (
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/getmodules"
 )
 
 // We have some of the module address parsers in here, rather than in
@@ -169,7 +168,7 @@ func ParseModuleSourceRegistry(raw string) (addrs.ModuleSource, error) {
 
 func parseModuleSourceRemote(raw string) (addrs.ModuleSourceRemote, error) {
 	var subDir string
-	raw, subDir = getmodules.SplitPackageSubdir(raw)
+	raw, subDir = SplitPackageSubdir(raw)
 	if strings.HasPrefix(subDir, "../") {
 		return addrs.ModuleSourceRemote{}, fmt.Errorf("subdirectory path %q leads outside of the module package", subDir)
 	}
@@ -184,7 +183,7 @@ func parseModuleSourceRemote(raw string) (addrs.ModuleSourceRemote, error) {
 	// that's a legacy thing that is only for some specific, less-commonly-used
 	// address types. Most just do local string manipulation. We should
 	// aim to remove the network requests over time, if possible.
-	norm, moreSubDir, err := getmodules.NormalizePackageAddress(raw)
+	norm, moreSubDir, err := NormalizePackageAddress(raw)
 	if err != nil {
 		// We must pass through the returned error directly here because
 		// the getmodules package has some special error types it uses
