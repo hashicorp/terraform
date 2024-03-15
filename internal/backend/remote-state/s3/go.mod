@@ -39,8 +39,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.20.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.23.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.4 // indirect
-	github.com/coreos/go-systemd v0.0.0-20181012123002-c6f51f82210d // indirect
-	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
