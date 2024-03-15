@@ -23,3 +23,13 @@
 builtin/provisioners/file               @hashicorp/terraform-core
 builtin/provisioners/local-exec         @hashicorp/terraform-core
 builtin/provisioners/remote-exec        @hashicorp/terraform-core
+
+# go.sum files should never cause automatic review requests because they only
+# ever change in response to go.mod files (our PR checks would fail if not) and
+# if a specific module has _only_ a go.sum update without an associated go.mod
+# update then that represents that the update cannot affect the module, and
+# the Go toolchain just needed to download something new to prove that.
+#
+# (The last match in the file "wins", so this overrides any explicit owner
+# specified above when go.sum is the only file that changed.)
+*/go.sum   # no owner for these
