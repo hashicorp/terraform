@@ -17,7 +17,7 @@
 #/internal/backend/remote-state/oss              @xiaozhu36
 #/internal/backend/remote-state/pg               @remilapeyre
 /internal/backend/remote-state/s3                @hashicorp/terraform-aws
-/internal/backend/remote-state/kubernetes        @jrhouston @alexsomesan
+/internal/backend/remote-state/kubernetes        @hashicorp/tf-eco-hybrid-cloud
 
 # Provisioners
 builtin/provisioners/file               @hashicorp/terraform-core
