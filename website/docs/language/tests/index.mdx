@@ -574,7 +574,7 @@ run "verify" {
 
 ### Modules state
 
-While Terraform executes a `terraform test` command, Terraform maintains at least one, but possibly many, state files within memory for each test file.
+While Terraform executes a `terraform test` command, Terraform maintains at least one, but possibly many, state files within memory for each test file. As the state fil are stored in memory, for now, there is no way to store or expose any state created by a test file.
 
 There is always at least one state file that maintains the state of the main configuration under test. This state file is shared by all `run` blocks that do not have a `module` block specifying an alternate module to load.
 
