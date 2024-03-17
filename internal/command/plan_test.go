@@ -764,7 +764,7 @@ func TestPlan_varsSensitive(t *testing.T) {
 [31m│[0m [0m[1m[31mError: [0m[0m[1mMissing key/value separator[0m
 [31m│[0m [0m
 [31m│[0m [0m[0m  on sensitiveVar.tfvars line 3:
-[31m│[0m [0m   (SENSITIVE)
+[31m│[0m [0m   1: (SENSITIVE)[4m[0m[0m
 [31m│[0m [0m
 [31m│[0m [0mExpected an equals sign ("=") to mark the beginning of the attribute value.
 [31m╵[0m[0m
