@@ -239,6 +239,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 
 			codeStr := strings.TrimSuffix(code.String(), "\n")
 			// FIXME: Add error handing in case map conversion fails, or key doesn't exist.
+			// FIXME: Currently map conversion error falls through to regular error printing
 			if info, ok := diag.ExtraInfo().(map[string]string); ok && info["sensitive"] == "true" {
 				codeStr = "(SENSITIVE)"
 			}

@@ -6,6 +6,7 @@ package command
 import (
 	"fmt"
 	"github.com/hashicorp/hcl/v2/hclparse"
+	"github.com/hashicorp/terraform/internal/configs/configload"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -197,6 +198,53 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 	return ret, diags
 }
 
+// ParseVariableSensitivity Function that returns a map of variable names to their sensitivity status
+func ParseVariableSensitivity(loader *configload.Loader) (map[string]bool, error) {
+	varParser := hclparse.NewParser()
+	varSchema := &hcl.BodySchema{
+		Blocks: []hcl.BlockHeaderSchema{
+			{
+				Type:       "variable",
+				LabelNames: []string{"name"},
+			},
+		},
+	}
+	variableSensitivityMap := make(map[string]bool)
+
+	for fileName := range loader.Sources() {
+		if !strings.HasSuffix(fileName, ".tf") {
+			continue
+		}
+		// Parse the HCL file from the file content
+		varFile, parseErr := varParser.ParseHCLFile(fileName)
+		if parseErr != nil {
+			return nil, parseErr
+		}
+		varBlocks, _ := varFile.Body.Content(varSchema)
+		// FIXME: Error handling here is troublesome, diag will appear if anything other than variable declaration is made
+
+		for _, block := range varBlocks.Blocks {
+			// FIXME: Assumes only label set is the variable name.
+			varName := block.Labels[0]
+			varAttributes, attrsErr := block.Body.JustAttributes()
+			if attrsErr != nil {
+				return nil, attrsErr
+			}
+			if value, exists := varAttributes["sensitive"]; exists {
+				varSensitivity, valErr := value.Expr.Value(nil)
+				if valErr != nil {
+					return nil, valErr
+				}
+				variableSensitivityMap[varName] = varSensitivity.True()
+			} else {
+				variableSensitivityMap[varName] = false
+			}
+		}
+	}
+
+	return variableSensitivityMap, nil
+}
+
 func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSourceType, to map[string]backend.UnparsedVariableValue) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
@@ -239,16 +287,9 @@ func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSource
 		var hclDiags hcl.Diagnostics
 		f, hclDiags = hclsyntax.ParseConfig(src, filename, hcl.Pos{Line: 1, Column: 1})
 
-		// FIXME: TEST PARSE VARIABLE NAME
-		varParser := hclparse.NewParser()
-		var varSchema = &hcl.BodySchema{
-			Blocks: []hcl.BlockHeaderSchema{
-				{
-					Type:       "variable",
-					LabelNames: []string{"name"},
-				},
-			},
-		}
+		// FIXME: Handle error?
+		variableSensitivityMap, _ := ParseVariableSensitivity(loader)
+
 		for _, hclDiag := range hclDiags {
 			// Retrieve metadata on variables from f and match to hclDiags metadata
 			// if it matches, save associated variable name to Extra attribute.
@@ -257,29 +298,14 @@ func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSource
 				attrRange := attr.Expr.Range()
 				if attrRange.Start == hclDiag.Context.Start && attrRange.End == hclDiag.Context.End {
 					// Fingerprint matches
-
-					// Parse .tf file containing variable declaration -- ignore error handling
-					// FIXME: Should loop through all .tf files to find the one containing the match
-					// FIXME: Atleast hardcoding main.tf should be fixed to parse appropriate file.
-					varFile, _ := varParser.ParseHCLFile("main.tf")
-					varBlocks, _ := varFile.Body.Content(varSchema)
-					for _, block := range varBlocks.Blocks {
-						// If variable name matches, check for sensitive label
-						if block.Labels[0] == varName {
-							varAttributes, _ := block.Body.JustAttributes()
-							sens, _ := varAttributes["sensitive"].Expr.Value(nil)
-							hclDiag.Extra = map[string]string{
-								"variable":  varName,
-								"file":      attr.NameRange.Filename,
-								"sensitive": fmt.Sprintf("%t", sens.True()),
-							}
-							// TODO: Break loop here?
-						}
+					hclDiag.Extra = map[string]string{
+						"variable":  varName,
+						"file":      attr.NameRange.Filename,
+						"sensitive": fmt.Sprintf("%t", variableSensitivityMap[varName]),
 					}
 				}
 			}
 		}
-		// FIXME: END TEST. Test located here because lossy conversion between hcl and tf diags.
 
 		diags = diags.Append(hclDiags)
 
