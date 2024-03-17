@@ -695,6 +695,49 @@ func TestApply_plan(t *testing.T) {
 	}
 }
 
+// Test that sensitive variables are redacted in diagnostic output.
+func TestApply_varsSensitive(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("apply-sensitive"), td)
+	defer testChdir(t, td)()
+
+	p := planVarsFixtureProvider()
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-var-file", "sensitiveVar.tfvars",
+	}
+	code := c.Run(args)
+	output := done(t)
+
+	if code != 1 {
+		t.Errorf("expected status code 1 but got %d", code)
+	}
+
+	expected := `[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mMissing key/value separator[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  on sensitiveVar.tfvars line 3:
+[31m│[0m [0m   (SENSITIVE)
+[31m│[0m [0m
+[31m│[0m [0mExpected an equals sign ("=") to mark the beginning of the attribute value.
+[31m╵[0m[0m
+`
+
+	actual := output.All()
+
+	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+}
+
 func TestApply_plan_backup(t *testing.T) {
 	statePath := testTempFile(t)
 	backupPath := testTempFile(t)
