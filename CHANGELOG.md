@@ -1,34 +1,38 @@
-## 1.8.0 (Unreleased)
+## 1.8.0-rc1 (March 20 2024)
 
 If you are upgrading from Terraform v1.7 or earlier, please refer to
 [the Terraform v1.8 Upgrade Guide](https://developer.hashicorp.com/terraform/language/v1.8.x/upgrade-guides).
 
 NEW FEATURES:
 
-* Providers can now implement functions which can be used from within the Terraform configuration language. The syntax for calling a provider supplied function is `provider::provider_name::function_name()`. ([#34394](https://github.com/hashicorp/terraform/issues/34394))
-* Providers can now implement move operations between resource types, both from resource types defined by the provider and defined by other providers. Check provider documentation for supported cross-resource-type moves.
-* `issensitive` function added to detect if a value is marked as sensitive
+* Providers can now offer functions which can be used from within the Terraform configuration language.
+
+    The syntax for calling a provider-contributed function is `provider::provider_name::function_name()`. ([#34394](https://github.com/hashicorp/terraform/issues/34394))
+* Providers can now transfer the ownership of a remote object between resources of different types, for situations where there are two different resource types that represent the same remote object type.
+
+    This extends the `moved` block behavior to support moving between two resources of different types only if the provider for the target resource type declares that it can convert from the source resource type. Refer to provider documentation for details on which pairs of resource types are supported.
+* New `issensitive` function returns true if the given value is marked as sensitive.
 
 ENHANCEMENTS:
 
+* `terraform test`: File-level variables can now refer to global variables. ([#34699](https://github.com/hashicorp/terraform/issues/34699))
+* When generating configuration based on `import` blocks, Terraform will detect strings that contain valid JSON syntax and generate them as calls to the `jsonencode` function, rather than generating a single string. This is primarily motivated by readability, but might also be useful if you need to replace part of the literal value with an expression as you generalize your module beyond the one example used for importing.
+* `terraform plan` now uses a different presentation for describing changes to lists where the old and new lists have the same length. It now compares the elements with correlated indices and shows a separate diff for each one, rather than trying to show a diff for the list as a whole. The behavior is unchanged for lists of different lengths.
+* `terraform providers lock` accepts a new boolean option `-enable-plugin-cache`. If specified, and if a [global plugin cache](https://developer.hashicorp.com/terraform/cli/config/config-file#provider-plugin-cache) is configured, Terraform will use the cache in the provider lock process. ([#34632](https://github.com/hashicorp/terraform/issues/34632))
+* built-in "terraform" provider: new `decode_tfvars`, `encode_tfvars`, and `encode_expr` functions, for unusual situations where it's helpful to manually generate or read from Terraform's "tfvars" format. ([#34718](https://github.com/hashicorp/terraform/issues/34718))
 * `terraform show`'s JSON rendering of a plan now includes two explicit flags `"applyable"` and `"complete"`, which both summarize characteristics of a plan that were previously only inferrable by consumers replicating some of Terraform Core's own logic. ([#34642](https://github.com/hashicorp/terraform/issues/34642))
 
     `"applyable"` means that it makes sense for a wrapping automation to offer to apply this plan.
 
     `"complete"` means that applying this plan is expected to achieve convergence between desired and actual state. If this flag is present and set to `false` then wrapping automations should ideally encourage an operator to run another plan/apply round to continue making progress toward convergence.
-* Improved plan diff rendering for lists to display item-level differences on lists with unchanged length.
-* `terraform providers lock` accepts a new boolean option `-enable-plugin-cache`. If specified, and if a [global plugin cache](https://developer.hashicorp.com/terraform/cli/config/config-file#provider-plugin-cache) is configured Terraform will use the cache in the provider lock process. ([#34632](https://github.com/hashicorp/terraform/issues/34632))
-* `terraform test`: File-level variables can now refer to global variables. ([#34699](https://github.com/hashicorp/terraform/issues/34699))
-* In import-generated code represent JSON values in HCL instead of as strings
-* built-in "terraform" provider: new `decode_tfvars`, `encode_tfvars`, and `encode_expr` functions, for unusual situations where it's helpful to manually generate or read from Terraform's "tfvars" format. ([#34718](https://github.com/hashicorp/terraform/issues/34718))
 
 BUG FIXES:
 
-* core: Sensitive values will now be tracked more accurately in state and plans, preventing unexpected updates with no apparent changes ([#34567](https://github.com/hashicorp/terraform/issues/34567))
-* core: Fix incorrect error message when using in invalid iterator within a dynamic block ([#34751](https://github.com/hashicorp/terraform/issues/34751))
-* core: Fixed edge-case bug that could cause loss of floating point precision when round-tripping due to incorrectly using a MessagePack integer to represent a large non-integral number ([#24576](https://github.com/hashicorp/terraform/issues/24576))
-* config: Converting from an unknown map value to an object type now correctly handles the situation where the map element type disagrees with an optional attribute of the target type, since when a map value is unknown we don't yet know which keys it has and thus cannot predict what subset of the elements will get converted as attributes in the resulting object ([#34756](https://github.com/hashicorp/terraform/issues/34756))
-* cloud: Fixed unparsed color codes in policy failure error messages ([#34473](https://github.com/hashicorp/terraform/issues/34473))
+* core: Sensitive values will now be tracked more accurately in state and plans, preventing unexpected updates with no apparent changes. ([#34567](https://github.com/hashicorp/terraform/issues/34567))
+* core: Fix incorrect error message when using in invalid `iterator` argument within a dynamic block. ([#34751](https://github.com/hashicorp/terraform/issues/34751))
+* core: Fixed edge-case bug that could cause loss of floating point precision when round-tripping due to incorrectly using a MessagePack integer to represent a large non-integral number. ([#24576](https://github.com/hashicorp/terraform/issues/24576))
+* config: Converting from an unknown map value to an object type now correctly handles the situation where the map element type disagrees with an optional attribute of the target type, since when a map value is unknown we don't yet know which keys it has and thus cannot predict what subset of the elements will get converted as attributes in the resulting object. ([#34756](https://github.com/hashicorp/terraform/issues/34756))
+* cloud: Fixed unparsed color codes in policy failure error messages. ([#34473](https://github.com/hashicorp/terraform/issues/34473))
 
 ## Previous Releases
 
