@@ -39,6 +39,11 @@ to [the main Terraform CLI documentation](https://www.terraform.io/docs/cli/inde
 * [Terraform Core RPC API](../internal/rpcapi/README.md): an integration point
   for external software that needs to integrate Terraform Core functionality.
 
+* [Upgrading Terraform's Dependencies](./dependency-upgrades.md): guidance on
+  some special details that arise when we upgrade Go Module dependencies, due
+  to this codebase containing Terraform CLI, Terraform Core, and the various
+  remote state backends which all have some overlapping dependencies.
+
 * [How Terraform Uses Unicode](./unicode.md): an overview of the various
   features of Terraform that rely on Unicode and how to change those features
   to adopt new versions of Unicode.
