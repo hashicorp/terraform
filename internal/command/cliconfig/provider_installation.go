@@ -5,6 +5,7 @@ package cliconfig
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/hashicorp/hcl"
@@ -253,7 +254,8 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 						))
 						continue
 					}
-					dirPath := filepath.Clean(rawPath)
+					interpolatedPath := os.ExpandEnv(rawPath)
+					dirPath := filepath.Clean(interpolatedPath)
 					devOverrides[addr] = getproviders.PackageLocalDir(dirPath)
 				}
 
