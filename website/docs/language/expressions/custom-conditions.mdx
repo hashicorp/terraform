@@ -163,7 +163,7 @@ data "aws_ebs_volume" "example" {
 
   filter {
     name = "volume-id"
-    values = [aws_instance.example.root_block_device.volume_id]
+    values = [aws_instance.example.root_block_device[0].volume_id]
   }
 
   # Whenever a data resource is verifying the result of a managed resource
