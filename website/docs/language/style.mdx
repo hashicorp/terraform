@@ -7,7 +7,7 @@ description: >-
 
 # Style Guide
 
-The flexibility of Terraform's configuration language gives you many options to choose from as you write your code, structure your directories, and test your configuration. We recommend that your organization adopt a style guide to apply to your Terraform development. While some decisions depend on your organization’s needs or personal preferences, there are some common patterns that we suggest you adopt. These style suggestions will help keep your Terraform code consistent, legible, scalable, and maintainable. 
+The flexibility of Terraform's configuration language gives you many options to choose from as you write your code, structure your directories, and test your configuration. We recommend that your organization adopt a style guide to apply to your Terraform development. While some decisions depend on your organization's needs or personal preferences, there are some common patterns that we suggest you adopt. These style suggestions will help keep your Terraform code consistent, legible, scalable, and maintainable. 
 
 This article discusses best practices, as well as some considerations to keep in mind as you develop your organization's style guide. The article is split into two sections. The first section covers code style recommendations, such as formatting and resource organization. The second section covers operations and workflow recommendations, such as lifecycle management through meta-arguments, versioning, and sensitive data management.
 
@@ -719,7 +719,9 @@ Policies are rules that Terraform Cloud enforces on Terraform runs. You can use 
 We recommend that you store polices in a separate VCS repository from your Terraform code.
 
 For more information, refer to the [policy enforcement documentation](/terraform/cloud-docs/policy-enforcement), as well as the [enforce policy with Sential](/terraform/tutorials/policy) and [detect infrastructure drift and enforce OPA policies](/terraform/tutorials/cloud/drift-and-opa) tutorials.
+
 ## Next steps
-This article introduces some considerations to keep in mind as you standardize your organization’s Terraform style guidelines. Enforcing a standard way of writing and organizing your Terraform code across your organization ensures that it is readable, maintainable, and shareable.
+
+This article introduces some considerations to keep in mind as you standardize your organization's Terraform style guidelines. Enforcing a standard way of writing and organizing your Terraform code across your organization ensures that it is readable, maintainable, and shareable.
 
 The [HashiCorp Well-Architected Framework](/well-architected-framework) provides in-depth information on [Terraform adoption and maturity](/well-architected-framework/operational-excellence/operational-excellence-terraform-maturity).
