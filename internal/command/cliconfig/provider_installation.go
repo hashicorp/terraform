@@ -254,7 +254,18 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 						))
 						continue
 					}
-					interpolatedPath := os.ExpandEnv(rawPath)
+					interpolatedPath := os.Expand(rawPath, func(envVarName string) string {
+						if value, ok := os.LookupEnv(envVarName); ok {
+							return value
+						} else {
+							diags = diags.Append(tfdiags.Sourceless(
+								tfdiags.Error,
+								"Interpolated environment variable not set",
+								fmt.Sprintf("The environment variable %s is not set or empty and can result in undesired behavior", envVarName),
+							))
+							return ""
+						}
+					})
 					dirPath := filepath.Clean(interpolatedPath)
 					devOverrides[addr] = getproviders.PackageLocalDir(dirPath)
 				}
