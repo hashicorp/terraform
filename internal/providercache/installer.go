@@ -126,6 +126,14 @@ func (i *Installer) SetGlobalCacheDirMayBreakDependencyLockFile(mayBreak bool) {
 	i.globalCacheDirMayBreakDependencyLockFile = mayBreak
 }
 
+// GlobalCacheDirMayBreakDependencyLockFile returns true when
+// temporary exception to the rule that the global cache directory can be used
+// only when entries are confirmed by existing entries in the dependency lock
+// file is activated.
+func (i *Installer) GlobalCacheDirMayBreakDependencyLockFile() bool {
+	return i.globalCacheDirMayBreakDependencyLockFile
+}
+
 // HasGlobalCacheDir returns true if someone has previously called
 // SetGlobalCacheDir to configure a global cache directory for this installer.
 func (i *Installer) HasGlobalCacheDir() bool {
