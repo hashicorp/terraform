@@ -76,7 +76,7 @@ The Terraform parser allows you some flexibility in how you lay out the elements
 
 ## Code formatting
 
-The `terraform fmt` command helps ensure your Terraform code formatting is consistent by applying a subset of the [Terraform language style conventions](/terraform/language/syntax/style), such as those described in the [syntax style recommendations](#syntax-style). When you run this command, Terraform modifies your code to remove trailing whitespace, align arguments, and fix indentation. By default, the `terraform fmt` command will only modify your Terraform code in the directory that you execute it in, but you can include the `-recursive` flag to modify code in all subdirectories as well.
+The `terraform fmt` command helps ensure your Terraform code formatting is consistent by applying a subset of the [Terraform language syntax conventions](#syntax-conventions), such as those described in the [syntax style recommendations](#syntax-style). When you run this command, Terraform modifies your code to remove trailing whitespace, align arguments, and fix indentation. By default, the `terraform fmt` command will only modify your Terraform code in the directory that you execute it in, but you can include the `-recursive` flag to modify code in all subdirectories as well.
 
 We recommend that you run `terraform fmt` before each commit to source control. You can use mechanisms such as [Git pre-commit hooks](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks) to automatically run this command each time you commit your code.
 
