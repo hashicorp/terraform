@@ -76,7 +76,7 @@ The Terraform parser allows you some flexibility in how you lay out the elements
 
 ## Code formatting
 
-The `terraform fmt` command helps ensure your Terraform code formatting is consistent by applying a subset of the [Terraform language style conventions](https://developer.hashicorp.com/terraform/language/syntax/style), such as those described in the [syntax style recommendations](#syntax-style). When you run this command, Terraform modifies your code to remove trailing whitespace, align arguments, and fix indentation. By default, the `terraform fmt` command will only modify your Terraform code in the directory that you execute it in, but you can include the `-recursive` flag to modify code in all subdirectories as well.
+The `terraform fmt` command helps ensure your Terraform code formatting is consistent by applying a subset of the [Terraform language style conventions](/terraform/language/syntax/style), such as those described in the [syntax style recommendations](#syntax-style). When you run this command, Terraform modifies your code to remove trailing whitespace, align arguments, and fix indentation. By default, the `terraform fmt` command will only modify your Terraform code in the directory that you execute it in, but you can include the `-recursive` flag to modify code in all subdirectories as well.
 
 We recommend that you run `terraform fmt` before each commit to source control. You can use mechanisms such as  [Git pre-commit hooks](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks) to automatically run this command each time you commit your code.
 
@@ -88,13 +88,13 @@ The `terraform validate` command checks that your code is syntactically valid an
 
 The `terraform validate` command is safe to run automatically and frequently. You can configure your text editor to run this command as a post-save check, define it as a pre-commit hook in the Git repository, or run it as a step in a CI/CD pipeline.  
 
-For more information, refer to the [Terraform `validate` documentation](https://developer.hashicorp.com/terraform/cli/commands/validate).
+For more information, refer to the [Terraform `validate` documentation](/terraform/cli/commands/validate).
 
 ## File names
 
 We recommend the following file naming conventions:
 
-- `backend.tf`: Contains your [backend configuration](https://developer.hashicorp.com/terraform/language/settings/backends/configuration). You can define multiple `terraform` blocks in your configuration to separate your backend configuration from your Terraform and provider versioning configuration. 
+- `backend.tf`: Contains your [backend configuration](/terraform/language/settings/backends/configuration). You can define multiple `terraform` blocks in your configuration to separate your backend configuration from your Terraform and provider versioning configuration. 
 - `main.tf`: Contains all resource and data source blocks.
 - `outputs.tf`: Contains all output blocks in alphabetical order.
 - `providers.tf`: Contains all `provider` blocks and configuration.
@@ -102,7 +102,7 @@ We recommend the following file naming conventions:
 - `variables.tf`: Contains all variable blocks in alphabetical order.
 - `override.tf`: Contains override definitions for your configuration.
 
-Terraform treats the file named `override.tf` and all files ending with `_override.tf` as a special use case. Terraform will load all other `.tf` files first, and then use the configuration in the override files to modify those resources. Use these files sparingly and add comments to the original resource definitions, as these overrides make your code harder to read. Refer to the [override files](https://developer.hashicorp.com/terraform/language/files/override) documentation for more information.
+Terraform treats the file named `override.tf` and all files ending with `_override.tf` as a special use case. Terraform will load all other `.tf` files first, and then use the configuration in the override files to modify those resources. Use these files sparingly and add comments to the original resource definitions, as these overrides make your code harder to read. Refer to the [override files](/terraform/language/files/override) documentation for more information.
 
 As your codebase grows, limiting it to just these files can become difficult to maintain. If your code becomes hard to navigate due to its size, we recommend that you split the resources and data sources into separate files by logical groups. For example, if your web application requires networking, storage, and compute resources, you might create the following files:
 
@@ -112,7 +112,7 @@ As your codebase grows, limiting it to just these files can become difficult to 
 
 No matter how you decide to split your code, it should be immediately clear where a maintainer can find a specific resource or data source definition.
 
-As your configuration grows, you may need to separate it into multiple state files. The HashiCorp Well-Architected Framework provides more guidance about [workspace structure and scope](https://developer.hashicorp.com/well-architected-framework/operational-excellence/operational-excellence-workspaces-projects#workspace-structure). 
+As your configuration grows, you may need to separate it into multiple state files. The HashiCorp Well-Architected Framework provides more guidance about [workspace structure and scope](/well-architected-framework/operational-excellence/operational-excellence-workspaces-projects#workspace-structure). 
 
 ## Linting and static code analysis
 
@@ -206,11 +206,11 @@ We recommend that you use the following order when you define your variable para
 1. Description
 1. Default (optional)
 1. Sensitive (optional)
-1. [Validation blocks](https://developer.hashicorp.com/terraform/language/values/variables#custom-validation-rules)
+1. [Validation blocks](/terraform/language/values/variables#custom-validation-rules)
 
 Define a `type` and a `description` for every variable. If the variable is optional, define a reasonable `default`. For sensitive variables, such as passwords and private keys, set the `sensitive` parameter to `true`. Remember that Terraform will still store this value in plain text in its state, but it will not display it when you run `terraform plan` or `terraform apply`. Refer to [secrets management](#secrets-management) for more information on how to securely handle sensitive values.
 
-[Input variable validation](https://developer.hashicorp.com/terraform/language/values/variables#custom-validation-rules) lets you create additional rules for your variable values in addition to Terraform's type validation. We recommend that you only use variable validation when your variable values have uniquely restrictive requirements. For example, if your Terraform code requires two web instances to work, you can add a `validation` block to enforce this, as shown below.
+[Input variable validation](/terraform/language/values/variables#custom-validation-rules) lets you create additional rules for your variable values in addition to Terraform's type validation. We recommend that you only use variable validation when your variable values have uniquely restrictive requirements. For example, if your Terraform code requires two web instances to work, you can add a `validation` block to enforce this, as shown below.
 
 <CodeBlockConfig hideClipboard>
 
@@ -269,13 +269,13 @@ Terraform provides multiple ways to define values for your variables, and follow
 - The `terraform.tfvars` file.
 - The `terraform.tfvars.json` file.
 - Any `*.auto.tfvars` or `*.auto.tfvars.json` files, processed in lexical order of their filenames.
-- Any `-var` and `-var-file` options on the command line, in the order they are provided. This includes variables defined in a Terraform Cloud workspace or variable set. Refer to [precedence with priority variable sets](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/variables#precedence-with-priority-variable-sets) for more information.
+- Any `-var` and `-var-file` options on the command line, in the order they are provided. This includes variables defined in a Terraform Cloud workspace or variable set. Refer to [precedence with priority variable sets](/terraform/cloud-docs/workspaces/variables#precedence-with-priority-variable-sets) for more information.
 
 For sensitive variables, we recommend using environment variables or a secrets management service like HashiCorp Vault. This helps you avoid writing the values to a file and accidentally committing it to version control. 
 
 ## Local values
 
-Local values are useful when you need to reference an [expression](https://developer.hashicorp.com/terraform/language/expressions) or value multiple times. We recommend that you use local values in moderation, as overuse can make your code harder to read for future maintainers. Like resource, variable, and output names, we recommend local names be descriptive nouns and use underscores to separate multiple words.
+Local values are useful when you need to reference an [expression](/terraform/language/expressions) or value multiple times. We recommend that you use local values in moderation, as overuse can make your code harder to read for future maintainers. Like resource, variable, and output names, we recommend local names be descriptive nouns and use underscores to separate multiple words.
 
 For example, you may want to append the region and environment (for example, development or test) to every web instance name. The following local value creates the suffix with these values.
 
@@ -311,7 +311,7 @@ In general, there are two places we recommend that you define your local values:
 If you reference the local value in multiple locations, we recommend you define it in a file named `locals.tf`.
 If the local is specific to a file, we recommend that you define it at the top of the file.
 
-For more information, refer to the [local values documentation](https://developer.hashicorp.com/terraform/language/values/locals) and the [Simplify Terraform configuration with locals](https://developer.hashicorp.com/terraform/tutorials/configuration-language/locals) tutorial. 
+For more information, refer to the [local values documentation](/terraform/language/values/locals) and the [Simplify Terraform configuration with locals](/terraform/tutorials/configuration-language/locals) tutorial. 
 
 ## Provider aliasing
 
@@ -365,7 +365,7 @@ Any provider block that does not define the `alias` parameter is considered the 
 
 The `for_each` and `count` meta-arguments let you create multiple resources from a single `resource` block depending on run-time conditions. You can use these meta-arguments to make your code flexible and remove the need to duplicate resource blocks. If your instances are almost identical, `count` is appropriate. If some of their arguments need distinct values that cannot be directly derived from an integer, it is safer to use `for_each`.
 
-The `for_each` meta-argument accepts a `map` or `set` value, and Terraform will create an instance of that resource for each element in the value you provide. In the following example, Terraform creates an `aws_instance` for each of the strings defined in the `web_instances` variable: "ui", "api", "db" and "metrics". The example uses `each.key` to give each instance a unique name. The `web_private_ips` output uses a [for expression](https://developer.hashicorp.com/terraform/language/expressions/for) to create a map of instance names and their private IP addresses, while the `web_ui_public_ip` output addresses the instance with the key "ui" directly.
+The `for_each` meta-argument accepts a `map` or `set` value, and Terraform will create an instance of that resource for each element in the value you provide. In the following example, Terraform creates an `aws_instance` for each of the strings defined in the `web_instances` variable: "ui", "api", "db" and "metrics". The example uses `each.key` to give each instance a unique name. The `web_private_ips` output uses a [for expression](/terraform/language/expressions/for) to create a map of instance names and their private IP addresses, while the `web_ui_public_ip` output addresses the instance with the key "ui" directly.
 
 <CodeBlockConfig hideClipboard>
 
@@ -443,7 +443,7 @@ resource "aws_instance" "web" {
 
 </CodeBlockConfig>
 
-A common practice to conditionally create resources is to use the `count` meta-argument with a [conditional expression](https://developer.hashicorp.com/terraform/language/expressions/conditionals). In the following example, Terraform will only create the `aws_instance` if `var.enable_metrics` is `true`.
+A common practice to conditionally create resources is to use the `count` meta-argument with a [conditional expression](/terraform/language/expressions/conditionals). In the following example, Terraform will only create the `aws_instance` if `var.enable_metrics` is `true`.
 
 <CodeBlockConfig highlight="8" hideClipboard>
 
@@ -467,7 +467,7 @@ resource "aws_instance" "web" {
 
 We recommend that you use meta-arguments in moderation since you sacrifice explicit readability for an implicit understanding of how the configuration works. If the effect of the meta-argument is not immediately obvious, add a comment to make it clear to the reader.
 
-To learn more about these meta-arguments, refer to the [`for_each`](https://developer.hashicorp.com/terraform/language/meta-arguments/for_each)  and [`count`](https://developer.hashicorp.com/terraform/language/meta-arguments/count) documentation.
+To learn more about these meta-arguments, refer to the [`for_each`](/terraform/language/meta-arguments/for_each)  and [`count`](/terraform/language/meta-arguments/count) documentation.
 
 ## .gitignore  
 
@@ -476,16 +476,16 @@ Define a `.gitignore` file for your repository to exclude files that you should 
 Always commit:
 
 - All Terraform code files
-- Your `.terraform.lock.hcl` [dependency lock file](https://developer.hashicorp.com/terraform/language/files/dependency-lock) 
+- Your `.terraform.lock.hcl` [dependency lock file](/terraform/language/files/dependency-lock) 
 - A `.gitignore` file that excludes the files listed below
 - A `README.md` to describe the code, input variables, and outputs
 
 Exclude:
 
 - Your `terraform.tfstate` state file, including `terraform.tfstate.*` backup state files.
-- Your `.terraform.tfstate.lock.info` file. Terraform creates and deletes this file automatically when you run a `terraform apply` command and contains info about your [state lock](https://developer.hashicorp.com/terraform/language/state/locking)
+- Your `.terraform.tfstate.lock.info` file. Terraform creates and deletes this file automatically when you run a `terraform apply` command and contains info about your [state lock](/terraform/language/state/locking)
 - Your `.terraform` directory, where Terraform downloads providers and child modules. 
-[Saved plan files](https://developer.hashicorp.com/terraform/cli/commands/plan#out-filename) that you create when you include the `-out` flat when you run `terraform plan`.
+[Saved plan files](/terraform/cli/commands/plan#out-filename) that you create when you include the `-out` flat when you run `terraform plan`.
 - Any `.tfvars` files that contain sensitive information.
 
 For an example, refer to [GitHub's Terraform .gitignore file](https://github.com/github/gitignore/blob/main/Terraform.gitignore).
@@ -498,16 +498,16 @@ Adopting a consistent design style can help with operational stability, security
 - Name your module repositories using this three-part name `terraform-<PROVIDER>-<NAME>` when using the Terraform Cloud registry.
 - Store local modules at `./modules/<module_name>`.
 - Use the [tfe_outputs](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs) data source or provider-specific data sources to share state between two state files.
-- Use a secrets manager such as HashiCorp Vault or [dynamic provider credentials](https://developer.hashicorp.com/terraform/tutorials/cloud/dynamic-credentials) when possible so that you do not write secrets to your Terraform code.
-- Write [tests](https://developer.hashicorp.com/terraform/language/tests) for your modules.
+- Use a secrets manager such as HashiCorp Vault or [dynamic provider credentials](/terraform/tutorials/cloud/dynamic-credentials) when possible so that you do not write secrets to your Terraform code.
+- Write [tests](/terraform/language/tests) for your modules.
 - Use a linter such as [TFLint](https://github.com/terraform-linters/tflint) to enforce your organization's own coding best practices.
-- Use [policy enforcement](https://developer.hashicorp.com/terraform/cloud-docs/policy-enforcement) on Terraform Cloud to build guardrails for what your developers are and are not allowed to do.
+- Use [policy enforcement](/terraform/cloud-docs/policy-enforcement) on Terraform Cloud to build guardrails for what your developers are and are not allowed to do.
 
 ## Version pinning
 
 To prevent providers and modules upgrades from introducing unintentional changes to your infrastructure, use version pinning. 
 
-For your providers, define the [required_providers block](https://developer.hashicorp.com/terraform/language/providers/requirements#requiring-providers) inside your `terraform` block to specify which provider version to use. Terraform [version constraints](https://developer.hashicorp.com/terraform/language/providers/requirements#version-constraints)  support a range of accepted versions. We recommend that you pin your module to a specific major and minor version as shown in the example below to ensure stability. You can use looser restrictions if you are certain that the module does not introduce breaking changes outside of major version updates.
+For your providers, define the [required_providers block](/terraform/language/providers/requirements#requiring-providers) inside your `terraform` block to specify which provider version to use. Terraform [version constraints](/terraform/language/providers/requirements#version-constraints)  support a range of accepted versions. We recommend that you pin your module to a specific major and minor version as shown in the example below to ensure stability. You can use looser restrictions if you are certain that the module does not introduce breaking changes outside of major version updates.
 
 We also recommend that you set a minimum required version of the Terraform binary by setting the `required_version` in your `terraform` block. This ensures that other operators use a version of Terraform that has all of the features your configuration relies on.
 
@@ -557,11 +557,11 @@ Use modules to group together logically related resources. For example:
 - A networking module that defines a VPC, along with its subnets, gateway, and security groups.
 - An application module defining all resources required for each deployment. This stack could include web servers, databases, storage, and supported networking.
 
-Review the [module creation recommended pattern documentation](https://developer.hashicorp.com/terraform/tutorials/modules/pattern-module-creation) and [standard module structure](https://developer.hashicorp.com/terraform/language/modules/develop/structure) for guidance on how to structure your modules.
+Review the [module creation recommended pattern documentation](/terraform/tutorials/modules/pattern-module-creation) and [standard module structure](/terraform/language/modules/develop/structure) for guidance on how to structure your modules.
 
 ## Local modules
 
-Local modules are sourced from local disk rather than a remote module registry. We recommend publishing your modules to a module registry, such as the [Terraform Cloud private module registry](https://developer.hashicorp.com/terraform/cloud-docs/registry). A module registry lets you share modules across your organization for use by other developers. If you cannot use a module registry, organizing part of your code in local modules still reduces the burden of maintaining and updating your code. 
+Local modules are sourced from local disk rather than a remote module registry. We recommend publishing your modules to a module registry, such as the [Terraform Cloud private module registry](/terraform/cloud-docs/registry). A module registry lets you share modules across your organization for use by other developers. If you cannot use a module registry, organizing part of your code in local modules still reduces the burden of maintaining and updating your code. 
 
 We recommend that you define child modules in the `./modules/<module_name>` directory. 
 
@@ -614,7 +614,7 @@ To collaborate on your Terraform code, we recommend using the [GitHub flow](http
 1. Merge the pull request
 1. Delete the branch
 
-Terraform Cloud and Terraform Enterprise can run [speculative plans for pull requests](https://developer.hashicorp.com/terraform/cloud-docs/run/ui#speculative-plans-on-pull-requests). These speculative plans run automatically when you create or update a pull request, and you can use them to see the effect that your changes will have on your infrastructure before you merge them to your main branch. When you merge your pull request, Terraform Cloud will start a new run to apply these changes.
+Terraform Cloud and Terraform Enterprise can run [speculative plans for pull requests](/terraform/cloud-docs/run/ui#speculative-plans-on-pull-requests). These speculative plans run automatically when you create or update a pull request, and you can use them to see the effect that your changes will have on your infrastructure before you merge them to your main branch. When you merge your pull request, Terraform Cloud will start a new run to apply these changes.
 
 ## Multiple environments
 
@@ -640,7 +640,7 @@ We recommend that your repository's `main` branch be the source of truth for all
 
 </CodeBlockConfig>
 
-In this scenario, you would create three workspaces per environment. For example, your production environment would have a "prod-compute", "prod-database", and "prod-networking" workspace. Read more about [Terraform workspace and project best practices](https://developer.hashicorp.com/well-architected-framework/operational-excellence/operational-excellence-workspaces-projects). 
+In this scenario, you would create three workspaces per environment. For example, your production environment would have a "prod-compute", "prod-database", and "prod-networking" workspace. Read more about [Terraform workspace and project best practices](/well-architected-framework/operational-excellence/operational-excellence-workspaces-projects). 
 
 If you do not use Terraform Cloud or Terraform Enterprise, we recommend that you use modules to encapsulate your configuration, and use a directory for each environment. The configuration in each of these directories would call the local modules, each with parameters specific to their environment. This also lets you maintain separate variable and backend configurations for each environment. 
 
@@ -678,7 +678,7 @@ If you use Terraform Cloud or Terraform Enterprise and a resource is managed in 
 
 If you do not use Terraform Cloud or Terraform Enterprise but still need to reference data about other infrastructure resources, use data sources to query the provider. For example, you can use the [`aws_instance` data source](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/instance) to look up an AWS EC2 instance by its ID or tags
 
-If neither of these options are viable, you can use the [`terraform_remote_state` data source](https://developer.hashicorp.com/terraform/language/state/remote-state-data). If you use this data source with Terraform Cloud or Terraform Enterprise, configure which workspaces have access to your state using the principle of least privilege. Refer to [remote state sharing](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/settings#remote-state-sharing) for more information.
+If neither of these options are viable, you can use the [`terraform_remote_state` data source](/terraform/language/state/remote-state-data). If you use this data source with Terraform Cloud or Terraform Enterprise, configure which workspaces have access to your state using the principle of least privilege. Refer to [remote state sharing](/terraform/cloud-docs/workspaces/settings#remote-state-sharing) for more information.
 
 ## Secrets management
 
@@ -687,7 +687,7 @@ If you do not configure remote state storage, the Terraform CLI stores the entir
 Terraform Cloud and Terraform Enterprise provide state encryption through HashiCorp Vault. 
 
 - When using Terraform Enterprise, we recommend that you define and enforce a Sentinel policy to prevent use of the `local_exec` provisioner or external data sources. 
-- When using Terraform Cloud or Terraform Enterprise, use [dynamic provider credentials](https://developer.hashicorp.com/terraform/tutorials/cloud/dynamic-credentials) to avoid using long-lived static credentials.
+- When using Terraform Cloud or Terraform Enterprise, use [dynamic provider credentials](/terraform/tutorials/cloud/dynamic-credentials) to avoid using long-lived static credentials.
 
 
 If you use Terraform Community Edition, we recommend the following:
@@ -699,13 +699,13 @@ If you use a custom CI/CD pipeline, review your CI/CD tool's best practices for 
 
 - [Using secrets in GitHub Actions](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions)
 - [Gitlab pipeline security](https://docs.gitlab.com/ee/ci/pipelines/pipeline_security.html)
-- [Integrate Vault into your CI/CD pipeline](https://developer.hashicorp.com/well-architected-framework/security/security-cicd-vault)
+- [Integrate Vault into your CI/CD pipeline](/well-architected-framework/security/security-cicd-vault)
 
 ## Integration and unit testing
 
 Terraform tests let you validate your modules and catch breaking changes. We recommend that you write tests for your Terraform modules and run them just as you run your tests for your application code, such as pre-merge check in your pull requests or as a prerequisite step in your automated CI/CD pipeline.
 
-Tests differ from validation methods such as variable validation, preconditions, postconditions, and check blocks. These features focus on verifying the infrastructure deployed by your code, while tests validate the behavior and logic of your code itself. For more information, refer to the [Terraform test documentation](https://developer.hashicorp.com/terraform/language/tests) and the [Write Terraform tests tutorial](https://developer.hashicorp.com/terraform/tutorials/configuration-language/test).
+Tests differ from validation methods such as variable validation, preconditions, postconditions, and check blocks. These features focus on verifying the infrastructure deployed by your code, while tests validate the behavior and logic of your code itself. For more information, refer to the [Terraform test documentation](/terraform/language/tests) and the [Write Terraform tests tutorial](/terraform/tutorials/configuration-language/test).
 
 ## Policy
 
@@ -718,8 +718,8 @@ Policies are rules that Terraform Cloud enforces on Terraform runs. You can use 
 
 We recommend that you store polices in a separate VCS repository from your Terraform code.
 
-For more information, refer to the [policy enforcement documentation](https://developer.hashicorp.com/terraform/cloud-docs/policy-enforcement), as well as the [enforce policy with Sential](https://developer.hashicorp.com/terraform/tutorials/policy) and [detect infrastructure drift and enforce OPA policies](https://developer.hashicorp.com/terraform/tutorials/cloud/drift-and-opa) tutorials.
+For more information, refer to the [policy enforcement documentation](/terraform/cloud-docs/policy-enforcement), as well as the [enforce policy with Sential](/terraform/tutorials/policy) and [detect infrastructure drift and enforce OPA policies](/terraform/tutorials/cloud/drift-and-opa) tutorials.
 ## Next steps
 This article introduces some considerations to keep in mind as you standardize your organization’s Terraform style guidelines. Enforcing a standard way of writing and organizing your Terraform code across your organization ensures that it is readable, maintainable, and shareable.
 
-The [HashiCorp Well-Architected Framework](https://developer.hashicorp.com/well-architected-framework) provides in-depth information on [Terraform adoption and maturity](https://developer.hashicorp.com/well-architected-framework/operational-excellence/operational-excellence-terraform-maturity).
+The [HashiCorp Well-Architected Framework](/well-architected-framework) provides in-depth information on [Terraform adoption and maturity](/well-architected-framework/operational-excellence/operational-excellence-terraform-maturity).
