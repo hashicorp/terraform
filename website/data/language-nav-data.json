@@ -26,8 +26,7 @@
       {
         "title": "JSON Configuration Syntax",
         "path": "syntax/json"
-      },
-      { "title": "Style Conventions", "path": "syntax/style" }
+      }
     ]
   },
   {
@@ -1088,6 +1087,10 @@
   {
     "title": "Upgrading to Terraform v1.7",
     "path": "upgrade-guides"
+  },
+  { 
+    "title": "Style Guide", 
+    "path": "style" 
   },
   {
     "title": "v1.x Compatibility Promises",
