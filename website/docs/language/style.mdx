@@ -78,7 +78,7 @@ The Terraform parser allows you some flexibility in how you lay out the elements
 
 The `terraform fmt` command helps ensure your Terraform code formatting is consistent by applying a subset of the [Terraform language style conventions](/terraform/language/syntax/style), such as those described in the [syntax style recommendations](#syntax-style). When you run this command, Terraform modifies your code to remove trailing whitespace, align arguments, and fix indentation. By default, the `terraform fmt` command will only modify your Terraform code in the directory that you execute it in, but you can include the `-recursive` flag to modify code in all subdirectories as well.
 
-We recommend that you run `terraform fmt` before each commit to source control. You can use mechanisms such as  [Git pre-commit hooks](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks) to automatically run this command each time you commit your code.
+We recommend that you run `terraform fmt` before each commit to source control. You can use mechanisms such as [Git pre-commit hooks](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks) to automatically run this command each time you commit your code.
 
 If your Microsoft VS Code or another development environment or text editor that supports the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), we recommend that you use the [Terraform Language Server](https://github.com/hashicorp/terraform-ls). The Terraform Language Server enables syntax highlighting, syntax validation, and automatic code formatting.
 
@@ -86,7 +86,7 @@ If your Microsoft VS Code or another development environment or text editor that
 
 The `terraform validate` command checks that your code is syntactically valid and internally consistent, regardless of any provided variables or existing state. The `validate` command does not check if argument values are valid for a specific provider, but it will verify that they are the correct type.
 
-The `terraform validate` command is safe to run automatically and frequently. You can configure your text editor to run this command as a post-save check, define it as a pre-commit hook in the Git repository, or run it as a step in a CI/CD pipeline.  
+The `terraform validate` command is safe to run automatically and frequently. You can configure your text editor to run this command as a post-save check, define it as a pre-commit hook in the Git repository, or run it as a step in a CI/CD pipeline.
 
 For more information, refer to the [Terraform `validate` documentation](/terraform/cli/commands/validate).
 
@@ -162,9 +162,9 @@ resource "aws_instance" "web_api" {...}
 
 ## Resource order
 
-The order of the resources and data sources in your code does not affect how Terraform builds them, so  organize your resources for readability. Terraform will determine the creation order based on cross-resource dependencies.
+The order of the resources and data sources in your code does not affect how Terraform builds them, so organize your resources for readability. Terraform will determine the creation order based on cross-resource dependencies.
 
-How you order your resources largely depends on the size and complexity of your code, but we recommend defining data sources alongside the resources that reference them. For readability, your Terraform code should “build on itself” —  you should define a data source before the resource that references it.
+How you order your resources largely depends on the size and complexity of your code, but we recommend defining data sources alongside the resources that reference them. For readability, your Terraform code should “build on itself” — you should define a data source before the resource that references it.
 
 The following example defines an `aws_instance` that relies on two data sources, `aws_ami` and `aws_availability_zone`. For readability and continuity, it defines the data sources before the `aws_instance` resource.
 
@@ -467,9 +467,9 @@ resource "aws_instance" "web" {
 
 We recommend that you use meta-arguments in moderation since you sacrifice explicit readability for an implicit understanding of how the configuration works. If the effect of the meta-argument is not immediately obvious, add a comment to make it clear to the reader.
 
-To learn more about these meta-arguments, refer to the [`for_each`](/terraform/language/meta-arguments/for_each)  and [`count`](/terraform/language/meta-arguments/count) documentation.
+To learn more about these meta-arguments, refer to the [`for_each`](/terraform/language/meta-arguments/for_each) and [`count`](/terraform/language/meta-arguments/count) documentation.
 
-## .gitignore  
+## .gitignore
 
 Define a `.gitignore` file for your repository to exclude files that you should not publish to version control, such as your state file.
 
@@ -507,7 +507,7 @@ Adopting a consistent design style can help with operational stability, security
 
 To prevent providers and modules upgrades from introducing unintentional changes to your infrastructure, use version pinning. 
 
-For your providers, define the [required_providers block](/terraform/language/providers/requirements#requiring-providers) inside your `terraform` block to specify which provider version to use. Terraform [version constraints](/terraform/language/providers/requirements#version-constraints)  support a range of accepted versions. We recommend that you pin your module to a specific major and minor version as shown in the example below to ensure stability. You can use looser restrictions if you are certain that the module does not introduce breaking changes outside of major version updates.
+For your providers, define the [required_providers block](/terraform/language/providers/requirements#requiring-providers) inside your `terraform` block to specify which provider version to use. Terraform [version constraints](/terraform/language/providers/requirements#version-constraints) support a range of accepted versions. We recommend that you pin your module to a specific major and minor version as shown in the example below to ensure stability. You can use looser restrictions if you are certain that the module does not introduce breaking changes outside of major version updates.
 
 We also recommend that you set a minimum required version of the Terraform binary by setting the `required_version` in your `terraform` block. This ensures that other operators use a version of Terraform that has all of the features your configuration relies on.
 
@@ -569,7 +569,7 @@ We recommend that you define child modules in the `./modules/<module_name>` dire
 
 How you structure your modules and Terraform configuration in version control significantly impacts versioning and operations. In general, we recommend that you store your actual infrastructure configuration separate from your module code.
 
-To structure your modules, ee recommend that you store each module in an individual repository. This lets you independently version each module and makes it easier to publish your modules in the private Terraform registry.
+To structure your modules, we recommend that you store each module in an individual repository. This lets you independently version each module and makes it easier to publish your modules in the private Terraform registry.
 
 To structure your infrastructure configuration, we recommend that you create repositories that group together logically-related resources. For example, a web application that requires compute, networking, and database resources would be grouped in a single repository. By separating your resources into groups, you limit the blast radius of changes from one configuration affecting another.
 
@@ -676,7 +676,7 @@ Since your state contains sensitive information, avoid sharing full state files 
 
 If you use Terraform Cloud or Terraform Enterprise and a resource is managed in a separate workspace, use the [`tfe_outputs`](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs) data source to access outputs across workspaces.
 
-If you do not use Terraform Cloud or Terraform Enterprise but still need to reference data about other infrastructure resources, use data sources to query the provider. For example, you can use the [`aws_instance` data source](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/instance) to look up an AWS EC2 instance by its ID or tags
+If you do not use Terraform Cloud or Terraform Enterprise but still need to reference data about other infrastructure resources, use data sources to query the provider. For example, you can use the [`aws_instance` data source](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/instance) to look up an AWS EC2 instance by its ID or tags.
 
 If neither of these options are viable, you can use the [`terraform_remote_state` data source](/terraform/language/state/remote-state-data). If you use this data source with Terraform Cloud or Terraform Enterprise, configure which workspaces have access to your state using the principle of least privilege. Refer to [remote state sharing](/terraform/cloud-docs/workspaces/settings#remote-state-sharing) for more information.
 
@@ -686,7 +686,7 @@ If you do not configure remote state storage, the Terraform CLI stores the entir
 
 Terraform Cloud and Terraform Enterprise provide state encryption through HashiCorp Vault. 
 
-- When using Terraform Enterprise, we recommend that you define and enforce a Sentinel policy to prevent use of the `local_exec` provisioner or external data sources. 
+- When using Terraform Enterprise, we recommend that you define and enforce a Sentinel policy to prevent use of the `local_exec` provisioner or external data sources.
 - When using Terraform Cloud or Terraform Enterprise, use [dynamic provider credentials](/terraform/tutorials/cloud/dynamic-credentials) to avoid using long-lived static credentials.
 
 
@@ -716,7 +716,7 @@ Policies are rules that Terraform Cloud enforces on Terraform runs. You can use 
 - Block deployments on Fridays
 - Enforce security configuration and cost management
 
-We recommend that you store polices in a separate VCS repository from your Terraform code.
+We recommend that you store policies in a separate VCS repository from your Terraform code.
 
 For more information, refer to the [policy enforcement documentation](/terraform/cloud-docs/policy-enforcement), as well as the [enforce policy with Sential](/terraform/tutorials/policy) and [detect infrastructure drift and enforce OPA policies](/terraform/tutorials/cloud/drift-and-opa) tutorials.
 
