@@ -9,7 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// WarnsAndErrorsToProto converts the warnings and errors return by the legacy
+// WarnsAndErrsToProto converts the warnings and errors return by the legacy
 // provider to protobuf diagnostics.
 func WarnsAndErrsToProto(warns []string, errs []error) (diags []*proto.Diagnostic) {
 	for _, w := range warns {

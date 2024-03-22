@@ -80,7 +80,7 @@ func SerializeValueForHash(buf *bytes.Buffer, val interface{}, schema *Schema) {
 	buf.WriteRune(';')
 }
 
-// SerializeValueForHash appends a serialization of the given resource config
+// SerializeResourceForHash appends a serialization of the given resource config
 // to the given buffer, guaranteeing deterministic results given the same value
 // and schema.
 //

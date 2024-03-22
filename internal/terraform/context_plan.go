@@ -1054,7 +1054,7 @@ func (c *Context) referenceAnalyzer(config *configs.Config, state *states.State)
 	return globalref.NewAnalyzer(config, schemas.Providers), diags
 }
 
-// relevantResourcesForPlan implements the heuristic we use to populate the
+// relevantResourceAttrsForPlan implements the heuristic we use to populate the
 // RelevantResources field of returned plans.
 func (c *Context) relevantResourceAttrsForPlan(config *configs.Config, plan *plans.Plan) ([]globalref.ResourceAttr, tfdiags.Diagnostics) {
 	azr, diags := c.referenceAnalyzer(config, plan.PriorState)

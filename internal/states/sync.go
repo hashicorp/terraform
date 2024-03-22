@@ -145,7 +145,7 @@ func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, dk De
 	return inst.Object(dk).DeepCopy()
 }
 
-// SetResourceMeta updates the resource-level metadata for the resource at
+// SetResourceProvider updates the resource-level metadata for the resource at
 // the given address, creating the containing module state and resource state
 // as a side-effect if not already present.
 func (s *SyncState) SetResourceProvider(addr addrs.AbsResource, provider addrs.AbsProviderConfig) {
