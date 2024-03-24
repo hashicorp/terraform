@@ -4,8 +4,13 @@ on:
   schedule:
     - cron: '50 1 * * *'
 
+permissions: {}
 jobs:
   lock:
+    permissions:
+      issues: write # to lock issues (dessant/lock-threads)
+      pull-requests: write # to lock PRs (dessant/lock-threads)
+
     runs-on: ubuntu-latest
     steps:
       - uses: dessant/lock-threads@1bf7ec25051fe7c00bdd17e6a7cf3d7bfb7dc771 # v5.0.1
