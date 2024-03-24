@@ -178,6 +178,29 @@ var Base64GzipFunc = function.New(&function.Spec{
 	},
 })
 
+// URLDecodeFunc constructs a function that applies URL decoding to a given string.
+var URLDecodeFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		s := args[0].AsString()
+		sDec, err := url.QueryUnescape(s)
+		if err != nil {
+			return cty.UnknownVal(cty.String), fmt.Errorf("failed to decode url encoded data '%s'", s)
+		}
+		if !utf8.Valid([]byte(sDec)) {
+			log.Printf("[DEBUG] the result of decoding the provided string is not valid UTF-8: %s", sDec)
+			return cty.UnknownVal(cty.String), fmt.Errorf("the result of decoding the provided string is not valid UTF-8")
+		}
+		return cty.StringVal(sDec), nil
+	},
+})
+
 // URLEncodeFunc constructs a function that applies URL encoding to a given string.
 var URLEncodeFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -226,6 +249,20 @@ func Base64Encode(str cty.Value) (cty.Value, error) {
 // as UTF-8, then apply gzip compression, and then finally apply Base64 encoding.
 func Base64Gzip(str cty.Value) (cty.Value, error) {
 	return Base64GzipFunc.Call([]cty.Value{str})
+}
+
+// URLDecode applies URL decoding to a given string.
+//
+// Does the inverse transformation of URLEncode, converting each 3-byte encoded
+// substring of the form "%AB" into the character that it represents according to
+// RFC 3986 "percent encoding".
+//
+// Strings in the Terraform language are sequences of unicode characters rather
+// than bytes, so this function will also interpret the resulting bytes as
+// UTF-8. If the bytes after URL decoding are _not_ valid UTF-8, this function
+// produces an error.
+func URLDecode(str cty.Value) (cty.Value, error) {
+	return URLDecodeFunc.Call([]cty.Value{str})
 }
 
 // URLEncode applies URL encoding to a given string.
