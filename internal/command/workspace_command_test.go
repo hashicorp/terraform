@@ -109,6 +109,57 @@ func TestWorkspace_createAndList(t *testing.T) {
 	if actual != expected {
 		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)
 	}
+
+	// Json without env override
+
+	// Make sure an override does not exist
+	defer os.Unsetenv("TF_WORKSPACE")
+	if _, ok := os.LookupEnv("TF_WORKSPACE"); ok {
+		t.Fatalf("TF_WORKSPACE must not be set.")
+	}
+
+	args := []string{
+		"-json",
+	}
+	listCmd = &WorkspaceListCommand{}
+	ui = new(cli.MockUi)
+	listCmd.Meta = Meta{Ui: ui}
+
+	if code := listCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+
+	actual = strings.TrimSpace(ui.OutputWriter.String())
+	expected = "{\"terraform_version\":\"0.13.0-dev\",\"workspaces\":[{\"name\":\"default\",\"selected\":false},{\"name\":\"test_a\",\"selected\":false},{\"name\":\"test_b\",\"selected\":false},{\"name\":\"test_c\",\"selected\":true}],\"is_overridden\":false,\"overridden_note\":\"\"}"
+
+	if actual != expected {
+		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)
+	}
+
+	// With workspace override
+
+	// Set the workspace override
+	defer os.Unsetenv("TF_WORKSPACE")
+	os.Setenv("TF_WORKSPACE", "test_a")
+
+	args = []string{
+		"-json",
+	}
+	listCmd = &WorkspaceListCommand{}
+	ui = new(cli.MockUi)
+	listCmd.Meta = Meta{Ui: ui}
+
+	if code := listCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+
+	actual = strings.TrimSpace(ui.OutputWriter.String())
+	expected = "{\"terraform_version\":\"0.13.0-dev\",\"workspaces\":[{\"name\":\"default\",\"selected\":false},{\"name\":\"test_a\",\"selected\":true},{\"name\":\"test_b\",\"selected\":false},{\"name\":\"test_c\",\"selected\":false}],\"is_overridden\":true,\"overridden_note\":\"\\n\\nThe active workspace is being overridden using the TF_WORKSPACE environment\\nvariable.\\n\"}"
+
+	if actual != expected {
+		t.Fatalf("\nexpected: %q\nactual:  %q", expected, actual)
+	}
+
 }
 
 // Create some workspaces and test the show output.
