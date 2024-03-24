@@ -26,7 +26,11 @@ const (
 Terraform acquires a state lock to protect the state from being written
 by multiple users at the same time. Please resolve the issue above and try
 again. For most commands, you can disable locking with the "-lock=false"
-flag, but this is not recommended.`
+flag, but this is not recommended.
+
+If the lock didn't release properly, Terraform may not be able to run future commands since it'll appear as if
+the lock is held. In that case please call:
+terraform force-unlock`
 
 	UnlockErrorMessage = `Error message: %s
 
