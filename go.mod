@@ -13,10 +13,10 @@ require (
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/bgentry/speakeasy v0.1.0
 	github.com/bmatcuk/doublestar v1.1.5
-	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dylanmei/winrmtest v0.0.0-20210303004826-fbc9ae56efb6
+	github.com/ergochat/readline v0.1.0
 	github.com/go-test/deep v1.0.3
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
