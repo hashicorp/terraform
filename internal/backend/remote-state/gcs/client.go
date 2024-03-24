@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"strconv"
 
 	"cloud.google.com/go/storage"
@@ -146,6 +147,14 @@ func (c *remoteClient) lockError(err error) *statemgr.LockError {
 // LockInfo struct.
 func (c *remoteClient) lockInfo() (*statemgr.LockInfo, error) {
 	r, err := c.lockFile().NewReader(c.storageContext)
+
+	// When lock file doesn't exist return dummy lock info to avoid breaking LockWithContext
+	if err == storage.ErrObjectNotExist {
+		info := statemgr.NewLockInfo()
+		// magic number to avoid conflics with real ones
+		info.ID = strconv.FormatInt(math.MinInt64, 10)
+		return info, nil
+	}
 	if err != nil {
 		return nil, err
 	}
