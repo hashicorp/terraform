@@ -48,9 +48,22 @@ tuples. To get a similar result with a map or object value you must use
 [`for` expressions](/terraform/language/expressions/for).
 
 Resources that use the `for_each` argument will appear in expressions as a map
-of objects, so you can't use splat expressions with those resources.
+of objects, so you can't directly use splat expressions with those resources.
 For more information, see
 [Referring to Resource Instances](/terraform/language/meta-arguments/for_each#referring-to-instances).
+
+It is however possible to use the [`values`](/language/functions/values) function to get the
+values of a map as a list and then make a splat expression using that list. For example:
+
+```hcl
+values(var.map)[*].id
+```
+
+The above expression is equivalent to the following `for` expression:
+
+```hcl
+[for k, v in var.map: v.id]
+```
 
 ## Single Values as Lists
 
