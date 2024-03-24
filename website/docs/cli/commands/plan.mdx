@@ -31,7 +31,7 @@ to be taken.
 If you are using Terraform directly in an interactive terminal and you expect
 to apply the changes Terraform proposes, you can alternatively run
 [`terraform apply`](/terraform/cli/commands/apply) directly. By default, the "apply" command
-automatically generates a new plan and prompts for you to approve it.
+automatically generates a new plan and prompts you to approve it.
 
 You can use the optional `-out=FILE` option to save the generated plan to a
 file on disk, which you can later execute by passing the file to
@@ -130,7 +130,7 @@ In addition to alternate [planning modes](#planning-modes), there are several op
   resource instance with the given address. This is helpful when one or more remote objects have become degraded, and you can use replacement objects with the same configuration to align with immutable infrastructure patterns. Terraform will use a "replace" action if the specified resource would normally cause an "update" action or no action at all. Include this option multiple times to replace several objects at once. You cannot use `-replace` with the `-destroy` option, and it is only available from Terraform v0.15.2 onwards. For earlier versions, use [`terraform taint`](/terraform/cli/commands/taint) to achieve a similar result.
 
 - `-target=ADDRESS` - Instructs Terraform to focus its planning efforts only
-  on resource instances which match the given address and on any objects that
+  on resource instances that match the given address and on any objects that
   those instances depend on.
 
   -> **Note:** Use `-target=ADDRESS` in exceptional circumstances only, such as recovering from mistakes or working around Terraform limitations. Refer to [Resource Targeting](#resource-targeting) for more details.
@@ -159,8 +159,8 @@ root module.
 
 However, to do so will require writing a command line that is parsable both
 by your chosen command line shell _and_ Terraform, which can be complicated
-for expressions involving lots of quotes and escape sequences. In most cases
-we recommend using the `-var-file` option instead, and write your actual values
+for expressions involving lots of quotes and escape sequences. In most cases,
+we recommend using the `-var-file` option instead, and writing your actual values
 in a separate file so that Terraform can parse them directly, rather than
 interpreting the result of your shell's parsing.
 
