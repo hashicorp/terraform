@@ -27,7 +27,7 @@ type deferredActionsTest struct {
 	// will create a new empty state if so.
 	state *states.State
 
-	// This test will execute a plan-apply cycle for every entry in this
+	// This test will execute a lan-apply cycle for every entry in this
 	// slice. At each stage the plan and apply outputs will be validated
 	// against the expected values.
 	stages []deferredActionsTestStage
@@ -342,8 +342,8 @@ output "c" {
 	}
 
 	// dataSourceForEachTest is a test that exercises the deferred actions
-	// mechanism with a configuration that has a data_source with an unknown
-	// for_each attribute.
+	// mechanism with a configuration that references an unknown value originating
+	// from a data source in the for_each value of a resource.
 	//
 	// We execute three plan-apply cycles. The first one with an unknown input
 	// into the for_each. The second with a known for_each value. The final
@@ -357,27 +357,20 @@ terraform {
 	experiments = [unknown_instances]
 }
 
-variable "each" {
+variable "input" {
 	type = set(string)
 }
 
-variable "inputs" {
-	type = map(set(string))
-}
-
 data "test" "a" {
-	for_each = var.each
-	inputs   = var.inputs[each.value]
+	input = var.input
 }
 
 resource "test" "b" {
-	for_each = data.test.a
+	for_each = toset(data.test.a.output)
 	name     = "b:${each.key}"
 }
 
-output "a" {
-	value = data.test.a
-}
+
 output "b" {
 	value = test.b
 }
@@ -387,8 +380,7 @@ output "b" {
 		stages: []deferredActionsTestStage{
 			{
 				inputs: map[string]cty.Value{
-					"each":   cty.DynamicVal,
-					"inputs": cty.DynamicVal,
+					"input": cty.DynamicVal,
 				},
 				wantPlanned: map[string]cty.Value{
 
@@ -400,7 +392,9 @@ output "b" {
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
 					}),
 				},
-				wantActions: map[string]plans.Action{},
+				wantActions: map[string]plans.Action{
+					"data.test.a": plans.Read,
+				},
 				wantApplied: map[string]cty.Value{},
 				wantOutputs: map[string]cty.Value{
 
@@ -418,17 +412,6 @@ output "b" {
 					//   stabilizing the experiment, though.
 
 					// Currently we produce an incorrect result for output
-					// value "a" because the expression evaluator doesn't
-					// realize it's supposed to be treating this as deferred
-					// during the apply phase, and so it incorrectly decides
-					// that there are no instances due to the lack of
-					// instances in the state.
-					"a": cty.EmptyObjectVal,
-					// We can't say anything about data.test.a until we know what
-					// its instance keys are.
-					// "a": cty.DynamicVal,
-
-					// Currently we produce an incorrect result for output
 					// value "b" because the expression evaluator doesn't
 					// realize it's supposed to be treating this as deferred
 					// during the apply phase, and so it incorrectly decides
@@ -439,6 +422,51 @@ output "b" {
 					// its instance keys are.
 					// "b": cty.DynamicVal,
 				},
+			},
+			{
+				inputs: map[string]cty.Value{
+					"input": cty.SetVal([]cty.Value{
+						cty.StringVal("1"),
+						cty.StringVal("2"),
+					}),
+				},
+				wantPlanned: map[string]cty.Value{
+					"b:1": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b:1"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+					"b:2": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b:2"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					`test.b["1"]`: plans.Create,
+					`test.b["2"]`: plans.Create,
+				},
+				wantApplied: map[string]cty.Value{
+					"b:1": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b:1"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+					"b:2": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b:2"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+				},
+				wantOutputs: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"1": cty.ObjectVal(map[string]cty.Value{
+							"name":           cty.StringVal("b:1"),
+							"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						}),
+						"2": cty.ObjectVal(map[string]cty.Value{
+							"name":           cty.StringVal("b:2"),
+							"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						}),
+					}),
+				},
+				complete: true,
 			},
 			// TODO: add test-cases for
 			// - specific inputs, dynamic for_each
@@ -609,11 +637,11 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 				"test": {
 					Block: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
-							"inputs": {
+							"input": {
 								Type:     cty.Set(cty.String),
 								Required: true,
 							},
-							"outputs": {
+							"output": {
 								Type:     cty.Set(cty.String),
 								Computed: true,
 							},
@@ -641,12 +669,12 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			}
 		},
 		ReadDataSourceFn: func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
-			inputs := req.Config.GetAttr("inputs")
+			input := req.Config.GetAttr("input")
 
 			return providers.ReadDataSourceResponse{
-				State: cty.MapVal(map[string]cty.Value{
-					"outputs": inputs,
-					"inputs":  inputs,
+				State: cty.ObjectVal(map[string]cty.Value{
+					"input":  input,
+					"output": input,
 				}),
 			}
 		},
