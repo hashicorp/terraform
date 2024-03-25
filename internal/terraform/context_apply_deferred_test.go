@@ -340,11 +340,119 @@ output "c" {
 			},
 		},
 	}
+
+	// dataSourceForEachTest is a test that exercises the deferred actions
+	// mechanism with a configuration that has a data_source with an unknown
+	// for_each attribute.
+	//
+	// We execute three plan-apply cycles. The first one with an unknown input
+	// into the for_each. The second with a known for_each value. The final
+	// with the same known for_each value to ensure that the plan is empty.
+	dataSourceForEachTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+// TEMP: unknown for_each currently requires an experiment opt-in.
+// We should remove this block if the experiment gets stabilized.
+terraform {
+	experiments = [unknown_instances]
+}
+
+variable "each" {
+	type = set(string)
+}
+
+variable "inputs" {
+	type = map(set(string))
+}
+
+data "test" "a" {
+	for_each = var.each
+	inputs   = var.inputs[each.value]
+}
+
+resource "test" "b" {
+	for_each = data.test.a
+	name     = "b:${each.key}"
+}
+
+output "a" {
+	value = data.test.a
+}
+output "b" {
+	value = test.b
+}
+
+		`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"each":   cty.DynamicVal,
+					"inputs": cty.DynamicVal,
+				},
+				wantPlanned: map[string]cty.Value{
+
+					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.UnknownVal(cty.String).Refine().
+							StringPrefixFull("b:").
+							NotNull().
+							NewValue(),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+				},
+				wantActions: map[string]plans.Action{},
+				wantApplied: map[string]cty.Value{},
+				wantOutputs: map[string]cty.Value{
+
+					// FIXME: The system is currently producing incorrect
+					//   results for output values that are derived from
+					//   resources that had deferred actions, because we're
+					//   not quite reconstructing all of the deferral state
+					//   correctly during the apply phase. The commented-out
+					//   lines below show how this _ought_ to look, but
+					//   we're accepting the incorrect answer for now so we
+					//   can start to gather feedback on the experiment
+					//   sooner, since the output value state at the interim
+					//   steps isn't really that important for demonstrating
+					//   the overall effect. We should fix this before
+					//   stabilizing the experiment, though.
+
+					// Currently we produce an incorrect result for output
+					// value "a" because the expression evaluator doesn't
+					// realize it's supposed to be treating this as deferred
+					// during the apply phase, and so it incorrectly decides
+					// that there are no instances due to the lack of
+					// instances in the state.
+					"a": cty.EmptyObjectVal,
+					// We can't say anything about data.test.a until we know what
+					// its instance keys are.
+					// "a": cty.DynamicVal,
+
+					// Currently we produce an incorrect result for output
+					// value "b" because the expression evaluator doesn't
+					// realize it's supposed to be treating this as deferred
+					// during the apply phase, and so it incorrectly decides
+					// that there are no instances due to the lack of
+					// instances in the state.
+					"b": cty.EmptyObjectVal,
+					// We can't say anything about test.b until we know what
+					// its instance keys are.
+					// "b": cty.DynamicVal,
+				},
+			},
+			// TODO: add test-cases for
+			// - specific inputs, dynamic for_each
+			// - dynamic inputs, specific for_each
+			// - specific inputs, specific for_each (maybe not needed)
+			// - partial apply scenatios somewhere here
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
 	tests := map[string]deferredActionsTest{
-		"resource_for_each": resourceForEachTest,
+		"resource_for_each":    resourceForEachTest,
+		"data_source_for_each": dataSourceForEachTest,
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -497,6 +605,22 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 					},
 				},
 			},
+			DataSources: map[string]providers.Schema{
+				"test": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"inputs": {
+								Type:     cty.Set(cty.String),
+								Required: true,
+							},
+							"outputs": {
+								Type:     cty.Set(cty.String),
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
 		},
 		PlanResourceChangeFn: func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 			key := "<unknown>"
@@ -514,6 +638,16 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			provider.appliedChanges.Set(key, req.PlannedState)
 			return providers.ApplyResourceChangeResponse{
 				NewState: req.PlannedState,
+			}
+		},
+		ReadDataSourceFn: func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+			inputs := req.Config.GetAttr("inputs")
+
+			return providers.ReadDataSourceResponse{
+				State: cty.MapVal(map[string]cty.Value{
+					"outputs": inputs,
+					"inputs":  inputs,
+				}),
 			}
 		},
 	}
