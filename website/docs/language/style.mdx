@@ -101,6 +101,7 @@ We recommend the following file naming conventions:
 - `providers.tf`: Contains all `provider` blocks and configuration.
 - `terraform.tf`: Contains a single `terraform` block which defines your `required_version` and `required_providers`.
 - `variables.tf`: Contains all variable blocks in alphabetical order.
+- `locals.tf`: Contains local values that you reference in multiple files. Refer to [local values](#local-values) for more information.
 - `override.tf`: Contains override definitions for your configuration.
 
 As your codebase grows, limiting it to just these files can become difficult to maintain. If your code becomes hard to navigate due to its size, we recommend that you split the resources and data sources into separate files by logical groups. For example, if your web application requires networking, storage, and compute resources, you might create the following files:
