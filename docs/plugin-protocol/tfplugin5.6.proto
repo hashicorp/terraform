@@ -211,6 +211,27 @@ message Function {
     }
 }
 
+// Deferred is a message that indicates that change is deferred for a reason.
+message Deferred {
+    // Reason is the reason for deferring the change.
+  enum Reason {
+    // UNKNOWN is the default value, and should not be used.
+    UNKNOWN = 0;
+    // RESOURCE_CONFIG_UNKNOWN is used when parts of the resource configuration
+    // are unknown, e.g. the for_each value is only known after the apply is done.
+    RESOURCE_CONFIG_UNKNOWN = 1;
+    // PROVIDER_CONFIG_UNKNOWN is used when parts of the provider configuration
+    // are unknown, e.g. the provider configuration is only known after the apply is done.
+    PROVIDER_CONFIG_UNKNOWN = 2;
+    // ABSENT_PREREQ is used when a hard dependency has not been satisfied.
+    ABSENT_PREREQ = 3;
+  }
+
+  // reason is the reason for deferring the change.
+  Reason reason = 1;
+}
+
+
 service Provider {
     //////// Information about what a provider supports/expects
 
@@ -323,6 +344,10 @@ message UpgradeResourceState {
         // appropriate older schema. The raw_state will be the json encoded
         // state, or a legacy flat-mapped format.
         RawState raw_state = 3;
+
+        // deferral_allowed signals that the provider is allowed to defer the
+        // changes. If set the caller needs to handle the deferred response.
+        bool deferral_allowed = 4;
     }
     message Response {
         // new_state is a msgpack-encoded data structure that, when interpreted with
@@ -334,6 +359,10 @@ message UpgradeResourceState {
         // be safely resolved, and warnings about any possibly-risky assumptions made
         // in the upgrade process.
         repeated Diagnostic diagnostics = 2;
+
+        // deferred is set if the provider is deferring the change. If set the caller
+        // needs to handle the deferral.
+        Deferred deferred = 3;
     }
 }
 
@@ -381,11 +410,18 @@ message ReadResource {
         DynamicValue current_state = 2;
         bytes private = 3;
         DynamicValue provider_meta = 4;
+
+        // deferral_allowed signals that the provider is allowed to defer the
+        // changes. If set the caller needs to handle the deferred response.
+        bool deferral_allowed = 5;
     }
     message Response {
         DynamicValue new_state = 1;
         repeated Diagnostic diagnostics = 2;
         bytes private = 3;
+        // deferred is set if the provider is deferring the change. If set the caller
+        // needs to handle the deferral.
+        Deferred deferred = 4;
     }
 }
 
@@ -397,6 +433,10 @@ message PlanResourceChange {
         DynamicValue config = 4;
         bytes prior_private = 5;
         DynamicValue provider_meta = 6;
+
+        // deferral_allowed signals that the provider is allowed to defer the
+        // changes. If set the caller needs to handle the deferred response.
+        bool deferral_allowed = 7;
     }
 
     message Response {
@@ -418,6 +458,10 @@ message PlanResourceChange {
         //     ==== THIS MUST BE LEFT UNSET IN ALL OTHER SDKS ====
         //     ====              DO NOT USE THIS              ====
         bool legacy_type_system = 5;
+
+        // deferred is set if the provider is deferring the change. If set the caller
+        // needs to handle the deferral.
+        Deferred deferred = 6;
     }
 }
 
@@ -454,6 +498,9 @@ message ImportResourceState {
     message Request {
         string type_name = 1;
         string id = 2;
+        // deferral_allowed signals that the provider is allowed to defer the
+        // changes. If set the caller needs to handle the deferred response.
+        bool deferral_allowed = 3;
     }
 
     message ImportedResource {
@@ -465,6 +512,9 @@ message ImportResourceState {
     message Response {
         repeated ImportedResource imported_resources = 1;
         repeated Diagnostic diagnostics = 2;
+        // deferred is set if the provider is deferring the change. If set the caller
+        // needs to handle the deferral.
+        Deferred deferred = 3;
     }
 }
 
@@ -509,10 +559,16 @@ message ReadDataSource {
         string type_name = 1;
         DynamicValue config = 2;
         DynamicValue provider_meta = 3;
+        // deferral_allowed signals that the provider is allowed to defer the
+        // changes. If set the caller needs to handle the deferred response.
+        bool deferral_allowed = 4;
     }
     message Response {
         DynamicValue state = 1;
         repeated Diagnostic diagnostics = 2;
+        // deferred is set if the provider is deferring the change. If set the caller
+        // needs to handle the deferral.
+        Deferred deferred = 3;
     }
 }
 
