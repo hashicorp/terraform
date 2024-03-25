@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"testing"
@@ -54,6 +55,10 @@ type deferredActionsTestStage struct {
 
 	// Whether the plan should be completed during this stage.
 	complete bool
+
+	// Some of our tests produce expected warnings, set this to true to allow
+	// warnings to be present in the returned diagnostics.
+	allowWarnings bool
 }
 
 var (
@@ -340,16 +345,402 @@ output "c" {
 			},
 		},
 	}
+
+	resourceCountTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+// TEMP: unknown for_each currently requires an experiment opt-in.
+// We should remove this block if the experiment gets stabilized.
+terraform {
+	experiments = [unknown_instances]
+}
+
+variable "resource_count" {
+	type = number
+}
+
+resource "test" "a" {
+	name = "a"
+}
+
+resource "test" "b" {
+	count = var.resource_count
+    name = "b:${count.index}"
+    upstream_names = [test.a.name]
+}
+
+resource "test" "c" {
+	name = "c"
+	upstream_names = setunion(
+		[for v in test.b : v.name],
+		[test.a.name],
+	)
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"resource_count": cty.DynamicVal,
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.UnknownVal(cty.String).Refine().
+							StringPrefixFull("b:").
+							NotNull().
+							NewValue(),
+						"upstream_names": cty.SetVal([]cty.Value{
+							cty.StringVal("a"),
+						}),
+					}),
+					"c": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("c"),
+						"upstream_names": cty.UnknownVal(cty.Set(cty.String)).RefineNotNull(),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.a": plans.Create,
+					// The other resources will be deferred, so shouldn't
+					// have any action at this stage.
+				},
+				wantApplied: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+				},
+				wantOutputs: make(map[string]cty.Value),
+			},
+			{
+				inputs: map[string]cty.Value{
+					"resource_count": cty.NumberIntVal(2),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+					"b:0": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("b:0"),
+						"upstream_names": cty.SetVal([]cty.Value{
+							cty.StringVal("a"),
+						}),
+					}),
+					"b:1": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("b:1"),
+						"upstream_names": cty.SetVal([]cty.Value{
+							cty.StringVal("a"),
+						}),
+					}),
+					"c": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("c"),
+						"upstream_names": cty.SetVal([]cty.Value{
+							cty.StringVal("a"),
+							cty.StringVal("b:0"),
+							cty.StringVal("b:1"),
+						}),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					// Since this plan is "complete", we expect to have a planned
+					// action for every resource instance, although test.a is
+					// no-op because nothing has changed for it since last round.
+					`test.a`:    plans.NoOp,
+					`test.b[0]`: plans.Create,
+					`test.b[1]`: plans.Create,
+					`test.c`:    plans.Create,
+				},
+				complete: true,
+				// Don't run an apply for this cycle.
+			},
+		},
+	}
+
+	resourceInModuleForEachTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+// TEMP: unknown for_each currently requires an experiment opt-in.
+// We should remove this block if the experiment gets stabilized.
+terraform {
+	experiments = [unknown_instances]
+}
+
+variable "each" {
+	type = set(string)
+}
+
+module "mod" {
+  source = "./mod"
+
+  each = var.each
+}
+
+resource "test" "a" {
+	name = "a"
+	upstream_names = module.mod.names
+}
+`,
+			"mod/main.tf": `
+// TEMP: unknown for_each currently requires an experiment opt-in.
+// We should remove this block if the experiment gets stabilized.
+terraform {
+	experiments = [unknown_instances]
+}
+
+variable "each" {
+	type = set(string)
+}
+
+resource "test" "names" {
+	for_each = var.each
+	name = "b:${each.key}"
+}
+
+output "names" {
+	value = [for v in test.names : v.name]
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"each": cty.DynamicVal,
+				},
+				wantPlanned: map[string]cty.Value{
+					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.UnknownVal(cty.String).Refine().
+							StringPrefixFull("b:").
+							NotNull().
+							NewValue(),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.UnknownVal(cty.Set(cty.String)),
+					}),
+				},
+				wantActions: map[string]plans.Action{},
+				wantApplied: make(map[string]cty.Value),
+				wantOutputs: make(map[string]cty.Value),
+			},
+			{
+				inputs: map[string]cty.Value{
+					"each": cty.SetVal([]cty.Value{
+						cty.StringVal("1"),
+						cty.StringVal("2"),
+					}),
+				},
+				wantPlanned: map[string]cty.Value{
+					"b:1": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b:1"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+					"b:2": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b:2"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.SetVal([]cty.Value{cty.StringVal("b:1"), cty.StringVal("b:2")}),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"module.mod.test.names[\"1\"]": plans.Create,
+					"module.mod.test.names[\"2\"]": plans.Create,
+					"test.a":                       plans.Create,
+				},
+				complete: true,
+			},
+		},
+	}
+
+	createBeforeDestroyLifecycle = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+terraform {
+	experiments = [unknown_instances]
+}
+
+# This resource should be replaced in the plan, with create before destroy.
+resource "test" "a" {
+	name = "a"
+
+	lifecycle {
+		create_before_destroy = true
+	}
+}
+
+# This resource should be replaced in the plan, with destroy before create.
+resource "test" "b" {
+	name = "b"
+}
+
+variable "resource_count" {
+	type = number
+}
+
+# These resources are "maybe-orphans", we should see a generic plan action for
+# these, but nothing in the actual plan.
+resource "test" "c" {
+	count = var.resource_count
+	name = "c:${count.index}"	
+
+	lifecycle {
+		create_before_destroy = true
+	}
+}
+`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectTainted, // force a replace in our plan
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "a",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.b"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectTainted, // force a replace in our plan
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "b",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.c[0]"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectTainted, // force a replace in our plan
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "c:0",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"resource_count": cty.UnknownVal(cty.Number),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.UnknownVal(cty.String).Refine().
+							StringPrefixFull("c:").
+							NotNull().
+							NewValue(),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.a": plans.CreateThenDelete,
+					"test.b": plans.DeleteThenCreate,
+					// test.c[0] is not mentioned here because it's removed
+					// from the plan. TODO: Update this test when we have the
+					// deferred actions within the plan.
+				},
+			},
+		},
+	}
+
+	// The next two tests aren't testing deferred actions specifically. Instead,
+	// they're just testing the "removed" block works within the alternate
+	// execution path for deferred actions.
+
+	forgetResources = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+terraform {
+	experiments = [unknown_instances]
+}
+
+# This should work as expected, with the resource being removed from state
+# but not destroyed. This should work even with the unknown_instances experiment
+# enabled.
+removed {
+	from = test.a
+
+	lifecycle {
+		destroy = false
+	}
+}
+`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a[0]"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectTainted, // force a replace in our plan
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "a",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a[1]"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectTainted, // force a replace in our plan
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "a",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				wantPlanned: map[string]cty.Value{},
+				wantActions: map[string]plans.Action{
+					"test.a[0]": plans.Forget,
+					"test.a[1]": plans.Forget,
+				},
+				allowWarnings: true,
+				complete:      true,
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
 	tests := map[string]deferredActionsTest{
-		"resource_for_each": resourceForEachTest,
+		"resource_for_each":           resourceForEachTest,
+		"resource_in_module_for_each": resourceInModuleForEachTest,
+		"resource_count":              resourceCountTest,
+		"create_before_destroy":       createBeforeDestroyLifecycle,
+		"forget_resources":            forgetResources,
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 
-			// Initialise the context.
+			// Initialise the config.
 			cfg := testModuleInline(t, test.configs)
 
 			// Initialise the state.
@@ -400,7 +791,11 @@ func TestContextApply_deferredActions(t *testing.T) {
 					//   a good place to assert that they are correct!
 
 					// We expect the correct planned changes and no diagnostics.
-					assertNoDiagnostics(t, diags)
+					if stage.allowWarnings {
+						assertNoErrors(t, diags)
+					} else {
+						assertNoDiagnostics(t, diags)
+					}
 					provider.plannedChanges.Test(t, stage.wantPlanned)
 
 					// We expect the correct actions.
@@ -517,4 +912,12 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			}
 		},
 	}
+}
+
+func mustParseJson(values map[string]interface{}) []byte {
+	data, err := json.Marshal(values)
+	if err != nil {
+		panic(err)
+	}
+	return data
 }
