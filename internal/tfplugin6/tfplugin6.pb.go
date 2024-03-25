@@ -1,9 +1,9 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-// Terraform Plugin RPC protocol version 6.5
+// Terraform Plugin RPC protocol version 6.6
 //
-// This file defines version 6.5 of the RPC protocol. To implement a plugin
+// This file defines version 6.6 of the RPC protocol. To implement a plugin
 // against this protocol, copy this definition into your own codebase and
 // use protoc to generate stubs for your target language.
 //
