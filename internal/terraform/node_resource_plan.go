@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/states"
@@ -375,9 +376,8 @@ func (n *nodeExpandPlannableResource) dynamicExpandWithUnknownInstancesExperimen
 			skipRefresh:                  n.skipRefresh,
 			skipPlanChanges:              n.skipPlanChanges,
 			forceReplace:                 n.forceReplace,
-			// TODO: replaceTriggeredBy?
+			ForceCreateBeforeDestroy:     n.CreateBeforeDestroy(),
 			// TODO: importTarget?
-			// TODO: ForceCreateBeforeDestroy?
 		}
 		v.ResolvedProvider = n.ResolvedProvider
 		v.Config = n.Config
@@ -399,8 +399,11 @@ func (n *nodeExpandPlannableResource) dynamicExpandWithUnknownInstancesExperimen
 			NodeAbstractResourceInstance: NewNodeAbstractResourceInstance(addr),
 			skipRefresh:                  n.skipRefresh,
 			skipPlanChanges:              n.skipPlanChanges,
-			// TODO: forgetResources?
-			// TODO: forgetModules?
+			// We don't need to support `removed` blocks within this path of
+			// execution. Anything that has been removed from the configuration
+			// is registered separately, and since you can't remove specific
+			// resource instances we never have the problem of unknown counts
+			// or foreach being targeted by an removed block.
 		}
 		v.ResolvedProvider = n.ResolvedProvider
 		v.Config = n.Config
@@ -417,9 +420,8 @@ func (n *nodeExpandPlannableResource) dynamicExpandWithUnknownInstancesExperimen
 			skipRefresh:                  n.skipRefresh,
 			skipPlanChanges:              true, // We never plan for a "maybe-orphan"
 			forceReplace:                 n.forceReplace,
-			// TODO: replaceTriggeredBy?
+			ForceCreateBeforeDestroy:     n.CreateBeforeDestroy(),
 			// TODO: importTarget?
-			// TODO: ForceCreateBeforeDestroy?
 		}
 		v.ResolvedProvider = n.ResolvedProvider
 		v.Config = n.Config
