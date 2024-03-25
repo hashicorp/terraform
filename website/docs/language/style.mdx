@@ -103,13 +103,13 @@ We recommend the following file naming conventions:
 - `variables.tf`: Contains all variable blocks in alphabetical order.
 - `override.tf`: Contains override definitions for your configuration.
 
-Terraform treats the file named `override.tf` and all files ending with `_override.tf` as a special use case. Terraform will load all other `.tf` files first, and then use the configuration in the override files to modify those resources. Use these files sparingly and add comments to the original resource definitions, as these overrides make your code harder to read. Refer to the [override files](/terraform/language/files/override) documentation for more information.
-
 As your codebase grows, limiting it to just these files can become difficult to maintain. If your code becomes hard to navigate due to its size, we recommend that you split the resources and data sources into separate files by logical groups. For example, if your web application requires networking, storage, and compute resources, you might create the following files:
 
 - `network.tf`: VPC, subnets, load balancers, and all other networking resources
 - `storage.tf`: Object storage and related permissions configuration
 - `compute.tf`: Compute instances
+
+Terraform treats the file named `override.tf` and all files ending with `_override.tf` as a special use case. Terraform will load all other `.tf` files first, and then use the configuration in the override files to modify those resources. Use these files sparingly and add comments to the original resource definitions, as these overrides make your code harder to read. Refer to the [override files](/terraform/language/files/override) documentation for more information.
 
 No matter how you decide to split your code, it should be immediately clear where a maintainer can find a specific resource or data source definition.
 
@@ -309,8 +309,8 @@ resource "aws_instance" "web" {
 
 In general, there are two places we recommend that you define your local values:
 
-If you reference the local value in multiple locations, we recommend you define it in a file named `locals.tf`.
-If the local is specific to a file, we recommend that you define it at the top of the file.
+- If you reference the local value in multiple locations, we recommend you define it in a file named `locals.tf`.
+- If the local is specific to a file, we recommend that you define it at the top of the file.
 
 For more information, refer to the [local values documentation](/terraform/language/values/locals) and the [Simplify Terraform configuration with locals](/terraform/tutorials/configuration-language/locals) tutorial. 
 
