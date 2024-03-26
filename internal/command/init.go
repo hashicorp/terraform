@@ -5,6 +5,7 @@ package command
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"reflect"
@@ -24,6 +25,7 @@ import (
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -42,7 +44,7 @@ type InitCommand struct {
 
 func (c *InitCommand) Run(args []string) int {
 	var flagFromModule, flagLockfile, testsDirectory string
-	var flagBackend, flagCloud, flagGet, flagUpgrade bool
+	var flagBackend, flagCloud, flagGet, flagUpgrade, flagJson bool
 	var flagPluginPath FlagStringSlice
 	flagConfigExtra := newRawFlags("-backend-config")
 
@@ -63,6 +65,8 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.StringVar(&flagLockfile, "lockfile", "", "Set a dependency lockfile mode")
 	cmdFlags.BoolVar(&c.Meta.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local Terraform versions are incompatible")
 	cmdFlags.StringVar(&testsDirectory, "test-directory", "tests", "test-directory")
+	cmdFlags.BoolVar(&flagJson, "json", false, "json")
+
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -92,6 +96,15 @@ func (c *InitCommand) Run(args []string) int {
 		c.migrateState = true
 	}
 
+	var viewType arguments.ViewType
+	switch {
+	case flagJson:
+		viewType = arguments.ViewJSON
+	default:
+		viewType = arguments.ViewHuman
+	}
+	view := views.NewInit(viewType, c.View)
+
 	var diags tfdiags.Diagnostics
 
 	if len(flagPluginPath) > 0 {
@@ -102,12 +115,14 @@ func (c *InitCommand) Run(args []string) int {
 	args = cmdFlags.Args()
 	path, err := ModulePath(args)
 	if err != nil {
-		c.Ui.Error(err.Error())
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	if err := c.storePluginPath(c.pluginPath); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error saving -plugin-path values: %s", err))
+		diags = diags.Append(fmt.Errorf("Error saving -plugin-path values: %s", err))
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -124,11 +139,13 @@ func (c *InitCommand) Run(args []string) int {
 
 		empty, err := configs.IsEmptyDir(path)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error validating destination directory: %s", err))
+			diags = diags.Append(fmt.Errorf("Error validating destination directory: %s", err))
+			view.Diagnostics(diags)
 			return 1
 		}
 		if !empty {
-			c.Ui.Error(strings.TrimSpace(errInitCopyNotEmpty))
+			diags = diags.Append(errors.New(strings.TrimSpace(errInitCopyNotEmpty)))
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -149,7 +166,7 @@ func (c *InitCommand) Run(args []string) int {
 		initDirFromModuleAbort, initDirFromModuleDiags := c.initDirFromModule(ctx, path, src, hooks)
 		diags = diags.Append(initDirFromModuleDiags)
 		if initDirFromModuleAbort || initDirFromModuleDiags.HasErrors() {
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			span.SetStatus(codes.Error, "module installation failed")
 			span.End()
 			return 1
@@ -164,7 +181,7 @@ func (c *InitCommand) Run(args []string) int {
 	empty, err := configs.IsEmptyDir(path)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error checking configuration: %s", err))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 	if empty {
@@ -182,7 +199,7 @@ func (c *InitCommand) Run(args []string) int {
 	if rootModEarly == nil {
 		c.Ui.Error(c.Colorize().Color(strings.TrimSpace(errInitConfigError)))
 		diags = diags.Append(earlyConfDiags)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 
 		return 1
 	}
@@ -196,9 +213,9 @@ func (c *InitCommand) Run(args []string) int {
 
 	switch {
 	case flagCloud && rootModEarly.CloudConfig != nil:
-		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, flagConfigExtra)
+		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, flagConfigExtra, viewType)
 	case flagBackend:
-		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, flagConfigExtra)
+		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, flagConfigExtra, viewType)
 	default:
 		// load the previously-stored backend config
 		back, backDiags = c.Meta.backendFromState(ctx)
@@ -216,17 +233,20 @@ func (c *InitCommand) Run(args []string) int {
 		c.ignoreRemoteVersionConflict(back)
 		workspace, err := c.Workspace()
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+			diags = diags.Append(fmt.Errorf("Error selecting workspace: %s", err))
+			view.Diagnostics(diags)
 			return 1
 		}
 		sMgr, err := back.StateMgr(workspace)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
+			diags = diags.Append(fmt.Errorf("Error loading state: %s", err))
+			view.Diagnostics(diags)
 			return 1
 		}
 
 		if err := sMgr.RefreshState(); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
+			diags = diags.Append(fmt.Errorf("Error refreshing state: %s", err))
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -237,7 +257,7 @@ func (c *InitCommand) Run(args []string) int {
 		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, testsDirectory, rootModEarly, flagUpgrade)
 		diags = diags.Append(modsDiags)
 		if modsAbort || modsDiags.HasErrors() {
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 		if modsOutput {
@@ -258,7 +278,7 @@ func (c *InitCommand) Run(args []string) int {
 	// potentially-confusing downstream errors.
 	versionDiags := terraform.CheckCoreVersionRequirements(config)
 	if versionDiags.HasErrors() {
-		c.showDiagnostics(versionDiags)
+		view.Diagnostics(versionDiags)
 		return 1
 	}
 
@@ -271,7 +291,7 @@ func (c *InitCommand) Run(args []string) int {
 	diags = diags.Append(backDiags)
 	if earlyConfDiags.HasErrors() {
 		c.Ui.Error(strings.TrimSpace(errInitConfigError))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -279,7 +299,7 @@ func (c *InitCommand) Run(args []string) int {
 	// show the errInitConfigError preamble as we didn't detect problems with
 	// the early configuration.
 	if backDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -288,7 +308,7 @@ func (c *InitCommand) Run(args []string) int {
 	diags = diags.Append(confDiags)
 	if confDiags.HasErrors() {
 		c.Ui.Error(strings.TrimSpace(errInitConfigError))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -296,17 +316,17 @@ func (c *InitCommand) Run(args []string) int {
 		if c.RunningInAutomation {
 			if err := cb.AssertImportCompatible(config); err != nil {
 				diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Compatibility error", err.Error()))
-				c.showDiagnostics(diags)
+				view.Diagnostics(diags)
 				return 1
 			}
 		}
 	}
 
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providersAbort, providerDiags := c.getProviders(ctx, config, state, flagUpgrade, flagPluginPath, flagLockfile)
+	providersOutput, providersAbort, providerDiags := c.getProviders(ctx, config, state, flagUpgrade, flagPluginPath, flagLockfile, view)
 	diags = diags.Append(providerDiags)
 	if providersAbort || providerDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 	if providersOutput {
@@ -322,7 +342,7 @@ func (c *InitCommand) Run(args []string) int {
 	// If we accumulated any warnings along the way that weren't accompanied
 	// by errors then we'll output them here so that the success message is
 	// still the final thing shown.
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	_, cloud := back.(*cloud.Cloud)
 	output := outputInitSuccess
 	if cloud {
@@ -398,7 +418,7 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 	return true, installAbort, diags
 }
 
-func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extraConfig rawFlags, viewType arguments.ViewType) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize Terraform Cloud")
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
 	defer span.End()
@@ -417,8 +437,9 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 	backendConfig := root.CloudConfig.ToBackendConfig()
 
 	opts := &BackendOpts{
-		Config: &backendConfig,
-		Init:   true,
+		Config:   &backendConfig,
+		Init:     true,
+		ViewType: viewType,
 	}
 
 	back, backDiags := c.Backend(opts)
@@ -426,7 +447,7 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 	return back, true, diags
 }
 
-func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig rawFlags, viewType arguments.ViewType) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize backend")
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
 	defer span.End()
@@ -502,6 +523,7 @@ the backend configuration is present and valid.
 		Config:         backendConfig,
 		ConfigOverride: backendConfigOverride,
 		Init:           true,
+		ViewType:       viewType,
 	}
 
 	back, backDiags := c.Backend(opts)
@@ -511,7 +533,7 @@ the backend configuration is present and valid.
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string) (output, abort bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output, abort bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
 
@@ -881,7 +903,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	}
 	newLocks, err := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode)
 	if ctx.Err() == context.Canceled {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		c.Ui.Error("Provider installation was canceled by an interrupt signal.")
 		return true, true, diags
 	}
@@ -1089,6 +1111,7 @@ func (c *InitCommand) AutocompleteFlags() complete.Flags {
 		"-lock":           completePredictBoolean,
 		"-lock-timeout":   complete.PredictAnything,
 		"-no-color":       complete.PredictNothing,
+		"-json":           complete.PredictNothing,
 		"-plugin-dir":     complete.PredictDirs(""),
 		"-reconfigure":    complete.PredictNothing,
 		"-migrate-state":  complete.PredictNothing,
@@ -1150,6 +1173,9 @@ Options:
   -lock-timeout=0s        Duration to retry a state lock.
 
   -no-color               If specified, output won't contain any color.
+
+	-json                   If specified, machine readable output will be
+	                        printed in JSON format.
 
   -plugin-dir             Directory containing plugin binaries. This overrides all
                           default search paths for plugins, and prevents the
