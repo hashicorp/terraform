@@ -11,24 +11,23 @@ The flexibility of Terraform's configuration language gives you many options to 
 
 This article discusses best practices and some considerations to keep in mind as you develop your organization's style guide. The article is split into two sections. The first section covers code style recommendations, such as formatting and resource organization. The second section covers operations and workflow recommendations, such as lifecycle management through meta-arguments, versioning, and sensitive data management.
 
-## Code Style
+## Code style
 
 Writing Terraform code in a consistent style makes it easier to read and maintain. The following sections discuss code style recommendations, including the following:
 
 - Run `terraform fmt` and `terraform validate` before committing your code to version control.
+- Use a linter such as [TFLint](https://github.com/terraform-linters/tflint) to enforce your organization's own coding best practices.
 - Use `#` for single and multi-line comments.
 - Use nouns for resource names and do not include the resource type in the name. 
-- Use underscores to separate multiple words in a resource name. Wrap the resource type and name in double quotes in your resource definition.
+- Use underscores to separate multiple words in names. Wrap the resource type and name in double quotes in your resource definition.
 - Let your code build on itself: define dependent resources after the resources that reference them.
 - Include a type and description for every variable.
-- Include a default value for optional variables.
-- Include a value and description for every output.
-- Use descriptive nouns to name your input variables, outputs, and local values and use underscores to separate multiple words. 
+- Include a description for every output.
 - Avoid overuse of variables and local values.
 - Always include a default provider configuration.
 - Use `count` and `for_each` sparingly.
 
-## Syntax conventions
+## Code formatting
 
 The Terraform parser allows you some flexibility in how you lay out the elements in your configuration files, but the Terraform language also has some idiomatic style conventions which we recommend users always follow for consistency between files and modules written by different teams.
 
@@ -74,9 +73,7 @@ The Terraform parser allows you some flexibility in how you lay out the elements
 - Top-level blocks should always be separated from one another by one blank line. Nested blocks should also be separated by blank lines, except when grouping together related blocks of the same type (like multiple `provisioner` blocks in a resource).
 - Avoid grouping multiple blocks of the same type with other blocks of a different type, unless the block types are defined by semantics to form a family. (For example: `root_block_device`, `ebs_block_device` and `ephemeral_block_device` on `aws_instance` form a family of block types describing AWS block devices, and can therefore be grouped together and mixed.)
 
-## Code formatting
-
-The `terraform fmt` command helps ensure your Terraform code formatting is consistent by applying a subset of the [Terraform language syntax conventions](#syntax-conventions), such as those described in the [syntax style recommendations](#syntax-style). When you run this command, Terraform modifies your code to remove trailing whitespace, align arguments, and fix indentation. By default, the `terraform fmt` command will only modify your Terraform code in the directory that you execute it in, but you can include the `-recursive` flag to modify code in all subdirectories as well.
+The `terraform fmt` command formats your Terraform configuration to a subset of the above recommendations. By default, the `terraform fmt` command will only modify your Terraform code in the directory that you execute it in, but you can include the `-recursive` flag to modify code in all subdirectories as well.
 
 We recommend that you run `terraform fmt` before each commit to version control. You can use mechanisms such as [Git pre-commit hooks](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks) to automatically run this command each time you commit your code.
 
@@ -195,9 +192,30 @@ We recommend following a consistent order for resource parameters:
 1. If required, a `lifecycle` block.
 1. If required, the `depends_on` parameter.
 
-## Variables and outputs
+## Variables
 
 While variables make your modules more flexible, overusing variables can make code difficult to understand. When deciding whether to expose a variable for a resource setting, consider whether that parameter will change between deployments.
+
+- Define a `type` and a `description` for every variable. 
+- If the variable is optional, define a reasonable `default`. 
+- For sensitive variables, such as passwords and private keys, set the `sensitive` parameter to `true`. Remember that Terraform will still store this value in plain text in its state, but it will not display it when you run `terraform plan` or `terraform apply`. Refer to [secrets management](#secrets-management) for more information on how to securely handle sensitive values.
+- Use [input variable validation](/terraform/language/values/variables#custom-validation-rules) to create additional rules for your variable values in addition to Terraform's type validation. Only use variable validation when your variable values have uniquely restrictive requirements. For example, if your Terraform configuration requires two web instances, add a `validation` block to enforce it:
+
+  <CodeBlockConfig hideClipboard>
+
+  ```hcl
+  variable "web_instance_count" {
+    type        = number
+    description = "Number of web instances to deploy. This application requires at least two instances."
+
+    validation {
+      condition     = var.aws_instance_count > 1
+      error_message = "This application requires at least two web instances."
+    }
+  }
+  ```
+
+  </CodeBlockConfig>
 
 We recommend following a consistent order for variable parameters:
 
@@ -207,27 +225,7 @@ We recommend following a consistent order for variable parameters:
 1. Sensitive (optional)
 1. [Validation blocks](/terraform/language/values/variables#custom-validation-rules)
 
-Define a `type` and a `description` for every variable. If the variable is optional, define a reasonable `default`. For sensitive variables, such as passwords and private keys, set the `sensitive` parameter to `true`. Remember that Terraform will still store this value in plain text in its state, but it will not display it when you run `terraform plan` or `terraform apply`. Refer to [secrets management](#secrets-management) for more information on how to securely handle sensitive values.
-
-Use [input variable validation](/terraform/language/values/variables#custom-validation-rules) to create additional rules for your variable values in addition to Terraform's type validation. Only use variable validation when your variable values have uniquely restrictive requirements. 
-
-For example, if your Terraform configuration requires two web instances, add a `validation` block to enforce it:
-
-<CodeBlockConfig hideClipboard>
-
-```hcl
-variable "web_instance_count" {
-  type        = number
-  description = "Number of web instances to deploy. This application requires at least two instances."
-
-  validation {
-    condition     = var.aws_instance_count > 1
-    error_message = "This application requires at least two web instances."
-  }
-}
-```
-
-</CodeBlockConfig>
+## Outputs
 
 Output values let you expose data about your infrastructure on the command line and make it easy to reference in other Terraform configurations. Like you would for variables, provide a `description` for each output. 
 
@@ -262,20 +260,6 @@ output "web_public_ip" {
 
 </CodeBlockConfig>
 
-## Variable values
-
-There are multiple ways to set a variable value, and Terraform follows an order of precedence if you provide multiple values for the same variable. 
-
-Terraform loads variables in the following order, with later sources taking precedence over earlier ones:
-
-- Environment variables.
-- The `terraform.tfvars` file.
-- The `terraform.tfvars.json` file.
-- Any `*.auto.tfvars` or `*.auto.tfvars.json` files, processed in lexical order of their filenames.
-- Any `-var` and `-var-file` options on the command line, in the order they are provided. This includes variables defined in a Terraform Cloud workspace or variable set. Refer to [precedence with priority variable sets](/terraform/cloud-docs/workspaces/variables#precedence-with-priority-variable-sets) for more information.
-
-For sensitive variables, we recommend using environment variables or a secrets management service like HashiCorp Vault. This helps you avoid writing the values to a file and accidentally committing it to version control. 
-
 ## Local values
 
 Local values let you reference an [expression](/terraform/language/expressions) or value multiple times. Use local values sparingly, as overuse can make your code harder to understand. 
@@ -288,15 +272,7 @@ For example, you can use a local value to create a suffix for the region and env
 locals {
   name_suffix = "${var.region}-${var.environment}"
 }
-```
 
-</CodeBlockConfig>
-
-Then you can reference the local value in your resource definition.
-
-<CodeBlockConfig hideClipboard>
-
-```hcl
 resource "aws_instance" "web" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t3.micro"
@@ -322,17 +298,13 @@ For more information, refer to the [local values documentation](/terraform/langu
 
 Provider aliasing lets you define multiple `provider` blocks for the same Terraform provider. Potential use cases for aliases include provisioning resources in multiple regions within a single configuration. The `provider` meta-argument for resources and the `providers` meta-argument for modules specifies which provider to use.
 
-<CodeBlockConfig filename="providers.tf" hideClipboard>
+<CodeBlockConfig filename="providers.tf" highlight="6" hideClipboard>
 
 ```hcl
-# The default provider configuration; resources that begin with `aws_` will use
-# it as the default, and it can be referenced as `aws`.
 provider "aws" {
   region = "us-east-1"
 }
 
-# Additional provider configuration for west coast region; resources can
-# reference this as `aws.west`.
 provider "aws" {
   alias  = "west"
   region = "us-west-2"
@@ -341,15 +313,11 @@ provider "aws" {
 
 </CodeBlockConfig>
 
-<CodeBlockConfig filename="main.tf" hideClipboard>
+<CodeBlockConfig filename="main.tf" highlight="2,8-10" hideClipboard>
 
 ```hcl
 resource "aws_instance" "example" {
-  # This "provider" meta-argument selects the AWS provider
-  # configuration whose alias is "west", rather than the
-  # default configuration.
   provider = aws.west
-
   # ...
 }
 
@@ -363,89 +331,18 @@ module "aws_vpc" {
 
 </CodeBlockConfig>
 
-Any provider block that does not define the `alias` parameter is considered the default provider configuration. We recommend that you always include a default provider configuration and that you define all of your providers in the same file. If you define multiple instances of a provider, define the default instance first. For non-default providers, define the `alias` as the first parameter of the `provider` block.
+- Any provider block that does not define the `alias` parameter is the default provider configuration. 
+- Always include a default provider configuration and define all of your providers in the same file. 
+- If you define multiple instances of a provider, define the default first. 
+- For non-default providers, define the `alias` as the first parameter of the `provider` block.
 
 ## Dynamic resource count
 
 The `for_each` and `count` meta-arguments let you create multiple resources from a single `resource` block depending on run-time conditions. You can use these meta-arguments to make your code flexible and reduce duplicate resource blocks. If the resources are almost identical, use `count`. If some of arguments need distinct values that you cannot derive from an integer, use `for_each`.
 
-The `for_each` meta-argument accepts a `map` or `set` value, and Terraform will create an instance of that resource for each element in the value you provide. In the following example, Terraform creates an `aws_instance` for each of the strings defined in the `web_instances` variable: "ui", "api", "db" and "metrics". The example uses `each.key` to give each instance a unique name. The `web_private_ips` output uses a [for expression](/terraform/language/expressions/for) to create a map of instance names and their private IP addresses, while the `web_ui_public_ip` output addresses the instance with the key "ui" directly.
+The `for_each` meta-argument accepts a `map` or `set` value, and Terraform will create an instance of that resource for each element in the value you provide. Refer to the [for_each meta-argument documentation](/terraform/language/meta-arguments/for_each) for examples. 
 
-<CodeBlockConfig hideClipboard>
-
-```hcl
-variable "web_instances" {
-  type        = list(string)
-  description = "A list of instances for the web application"
-  default = [
-    "ui",
-    "api",
-    "db",
-    "metrics"
-  ]
-}
-
-resource "aws_instance" "web" {
-  for_each = toset(var.web_instances)
-
-  ami           = data.aws_ami.webapp.id
-  instance_type = "t3.micro"
-
-  tags = {
-    Name = "web_${each.key}"
-  }
-}
-
-output "web_private_ips" {
-  description = "Private IPs of the web instances"
-  value = {
-    for k, v in aws_instance.web : k => v.private_ip
-  }
-}
-
-output "web_ui_public_ip" {
-  description = "Public IP of the web UI instance"
-  value       = aws_instance.web["ui"].public_ip
-}
-```
-
-</CodeBlockConfig>
-
-The above example will create the following output:
-
-<CodeBlockConfig hideClipboard>
-
-```
-web_private_ips = {
-  "api" = "172.31.25.29"
-  "db" = "172.31.18.33"
-  "metrics" = "172.31.26.112"
-  "ui" = "172.31.20.142"
-}
-
-web_ui_public_ip = "18.216.208.182"
-```
-
-</CodeBlockConfig>
-
-The `count` meta-argument lets you create multiple instances of a resource from a single resource block. In the following example, if the value of `var.web_instance_count` is 2, the code will create two EC2 instances, one named `web_0` and the other named `web_1`.
-
-<CodeBlockConfig hideClipboard>
-
-```hcl
-resource "aws_instance" "web" {
-  count = var.web_instance_count
-
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = "t3.micro"
-
-  tags = {
-    Name = "web_${count.index}"
-  }
-}
-```
-
-</CodeBlockConfig>
+The `count` meta-argument lets you create multiple instances of a resource from a single resource block. Refer to the [count meta-argument documentation](/terraform/language/meta-arguments/count) for examples.
 
 A common practice to conditionally create resources is to use the `count` meta-argument with a [conditional expression](/terraform/language/expressions/conditionals). In the following example, Terraform will only create the `aws_instance` if `var.enable_metrics` is `true`.
 
@@ -469,13 +366,21 @@ resource "aws_instance" "web" {
 
 </CodeBlockConfig>
 
-We recommend that you use meta-arguments in moderation since you sacrifice explicit readability for an implicit understanding of how the configuration works. If the effect of the meta-argument is not immediately obvious, add a comment to make it clear to the reader.
+Meta-arguments simplify your code but add complexity, so use them in moderation. If the effect of the meta-argument is not immediately obvious, use a comment for clarification.
 
 To learn more about these meta-arguments, refer to the [`for_each`](/terraform/language/meta-arguments/for_each) and [`count`](/terraform/language/meta-arguments/count) documentation.
 
 ## .gitignore
 
 Define a `.gitignore` file for your repository to exclude files that you should not publish to version control, such as your state file.
+
+Do not commit:
+
+- Your `terraform.tfstate` state file, including `terraform.tfstate.*` backup state files.
+- Your `.terraform.tfstate.lock.info` file. Terraform creates and deletes this file automatically when you run a `terraform apply` command and contains info about your [state lock](/terraform/language/state/locking)
+- Your `.terraform` directory, where Terraform downloads providers and child modules. 
+[Saved plan files](/terraform/cli/commands/plan#out-filename) that you create when you include the `-out` flat when you run `terraform plan`.
+- Any `.tfvars` files that contain sensitive information.
 
 Always commit:
 
@@ -484,17 +389,9 @@ Always commit:
 - A `.gitignore` file that excludes the files listed below
 - A `README.md` to describe the code, input variables, and outputs
 
-Exclude:
-
-- Your `terraform.tfstate` state file, including `terraform.tfstate.*` backup state files.
-- Your `.terraform.tfstate.lock.info` file. Terraform creates and deletes this file automatically when you run a `terraform apply` command and contains info about your [state lock](/terraform/language/state/locking)
-- Your `.terraform` directory, where Terraform downloads providers and child modules. 
-[Saved plan files](/terraform/cli/commands/plan#out-filename) that you create when you include the `-out` flat when you run `terraform plan`.
-- Any `.tfvars` files that contain sensitive information.
-
 For an example, refer to [GitHub's Terraform .gitignore file](https://github.com/github/gitignore/blob/main/Terraform.gitignore).
 
-## Workflow Style
+## Workflow style
 
 This section reviews standards that enable predictable and secure Terraform workflows, such as:
 
@@ -504,18 +401,19 @@ This section reviews standards that enable predictable and secure Terraform work
 - Use the [`tfe_outputs`](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs) data source or provider-specific data sources to share state between two state files.
 - Protect credentials by using [dynamic provider credentials](/terraform/tutorials/cloud/dynamic-credentials) or a secrets manager such as HashiCorp Vault.
 - Write [tests](/terraform/language/tests) for your modules.
-- Use a linter such as [TFLint](https://github.com/terraform-linters/tflint) to enforce your organization's own coding best practices.
 - Use [policy enforcement](/terraform/cloud-docs/policy-enforcement) on Terraform Cloud to set guardrails for infrastructure operations.
 
 ## Version pinning
 
 To prevent providers and modules upgrades from introducing unintentional changes to your infrastructure, use version pinning. 
 
-For providers, specify provider versions using the [required_providers block](/terraform/language/providers/requirements#requiring-providers). Terraform [version constraints](/terraform/language/providers/requirements#version-constraints) support a range of accepted versions. Pin modules to a specific major and minor version as shown in the example below to ensure stability. You can use looser restrictions if you are certain that the module does not introduce breaking changes outside of major version updates.
+Specify provider versions using the [required_providers block](/terraform/language/providers/requirements#requiring-providers). Terraform [version constraints](/terraform/language/providers/requirements#version-constraints) support a range of accepted versions. 
+
+Pin modules to a specific major and minor version as shown in the example below to ensure stability. You can use looser restrictions if you are certain that the module does not introduce breaking changes outside of major version updates.
 
 We also recommend that you set a minimum required version of the Terraform binary using the `required_version` in your `terraform` block. This requires all operators to use a Terraform version that has all of your configuration's required features.
 
-<CodeBlockConfig hideClipboard>
+<CodeBlockConfig hideClipboard highlight="5,9">
 
 ```hcl
 terraform {
@@ -575,7 +473,7 @@ How you structure your modules and Terraform configuration in version control si
 
 Store each module in an individual repository. This lets you independently version each module and makes it easier to publish your modules in the private Terraform registry.
 
-To structure your infrastructure configuration, we recommend that you create repositories that group together logically-related resources. For example, a web application that requires compute, networking, and database resources would be grouped in a single repository. By separating your resources into groups, you limit the blast radius of changes from one configuration affecting another.
+Organize your infrastructure configuration in repositories that group together logically-related resources. For example, a single repository for a web application that requires compute, networking, and database resources . By separating your resources into groups, you limit the number of resources that may be impacted by failures for any operation.
 
 Another approach is to group all modules and infrastructure configuration into a single monolithic repository, or monorepo. For example, a monorepo may define a collection of local modules for each component of the infrastructure stack, and deploy them in the root module.
 
@@ -646,7 +544,7 @@ We recommend that your repository's `main` branch be the source of truth for all
 
 In this scenario, you would create three workspaces per environment. For example, your production environment would have a `prod-compute`, `prod-database`, and `prod-networking` workspace. Read more about [Terraform workspace and project best practices](/well-architected-framework/operational-excellence/operational-excellence-workspaces-projects). 
 
-If you do not use Terraform Cloud or Terraform Enterprise, we recommend that you use modules to encapsulate your configuration, and use a directory for each environment. The configuration in each of these directories would call the local modules, each with parameters specific to their environment. This also lets you maintain separate variable and backend configurations for each environment. 
+If you do not use Terraform Cloud or Terraform Enterprise, we recommend that you use modules to encapsulate your configuration, and use a directory for each environment so that each one has a separate state file. The configuration in each of these directories would call the local modules, each with parameters specific to their environment. This also lets you maintain separate variable and backend configurations for each environment. 
 
 <CodeBlockConfig hideClipboard>
 
@@ -686,9 +584,9 @@ If neither of these options are viable, you can use the [`terraform_remote_state
 
 ## Secrets management
 
-If you do not configure remote state storage, the Terraform CLI stores the entire state in plaintext on the local disk. State can include sensitive data, such as passwords and private keys. 
+If you do not configure remote state storage, the Terraform CLI stores the entire state in plaintext on the local disk. State can include sensitive data, such as passwords and private keys. Terraform Cloud and Terraform Enterprise provide state encryption through HashiCorp Vault.
 
-Terraform Cloud and Terraform Enterprise provide state encryption through HashiCorp Vault. 
+If you use Terraform Cloud or Terraform Enterprise, we recommend the following:
 
 - When using Terraform Enterprise, define and enforce a Sentinel policy to prevent use of the `local_exec` provisioner or external data sources.
 - When using Terraform Cloud or Terraform Enterprise, use [dynamic provider credentials](/terraform/tutorials/cloud/dynamic-credentials) to avoid using long-lived static credentials.
