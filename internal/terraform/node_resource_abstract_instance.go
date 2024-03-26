@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -640,12 +641,25 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			NewState: priorVal,
 		}
 	} else {
+		// TODO: This should also allow the option created in TF-13948
+		deferralAllowed := ctx.LanguageExperimentActive(experiments.UnknownInstances)
 		resp = provider.ReadResource(providers.ReadResourceRequest{
-			TypeName:     n.Addr.Resource.Resource.Type,
-			PriorState:   priorVal,
-			Private:      state.Private,
-			ProviderMeta: metaConfigVal,
+			TypeName:        n.Addr.Resource.Resource.Type,
+			PriorState:      priorVal,
+			Private:         state.Private,
+			ProviderMeta:    metaConfigVal,
+			DeferralAllowed: deferralAllowed,
 		})
+
+		if resp.Deferred != nil {
+			deferrals := ctx.Deferrals()
+			expectedValue := cty.UnknownVal(cty.DynamicPseudoType)
+			deferrals.ReportResourceInstanceDeferred(absAddr, plans.Read, expectedValue)
+
+			return &states.ResourceInstanceObject{
+				Value: expectedValue,
+			}, diags
+		}
 	}
 	if n.Config != nil {
 		resp.Diagnostics = resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String())
