@@ -118,8 +118,11 @@ func TestImpliedMoveStatements(t *testing.T) {
 	got := ImpliedMoveStatements(rootCfg, prevRunState, explicitStmts)
 	want := []MoveStatement{
 		{
-			From:    addrs.ImpliedMoveStatementEndpoint(resourceAddr("formerly_count").Instance(addrs.IntKey(0)), tfdiags.SourceRange{}),
-			To:      addrs.ImpliedMoveStatementEndpoint(resourceAddr("formerly_count").Instance(addrs.NoKey), tfdiags.SourceRange{}),
+			From: addrs.ImpliedMoveStatementEndpoint(resourceAddr("formerly_count").Instance(addrs.IntKey(0)), tfdiags.SourceRange{}),
+			To:   addrs.ImpliedMoveStatementEndpoint(resourceAddr("formerly_count").Instance(addrs.NoKey), tfdiags.SourceRange{}),
+			Provider: &addrs.AbsProviderConfig{
+				Provider: addrs.NewProvider("registry.terraform.io", "hashicorp", "foo"),
+			},
 			Implied: true,
 			DeclRange: tfdiags.SourceRange{
 				Filename: "testdata/move-statement-implied/move-statement-implied.tf",
@@ -130,8 +133,12 @@ func TestImpliedMoveStatements(t *testing.T) {
 
 		// Found implied moves in a nested module, ignoring the explicit moves
 		{
-			From:    addrs.ImpliedMoveStatementEndpoint(nestedResourceAddr("child", "formerly_count").Instance(addrs.IntKey(0)), tfdiags.SourceRange{}),
-			To:      addrs.ImpliedMoveStatementEndpoint(nestedResourceAddr("child", "formerly_count").Instance(addrs.NoKey), tfdiags.SourceRange{}),
+			From: addrs.ImpliedMoveStatementEndpoint(nestedResourceAddr("child", "formerly_count").Instance(addrs.IntKey(0)), tfdiags.SourceRange{}),
+			To:   addrs.ImpliedMoveStatementEndpoint(nestedResourceAddr("child", "formerly_count").Instance(addrs.NoKey), tfdiags.SourceRange{}),
+			Provider: &addrs.AbsProviderConfig{
+				Module:   addrs.Module{"child"},
+				Provider: addrs.NewProvider("registry.terraform.io", "hashicorp", "foo"),
+			},
 			Implied: true,
 			DeclRange: tfdiags.SourceRange{
 				Filename: "testdata/move-statement-implied/child/move-statement-implied.tf",
@@ -141,8 +148,11 @@ func TestImpliedMoveStatements(t *testing.T) {
 		},
 
 		{
-			From:    addrs.ImpliedMoveStatementEndpoint(resourceAddr("now_count").Instance(addrs.NoKey), tfdiags.SourceRange{}),
-			To:      addrs.ImpliedMoveStatementEndpoint(resourceAddr("now_count").Instance(addrs.IntKey(0)), tfdiags.SourceRange{}),
+			From: addrs.ImpliedMoveStatementEndpoint(resourceAddr("now_count").Instance(addrs.NoKey), tfdiags.SourceRange{}),
+			To:   addrs.ImpliedMoveStatementEndpoint(resourceAddr("now_count").Instance(addrs.IntKey(0)), tfdiags.SourceRange{}),
+			Provider: &addrs.AbsProviderConfig{
+				Provider: addrs.NewProvider("registry.terraform.io", "hashicorp", "foo"),
+			},
 			Implied: true,
 			DeclRange: tfdiags.SourceRange{
 				Filename: "testdata/move-statement-implied/move-statement-implied.tf",
@@ -153,8 +163,12 @@ func TestImpliedMoveStatements(t *testing.T) {
 
 		// Found implied moves in a nested module, ignoring the explicit moves
 		{
-			From:    addrs.ImpliedMoveStatementEndpoint(nestedResourceAddr("child", "now_count").Instance(addrs.NoKey), tfdiags.SourceRange{}),
-			To:      addrs.ImpliedMoveStatementEndpoint(nestedResourceAddr("child", "now_count").Instance(addrs.IntKey(0)), tfdiags.SourceRange{}),
+			From: addrs.ImpliedMoveStatementEndpoint(nestedResourceAddr("child", "now_count").Instance(addrs.NoKey), tfdiags.SourceRange{}),
+			To:   addrs.ImpliedMoveStatementEndpoint(nestedResourceAddr("child", "now_count").Instance(addrs.IntKey(0)), tfdiags.SourceRange{}),
+			Provider: &addrs.AbsProviderConfig{
+				Module:   addrs.Module{"child"},
+				Provider: addrs.NewProvider("registry.terraform.io", "hashicorp", "foo"),
+			},
 			Implied: true,
 			DeclRange: tfdiags.SourceRange{
 				Filename: "testdata/move-statement-implied/child/move-statement-implied.tf",
@@ -169,8 +183,11 @@ func TestImpliedMoveStatements(t *testing.T) {
 		// situation where an object wants to move into an address already
 		// occupied by another object.
 		{
-			From:    addrs.ImpliedMoveStatementEndpoint(resourceAddr("ambiguous").Instance(addrs.IntKey(0)), tfdiags.SourceRange{}),
-			To:      addrs.ImpliedMoveStatementEndpoint(resourceAddr("ambiguous").Instance(addrs.NoKey), tfdiags.SourceRange{}),
+			From: addrs.ImpliedMoveStatementEndpoint(resourceAddr("ambiguous").Instance(addrs.IntKey(0)), tfdiags.SourceRange{}),
+			To:   addrs.ImpliedMoveStatementEndpoint(resourceAddr("ambiguous").Instance(addrs.NoKey), tfdiags.SourceRange{}),
+			Provider: &addrs.AbsProviderConfig{
+				Provider: addrs.NewProvider("registry.terraform.io", "hashicorp", "foo"),
+			},
 			Implied: true,
 			DeclRange: tfdiags.SourceRange{
 				Filename: "testdata/move-statement-implied/move-statement-implied.tf",

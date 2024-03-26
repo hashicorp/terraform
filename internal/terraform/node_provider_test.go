@@ -9,13 +9,15 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestNodeApplyableProviderExecute(t *testing.T) {
@@ -349,6 +351,19 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 		}
 		return
 	}
+
+	// requiredProvider matches provider, but its attributes are required
+	// explicitly. This means we can simulate an earlier failure in the
+	// config validation.
+	requiredProvider := mockProviderWithConfigSchema(&configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"region": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	})
+
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	ctx.installSimpleEval()
 
@@ -406,6 +421,43 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 			t.Fatal("missing expected error with invalid config")
 		}
 		if !strings.Contains(diags.Err().Error(), "value is not found") {
+			t.Errorf("wrong diagnostic: %s", diags.Err())
+		}
+	})
+
+	t.Run("missing schema-required config (no config at all)", func(t *testing.T) {
+		node := NodeApplyableProvider{
+			NodeAbstractProvider: &NodeAbstractProvider{
+				Addr: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+			},
+		}
+
+		diags := node.ConfigureProvider(ctx, requiredProvider, false)
+		if !diags.HasErrors() {
+			t.Fatal("missing expected error with nil config")
+		}
+		if !strings.Contains(diags.Err().Error(), "requires explicit configuration") {
+			t.Errorf("diagnostic is missing \"requires explicit configuration\" message: %s", diags.Err())
+		}
+	})
+
+	t.Run("missing schema-required config", func(t *testing.T) {
+		config := &configs.Provider{
+			Name:   "test",
+			Config: hcl.EmptyBody(),
+		}
+		node := NodeApplyableProvider{
+			NodeAbstractProvider: &NodeAbstractProvider{
+				Addr:   mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				Config: config,
+			},
+		}
+
+		diags := node.ConfigureProvider(ctx, requiredProvider, false)
+		if !diags.HasErrors() {
+			t.Fatal("missing expected error with invalid config")
+		}
+		if !strings.Contains(diags.Err().Error(), "The argument \"region\" is required, but was not set.") {
 			t.Errorf("wrong diagnostic: %s", diags.Err())
 		}
 	})
@@ -501,7 +553,7 @@ func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
 }
 
 func TestGetSchemaError(t *testing.T) {
-	provider := &MockProvider{
+	provider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Diagnostics: tfdiags.Diagnostics.Append(nil, tfdiags.WholeContainingBody(tfdiags.Error, "oops", "error")),
 		},

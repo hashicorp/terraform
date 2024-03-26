@@ -26,6 +26,15 @@ staticcheck:
 exhaustive:
 	"$(CURDIR)/scripts/exhaustive.sh"
 
+copyright:
+	"$(CURDIR)/scripts/copyright.sh" --plan
+
+copyrightfix:
+	"$(CURDIR)/scripts/copyright.sh"
+
+syncdeps:
+	"$(CURDIR)/scripts/syncdeps.sh"
+
 # Run this if working on the website locally to run in watch mode.
 website:
 	$(MAKE) -C website website
@@ -43,4 +52,4 @@ website/build-local:
 # under parallel conditions.
 .NOTPARALLEL:
 
-.PHONY: fmtcheck importscheck generate protobuf staticcheck website website/local website/build-local
+.PHONY: fmtcheck importscheck generate protobuf staticcheck syncdeps website website/local website/build-local

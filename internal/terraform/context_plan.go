@@ -82,6 +82,13 @@ type PlanOpts struct {
 	// the actual graph.
 	ExternalReferences []*addrs.Reference
 
+	// ExternalDependencyDeferred, when set, indicates that the caller
+	// considers this configuration to depend on some other configuration
+	// that had at least one deferred change, and therefore everything in
+	// this configuration must have its changes deferred too so that the
+	// overall dependency ordering would be correct.
+	ExternalDependencyDeferred bool
+
 	// Overrides provides a set of override objects that should be applied
 	// during this plan.
 	Overrides *mocking.Overrides
@@ -253,15 +260,25 @@ The -target option is not for routine use, and is provided only for exceptional 
 
 	// convert the variables into the format expected for the plan
 	varVals := make(map[string]plans.DynamicValue, len(opts.SetVariables))
+	varMarks := make(map[string][]cty.PathValueMarks, len(opts.SetVariables))
 	for k, iv := range opts.SetVariables {
 		if iv.Value == cty.NilVal {
 			continue // We only record values that the caller actually set
 		}
 
+		// Root variable values arriving from the traditional CLI path are
+		// unmarked, as they are directly decoded from .tfvars, CLI arguments,
+		// or the environment. However, variable values arriving from other
+		// plans (via the coordination efforts of the stacks runtime) may have
+		// gathered marks during evaluation. We must separate the value from
+		// its marks here to maintain compatibility with plans.DynamicValue,
+		// which cannot represent marks.
+		value, pvm := iv.Value.UnmarkDeepWithPaths()
+
 		// We use cty.DynamicPseudoType here so that we'll save both the
 		// value _and_ its dynamic type in the plan, so we can recover
 		// exactly the same value later.
-		dv, err := plans.NewDynamicValue(iv.Value, cty.DynamicPseudoType)
+		dv, err := plans.NewDynamicValue(value, cty.DynamicPseudoType)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -271,12 +288,16 @@ The -target option is not for routine use, and is provided only for exceptional 
 			continue
 		}
 		varVals[k] = dv
+		varMarks[k] = pvm
 	}
 
 	// insert the run-specific data from the context into the plan; variables,
 	// targets and provider SHAs.
 	if plan != nil {
 		plan.VariableValues = varVals
+		if len(varMarks) > 0 {
+			plan.VariableMarks = varMarks
+		}
 		plan.TargetAddrs = opts.Targets
 	} else if !diags.HasErrors() {
 		panic("nil plan but no errors")
@@ -483,7 +504,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 	return destroyPlan, evalScope, diags
 }
 
-func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState *states.State, targets []addrs.Targetable) ([]refactoring.MoveStatement, refactoring.MoveResults) {
+func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState *states.State) ([]refactoring.MoveStatement, refactoring.MoveResults, tfdiags.Diagnostics) {
 	explicitMoveStmts := refactoring.FindMoveStatements(config)
 	implicitMoveStmts := refactoring.ImpliedMoveStatements(config, prevRunState, explicitMoveStmts)
 	var moveStmts []refactoring.MoveStatement
@@ -492,8 +513,8 @@ func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState 
 		moveStmts = append(moveStmts, explicitMoveStmts...)
 		moveStmts = append(moveStmts, implicitMoveStmts...)
 	}
-	moveResults := refactoring.ApplyMoves(moveStmts, prevRunState)
-	return moveStmts, moveResults
+	moveResults, diags := refactoring.ApplyMoves(moveStmts, prevRunState, c.plugins.ProviderFactories())
+	return moveStmts, moveResults, diags
 }
 
 func (c *Context) prePlanVerifyTargetedMoves(moveResults refactoring.MoveResults, targets []addrs.Targetable) tfdiags.Diagnostics {
@@ -608,7 +629,11 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	log.Printf("[DEBUG] Building and walking plan graph for %s", opts.Mode)
 
 	prevRunState = prevRunState.DeepCopy() // don't modify the caller's object when we process the moves
-	moveStmts, moveResults := c.prePlanFindAndApplyMoves(config, prevRunState, opts.Targets)
+	moveStmts, moveResults, moveDiags := c.prePlanFindAndApplyMoves(config, prevRunState)
+	diags = diags.Append(moveDiags)
+	if moveDiags.HasErrors() {
+		return nil, nil, diags
+	}
 
 	// If resource targeting is in effect then it might conflict with the
 	// move result.
@@ -640,14 +665,21 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	// If we get here then we should definitely have a non-nil "graph", which
 	// we can now walk.
 	changes := plans.NewChanges()
+
+	// Initialize the results table to validate provider function calls.
+	// Hold reference to this so we can store the table data in the plan file.
+	providerFuncResults := providers.NewFunctionResultsTable(nil)
+
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
-		Config:                  config,
-		InputState:              prevRunState,
-		ExternalProviderConfigs: externalProviderConfigs,
-		Changes:                 changes,
-		MoveResults:             moveResults,
-		Overrides:               opts.Overrides,
-		PlanTimeTimestamp:       timestamp,
+		Config:                     config,
+		InputState:                 prevRunState,
+		ExternalProviderConfigs:    externalProviderConfigs,
+		ExternalDependencyDeferred: opts.ExternalDependencyDeferred,
+		Changes:                    changes,
+		MoveResults:                moveResults,
+		Overrides:                  opts.Overrides,
+		PlanTimeTimestamp:          timestamp,
+		ProviderFuncResults:        providerFuncResults,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -706,18 +738,51 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	}
 
 	plan := &plans.Plan{
-		UIMode:             opts.Mode,
-		Changes:            changes,
-		DriftedResources:   driftedResources,
-		PrevRunState:       prevRunState,
-		PriorState:         priorState,
-		PlannedState:       walker.State.Close(),
-		ExternalReferences: opts.ExternalReferences,
-		Overrides:          opts.Overrides,
-		Checks:             states.NewCheckResults(walker.Checks),
-		Timestamp:          timestamp,
+		UIMode:                  opts.Mode,
+		Changes:                 changes,
+		DriftedResources:        driftedResources,
+		PrevRunState:            prevRunState,
+		PriorState:              priorState,
+		PlannedState:            walker.State.Close(),
+		ExternalReferences:      opts.ExternalReferences,
+		Overrides:               opts.Overrides,
+		Checks:                  states.NewCheckResults(walker.Checks),
+		Timestamp:               timestamp,
+		ProviderFunctionResults: providerFuncResults.GetHashes(),
 
 		// Other fields get populated by Context.Plan after we return
+	}
+
+	// Our final rulings on whether the plan is "complete" and "applyable".
+	// See the documentation for these plan fields to learn what exactly they
+	// are intended to mean.
+	if !diags.HasErrors() {
+		if len(opts.Targets) == 0 && !walker.Deferrals.HaveAnyDeferrals() {
+			// A plan without any targets or deferred actions should be
+			// complete if we didn't encounter errors while producing it.
+			log.Println("[TRACE] Plan is complete")
+			plan.Complete = true
+		} else {
+			log.Println("[TRACE] Plan is incomplete")
+		}
+		if opts.Mode == plans.RefreshOnlyMode {
+			// In refresh-only mode we explicitly don't expect to propose any
+			// actions, but the plan is applyable if the state was changed
+			// in an interesting way by the refresh step.
+			plan.Applyable = !plan.PriorState.ManagedResourcesEqual(plan.PrevRunState)
+		} else {
+			// For other planning modes a plan is applyable if its "changes"
+			// are not considered empty (by whatever rules the plans package
+			// uses to decide that).
+			plan.Applyable = !plan.Changes.Empty()
+		}
+		if plan.Applyable {
+			log.Println("[TRACE] Plan is applyable")
+		} else {
+			log.Println("[TRACE] Plan is not applyable")
+		}
+	} else {
+		log.Println("[WARN] Planning encountered errors, so plan is not applyable")
 	}
 
 	// The caller also gets access to an expression evaluation scope in the

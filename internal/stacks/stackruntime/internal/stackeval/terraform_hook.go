@@ -31,17 +31,20 @@ type componentInstanceTerraformHook struct {
 	hooks *Hooks
 	addr  stackaddrs.AbsComponentInstance
 
-	mu                                 sync.Mutex
-	resourceInstanceObjectApplyAction  addrs.Map[addrs.AbsResourceInstanceObject, plans.Action]
+	mu sync.Mutex
+
+	// We record the current action for a resource instance during the
+	// pre-apply hook, so that we can refer to it in the post-apply hook, and
+	// report on the apply action to our caller.
+	resourceInstanceObjectApplyAction addrs.Map[addrs.AbsResourceInstanceObject, plans.Action]
+
+	// Only successfully applied resource instances should be included in the
+	// change counts for the apply operation, so we record whether or not apply
+	// failed here.
 	resourceInstanceObjectApplySuccess addrs.Set[addrs.AbsResourceInstanceObject]
 }
 
-func (h *componentInstanceTerraformHook) resourceInstanceAddr(addr addrs.AbsResourceInstance) stackaddrs.AbsResourceInstance {
-	return stackaddrs.AbsResourceInstance{
-		Component: h.addr,
-		Item:      addr,
-	}
-}
+var _ terraform.Hook = (*componentInstanceTerraformHook)(nil)
 
 func (h *componentInstanceTerraformHook) resourceInstanceObjectAddr(riAddr addrs.AbsResourceInstance, dk addrs.DeposedKey) stackaddrs.AbsResourceInstanceObject {
 	return stackaddrs.AbsResourceInstanceObject{
@@ -53,27 +56,30 @@ func (h *componentInstanceTerraformHook) resourceInstanceObjectAddr(riAddr addrs
 	}
 }
 
-func (h *componentInstanceTerraformHook) PreDiff(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (terraform.HookAction, error) {
+func (h *componentInstanceTerraformHook) PreDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (terraform.HookAction, error) {
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
-		Addr:   h.resourceInstanceObjectAddr(addr, dk),
-		Status: hooks.ResourceInstancePlanning,
+		Addr:         h.resourceInstanceObjectAddr(id.Addr, dk),
+		ProviderAddr: id.ProviderAddr,
+		Status:       hooks.ResourceInstancePlanning,
 	})
 	return terraform.HookActionContinue, nil
 }
 
-func (h *componentInstanceTerraformHook) PostDiff(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *componentInstanceTerraformHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
-		Addr:   h.resourceInstanceObjectAddr(addr, dk),
-		Status: hooks.ResourceInstancePlanned,
+		Addr:         h.resourceInstanceObjectAddr(id.Addr, dk),
+		ProviderAddr: id.ProviderAddr,
+		Status:       hooks.ResourceInstancePlanned,
 	})
 	return terraform.HookActionContinue, nil
 }
 
-func (h *componentInstanceTerraformHook) PreApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *componentInstanceTerraformHook) PreApply(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	if action != plans.NoOp {
 		hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
-			Addr:   h.resourceInstanceObjectAddr(addr, dk),
-			Status: hooks.ResourceInstanceApplying,
+			Addr:         h.resourceInstanceObjectAddr(id.Addr, dk),
+			ProviderAddr: id.ProviderAddr,
+			Status:       hooks.ResourceInstanceApplying,
 		})
 	}
 
@@ -81,21 +87,31 @@ func (h *componentInstanceTerraformHook) PreApply(addr addrs.AbsResourceInstance
 	if h.resourceInstanceObjectApplyAction.Len() == 0 {
 		h.resourceInstanceObjectApplyAction = addrs.MakeMap[addrs.AbsResourceInstanceObject, plans.Action]()
 	}
-	h.resourceInstanceObjectApplyAction.Put(
-		addrs.AbsResourceInstanceObject{
-			ResourceInstance: addr,
-			DeposedKey:       dk,
-		},
-		action,
-	)
+	localObjAddr := addrs.AbsResourceInstanceObject{
+		ResourceInstance: id.Addr,
+		DeposedKey:       dk,
+	}
+
+	// We may have stored a previous action for this resource instance if it is
+	// planned as create-then-destroy or destroy-then-create. For those two
+	// cases we need to synthesize the compound action so that it is reported
+	// correctly at the end of the apply process.
+	if prevAction, ok := h.resourceInstanceObjectApplyAction.GetOk(localObjAddr); ok {
+		if prevAction == plans.Delete && action == plans.Create {
+			action = plans.DeleteThenCreate
+		} else if prevAction == plans.Create && action == plans.Delete {
+			action = plans.CreateThenDelete
+		}
+	}
+	h.resourceInstanceObjectApplyAction.Put(localObjAddr, action)
 	h.mu.Unlock()
 
 	return terraform.HookActionContinue, nil
 }
 
-func (h *componentInstanceTerraformHook) PostApply(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, newState cty.Value, err error) (terraform.HookAction, error) {
-	objAddr := h.resourceInstanceObjectAddr(addr, dk)
-	localObjAddr := addr.DeposedObject(dk)
+func (h *componentInstanceTerraformHook) PostApply(id terraform.HookResourceIdentity, dk addrs.DeposedKey, newState cty.Value, err error) (terraform.HookAction, error) {
+	objAddr := h.resourceInstanceObjectAddr(id.Addr, dk)
+	localObjAddr := id.Addr.DeposedObject(dk)
 
 	h.mu.Lock()
 	action, ok := h.resourceInstanceObjectApplyAction.GetOk(localObjAddr)
@@ -124,25 +140,26 @@ func (h *componentInstanceTerraformHook) PostApply(addr addrs.AbsResourceInstanc
 	}
 
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceStatus, &hooks.ResourceInstanceStatusHookData{
-		Addr:   objAddr,
-		Status: status,
+		Addr:         objAddr,
+		ProviderAddr: id.ProviderAddr,
+		Status:       status,
 	})
 	return terraform.HookActionContinue, nil
 }
 
-func (h *componentInstanceTerraformHook) PreProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string) (terraform.HookAction, error) {
+func (h *componentInstanceTerraformHook) PreProvisionInstanceStep(id terraform.HookResourceIdentity, typeName string) (terraform.HookAction, error) {
 	// NOTE: We assume provisioner events are always about the "current"
 	// object for the given resource instance, because the hook API does
 	// not include a DeposedKey argument in this case.
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceProvisionerStatus, &hooks.ResourceInstanceProvisionerHookData{
-		Addr:   h.resourceInstanceObjectAddr(addr, addrs.NotDeposed),
+		Addr:   h.resourceInstanceObjectAddr(id.Addr, addrs.NotDeposed),
 		Name:   typeName,
 		Status: hooks.ProvisionerProvisioning,
 	})
 	return terraform.HookActionContinue, nil
 }
 
-func (h *componentInstanceTerraformHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName string, msg string) {
+func (h *componentInstanceTerraformHook) ProvisionOutput(id terraform.HookResourceIdentity, typeName string, msg string) {
 	// TODO: determine whether we should continue line splitting as we do with jsonHook
 
 	// NOTE: We assume provisioner events are always about the "current"
@@ -150,14 +167,14 @@ func (h *componentInstanceTerraformHook) ProvisionOutput(addr addrs.AbsResourceI
 	// not include a DeposedKey argument in this case.
 	output := msg
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceProvisionerStatus, &hooks.ResourceInstanceProvisionerHookData{
-		Addr:   h.resourceInstanceObjectAddr(addr, addrs.NotDeposed),
+		Addr:   h.resourceInstanceObjectAddr(id.Addr, addrs.NotDeposed),
 		Name:   typeName,
 		Status: hooks.ProvisionerProvisioning,
 		Output: &output,
 	})
 }
 
-func (h *componentInstanceTerraformHook) PostProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string, err error) (terraform.HookAction, error) {
+func (h *componentInstanceTerraformHook) PostProvisionInstanceStep(id terraform.HookResourceIdentity, typeName string, err error) (terraform.HookAction, error) {
 	// NOTE: We assume provisioner events are always about the "current"
 	// object for the given resource instance, because the hook API does
 	// not include a DeposedKey argument in this case.
@@ -166,7 +183,7 @@ func (h *componentInstanceTerraformHook) PostProvisionInstanceStep(addr addrs.Ab
 		status = hooks.ProvisionerErrored
 	}
 	hookMore(h.ctx, h.seq, h.hooks.ReportResourceInstanceProvisionerStatus, &hooks.ResourceInstanceProvisionerHookData{
-		Addr:   h.resourceInstanceObjectAddr(addr, addrs.NotDeposed),
+		Addr:   h.resourceInstanceObjectAddr(id.Addr, addrs.NotDeposed),
 		Name:   typeName,
 		Status: status,
 	})

@@ -16,24 +16,28 @@ type Set[T any] struct {
 	key     func(T) UniqueKey[T]
 }
 
-// NewMap constructs a new set whose element type knows how to calculate its own
+// NewSet constructs a new set whose element type knows how to calculate its own
 // unique keys, by implementing [UniqueKeyer] of itself.
-func NewSet[T UniqueKeyer[T]]() Set[T] {
-	return NewSetFunc(T.UniqueKey)
+func NewSet[T UniqueKeyer[T]](elems ...T) Set[T] {
+	return NewSetFunc(T.UniqueKey, elems...)
 }
 
-// NewSet constructs a new set with the given "key function".
+// NewSetFunc constructs a new set with the given "key function".
 //
 // A valid key function must produce only values of types that can be compared
 // for equality using the Go == operator, and must guarantee that each unique
 // value of T has a corresponding key that uniquely identifies it. The
 // implementer of the key function can decide what constitutes a
 // "unique value of T", based on the meaning of type T.
-func NewSetFunc[T any](keyFunc func(T) UniqueKey[T]) Set[T] {
-	return Set[T]{
+func NewSetFunc[T any](keyFunc func(T) UniqueKey[T], elems ...T) Set[T] {
+	set := Set[T]{
 		members: make(map[UniqueKey[T]]T),
 		key:     keyFunc,
 	}
+	for _, elem := range elems {
+		set.Add(elem)
+	}
+	return set
 }
 
 // NewSetCmp constructs a new set for any comparable type, using the built-in

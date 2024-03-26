@@ -10,7 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -41,7 +41,7 @@ func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema p
 		return diags
 	}
 
-	refs, _ := lang.ReferencesInBlock(addrs.ParseRef, config, schema)
+	refs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, config, schema)
 	for _, ref := range refs {
 		for _, addrStr := range addrStrs {
 			if ref.Subject.String() == addrStr {

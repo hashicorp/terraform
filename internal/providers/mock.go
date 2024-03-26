@@ -30,6 +30,9 @@ var _ Interface = (*Mock)(nil)
 // data to return for any computed fields within the provider schema. The
 // provider will make up random / junk data for any computed fields for which
 // preset data is not available.
+//
+// This is distinct from the testing.MockProvider, which is a mock provider
+// that is used by the Terraform core itself to test it's own behavior.
 type Mock struct {
 	Provider Interface
 	Data     *configs.MockData
@@ -41,6 +44,23 @@ func (m *Mock) GetProviderSchema() GetProviderSchemaResponse {
 	if m.schema == nil {
 		// Cache the schema, it's not changing.
 		schema := m.Provider.GetProviderSchema()
+
+		// Override the provider schema with the constant mock provider schema.
+		// This is empty at the moment, check configs/mock_provider.go for the
+		// actual schema.
+		//
+		// The GetProviderSchemaResponse is returned by value, so it should be
+		// safe for us to modify directly, without affecting any shared state
+		// that could be in use elsewhere.
+		schema.Provider = Schema{
+			Version: schema.Provider.Version,
+			Block:   nil, // Empty - we support no blocks or attributes in mock provider configurations.
+		}
+
+		// Note, we leave the resource and data source schemas as they are since
+		// we want to be able to validate those configurations against the real
+		// provider schemas.
+
 		m.schema = &schema
 	}
 	return *m.schema
@@ -231,6 +251,12 @@ func (m *Mock) ImportResourceState(request ImportResourceStateRequest) (response
 	return response
 }
 
+func (m *Mock) MoveResourceState(request MoveResourceStateRequest) MoveResourceStateResponse {
+	// The MoveResourceState operation happens offline, so we can just hand this
+	// off to the underlying provider.
+	return m.Provider.MoveResourceState(request)
+}
+
 func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceResponse {
 	var response ReadDataSourceResponse
 
@@ -261,6 +287,10 @@ func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceRespo
 	response.Diagnostics = response.Diagnostics.Append(diags)
 	response.State = value
 	return response
+}
+
+func (m *Mock) CallFunction(request CallFunctionRequest) CallFunctionResponse {
+	return m.Provider.CallFunction(request)
 }
 
 func (m *Mock) Close() error {

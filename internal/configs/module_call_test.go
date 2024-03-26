@@ -9,7 +9,9 @@ import (
 
 	"github.com/go-test/deep"
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 )
 
 func TestLoadModuleCall(t *testing.T) {
@@ -181,7 +183,7 @@ func TestModuleSourceAddrEntersNewPackage(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Addr, func(t *testing.T) {
-			addr, err := addrs.ParseModuleSource(test.Addr)
+			addr, err := moduleaddrs.ParseModuleSource(test.Addr)
 			if err != nil {
 				t.Fatalf("parsing failed for %q: %s", test.Addr, err)
 			}

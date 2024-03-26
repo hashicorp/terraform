@@ -9,9 +9,9 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/marks"
@@ -73,7 +73,6 @@ func (c *ComponentInstance) InputVariableValues(ctx context.Context, phase EvalP
 }
 
 func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
 	wantTy, defs := c.call.Config(ctx).InputsType(ctx)
 	decl := c.call.Declaration(ctx)
 
@@ -82,70 +81,12 @@ func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase 
 		// just report that we don't know the input variable values and trust
 		// that the module's problems will be reported by some other return
 		// path.
-		return cty.DynamicVal, diags
+		return cty.DynamicVal, nil
 	}
 
-	v := cty.EmptyObjectVal
-	expr := decl.Inputs
-	rng := decl.DeclRange
-	var hclCtx *hcl.EvalContext
-	if expr != nil {
-		result, moreDiags := EvalExprAndEvalContext(ctx, expr, phase, c)
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
-			return cty.DynamicVal, diags
-		}
-		expr = result.Expression
-		hclCtx = result.EvalContext
-		v = result.Value
-		rng = tfdiags.SourceRangeFromHCL(result.Expression.Range())
-	}
-
-	if defs != nil {
-		v = defs.Apply(v)
-	}
-	v, err := convert.Convert(v, wantTy)
-	if err != nil {
-		// A conversion failure here could either be caused by an author-provided
-		// expression that's invalid or by the author omitting the argument
-		// altogether when there's at least one required attribute, so we'll
-		// return slightly different messages in each case.
-		if expr != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    hcl.DiagError,
-				Summary:     "Invalid inputs for component",
-				Detail:      fmt.Sprintf("Invalid input variable definition object: %s.", tfdiags.FormatError(err)),
-				Subject:     rng.ToHCL().Ptr(),
-				Expression:  expr,
-				EvalContext: hclCtx,
-			})
-		} else {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Missing required inputs for component",
-				Detail:   fmt.Sprintf("Must provide \"inputs\" argument to define the component's input variables: %s.", tfdiags.FormatError(err)),
-				Subject:  rng.ToHCL().Ptr(),
-			})
-		}
-		return cty.DynamicVal, diags
-	}
-
-	for _, path := range stackconfigtypes.ProviderInstancePathsInValue(v) {
-		err := path.NewErrorf("cannot send provider configuration reference to Terraform module input variable")
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid inputs for component",
-			Detail: fmt.Sprintf(
-				"Invalid input variable definition object: %s.\n\nUse the separate \"providers\" argument to specify the provider configurations to use for this component's root module.",
-				tfdiags.FormatError(err),
-			),
-			Subject:     rng.ToHCL().Ptr(),
-			Expression:  expr,
-			EvalContext: hclCtx,
-		})
-	}
-
-	return v, diags
+	// We actually checked the errors statically already, so we only care about
+	// the value here.
+	return EvalComponentInputVariables(ctx, wantTy, defs, decl, phase, c)
 }
 
 // inputValuesForModulesRuntime adapts the result of
@@ -185,7 +126,7 @@ func (c *ComponentInstance) inputValuesForModulesRuntime(ctx context.Context, ph
 	return ret
 }
 
-// CheckProviders evaluates the "providers" argument from the component
+// Providers evaluates the "providers" argument from the component
 // configuration and returns a mapping from the provider configuration
 // addresses that the component's root module expect to have populated
 // to the address of the [ProviderInstance] from the stack configuration
@@ -196,7 +137,7 @@ func (c *ComponentInstance) inputValuesForModulesRuntime(ctx context.Context, ph
 // then there are some problems with the providers argument and so the
 // map might be incomplete, and so callers should use it only with a great
 // deal of care.
-func (c *ComponentInstance) Providers(ctx context.Context, phase EvalPhase) (selections map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance, valid bool) {
+func (c *ComponentInstance) Providers(ctx context.Context, phase EvalPhase) (map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance, bool) {
 	ret, diags := c.CheckProviders(ctx, phase)
 	return ret, !diags.HasErrors()
 }
@@ -213,157 +154,246 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 	var diags tfdiags.Diagnostics
 	ret := make(map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance)
 
+	declConfigs := c.call.Declaration(ctx).ProviderConfigs
+	configProviders := c.call.Config(ctx).RequiredProviderInstances(ctx)
+
+	// First, we'll iterate through the configProviders and check that we have
+	// a definition for each of them. We'll also resolve the reference that we
+	// have and make sure it points to an actual provider instance.
+	for _, elem := range configProviders.Elems {
+
+		// sourceAddr is the addrs.RootProviderConfig that should be used to
+		// set this provider in the component later.
+		sourceAddr := elem.Key
+
+		// componentAddr is the addrs.LocalProviderConfig that specifies the
+		// local name and (optional) alias of the provider in the component.
+		componentAddr := elem.Value
+
+		// We validated the config providers during the static analysis, so we
+		// know this expression exists and resolves to the correct type.
+		expr := declConfigs[componentAddr]
+
+		inst, instDiags, ok := c.checkProvider(ctx, sourceAddr, componentAddr, expr, phase)
+		diags = diags.Append(instDiags)
+		if ok {
+			ret[sourceAddr] = inst
+		}
+	}
+
+	// Second, we want to iterate through the providers that are required by
+	// the state and not required by the configuration. Unfortunately, we don't
+	// currently store enough information to be able to retrieve the original
+	// provider directly from the state. We only store the provider type and
+	// alias of the original provider. Stacks can have multiple instances of the
+	// same provider type, local name, and alias. This means we need the user to
+	// still provide an entry for this provider in the declConfigs.
+	// TODO: There's another TODO in the state package that suggests we should
+	//   store the additional information we need. Once this is fixed we can
+	//   come and tidy this up as well.
+
 	stack := c.call.Stack(ctx)
 	stackConfig := stack.StackConfig(ctx)
-	declConfigs := c.call.Declaration(ctx).ProviderConfigs
-	neededConfigs := c.call.Config(ctx).RequiredProviderInstances(ctx)
-	for _, inCalleeAddr := range neededConfigs {
-		// declConfigs is based on _local_ provider references so we'll
-		// need to translate based on the stack configuration's
-		// required_providers block.
-		typeAddr := inCalleeAddr.Provider
-		localName, ok := stackConfig.ProviderLocalName(ctx, typeAddr)
-		if !ok {
-			// TODO: We should probably catch this as a one-time error during
-			// validation of the component config block, rather than raising
-			// it separately for each instance, since the set of required
-			// providers for both this stack and the root module of the
-			// component are statically-declared.
+	moduleTree := c.call.Config(ctx).ModuleTree(ctx)
+
+	// We'll search through the declConfigs to find any keys that match the
+	// type and alias of a any provider needed by the state. This is backwards
+	// when compared to how we resolved the configProviders. But we don't have
+	// the information we need to do it the other way around.
+
+	previousProviders := c.main.PreviousProviderInstances(c.Addr(), phase)
+	for localProviderAddr, expr := range declConfigs {
+		provider := moduleTree.ProviderForConfigAddr(localProviderAddr)
+
+		sourceAddr := addrs.RootProviderConfig{
+			Provider: provider,
+			Alias:    localProviderAddr.Alias,
+		}
+
+		if _, exists := ret[sourceAddr]; exists || !previousProviders.Has(sourceAddr) {
+			// Then this declConfig either matches a configProvider and we've
+			// already processed it, or it matches a provider that isn't
+			// required by the config or the state. In the first case, this is
+			// fine we have matched the right provider already. In the second
+			// case, we could raise a warning or something but it's not a big
+			// deal so we can ignore it.
+			continue
+		}
+
+		// Otherwise, this is a declConfig for a provider that is not in the
+		// configProviders and is in the previousProviders. So, we should
+		// process it.
+
+		inst, instDiags, ok := c.checkProvider(ctx, sourceAddr, localProviderAddr, expr, phase)
+		diags = diags.Append(instDiags)
+		if ok {
+			ret[sourceAddr] = inst
+		}
+
+		if _, ok := stackConfig.ProviderLocalName(ctx, provider); !ok {
+			// Even though we have an entry for this provider in the declConfigs
+			// doesn't mean we have an entry for this in our required providers.
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Component requires undeclared provider",
 				Detail: fmt.Sprintf(
-					"The root module for %s requires a configuration for provider %q, which isn't declared as a dependency of this stack configuration.\n\nDeclare this provider in the stack's required_providers block, and then assign a configuration for that provider in this component's \"providers\" argument.",
-					c.Addr(), typeAddr.ForDisplay(),
+					"The root module for %s has resources in state that require a configuration for provider %q, which isn't declared as a dependency of this stack configuration.\n\nDeclare this provider in the stack's required_providers block, and then assign a configuration for that provider in this component's \"providers\" argument.",
+					c.Addr(), provider.ForDisplay(),
 				),
 				Subject: c.call.Declaration(ctx).DeclRange.ToHCL().Ptr(),
 			})
 			continue
 		}
+	}
+
+	// Finally, let's check that we have a provider configuration for every
+	// provider needed by the state.
+
+	for _, previousProvider := range previousProviders {
+		if _, ok := ret[previousProvider]; ok {
+			// Then we have a provider for this, so great!
+			continue
+		}
+
+		// If we get here, then we didn't find an entry for this provider in
+		// the declConfigs. This is an error because we need to have an entry
+		// for every provider that we have in the state.
+
+		// localAddr helps with the error message.
 		localAddr := addrs.LocalProviderConfig{
-			LocalName: localName,
-			Alias:     inCalleeAddr.Alias,
-		}
-		expr, ok := declConfigs[localAddr]
-		if !ok {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Missing required provider configuration",
-				Detail: fmt.Sprintf(
-					"The root module for %s requires provider configuration named %q for provider %q, which is not assigned in the component's \"providers\" argument.",
-					c.Addr(), localAddr.StringCompact(), typeAddr.ForDisplay(),
-				),
-				Subject: c.call.Declaration(ctx).DeclRange.ToHCL().Ptr(),
-			})
-			continue
+			LocalName: moduleTree.Module.LocalNameForProvider(previousProvider.Provider),
+			Alias:     previousProvider.Alias,
 		}
 
-		// If we've got this far then expr is an expression that should
-		// evaluate to a special cty capsule type that acts as a reference
-		// to a provider configuration declared elsewhere in the tree
-		// of stack configurations.
-		result, hclDiags := EvalExprAndEvalContext(ctx, expr, phase, c)
-		diags = diags.Append(hclDiags)
-		if hclDiags.HasErrors() {
-			continue
-		}
-
-		const errSummary = "Invalid provider reference"
-		if actualTy := result.Value.Type(); stackconfigtypes.IsProviderConfigType(actualTy) {
-			actualTypeAddr := stackconfigtypes.ProviderForProviderConfigType(actualTy)
-			if actualTypeAddr != typeAddr {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  errSummary,
-					Detail: fmt.Sprintf(
-						"The provider configuration slot %s requires a configuration for provider %q, not for provider %q.",
-						localAddr.StringCompact(), typeAddr, actualTypeAddr,
-					),
-					Subject: result.Expression.Range().Ptr(),
-				})
-				continue
-			}
-		} else {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  errSummary,
-				Detail: fmt.Sprintf(
-					"The provider configuration slot %s requires a configuration for provider %q.",
-					localAddr.StringCompact(), typeAddr,
-				),
-				Subject: result.Expression.Range().Ptr(),
-			})
-		}
-		v := result.Value
-
-		// If the tests succeeded above then "v" should definitely
-		// be of the expected type, but might be unknown or null.
-		if v.IsNull() {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  errSummary,
-				Detail: fmt.Sprintf(
-					"The provider configuration slot %s is required, but this definition returned null.",
-					localAddr.StringCompact(),
-				),
-				Subject: result.Expression.Range().Ptr(),
-			})
-			continue
-		}
-		if !v.IsKnown() {
-			// TODO: Once we support deferred changes we should return
-			// something that lets the caller know the configuration is
-			// incomplete so it can defer planning the entire component.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  errSummary,
-				Detail: fmt.Sprintf(
-					"This expression depends on values that won't be known until the apply phase, so Terraform cannot determine which provider configuration to use while planning changes for %s.",
-					c.Addr().String(),
-				),
-				Subject: result.Expression.Range().Ptr(),
-			})
-			continue
-		}
-
-		// If it's of the correct type, known, and not null then we should
-		// be able to retrieve a specific provider instance address that
-		// this value refers to.
-		providerInstAddr := stackconfigtypes.ProviderInstanceForValue(v)
-		ret[inCalleeAddr] = providerInstAddr
-
-		// The reference must be to a provider instance that's actually
-		// configured.
-		providerInstStack := c.main.Stack(ctx, providerInstAddr.Stack, phase)
-		if providerInstStack != nil {
-			provider := providerInstStack.Provider(ctx, providerInstAddr.Item.ProviderConfig)
-			if provider != nil {
-				insts := provider.Instances(ctx, phase)
-				if insts == nil {
-					// If we get here then we don't yet know which instances
-					// this provider has, so we'll be optimistic that it'll
-					// show up in a later phase.
-					continue
-				}
-				if _, exists := insts[providerInstAddr.Item.Key]; exists {
-					continue
-				}
-			}
-		}
-		// If we fall here then something on the path to the provider instance
-		// doesn't exist, and so effectively the provider instance doesn't exist.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  errSummary,
+			Summary:  "Missing required provider configuration",
 			Detail: fmt.Sprintf(
-				"Expression result refers to undefined provider instance %s.",
-				providerInstAddr,
+				"The root module for %s has resources in state that require a provider configuration named %q for provider %q, which is not assigned in the component's \"providers\" argument.",
+				c.Addr(), localAddr.StringCompact(), previousProvider.Provider.ForDisplay(),
 			),
-			Subject: result.Expression.Range().Ptr(),
+			Subject: c.call.Declaration(ctx).DeclRange.ToHCL().Ptr(),
 		})
 	}
 
 	return ret, diags
+}
+
+func (c *ComponentInstance) checkProvider(ctx context.Context, sourceAddr addrs.RootProviderConfig, componentAddr addrs.LocalProviderConfig, expr hcl.Expression, phase EvalPhase) (stackaddrs.AbsProviderConfigInstance, tfdiags.Diagnostics, bool) {
+	var diags tfdiags.Diagnostics
+	var ret stackaddrs.AbsProviderConfigInstance
+
+	result, hclDiags := EvalExprAndEvalContext(ctx, expr, phase, c)
+	diags = diags.Append(hclDiags)
+	if hclDiags.HasErrors() {
+		return ret, diags, false
+	}
+	v := result.Value
+
+	// The first set of checks can perform a redundant check in some cases. For
+	// providers required by the configuration the type validation should have
+	// been performed by the static analysis. However, we'll repeat the checks
+	// here to also catch the case where providers are required by the existing
+	// state but are not defined in the configuration. This isn't checked by
+	// the static analysis.
+	const errSummary = "Invalid provider configuration"
+	if actualTy := result.Value.Type(); stackconfigtypes.IsProviderConfigType(actualTy) {
+		// Then we at least got a provider reference of some kind.
+		actualTypeAddr := stackconfigtypes.ProviderForProviderConfigType(actualTy)
+		if actualTypeAddr != sourceAddr.Provider {
+			// But, unfortunately, the underlying types of the providers
+			// do not match up.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  errSummary,
+				Detail: fmt.Sprintf(
+					"The provider configuration slot %s requires a configuration for provider %q, not for provider %q.",
+					componentAddr.StringCompact(), sourceAddr.Provider, actualTypeAddr,
+				),
+				Subject: result.Expression.Range().Ptr(),
+			})
+			return ret, diags, false
+		}
+	} else {
+		// We got something that isn't a provider reference at all.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  errSummary,
+			Detail: fmt.Sprintf(
+				"The provider configuration slot %s requires a configuration for provider %q.",
+				componentAddr.StringCompact(), sourceAddr.Provider,
+			),
+			Subject: result.Expression.Range().Ptr(),
+		})
+		return ret, diags, false
+	}
+
+	// Now, we differ from the static analysis in that we should have
+	// returned a concrete value while we may have got unknown during the
+	// static analysis.
+	if v.IsNull() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  errSummary,
+			Detail: fmt.Sprintf(
+				"The provider configuration slot %s is required, but this definition returned null.",
+				componentAddr.StringCompact(),
+			),
+			Subject: result.Expression.Range().Ptr(),
+		})
+		return ret, diags, false
+	}
+	if !v.IsKnown() {
+		// TODO: Once we support deferred changes we should return
+		// something that lets the caller know the configuration is
+		// incomplete so it can defer planning the entire component.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  errSummary,
+			Detail: fmt.Sprintf(
+				"This expression depends on values that won't be known until the apply phase, so Terraform cannot determine which provider configuration to use while planning changes for %s.",
+				c.Addr().String(),
+			),
+			Subject: result.Expression.Range().Ptr(),
+		})
+		return ret, diags, false
+	}
+
+	// If it's of the correct type, known, and not null then we should
+	// be able to retrieve a specific provider instance address that
+	// this value refers to.
+	ret = stackconfigtypes.ProviderInstanceForValue(v)
+
+	// The reference must be to a provider instance that's actually
+	// configured.
+	providerInstStack := c.main.Stack(ctx, ret.Stack, phase)
+	if providerInstStack != nil {
+		provider := providerInstStack.Provider(ctx, ret.Item.ProviderConfig)
+		if provider != nil {
+			insts := provider.Instances(ctx, phase)
+			if insts == nil {
+				// If we get here then we don't yet know which instances
+				// this provider has, so we'll be optimistic that it'll
+				// show up in a later phase.
+				return ret, diags, true
+			}
+			if _, exists := insts[ret.Item.Key]; exists {
+				return ret, diags, true
+			}
+		}
+	}
+	// If we fall here then something on the path to the provider instance
+	// doesn't exist, and so effectively the provider instance doesn't exist.
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  errSummary,
+		Detail: fmt.Sprintf(
+			"Expression result refers to undefined provider instance %s.",
+			ret,
+		),
+		Subject: result.Expression.Range().Ptr(),
+	})
+	return ret, diags, true
 }
 
 func (c *ComponentInstance) neededProviderSchemas(ctx context.Context) (map[addrs.Provider]providers.ProviderSchema, tfdiags.Diagnostics) {
@@ -489,6 +519,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					},
 				},
 				PreloadedProviderSchemas: providerSchemas,
+				Provisioners:             c.main.availableProvisioners(),
 			})
 			if err != nil {
 				// Should not get here because we should always pass a valid
@@ -524,15 +555,37 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				return nil, diags
 			}
 
+			// If any of our upstream components have incomplete plans then
+			// we need to force treating everything in this component as
+			// deferred so we can preserve the correct dependency ordering.
+			upstreamDeferred := false
+			for _, depAddr := range c.call.RequiredComponents(ctx).Elems() {
+				depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
+				if depStack == nil {
+					upstreamDeferred = true // to be conservative
+					break
+				}
+				depComponent := depStack.Component(ctx, depAddr.Item)
+				if depComponent == nil {
+					upstreamDeferred = true // to be conservative
+					break
+				}
+				if !depComponent.PlanIsComplete(ctx) {
+					upstreamDeferred = true
+					break
+				}
+			}
+
 			// NOTE: This ComponentInstance type only deals with component
 			// instances currently declared in the configuration. See
 			// [ComponentInstanceRemoved] for the model of a component instance
 			// that existed in the prior state but is not currently declared
 			// in the configuration.
 			plan, moreDiags := tfCtx.Plan(moduleTree, prevState, &terraform.PlanOpts{
-				Mode:              stackPlanOpts.PlanningMode,
-				SetVariables:      inputValues,
-				ExternalProviders: providerClients,
+				Mode:                       stackPlanOpts.PlanningMode,
+				SetVariables:               inputValues,
+				ExternalProviders:          providerClients,
+				ExternalDependencyDeferred: upstreamDeferred,
 
 				// This is set by some tests but should not be used in main code.
 				// (nil means to use the real time when tfCtx.Plan was called.)
@@ -601,8 +654,10 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 	// instance's plan or return at least one error diagnostic explaining why
 	// it cannot.
 	//
-	// It's okay to return a nil result if also returning at least one error,
-	// but a non-error return MUST provide a non-nil result.
+	// All return paths must include a non-nil ComponentInstanceApplyResult.
+	// If an error occurs before we even begin applying the plan then the
+	// result should report that the changes are incomplete and that the
+	// new state is exactly the previous run state.
 	//
 	// If the underlying modules runtime raises errors when asked to apply the
 	// plan, then this function should pass all of those errors through to its
@@ -611,6 +666,11 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 
 	addr := c.Addr()
 	decl := c.call.Declaration(ctx)
+
+	// This is the result to return along with any errors that prevent us from
+	// even starting the modules runtime apply phase. It reports that nothing
+	// changed at all.
+	noOpResult := c.PlaceholderApplyResultForSkippedApply(ctx, plan)
 
 	// We'll gather up our set of potentially-affected objects before we do
 	// anything else, because the modules runtime tends to mutate the objects
@@ -641,13 +701,13 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 				addr.String(),
 			),
 		))
-		return nil, diags
+		return noOpResult, diags
 	}
 
 	providerSchemas, moreDiags := c.neededProviderSchemas(ctx)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
-		return nil, diags
+		return noOpResult, diags
 	}
 
 	tfHook := &componentInstanceTerraformHook{
@@ -661,6 +721,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 			tfHook,
 		},
 		PreloadedProviderSchemas: providerSchemas,
+		Provisioners:             c.main.availableProvisioners(),
 	})
 	if err != nil {
 		// Should not get here because we should always pass a valid
@@ -670,7 +731,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 			"Failed to instantiate Terraform modules runtime",
 			fmt.Sprintf("Could not load the main Terraform language runtime: %s.\n\nThis is a bug in Terraform; please report it!", err),
 		))
-		return nil, diags
+		return noOpResult, diags
 	}
 
 	// We'll need to make some light modifications to the plan to include
@@ -688,7 +749,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		// anything with it, in which case we'll just return early
 		// and assume the plan walk driver will find the diagnostics
 		// via another return path.
-		return nil, diags
+		return noOpResult, diags
 	}
 	// TODO: Check that the final input values are consistent with what
 	// we had during planning. If not, that suggests a bug elsewhere.
@@ -702,8 +763,10 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 	// and let the plan file serializer worry about encoding, but we'll
 	// defer that API change for now to avoid disrupting other codepaths.
 	modifiedPlan.VariableValues = make(map[string]plans.DynamicValue, len(inputValues))
+	modifiedPlan.VariableMarks = make(map[string][]cty.PathValueMarks, len(inputValues))
 	for name, iv := range inputValues {
-		dv, err := plans.NewDynamicValue(iv.Value, cty.DynamicPseudoType)
+		val, pvm := iv.Value.UnmarkDeepWithPaths()
+		dv, err := plans.NewDynamicValue(val, cty.DynamicPseudoType)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -716,9 +779,10 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 			continue
 		}
 		modifiedPlan.VariableValues[name] = dv
+		modifiedPlan.VariableMarks[name] = pvm
 	}
 	if diags.HasErrors() {
-		return nil, diags
+		return noOpResult, diags
 	}
 
 	providerClients, valid := c.neededProviderClients(ctx, ApplyPhase)
@@ -729,17 +793,25 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 			Detail:   fmt.Sprintf("Cannot apply the plan for %s because the configured provider configuration assignments are invalid.", c.Addr()),
 			Subject:  decl.DeclRange.ToHCL().Ptr(),
 		})
-		return nil, diags
+		return noOpResult, diags
 	}
 
-	// NOTE: tfCtx.Apply tends to make changes to the given plan while it
-	// works, and so code after this point should not make any further use
-	// of either "modifiedPlan" or "plan" (since they share lots of the same
-	// pointers to mutable objects and so both can get modified together.)
-	newState, moreDiags := tfCtx.Apply(&modifiedPlan, moduleTree, &terraform.ApplyOpts{
-		ExternalProviders: providerClients,
-	})
-	diags = diags.Append(moreDiags)
+	var newState *states.State
+	if modifiedPlan.Applyable {
+		// NOTE: tfCtx.Apply tends to make changes to the given plan while it
+		// works, and so code after this point should not make any further use
+		// of either "modifiedPlan" or "plan" (since they share lots of the same
+		// pointers to mutable objects and so both can get modified together.)
+		newState, moreDiags = tfCtx.Apply(&modifiedPlan, moduleTree, &terraform.ApplyOpts{
+			ExternalProviders: providerClients,
+		})
+		diags = diags.Append(moreDiags)
+	} else {
+		// For a non-applyable plan, we just skip trying to apply it altogether
+		// and just propagate the prior state (including any refreshing we
+		// did during the plan phase) forward.
+		newState = modifiedPlan.PriorState
+	}
 
 	if newState != nil {
 		cic := &hooks.ComponentInstanceChange{
@@ -775,9 +847,23 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		hookMore(ctx, seq, h.EndComponentInstanceApply, addr)
 	}
 
+	if newState == nil {
+		// The modules runtime returns a nil state only if an error occurs
+		// so early that it couldn't take any actions at all, and so we
+		// must assume that the state is totally unchanged in that case.
+		newState = plan.PrevRunState
+		affectedResourceInstanceObjects = nil
+	}
+
 	return &ComponentInstanceApplyResult{
 		FinalState:                      newState,
 		AffectedResourceInstanceObjects: affectedResourceInstanceObjects,
+
+		// Currently our definition of "complete" is that the apply phase
+		// didn't return any errors, since we expect the modules runtime
+		// to either perform all of the actions that were planned or
+		// return errors explaining why it cannot.
+		Complete: !diags.HasErrors(),
 	}, diags
 }
 
@@ -790,6 +876,18 @@ func (c *ComponentInstance) PlanPrevState(ctx context.Context) *states.State {
 	if ret == nil {
 		ret = states.NewState() // so caller doesn't need to worry about nil
 	}
+	return ret
+}
+
+// ApplyResult returns the result from applying a plan for this object using
+// [ApplyModuleTreePlan].
+//
+// Use the Complete field of the returned object to determine whether the
+// apply ran to completion successfully enough for dependent work to proceed.
+// If Complete is false then dependent work should not start, and instead
+// dependents should unwind their stacks in a way that describes a no-op result.
+func (c *ComponentInstance) ApplyResult(ctx context.Context) *ComponentInstanceApplyResult {
+	ret, _ := c.CheckApplyResult(ctx)
 	return ret
 }
 
@@ -809,6 +907,26 @@ func (c *ComponentInstance) CheckApplyResult(ctx context.Context) (*ComponentIns
 		))
 	}
 	return applyResult, diags
+}
+
+// PlaceholderApplyResultForSkippedApply returns a [ComponentInstanceApplyResult]
+// which describes the hypothetical result of skipping the apply phase for
+// this component instance altogether.
+//
+// It doesn't have any logic to check whether the apply _was_ actually skipped;
+// the caller that's orchestrating the changes during the apply phase must
+// decided that for itself and then choose between either calling
+// [ComponentInstance.ApplyModuleTreePlan] to apply as normal, or returning
+// the result of this function instead to explain that the apply was skipped.
+func (c *ComponentInstance) PlaceholderApplyResultForSkippedApply(ctx context.Context, plan *plans.Plan) *ComponentInstanceApplyResult {
+	// (We have this in here as a method just because it helps keep all of
+	// the logic for constructing [ComponentInstanceApplyResult] objects
+	// together in the same file, rather than having the caller synthesize
+	// a result itself only in this one special situation.)
+	return &ComponentInstanceApplyResult{
+		FinalState: plan.PrevRunState,
+		Complete:   false,
+	}
 }
 
 // ApplyResultState returns the new state resulting from applying a plan for
@@ -877,6 +995,16 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 					attrs[name] = cty.DynamicVal
 					continue
 				}
+
+				if changeSrc.Sensitive {
+					// For our purposes here, a static sensitive flag on the
+					// output value is indistinguishable from the value having
+					// been dynamically marked as sensitive.
+					attrs[name] = change.After.Mark(marks.Sensitive)
+					continue
+				}
+
+				// Otherwise, just use the value as-is.
 				attrs[name] = change.After
 			}
 		} else {
@@ -885,10 +1013,8 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 			// and so should be as close as possible to the current
 			// (pre-destroy) state of whatever infrastructure this component
 			// instance is managing.
-			fmt.Printf("result for %s\n", c.Addr())
 			for _, os := range plan.PriorState.RootOutputValues {
 				v := os.Value
-				fmt.Printf("the output value %s has value %#v\n", os.Addr, v)
 				if os.Sensitive {
 					// For our purposes here, a static sensitive flag on the
 					// output value is indistinguishable from the value having
@@ -897,7 +1023,6 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 				}
 				attrs[os.Addr.OutputValue.Name] = v
 			}
-			return cty.ObjectVal(attrs)
 		}
 		if decl := c.call.Config(ctx).ModuleTree(ctx); decl != nil {
 			// If the plan only ran partially then we might be missing
@@ -914,10 +1039,52 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 					attrs[name] = cty.DynamicVal
 				}
 			}
+			// In the DestroyMode case above we might also find ourselves
+			// with some remnant additional output values that have since
+			// been removed from the configuration, but yet remain in the
+			// state. Destroying with a different configuration than was
+			// most recently applied is not guaranteed to work, but we
+			// can make it more likely to work by dropping anything that
+			// isn't currently declared, since referring directly to these
+			// would be a static validation error anyway, and including
+			// them might cause aggregate operations like keys(component.foo)
+			// to produce broken results.
+			for name := range attrs {
+				_, declared := decl.Module.Outputs[name]
+				if !declared {
+					// (deleting map elements during iteration is valid in Go,
+					// unlike some other languages.)
+					delete(attrs, name)
+				}
+			}
 		}
 		return cty.ObjectVal(attrs)
 
 	case ApplyPhase, InspectPhase:
+		// As a special case, if we're applying and the planned action is
+		// to destroy then we'll just return the planned output values
+		// verbatim without waiting for anything, so that downstreams can
+		// begin their own destroy phases before we start ours.
+		if phase == ApplyPhase {
+			fullPlan := c.main.PlanBeingApplied()
+			ourPlan := fullPlan.Components.Get(c.Addr())
+			if ourPlan == nil {
+				// Weird, but we'll tolerate it.
+				return cty.DynamicVal
+			}
+			if ourPlan.PlannedAction == plans.Delete {
+				// In this case our result was already decided during the
+				// planning phase, because we can't block on anything else
+				// here to make sure we don't create a self-dependency
+				// while our downstreams are trying to destroy themselves.
+				attrs := make(map[string]cty.Value, len(ourPlan.PlannedOutputValues))
+				for addr, val := range ourPlan.PlannedOutputValues {
+					attrs[addr.Name] = val
+				}
+				return cty.ObjectVal(attrs)
+			}
+		}
+
 		var state *states.State
 		switch phase {
 		case ApplyPhase:
@@ -948,6 +1115,16 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 		attrs := make(map[string]cty.Value, len(outputVals))
 		for _, ov := range outputVals {
 			name := ov.Addr.OutputValue.Name
+
+			if ov.Sensitive {
+				// For our purposes here, a static sensitive flag on the
+				// output value is indistinguishable from the value having
+				// been dynamically marked as sensitive.
+				attrs[name] = ov.Value.Mark(marks.Sensitive)
+				continue
+			}
+
+			// Otherwise, just set the value as is.
 			attrs[name] = ov.Value
 		}
 		return cty.ObjectVal(attrs)
@@ -980,16 +1157,50 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 	corePlan, moreDiags := c.CheckModuleTreePlan(ctx)
 	diags = diags.Append(moreDiags)
 	if corePlan != nil {
+		existedBefore := false
+		if prevState := c.main.PlanPrevState(); prevState != nil {
+			existedBefore = prevState.HasComponentInstance(c.Addr())
+		}
+		destroying := corePlan.UIMode == plans.DestroyMode
+		refreshOnly := corePlan.UIMode == plans.RefreshOnlyMode
+
+		var action plans.Action
+		switch {
+		case destroying:
+			action = plans.Delete
+		case refreshOnly:
+			action = plans.Read
+		case existedBefore:
+			action = plans.Update
+		default:
+			action = plans.Create
+		}
+
+		// FIXME: This is silly because we make ResultValue wrap the output
+		// values map up into an object and then just unwrap it again
+		// immediately.
+		var outputVals map[string]cty.Value
+		if resultVal := c.ResultValue(ctx, PlanPhase); resultVal.Type().IsObjectType() && resultVal.IsKnown() && !resultVal.IsNull() {
+			outputVals = make(map[string]cty.Value, resultVal.LengthInt())
+			for it := resultVal.ElementIterator(); it.Next(); {
+				k, v := it.Element()
+				outputVals[k.AsString()] = v
+			}
+		}
+
 		// We must always at least announce that the component instance exists,
 		// and that must come before any resource instance changes referring to it.
 		changes = append(changes, &stackplan.PlannedChangeComponentInstance{
 			Addr: c.Addr(),
 
-			// FIXME: Once we actually have a prior state this should vary
-			// depending on whether the same component instance existed in
-			// the prior state.
-			Action:             plans.Create,
-			PlannedInputValues: corePlan.VariableValues,
+			Action:                 action,
+			PlanApplyable:          corePlan.Applyable,
+			PlanComplete:           corePlan.Complete,
+			RequiredComponents:     c.RequiredComponents(ctx),
+			PlannedInputValues:     corePlan.VariableValues,
+			PlannedInputValueMarks: corePlan.VariableMarks,
+			PlannedOutputValues:    outputVals,
+			PlannedCheckResults:    corePlan.Checks,
 
 			// We must remember the plan timestamp so that the plantimestamp
 			// function can return a consistent result during a later apply phase.
@@ -1132,7 +1343,12 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 	return changes, diags
 }
 
-// CheckApply implements ApplyChecker.
+// RequiredComponents implements Applyable
+func (c *ComponentInstance) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+	return c.call.RequiredComponents(ctx)
+}
+
+// CheckApply implements Applyable.
 func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	var changes []stackstate.AppliedChange
 	var diags tfdiags.Diagnostics
@@ -1156,6 +1372,7 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 		newState := applyResult.FinalState
 
 		ourChange := &stackstate.AppliedChangeComponentInstance{
+			ComponentAddr:         c.call.Addr(),
 			ComponentInstanceAddr: c.Addr(),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value, len(newState.RootOutputValues)),
 		}

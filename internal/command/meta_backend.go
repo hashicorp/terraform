@@ -23,19 +23,19 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-
-	backendInit "github.com/hashicorp/terraform/internal/backend/init"
-	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
-	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 // BackendOpts are the options used to initialize a backend.Backend.
@@ -89,7 +89,7 @@ type BackendWithRemoteTerraformVersion interface {
 // A side-effect of this method is the population of m.backendState, recording
 // the final resolved backend configuration after dealing with overrides from
 // the "terraform init" command line, etc.
-func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics) {
+func (m *Meta) Backend(opts *BackendOpts) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// If no opts are set, then initialize
@@ -152,7 +152,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 	cliOpts.Validation = true
 
 	// If the backend supports CLI initialization, do it.
-	if cli, ok := b.(backend.CLI); ok {
+	if cli, ok := b.(backendrun.CLI); ok {
 		if err := cli.CLIInit(cliOpts); err != nil {
 			diags = diags.Append(fmt.Errorf(
 				"Error initializing backend %T: %s\n\n"+
@@ -165,7 +165,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 
 	// If the result of loading the backend is an enhanced backend,
 	// then return that as-is. This works even if b == nil (it will be !ok).
-	if enhanced, ok := b.(backend.Enhanced); ok {
+	if enhanced, ok := b.(backendrun.OperationsBackend); ok {
 		log.Printf("[TRACE] Meta.Backend: backend %T supports operations", b)
 		return enhanced, nil
 	}
@@ -202,7 +202,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 		// with inside backendFromConfig, because we still need that codepath
 		// to be able to recognize the lack of a config as distinct from
 		// explicitly setting local until we do some more refactoring here.
-		m.backendState = &legacy.BackendState{
+		m.backendState = &workdir.BackendState{
 			Type:      "local",
 			ConfigRaw: json.RawMessage("{}"),
 		}
@@ -302,7 +302,7 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 // The current workspace name is also stored as part of the plan, and so this
 // method will check that it matches the currently-selected workspace name
 // and produce error diagnostics if not.
-func (m *Meta) BackendForLocalPlan(settings plans.Backend) (backend.Enhanced, tfdiags.Diagnostics) {
+func (m *Meta) BackendForLocalPlan(settings plans.Backend) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	f := backendInit.Backend(settings.Type)
@@ -333,7 +333,7 @@ func (m *Meta) BackendForLocalPlan(settings plans.Backend) (backend.Enhanced, tf
 	}
 
 	// If the backend supports CLI initialization, do it.
-	if cli, ok := b.(backend.CLI); ok {
+	if cli, ok := b.(backendrun.CLI); ok {
 		cliOpts, err := m.backendCLIOpts()
 		if err != nil {
 			diags = diags.Append(err)
@@ -351,7 +351,7 @@ func (m *Meta) BackendForLocalPlan(settings plans.Backend) (backend.Enhanced, tf
 
 	// If the result of loading the backend is an enhanced backend,
 	// then return that as-is. This works even if b == nil (it will be !ok).
-	if enhanced, ok := b.(backend.Enhanced); ok {
+	if enhanced, ok := b.(backendrun.OperationsBackend); ok {
 		log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
 		if err := m.setupEnhancedBackendAliases(enhanced); err != nil {
 			diags = diags.Append(err)
@@ -378,14 +378,14 @@ func (m *Meta) BackendForLocalPlan(settings plans.Backend) (backend.Enhanced, tf
 	return local, diags
 }
 
-// backendCLIOpts returns a backend.CLIOpts object that should be passed to
+// backendCLIOpts returns a backendrun.CLIOpts object that should be passed to
 // a backend that supports local CLI operations.
-func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
+func (m *Meta) backendCLIOpts() (*backendrun.CLIOpts, error) {
 	contextOpts, err := m.contextOpts()
 	if contextOpts == nil && err != nil {
 		return nil, err
 	}
-	return &backend.CLIOpts{
+	return &backendrun.CLIOpts{
 		CLI:                 m.Ui,
 		CLIColor:            m.Colorize(),
 		Streams:             m.Streams,
@@ -403,7 +403,7 @@ func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
 // This prepares the operation. After calling this, the caller is expected
 // to modify fields of the operation such as Sequence to specify what will
 // be called.
-func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backend.Operation {
+func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.Operation {
 	schema := b.ConfigSchema()
 	workspace, err := m.Workspace()
 	if err != nil {
@@ -437,7 +437,7 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backend.Oper
 		log.Printf("[WARN] Failed to load dependency locks while preparing backend operation (ignored): %s", diags.Err().Error())
 	}
 
-	return &backend.Operation{
+	return &backendrun.Operation{
 		PlanOutBackend:  planOutBackend,
 		Targets:         m.targets,
 		UIIn:            m.UIInput(),
@@ -533,9 +533,9 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 	// ------------------------------------------------------------------------
 	// For historical reasons, current backend configuration for a working
-	// directory is kept in a *state-like* file, using the legacy state
-	// structures in the Terraform package. It is not actually a Terraform
-	// state, and so only the "backend" portion of it is actually used.
+	// directory is kept in a *state-like* file, using a subset of the oldstate
+	// snapshot version 3. It is not actually a Terraform state, and so only
+	// the "backend" portion of it is actually used.
 	//
 	// The remainder of this code often confusingly refers to this as a "state",
 	// so it's unfortunately important to remember that this is not actually
@@ -562,7 +562,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	s := sMgr.State()
 	if s == nil {
 		log.Printf("[TRACE] Meta.Backend: backend has not previously been initialized in this working directory")
-		s = legacy.NewState()
+		s = workdir.NewBackendStateFile()
 	} else if s.Backend != nil {
 		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
 	} else {
@@ -584,17 +584,6 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			m.backendState = s.Backend
 		}
 	}()
-
-	if !s.Remote.Empty() {
-		// Legacy remote state is no longer supported. User must first
-		// migrate with Terraform 0.11 or earlier.
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Legacy remote state not supported",
-			"This working directory is configured for legacy remote state, which is no longer supported from Terraform v0.12 onwards. To migrate this environment, first run \"terraform init\" under a Terraform 0.11 release, and then upgrade Terraform again.",
-		))
-		return nil, diags
-	}
 
 	// This switch statement covers all the different combinations of
 	// configuring new backends, updating previously-configured backends, etc.
@@ -838,7 +827,7 @@ func (m *Meta) backendFromState(ctx context.Context) (backend.Backend, tfdiags.D
 
 	// If the result of loading the backend is an enhanced backend,
 	// then set up enhanced backend service aliases.
-	if enhanced, ok := b.(backend.Enhanced); ok {
+	if enhanced, ok := b.(backendrun.OperationsBackend); ok {
 		log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
 
 		if err := m.setupEnhancedBackendAliases(enhanced); err != nil {
@@ -1066,9 +1055,9 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	// Store the metadata in our saved state location
 	s := sMgr.State()
 	if s == nil {
-		s = legacy.NewState()
+		s = workdir.NewBackendStateFile()
 	}
-	s.Backend = &legacy.BackendState{
+	s.Backend = &workdir.BackendState{
 		Type:      c.Type,
 		ConfigRaw: json.RawMessage(configJSON),
 		Hash:      uint64(cHash),
@@ -1211,9 +1200,9 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	// Update the backend state
 	s = sMgr.State()
 	if s == nil {
-		s = legacy.NewState()
+		s = workdir.NewBackendStateFile()
 	}
-	s.Backend = &legacy.BackendState{
+	s.Backend = &workdir.BackendState{
 		Type:      c.Type,
 		ConfigRaw: json.RawMessage(configJSON),
 		Hash:      uint64(cHash),
@@ -1295,7 +1284,7 @@ func (m *Meta) savedBackend(sMgr *clistate.LocalState) (backend.Backend, tfdiags
 
 	// If the result of loading the backend is an enhanced backend,
 	// then set up enhanced backend service aliases.
-	if enhanced, ok := b.(backend.Enhanced); ok {
+	if enhanced, ok := b.(backendrun.OperationsBackend); ok {
 		log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
 
 		if err := m.setupEnhancedBackendAliases(enhanced); err != nil {
@@ -1336,7 +1325,7 @@ func (m *Meta) updateSavedBackendHash(cHash int, sMgr *clistate.LocalState) tfdi
 // this function will conservatively assume that migration is required,
 // expecting that the migration code will subsequently deal with the same
 // errors.
-func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *legacy.BackendState) bool {
+func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *workdir.BackendState) bool {
 	if s == nil || s.Empty() {
 		log.Print("[TRACE] backendConfigNeedsMigration: no cached config, so migration is required")
 		return true
@@ -1434,7 +1423,7 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 
 	// If the result of loading the backend is an enhanced backend,
 	// then set up enhanced backend service aliases.
-	if enhanced, ok := b.(backend.Enhanced); ok {
+	if enhanced, ok := b.(backendrun.OperationsBackend); ok {
 		log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
 		if err := m.setupEnhancedBackendAliases(enhanced); err != nil {
 			diags = diags.Append(err)
@@ -1449,7 +1438,7 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 // in the Meta service discovery. It's unfortunate that the Meta backend
 // is modifying the service discovery at this level, but the owner
 // of the service discovery pointer does not have easy access to the backend.
-func (m *Meta) setupEnhancedBackendAliases(b backend.Enhanced) error {
+func (m *Meta) setupEnhancedBackendAliases(b backendrun.OperationsBackend) error {
 	// Set up the service discovery aliases specified by the enhanced backend.
 	serviceAliases, err := b.ServiceDiscoveryAliases()
 	if err != nil {

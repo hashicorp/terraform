@@ -31,14 +31,16 @@ import (
 type stacksServer struct {
 	terraform1.UnimplementedStacksServer
 
-	handles *handleTable
+	handles            *handleTable
+	experimentsAllowed bool
 }
 
 var _ terraform1.StacksServer = (*stacksServer)(nil)
 
-func newStacksServer(handles *handleTable) *stacksServer {
+func newStacksServer(handles *handleTable, opts *serviceOpts) *stacksServer {
 	return &stacksServer{
-		handles: handles,
+		handles:            handles,
+		experimentsAllowed: opts.experimentsAllowed,
 	}
 }
 
@@ -102,9 +104,35 @@ func (s *stacksServer) ValidateStackConfiguration(ctx context.Context, req *terr
 	if cfg == nil {
 		return nil, status.Error(codes.InvalidArgument, "the given stack configuration handle is invalid")
 	}
+	depsHnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
+	var deps *depsfile.Locks
+	if !depsHnd.IsNil() {
+		deps = s.handles.DependencyLocks(depsHnd)
+		if deps == nil {
+			return nil, status.Error(codes.InvalidArgument, "the given dependency locks handle is invalid")
+		}
+	} else {
+		deps = depsfile.NewLocks()
+	}
+	providerCacheHnd := handle[*providercache.Dir](req.ProviderCacheHandle)
+	var providerCache *providercache.Dir
+	if !providerCacheHnd.IsNil() {
+		providerCache = s.handles.ProviderPluginCache(providerCacheHnd)
+		if providerCache == nil {
+			return nil, status.Error(codes.InvalidArgument, "the given provider cache handle is invalid")
+		}
+	}
+
+	// (providerFactoriesForLocks explicitly supports a nil providerCache)
+	providerFactories, err := providerFactoriesForLocks(deps, providerCache)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+	}
 
 	diags := stackruntime.Validate(ctx, &stackruntime.ValidateRequest{
-		Config: cfg,
+		Config:             cfg,
+		ExperimentsAllowed: s.experimentsAllowed,
+		ProviderFactories:  providerFactories,
 	})
 	return &terraform1.ValidateStackConfiguration_Response{
 		Diagnostics: diagnosticsToProto(diags),
@@ -119,11 +147,11 @@ func (s *stacksServer) FindStackConfigurationComponents(ctx context.Context, req
 	}
 
 	return &terraform1.FindStackConfigurationComponents_Response{
-		Config: stackConfigMetaforProto(cfg.Root),
+		Config: stackConfigMetaforProto(cfg.Root, stackaddrs.RootStack),
 	}, nil
 }
 
-func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode) *terraform1.FindStackConfigurationComponents_StackConfig {
+func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackaddrs.Stack) *terraform1.FindStackConfigurationComponents_StackConfig {
 	ret := &terraform1.FindStackConfigurationComponents_StackConfig{
 		Components:     make(map[string]*terraform1.FindStackConfigurationComponents_Component),
 		EmbeddedStacks: make(map[string]*terraform1.FindStackConfigurationComponents_EmbeddedStack),
@@ -131,7 +159,8 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode) *terraform1.FindSt
 
 	for name, cc := range cfgNode.Stack.Components {
 		cProto := &terraform1.FindStackConfigurationComponents_Component{
-			SourceAddr: cc.FinalSourceAddr.String(),
+			SourceAddr:    cc.FinalSourceAddr.String(),
+			ComponentAddr: stackaddrs.Config(stackAddr, stackaddrs.Component{Name: cc.Name}).String(),
 		}
 		switch {
 		case cc.ForEach != nil:
@@ -146,7 +175,7 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode) *terraform1.FindSt
 		sc := cfgNode.Stack.EmbeddedStacks[name]
 		sProto := &terraform1.FindStackConfigurationComponents_EmbeddedStack{
 			SourceAddr: sn.Stack.SourceAddr.String(),
-			Config:     stackConfigMetaforProto(sn),
+			Config:     stackConfigMetaforProto(sn, stackAddr.Child(name)),
 		}
 		switch {
 		case sc.ForEach != nil:
@@ -230,11 +259,12 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
 	rtReq := stackruntime.PlanRequest{
-		PlanMode:          planMode,
-		Config:            cfg,
-		PrevState:         prevState,
-		ProviderFactories: providerFactories,
-		InputValues:       inputValues,
+		PlanMode:           planMode,
+		Config:             cfg,
+		PrevState:          prevState,
+		ProviderFactories:  providerFactories,
+		InputValues:        inputValues,
+		ExperimentsAllowed: s.experimentsAllowed,
 	}
 	rtResp := stackruntime.PlanResponse{
 		PlannedChanges: changesCh,
@@ -368,9 +398,10 @@ func (s *stacksServer) ApplyStackChanges(req *terraform1.ApplyStackChanges_Reque
 	changesCh := make(chan stackstate.AppliedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
 	rtReq := stackruntime.ApplyRequest{
-		Config:            cfg,
-		ProviderFactories: providerFactories,
-		RawPlan:           req.PlannedChanges,
+		Config:             cfg,
+		ProviderFactories:  providerFactories,
+		RawPlan:            req.PlannedChanges,
+		ExperimentsAllowed: s.experimentsAllowed,
 	}
 	rtResp := stackruntime.ApplyResponse{
 		AppliedChanges: changesCh,
@@ -503,10 +534,11 @@ func (s *stacksServer) OpenStackInspector(ctx context.Context, req *terraform1.O
 	}
 
 	hnd := s.handles.NewStackInspector(&stacksInspector{
-		Config:            cfg,
-		State:             state,
-		ProviderFactories: providerFactories,
-		InputValues:       inputValues,
+		Config:             cfg,
+		State:              state,
+		ProviderFactories:  providerFactories,
+		InputValues:        inputValues,
+		ExperimentsAllowed: s.experimentsAllowed,
 	})
 
 	return &terraform1.OpenStackInspector_Response{
@@ -666,11 +698,20 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 		// When Terraform core reports a resource instance plan status, we
 		// forward it to the events client.
 		ReportResourceInstanceStatus: func(ctx context.Context, span any, rihd *hooks.ResourceInstanceStatusHookData) any {
+			// addrs.Provider.String() will panic on the zero value. In this
+			// case, holding a zero provider would mean a bug in our event
+			// logging code rather than in core logic, so avoid exploding, but
+			// send a blank string to expose the error later.
+			providerAddr := ""
+			if !rihd.ProviderAddr.IsZero() {
+				providerAddr = rihd.ProviderAddr.String()
+			}
 			send(&terraform1.StackChangeProgress{
 				Event: &terraform1.StackChangeProgress_ResourceInstanceStatus_{
 					ResourceInstanceStatus: &terraform1.StackChangeProgress_ResourceInstanceStatus{
-						Addr:   terraform1.NewResourceInstanceObjectInStackAddr(rihd.Addr),
-						Status: rihd.Status.ForProtobuf(),
+						Addr:         terraform1.NewResourceInstanceObjectInStackAddr(rihd.Addr),
+						Status:       rihd.Status.ForProtobuf(),
+						ProviderAddr: providerAddr,
 					},
 				},
 			})
@@ -711,10 +752,11 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 			send(&terraform1.StackChangeProgress{
 				Event: &terraform1.StackChangeProgress_ResourceInstancePlannedChange_{
 					ResourceInstancePlannedChange: &terraform1.StackChangeProgress_ResourceInstancePlannedChange{
-						Addr:     terraform1.NewResourceInstanceObjectInStackAddr(ric.Addr),
-						Actions:  actions,
-						Moved:    moved,
-						Imported: imported,
+						Addr:         terraform1.NewResourceInstanceObjectInStackAddr(ric.Addr),
+						Actions:      actions,
+						Moved:        moved,
+						Imported:     imported,
+						ProviderAddr: ric.Change.ProviderAddr.Provider.String(),
 					},
 				},
 			})

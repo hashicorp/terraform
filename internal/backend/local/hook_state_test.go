@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -39,9 +40,9 @@ func TestStateHookStopping(t *testing.T) {
 	is := &testPersistentState{}
 	hook := &StateHook{
 		StateMgr:        is,
-		Schemas:         &terraform.Schemas{},
+		Schemas:         &schemarepo.Schemas{},
 		PersistInterval: 4 * time.Hour,
-		intermediatePersist: IntermediateStatePersistInfo{
+		intermediatePersist: statemgr.IntermediateStatePersistInfo{
 			LastPersist: time.Now(),
 		},
 	}
@@ -138,9 +139,9 @@ func TestStateHookCustomPersistRule(t *testing.T) {
 	is := &testPersistentStateThatRefusesToPersist{}
 	hook := &StateHook{
 		StateMgr:        is,
-		Schemas:         &terraform.Schemas{},
+		Schemas:         &schemarepo.Schemas{},
 		PersistInterval: 4 * time.Hour,
-		intermediatePersist: IntermediateStatePersistInfo{
+		intermediatePersist: statemgr.IntermediateStatePersistInfo{
 			LastPersist: time.Now(),
 		},
 	}
@@ -255,7 +256,7 @@ func (sm *testPersistentState) WriteState(state *states.State) error {
 	return nil
 }
 
-func (sm *testPersistentState) PersistState(schemas *terraform.Schemas) error {
+func (sm *testPersistentState) PersistState(schemas *schemarepo.Schemas) error {
 	if schemas == nil {
 		return fmt.Errorf("no schemas")
 	}
@@ -273,7 +274,7 @@ type testPersistentStateThatRefusesToPersist struct {
 
 var _ statemgr.Writer = (*testPersistentStateThatRefusesToPersist)(nil)
 var _ statemgr.Persister = (*testPersistentStateThatRefusesToPersist)(nil)
-var _ IntermediateStateConditionalPersister = (*testPersistentStateThatRefusesToPersist)(nil)
+var _ statemgr.IntermediateStateConditionalPersister = (*testPersistentStateThatRefusesToPersist)(nil)
 
 func (sm *testPersistentStateThatRefusesToPersist) WriteState(state *states.State) error {
 	sm.CallLog = append(sm.CallLog, "WriteState")
@@ -281,7 +282,7 @@ func (sm *testPersistentStateThatRefusesToPersist) WriteState(state *states.Stat
 	return nil
 }
 
-func (sm *testPersistentStateThatRefusesToPersist) PersistState(schemas *terraform.Schemas) error {
+func (sm *testPersistentStateThatRefusesToPersist) PersistState(schemas *schemarepo.Schemas) error {
 	if schemas == nil {
 		return fmt.Errorf("no schemas")
 	}
@@ -291,7 +292,7 @@ func (sm *testPersistentStateThatRefusesToPersist) PersistState(schemas *terrafo
 }
 
 // ShouldPersistIntermediateState implements IntermediateStateConditionalPersister
-func (sm *testPersistentStateThatRefusesToPersist) ShouldPersistIntermediateState(info *IntermediateStatePersistInfo) bool {
+func (sm *testPersistentStateThatRefusesToPersist) ShouldPersistIntermediateState(info *statemgr.IntermediateStatePersistInfo) bool {
 	sm.CallLog = append(sm.CallLog, "ShouldPersistIntermediateState")
 	return info.ForcePersist
 }

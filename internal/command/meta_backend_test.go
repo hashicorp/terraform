@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -21,7 +22,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"

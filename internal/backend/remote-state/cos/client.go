@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -15,11 +16,11 @@ import (
 	"strings"
 	"time"
 
-	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/internal/states/remote"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
 	tag "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/tag/v20180813"
 	"github.com/tencentyun/cos-go-sdk-v5"
+
+	"github.com/hashicorp/terraform/internal/states/remote"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
 const (
@@ -144,7 +145,7 @@ func (c *remoteClient) lockError(err error) *statemgr.LockError {
 
 	info, infoErr := c.lockInfo()
 	if infoErr != nil {
-		lockErr.Err = multierror.Append(lockErr.Err, infoErr)
+		lockErr.Err = errors.Join(lockErr.Err, infoErr)
 	} else {
 		lockErr.Info = info
 	}

@@ -6,17 +6,19 @@ package grpcwrap
 import (
 	"context"
 
-	"github.com/hashicorp/terraform/internal/plugin/convert"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/terraform/internal/plugin/convert"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfplugin5"
 )
 
-// New wraps a providers.Interface to implement a grpc ProviderServer.
+// Provider wraps a providers.Interface to implement a grpc ProviderServer.
 // This is useful for creating a test binary out of an internal provider
 // implementation.
 func Provider(p providers.Interface) tfplugin5.ProviderServer {
@@ -67,10 +69,17 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 			Block:   convert.ConfigSchemaToProto(dat.Block),
 		}
 	}
+	if decls, err := convert.FunctionDeclsToProto(p.schema.Functions); err == nil {
+		resp.Functions = decls
+	} else {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
 
 	resp.ServerCapabilities = &tfplugin5.ServerCapabilities{
 		GetProviderSchemaOptional: p.schema.ServerCapabilities.GetProviderSchemaOptional,
 		PlanDestroy:               p.schema.ServerCapabilities.PlanDestroy,
+		MoveResourceState:         p.schema.ServerCapabilities.MoveResourceState,
 	}
 
 	// include any diagnostics from the original GetSchema call
@@ -357,6 +366,33 @@ func (p *provider) ImportResourceState(_ context.Context, req *tfplugin5.ImportR
 	return resp, nil
 }
 
+func (p *provider) MoveResourceState(_ context.Context, request *tfplugin5.MoveResourceState_Request) (*tfplugin5.MoveResourceState_Response, error) {
+	resp := &tfplugin5.MoveResourceState_Response{}
+
+	moveResp := p.provider.MoveResourceState(providers.MoveResourceStateRequest{
+		SourceProviderAddress: request.SourceProviderAddress,
+		SourceTypeName:        request.SourceTypeName,
+		SourceSchemaVersion:   request.SourceSchemaVersion,
+		SourceStateJSON:       request.SourceState.Json,
+		SourcePrivate:         request.SourcePrivate,
+		TargetTypeName:        request.TargetTypeName,
+	})
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, moveResp.Diagnostics)
+	if moveResp.Diagnostics.HasErrors() {
+		return resp, nil
+	}
+
+	targetType := p.schema.ResourceTypes[request.TargetTypeName].Block.ImpliedType()
+	targetState, err := encodeDynamicValue(moveResp.TargetState, targetType)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+	resp.TargetState = targetState
+	resp.TargetPrivate = moveResp.TargetPrivate
+	return resp, nil
+}
+
 func (p *provider) ReadDataSource(_ context.Context, req *tfplugin5.ReadDataSource_Request) (*tfplugin5.ReadDataSource_Response, error) {
 	resp := &tfplugin5.ReadDataSource_Response{}
 	ty := p.schema.DataSources[req.TypeName].Block.ImpliedType()
@@ -393,6 +429,80 @@ func (p *provider) ReadDataSource(_ context.Context, req *tfplugin5.ReadDataSour
 	return resp, nil
 }
 
+func (p *provider) GetFunctions(context.Context, *tfplugin5.GetFunctions_Request) (*tfplugin5.GetFunctions_Response, error) {
+	panic("unimplemented")
+	return nil, nil
+}
+
+func (p *provider) CallFunction(_ context.Context, req *tfplugin5.CallFunction_Request) (*tfplugin5.CallFunction_Response, error) {
+	var err error
+	resp := &tfplugin5.CallFunction_Response{}
+
+	funcSchema := p.schema.Functions[req.Name]
+
+	var args []cty.Value
+	if len(req.Arguments) != 0 {
+		args = make([]cty.Value, len(req.Arguments))
+		for i, rawArg := range req.Arguments {
+			idx := int64(i)
+
+			var argTy cty.Type
+			if i < len(funcSchema.Parameters) {
+				argTy = funcSchema.Parameters[i].Type
+			} else {
+				if funcSchema.VariadicParameter == nil {
+
+					resp.Error = &tfplugin5.FunctionError{
+						Text:             "too many arguments for non-variadic function",
+						FunctionArgument: &idx,
+					}
+					return resp, nil
+				}
+				argTy = funcSchema.VariadicParameter.Type
+			}
+
+			argVal, err := decodeDynamicValue(rawArg, argTy)
+			if err != nil {
+				resp.Error = &tfplugin5.FunctionError{
+					Text:             err.Error(),
+					FunctionArgument: &idx,
+				}
+				return resp, nil
+			}
+
+			args[i] = argVal
+		}
+	}
+
+	callResp := p.provider.CallFunction(providers.CallFunctionRequest{
+		FunctionName: req.Name,
+		Arguments:    args,
+	})
+
+	if callResp.Err != nil {
+		resp.Error = &tfplugin5.FunctionError{
+			Text: callResp.Err.Error(),
+		}
+
+		if argErr, ok := callResp.Err.(function.ArgError); ok {
+			idx := int64(argErr.Index)
+			resp.Error.FunctionArgument = &idx
+		}
+
+		return resp, nil
+	}
+
+	resp.Result, err = encodeDynamicValue(callResp.Result, funcSchema.ReturnType)
+	if err != nil {
+		resp.Error = &tfplugin5.FunctionError{
+			Text: err.Error(),
+		}
+
+		return resp, nil
+	}
+
+	return resp, nil
+}
 func (p *provider) Stop(context.Context, *tfplugin5.Stop_Request) (*tfplugin5.Stop_Response, error) {
 	resp := &tfplugin5.Stop_Response{}
 	err := p.provider.Stop()

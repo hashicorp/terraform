@@ -25,13 +25,12 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	uuid "github.com/hashicorp/go-uuid"
 
-	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
+	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 const (
@@ -88,7 +87,7 @@ remote state version.
 
 var _ statemgr.Full = (*State)(nil)
 var _ statemgr.Migrator = (*State)(nil)
-var _ local.IntermediateStateConditionalPersister = (*State)(nil)
+var _ statemgr.IntermediateStateConditionalPersister = (*State)(nil)
 
 // statemgr.Reader impl.
 func (s *State) State() *states.State {
@@ -162,7 +161,7 @@ func (s *State) WriteState(state *states.State) error {
 }
 
 // PersistState uploads a snapshot of the latest state as a StateVersion to Terraform Cloud
-func (s *State) PersistState(schemas *terraform.Schemas) error {
+func (s *State) PersistState(schemas *schemarepo.Schemas) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -247,8 +246,8 @@ func (s *State) PersistState(schemas *terraform.Schemas) error {
 	return nil
 }
 
-// ShouldPersistIntermediateState implements local.IntermediateStateConditionalPersister
-func (s *State) ShouldPersistIntermediateState(info *local.IntermediateStatePersistInfo) bool {
+// ShouldPersistIntermediateState implements statemgr.IntermediateStateConditionalPersister
+func (s *State) ShouldPersistIntermediateState(info *statemgr.IntermediateStatePersistInfo) bool {
 	if info.ForcePersist {
 		return true
 	}

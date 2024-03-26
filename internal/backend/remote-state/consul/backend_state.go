@@ -19,7 +19,7 @@ const (
 
 func (b *Backend) Workspaces() ([]string, error) {
 	// List our raw path
-	prefix := b.configData.Get("path").(string) + keyEnvPrefix
+	prefix := b.path + keyEnvPrefix
 	keys, _, err := b.client.KV().Keys(prefix, "/", nil)
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 	}
 
 	// Determine the path of the data
-	path := b.path(name)
+	path := b.statePath(name)
 
 	// Delete it. We just delete it without any locking since
 	// the DeleteState API is documented as such.
@@ -68,10 +68,10 @@ func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 
 func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	// Determine the path of the data
-	path := b.path(name)
+	path := b.statePath(name)
 
 	// Determine whether to gzip or not
-	gzip := b.configData.Get("gzip").(bool)
+	gzip := b.gzip
 
 	// Build the state client
 	var stateMgr = &remote.State{
@@ -137,8 +137,8 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	return stateMgr, nil
 }
 
-func (b *Backend) path(name string) string {
-	path := b.configData.Get("path").(string)
+func (b *Backend) statePath(name string) string {
+	path := b.path
 	if name != backend.DefaultStateName {
 		path += fmt.Sprintf("%s%s", keyEnvPrefix, name)
 	}

@@ -8,15 +8,16 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/cli"
+
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/mitchellh/cli"
 )
 
 // StateShowCommand is a Command implementation that shows a single resource.
@@ -54,7 +55,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	}
 
 	// We require a local backend
-	local, ok := b.(backend.Local)
+	local, ok := b.(backendrun.Local)
 	if !ok {
 		c.Streams.Eprint(ErrUnsupportedLocalOp)
 		return 1

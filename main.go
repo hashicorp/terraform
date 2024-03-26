@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/apparentlymart/go-shquot/shquot"
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -26,7 +27,6 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/version"
 	"github.com/mattn/go-shellwords"
-	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 	"go.opentelemetry.io/otel/trace"
 
@@ -359,8 +359,13 @@ func mergeEnvArgs(envName string, cmd string, args []string) ([]string, error) {
 		return args, nil
 	}
 
+	swParser := &shellwords.Parser{
+		ParseEnv:      false,
+		ParseBacktick: false,
+	}
+
 	log.Printf("[INFO] %s value: %q", envName, v)
-	extra, err := shellwords.Parse(v)
+	extra, err := swParser.Parse(v)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"Error parsing extra CLI args from %s: %s",

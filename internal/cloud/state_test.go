@@ -12,7 +12,6 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -38,7 +37,7 @@ func TestState_GetRootOutputValues(t *testing.T) {
 	b, bCleanup := testBackendWithOutputs(t)
 	defer bCleanup()
 
-	state := &State{tfeClient: b.client, organization: b.organization, workspace: &tfe.Workspace{
+	state := &State{tfeClient: b.client, organization: b.Organization, workspace: &tfe.Workspace{
 		ID: "ws-abcd",
 	}}
 	outputs, err := state.GetRootOutputValues()
@@ -414,7 +413,7 @@ func TestState_ShouldPersistIntermediateState(t *testing.T) {
 		cloudState.enableIntermediateSnapshots = testCase.Enabled
 		cloudState.stateSnapshotInterval = testCase.Interval
 
-		actual := cloudState.ShouldPersistIntermediateState(&local.IntermediateStatePersistInfo{
+		actual := cloudState.ShouldPersistIntermediateState(&statemgr.IntermediateStatePersistInfo{
 			LastPersist:  testCase.LastPersist,
 			ForcePersist: testCase.Force,
 		})

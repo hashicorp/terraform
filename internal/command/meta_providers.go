@@ -217,6 +217,35 @@ func (m *Meta) providerDevOverrideRuntimeWarnings() tfdiags.Diagnostics {
 	}
 }
 
+// providerDevOverrideRuntimeWarningsRemoteExecution returns a diagnostics that contains at
+// least one warning if and only if there is at least one provider development
+// override in effect. If not, the result is always empty. The result never
+// contains error diagnostics.
+//
+// Certain commands when executing remotely can use this to include a warning that any provider overrides
+// are only locally configured, meaning the remote operation won't be affected by them.
+//
+// See providerDevOverrideRuntimeWarnings for runtime warnings specific to local execution
+func (m *Meta) providerDevOverrideRuntimeWarningsRemoteExecution() tfdiags.Diagnostics {
+	if len(m.ProviderDevOverrides) == 0 {
+		return nil
+	}
+	var detailMsg strings.Builder
+	detailMsg.WriteString("The following provider development overrides are set in the CLI configuration:\n")
+	for addr, path := range m.ProviderDevOverrides {
+		detailMsg.WriteString(fmt.Sprintf(" - %s in %s\n", addr.ForDisplay(), path))
+	}
+	detailMsg.WriteString("\nProvider development overrides are only configured locally and the remote operation won't be affected by them")
+
+	return tfdiags.Diagnostics{
+		tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Provider development overrides are in effect",
+			detailMsg.String(),
+		),
+	}
+}
+
 // providerFactories uses the selections made previously by an installer in
 // the local cache directory (m.providerLocalCacheDir) to produce a map
 // from provider addresses to factory functions to create instances of

@@ -166,6 +166,7 @@ func (ac *AppliedChangeResourceInstanceObject) protosForObject() ([]*terraform1.
 // does not directly track any resource instances inside. Those are tracked
 // using individual [AppliedChangeResourceInstanceObject] objects for each.
 type AppliedChangeComponentInstance struct {
+	ComponentAddr         stackaddrs.AbsComponent
 	ComponentInstanceAddr stackaddrs.AbsComponentInstance
 
 	// OutputValues "remembers" the output values from the most recent
@@ -221,6 +222,7 @@ func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*terraform1.Appl
 		Key: statekeys.String(stateKey),
 		Description: &terraform1.AppliedChange_ChangeDescription_ComponentInstance{
 			ComponentInstance: &terraform1.AppliedChange_ComponentInstance{
+				ComponentAddr:         ac.ComponentAddr.String(),
 				ComponentInstanceAddr: ac.ComponentInstanceAddr.String(),
 			},
 		},

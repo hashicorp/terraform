@@ -12,14 +12,16 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	plugin "github.com/hashicorp/go-plugin"
+	"github.com/zclconf/go-cty/cty/function"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
+	"github.com/zclconf/go-cty/cty/msgpack"
+	"google.golang.org/grpc"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plugin6/convert"
 	"github.com/hashicorp/terraform/internal/providers"
 	proto6 "github.com/hashicorp/terraform/internal/tfplugin6"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
-	"github.com/zclconf/go-cty/cty/msgpack"
-	"google.golang.org/grpc"
 )
 
 var logger = logging.HCLogger()
@@ -74,7 +76,6 @@ type GRPCProvider struct {
 }
 
 func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
-	logger.Trace("GRPCProvider.v6: GetProviderSchema")
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -88,6 +89,7 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 			return resp
 		}
 	}
+	logger.Trace("GRPCProvider.v6: GetProviderSchema")
 
 	// If the local cache is non-zero, we know this instance has called
 	// GetProviderSchema at least once and we can return early.
@@ -141,9 +143,17 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		resp.DataSources[name] = convert.ProtoToProviderSchema(data)
 	}
 
+	if decls, err := convert.FunctionDeclsFromProto(protoResp.Functions); err == nil {
+		resp.Functions = decls
+	} else {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
 	if protoResp.ServerCapabilities != nil {
 		resp.ServerCapabilities.PlanDestroy = protoResp.ServerCapabilities.PlanDestroy
 		resp.ServerCapabilities.GetProviderSchemaOptional = protoResp.ServerCapabilities.GetProviderSchemaOptional
+		resp.ServerCapabilities.MoveResourceState = protoResp.ServerCapabilities.MoveResourceState
 	}
 
 	// set the global cache if we can
@@ -463,7 +473,12 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	}
 
 	if metaSchema.Block != nil {
-		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Block.ImpliedType())
+		metaTy := metaSchema.Block.ImpliedType()
+		metaVal := r.ProviderMeta
+		if metaVal == cty.NilVal {
+			metaVal = cty.NullVal(metaTy)
+		}
+		metaMP, err := msgpack.Marshal(metaVal, metaTy)
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 			return resp
@@ -538,7 +553,12 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	}
 
 	if metaSchema.Block != nil {
-		metaMP, err := msgpack.Marshal(r.ProviderMeta, metaSchema.Block.ImpliedType())
+		metaTy := metaSchema.Block.ImpliedType()
+		metaVal := r.ProviderMeta
+		if metaVal == cty.NilVal {
+			metaVal = cty.NullVal(metaTy)
+		}
+		metaMP, err := msgpack.Marshal(metaVal, metaTy)
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 			return resp
@@ -612,6 +632,55 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 	return resp
 }
 
+func (p *GRPCProvider) MoveResourceState(r providers.MoveResourceStateRequest) (resp providers.MoveResourceStateResponse) {
+	logger.Trace("GRPCProvider: MoveResourceState")
+
+	protoReq := &proto6.MoveResourceState_Request{
+		SourceProviderAddress: r.SourceProviderAddress,
+		SourceTypeName:        r.SourceTypeName,
+		SourceSchemaVersion:   r.SourceSchemaVersion,
+		SourceState: &proto6.RawState{
+			Json: r.SourceStateJSON,
+		},
+		SourcePrivate:  r.SourcePrivate,
+		TargetTypeName: r.TargetTypeName,
+	}
+
+	protoResp, err := p.client.MoveResourceState(p.ctx, protoReq)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+		return resp
+	}
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Diagnostics = schema.Diagnostics
+		return resp
+	}
+
+	targetType, ok := schema.ResourceTypes[r.TargetTypeName]
+	if !ok {
+		// We should have validated this earlier in the process, but we'll
+		// still return an error instead of crashing in case something went
+		// wrong.
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource type %q; this is a bug in Terraform - please report it", r.TargetTypeName))
+		return resp
+	}
+	resp.TargetState, err = decodeDynamicValue(protoResp.TargetState, targetType.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	resp.TargetPrivate = protoResp.TargetPrivate
+
+	return resp
+}
+
 func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
 	logger.Trace("GRPCProvider.v6: ReadDataSource")
 
@@ -664,6 +733,89 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 	}
 	resp.State = state
 
+	return resp
+}
+
+func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
+	logger.Trace("GRPCProvider.v6", "CallFunction", r.FunctionName)
+
+	schema := p.GetProviderSchema()
+	if schema.Diagnostics.HasErrors() {
+		resp.Err = schema.Diagnostics.Err()
+		return resp
+	}
+
+	funcDecl, ok := schema.Functions[r.FunctionName]
+	// We check for various problems with the request below in the interests
+	// of robustness, just to avoid crashing while trying to encode/decode, but
+	// if we reach any of these errors then that suggests a bug in the caller,
+	// because we should catch function calls that don't match the schema at an
+	// earlier point than this.
+	if !ok {
+		// Should only get here if the caller has a bug, because we should
+		// have detected earlier any attempt to call a function that the
+		// provider didn't declare.
+		resp.Err = fmt.Errorf("provider has no function named %q", r.FunctionName)
+		return resp
+	}
+	if len(r.Arguments) < len(funcDecl.Parameters) {
+		resp.Err = fmt.Errorf("not enough arguments for function %q", r.FunctionName)
+		return resp
+	}
+	if funcDecl.VariadicParameter == nil && len(r.Arguments) > len(funcDecl.Parameters) {
+		resp.Err = fmt.Errorf("too many arguments for function %q", r.FunctionName)
+		return resp
+	}
+	args := make([]*proto6.DynamicValue, len(r.Arguments))
+	for i, argVal := range r.Arguments {
+		var paramDecl providers.FunctionParam
+		if i < len(funcDecl.Parameters) {
+			paramDecl = funcDecl.Parameters[i]
+		} else {
+			paramDecl = *funcDecl.VariadicParameter
+		}
+
+		argValRaw, err := msgpack.Marshal(argVal, paramDecl.Type)
+		if err != nil {
+			resp.Err = err
+			return resp
+		}
+		args[i] = &proto6.DynamicValue{
+			Msgpack: argValRaw,
+		}
+	}
+
+	protoResp, err := p.client.CallFunction(p.ctx, &proto6.CallFunction_Request{
+		Name:      r.FunctionName,
+		Arguments: args,
+	})
+	if err != nil {
+		// functions can only support simple errors, but use our grpcError
+		// diagnostic function to format common problems is a more
+		// user-friendly manner.
+		resp.Err = grpcErr(err).Err()
+		return resp
+	}
+
+	if protoResp.Error != nil {
+		resp.Err = errors.New(protoResp.Error.Text)
+
+		// If this is a problem with a specific argument, we can wrap the error
+		// in a function.ArgError
+		if protoResp.Error.FunctionArgument != nil {
+			resp.Err = function.NewArgError(int(*protoResp.Error.FunctionArgument), resp.Err)
+		}
+
+		return resp
+	}
+
+	resultVal, err := decodeDynamicValue(protoResp.Result, funcDecl.ReturnType)
+	if err != nil {
+		resp.Err = err
+		return resp
+	}
+
+	resp.Result = resultVal
 	return resp
 }
 

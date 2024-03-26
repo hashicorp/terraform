@@ -7,15 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty/function"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/experiments"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 )
-
-type ParseRef func(traversal hcl.Traversal) (*addrs.Reference, tfdiags.Diagnostics)
 
 // Scope is the main type in this package, allowing dynamic evaluation of
 // blocks and expressions based on some contextual information that informs
@@ -30,7 +27,7 @@ type Scope struct {
 	// while the main Terraform context scope can not. This means that this
 	// function for the testing scope will happily return outputs, while the
 	// main context scope would fail if a user attempts to reference an output.
-	ParseRef ParseRef
+	ParseRef langrefs.ParseRef
 
 	// SelfAddr is the address that the "self" object should be an alias of,
 	// or nil if the "self" object should not be available at all.
@@ -53,6 +50,14 @@ type Scope struct {
 	// important during a plan phase to avoid generating results that could
 	// then differ during apply.
 	PureOnly bool
+
+	// ExternalFuncs specifies optional additional functions contributed by
+	// components outside of Terraform Core.
+	//
+	// Do not modify anything this field refers to after constructing a
+	// Scope value; Scope methods may derive and cache other data from
+	// this data structure and will assume this entire structure is immutable.
+	ExternalFuncs ExternalFuncs
 
 	funcs     map[string]function.Function
 	funcsLock sync.Mutex

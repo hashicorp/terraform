@@ -5,6 +5,7 @@ package stackeval
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -162,7 +163,7 @@ func TestComponentCheckInstances(t *testing.T) {
 			component := getComponent(ctx, main)
 			gotVal, diags := component.CheckForEachValue(ctx, InspectPhase)
 			assertMatchingDiag(t, diags, func(diag tfdiags.Diagnostic) bool {
-				return diag.Severity() == tfdiags.Error && diag.Description().Detail == "The for_each value must not be null."
+				return diag.Severity() == tfdiags.Error && strings.Contains(diag.Description().Detail, "The for_each expression produced a null value")
 			})
 			wantVal := cty.DynamicVal // placeholder for invalid result
 			if !wantVal.RawEquals(gotVal) {
@@ -181,7 +182,7 @@ func TestComponentCheckInstances(t *testing.T) {
 			gotVal, diags := component.CheckForEachValue(ctx, InspectPhase)
 			assertMatchingDiag(t, diags, func(diag tfdiags.Diagnostic) bool {
 				return (diag.Severity() == tfdiags.Error &&
-					diag.Description().Detail == "The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this embedded stack.")
+					diag.Description().Detail == "The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this component.")
 			})
 			wantVal := cty.DynamicVal // placeholder for invalid result
 			if !wantVal.RawEquals(gotVal) {

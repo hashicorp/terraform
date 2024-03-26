@@ -15,16 +15,17 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/cli"
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -70,15 +71,20 @@ type Cloud struct {
 	// Hostname of Terraform Cloud or Terraform Enterprise
 	Hostname string
 
-	// token for Terraform Cloud or Terraform Enterprise
-	token string
+	// Token for Terraform Cloud or Terraform Enterprise
+	Token string
 
-	// organization is the organization that contains the target workspaces.
-	organization string
+	// Organization is the Organization that contains the target workspaces.
+	Organization string
 
 	// WorkspaceMapping contains strategies for mapping CLI workspaces in the working directory
 	// to remote Terraform Cloud workspaces.
 	WorkspaceMapping WorkspaceMapping
+
+	// ServicesHost is the full account of discovered Terraform services at the
+	// Terraform Cloud instance. It should include at least the tfe v2 API, and
+	// possibly other services.
+	ServicesHost *disco.Host
 
 	// services is used for service discovery
 	services *disco.Disco
@@ -87,7 +93,7 @@ type Cloud struct {
 	renderer *jsonformat.Renderer
 
 	// local allows local operations, where Terraform Cloud serves as a state storage backend.
-	local backend.Enhanced
+	local backendrun.OperationsBackend
 
 	// forceLocal, if true, will force the use of the local backend.
 	forceLocal bool
@@ -109,8 +115,8 @@ type Cloud struct {
 }
 
 var _ backend.Backend = (*Cloud)(nil)
-var _ backend.Enhanced = (*Cloud)(nil)
-var _ backend.Local = (*Cloud)(nil)
+var _ backendrun.OperationsBackend = (*Cloud)(nil)
+var _ backendrun.Local = (*Cloud)(nil)
 
 // New creates a new initialized cloud backend.
 func New(services *disco.Disco) *Cloud {
@@ -193,7 +199,7 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	return obj, diags
 }
 
-func (b *Cloud) ServiceDiscoveryAliases() ([]backend.HostAlias, error) {
+func (b *Cloud) ServiceDiscoveryAliases() ([]backendrun.HostAlias, error) {
 	aliasHostname, err := svchost.ForComparison(genericHostname)
 	if err != nil {
 		// This should never happen because the hostname is statically defined.
@@ -207,7 +213,7 @@ func (b *Cloud) ServiceDiscoveryAliases() ([]backend.HostAlias, error) {
 		return nil, fmt.Errorf("failed to create backend alias to target %q. The hostname is not in the correct format.", b.Hostname)
 	}
 
-	return []backend.HostAlias{
+	return []backendrun.HostAlias{
 		{
 			From: aliasHostname,
 			To:   targetHostname,
@@ -232,22 +238,38 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	// Use resolved config to set fields on backend (except token, see below)
 	b.Hostname = config.hostname
-	b.organization = config.organization
+	b.Organization = config.organization
 	b.WorkspaceMapping = config.workspaceMapping
 
-	// Discover the service URL to confirm that it provides the Terraform Cloud/Enterprise API
+	// Discover the service URL to confirm that it provides the Terraform
+	// Cloud/Enterprise API... and while we're at it, cache the full discovery
+	// results.
+	var tfcService *url.URL
+	var host *disco.Host
+	// We want to handle errors from URL normalization and service discovery in
+	// the same way. So we only perform each step if there wasn't a previous
+	// error, and use the same block to handle errors from anywhere in the
+	// process.
 	hostname, err := svchost.ForComparison(b.Hostname)
-
-	var service *url.URL
 	if err == nil {
-		// We want to handle the errors returned by svchost and discover in the
-		// same way. So we only execute this if there wasn't an error previously
-		// and let the block below handle an error that occurred in either
-		// place.
-		service, err = discover(hostname, b.services)
+		host, err = b.services.Discover(hostname)
+
+		if err == nil {
+			// The discovery request worked, so cache the full results.
+			b.ServicesHost = host
+
+			// Find the TFE API service URL
+			tfcService, err = host.ServiceURL(tfeServiceID)
+		} else {
+			// Network errors from Discover() can read like non-sequiters, so we wrap em.
+			var serviceDiscoErr *disco.ErrServiceDiscoveryNetworkRequest
+			if errors.As(err, &serviceDiscoErr) {
+				err = fmt.Errorf("a network issue prevented cloud configuration; %w", err)
+			}
+		}
 	}
 
-	// Check for errors before we continue.
+	// Handle any errors from URL normalization and service discovery before we continue.
 	if err != nil {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
@@ -294,12 +316,12 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diags
 	}
 
-	b.token = token
+	b.Token = token
 
 	if b.client == nil {
 		cfg := &tfe.Config{
-			Address:      service.String(),
-			BasePath:     service.Path,
+			Address:      tfcService.String(),
+			BasePath:     tfcService.Path,
 			Token:        token,
 			Headers:      make(http.Header),
 			RetryLogHook: b.retryLogHook,
@@ -325,17 +347,17 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	// Check if the organization exists by reading its entitlements.
-	entitlements, err := b.client.Organizations.ReadEntitlements(context.Background(), b.organization)
+	entitlements, err := b.client.Organizations.ReadEntitlements(context.Background(), b.Organization)
 	if err != nil {
 		if err == tfe.ErrResourceNotFound {
 			err = fmt.Errorf("organization %q at host %s not found.\n\n"+
 				"Please ensure that the organization and hostname are correct "+
 				"and that your API token for %s is valid.",
-				b.organization, b.Hostname, b.Hostname)
+				b.Organization, b.Hostname, b.Hostname)
 		}
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
-			fmt.Sprintf("Failed to read organization %q at host %s", b.organization, b.Hostname),
+			fmt.Sprintf("Failed to read organization %q at host %s", b.Organization, b.Hostname),
 			fmt.Sprintf("Encountered an unexpected error while reading the "+
 				"organization settings: %s", err),
 			cty.Path{cty.GetAttrStep{Name: "organization"}},
@@ -346,7 +368,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	// If TF_WORKSPACE specifies a current workspace to use, make sure it's usable.
 	if ws, ok := os.LookupEnv("TF_WORKSPACE"); ok {
 		if ws == b.WorkspaceMapping.Name || b.WorkspaceMapping.Strategy() == WorkspaceTagsStrategy {
-			diag := b.validWorkspaceEnvVar(context.Background(), b.organization, ws)
+			diag := b.validWorkspaceEnvVar(context.Background(), b.Organization, ws)
 			if diag != nil {
 				diags = diags.Append(diag)
 				return diags
@@ -521,30 +543,6 @@ func resolveCloudConfig(obj cty.Value) (cloudConfig, tfdiags.Diagnostics) {
 	return ret, diags
 }
 
-// discover the TFC/E API service URL and version constraints.
-func discover(hostname svchost.Hostname, services *disco.Disco) (*url.URL, error) {
-	host, err := services.Discover(hostname)
-	if err != nil {
-		var serviceDiscoErr *disco.ErrServiceDiscoveryNetworkRequest
-
-		switch {
-		case errors.As(err, &serviceDiscoErr):
-			err = fmt.Errorf("a network issue prevented cloud configuration; %w", err)
-			return nil, err
-		default:
-			return nil, err
-		}
-	}
-
-	service, err := host.ServiceURL(tfeServiceID)
-	// Return the error, unless its a disco.ErrVersionNotSupported error.
-	if _, ok := err.(*disco.ErrVersionNotSupported); !ok && err != nil {
-		return nil, err
-	}
-
-	return service, err
-}
-
 // cliConfigToken returns the token for this host as configured in the credentials
 // section of the CLI Config File. If no token was configured, an empty
 // string will be returned instead.
@@ -595,7 +593,7 @@ func (b *Cloud) Workspaces() ([]string, error) {
 		listOpts := &tfe.ProjectListOptions{
 			Name: b.WorkspaceMapping.Project,
 		}
-		projects, err := b.client.Projects.List(context.Background(), b.organization, listOpts)
+		projects, err := b.client.Projects.List(context.Background(), b.Organization, listOpts)
 		if err != nil && err != tfe.ErrResourceNotFound {
 			return nil, fmt.Errorf("failed to retrieve project %s: %v", listOpts.Name, err)
 		}
@@ -608,7 +606,7 @@ func (b *Cloud) Workspaces() ([]string, error) {
 	}
 
 	for {
-		wl, err := b.client.Workspaces.List(context.Background(), b.organization, options)
+		wl, err := b.client.Workspaces.List(context.Background(), b.Organization, options)
 		if err != nil {
 			return nil, err
 		}
@@ -642,7 +640,7 @@ func (b *Cloud) DeleteWorkspace(name string, force bool) error {
 		return backend.ErrWorkspacesNotSupported
 	}
 
-	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, name)
+	workspace, err := b.client.Workspaces.Read(context.Background(), b.Organization, name)
 	if err == tfe.ErrResourceNotFound {
 		return nil // If the workspace does not exist, succeed
 	}
@@ -652,7 +650,7 @@ func (b *Cloud) DeleteWorkspace(name string, force bool) error {
 	}
 
 	// Configure the remote workspace name.
-	State := &State{tfeClient: b.client, organization: b.organization, workspace: workspace, enableIntermediateSnapshots: false}
+	State := &State{tfeClient: b.client, organization: b.Organization, workspace: workspace, enableIntermediateSnapshots: false}
 	return State.Delete(force)
 }
 
@@ -668,7 +666,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		return nil, backend.ErrWorkspacesNotSupported
 	}
 
-	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, name)
+	workspace, err := b.client.Workspaces.Read(context.Background(), b.Organization, name)
 	if err != nil && err != tfe.ErrResourceNotFound {
 		return nil, fmt.Errorf("Failed to retrieve workspace %s: %v", name, err)
 	}
@@ -683,7 +681,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		listOpts := &tfe.ProjectListOptions{
 			Name: b.WorkspaceMapping.Project,
 		}
-		projects, err := b.client.Projects.List(context.Background(), b.organization, listOpts)
+		projects, err := b.client.Projects.List(context.Background(), b.Organization, listOpts)
 		if err != nil && err != tfe.ErrResourceNotFound {
 			// This is a failure to make an API request, fail to initialize
 			return nil, fmt.Errorf("Attempted to find configured project %s but was unable to.", b.WorkspaceMapping.Project)
@@ -721,8 +719,8 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 					Name: b.WorkspaceMapping.Project,
 				}
 				// didn't find project, create it instead
-				log.Printf("[TRACE] cloud: Creating Terraform Cloud project %s/%s", b.organization, b.WorkspaceMapping.Project)
-				project, err := b.client.Projects.Create(context.Background(), b.organization, createOpts)
+				log.Printf("[TRACE] cloud: Creating Terraform Cloud project %s/%s", b.Organization, b.WorkspaceMapping.Project)
+				project, err := b.client.Projects.Create(context.Background(), b.Organization, createOpts)
 				if err != nil && err != tfe.ErrResourceNotFound {
 					return nil, fmt.Errorf("failed to create project %s: %v", b.WorkspaceMapping.Project, err)
 				}
@@ -732,8 +730,8 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 
 		// Create a workspace
-		log.Printf("[TRACE] cloud: Creating Terraform Cloud workspace %s/%s", b.organization, name)
-		workspace, err = b.client.Workspaces.Create(context.Background(), b.organization, workspaceCreateOptions)
+		log.Printf("[TRACE] cloud: Creating Terraform Cloud workspace %s/%s", b.Organization, name)
+		workspace, err = b.client.Workspaces.Create(context.Background(), b.Organization, workspaceCreateOptions)
 		if err != nil {
 			return nil, fmt.Errorf("error creating workspace %s: %v", name, err)
 		}
@@ -767,7 +765,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		options := tfe.WorkspaceAddTagsOptions{
 			Tags: b.WorkspaceMapping.tfeTags(),
 		}
-		log.Printf("[TRACE] cloud: Adding tags for Terraform Cloud workspace %s/%s", b.organization, name)
+		log.Printf("[TRACE] cloud: Adding tags for Terraform Cloud workspace %s/%s", b.Organization, name)
 		err = b.client.Workspaces.AddTags(context.Background(), workspace.ID, options)
 		if err != nil {
 			return nil, fmt.Errorf("Error updating workspace %s: %v", name, err)
@@ -787,13 +785,13 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 	}
 
-	return &State{tfeClient: b.client, organization: b.organization, workspace: workspace, enableIntermediateSnapshots: false}, nil
+	return &State{tfeClient: b.client, organization: b.Organization, workspace: workspace, enableIntermediateSnapshots: false}, nil
 }
 
-// Operation implements backend.Enhanced.
-func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
+// Operation implements backendrun.OperationsBackend.
+func (b *Cloud) Operation(ctx context.Context, op *backendrun.Operation) (*backendrun.RunningOperation, error) {
 	// Retrieve the workspace for this operation.
-	w, err := b.fetchWorkspace(ctx, b.organization, op.Workspace)
+	w, err := b.fetchWorkspace(ctx, b.Organization, op.Workspace)
 	if err != nil {
 		return nil, err
 	}
@@ -820,13 +818,13 @@ func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	op.Workspace = w.Name
 
 	// Determine the function to call for our operation
-	var f func(context.Context, context.Context, *backend.Operation, *tfe.Workspace) (*tfe.Run, error)
+	var f func(context.Context, context.Context, *backendrun.Operation, *tfe.Workspace) (*tfe.Run, error)
 	switch op.Type {
-	case backend.OperationTypePlan:
+	case backendrun.OperationTypePlan:
 		f = b.opPlan
-	case backend.OperationTypeApply:
+	case backendrun.OperationTypeApply:
 		f = b.opApply
-	case backend.OperationTypeRefresh:
+	case backendrun.OperationTypeRefresh:
 		// The `terraform refresh` command has been deprecated in favor of `terraform apply -refresh-state`.
 		// Rather than respond with an error telling the user to run the other command we can just run
 		// that command instead. We will tell the user what we are doing, and then do it.
@@ -848,7 +846,7 @@ func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	// Build our running operation
 	// the runninCtx is only used to block until the operation returns.
 	runningCtx, done := context.WithCancel(context.Background())
-	runningOp := &backend.RunningOperation{
+	runningOp := &backendrun.RunningOperation{
 		Context:   runningCtx,
 		PlanEmpty: true,
 	}
@@ -879,7 +877,7 @@ func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.
 		}
 
 		if r == nil && opErr == context.Canceled {
-			runningOp.Result = backend.OperationFailure
+			runningOp.Result = backendrun.OperationFailure
 			return
 		}
 
@@ -906,7 +904,7 @@ func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.
 			}
 
 			if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
-				runningOp.Result = backend.OperationFailure
+				runningOp.Result = backendrun.OperationFailure
 			}
 		}
 	}()
@@ -915,7 +913,7 @@ func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	return runningOp, nil
 }
 
-func (b *Cloud) cancel(cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
+func (b *Cloud) cancel(cancelCtx context.Context, op *backendrun.Operation, r *tfe.Run) error {
 	if r.Actions.IsCancelable {
 		// Only ask if the remote operation should be canceled
 		// if the auto approve flag is not set.
@@ -1062,7 +1060,7 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 	message := fmt.Sprintf(
 		"The local Terraform version (%s) does not meet the version requirements for remote workspace %s/%s (%s).",
 		tfversion.String(),
-		b.organization,
+		b.Organization,
 		workspace.Name,
 		remoteConstraint,
 	)
@@ -1212,7 +1210,7 @@ func (b *Cloud) validWorkspaceEnvVar(ctx context.Context, organization, workspac
 		opts.Tags = strings.Join(b.WorkspaceMapping.Tags, ",")
 
 		for {
-			wl, err := b.client.Workspaces.List(ctx, b.organization, opts)
+			wl, err := b.client.Workspaces.List(ctx, b.Organization, opts)
 			if err != nil {
 				return tfdiags.Sourceless(
 					tfdiags.Error,

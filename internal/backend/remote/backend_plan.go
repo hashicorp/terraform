@@ -19,7 +19,8 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform/internal/backend"
+
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -27,7 +28,7 @@ import (
 
 var planConfigurationVersionsPollInterval = 500 * time.Millisecond
 
-func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
+func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	log.Printf("[INFO] backend/remote: starting Plan operation")
 
 	var diags tfdiags.Diagnostics
@@ -183,10 +184,10 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 	return b.plan(stopCtx, cancelCtx, op, w)
 }
 
-func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
+func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	if b.CLI != nil {
 		header := planDefaultHeader
-		if op.Type == backend.OperationTypeApply {
+		if op.Type == backendrun.OperationTypeApply {
 			header = applyDefaultHeader
 		}
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(header) + "\n"))
@@ -194,7 +195,7 @@ func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backend.Operation,
 
 	configOptions := tfe.ConfigurationVersionCreateOptions{
 		AutoQueueRuns: tfe.Bool(false),
-		Speculative:   tfe.Bool(op.Type == backend.OperationTypePlan),
+		Speculative:   tfe.Bool(op.Type == backendrun.OperationTypePlan),
 	}
 
 	cv, err := b.client.ConfigurationVersions.Create(stopCtx, w.ID, configOptions)
@@ -443,8 +444,13 @@ Preparing the remote plan...
 `
 
 const runHeader = `
-[reset][yellow]To view this run in a browser, visit:
-https://%s/app/%s/%s/runs/%s[reset]
+[reset][yellow]To view this run in a browser, visit:[reset]
+[reset][yellow]https://%s/app/%s/%s/runs/%s[reset]
+`
+
+const runHeaderErr = `
+To view this run in a browser, visit:
+https://%s/app/%s/%s/runs/%s
 `
 
 // The newline in this error is to make it look good in the CLI!

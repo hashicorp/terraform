@@ -29,10 +29,11 @@ import (
 // provide what they want to inspect just once and then perform any number
 // of subsequent inspection actions against it.
 type stacksInspector struct {
-	Config            *stackconfig.Config
-	State             *stackstate.State
-	ProviderFactories map[addrs.Provider]providers.Factory
-	InputValues       map[stackaddrs.InputVariable]stackruntime.ExternalInputValue
+	Config             *stackconfig.Config
+	State              *stackstate.State
+	ProviderFactories  map[addrs.Provider]providers.Factory
+	InputValues        map[stackaddrs.InputVariable]stackruntime.ExternalInputValue
+	ExperimentsAllowed bool
 }
 
 // InspectExpressionResult evaluates a given expression string in the
@@ -57,11 +58,12 @@ func (i *stacksInspector) InspectExpressionResult(ctx context.Context, req *terr
 	}
 
 	val, moreDiags := stackruntime.EvalExpr(ctx, expr, &stackruntime.EvalExprRequest{
-		Config:            i.Config,
-		State:             i.State,
-		EvalStackInstance: stackAddr,
-		InputValues:       i.InputValues,
-		ProviderFactories: i.ProviderFactories,
+		Config:             i.Config,
+		State:              i.State,
+		EvalStackInstance:  stackAddr,
+		InputValues:        i.InputValues,
+		ProviderFactories:  i.ProviderFactories,
+		ExperimentsAllowed: i.ExperimentsAllowed,
 	})
 	diags = diags.Append(moreDiags)
 	if val == cty.NilVal {

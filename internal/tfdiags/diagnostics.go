@@ -5,13 +5,12 @@ package tfdiags
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/errwrap"
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl/v2"
 )
 
@@ -68,23 +67,8 @@ func (diags Diagnostics) Append(new ...interface{}) Diagnostics {
 			}
 		case *hcl.Diagnostic:
 			diags = append(diags, hclDiagnostic{ti})
-		case *multierror.Error:
-			for _, err := range ti.Errors {
-				diags = append(diags, nativeError{err})
-			}
 		case error:
-			switch {
-			case errwrap.ContainsType(ti, Diagnostics(nil)):
-				// If we have an errwrap wrapper with a Diagnostics hiding
-				// inside then we'll unpick it here to get access to the
-				// individual diagnostics.
-				diags = diags.Append(errwrap.GetType(ti, Diagnostics(nil)))
-			case errwrap.ContainsType(ti, hcl.Diagnostics(nil)):
-				// Likewise, if we have HCL diagnostics we'll unpick that too.
-				diags = diags.Append(errwrap.GetType(ti, hcl.Diagnostics(nil)))
-			default:
-				diags = append(diags, nativeError{ti})
-			}
+			diags = append(diags, diagnosticsForError(ti)...)
 		default:
 			panic(fmt.Errorf("can't construct diagnostic(s) from %T", item))
 		}
@@ -97,6 +81,65 @@ func (diags Diagnostics) Append(new ...interface{}) Diagnostics {
 	}
 
 	return diags
+}
+
+func diagnosticsForError(err error) []Diagnostic {
+	if err == nil {
+		return nil
+	}
+
+	// This is the interface implemented by the result of the
+	// standard library errors.Join function, which combines
+	// multiple errors together into a single error value.
+	type UnwrapJoined interface {
+		Unwrap() []error
+	}
+	if err, ok := err.(UnwrapJoined); ok {
+		errs := err.Unwrap()
+		if len(errs) == 0 { // weird, but harmless!
+			return nil
+		}
+		// We'll start with the assumption of 1:1 relationship between
+		// errors and diagnostics, but we'll grow this if one of
+		// the wrapped errors becomes multiple diagnostics itself.
+		ret := make([]Diagnostic, 0, len(errs))
+		for _, err := range errs {
+			ret = append(ret, diagnosticsForError(err)...)
+		}
+		return ret
+	}
+
+	// If we've wrapped a Diagnostics in an error then we'll unwrap
+	// it and add it directly.
+	var asErr diagnosticsAsError
+	if errors.As(err, &asErr) {
+		return asErr.Diagnostics
+	}
+
+	// We also support wrapping diagnostics in a special kind of error
+	// that might contain only warnings, in special cases where the
+	// caller and callee are both aware of that convention.
+	var asErrWithWarnings NonFatalError
+	if errors.As(err, &asErrWithWarnings) {
+		return asErrWithWarnings.Diagnostics
+	}
+
+	// Finally, HCL's own Diagnostics type implements error and so we
+	// might have been given HCL diagnostics directly.
+	var asHCLDiags hcl.Diagnostics
+	if errors.As(err, &asHCLDiags) {
+		ret := make([]Diagnostic, len(asHCLDiags))
+		for i, hclDiag := range asHCLDiags {
+			ret[i] = hclDiagnostic{hclDiag}
+		}
+		return ret
+	}
+
+	// If none of the special treatments above applied then we'll just
+	// wrap the given error as a single (low-quality) diagnostic.
+	return []Diagnostic{
+		nativeError{err},
+	}
 }
 
 // HasErrors returns true if any of the diagnostics in the list have

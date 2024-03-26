@@ -9,6 +9,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/hashicorp/go-hclog"
 )
@@ -50,12 +51,37 @@ func PanicHandler() {
 		return
 	}
 
-	fmt.Fprint(os.Stderr, panicOutput)
-	fmt.Fprint(os.Stderr, recovered, "\n")
-
-	// When called from a deferred function, debug.PrintStack will include the
-	// full stack from the point of the pending panic.
-	debug.PrintStack()
+	// We're aiming to behave as much as possible like the built-in panic
+	// handler aside from our few intentional exceptions.
+	//
+	// One detail is that we want the panic information to definitely go to the
+	// real stderr even if something else in our process has rudely reassigned
+	// [`os.Stderr`] to point to something else. Software that's designed to
+	// monitor the output of Go programs to detect and report panics expects
+	// the panic message to appear on the real process stderr.
+	//
+	// (At the time of writing, the go-plugin Serve function is an example
+	// of modifying the global os.Stderr, causing it to get routed over a
+	// plugin-specific stream rather than to the real process stderr. If
+	// we used os.Stderr here then panics under "terraform rpcapi" would
+	// end up in the wrong place.)
+	//
+	// The following mimics how the standard library (package os) constructs
+	// os.Stderr in the first place. Technically even this syscall.Stderr
+	// can be overridden rudely at runtime, but thankfully we've not yet
+	// encountered anything linked into Terraform that does _that_!
+	stderr := os.NewFile(uintptr(syscall.Stderr), "/dev/stderr")
+	if stderr == nil {
+		// os.NewFile has a few esoteric error cases where it'll return nil,
+		// in which case we'll just do our best with whatever happens to
+		// be in os.Stderr right now as a last resort.
+		stderr = os.Stderr
+	}
+	fmt.Fprint(stderr, panicOutput)
+	fmt.Fprint(stderr, "panic: ", recovered, "\n")
+	// The following mimics the implementation of debug.PrintStack, but
+	// without the hard-coded reference to os.Stderr.
+	stderr.Write(debug.Stack())
 
 	// An exit code of 11 keeps us out of the way of the detailed exitcodes
 	// from plan, and also happens to be the same code as SIGSEGV which is

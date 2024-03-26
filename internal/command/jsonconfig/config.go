@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -179,7 +179,7 @@ func marshalProviderConfigs(
 		// version argument) and more accurate (as it reflects the full set of
 		// constraints, in case there are multiple).
 		if vc, ok := reqs[providerFqn]; ok {
-			p.VersionConstraint = getproviders.VersionConstraintsString(vc)
+			p.VersionConstraint = providerreqs.VersionConstraintsString(vc)
 		}
 
 		key := opaqueProviderKey(k, c.Path.String())
@@ -208,7 +208,7 @@ func marshalProviderConfigs(
 			}
 
 			if vc, ok := reqs[pr.Type]; ok {
-				p.VersionConstraint = getproviders.VersionConstraintsString(vc)
+				p.VersionConstraint = providerreqs.VersionConstraintsString(vc)
 			}
 
 			m[key] = p
@@ -231,7 +231,7 @@ func marshalProviderConfigs(
 		}
 
 		if vc, ok := reqs[pr.Type]; ok {
-			p.VersionConstraint = getproviders.VersionConstraintsString(vc)
+			p.VersionConstraint = providerreqs.VersionConstraintsString(vc)
 		}
 
 		if c.Parent != nil {

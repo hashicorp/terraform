@@ -7,8 +7,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -19,6 +23,12 @@ import (
 // Terraform language runtime to apply all of the described changes together as
 // a single operation.
 type Component struct {
+	PlannedAction plans.Action
+
+	// These fields echo the [plans.Plan.Applyable] and [plans.Plan.Complete]
+	// field respectively. See the docs for those fields for more information.
+	PlanApplyable, PlanComplete bool
+
 	// ResourceInstancePlanned describes the changes that Terraform is proposing
 	// to make to try to converge the real system state with the desired state
 	// as described by the configuration.
@@ -43,6 +53,19 @@ type Component struct {
 	// timestamp", which is used only for the result of the "plantimestamp"
 	// function during apply and must not be used for any other purpose.
 	PlanTimestamp time.Time
+
+	// Dependencies is a set of addresses of other components that this one
+	// expects to exist for as long as this one exists.
+	Dependencies collections.Set[stackaddrs.AbsComponent]
+
+	// Dependents is the reverse of [Component.Dependencies], describing
+	// the other components that must be destroyed before this one could
+	// be destroyed.
+	Dependents collections.Set[stackaddrs.AbsComponent]
+
+	PlannedOutputValues map[addrs.OutputValue]cty.Value
+
+	PlannedChecks *states.CheckResults
 }
 
 // ForModulesRuntime translates the component instance plan into the form
@@ -64,6 +87,9 @@ func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 	plan := &plans.Plan{
 		Changes:   changes,
 		Timestamp: c.PlanTimestamp,
+		Applyable: c.PlanApplyable,
+		Complete:  c.PlanComplete,
+		Checks:    c.PlannedChecks,
 	}
 
 	sc := changes.SyncWrapper()
@@ -94,4 +120,23 @@ func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 	plan.PrevRunState = priorState.DeepCopy() // This is just here to complete the data structure; we don't really do anything with it
 
 	return plan, nil
+}
+
+// RequiredProviderInstances returns a description of all the provider instance
+// slots that are required to satisfy the resource instances planned for this
+// component.
+//
+// See also stackstate.State.RequiredProviderInstances and
+// stackeval.ComponentConfig.RequiredProviderInstances for similar functions
+// that retrieve the provider instances for a components in the config and in
+// the state.
+func (c *Component) RequiredProviderInstances() addrs.Set[addrs.RootProviderConfig] {
+	providerInstances := addrs.MakeSet[addrs.RootProviderConfig]()
+	for _, elem := range c.ResourceInstanceProviderConfig.Elems {
+		providerInstances.Add(addrs.RootProviderConfig{
+			Provider: elem.Value.Provider,
+			Alias:    elem.Value.Alias,
+		})
+	}
+	return providerInstances
 }

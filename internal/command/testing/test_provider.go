@@ -15,7 +15,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -63,13 +63,26 @@ var (
 				},
 			},
 		},
+		Functions: map[string]providers.FunctionDecl{
+			"is_true": {
+				Parameters: []providers.FunctionParam{
+					{
+						Name:               "input",
+						Type:               cty.Bool,
+						AllowNullValue:     false,
+						AllowUnknownValues: false,
+					},
+				},
+				ReturnType: cty.Bool,
+			},
+		},
 	}
 )
 
 // TestProvider is a wrapper around terraform.MockProvider that defines dynamic
 // schemas, and keeps track of the resources and data sources that it contains.
 type TestProvider struct {
-	Provider *terraform.MockProvider
+	Provider *testing.MockProvider
 
 	data, resource cty.Value
 
@@ -86,7 +99,7 @@ func NewProvider(store *ResourceStore) *TestProvider {
 	}
 
 	provider := &TestProvider{
-		Provider: new(terraform.MockProvider),
+		Provider: new(testing.MockProvider),
 		Store:    store,
 	}
 
@@ -96,6 +109,7 @@ func NewProvider(store *ResourceStore) *TestProvider {
 	provider.Provider.ApplyResourceChangeFn = provider.ApplyResourceChange
 	provider.Provider.ReadResourceFn = provider.ReadResource
 	provider.Provider.ReadDataSourceFn = provider.ReadDataSource
+	provider.Provider.CallFunctionFn = provider.CallFunction
 
 	return provider
 }
@@ -310,6 +324,19 @@ func (provider *TestProvider) ReadDataSource(request providers.ReadDataSourceReq
 	return providers.ReadDataSourceResponse{
 		State:       resource,
 		Diagnostics: diags,
+	}
+}
+
+func (provider *TestProvider) CallFunction(request providers.CallFunctionRequest) providers.CallFunctionResponse {
+	switch request.FunctionName {
+	case "is_true":
+		return providers.CallFunctionResponse{
+			Result: request.Arguments[0],
+		}
+	default:
+		return providers.CallFunctionResponse{
+			Err: fmt.Errorf("unknown function %q", request.FunctionName),
+		}
 	}
 }
 

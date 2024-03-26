@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -26,9 +26,10 @@ func TestTest_Runs(t *testing.T) {
 		override              string
 		args                  []string
 		expectedOut           string
-		expectedErr           string
+		expectedErr           []string
 		expectedResourceCount int
 		code                  int
+		initCode              int
 		skip                  bool
 	}{
 		"simple_pass": {
@@ -58,13 +59,13 @@ func TestTest_Runs(t *testing.T) {
 		"simple_pass_bad_test_directory": {
 			override:    "simple_pass",
 			args:        []string{"-test-directory", "../tests"},
-			expectedErr: "Invalid testing directory",
+			expectedErr: []string{"Invalid testing directory"},
 			code:        1,
 		},
 		"simple_pass_bad_test_directory_abs": {
 			override:    "simple_pass",
 			args:        []string{"-test-directory", "/home/username/config/tests"},
-			expectedErr: "Invalid testing directory",
+			expectedErr: []string{"Invalid testing directory"},
 			code:        1,
 		},
 		"pass_with_locals": {
@@ -117,32 +118,32 @@ func TestTest_Runs(t *testing.T) {
 			override:    "variables",
 			args:        []string{"-var=input=foo"},
 			expectedOut: "1 passed, 1 failed",
-			expectedErr: `invalid value`,
+			expectedErr: []string{`invalid value`},
 			code:        1,
 		},
 		"simple_fail": {
 			expectedOut: "0 passed, 1 failed.",
-			expectedErr: "invalid value",
+			expectedErr: []string{"invalid value"},
 			code:        1,
 		},
 		"custom_condition_checks": {
 			expectedOut: "0 passed, 1 failed.",
-			expectedErr: "this really should fail",
+			expectedErr: []string{"this really should fail"},
 			code:        1,
 		},
 		"custom_condition_inputs": {
 			expectedOut: "0 passed, 1 failed.",
-			expectedErr: "this should definitely fail",
+			expectedErr: []string{"this should definitely fail"},
 			code:        1,
 		},
 		"custom_condition_outputs": {
 			expectedOut: "0 passed, 1 failed.",
-			expectedErr: "this should fail",
+			expectedErr: []string{"this should fail"},
 			code:        1,
 		},
 		"custom_condition_resources": {
 			expectedOut: "0 passed, 1 failed.",
-			expectedErr: "this really should fail",
+			expectedErr: []string{"this really should fail"},
 			code:        1,
 		},
 		"no_providers_in_main": {
@@ -189,7 +190,7 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"destroy_fail": {
 			expectedOut:           "1 passed, 0 failed.",
-			expectedErr:           `Terraform left the following resources in state`,
+			expectedErr:           []string{`Terraform left the following resources in state`},
 			code:                  1,
 			expectedResourceCount: 1,
 		},
@@ -208,12 +209,20 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"functions_available": {
+			expectedOut: "2 passed, 0 failed.",
+			code:        0,
+		},
+		"provider-functions-available": {
 			expectedOut: "1 passed, 0 failed.",
 			code:        0,
 		},
 		"mocking": {
-			expectedOut: "5 passed, 0 failed.",
+			expectedOut: "6 passed, 0 failed.",
 			code:        0,
+		},
+		"mocking-invalid": {
+			expectedErr: []string{"Invalid outputs attribute"},
+			initCode:    1,
 		},
 		"dangling_data_block": {
 			expectedOut: "2 passed, 0 failed.",
@@ -221,6 +230,19 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"skip_destroy_on_empty": {
 			expectedOut: "3 passed, 0 failed.",
+			code:        0,
+		},
+		"empty_module_with_output": {
+			expectedOut: "1 passed, 0 failed.",
+			code:        0,
+		},
+		"global_var_refs": {
+			expectedOut: "2 failed, 1 skipped.",
+			expectedErr: []string{"The input variable \"env_var_input\" is not available to the current context", "The input variable \"setup\" is not available to the current context"},
+			code:        1,
+		},
+		"global_var_ref_in_suite_var": {
+			expectedOut: "1 passed, 0 failed.",
 			code:        0,
 		},
 	}
@@ -261,8 +283,34 @@ func TestTest_Runs(t *testing.T) {
 				Meta: meta,
 			}
 
-			if code := init.Run(nil); code != 0 {
-				t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+			if code := init.Run(nil); code != tc.initCode {
+				t.Fatalf("expected status code %d but got %d: %s", tc.initCode, code, ui.ErrorWriter)
+			}
+
+			if tc.initCode > 0 {
+				// Then we don't expect the init step to succeed. So we'll check
+				// the init output for our expected error messages and outputs.
+
+				stdout, stderr := ui.ErrorWriter.String(), ui.ErrorWriter.String()
+
+				if !strings.Contains(stdout, tc.expectedOut) {
+					t.Errorf("output didn't contain expected string:\n\n%s", stdout)
+				}
+
+				if len(tc.expectedErr) > 0 {
+					for _, expectedErr := range tc.expectedErr {
+						if !strings.Contains(stderr, expectedErr) {
+							t.Errorf("error didn't contain expected string:\n\n%s", stderr)
+						}
+					}
+				} else if stderr != "" {
+					t.Errorf("unexpected stderr output\n%s", stderr)
+				}
+
+				// If `terraform init` failed, then we don't expect that
+				// `terraform test` will have run at all, so we can just return
+				// here.
+				return
 			}
 
 			c := &TestCommand{
@@ -277,12 +325,16 @@ func TestTest_Runs(t *testing.T) {
 			}
 
 			if !strings.Contains(output.Stdout(), tc.expectedOut) {
-				t.Errorf("output didn't contain expected string:\n\n%s", output.All())
+				t.Errorf("output didn't contain expected string:\n\n%s", output.Stdout())
 			}
 
-			if !strings.Contains(output.Stderr(), tc.expectedErr) {
-				t.Errorf("error didn't contain expected string:\n\n%s", output.Stderr())
-			} else if tc.expectedErr == "" && output.Stderr() != "" {
+			if len(tc.expectedErr) > 0 {
+				for _, expectedErr := range tc.expectedErr {
+					if !strings.Contains(output.Stderr(), expectedErr) {
+						t.Errorf("error didn't contain expected string:\n\n%s", output.Stderr())
+					}
+				}
+			} else if output.Stderr() != "" {
 				t.Errorf("unexpected stderr output\n%s", output.Stderr())
 			}
 
@@ -1125,7 +1177,7 @@ requested in the configuration may have been ignored and the output values
 may not be fully updated. Run the following command to verify that no other
 changes are pending:
     terraform plan
-	
+
 Note that the -target option is not suitable for routine use, and is provided
 only for exceptional situations such as recovering from errors or mistakes,
 or when Terraform specifically suggests to use it as part of an error
@@ -1204,9 +1256,10 @@ Error: Reference to unavailable variable
   on main.tftest.hcl line 15, in run "test":
   15:     input_one = var.notreal
 
-The input variable "notreal" is not available to the current run block. You
-can only reference variables defined at the file or global levels when
-populating the variables block within a run block.
+The input variable "notreal" is not available to the current context. Within
+the variables block of a run block you can only reference variables defined
+at the file or global levels; within the variables block of a suite you can
+only reference variables defined at the global levels.
 
 Error: Reference to unavailable run block
 
@@ -1231,9 +1284,10 @@ Error: Reference to unavailable variable
   on providers.tftest.hcl line 3, in provider "test":
    3:   resource_prefix = var.default
 
-The input variable "default" is not available to the current run block. You
-can only reference variables defined at the file or global levels when
-populating the variables block within a run block.
+The input variable "default" is not available to the current context. Within
+the variables block of a run block you can only reference variables defined
+at the file or global levels; within the variables block of a suite you can
+only reference variables defined at the global levels.
 `
 	actualErr := output.Stderr()
 	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {

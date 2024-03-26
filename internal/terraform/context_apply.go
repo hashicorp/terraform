@@ -87,7 +87,6 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 	}
 
 	if plan.Errored {
-		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Cannot apply failed plan",
@@ -95,16 +94,42 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		))
 		return nil, nil, diags
 	}
+	if !plan.Applyable {
+		if plan.Changes.Empty() {
+			// If a plan is not applyable but it didn't have any errors then that
+			// suggests it was a "no-op" plan, which doesn't really do any
+			// harm to apply, so we'll just do it but leave ourselves a note
+			// in the trace log in case it ends up relevant to a bug report.
+			log.Printf("[TRACE] Applying a no-op plan")
+		} else {
+			// This situation isn't something we expect, since our own rules
+			// for what "applyable" means make this scenario impossible. We'll
+			// reject it on the assumption that something very strange is
+			// going on. and so better to halt than do something incorrect.
+			// This error message is generic and useless because we don't
+			// expect anyone to ever see it in normal use.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot apply non-applyable plan",
+				`The given plan is not applyable. If this seems like a bug in Terraform, then please report it!`,
+			))
+			return nil, nil, diags
+		}
+	}
 
 	for _, rc := range plan.Changes.Resources {
 		// Import is a no-op change during an apply (all the real action happens during the plan) but we'd
 		// like to show some helpful output that mirrors the way we show other changes.
 		if rc.Importing != nil {
+			hookResourceID := HookResourceIdentity{
+				Addr:         rc.Addr,
+				ProviderAddr: rc.ProviderAddr.Provider,
+			}
 			for _, h := range c.hooks {
 				// In future, we may need to call PostApplyImport separately elsewhere in the apply
 				// operation. For now, though, we'll call Pre and Post hooks together.
-				h.PreApplyImport(rc.Addr, *rc.Importing)
-				h.PostApplyImport(rc.Addr, *rc.Importing)
+				h.PreApplyImport(hookResourceID, *rc.Importing)
+				h.PostApplyImport(hookResourceID, *rc.Importing)
 			}
 		}
 	}
@@ -136,6 +161,8 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 
 		// We also want to propagate the timestamp from the plan file.
 		PlanTimeTimestamp: plan.Timestamp,
+
+		ProviderFuncResults: providers.NewFunctionResultsTable(plan.ProviderFunctionResults),
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -160,7 +187,7 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 			"Applied changes may be incomplete",
 			`The plan was created with the -target option in effect, so some changes requested in the configuration may have been ignored and the output values may not be fully updated. Run the following command to verify that no other changes are pending:
     terraform plan
-	
+
 Note that the -target option is not suitable for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
 		))
 	}
@@ -201,6 +228,9 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 				fmt.Sprintf("Invalid value for variable %q recorded in plan file: %s.", name, err),
 			))
 			continue
+		}
+		if pvm, ok := plan.VariableMarks[name]; ok {
+			val = val.MarkWithPaths(pvm)
 		}
 
 		variables[name] = &InputValue{

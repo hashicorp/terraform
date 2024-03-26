@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -79,50 +79,67 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 	}
 
 	var g Graph
-	for _, module := range expander.ExpandModule(n.Module) {
-		absAddr := n.Addr.Absolute(module)
-		if checkableAddrs != nil {
-			checkableAddrs.Add(absAddr)
-		}
-
-		// Find any recorded change for this output
-		var change *plans.OutputChangeSrc
-		var outputChanges []*plans.OutputChangeSrc
-		if module.IsRoot() {
-			outputChanges = changes.GetRootOutputChanges()
-		} else {
-			parent, call := module.Call()
-			outputChanges = changes.GetOutputChanges(parent, call)
-		}
-		for _, c := range outputChanges {
-			if c.Addr.String() == absAddr.String() {
-				change = c
-				break
-			}
-		}
-
-		var node dag.Vertex
-		switch {
-		case module.IsRoot() && n.Destroying:
-			node = &NodeDestroyableOutput{
-				Addr:     absAddr,
-				Planning: n.Planning,
+	forEachModuleInstance(
+		expander, n.Module,
+		func(module addrs.ModuleInstance) {
+			absAddr := n.Addr.Absolute(module)
+			if checkableAddrs != nil {
+				checkableAddrs.Add(absAddr)
 			}
 
-		default:
-			node = &NodeApplyableOutput{
-				Addr:         absAddr,
-				Config:       n.Config,
-				Change:       change,
-				RefreshOnly:  n.RefreshOnly,
-				DestroyApply: n.Destroying,
-				Planning:     n.Planning,
+			// Find any recorded change for this output
+			var change *plans.OutputChangeSrc
+			var outputChanges []*plans.OutputChangeSrc
+			if module.IsRoot() {
+				outputChanges = changes.GetRootOutputChanges()
+			} else {
+				parent, call := module.Call()
+				outputChanges = changes.GetOutputChanges(parent, call)
 			}
-		}
+			for _, c := range outputChanges {
+				if c.Addr.String() == absAddr.String() {
+					change = c
+					break
+				}
+			}
 
-		log.Printf("[TRACE] Expanding output: adding %s as %T", absAddr.String(), node)
-		g.Add(node)
-	}
+			var node dag.Vertex
+			switch {
+			case module.IsRoot() && n.Destroying:
+				node = &NodeDestroyableOutput{
+					Addr:     absAddr,
+					Planning: n.Planning,
+				}
+
+			default:
+				node = &NodeApplyableOutput{
+					Addr:         absAddr,
+					Config:       n.Config,
+					Change:       change,
+					RefreshOnly:  n.RefreshOnly,
+					DestroyApply: n.Destroying,
+					Planning:     n.Planning,
+				}
+			}
+
+			log.Printf("[TRACE] Expanding output: adding %s as %T", absAddr.String(), node)
+			g.Add(node)
+		},
+		func(pem addrs.PartialExpandedModule) {
+			absAddr := addrs.ObjectInPartialExpandedModule(pem, n.Addr)
+			node := &nodeOutputInPartialModule{
+				Addr:        absAddr,
+				Config:      n.Config,
+				RefreshOnly: n.RefreshOnly,
+			}
+			// We don't need to handle the module.IsRoot() && n.Destroying case
+			// seen in the fully-expanded case above, because the root module
+			// instance is always "fully expanded" (it's always a singleton)
+			// and so we can't get here for output values in the root module.
+			log.Printf("[TRACE] Expanding output: adding placeholder for all %s as %T", absAddr.String(), node)
+			g.Add(node)
+		},
+	)
 	addRootNodeToGraph(&g)
 
 	if checkableAddrs != nil {
@@ -282,16 +299,16 @@ func (n *NodeApplyableOutput) ReferenceableAddrs() []addrs.Referenceable {
 func referencesForOutput(c *configs.Output) []*addrs.Reference {
 	var refs []*addrs.Reference
 
-	impRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, c.Expr)
-	expRefs, _ := lang.References(addrs.ParseRef, c.DependsOn)
+	impRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.Expr)
+	expRefs, _ := langrefs.References(addrs.ParseRef, c.DependsOn)
 
 	refs = append(refs, impRefs...)
 	refs = append(refs, expRefs...)
 
 	for _, check := range c.Preconditions {
-		condRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, check.Condition)
+		condRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, check.Condition)
 		refs = append(refs, condRefs...)
-		errRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, check.ErrorMessage)
+		errRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, check.ErrorMessage)
 		refs = append(refs, errRefs...)
 	}
 
@@ -432,6 +449,61 @@ func (n *NodeApplyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.DotNo
 			"shape": "note",
 		},
 	}
+}
+
+// nodeOutputInPartialModule represents an infinite set of possible output value
+// instances beneath a partially-expanded module instance prefix.
+//
+// Its job is to find a suitable placeholder value that approximates the
+// values of all of those possible instances. Ideally that's a concrete
+// known value if all instances would have the same value, an unknown value
+// of a specific type if the definition produces a known type, or a
+// totally-unknown value of unknown type in the worst case.
+type nodeOutputInPartialModule struct {
+	Addr   addrs.InPartialExpandedModule[addrs.OutputValue]
+	Config *configs.Output
+
+	// Refresh-only mode means that any failing output preconditions are
+	// reported as warnings rather than errors
+	RefreshOnly bool
+}
+
+// Path implements [GraphNodePartialExpandedModule], meaning that the
+// Execute method receives an [EvalContext] that's set up for partial-expanded
+// evaluation instead of full evaluation.
+func (n *nodeOutputInPartialModule) Path() addrs.PartialExpandedModule {
+	return n.Addr.Module
+}
+
+func (n *nodeOutputInPartialModule) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	// Our job here is to make sure that the output value definition is
+	// valid for all instances of this output value across all of the possible
+	// module instances under our partially-expanded prefix, and to record
+	// a placeholder value that captures as precisely as possible what all
+	// of those results have in common. In the worst case where they have
+	// absolutely nothing in common cty.DynamicVal is the ultimate fallback,
+	// but we should try to do better when possible to give operators earlier
+	// feedback about any problems they would definitely encounter on a
+	// subsequent plan where the output values get evaluated concretely.
+
+	namedVals := ctx.NamedValues()
+
+	// this "ctx" is preconfigured to evaluate in terms of other placeholder
+	// values generated in the same unexpanded module prefix, rather than
+	// from the active state/plan, so this result is likely to be derived
+	// from unknown value placeholders itself.
+	val, diags := ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
+	if val == cty.NilVal {
+		val = cty.DynamicVal
+	}
+
+	// We'll also check that the depends_on argument is valid, since that's
+	// a static concern anyway and so cannot vary between instances of the
+	// same module.
+	diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
+
+	namedVals.SetOutputValuePlaceholder(n.Addr, val)
+	return diags
 }
 
 // NodeDestroyableOutput represents an output that is "destroyable":

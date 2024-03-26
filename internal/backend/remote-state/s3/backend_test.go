@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
@@ -30,14 +31,14 @@ import (
 	"github.com/hashicorp/aws-sdk-go-base/v2/servicemocks"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"golang.org/x/exp/maps"
 )
 
 var (
@@ -2230,6 +2231,93 @@ func TestBackendPrefixInWorkspace(t *testing.T) {
 	}
 }
 
+func TestBackendRestrictedRoot_Default(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	workspacePrefix := defaultWorkspaceKeyPrefix
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket": bucketName,
+		"key":    "test/test-env.tfstate",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region, s3BucketWithPolicy(fmt.Sprintf(`{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "Statement1",
+			"Effect": "Deny",
+			"Principal": "*",
+			"Action": "s3:ListBucket",
+			"Resource": "arn:aws:s3:::%[1]s",
+			"Condition": {
+				"StringLike": {
+					"s3:prefix": "%[2]s/*"
+				}
+			}
+		}
+	]
+}`, bucketName, workspacePrefix)))
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
+
+	sMgr, err := b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := sMgr.RefreshState(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := checkStateList(b, []string{"default"}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestBackendRestrictedRoot_NamedPrefix(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	workspacePrefix := "prefix"
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":               bucketName,
+		"key":                  "test/test-env.tfstate",
+		"workspace_key_prefix": workspacePrefix,
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region, s3BucketWithPolicy(fmt.Sprintf(`{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Sid": "Statement1",
+			"Effect": "Deny",
+			"Principal": "*",
+			"Action": "s3:ListBucket",
+			"Resource": "arn:aws:s3:::%[1]s",
+			"Condition": {
+				"StringLike": {
+					"s3:prefix": "%[2]s/*"
+				}
+			}
+		}
+	]
+}`, bucketName, workspacePrefix)))
+	defer deleteS3Bucket(ctx, t, b.s3Client, bucketName, b.awsConfig.Region)
+
+	_, err := b.StateMgr(backend.DefaultStateName)
+	if err == nil {
+		t.Fatal("expected AccessDenied error, got none")
+	}
+	if s := err.Error(); !strings.Contains(s, fmt.Sprintf("Unable to list objects in S3 bucket %q with prefix %q:", bucketName, workspacePrefix+"/")) {
+		t.Fatalf("expected AccessDenied error, got: %s", s)
+	}
+}
+
 func TestBackendWrongRegion(t *testing.T) {
 	testACC(t)
 
@@ -2539,7 +2627,7 @@ func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
 // an s3 backend Block
 //
 // This serves as a smoke test for use of the terraform_remote_state
-// data source with the s3 backend, replicating the the process that
+// data source with the s3 backend, replicating the process that
 // data source uses. The returned value is ignored as the object is
 // large (representing the entire s3 backend schema) and the focus of
 // this test is early detection of coercion failures.
@@ -2644,6 +2732,7 @@ func checkStateList(b backend.Backend, expected []string) error {
 type createS3BucketOptions struct {
 	versioning     bool
 	objectLockMode s3types.ObjectLockRetentionMode
+	policy         string
 }
 
 type createS3BucketOptionsFunc func(*createS3BucketOptions)
@@ -2689,7 +2778,7 @@ func createS3Bucket(ctx context.Context, t *testing.T, s3Client *s3.Client, buck
 	}
 
 	if opts.objectLockMode != "" {
-		_, err = s3Client.PutObjectLockConfiguration(ctx, &s3.PutObjectLockConfigurationInput{
+		_, err := s3Client.PutObjectLockConfiguration(ctx, &s3.PutObjectLockConfigurationInput{
 			Bucket: aws.String(bucketName),
 			ObjectLockConfiguration: &s3types.ObjectLockConfiguration{
 				ObjectLockEnabled: s3types.ObjectLockEnabledEnabled,
@@ -2705,6 +2794,16 @@ func createS3Bucket(ctx context.Context, t *testing.T, s3Client *s3.Client, buck
 			t.Fatalf("failed enabling object locking: %s", err)
 		}
 	}
+
+	if opts.policy != "" {
+		_, err := s3Client.PutBucketPolicy(ctx, &s3.PutBucketPolicyInput{
+			Bucket: aws.String(bucketName),
+			Policy: &opts.policy,
+		})
+		if err != nil {
+			t.Fatalf("failed setting bucket policy: %s", err)
+		}
+	}
 }
 
 func s3BucketWithVersioning(opts *createS3BucketOptions) {
@@ -2714,6 +2813,12 @@ func s3BucketWithVersioning(opts *createS3BucketOptions) {
 func s3BucketWithObjectLock(mode s3types.ObjectLockRetentionMode) createS3BucketOptionsFunc {
 	return func(opts *createS3BucketOptions) {
 		opts.objectLockMode = mode
+	}
+}
+
+func s3BucketWithPolicy(policy string) createS3BucketOptionsFunc {
+	return func(opts *createS3BucketOptions) {
+		opts.policy = policy
 	}
 }
 

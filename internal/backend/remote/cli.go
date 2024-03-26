@@ -4,12 +4,12 @@
 package remote
 
 import (
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 )
 
-// CLIInit implements backend.CLI
-func (b *Remote) CLIInit(opts *backend.CLIOpts) error {
-	if cli, ok := b.local.(backend.CLI); ok {
+// CLIInit implements backendrun.CLI
+func (b *Remote) CLIInit(opts *backendrun.CLIOpts) error {
+	if cli, ok := b.local.(backendrun.CLI); ok {
 		if err := cli.CLIInit(opts); err != nil {
 			return err
 		}

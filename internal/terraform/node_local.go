@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -62,21 +62,32 @@ func (n *nodeExpandLocal) ReferenceableAddrs() []addrs.Referenceable {
 
 // GraphNodeReferencer
 func (n *nodeExpandLocal) References() []*addrs.Reference {
-	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.Config.Expr)
+	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.Config.Expr)
 	return refs
 }
 
 func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 	expander := ctx.InstanceExpander()
-	for _, module := range expander.ExpandModule(n.Module) {
-		o := &NodeLocal{
-			Addr:   n.Addr.Absolute(module),
-			Config: n.Config,
-		}
-		log.Printf("[TRACE] Expanding local: adding %s as %T", o.Addr.String(), o)
-		g.Add(o)
-	}
+	forEachModuleInstance(
+		expander, n.Module,
+		func(module addrs.ModuleInstance) {
+			o := &NodeLocal{
+				Addr:   n.Addr.Absolute(module),
+				Config: n.Config,
+			}
+			log.Printf("[TRACE] Expanding local: adding %s as %T", o.Addr.String(), o)
+			g.Add(o)
+		},
+		func(pem addrs.PartialExpandedModule) {
+			o := &nodeLocalInPartialModule{
+				Addr:   addrs.ObjectInPartialExpandedModule(pem, n.Addr),
+				Config: n.Config,
+			}
+			log.Printf("[TRACE] Expanding local: adding placeholder for all %s as %T", o.Addr.String(), o)
+			g.Add(o)
+		},
+	)
 	addRootNodeToGraph(&g)
 	return &g, nil
 }
@@ -125,7 +136,7 @@ func (n *NodeLocal) ReferenceableAddrs() []addrs.Referenceable {
 
 // GraphNodeReferencer
 func (n *NodeLocal) References() []*addrs.Reference {
-	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.Config.Expr)
+	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.Config.Expr)
 	return refs
 }
 
@@ -134,35 +145,9 @@ func (n *NodeLocal) References() []*addrs.Reference {
 // expression for a local value and writes it into a transient part of
 // the state.
 func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	expr := n.Config.Expr
-	addr := n.Addr.LocalValue
-
-	// We ignore diags here because any problems we might find will be found
-	// again in EvaluateExpr below.
-	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, expr)
-	for _, ref := range refs {
-		if ref.Subject == addr {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Self-referencing local value",
-				Detail:   fmt.Sprintf("Local value %s cannot use its own result as part of its expression.", addr),
-				Subject:  ref.SourceRange.ToHCL().Ptr(),
-				Context:  expr.Range().Ptr(),
-			})
-		}
-	}
-	if diags.HasErrors() {
-		return diags
-	}
-
-	val, moreDiags := ctx.EvaluateExpr(expr, cty.DynamicPseudoType, nil)
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		return diags
-	}
-
-	ctx.NamedValues().SetLocalValue(addr.Absolute(ctx.Path()), val)
-
+	namedVals := ctx.NamedValues()
+	val, diags := evaluateLocalValue(n.Config, n.Addr.LocalValue, n.Addr.String(), ctx)
+	namedVals.SetLocalValue(n.Addr, val)
 	return diags
 }
 
@@ -175,4 +160,86 @@ func (n *NodeLocal) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
 			"shape": "note",
 		},
 	}
+}
+
+// nodeLocalInPartialModule represents an infinite set of possible local value
+// instances beneath a partially-expanded module instance prefix.
+//
+// Its job is to find a suitable placeholder value that approximates the
+// values of all of those possible instances. Ideally that's a concrete
+// known value if all instances would have the same value, an unknown value
+// of a specific type if the definition produces a known type, or a
+// totally-unknown value of unknown type in the worst case.
+type nodeLocalInPartialModule struct {
+	Addr   addrs.InPartialExpandedModule[addrs.LocalValue]
+	Config *configs.Local
+}
+
+// Path implements [GraphNodePartialExpandedModule], meaning that the
+// Execute method receives an [EvalContext] that's set up for partial-expanded
+// evaluation instead of full evaluation.
+func (n *nodeLocalInPartialModule) Path() addrs.PartialExpandedModule {
+	return n.Addr.Module
+}
+
+func (n *nodeLocalInPartialModule) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	// Our job here is to make sure that the local value definition is
+	// valid for all instances of this local value across all of the possible
+	// module instances under our partially-expanded prefix, and to record
+	// a placeholder value that captures as precisely as possible what all
+	// of those results have in common. In the worst case where they have
+	// absolutely nothing in common cty.DynamicVal is the ultimate fallback,
+	// but we should try to do better when possible to give operators earlier
+	// feedback about any problems they would definitely encounter on a
+	// subsequent plan where the local values get evaluated concretely.
+
+	namedVals := ctx.NamedValues()
+	val, diags := evaluateLocalValue(n.Config, n.Addr.Local, n.Addr.String(), ctx)
+	namedVals.SetLocalValuePlaceholder(n.Addr, val)
+	return diags
+}
+
+// evaluateLocalValue is the common evaluation logic shared between
+// [NodeLocal] and [nodeLocalInPartialModule].
+//
+// The overall validation and evaluation process is the same for each, with
+// the differences encapsulated inside the given [EvalContext], which is
+// configured in a different way when doing partial-expanded evaluation.
+//
+// the addrStr argument should be the canonical string representation of the
+// anbsolute address of the object being evaluated, which should either be an
+// [addrs.AbsLocalValue] or an [addrs.InPartialEvaluatedModule[addrs.LocalValue]]
+// depending on which of the two callers are calling this function.
+//
+// localAddr should match the local portion of the address that was stringified
+// for addrStr, describing the local value relative to the module it's declared
+// inside.
+func evaluateLocalValue(config *configs.Local, localAddr addrs.LocalValue, addrStr string, ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	expr := config.Expr
+
+	// We ignore diags here because any problems we might find will be found
+	// again in EvaluateExpr below.
+	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, expr)
+	for _, ref := range refs {
+		if ref.Subject == localAddr {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Self-referencing local value",
+				Detail:   fmt.Sprintf("Local value %s cannot use its own result as part of its expression.", addrStr),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+				Context:  expr.Range().Ptr(),
+			})
+		}
+	}
+	if diags.HasErrors() {
+		return cty.DynamicVal, diags
+	}
+
+	val, moreDiags := ctx.EvaluateExpr(expr, cty.DynamicPseudoType, nil)
+	diags = diags.Append(moreDiags)
+	if val == cty.NilVal {
+		val = cty.DynamicVal
+	}
+	return val, diags
 }

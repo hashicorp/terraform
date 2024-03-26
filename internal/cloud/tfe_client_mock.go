@@ -19,8 +19,8 @@ import (
 	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
-	"github.com/mitchellh/copystructure"
 
+	"github.com/hashicorp/terraform/internal/copy"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
@@ -285,6 +285,18 @@ func (m *MockConfigurationVersions) Download(ctx context.Context, cvID string) (
 	panic("not implemented")
 }
 
+func (m *MockConfigurationVersions) PermanentlyDeleteBackingData(ctx context.Context, svID string) error {
+	panic("not implemented")
+}
+
+func (m *MockConfigurationVersions) RestoreBackingData(ctx context.Context, svID string) error {
+	panic("not implemented")
+}
+
+func (m *MockConfigurationVersions) SoftDeleteBackingData(ctx context.Context, svID string) error {
+	panic("not implemented")
+}
+
 type MockCostEstimates struct {
 	client      *MockClient
 	Estimations map[string]*tfe.CostEstimate
@@ -366,6 +378,8 @@ func (m *MockCostEstimates) Logs(ctx context.Context, costEstimateID string) (io
 
 	return bytes.NewBuffer(logs), nil
 }
+
+var _ tfe.Organizations = (*MockOrganizations)(nil)
 
 type MockOrganizations struct {
 	client        *MockClient
@@ -494,6 +508,18 @@ func (m *MockOrganizations) ReadRunQueue(ctx context.Context, name string, optio
 	}
 
 	return rq, nil
+}
+
+func (m *MockOrganizations) DeleteDataRetentionPolicy(context.Context, string) error {
+	panic("not implemented")
+}
+
+func (m *MockOrganizations) ReadDataRetentionPolicy(context.Context, string) (*tfe.DataRetentionPolicy, error) {
+	panic("not implemented")
+}
+
+func (m *MockOrganizations) SetDataRetentionPolicy(ctx context.Context, organization string, options tfe.DataRetentionPolicySetOptions) (*tfe.DataRetentionPolicy, error) {
+	panic("not implemented")
 }
 
 type MockRedactedPlans struct {
@@ -1000,11 +1026,8 @@ func (m *MockProjects) List(ctx context.Context, organization string, options *t
 	pl := &tfe.ProjectList{}
 
 	for _, project := range m.projects {
-		pc, err := copystructure.Copy(project)
-		if err != nil {
-			panic(err)
-		}
-		pl.Items = append(pl.Items, pc.(*tfe.Project))
+		pc := copy.DeepCopyValue(project)
+		pl.Items = append(pl.Items, pc)
 	}
 
 	pl.Pagination = &tfe.Pagination{
@@ -1025,12 +1048,8 @@ func (m *MockProjects) Read(ctx context.Context, projectID string) (*tfe.Project
 	}
 
 	// we must return a copy for the client
-	pc, err := copystructure.Copy(p)
-	if err != nil {
-		panic(err)
-	}
-
-	return pc.(*tfe.Project), nil
+	pc := copy.DeepCopyValue(p)
+	return pc, nil
 }
 
 func (m *MockProjects) Update(ctx context.Context, projectID string, options tfe.ProjectUpdateOptions) (*tfe.Project, error) {
@@ -1042,12 +1061,8 @@ func (m *MockProjects) Update(ctx context.Context, projectID string, options tfe
 	p.Name = *options.Name
 
 	// we must return a copy for the client
-	pc, err := copystructure.Copy(p)
-	if err != nil {
-		panic(err)
-	}
-
-	return pc.(*tfe.Project), nil
+	pc := copy.DeepCopyValue(p)
+	return pc, nil
 }
 
 func (m *MockProjects) Delete(ctx context.Context, projectID string) error {
@@ -1215,11 +1230,8 @@ func (m *MockRuns) List(ctx context.Context, workspaceID string, options *tfe.Ru
 
 	rl := &tfe.RunList{}
 	for _, run := range m.workspaces[w.ID] {
-		rc, err := copystructure.Copy(run)
-		if err != nil {
-			panic(err)
-		}
-		rl.Items = append(rl.Items, rc.(*tfe.Run))
+		rc := copy.DeepCopyValue(run)
+		rl.Items = append(rl.Items, rc)
 	}
 
 	rl.Pagination = &tfe.Pagination{
@@ -1380,11 +1392,7 @@ func (m *MockRuns) ReadWithOptions(ctx context.Context, runID string, options *t
 	}
 
 	// we must return a copy for the client
-	rc, err := copystructure.Copy(r)
-	if err != nil {
-		panic(err)
-	}
-	r = rc.(*tfe.Run)
+	r = copy.DeepCopyValue(r)
 
 	// After copying, handle includes... or at least, any includes we're known to rely on.
 	if options != nil {
@@ -1468,6 +1476,8 @@ func (m *MockRunEvents) ReadWithOptions(ctx context.Context, runEventID string, 
 		CreatedAt: time.Now(),
 	}, nil
 }
+
+var _ tfe.StateVersions = (*MockStateVersions)(nil)
 
 type MockStateVersions struct {
 	client        *MockClient
@@ -1583,6 +1593,18 @@ func (m *MockStateVersions) Download(ctx context.Context, url string) ([]byte, e
 }
 
 func (m *MockStateVersions) ListOutputs(ctx context.Context, svID string, options *tfe.StateVersionOutputsListOptions) (*tfe.StateVersionOutputsList, error) {
+	panic("not implemented")
+}
+
+func (s *MockStateVersions) SoftDeleteBackingData(ctx context.Context, svID string) error {
+	panic("not implemented")
+}
+
+func (s *MockStateVersions) RestoreBackingData(ctx context.Context, svID string) error {
+	panic("not implemented")
+}
+
+func (s *MockStateVersions) PermanentlyDeleteBackingData(ctx context.Context, svID string) error {
 	panic("not implemented")
 }
 
@@ -1884,6 +1906,8 @@ func (m *MockVariables) Update(ctx context.Context, workspaceID string, variable
 func (m *MockVariables) Delete(ctx context.Context, workspaceID string, variableID string) error {
 	panic("not implemented")
 }
+
+var _ tfe.Workspaces = (*MockWorkspaces)(nil)
 
 type MockWorkspaces struct {
 	client         *MockClient
@@ -2263,6 +2287,18 @@ func (m *MockWorkspaces) AddTags(ctx context.Context, workspaceID string, option
 }
 
 func (m *MockWorkspaces) RemoveTags(ctx context.Context, workspaceID string, options tfe.WorkspaceRemoveTagsOptions) error {
+	panic("not implemented")
+}
+
+func (s *MockWorkspaces) ReadDataRetentionPolicy(ctx context.Context, workspaceID string) (*tfe.DataRetentionPolicy, error) {
+	panic("not implemented")
+}
+
+func (s *MockWorkspaces) SetDataRetentionPolicy(ctx context.Context, workspaceID string, options tfe.DataRetentionPolicySetOptions) (*tfe.DataRetentionPolicy, error) {
+	panic("not implemented")
+}
+
+func (s *MockWorkspaces) DeleteDataRetentionPolicy(ctx context.Context, workspaceID string) error {
 	panic("not implemented")
 }
 

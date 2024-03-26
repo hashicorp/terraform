@@ -96,6 +96,14 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 		return nil, diags
 	}
 
+	if !resp.UpgradedState.IsWhollyKnown() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid resource state upgrade",
+			fmt.Sprintf("The %s provider upgraded the state for %s from a previous version, but produced an invalid result: The returned state contains unknown values.", providerType, addr),
+		))
+	}
+
 	// After upgrading, the new value must conform to the current schema. When
 	// going over RPC this is actually already ensured by the
 	// marshaling/unmarshaling of the new value, but we'll check it here

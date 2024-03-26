@@ -691,6 +691,10 @@
         "routes": [
           { "title": "<code>can</code>", "href": "/language/functions/can" },
           {
+            "title": "<code>issensitive</code>",
+            "href": "/language/functions/issensitive"
+          },
+          {
             "title": "<code>nonsensitive</code>",
             "href": "/language/functions/nonsensitive"
           },
@@ -724,6 +728,14 @@
           },
           { "title": "<code>try</code>", "href": "/language/functions/try" },
           { "title": "<code>type</code>", "href": "/language/functions/type" }
+        ]
+      },
+      {
+        "title": "Terraform-specific Functions",
+        "routes": [
+          { "title": "<code>provider::terraform::encode_tfvars</code>", "href": "/language/functions/terraform-encode_tfvars" },
+          { "title": "<code>provider::terraform::decode_tfvars</code>", "href": "/language/functions/terraform-decode_tfvars" },
+          { "title": "<code>provider::terraform::encode_expr</code>", "href": "/language/functions/terraform-encode_expr" }
         ]
       },
       { "title": "abs", "path": "functions/abs", "hidden": true },
@@ -808,6 +820,11 @@
       { "title": "formatlist", "path": "functions/formatlist", "hidden": true },
       { "title": "indent", "path": "functions/indent", "hidden": true },
       { "title": "index", "path": "functions/index_function", "hidden": true },
+      {
+        "title": "issensitive",
+        "path": "functions/issensitive",
+        "hidden": true
+      },
       { "title": "join", "path": "functions/join", "hidden": true },
       { "title": "jsondecode", "path": "functions/jsondecode", "hidden": true },
       { "title": "jsonencode", "path": "functions/jsonencode", "hidden": true },
@@ -869,6 +886,9 @@
         "path": "functions/templatefile",
         "hidden": true
       },
+      { "title": "terraform-encode_tfvars", "path": "functions/terraform-encode_tfvars", "hidden": true },
+      { "title": "terraform-decode_tfvars", "path": "functions/terraform-decode_tfvars", "hidden": true },
+      { "title": "terraform-encode_expr", "path": "functions/terraform-encode_expr", "hidden": true },
       {
         "title": "textdecodebase64",
         "path": "functions/textdecodebase64",
@@ -1066,7 +1086,7 @@
     ]
   },
   {
-    "title": "Upgrading to Terraform v1.6",
+    "title": "Upgrading to Terraform v1.7",
     "path": "upgrade-guides"
   },
   {

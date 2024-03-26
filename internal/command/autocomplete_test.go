@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 	"github.com/posener/complete"
 )
 

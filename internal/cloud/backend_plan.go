@@ -22,7 +22,7 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -33,7 +33,7 @@ import (
 
 var planConfigurationVersionsPollInterval = 500 * time.Millisecond
 
-func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
+func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	log.Printf("[INFO] cloud: starting Plan operation")
 
 	var diags tfdiags.Diagnostics
@@ -118,10 +118,10 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 	return run, nil
 }
 
-func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
+func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	if b.CLI != nil {
 		header := planDefaultHeader
-		if op.Type == backend.OperationTypeApply || op.Type == backend.OperationTypeRefresh {
+		if op.Type == backendrun.OperationTypeApply || op.Type == backendrun.OperationTypeRefresh {
 			header = applyDefaultHeader
 		}
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(header) + "\n"))
@@ -129,7 +129,7 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, 
 
 	// Plan-only means they ran terraform plan without -out.
 	provisional := op.PlanOutPath != ""
-	planOnly := op.Type == backend.OperationTypePlan && !provisional
+	planOnly := op.Type == backendrun.OperationTypePlan && !provisional
 
 	configOptions := tfe.ConfigurationVersionCreateOptions{
 		AutoQueueRuns: tfe.Bool(false),
@@ -333,7 +333,7 @@ in order to capture the filesystem context the remote workspace expects:
 
 	if b.CLI != nil {
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(fmt.Sprintf(
-			runHeader, b.Hostname, b.organization, op.Workspace, r.ID)) + "\n"))
+			runHeader, b.Hostname, b.Organization, op.Workspace, r.ID)) + "\n"))
 	}
 
 	// Render any warnings that were raised during run creation
@@ -436,7 +436,7 @@ func (b *Cloud) AssertImportCompatible(config *configs.Config) error {
 
 // renderPlanLogs reads the streamed plan JSON logs and calls the JSON Plan renderer (jsonformat.RenderPlan) to
 // render the plan output. The plan output is fetched from the redacted output endpoint.
-func (b *Cloud) renderPlanLogs(ctx context.Context, op *backend.Operation, run *tfe.Run) error {
+func (b *Cloud) renderPlanLogs(ctx context.Context, op *backendrun.Operation, run *tfe.Run) error {
 	logs, err := b.client.Plans.Logs(ctx, run.Plan.ID)
 	if err != nil {
 		return err
@@ -521,7 +521,7 @@ func (b *Cloud) renderPlanLogs(ctx context.Context, op *backend.Operation, run *
 		return err
 	}
 	if renderSRO || shouldGenerateConfig {
-		jsonBytes, err := readRedactedPlan(ctx, b.client.BaseURL(), b.token, run.Plan.ID)
+		jsonBytes, err := readRedactedPlan(ctx, b.client.BaseURL(), b.Token, run.Plan.ID)
 		if err != nil {
 			return generalError("Failed to read JSON plan", err)
 		}
@@ -638,8 +638,13 @@ Preparing the remote plan...
 `
 
 const runHeader = `
-[reset][yellow]To view this run in a browser, visit:
-https://%s/app/%s/%s/runs/%s[reset]
+[reset][yellow]To view this run in a browser, visit:[reset]
+[reset][yellow]https://%s/app/%s/%s/runs/%s[reset]
+`
+
+const runHeaderErr = `
+To view this run in the browser, visit:
+https://%s/app/%s/%s/runs/%s
 `
 
 // The newline in this error is to make it look good in the CLI!

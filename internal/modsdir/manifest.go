@@ -17,6 +17,7 @@ import (
 	version "github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 )
 
 // Record represents some metadata about an installed module, as part
@@ -101,7 +102,7 @@ func ReadManifestSnapshot(r io.Reader) (Manifest, error) {
 		// to normalize them back in on read so that we can just gracefully
 		// upgrade on the next "terraform init".
 		if record.SourceAddr != "" {
-			if addr, err := addrs.ParseModuleSource(record.SourceAddr); err == nil {
+			if addr, err := moduleaddrs.ParseModuleSource(record.SourceAddr); err == nil {
 				// This is a best effort sort of thing. If the source
 				// address isn't valid then we'll just leave it as-is
 				// and let another component detect that downstream,

@@ -15,7 +15,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -47,7 +47,7 @@ func TestLocal_applyBasic(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatal("operation failed")
 	}
 
@@ -91,7 +91,7 @@ func TestLocal_applyCheck(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatal("operation failed")
 	}
 
@@ -133,7 +133,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("operation succeeded; want error")
 	}
 
@@ -168,7 +168,7 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("apply operation failed")
 	}
 
@@ -234,7 +234,7 @@ func TestLocal_applyError(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("operation succeeded; want failure")
 	}
 
@@ -289,7 +289,7 @@ func TestLocal_applyBackendFail(t *testing.T) {
 
 	output := done(t)
 
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatalf("apply succeeded; want error")
 	}
 
@@ -330,7 +330,7 @@ func TestLocal_applyRefreshFalse(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("plan operation failed")
 	}
 
@@ -361,7 +361,7 @@ func (s failingState) WriteState(state *states.State) error {
 	return errors.New("fake failure")
 }
 
-func testOperationApply(t *testing.T, configDir string) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
+func testOperationApply(t *testing.T, configDir string) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
@@ -374,8 +374,8 @@ func testOperationApply(t *testing.T, configDir string) (*backend.Operation, fun
 	depLocks := depsfile.NewLocks()
 	depLocks.SetProviderOverridden(addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test"))
 
-	return &backend.Operation{
-		Type:            backend.OperationTypeApply,
+	return &backendrun.Operation{
+		Type:            backendrun.OperationTypeApply,
 		ConfigDir:       configDir,
 		ConfigLoader:    configLoader,
 		StateLocker:     clistate.NewNoopLocker(),
@@ -429,7 +429,7 @@ func TestApply_applyCanceledAutoApprove(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 

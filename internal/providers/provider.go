@@ -67,8 +67,15 @@ type Interface interface {
 	// ImportResourceState requests that the given resource be imported.
 	ImportResourceState(ImportResourceStateRequest) ImportResourceStateResponse
 
+	// MoveResourceState retrieves the updated value for a resource after it
+	// has moved resource types.
+	MoveResourceState(MoveResourceStateRequest) MoveResourceStateResponse
+
 	// ReadDataSource returns the data source's current state.
 	ReadDataSource(ReadDataSourceRequest) ReadDataSourceResponse
+
+	// CallFunction calls a provider-contributed function.
+	CallFunction(CallFunctionRequest) CallFunctionResponse
 
 	// Close shuts down the plugin process if applicable.
 	Close() error
@@ -91,6 +98,10 @@ type GetProviderSchemaResponse struct {
 
 	// DataSources maps the data source name to that data source's schema.
 	DataSources map[string]Schema
+
+	// Functions maps from local function name (not including an namespace
+	// prefix) to the declaration of a function.
+	Functions map[string]FunctionDecl
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
@@ -124,6 +135,10 @@ type ServerCapabilities struct {
 	// normally, and the caller can used a cached copy of the provider's
 	// schema.
 	GetProviderSchemaOptional bool
+
+	// The MoveResourceState capability indicates that this provider supports
+	// the MoveResourceState RPC.
+	MoveResourceState bool
 }
 
 type ValidateProviderConfigRequest struct {
@@ -173,12 +188,12 @@ type UpgradeResourceStateRequest struct {
 	// Version is version of the schema that created the current state.
 	Version int64
 
-	// RawStateJSON and RawStateFlatmap contiain the state that needs to be
+	// RawStateJSON and RawStateFlatmap contain the state that needs to be
 	// upgraded to match the current schema version. Because the schema is
 	// unknown, this contains only the raw data as stored in the state.
 	// RawStateJSON is the current json state encoding.
 	// RawStateFlatmap is the legacy flatmap encoding.
-	// Only on of these fields may be set for the upgrade request.
+	// Only one of these fields may be set for the upgrade request.
 	RawStateJSON    []byte
 	RawStateFlatmap map[string]string
 }
@@ -378,6 +393,46 @@ type ImportedResource struct {
 	Private []byte
 }
 
+type MoveResourceStateRequest struct {
+	// SourceProviderAddress is the address of the provider that the resource
+	// is being moved from.
+	SourceProviderAddress string
+
+	// SourceTypeName is the name of the resource type that the resource is
+	// being moved from.
+	SourceTypeName string
+
+	// SourceSchemaVersion is the schema version of the resource type that the
+	// resource is being moved from.
+	SourceSchemaVersion int64
+
+	// SourceStateJSON contains the state of the resource that is being moved.
+	// Because the schema is unknown, this contains only the raw data as stored
+	// in the state.
+	SourceStateJSON []byte
+
+	// SourcePrivate contains the private state of the resource that is being
+	// moved.
+	SourcePrivate []byte
+
+	// TargetTypeName is the name of the resource type that the resource is
+	// being moved to.
+	TargetTypeName string
+}
+
+type MoveResourceStateResponse struct {
+	// TargetState is the state of the resource after it has been moved to the
+	// new resource type.
+	TargetState cty.Value
+
+	// TargetPrivate is the private state of the resource after it has been
+	// moved to the new resource type.
+	TargetPrivate []byte
+
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
+}
+
 // AsInstanceObject converts the receiving ImportedObject into a
 // ResourceInstanceObject that has status ObjectReady.
 //
@@ -416,4 +471,38 @@ type ReadDataSourceResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+}
+
+type CallFunctionRequest struct {
+	// FunctionName is the local name of the function to call, as it was
+	// declared by the provider in its schema and without any
+	// externally-imposed namespace prefixes.
+	FunctionName string
+
+	// Arguments are the positional argument values given at the call site.
+	//
+	// Provider functions are required to behave as pure functions, and so
+	// if all of the argument values are known then two separate calls with the
+	// same arguments must always return an identical value, without performing
+	// any externally-visible side-effects.
+	Arguments []cty.Value
+}
+
+type CallFunctionResponse struct {
+	// Result is the successful result of the function call.
+	//
+	// If all of the arguments in the call were known then the result must
+	// also be known. If any arguments were unknown then the result may
+	// optionally be unknown. The type of the returned value must conform
+	// to the return type constraint for this function as declared in the
+	// provider schema.
+	//
+	// If Diagnostics contains any errors, this field will be ignored and
+	// so can be left as cty.NilVal to represent the absense of a value.
+	Result cty.Value
+
+	// Err is the error value from the function call. This may be an instance
+	// of function.ArgError from the go-cty package to specify a problem with a
+	// specific argument.
+	Err error
 }

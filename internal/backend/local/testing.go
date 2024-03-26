@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -42,9 +43,9 @@ func TestLocal(t *testing.T) *Local {
 
 // TestLocalProvider modifies the ContextOpts of the *Local parameter to
 // have a provider with the given name.
-func TestLocalProvider(t *testing.T, b *Local, name string, schema providers.ProviderSchema) *terraform.MockProvider {
+func TestLocalProvider(t *testing.T, b *Local, name string, schema providers.ProviderSchema) *testing_provider.MockProvider {
 	// Build a mock resource provider for in-memory operations
-	p := new(terraform.MockProvider)
+	p := new(testing_provider.MockProvider)
 
 	p.GetProviderSchemaResponse = &schema
 

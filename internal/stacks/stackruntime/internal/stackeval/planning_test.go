@@ -4,20 +4,30 @@
 package stackeval
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
+	providerTesting "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestPlanning_DestroyMode(t *testing.T) {
@@ -147,7 +157,7 @@ func TestPlanning_DestroyMode(t *testing.T) {
 		PlanningMode: plans.DestroyMode,
 		ProviderFactories: ProviderFactories{
 			addrs.NewBuiltInProvider("test"): func() (providers.Interface, error) {
-				return &terraform.MockProvider{
+				return &providerTesting.MockProvider{
 					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 						Provider: providers.Schema{
 							Block: &configschema.Block{},
@@ -320,4 +330,593 @@ func TestPlanning_DestroyMode(t *testing.T) {
 	} else {
 		t.Errorf("no plan for %s", bResourceInstAddr)
 	}
+}
+
+func TestPlanning_RequiredComponents(t *testing.T) {
+	// This test acts both as some unit tests for the component requirement
+	// analysis of various different object types and as an integration test
+	// for the overall component dependency analysis during the plan phase,
+	// ensuring that the dependency graph is reflected correctly in the
+	// resulting plan.
+
+	cfg := testStackConfig(t, "planning", "required_components")
+	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
+		PlanningMode: plans.NormalMode,
+		ProviderFactories: ProviderFactories{
+			addrs.NewBuiltInProvider("foo"): func() (providers.Interface, error) {
+				return &providerTesting.MockProvider{
+					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+						Provider: providers.Schema{
+							Block: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"in": {
+										Type:     cty.Map(cty.String),
+										Optional: true,
+									},
+								},
+							},
+						},
+					},
+					ConfigureProviderFn: func(cpr providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+						t.Logf("configuring the provider: %#v", cpr.Config)
+						return providers.ConfigureProviderResponse{}
+					},
+				}, nil
+			},
+		},
+	})
+
+	cmpA := stackaddrs.AbsComponent{
+		Stack: stackaddrs.RootStackInstance,
+		Item:  stackaddrs.Component{Name: "a"},
+	}
+	cmpB := stackaddrs.AbsComponent{
+		Stack: stackaddrs.RootStackInstance,
+		Item:  stackaddrs.Component{Name: "b"},
+	}
+	cmpC := stackaddrs.AbsComponent{
+		Stack: stackaddrs.RootStackInstance,
+		Item:  stackaddrs.Component{Name: "c"},
+	}
+
+	cmpOpts := collections.CmpOptions
+
+	t.Run("integrated", func(t *testing.T) {
+		// This integration tests runs a full plan of the test configuration
+		// and checks that the resulting plan contains the expected component
+		// dependency information, without concern for exactly how that
+		// information got populated.
+		//
+		// The other subtests below check that the individual objects
+		// participating in this plan are reporting their own component
+		// dependencies correctly, and so if this integrated test fails
+		// then the simultaneous failure of one of those other tests might be
+		// a good clue as to what's broken.
+
+		plan, diags := testPlan(t, main)
+		assertNoDiagnostics(t, diags)
+
+		componentPlans := plan.Components
+
+		tests := []struct {
+			component        stackaddrs.AbsComponent
+			wantDependencies []stackaddrs.AbsComponent
+			wantDependents   []stackaddrs.AbsComponent
+		}{
+			{
+				component:        cmpA,
+				wantDependencies: []stackaddrs.AbsComponent{},
+				wantDependents: []stackaddrs.AbsComponent{
+					cmpB,
+					cmpC,
+				},
+			},
+			{
+				component: cmpB,
+				wantDependencies: []stackaddrs.AbsComponent{
+					cmpA,
+				},
+				wantDependents: []stackaddrs.AbsComponent{
+					cmpC,
+				},
+			},
+			{
+				component: cmpC,
+				wantDependencies: []stackaddrs.AbsComponent{
+					cmpA,
+					cmpB,
+				},
+				wantDependents: []stackaddrs.AbsComponent{},
+			},
+		}
+		for _, test := range tests {
+			t.Run(test.component.String(), func(t *testing.T) {
+				instAddr := stackaddrs.AbsComponentInstance{
+					Stack: test.component.Stack,
+					Item: stackaddrs.ComponentInstance{
+						Component: test.component.Item,
+					},
+				}
+				cp := componentPlans.Get(instAddr)
+				{
+					got := cp.Dependencies
+					want := collections.NewSet[stackaddrs.AbsComponent]()
+					want.Add(test.wantDependencies...)
+					if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
+						t.Errorf("wrong dependencies\n%s", diff)
+					}
+				}
+				{
+					got := cp.Dependents
+					want := collections.NewSet[stackaddrs.AbsComponent]()
+					want.Add(test.wantDependents...)
+					if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
+						t.Errorf("wrong dependents\n%s", diff)
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("component dependents", func(t *testing.T) {
+		ctx := context.Background()
+		promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
+			tests := []struct {
+				componentAddr    stackaddrs.AbsComponent
+				wantDependencies []stackaddrs.AbsComponent
+			}{
+				{
+					cmpA,
+					[]stackaddrs.AbsComponent{},
+				},
+				{
+					cmpB,
+					[]stackaddrs.AbsComponent{
+						cmpA,
+					},
+				},
+				{
+					cmpC,
+					[]stackaddrs.AbsComponent{
+						cmpA,
+						cmpB,
+					},
+				},
+			}
+
+			for _, test := range tests {
+				t.Run(test.componentAddr.String(), func(t *testing.T) {
+					stack := main.Stack(ctx, test.componentAddr.Stack, PlanPhase)
+					if stack == nil {
+						t.Fatalf("no declaration for %s", test.componentAddr.Stack)
+					}
+					component := stack.Component(ctx, test.componentAddr.Item)
+					if component == nil {
+						t.Fatalf("no declaration for %s", test.componentAddr)
+					}
+
+					got := component.RequiredComponents(ctx)
+					want := collections.NewSet[stackaddrs.AbsComponent]()
+					want.Add(test.wantDependencies...)
+
+					if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
+						t.Errorf("wrong result\n%s", diff)
+					}
+				})
+			}
+
+			return struct{}{}, nil
+		})
+	})
+
+	subtestInPromisingTask(t, "input variable dependents", func(ctx context.Context, t *testing.T) {
+		stack := main.Stack(ctx, stackaddrs.RootStackInstance.Child("child", addrs.NoKey), PlanPhase)
+		if stack == nil {
+			t.Fatalf("embedded stack isn't declared")
+		}
+		ivs := stack.InputVariables(ctx)
+		iv := ivs[stackaddrs.InputVariable{Name: "in"}]
+		if iv == nil {
+			t.Fatalf("input variable isn't declared")
+		}
+
+		got := iv.RequiredComponents(ctx)
+		want := collections.NewSet[stackaddrs.AbsComponent]()
+		want.Add(cmpB)
+
+		if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
+			t.Errorf("wrong result\n%s", diff)
+		}
+	})
+
+	subtestInPromisingTask(t, "output value dependents", func(ctx context.Context, t *testing.T) {
+		stack := main.MainStack(ctx)
+		ovs := stack.OutputValues(ctx)
+		ov := ovs[stackaddrs.OutputValue{Name: "out"}]
+		if ov == nil {
+			t.Fatalf("output value isn't declared")
+		}
+
+		got := ov.RequiredComponents(ctx)
+		want := collections.NewSet[stackaddrs.AbsComponent]()
+		want.Add(cmpA)
+
+		if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
+			t.Errorf("wrong result\n%s", diff)
+		}
+	})
+
+	subtestInPromisingTask(t, "embedded stack dependents", func(ctx context.Context, t *testing.T) {
+		stack := main.MainStack(ctx)
+		sc := stack.EmbeddedStackCall(ctx, stackaddrs.StackCall{Name: "child"})
+		if sc == nil {
+			t.Fatalf("embedded stack call isn't declared")
+		}
+
+		got := sc.RequiredComponents(ctx)
+		want := collections.NewSet[stackaddrs.AbsComponent]()
+		want.Add(cmpB)
+
+		if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
+			t.Errorf("wrong result\n%s", diff)
+		}
+	})
+
+	subtestInPromisingTask(t, "provider config dependents", func(ctx context.Context, t *testing.T) {
+		stack := main.MainStack(ctx)
+		pc := stack.Provider(ctx, stackaddrs.ProviderConfig{
+			Provider: addrs.NewBuiltInProvider("foo"),
+			Name:     "bar",
+		})
+		if pc == nil {
+			t.Fatalf("provider configuration isn't declared")
+		}
+
+		got := pc.RequiredComponents(ctx)
+		want := collections.NewSet[stackaddrs.AbsComponent]()
+		want.Add(cmpA)
+		want.Add(cmpB)
+
+		if diff := cmp.Diff(want, got, cmpOpts); diff != "" {
+			t.Errorf("wrong result\n%s", diff)
+		}
+	})
+}
+
+func TestPlanning_DeferredChangesPropagation(t *testing.T) {
+	// This test arranges for one component's plan to signal deferred changes,
+	// and checks that a downstream component's plan also has everything
+	// deferred even though it could potentially have been plannable in
+	// isolation, since we need to respect the dependency ordering between
+	// components.
+
+	cfg := testStackConfig(t, "planning", "deferred_changes_propagation")
+	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
+		PlanningMode: plans.NormalMode,
+		InputVariableValues: map[stackaddrs.InputVariable]ExternalInputValue{
+			// This causes the first component to have a module whose
+			// instance count isn't known yet.
+			{Name: "first_count"}: {
+				Value: cty.UnknownVal(cty.Number),
+			},
+		},
+		ProviderFactories: ProviderFactories{
+			addrs.NewBuiltInProvider("test"): func() (providers.Interface, error) {
+				return &providerTesting.MockProvider{
+					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+						Provider: providers.Schema{
+							Block: &configschema.Block{},
+						},
+						ResourceTypes: map[string]providers.Schema{
+							"test": {
+								Block: &configschema.Block{},
+							},
+						},
+					},
+				}, nil
+			},
+		},
+	})
+	// TEMP: This test currently relies on the experimental module language
+	// feature of allowing unknown values in a resource's "count" argument.
+	// We should remove this if the experiment gets stabilized.
+	main.AllowLanguageExperiments(true)
+
+	componentFirstInstAddr := stackaddrs.AbsComponentInstance{
+		Stack: stackaddrs.RootStackInstance,
+		Item: stackaddrs.ComponentInstance{
+			Component: stackaddrs.Component{
+				Name: "first",
+			},
+		},
+	}
+	componentSecondInstAddr := stackaddrs.AbsComponentInstance{
+		Stack: stackaddrs.RootStackInstance,
+		Item: stackaddrs.ComponentInstance{
+			Component: stackaddrs.Component{
+				Name: "second",
+			},
+		},
+	}
+
+	componentPlanResourceActions := func(plan *stackplan.Component) map[string]plans.Action {
+		ret := make(map[string]plans.Action)
+		for _, elem := range plan.ResourceInstancePlanned.Elems {
+			ret[elem.Key.String()] = elem.Value.Action
+		}
+		return ret
+	}
+
+	inPromisingTask(t, func(ctx context.Context, t *testing.T) {
+		plan, diags := testPlan(t, main)
+		assertNoErrors(t, diags)
+
+		firstPlan := plan.Components.Get(componentFirstInstAddr)
+		if firstPlan.PlanComplete {
+			t.Error("first component has a complete plan; should be incomplete because it has deferred actions")
+		}
+		secondPlan := plan.Components.Get(componentSecondInstAddr)
+		if secondPlan.PlanComplete {
+			t.Error("second component has a complete plan; should be incomplete because everything in it should've been deferred")
+		}
+
+		gotFirstActions := componentPlanResourceActions(firstPlan)
+		wantFirstActions := map[string]plans.Action{
+			// Only test.a is planned, because test.b has unknown count
+			// and must therefore be deferred.
+			"test.a": plans.Create,
+		}
+		gotSecondActions := componentPlanResourceActions(secondPlan)
+		wantSecondActions := map[string]plans.Action{
+			// Nothing at all expected for the second, because all of its
+			// planned actions should've been deferred to respect the
+			// dependency on the first component.
+		}
+
+		if diff := cmp.Diff(wantFirstActions, gotFirstActions); diff != "" {
+			t.Errorf("wrong actions for first component\n%s", diff)
+		}
+		if diff := cmp.Diff(wantSecondActions, gotSecondActions); diff != "" {
+			t.Errorf("wrong actions for second component\n%s", diff)
+		}
+	})
+}
+
+func TestPlanning_RemoveDataResource(t *testing.T) {
+	// This test is here because there was a historical bug where we'd generate
+	// an invalid plan (unparsable) whenever the plan included deletion of
+	// a previously-declared data resource, where the provider configuration
+	// address would not be populated correctly.
+	//
+	// Therefore this test is narrowly focused on that specific situation.
+	// Anything else it's exercising as a side-effect is not crucial for
+	// this test in particular, although of course unrelated regressions might
+	// still be important in some other way beyond this test's scope.
+
+	providerFactories := map[addrs.Provider]providers.Factory{
+		addrs.NewBuiltInProvider("test"): func() (providers.Interface, error) {
+			return &providerTesting.MockProvider{
+				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+					DataSources: map[string]providers.Schema{
+						"test": {
+							Block: &configschema.Block{},
+						},
+					},
+				},
+				ReadDataSourceFn: func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+					return providers.ReadDataSourceResponse{
+						State: cty.EmptyObjectVal,
+					}
+				},
+			}, nil
+		},
+	}
+	objAddr := stackaddrs.AbsResourceInstanceObject{
+		Component: stackaddrs.AbsComponentInstance{
+			Stack: stackaddrs.RootStackInstance,
+			Item: stackaddrs.ComponentInstance{
+				Component: stackaddrs.Component{Name: "main"},
+			},
+		},
+		Item: addrs.AbsResourceInstanceObject{
+			ResourceInstance: addrs.AbsResourceInstance{
+				Module: addrs.RootModuleInstance,
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.DataResourceMode,
+						Type: "test",
+						Name: "test",
+					},
+				},
+			},
+			DeposedKey: addrs.NotDeposed,
+		},
+	}
+
+	var state *stackstate.State
+
+	// Round 1: data.test.test is present inside component.main
+	{
+		ctx := context.Background()
+		cfg := testStackConfig(t, "planning", "remove_data_resource/step1")
+
+		// Plan
+		rawPlan, err := promising.MainTask(ctx, func(ctx context.Context) ([]*anypb.Any, error) {
+			main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
+				PlanningMode:      plans.NormalMode,
+				ProviderFactories: providerFactories,
+			})
+			outp, outpTest := testPlanOutput(t)
+			main.PlanAll(ctx, outp)
+			rawPlan := outpTest.RawChanges(t)
+			_, diags := outpTest.Close(t)
+			assertNoDiagnostics(t, diags)
+			return rawPlan, nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Apply
+		newState, err := promising.MainTask(ctx, func(ctx context.Context) (*stackstate.State, error) {
+			outp, outpTest := testApplyOutput(t, nil)
+			_, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+				ProviderFactories: providerFactories,
+			}, outp)
+			if err != nil {
+				t.Fatal(err)
+			}
+			state, diags := outpTest.Close(t)
+			assertNoDiagnostics(t, diags)
+
+			// This test is only valid if the data resource instance is actually
+			// tracked in the state.
+			obj := state.ResourceInstanceObjectSrc(objAddr)
+			if obj == nil {
+				t.Fatalf("data.test.test is not in the final state for round 1")
+			}
+
+			return state, nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// We'll use the new state as the input for the next round.
+		state = newState
+	}
+
+	// Round 2: data.test.test has its remnant left in the prior state, but
+	// it's no longer present in the configuration.
+	{
+		ctx := context.Background()
+		cfg := testStackConfig(t, "planning", "remove_data_resource/step2")
+
+		// Plan
+		type Plans struct {
+			Nice *stackplan.Plan
+			Raw  []*anypb.Any
+		}
+		plans, err := promising.MainTask(ctx, func(ctx context.Context) (Plans, error) {
+			main := NewForPlanning(cfg, state, PlanOpts{
+				PlanningMode:      plans.NormalMode,
+				ProviderFactories: providerFactories,
+			})
+			outp, outpTest := testPlanOutput(t)
+			main.PlanAll(ctx, outp)
+			rawPlan := outpTest.RawChanges(t)
+			// The original bug would occur at this point, because
+			// outpTest.Close attempts to parse the raw plan, which fails if
+			// any part of that structure is not syntactically valid.
+			plan, diags := outpTest.Close(t)
+			assertNoDiagnostics(t, diags)
+			return Plans{plan, rawPlan}, nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		plan := plans.Nice
+		rawPlan := plans.Raw
+
+		// We'll check whether the data resource even appears in the plan,
+		// because if not then this test is no longer testing what it thinks
+		// it's testing and should probably be revised.
+		//
+		// (That doesn't necessarily mean that any new behavior is wrong: if
+		// plan at all anymore then we can update this test to agree with that.)
+		//
+		// Specifically we expect to have a prior state and a provider config
+		// address for this data resource, but no planned action because
+		// dropping a data resource from the state is not an "action" in the
+		// usual sense (it doesn't cause any calls to the provider).
+		mainPlan := plan.Components.Get(stackaddrs.AbsComponentInstance{
+			Stack: stackaddrs.RootStackInstance,
+			Item: stackaddrs.ComponentInstance{
+				Component: stackaddrs.Component{Name: "main"},
+			},
+		})
+		if mainPlan == nil {
+			t.Fatalf("main component not appear in the plan at all")
+		}
+		riAddr := objAddr.Item
+		_, ok := mainPlan.ResourceInstancePriorState.GetOk(riAddr)
+		if !ok {
+			t.Fatalf("data resource instance does not appear in the prior state at all")
+		}
+		providerConfig, ok := mainPlan.ResourceInstanceProviderConfig.GetOk(riAddr)
+		if !ok {
+			t.Fatalf("data resource instance does not have a provider config in the plan")
+		}
+		if got, want := providerConfig.Provider, addrs.NewBuiltInProvider("test"); got != want {
+			t.Errorf("wrong provider configuration address\ngot:  %s\nwant: %s", got, want)
+		}
+
+		// For good measure we'll also apply this new plan, to make sure that
+		// we're left with no remnant of the data resource in the updated state.
+		newState, err := promising.MainTask(ctx, func(ctx context.Context) (*stackstate.State, error) {
+			outp, outpTest := testApplyOutput(t, nil)
+			_, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+				ProviderFactories: providerFactories,
+			}, outp)
+			if err != nil {
+				t.Fatal(err)
+			}
+			state, diags := outpTest.Close(t)
+			assertNoDiagnostics(t, diags)
+
+			return state, nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		state = newState
+	}
+
+	// Our final state should not include the data resource at all.
+	objState := state.ResourceInstanceObjectSrc(objAddr)
+	if objState != nil {
+		t.Errorf("%s is still in the state after it should've been dropped", objAddr)
+	}
+}
+
+func TestPlanning_NoWorkspaceNameRef(t *testing.T) {
+	// This test verifies that a reference to terraform.workspace is treated
+	// as invalid for modules used in a stacks context, because there's
+	// no comparable single string to use in stacks context and we expect
+	// modules used in stack components to vary declarations based only
+	// on their input variables.
+	//
+	// (If something needs to vary between stack deployments then that's
+	// a good candidate for an input variable on the root stack configuration,
+	// set differently for each deployment, and then passed in to the
+	// components that need it.)
+
+	cfg := testStackConfig(t, "planning", "no_workspace_name_ref")
+	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
+		PlanningMode: plans.NormalMode,
+	})
+
+	inPromisingTask(t, func(ctx context.Context, t *testing.T) {
+		_, diags := testPlan(t, main)
+		if !diags.HasErrors() {
+			t.Fatal("success; want error about invalid terraform.workspace reference")
+		}
+
+		// At least one of the diagnostics must mention the terraform.workspace
+		// attribute in its detail.
+		seenRelevantDiag := false
+		for _, diag := range diags {
+			if diag.Severity() != tfdiags.Error {
+				continue
+			}
+			if strings.Contains(diag.Description().Detail, "terraform.workspace") {
+				seenRelevantDiag = true
+				break
+			}
+		}
+		if !seenRelevantDiag {
+			t.Fatalf("none of the error diagnostics mentions terraform.workspace\n%s", spew.Sdump(diags.ForRPC()))
+		}
+	})
 }

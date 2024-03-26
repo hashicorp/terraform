@@ -4,6 +4,7 @@
 package jsonfunction
 
 import (
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 )
@@ -41,6 +42,23 @@ func marshalParameters(parameters []function.Parameter) []*parameter {
 	ret := make([]*parameter, len(parameters))
 	for k, p := range parameters {
 		ret[k] = marshalParameter(&p)
+	}
+	return ret
+}
+
+func marshalProviderParameter(p providers.FunctionParam) *parameter {
+	return &parameter{
+		Name:        p.Name,
+		Description: p.Description,
+		IsNullable:  p.AllowNullValue,
+		Type:        p.Type,
+	}
+}
+
+func marshalProviderParameters(parameters []providers.FunctionParam) []*parameter {
+	ret := make([]*parameter, len(parameters))
+	for k, p := range parameters {
+		ret[k] = marshalProviderParameter(p)
 	}
 	return ret
 }

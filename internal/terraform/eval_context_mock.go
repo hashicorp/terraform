@@ -13,11 +13,13 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -82,7 +84,7 @@ type MockEvalContext struct {
 	ProvisionerSchemaSchema *configschema.Block
 	ProvisionerSchemaError  error
 
-	CloseProvisionersCalled bool
+	ClosePluginsCalled bool
 
 	EvaluateBlockCalled     bool
 	EvaluateBlockBody       hcl.Body
@@ -117,10 +119,15 @@ type MockEvalContext struct {
 	EvaluationScopeScope   *lang.Scope
 
 	PathCalled bool
-	PathPath   addrs.ModuleInstance
+	Scope      evalContextScope
+
+	LanguageExperimentsActive experiments.Set
 
 	NamedValuesCalled bool
 	NamedValuesState  *namedvals.State
+
+	DeferralsCalled bool
+	DeferralsState  *deferring.Deferred
 
 	ChangesCalled  bool
 	ChangesChanges *plans.ChangesSync
@@ -231,8 +238,8 @@ func (c *MockEvalContext) ProvisionerSchema(n string) (*configschema.Block, erro
 	return c.ProvisionerSchemaSchema, c.ProvisionerSchemaError
 }
 
-func (c *MockEvalContext) CloseProvisioners() error {
-	c.CloseProvisionersCalled = true
+func (c *MockEvalContext) ClosePlugins() error {
+	c.ClosePluginsCalled = true
 	return nil
 }
 
@@ -323,20 +330,37 @@ func (c *MockEvalContext) EvaluationScope(self addrs.Referenceable, source addrs
 	return c.EvaluationScopeScope
 }
 
-func (c *MockEvalContext) WithPath(path addrs.ModuleInstance) EvalContext {
+func (c *MockEvalContext) withScope(scope evalContextScope) EvalContext {
 	newC := *c
-	newC.PathPath = path
+	newC.Scope = scope
 	return &newC
 }
 
 func (c *MockEvalContext) Path() addrs.ModuleInstance {
 	c.PathCalled = true
-	return c.PathPath
+	// This intentionally panics if scope isn't a module instance; callers
+	// should use this only for an eval context that's working in a
+	// fully-expanded module instance.
+	return c.Scope.(evalContextModuleInstance).Addr
+}
+
+func (c *MockEvalContext) LanguageExperimentActive(experiment experiments.Experiment) bool {
+	// This particular function uses a live data structure so that tests can
+	// exercise different experiments being enabled; there is little reason
+	// to directly test whether this function was called since we use this
+	// function only temporarily while an experiment is active, and then
+	// remove the calls once the experiment is concluded.
+	return c.LanguageExperimentsActive.Has(experiment)
 }
 
 func (c *MockEvalContext) NamedValues() *namedvals.State {
 	c.NamedValuesCalled = true
 	return c.NamedValuesState
+}
+
+func (c *MockEvalContext) Deferrals() *deferring.Deferred {
+	c.DeferralsCalled = true
+	return c.DeferralsState
 }
 
 func (c *MockEvalContext) Changes() *plans.ChangesSync {

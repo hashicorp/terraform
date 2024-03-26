@@ -13,14 +13,14 @@ import (
 	"strings"
 
 	tfe "github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
+func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	log.Printf("[INFO] cloud: starting Apply operation")
 
 	var diags tfdiags.Diagnostics
@@ -114,7 +114,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		}
 
 		if !r.Actions.IsConfirmable {
-			url := runURL(b.Hostname, b.organization, op.Workspace, r.ID)
+			url := runURL(b.Hostname, b.Organization, op.Workspace, r.ID)
 			return r, unusableSavedPlanError(r.Status, url)
 		}
 
@@ -122,7 +122,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		if b.CLI != nil {
 			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(applySavedHeader) + "\n"))
 			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(fmt.Sprintf(
-				runHeader, b.Hostname, b.organization, r.Workspace.Name, r.ID)) + "\n"))
+				runHeader, b.Hostname, b.Organization, r.Workspace.Name, r.ID)) + "\n"))
 		}
 	} else {
 		log.Printf("[TRACE] Running new cloud plan for apply")

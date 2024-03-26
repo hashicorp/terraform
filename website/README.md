@@ -23,7 +23,7 @@ If the validation fails, actionable error messages will be displayed to help you
 
 ## Modifying Sidebar Navigation
 
-You must update the the sidebar navigation when you add or delete documentation .mdx files. If you do not update the navigation, the website deploy preview fails.
+You must update the sidebar navigation when you add or delete documentation .mdx files. If you do not update the navigation, the website deploy preview fails.
 
 To update the sidebar navigation, you must edit the appropriate `nav-data.json` file. This repository contains the sidebar navigation files for the following documentation sets:
 

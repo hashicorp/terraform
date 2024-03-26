@@ -7,7 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -16,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 type Component struct {
@@ -108,7 +110,7 @@ func (c *Component) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty
 			switch {
 
 			case cfg.ForEach != nil:
-				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.Stack(ctx))
+				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.Stack(ctx), "component")
 				diags = diags.Append(moreDiags)
 				if diags.HasErrors() {
 					return cty.DynamicVal, diags
@@ -237,6 +239,42 @@ func (c *Component) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 	}
 }
 
+// PlanIsComplete can be called only during the planning phase, and returns
+// true only if all instances of this component have "complete" plans.
+//
+// A component instance plan is "incomplete" if it was either created with
+// resource targets set in its planning options or if the modules runtime
+// decided it needed to defer at least one action for a future round.
+func (c *Component) PlanIsComplete(ctx context.Context) bool {
+	if !c.main.Planning() {
+		panic("PlanIsComplete used when not in the planning phase")
+	}
+	insts := c.Instances(ctx, PlanPhase)
+	if insts == nil {
+		// Suggests that the configuration was not even valid enough to
+		// decide what the instances are, so we'll return false to be
+		// conservative and let the error be returned by a different path.
+		return false
+	}
+
+	for _, inst := range insts {
+		plan := inst.ModuleTreePlan(ctx)
+		if plan == nil {
+			// Seems that we weren't even able to create a plan for this
+			// one, so we'll just assume it was incomplete to be conservative,
+			// and assume that whatever errors caused this nil result will
+			// get returned by a different return path.
+			return false
+		}
+		if !plan.Complete {
+			return false
+		}
+	}
+	// If we get here without returning false then we can say that
+	// all of the instance plans are complete.
+	return true
+}
+
 // ExprReferenceValue implements Referenceable.
 func (c *Component) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
 	return c.ResultValue(ctx, phase)
@@ -263,9 +301,48 @@ func (c *Component) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange,
 	return nil, c.checkValid(ctx, PlanPhase)
 }
 
+// References implements Referrer
+func (c *Component) References(ctx context.Context) []stackaddrs.AbsReference {
+	cfg := c.Declaration(ctx)
+	var ret []stackaddrs.Reference
+	ret = append(ret, ReferencesInExpr(ctx, cfg.ForEach)...)
+	ret = append(ret, ReferencesInExpr(ctx, cfg.Inputs)...)
+	for _, expr := range cfg.ProviderConfigs {
+		ret = append(ret, ReferencesInExpr(ctx, expr)...)
+	}
+	return makeReferencesAbsolute(ret, c.Addr().Stack)
+}
+
+// RequiredComponents implements Applyable
+func (c *Component) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+	return c.main.requiredComponentsForReferrer(ctx, c, PlanPhase)
+}
+
 // CheckApply implements ApplyChecker.
 func (c *Component) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	return nil, c.checkValid(ctx, ApplyPhase)
+}
+
+// ApplySuccessful blocks until all instances of this component have
+// completed their apply step and returns whether the apply was successful,
+// or panics if called not during the apply phase.
+func (c *Component) ApplySuccessful(ctx context.Context) bool {
+	if !c.main.Applying() {
+		panic("ApplySuccessful when not applying")
+	}
+
+	// Apply is successful if all of our instances fully completed their
+	// apply phases.
+	for _, inst := range c.Instances(ctx, ApplyPhase) {
+		result := inst.ApplyResult(ctx)
+		if result == nil || !result.Complete {
+			return false
+		}
+	}
+
+	// If we get here then either we had no instances at all or they all
+	// applied completely, and so our aggregate result is success.
+	return true
 }
 
 func (c *Component) tracingName() string {

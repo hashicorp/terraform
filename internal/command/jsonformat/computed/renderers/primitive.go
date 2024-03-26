@@ -4,8 +4,8 @@
 package renderers
 
 import (
+	"encoding/json"
 	"fmt"
-	"math/big"
 	"strings"
 
 	"github.com/zclconf/go-cty/cty"
@@ -67,8 +67,8 @@ func renderPrimitiveValue(value interface{}, t cty.Type, opts computed.RenderHum
 		}
 		return "false"
 	case t == cty.Number:
-		bf := big.NewFloat(value.(float64))
-		return bf.Text('f', -1)
+		number := value.(json.Number)
+		return number.String()
 	default:
 		panic("unrecognized primitive type: " + t.FriendlyName())
 	}
@@ -164,6 +164,12 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 
 			if afterIx < 0 || afterIx >= len(afterLines) {
 				lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.Delete, opts), beforeLines[beforeIx]))
+				return
+			}
+
+			if beforeLines[beforeIx] != afterLines[afterIx] {
+				lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.Delete, opts), beforeLines[beforeIx]))
+				lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.Create, opts), afterLines[afterIx]))
 				return
 			}
 

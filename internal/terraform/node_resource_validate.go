@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -306,7 +306,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		}
 
 		// Evaluate the for_each expression here so we can expose the diagnostics
-		forEachDiags := newForEachEvaluator(n.Config.ForEach, ctx).ValidateResourceValue()
+		forEachDiags := newForEachEvaluator(n.Config.ForEach, ctx, false).ValidateResourceValue()
 		diags = diags.Append(forEachDiags)
 	}
 
@@ -472,7 +472,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 func (n *NodeValidatableResource) evaluateExpr(ctx EvalContext, expr hcl.Expression, wantTy cty.Type, self addrs.Referenceable, keyData instances.RepetitionData) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	refs, refDiags := lang.ReferencesInExpr(addrs.ParseRef, expr)
+	refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRef, expr)
 	diags = diags.Append(refDiags)
 
 	scope := ctx.EvaluationScope(self, nil, keyData)

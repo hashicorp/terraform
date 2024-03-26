@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -392,8 +393,8 @@ resource "test_resource" "b" {
 `,
 	})
 
-	p := new(MockProvider)
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_resource": {
 				Attributes: map[string]*configschema.Attribute{
@@ -776,7 +777,7 @@ resource "test_resource" "c" {
 	})
 
 	p := testProvider("test")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_resource": {
 				Attributes: map[string]*configschema.Attribute{
@@ -1071,7 +1072,7 @@ func TestContext2Apply_resourceConditionApplyTimeFail(t *testing.T) {
 	})
 
 	p := testProvider("test")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_resource": {
 				Attributes: map[string]*configschema.Attribute{
@@ -1242,7 +1243,7 @@ output "out" {
 }
 `})
 
-	testProvider := &MockProvider{
+	testProvider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{Block: simpleTestSchema()},
 			ResourceTypes: map[string]providers.Schema{
@@ -1280,7 +1281,7 @@ output "out" {
 		return resp
 	}
 
-	otherProvider := &MockProvider{
+	otherProvider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
 				Block: &configschema.Block{
@@ -1932,7 +1933,7 @@ output "resources" {
 	})
 
 	p := testProvider("test")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_resource": {
 				Attributes: map[string]*configschema.Attribute{
@@ -1980,7 +1981,7 @@ resource "test_resource" "b" {
 	var plantime time.Time
 
 	p := testProvider("test")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_resource": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2108,7 +2109,7 @@ import {
 	})
 
 	p := testProvider("test")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_resource": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2397,8 +2398,153 @@ resource "test_object" "foo" {
 		},
 	}
 
-	testProvider := &MockProvider{
+	testProvider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Type:     cty.String,
+								Required: true,
+							},
+							"output": {
+								Type:     cty.String,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
+			DataSources: map[string]providers.Schema{
+				"test_object": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"output": {
+								Type:     cty.String,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	reachedReadDataSourceFn := false
+	reachedPlanResourceChangeFn := false
+	reachedApplyResourceChangeFn := false
+	testProvider.ReadDataSourceFn = func(request providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		reachedReadDataSourceFn = true
+		cfg := request.Config.AsValueMap()
+		cfg["output"] = cty.StringVal("unexpected data output")
+		resp.State = cty.ObjectVal(cfg)
+		return resp
+	}
+	testProvider.PlanResourceChangeFn = func(request providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		reachedPlanResourceChangeFn = true
+		cfg := request.Config.AsValueMap()
+		cfg["output"] = cty.UnknownVal(cty.String)
+		resp.PlannedState = cty.ObjectVal(cfg)
+		return resp
+	}
+	testProvider.ApplyResourceChangeFn = func(request providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		reachedApplyResourceChangeFn = true
+		cfg := request.Config.AsValueMap()
+		cfg["output"] = cty.StringVal("unexpected resource output")
+		resp.NewState = cty.ObjectVal(cfg)
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("expected no errors, but got %s", diags)
+	}
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("expected no errors, but got %s", diags)
+	}
+
+	// Check we never made it to the actual provider.
+	if reachedReadDataSourceFn {
+		t.Errorf("read the data source in the provider when it should have been mocked")
+	}
+	if reachedPlanResourceChangeFn {
+		t.Errorf("planned the resource in the provider when it should have been mocked")
+	}
+	if reachedApplyResourceChangeFn {
+		t.Errorf("applied the resource in the provider when it should have been mocked")
+	}
+
+	// Check we got the right data back from our mocked provider.
+	instance := state.ResourceInstance(mustResourceInstanceAddr("test_object.foo"))
+	expected := "{\"output\":\"expected resource output\",\"value\":\"expected data output\"}"
+	if diff := cmp.Diff(string(instance.Current.AttrsJSON), expected); len(diff) > 0 {
+		t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expected, string(instance.Current.AttrsJSON), diff)
+	}
+}
+
+func TestContext2Apply_mockProviderRequiredSchema(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+provider "test" {}
+
+data "test_object" "foo" {}
+
+resource "test_object" "foo" {
+	value = data.test_object.foo.output
+}
+`,
+	})
+
+	// Manually mark the provider config as being mocked.
+	m.Module.ProviderConfigs["test"].Mock = true
+	m.Module.ProviderConfigs["test"].MockData = &configs.MockData{
+		MockDataSources: map[string]*configs.MockResource{
+			"test_object": {
+				Mode: addrs.DataResourceMode,
+				Type: "test_object",
+				Defaults: cty.ObjectVal(map[string]cty.Value{
+					"output": cty.StringVal("expected data output"),
+				}),
+			},
+		},
+		MockResources: map[string]*configs.MockResource{
+			"test_object": {
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_object",
+				Defaults: cty.ObjectVal(map[string]cty.Value{
+					"output": cty.StringVal("expected resource output"),
+				}),
+			},
+		},
+	}
+
+	// This time our test provider has a required attribute that we don't
+	// provide in the configuration. The fact we've marked this provider as a
+	// mock means the missing required attribute doesn't matter.
+
+	testProvider := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"required": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+			},
 			ResourceTypes: map[string]providers.Schema{
 				"test_object": {
 					Block: &configschema.Block{
@@ -2580,4 +2726,97 @@ removed {
 	}
 
 	checkStateString(t, state, `<no state>`)
+}
+
+func TestContext2Apply_sensitiveInputVariableValue(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "a" {
+  type = string
+  # this variable is not marked sensitive
+}
+
+resource "test_resource" "a" {
+  value = var.a
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	// Build state with sensitive value in resource object
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_resource.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"value":"secret"}]}`),
+			AttrSensitivePaths: []cty.PathValueMarks{
+				{
+					Path:  cty.GetAttrPath("value"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
+				},
+			},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	// Create a sensitive-marked value for the input variable. This is not
+	// possible through the normal CLI path, but is possible when the plan is
+	// created and modified by the stacks runtime.
+	secret := cty.StringVal("updated").Mark(marks.Sensitive)
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"a": &InputValue{
+				Value:      secret,
+				SourceType: ValueFromUnknown,
+			},
+		},
+	})
+	assertNoErrors(t, diags)
+
+	state, diags = ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	// check that the provider was not asked to destroy the resource
+	if !p.ApplyResourceChangeCalled {
+		t.Fatalf("Expected ApplyResourceChange to be called, but it was not called")
+	}
+
+	instance := state.ResourceInstance(mustResourceInstanceAddr("test_resource.a"))
+	expected := "{\"value\":\"updated\"}"
+	if diff := cmp.Diff(string(instance.Current.AttrsJSON), expected); len(diff) > 0 {
+		t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expected, string(instance.Current.AttrsJSON), diff)
+	}
+	expectedMarkses := []cty.PathValueMarks{
+		{
+			Path:  cty.GetAttrPath("value"),
+			Marks: cty.NewValueMarks(marks.Sensitive),
+		},
+	}
+	if diff := cmp.Diff(instance.Current.AttrSensitivePaths, expectedMarkses); len(diff) > 0 {
+		t.Errorf("unexpected sensitive paths\ndiff:\n%s", diff)
+	}
 }

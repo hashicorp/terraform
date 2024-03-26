@@ -6,7 +6,7 @@ package objchange
 import (
 	"testing"
 
-	"github.com/apparentlymart/go-dump/dump"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -1953,9 +1953,9 @@ func TestAssertPlanValid(t *testing.T) {
 
 			t.Logf(
 				"\nprior:  %sconfig:  %splanned: %s",
-				dump.Value(test.Prior),
-				dump.Value(test.Config),
-				dump.Value(test.Planned),
+				ctydebug.ValueString(test.Prior),
+				ctydebug.ValueString(test.Config),
+				ctydebug.ValueString(test.Planned),
 			)
 			for msg := range wantErrs {
 				if _, ok := gotErrs[msg]; !ok {

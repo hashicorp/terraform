@@ -8,16 +8,17 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestParseCloudRunVariables(t *testing.T) {
 	t.Run("populates variables from allowed sources", func(t *testing.T) {
-		vv := map[string]backend.UnparsedVariableValue{
+		vv := map[string]backendrun.UnparsedVariableValue{
 			"undeclared":                      testUnparsedVariableValue{source: terraform.ValueFromCLIArg, value: cty.StringVal("0")},
 			"declaredFromConfig":              testUnparsedVariableValue{source: terraform.ValueFromConfig, value: cty.StringVal("1")},
 			"declaredFromNamedFileMapString":  testUnparsedVariableValue{source: terraform.ValueFromNamedFile, value: cty.MapVal(map[string]cty.Value{"foo": cty.StringVal("bar")})},

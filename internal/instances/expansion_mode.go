@@ -16,7 +16,19 @@ import (
 // ways expansion can operate depending on how repetition is configured for
 // an object.
 type expansion interface {
-	instanceKeys() (addrs.InstanceKeyType, []addrs.InstanceKey, bool)
+	// instanceKeys determines the full set of instance keys for whatever
+	// object this expansion is associated with, or indicates that we
+	// can't yet know what they are (using keysUnknown=true).
+	//
+	// if keysUnknown is true then the "keys" result is likely to be incomplete,
+	// meaning that there might be other instance keys that we've not yet
+	// calculated, but we know that they will be of type keyType.
+	//
+	// If len(keys) == 0 when keysUnknown is true then we don't yet know _any_
+	// instance keys for this object. keyType might be [addrs.UnknownKeyType]
+	// if we don't even have enough information to predict what type of
+	// keys we will be using for this object.
+	instanceKeys() (keyType addrs.InstanceKeyType, keys []addrs.InstanceKey, keysUnknown bool)
 	repetitionData(addrs.InstanceKey) RepetitionData
 }
 

@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/getmodules"
+	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 	"github.com/hashicorp/terraform/internal/modsdir"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/registry/regsrc"
@@ -590,7 +591,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 			})
 			return nil, nil, diags
 		}
-		realAddr, err := addrs.ParseModuleSource(realAddrRaw)
+		realAddr, err := moduleaddrs.ParseModuleSource(realAddrRaw)
 		if err != nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -712,7 +713,7 @@ func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *config
 	if err != nil {
 		// go-getter generates a poor error for an invalid relative path, so
 		// we'll detect that case and generate a better one.
-		if _, ok := err.(*getmodules.MaybeRelativePathErr); ok {
+		if _, ok := err.(*moduleaddrs.MaybeRelativePathErr); ok {
 			log.Printf(
 				"[TRACE] ModuleInstaller: %s looks like a local path but is missing ./ or ../",
 				req.SourceAddr,
@@ -744,7 +745,7 @@ func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *config
 		return nil, diags
 	}
 
-	modDir, err := getmodules.ExpandSubdirGlobs(instPath, addr.Subdir)
+	modDir, err := moduleaddrs.ExpandSubdirGlobs(instPath, addr.Subdir)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,

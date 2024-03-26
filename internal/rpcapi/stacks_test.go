@@ -28,7 +28,7 @@ func TestStacksOpenCloseStackConfiguration(t *testing.T) {
 	ctx := context.Background()
 
 	handles := newHandleTable()
-	stacksServer := newStacksServer(handles)
+	stacksServer := newStacksServer(handles, &serviceOpts{})
 
 	// In normal use a client would have previously opened a source bundle
 	// using Dependencies.OpenSourceBundle, so we'll simulate the effect
@@ -110,7 +110,7 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 	ctx := context.Background()
 
 	handles := newHandleTable()
-	stacksServer := newStacksServer(handles)
+	stacksServer := newStacksServer(handles, &serviceOpts{})
 
 	// In normal use a client would have previously opened a source bundle
 	// using Dependencies.OpenSourceBundle, so we'll simulate the effect
@@ -185,11 +185,13 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 		want := &terraform1.FindStackConfigurationComponents_StackConfig{
 			Components: map[string]*terraform1.FindStackConfigurationComponents_Component{
 				"single": {
-					SourceAddr: "git::https://example.com/foo.git//non-empty-stack/empty-module",
+					SourceAddr:    "git::https://example.com/foo.git//non-empty-stack/empty-module",
+					ComponentAddr: "component.single",
 				},
 				"for_each": {
-					SourceAddr: "git::https://example.com/foo.git//non-empty-stack/empty-module",
-					Instances:  terraform1.FindStackConfigurationComponents_FOR_EACH,
+					SourceAddr:    "git::https://example.com/foo.git//non-empty-stack/empty-module",
+					Instances:     terraform1.FindStackConfigurationComponents_FOR_EACH,
+					ComponentAddr: "component.for_each",
 				},
 			},
 			EmbeddedStacks: map[string]*terraform1.FindStackConfigurationComponents_EmbeddedStack{
@@ -198,7 +200,8 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 					Config: &terraform1.FindStackConfigurationComponents_StackConfig{
 						Components: map[string]*terraform1.FindStackConfigurationComponents_Component{
 							"foo": {
-								SourceAddr: "git::https://example.com/foo.git//non-empty-stack/empty-module",
+								SourceAddr:    "git::https://example.com/foo.git//non-empty-stack/empty-module",
+								ComponentAddr: "stack.single.component.foo",
 							},
 						},
 					},
@@ -209,7 +212,8 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 					Config: &terraform1.FindStackConfigurationComponents_StackConfig{
 						Components: map[string]*terraform1.FindStackConfigurationComponents_Component{
 							"foo": {
-								SourceAddr: "git::https://example.com/foo.git//non-empty-stack/empty-module",
+								SourceAddr:    "git::https://example.com/foo.git//non-empty-stack/empty-module",
+								ComponentAddr: "stack.for_each.component.foo",
 							},
 						},
 					},
@@ -226,7 +230,7 @@ func TestStacksPlanStackChanges(t *testing.T) {
 	ctx := context.Background()
 
 	handles := newHandleTable()
-	stacksServer := newStacksServer(handles)
+	stacksServer := newStacksServer(handles, &serviceOpts{})
 
 	fakeSourceBundle := &sourcebundle.Bundle{}
 	bundleHnd := handles.NewSourceBundle(fakeSourceBundle)

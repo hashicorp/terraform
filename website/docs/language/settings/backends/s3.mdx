@@ -5,12 +5,10 @@ description: Terraform can store state remotely in S3 and lock that state with D
 
 # S3
 
-Stores the state as a given key in a given bucket on
-[Amazon S3](https://aws.amazon.com/s3/).
-This backend also supports state locking and consistency checking via
-[Dynamo DB](https://aws.amazon.com/dynamodb/), which can be enabled by setting
-the `dynamodb_table` field to an existing DynamoDB table name.
-A single DynamoDB table can be used to lock multiple remote state files. Terraform generates key names that include the values of the `bucket` and `key` variables.
+Stores the state as a given key in a given bucket on [Amazon S3](https://aws.amazon.com/s3/).
+This backend also supports state locking and consistency checking via [Dynamo DB](https://aws.amazon.com/dynamodb/), which can be enabled by setting the `dynamodb_table` field to an existing DynamoDB table name.
+A single DynamoDB table can be used to lock multiple remote state files.
+Terraform generates key names that include the values of the `bucket` and `key` variables.
 
 ~> **Warning!** It is highly recommended that you enable
 [Bucket Versioning](https://docs.aws.amazon.com/AmazonS3/latest/userguide/manage-versioning-examples.html)
@@ -28,21 +26,31 @@ terraform {
 }
 ```
 
-This assumes we have a bucket created called `mybucket`. The
-Terraform state is written to the key `path/to/my/key`.
+This assumes we have a bucket created called `mybucket`. The Terraform state is written to the key `path/to/my/key`.
 
-Note that for the access credentials we recommend using a
-[partial configuration](/terraform/language/settings/backends/configuration#partial-configuration).
+Note that for the access credentials we recommend using a [partial configuration](/terraform/language/settings/backends/configuration#partial-configuration).
+
+## State Storage
+
+The S3 backend stores state data in an S3 object at the path set by the `key` parameter in the S3 bucket indicated by the `bucket` parameter.
+Using the example shown above, the state would be stored at the path `path/to/my/key` in the bucket `mybucket`.
+
+When using [workspaces](/terraform/language/state/workspaces), the state for the `default` workspace is stored at the location described above.
+Other workspaces are stored using the path `<workspace_key_prefix>/<workspace_name>/<key>`.
+The default workspace key prefix is `env:` and it can be configured using the parameter `workspace_key_prefix`.
+Using the example above, the state for the workspace `development` would be stored at the path `env:/development/path/to/my/key`.
+
+## Permissions Required
 
 ### S3 Bucket Permissions
 
-Terraform will need the following AWS IAM permissions on
-the target backend bucket:
+When not using [workspaces](/terraform/language/state/workspaces)(or when only using the `default` workspace), Terraform will need the following AWS IAM permissions on the target backend bucket:
 
-* `s3:ListBucket` on `arn:aws:s3:::mybucket`
+* `s3:ListBucket` on `arn:aws:s3:::mybucket`. At a minimum, this must be able to list the path where the state is stored.
 * `s3:GetObject` on `arn:aws:s3:::mybucket/path/to/my/key`
 * `s3:PutObject` on `arn:aws:s3:::mybucket/path/to/my/key`
-* `s3:DeleteObject` on `arn:aws:s3:::mybucket/path/to/my/key`
+
+Note: `s3:DeleteObject` is not needed, as Terraform will not delete the state storage.
 
 This is seen in the following AWS IAM Statement:
 
@@ -57,12 +65,19 @@ This is seen in the following AWS IAM Statement:
     },
     {
       "Effect": "Allow",
-      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Action": ["s3:GetObject", "s3:PutObject"],
       "Resource": "arn:aws:s3:::mybucket/path/to/my/key"
     }
   ]
 }
 ```
+
+When using [workspaces](/terraform/language/state/workspaces), Terraform will also need permissions to create, list, read, update, and delete the workspace state storage:
+
+* `s3:ListBucket` on `arn:aws:s3:::mybucket`. At a minumum, this must be able to list the path where the `default` workspace is stored as well as the other workspaces.
+* `s3:GetObject` on `arn:aws:s3:::mybucket/path/to/my/key` and `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key`
+* `s3:PutObject` on `arn:aws:s3:::mybucket/path/to/my/key` and `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key`
+* `s3:DeleteObject` on `arn:aws:s3:::mybucket/<workspace_key_prefix>/*/path/to/my/key`
 
 -> **Note:** AWS can control access to S3 buckets with either IAM policies
 attached to users/groups/roles (like the example above) or resource policies
@@ -197,7 +212,6 @@ The following configuration is optional:
 * `token` - (Optional) Multi-Factor Authentication (MFA) token. This can also be sourced from the `AWS_SESSION_TOKEN` environment variable.
 * `use_dualstack_endpoint` - (Optional) Force the backend to resolve endpoints with DualStack capability. Can also be set with the `AWS_USE_DUALSTACK_ENDPOINT` environment variable or in a shared config file (`use_dualstack_endpoint`).
 * `use_fips_endpoint` - (Optional) Force the backend to resolve endpoints with FIPS capability. Can also be set with the `AWS_USE_FIPS_ENDPOINT` environment variable or in a shared config file (`use_fips_endpoint`).
-* `use_legacy_workflow` - (Optional, **Deprecated**) Use the legacy authentication workflow, preferring environment variables over backend configuration. Defaults to `false`. To encourage consistency with the default credential chain ordering of the AWS SDKs, this argument will be removed in a future minor version.
 
 #### Overriding AWS API endpoints
 
@@ -213,6 +227,13 @@ The optional argument `endpoints` contains the following arguments:
   This can also be sourced from the environment variable `AWS_ENDPOINT_URL_SSO`.
 * `sts` - (Optional) Custom endpoint URL for the AWS STS API.
   This can also be sourced from the environment variable `AWS_ENDPOINT_URL_STS` or the deprecated environment variable `AWS_STS_ENDPOINT`.
+
+The environment variable `AWS_ENDPOINT_URL` can be used to set a base endpoint URL for all services.
+
+Endpoints can also be overridden using the [AWS shared configuration file](https://docs.aws.amazon.com/sdkref/latest/guide/feature-ss-endpoints.html#ss-endpoints-config).
+Setting the parameter `endpoint_url` on a profile will set that endpoint for all services.
+To set endpoints for specific services, create a `services` section and set the `endpoint_url` parameters for each desired service.
+Endpoints set for specific services will override the base endpoint configured in the profile.
 
 #### Assume Role Configuration
 
@@ -307,7 +328,7 @@ terraform {
 The following configuration is required:
 
 * `bucket` - (Required) Name of the S3 Bucket.
-* `key` - (Required) Path to the state file inside the S3 Bucket. When using a non-default [workspace](/terraform/language/state/workspaces), the state path will be `/workspace_key_prefix/workspace_name/key` (see also the `workspace_key_prefix` configuration).
+* `key` - (Required) Path to the state file inside the S3 Bucket. When using a non-default [workspace](/terraform/language/state/workspaces), the state path will be `<workspace_key_prefix>/<workspace_name>/<key>` (see also the `workspace_key_prefix` configuration).
 
 The following configuration is optional:
 
@@ -531,7 +552,12 @@ to only a single state object within an S3 bucket is shown below:
     {
       "Effect": "Allow",
       "Action": "s3:ListBucket",
-      "Resource": "arn:aws:s3:::myorg-terraform-states"
+      "Resource": "arn:aws:s3:::myorg-terraform-states",
+      "Condition": {
+        "StringEquals": {
+          "s3:prefix": "myapp/production/tfstate"
+        }
+      }
     },
     {
       "Effect": "Allow",
@@ -594,7 +620,7 @@ terraform {
     bucket         = "myorg-terraform-states"
     key            = "myapp/production/tfstate"
     region         = "us-east-1"
-    dynamodb_table = "TableName
+    dynamodb_table = "TableName"
   }
 }
 ```

@@ -9,7 +9,10 @@ import (
 	"sync"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -18,7 +21,6 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Stack represents an instance of a [StackConfig] after it's had its
@@ -167,7 +169,7 @@ func (s *Stack) StackConfig(ctx context.Context) *StackConfig {
 func (s *Stack) ConfigDeclarations(ctx context.Context) *stackconfig.Declarations {
 	// The declarations really belong to the static StackConfig, since
 	// all instances of a particular stack configuration share the same
-	// source code.
+	// source code.ResolveExpressionReference
 	return s.StackConfig(ctx).ConfigDeclarations(ctx)
 }
 
@@ -408,6 +410,13 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 	// TODO: Most of the below would benefit from "Did you mean..." suggestions
 	// when something is missing but there's a similarly-named object nearby.
 
+	// See also a very similar function in stack_config.go. Both are returning
+	// similar referenceable objects but the context is different. For example,
+	// in this function we return an instanced Component, while in the other
+	// function we return a static ComponentConfig.
+	//
+	// Some of the returned types are the same across both functions, but most
+	// are different in terms of static vs dynamic types.
 	switch addr := ref.Target.(type) {
 	case stackaddrs.InputVariable:
 		ret := s.InputVariable(ctx, addr)
@@ -418,6 +427,7 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 				Detail:   fmt.Sprintf("There is no variable %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
+			return nil, diags
 		}
 		return ret, diags
 	case stackaddrs.Component:
@@ -429,6 +439,7 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 				Detail:   fmt.Sprintf("There is no component %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
+			return nil, diags
 		}
 		return ret, diags
 	case stackaddrs.StackCall:
@@ -440,6 +451,7 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 				Detail:   fmt.Sprintf("There is no stack %q block declared this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
+			return nil, diags
 		}
 		return ret, diags
 	case stackaddrs.ProviderConfigRef:
@@ -451,6 +463,7 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 				Detail:   fmt.Sprintf("There is no provider %q %q block declared this stack.", addr.ProviderLocalName, addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
+			return nil, diags
 		}
 		return ret, diags
 	case stackaddrs.ContextualRef:
@@ -578,7 +591,14 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 	return changes, nil
 }
 
-// CheckApply implements ApplyChecker.
+func (s *Stack) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+	// The stack itself doesn't refer to anything and so cannot require
+	// components. Its _call_ might, but that's handled over in
+	// [StackCall.RequiredComponents].
+	return collections.NewSet[stackaddrs.AbsComponent]()
+}
+
+// CheckApply implements Applyable.
 func (s *Stack) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	// TODO: We should emit an AppliedChange for each output value,
 	// reporting its final value.

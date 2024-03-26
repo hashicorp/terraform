@@ -3,7 +3,9 @@
 
 package funcs
 
-import "github.com/zclconf/go-cty/cty/function"
+import (
+	"github.com/zclconf/go-cty/cty/function"
+)
 
 type descriptionEntry struct {
 	// Description is a description for the function.
@@ -231,6 +233,10 @@ var DescriptionList = map[string]descriptionEntry{
 		Description:      "`index` finds the element index for a given value in a list.",
 		ParamDescription: []string{"", ""},
 	},
+	"issensitive": {
+		Description:      "`issensitive` takes a value and returns a boolean indicating if the value is sensitive.",
+		ParamDescription: []string{""},
+	},
 	"join": {
 		Description: "`join` produces a string by concatenating together all elements of a given list of strings with the given delimiter.",
 		ParamDescription: []string{
@@ -341,7 +347,7 @@ var DescriptionList = map[string]descriptionEntry{
 		ParamDescription: []string{"", ""},
 	},
 	"sensitive": {
-		Description:      "`sensitive` takes any value and returns a copy of it marked so that Terraform will treat it as sensitive, with the same meaning and behavior as for [sensitive input variables](/language/values/variables#suppressing-values-in-cli-output).",
+		Description:      "`sensitive` takes any value and returns a copy of it marked so that Terraform will treat it as sensitive, with the same meaning and behavior as for [sensitive input variables](/terraform/language/values/variables#suppressing-values-in-cli-output).",
 		ParamDescription: []string{""},
 	},
 	"setintersection": {

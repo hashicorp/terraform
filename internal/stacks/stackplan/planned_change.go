@@ -8,18 +8,19 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform/internal/stacks/stackutils"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackutils"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -87,6 +88,20 @@ func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*terraform1.Planned
 type PlannedChangeComponentInstance struct {
 	Addr stackaddrs.AbsComponentInstance
 
+	// PlanApplyable is true if the modules runtime ruled that this particular
+	// component's plan is applyable.
+	//
+	// See the documentation for [plans.Plan.Applyable] for details on what
+	// exactly this represents.
+	PlanApplyable bool
+
+	// PlanApplyable is true if the modules runtime ruled that this particular
+	// component's plan is complete.
+	//
+	// See the documentation for [plans.Plan.Complete] for details on what
+	// exactly this represents.
+	PlanComplete bool
+
 	// Action describes any difference in the existence of this component
 	// instance compared to the prior state.
 	//
@@ -96,6 +111,12 @@ type PlannedChangeComponentInstance struct {
 	// are tracked in their own [PlannedChange] objects.
 	Action plans.Action
 
+	// RequiredComponents is a set of the addresses of all of the components
+	// that provide infrastructure that this one's infrastructure will
+	// depend on. Any component named here must exist for the entire lifespan
+	// of this component instance.
+	RequiredComponents collections.Set[stackaddrs.AbsComponent]
+
 	// PlannedInputValues records our best approximation of the component's
 	// topmost input values during the planning phase. This could contain
 	// unknown values if one component is configured from results of another.
@@ -103,6 +124,12 @@ type PlannedChangeComponentInstance struct {
 	// but the final set of input values during apply should be consistent
 	// with what's captured here.
 	PlannedInputValues map[string]plans.DynamicValue
+
+	PlannedInputValueMarks map[string][]cty.PathValueMarks
+
+	PlannedOutputValues map[string]cty.Value
+
+	PlannedCheckResults *states.CheckResults
 
 	// PlanTimestamp is the timestamp that would be returned from the
 	// "plantimestamp" function in modules inside this component. We
@@ -119,20 +146,21 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 	if n := len(pc.PlannedInputValues); n != 0 {
 		plannedInputValues = make(map[string]*tfstackdata1.DynamicValue, n)
 		for k, v := range pc.PlannedInputValues {
+			var sensitivePaths []*planproto.Path
+			if pvm, ok := pc.PlannedInputValueMarks[k]; ok {
+				for _, p := range pvm {
+					path, err := planproto.NewPath(p.Path)
+					if err != nil {
+						return nil, err
+					}
+					sensitivePaths = append(sensitivePaths, path)
+				}
+			}
 			plannedInputValues[k] = &tfstackdata1.DynamicValue{
 				Value: &planproto.DynamicValue{
 					Msgpack: v,
 				},
-				// FIXME: We're currently losing track of sensitivity here --
-				// or, more accurately, in the caller that's populating
-				// pc.PlannedInputValues -- but that's not _super_ important
-				// because we don't directly use these values during the
-				// apply phase anyway, and instead recalculate the input
-				// values based on updated data from other components having
-				// already been applied. These values are here only to give
-				// us something to compare against as a safety check to catch
-				// if a bug somewhere causes the values to be inconsistent
-				// between plan and apply.
+				SensitivePaths: sensitivePaths,
 			}
 		}
 	}
@@ -143,14 +171,36 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 		planTimestampStr = pc.PlanTimestamp.Format(time.RFC3339)
 	}
 
+	componentAddrsRaw := make([]string, 0, pc.RequiredComponents.Len())
+	for _, componentAddr := range pc.RequiredComponents.Elems() {
+		componentAddrsRaw = append(componentAddrsRaw, componentAddr.String())
+	}
+
+	plannedOutputValues := make(map[string]*tfstackdata1.DynamicValue)
+	for k, v := range pc.PlannedOutputValues {
+		dv, err := tfstackdata1.DynamicValueToTFStackData1(v, cty.DynamicPseudoType)
+		if err != nil {
+			return nil, fmt.Errorf("encoding output value %q: %w", k, err)
+		}
+		plannedOutputValues[k] = dv
+	}
+
+	plannedCheckResults, err := planfile.CheckResultsToPlanProto(pc.PlannedCheckResults)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode check results: %s", err)
+	}
+
 	var raw anypb.Any
-	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanComponentInstance{
-		ComponentInstanceAddr: pc.Addr.String(),
-		PlanTimestamp:         planTimestampStr,
-		PlannedInputValues:    plannedInputValues,
-		// We don't track the action as part of the raw data because we
-		// don't actually need it to apply the change; it's only included
-		// for external consumption, such as rendering changes in the UI.
+	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanComponentInstance{
+		ComponentInstanceAddr:   pc.Addr.String(),
+		PlanTimestamp:           planTimestampStr,
+		PlannedInputValues:      plannedInputValues,
+		PlannedAction:           planproto.NewAction(pc.Action),
+		PlanApplyable:           pc.PlanApplyable,
+		PlanComplete:            pc.PlanComplete,
+		DependsOnComponentAddrs: componentAddrsRaw,
+		PlannedOutputValues:     plannedOutputValues,
+		PlannedCheckResults:     plannedCheckResults,
 	}, proto.MarshalOptions{})
 	if err != nil {
 		return nil, err
@@ -171,7 +221,12 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 							ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(pc.Addr).String(),
 							ComponentInstanceAddr: pc.Addr.String(),
 						},
-						Actions: protoChangeTypes,
+						Actions:      protoChangeTypes,
+						PlanComplete: pc.PlanComplete,
+						// We don't include "applyable" in here since for a
+						// stack operation it's the overall stack plan applyable
+						// flag that matters, and the per-component flags
+						// are just an implementation detail.
 					},
 				},
 			},
@@ -227,6 +282,7 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 			ComponentInstanceAddr: rioAddr.Component.String(),
 			ResourceInstanceAddr:  rioAddr.Item.ResourceInstance.String(),
 			DeposedKey:            rioAddr.Item.DeposedKey.String(),
+			ProviderConfigAddr:    pc.ProviderConfigAddr.String(),
 		}, proto.MarshalOptions{})
 		if err != nil {
 			return nil, err
@@ -269,6 +325,10 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 		if err != nil {
 			return nil, err
 		}
+		replacePaths, err := encodePathSet(pc.ChangeSrc.RequiredReplace)
+		if err != nil {
+			return nil, err
+		}
 		descs = []*terraform1.PlannedChange_ChangeDescription{
 			{
 				Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
@@ -283,6 +343,7 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 							Old: terraform1.NewDynamicValue(pc.ChangeSrc.Before, pc.ChangeSrc.BeforeValMarks),
 							New: terraform1.NewDynamicValue(pc.ChangeSrc.After, pc.ChangeSrc.AfterValMarks),
 						},
+						ReplacePaths: replacePaths,
 						// TODO: Moved, Imported
 					},
 				},
@@ -294,6 +355,20 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 		Raw:          []*anypb.Any{&raw},
 		Descriptions: descs,
 	}, nil
+}
+
+func encodePathSet(pathSet cty.PathSet) ([]*terraform1.AttributePath, error) {
+	if pathSet.Empty() {
+		return nil, nil
+	}
+
+	pathList := pathSet.List()
+	paths := make([]*terraform1.AttributePath, 0, len(pathList))
+
+	for _, path := range pathList {
+		paths = append(paths, terraform1.NewAttributePath(path))
+	}
+	return paths, nil
 }
 
 // PlannedChangeOutputValue announces the change action for one output value

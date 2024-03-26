@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 )
 
 // ReferencesFromOutputValue returns all of the direct references from the
@@ -22,7 +22,7 @@ func (a *Analyzer) ReferencesFromOutputValue(addr addrs.AbsOutputValue) []Refere
 	if oc == nil {
 		return nil
 	}
-	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, oc.Expr)
+	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, oc.Expr)
 	return absoluteRefs(addr.Module, refs)
 }
 
@@ -38,11 +38,11 @@ func (a *Analyzer) ReferencesFromOutputValue(addr addrs.AbsOutputValue) []Refere
 // Analyzer.ReferencesFromResourceRepetition to get that same result directly.
 func (a *Analyzer) ReferencesFromResourceInstance(addr addrs.AbsResourceInstance) []Reference {
 	// Using MetaReferences for this is kinda overkill, since
-	// lang.ReferencesInBlock would be sufficient really, but
+	// langrefs.ReferencesInBlock would be sufficient really, but
 	// this ensures we keep consistent in how we build the
 	// resulting absolute references and otherwise aside from
 	// some extra overhead this call boils down to a call to
-	// lang.ReferencesInBlock anyway.
+	// langrefs.ReferencesInBlock anyway.
 	fakeRef := Reference{
 		ContainerAddr: addr.Module,
 		LocalRef: &addrs.Reference{
@@ -79,10 +79,10 @@ func (a *Analyzer) ReferencesFromResourceRepetition(addr addrs.AbsResource) []Re
 
 	switch {
 	case rc.ForEach != nil:
-		refs, _ := lang.ReferencesInExpr(addrs.ParseRef, rc.ForEach)
+		refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, rc.ForEach)
 		return absoluteRefs(addr.Module, refs)
 	case rc.Count != nil:
-		refs, _ := lang.ReferencesInExpr(addrs.ParseRef, rc.Count)
+		refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, rc.Count)
 		return absoluteRefs(addr.Module, refs)
 	default:
 		return nil

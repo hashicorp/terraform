@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -619,7 +620,7 @@ func TestNodeValidatableResource_ValidateResource_invalidIgnoreChangesComputed(t
 		},
 	}
 
-	mp := &MockProvider{
+	mp := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{Block: ms},
 			ResourceTypes: map[string]providers.Schema{

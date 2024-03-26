@@ -11,11 +11,10 @@ import (
 
 	uuid "github.com/hashicorp/go-uuid"
 
-	"github.com/hashicorp/terraform/internal/backend/local"
+	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // State implements the State interfaces in the state package to handle
@@ -50,7 +49,7 @@ type State struct {
 
 var _ statemgr.Full = (*State)(nil)
 var _ statemgr.Migrator = (*State)(nil)
-var _ local.IntermediateStateConditionalPersister = (*State)(nil)
+var _ statemgr.IntermediateStateConditionalPersister = (*State)(nil)
 
 // statemgr.Reader impl.
 func (s *State) State() *states.State {
@@ -166,7 +165,7 @@ func (s *State) refreshState() error {
 }
 
 // statemgr.Persister impl.
-func (s *State) PersistState(schemas *terraform.Schemas) error {
+func (s *State) PersistState(schemas *schemarepo.Schemas) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -227,12 +226,12 @@ func (s *State) PersistState(schemas *terraform.Schemas) error {
 	return nil
 }
 
-// ShouldPersistIntermediateState implements local.IntermediateStateConditionalPersister
-func (s *State) ShouldPersistIntermediateState(info *local.IntermediateStatePersistInfo) bool {
+// ShouldPersistIntermediateState implements statemgr.IntermediateStateConditionalPersister
+func (s *State) ShouldPersistIntermediateState(info *statemgr.IntermediateStatePersistInfo) bool {
 	if s.DisableIntermediateSnapshots {
 		return false
 	}
-	return local.DefaultIntermediateStatePersistRule(info)
+	return statemgr.DefaultIntermediateStatePersistRule(info)
 }
 
 // Lock calls the Client's Lock method if it's implemented.

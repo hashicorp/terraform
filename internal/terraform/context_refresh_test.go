@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -104,7 +105,7 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 	})
 
 	p := testProvider("test")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -166,7 +167,7 @@ func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 		return resp
 	}
 
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{},
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -216,7 +217,7 @@ func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 
 func TestContext2Refresh_targeted(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{},
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_elb": {
@@ -296,7 +297,7 @@ func TestContext2Refresh_targeted(t *testing.T) {
 
 func TestContext2Refresh_targetedCount(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{},
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_elb": {
@@ -386,7 +387,7 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 
 func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{},
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_elb": {
@@ -468,7 +469,7 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 
 func TestContext2Refresh_moduleComputedVar(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{},
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -629,7 +630,7 @@ func TestContext2Refresh_modules(t *testing.T) {
 func TestContext2Refresh_moduleInputComputedOutput(t *testing.T) {
 	m := testModule(t, "refresh-module-input-computed-output")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{},
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -697,7 +698,7 @@ func TestContext2Refresh_noState(t *testing.T) {
 func TestContext2Refresh_output(t *testing.T) {
 	p := testProvider("aws")
 	p.PlanResourceChangeFn = testDiffFn
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{},
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -752,7 +753,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 	// remote objects yet, to get stub values for interpolation. Therefore
 	// we need to make DiffFn available to let that complete.
 
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{},
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -850,7 +851,7 @@ func TestContext2Refresh_dataCount(t *testing.T) {
 		resp.PlannedState = cty.ObjectVal(m)
 		return resp
 	}
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test": {
 				Attributes: map[string]*configschema.Attribute{
@@ -898,7 +899,7 @@ func TestContext2Refresh_dataState(t *testing.T) {
 	}
 
 	p := testProvider("null")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{},
 		DataSources: map[string]*configschema.Block{
 			"null_data_source": schema,
@@ -945,7 +946,7 @@ func TestContext2Refresh_dataState(t *testing.T) {
 
 func TestContext2Refresh_dataStateRefData(t *testing.T) {
 	p := testProvider("null")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{},
 		DataSources: map[string]*configschema.Block{
 			"null_data_source": {
@@ -1077,7 +1078,7 @@ func TestContext2Refresh_vars(t *testing.T) {
 		},
 	}
 
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider:      &configschema.Block{},
 		ResourceTypes: map[string]*configschema.Block{"aws_instance": schema},
 	})
@@ -1203,7 +1204,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 
 func TestContext2Validate(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{},
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -1228,7 +1229,7 @@ func TestContext2Validate(t *testing.T) {
 		},
 	})
 
-	diags := c.Validate(m)
+	diags := c.Validate(m, nil)
 	if len(diags) != 0 {
 		t.Fatalf("unexpected error: %#v", diags.ErrWithWarnings())
 	}
@@ -1267,7 +1268,7 @@ aws_instance.bar:
 func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 	m := testModule(t, "refresh-schema-upgrade")
 	p := testProvider("test")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_thing": {
 				Attributes: map[string]*configschema.Attribute{
@@ -1351,7 +1352,7 @@ test_thing.bar:
 func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 	m := testModule(t, "refresh-schema-upgrade")
 	p := testProvider("test")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_thing": {
 				Attributes: map[string]*configschema.Attribute{
@@ -1468,7 +1469,7 @@ data "aws_data_source" "foo" {
 func TestContext2Refresh_dataResourceDependsOn(t *testing.T) {
 	m := testModule(t, "plan-data-depends-on")
 	p := testProvider("test")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_resource": {
 				Attributes: map[string]*configschema.Attribute{
@@ -1616,7 +1617,7 @@ resource "test_resource" "foo" {
 `,
 	})
 
-	p := new(MockProvider)
+	p := new(testing_provider.MockProvider)
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 		// incorrectly return a null _set_block value
 		v := req.PriorState.AsValueMap()
@@ -1624,7 +1625,7 @@ resource "test_resource" "foo" {
 		return providers.ReadResourceResponse{NewState: cty.ObjectVal(v)}
 	}
 
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{},
 		ResourceTypes: map[string]*configschema.Block{
 			"test_resource": {

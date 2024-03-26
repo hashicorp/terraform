@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 )
 
 // GraphNodeReferenceable must be implemented by any node that represents
@@ -571,6 +571,6 @@ func ReferencesFromConfig(body hcl.Body, schema *configschema.Block) []*addrs.Re
 	if body == nil {
 		return nil
 	}
-	refs, _ := lang.ReferencesInBlock(addrs.ParseRef, body, schema)
+	refs, _ := langrefs.ReferencesInBlock(addrs.ParseRef, body, schema)
 	return refs
 }

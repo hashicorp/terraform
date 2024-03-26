@@ -6,11 +6,12 @@
     "content-check": "hc-content --config base-docs"
   },
   "devDependencies": {
-    "@hashicorp/platform-cli": "^2.6.0",
-    "@hashicorp/platform-content-conformance": "^0.0.10",
-    "next": "^12.1.0"
+    "@hashicorp/platform-cli": "^2.7.3",
+    "@hashicorp/platform-content-conformance": "^0.0.12",
+    "next": "^14.0.4"
   },
   "engines": {
-    "npm": ">=7.0.0"
+    "npm": ">=9.6.7",
+    "node": ">=18.17.0 <= 20.x"
   }
 }

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
@@ -15,6 +16,10 @@ import (
 // FormatVersion represents the version of the json format and will be
 // incremented for any change to this format that requires changes to a
 // consuming parser.
+//
+// Any changes to this version should also consider compatibility in the
+// jsonprovider package versioning as well, as that functionality is also
+// reliant on this package.
 const FormatVersion = "1.0"
 
 // functions is the top-level object returned when exporting function signatures
@@ -28,6 +33,14 @@ type FunctionSignature struct {
 	// Description is an optional human-readable description
 	// of the function
 	Description string `json:"description,omitempty"`
+
+	// Summary is the optional shortened description of the function
+	Summary string `json:"summary,omitempty"`
+
+	// DeprecationMessage is an optional message that indicates that the
+	// function should be considered deprecated and what actions should be
+	// performed by the practitioner to handle the deprecation.
+	DeprecationMessage string `json:"deprecation_message,omitempty"`
 
 	// ReturnTypes is the ctyjson representation of the function's
 	// return types based on supplying all parameters using
@@ -50,14 +63,28 @@ func newFunctions() *functions {
 	}
 }
 
+func MarshalProviderFunctions(f map[string]providers.FunctionDecl) map[string]*FunctionSignature {
+	if f == nil {
+		return nil
+	}
+
+	result := make(map[string]*FunctionSignature, len(f))
+
+	for name, v := range f {
+		result[name] = marshalProviderFunction(v)
+	}
+
+	return result
+}
+
 func Marshal(f map[string]function.Function) ([]byte, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	signatures := newFunctions()
 
 	for name, v := range f {
-		if name == "can" {
+		if name == "can" || name == "core::can" {
 			signatures.Signatures[name] = marshalCan(v)
-		} else if name == "try" {
+		} else if name == "try" || name == "core::try" {
 			signatures.Signatures[name] = marshalTry(v)
 		} else {
 			signature, err := marshalFunction(v)
@@ -111,6 +138,27 @@ func marshalFunction(f function.Function) (*FunctionSignature, error) {
 		Parameters:        p,
 		VariadicParameter: vp,
 	}, nil
+}
+
+func marshalProviderFunction(f providers.FunctionDecl) *FunctionSignature {
+	var vp *parameter
+	if f.VariadicParameter != nil {
+		vp = marshalProviderParameter(*f.VariadicParameter)
+	}
+
+	var p []*parameter
+	if len(f.Parameters) > 0 {
+		p = marshalProviderParameters(f.Parameters)
+	}
+
+	return &FunctionSignature{
+		Description:        f.Description,
+		Summary:            f.Summary,
+		DeprecationMessage: f.DeprecationMessage,
+		ReturnType:         f.ReturnType,
+		Parameters:         p,
+		VariadicParameter:  vp,
+	}
 }
 
 // marshalTry returns a static function signature for the try function.

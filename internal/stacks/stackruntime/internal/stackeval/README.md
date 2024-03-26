@@ -338,10 +338,10 @@ object in its callback:
   which can return an arbitrary number of "planned change" objects that
   should be returned to the caller to contribute to the plan, and an arbitrary
   number of diagnostics.
-- `ApplyPhase` calls the `CheckApply` method of interface `ApplyChecker`,
+- `ApplyPhase` calls the `CheckApply` method of interface `Applyable`,
   which is responsible for collecting the results of apply actions that are
   actually scheduled elsewhere, since the runtime wants a little more control
-  over the execution of the side-effect heavy apply actions. This returns am
+  over the execution of the side-effect heavy apply actions. This returns an
   arbitrary number of "applied change" objects that each represents a
   mutation of the state, and an arbitrary number of diagnostics.
 
@@ -359,3 +359,65 @@ flow. The runtime achieves this by having any operation that depends on
 expensive or side-effect-ish work from another object pass the data using
 the promises and tasks model implemented by
 [package `promising`](../../../../promising/README.md).
+
+## Apply-phase Scheduling
+
+During the validation and planning operations the order of work is driven
+entirely by the dynamically-constructed data flow graph that gets assembled
+automatically based on control flow between the different functions in this
+package. That works under the assumption that those phases should not be
+modifying anything outside of Terraform itself and so our only concern is
+ensuring that data is available at the appropriate time for other functions
+that will make use of it.
+
+However, the apply phase deals with externally-visible side-effects whose
+relative ordering is very important. For example, in some remote APIs an
+attempt to destroy one object before destroying another object that depends
+on it will either fail with an error or hang until a timeout is reached, and
+so it's crucially important that Terraform directly consider the sequence
+of operations to make sure that situation cannot possibly arise, even if
+the relationship is not implied naturally by data flow.
+
+We deal with those additional requirements with both an additional scheduling
+primitive -- function `ChangeExec` -- and with some explicit dependency data
+gathered during the planning phase.
+
+In practice, it's only _components_ that represent operations with explicit
+ordering constraints, because nothing else in the stacks runtime directly
+interacts with Terraform's resource instance change lifecycle. Therefore
+we can achieve a correct result with only a graph of dependencies between
+components, without considering any other objects. Interface `Applyable`
+includes the method `RequiredComponents`, which must return a set of all
+of the components that a particular applyable object depends on.
+
+In practice, most of our implementations of `Applyable.RequiredComponents`
+wrap a single implementation that works in terms of interface `Referrer`, which
+works at a lower level of abstraction that deals only in HCL-level expression
+references, regardless of what object types they refer to. The shared
+implementation then raises the graph of references into a graph of components
+by essentially removing the non-component nodes while preserving the
+edges between them.
+
+Once the plan phase has derived the relationships between components, it
+includes that information as part of the plan, so that it's immediately ready
+to use in the apply phase without any further graph construction.
+
+The apply phase then uses the `ChangeExec` function to actually schedule the
+changes. That function's own documentation contains more documentation about
+its usage, but at a high level it wraps the concepts from
+[package `promising`](../../../../promising/README.md) in such a way that
+it can oversee the execution of each of the individual component instance apply
+phases, and capture the results in a central place for downstream work to
+refer to. Each component instance is represented by a single task which blocks
+on the completion of the promise of each component it depends on, thus explicitly
+ensuring that the component instance changes get applied in the correct
+order relative to one another.
+
+Since the `ChangeExec` usage is concerned only with component instances, the
+apply phase still performs a concurrent dynamic walk as described in the
+previous section to ensure that all other objects in the configuration will be
+visited and have a chance to announce any problems they detect. The significant
+difference for the apply phase is that anything which refers to a component
+instance will block until the `ChangeExec`-managed apply phase for that
+component instance has completed. Otherwise, the usual data-flow-driven
+scheduling decides on the evaluation order for all other object types.

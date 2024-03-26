@@ -4,7 +4,6 @@
 package terraform
 
 import (
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -12,8 +11,8 @@ import (
 // with Graph.Walk will invoke the given callbacks under certain events.
 type GraphWalker interface {
 	EvalContext() EvalContext
-	EnterPath(addrs.ModuleInstance) EvalContext
-	ExitPath(addrs.ModuleInstance)
+	enterScope(evalContextScope) EvalContext
+	exitScope(evalContextScope)
 	Execute(EvalContext, GraphNodeExecutable) tfdiags.Diagnostics
 }
 
@@ -23,6 +22,6 @@ type GraphWalker interface {
 type NullGraphWalker struct{}
 
 func (NullGraphWalker) EvalContext() EvalContext                                     { return new(MockEvalContext) }
-func (NullGraphWalker) EnterPath(addrs.ModuleInstance) EvalContext                   { return new(MockEvalContext) }
-func (NullGraphWalker) ExitPath(addrs.ModuleInstance)                                {}
+func (NullGraphWalker) enterScope(evalContextScope) EvalContext                      { return new(MockEvalContext) }
+func (NullGraphWalker) exitScope(evalContextScope)                                   {}
 func (NullGraphWalker) Execute(EvalContext, GraphNodeExecutable) tfdiags.Diagnostics { return nil }

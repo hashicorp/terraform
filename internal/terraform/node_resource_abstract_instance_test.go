@@ -145,7 +145,7 @@ func TestNodeAbstractResourceInstance_WriteResourceInstanceState(t *testing.T) {
 	state := states.NewState()
 	ctx := new(MockEvalContext)
 	ctx.StateState = state.SyncWrapper()
-	ctx.PathPath = addrs.RootModuleInstance
+	ctx.Scope = evalContextModuleInstance{Addr: addrs.RootModuleInstance}
 
 	mockProvider := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{

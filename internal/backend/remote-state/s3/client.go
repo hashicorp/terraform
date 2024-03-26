@@ -23,8 +23,8 @@ import (
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
 	"github.com/hashicorp/go-hclog"
-	multierror "github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
@@ -312,7 +312,7 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	if err != nil {
 		lockInfo, infoErr := c.getLockInfo(ctx)
 		if infoErr != nil {
-			err = multierror.Append(err, infoErr)
+			err = errors.Join(err, infoErr)
 		}
 
 		lockErr := &statemgr.LockError{

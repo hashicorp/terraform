@@ -1,5 +1,7 @@
 {
     "format_version": "1.0",
+    "applyable": true,
+    "complete": true,
     "variables": {
         "test_var": {
             "value": "bar"
@@ -28,7 +30,8 @@
                         "password": "secret"
                     },
                     "sensitive_values": {
-                        "ami": true
+                        "ami": true,
+                        "password": true
                     }
                 },
                 {
@@ -44,7 +47,8 @@
                         "password": "secret"
                     },
                     "sensitive_values": {
-                        "ami": true
+                        "ami": true,
+                        "password": true
                     }
                 },
                 {
@@ -60,7 +64,8 @@
                         "password": "secret"
                     },
                     "sensitive_values": {
-                        "ami": true
+                        "ami": true,
+                        "password": true
                     }
                 }
             ]

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -128,7 +128,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	if op.Result != backend.OperationSuccess {
+	if op.Result != backendrun.OperationSuccess {
 		return op.Result.ExitStatus()
 	}
 
@@ -194,7 +194,7 @@ func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.WrappedPlanFile, tfd
 	return planFile, diags
 }
 
-func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *arguments.State, viewType arguments.ViewType) (backend.Enhanced, tfdiags.Diagnostics) {
+func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// FIXME: we need to apply the state arguments to the meta object here
@@ -204,7 +204,7 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 	c.Meta.applyStateArguments(args)
 
 	// Load the backend
-	var be backend.Enhanced
+	var be backendrun.OperationsBackend
 	var beDiags tfdiags.Diagnostics
 	if lp, ok := planFile.Local(); ok {
 		plan, err := lp.ReadPlan()
@@ -248,19 +248,24 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 }
 
 func (c *ApplyCommand) OperationRequest(
-	be backend.Enhanced,
+	be backendrun.OperationsBackend,
 	view views.Apply,
 	viewType arguments.ViewType,
 	planFile *planfile.WrappedPlanFile,
 	args *arguments.Operation,
 	autoApprove bool,
-) (*backend.Operation, tfdiags.Diagnostics) {
+) (*backendrun.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Applying changes with dev overrides in effect could make it impossible
 	// to switch back to a release version if the schema isn't compatible,
 	// so we'll warn about it.
-	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
+	b, isRemoteBackend := be.(BackendWithRemoteTerraformVersion)
+	if isRemoteBackend && !b.IsLocalOperations() {
+		diags = diags.Append(c.providerDevOverrideRuntimeWarningsRemoteExecution())
+	} else {
+		diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
+	}
 
 	// Build the operation
 	opReq := c.Operation(be, viewType)
@@ -272,7 +277,7 @@ func (c *ApplyCommand) OperationRequest(
 	opReq.PlanRefresh = args.Refresh
 	opReq.Targets = args.Targets
 	opReq.ForceReplace = args.ForceReplace
-	opReq.Type = backend.OperationTypeApply
+	opReq.Type = backendrun.OperationTypeApply
 	opReq.View = view.Operation()
 
 	var err error
@@ -285,7 +290,7 @@ func (c *ApplyCommand) OperationRequest(
 	return opReq, diags
 }
 
-func (c *ApplyCommand) GatherVariables(opReq *backend.Operation, args *arguments.Vars) tfdiags.Diagnostics {
+func (c *ApplyCommand) GatherVariables(opReq *backendrun.Operation, args *arguments.Vars) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// FIXME the arguments package currently trivially gathers variable related

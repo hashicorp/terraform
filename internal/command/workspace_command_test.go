@@ -10,15 +10,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/cli"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/mitchellh/cli"
-
-	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 func TestWorkspace_createAndChange(t *testing.T) {
@@ -384,20 +384,30 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 	}
 
 	// create a non-empty state
-	originalState := &legacy.State{
-		Modules: []*legacy.ModuleState{
-			{
-				Path: []string{"root"},
-				Resources: map[string]*legacy.ResourceState{
-					"test_instance.foo": {
+	originalState := states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceCurrent(
+			addrs.AbsResourceInstance{
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
 						Type: "test_instance",
-						Primary: &legacy.InstanceState{
-							ID: "bar",
-						},
+						Name: "foo",
 					},
 				},
 			},
-		},
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte("{}"),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewBuiltInProvider("test"),
+			},
+		)
+	})
+	originalStateFile := &statefile.File{
+		Serial:  1,
+		Lineage: "whatever",
+		State:   originalState,
 	}
 
 	f, err := os.Create(filepath.Join(local.DefaultWorkspaceDir, "test", "terraform.tfstate"))
@@ -405,7 +415,7 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	if err := legacy.WriteState(originalState, f); err != nil {
+	if err := statefile.Write(originalStateFile, f); err != nil {
 		t.Fatal(err)
 	}
 

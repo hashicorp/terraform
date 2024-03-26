@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/states"
@@ -97,6 +98,32 @@ func DynamicValueToTFStackData1(val cty.Value, ty cty.Type) (*DynamicValue, erro
 		ret.SensitivePaths = append(ret.SensitivePaths, path)
 	}
 	return ret, nil
+}
+
+func DynamicValueFromTFStackData1(protoVal *DynamicValue, ty cty.Type) (cty.Value, error) {
+	raw := protoVal.Value.Msgpack
+
+	unmarkedV, err := msgpack.Unmarshal(raw, ty)
+	if err != nil {
+		return cty.NilVal, err
+	}
+
+	var markses []cty.PathValueMarks
+	if len(protoVal.SensitivePaths) != 0 {
+		markses = make([]cty.PathValueMarks, 0, len(protoVal.SensitivePaths))
+		marks := cty.NewValueMarks(marks.Sensitive)
+		for _, protoPath := range protoVal.SensitivePaths {
+			path, err := planfile.PathFromProto(protoPath)
+			if err != nil {
+				return cty.NilVal, fmt.Errorf("invalid sensitive value path: %w", err)
+			}
+			markses = append(markses, cty.PathValueMarks{
+				Path:  path,
+				Marks: marks,
+			})
+		}
+	}
+	return unmarkedV.MarkWithPaths(markses), nil
 }
 
 func Terraform1ToPlanProtoAttributePaths(paths []*terraform1.AttributePath) []*planproto.Path {

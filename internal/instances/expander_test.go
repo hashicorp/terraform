@@ -297,6 +297,24 @@ func TestExpander(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 	})
+	t.Run("module count2[0] module count2 instances", func(t *testing.T) {
+		instAddr := mustModuleInstanceAddr(`module.count2[0].module.count2[0]`)
+		callAddr := instAddr.AbsCall() // discards the final [0] instance key from the above
+		keyType, got, known := ex.ExpandAbsModuleCall(callAddr)
+		if !known {
+			t.Fatal("expansion unknown; want known")
+		}
+		if keyType != addrs.IntKeyType {
+			t.Fatalf("wrong key type %#v; want %#v", keyType, addrs.IntKeyType)
+		}
+		want := []addrs.InstanceKey{
+			addrs.IntKey(0),
+			addrs.IntKey(1),
+		}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("wrong result\n%s", diff)
+		}
+	})
 	t.Run("module count2 module count2 GetDeepestExistingModuleInstance", func(t *testing.T) {
 		t.Run("first step invalid", func(t *testing.T) {
 			got := ex.GetDeepestExistingModuleInstance(mustModuleInstanceAddr(`module.count2["nope"].module.count2[0]`))
@@ -595,6 +613,15 @@ func TestExpanderWithUnknowns(t *testing.T) {
 		module1Inst1Module2Inst0 := module1Inst1.Child("bar", addrs.IntKey(0))
 		ex.SetResourceCount(module1Inst1Module2Inst0, resourceAddrKnownExp, 2)
 		ex.SetResourceCountUnknown(module1Inst1Module2Inst0, resourceAddrUnknownExp)
+
+		module2Call := addrs.AbsModuleCall{
+			Module: module1Inst0,
+			Call:   moduleCallAddr2,
+		}
+		_, _, instsKnown := ex.ExpandAbsModuleCall(module2Call)
+		if instsKnown {
+			t.Fatalf("instances of %s are known; should be unknown", module2Call.String())
+		}
 
 		gotKnown := ex.ExpandModule(module2)
 		wantKnown := []addrs.ModuleInstance{

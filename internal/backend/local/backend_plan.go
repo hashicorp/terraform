@@ -9,7 +9,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -23,8 +23,8 @@ import (
 func (b *Local) opPlan(
 	stopCtx context.Context,
 	cancelCtx context.Context,
-	op *backend.Operation,
-	runningOp *backend.RunningOperation) {
+	op *backendrun.Operation,
+	runningOp *backendrun.RunningOperation) {
 
 	log.Printf("[INFO] backend/local: starting Plan operation")
 
@@ -89,7 +89,7 @@ func (b *Local) opPlan(
 		diags := op.StateLocker.Unlock()
 		if diags.HasErrors() {
 			op.View.Diagnostics(diags)
-			runningOp.Result = backend.OperationFailure
+			runningOp.Result = backendrun.OperationFailure
 		}
 	}()
 
@@ -112,7 +112,7 @@ func (b *Local) opPlan(
 		// If we get in here then the operation was cancelled, which is always
 		// considered to be a failure.
 		log.Printf("[INFO] backend/local: plan operation was force-cancelled by interrupt")
-		runningOp.Result = backend.OperationFailure
+		runningOp.Result = backendrun.OperationFailure
 		return
 	}
 	log.Printf("[INFO] backend/local: plan operation completed")
@@ -131,7 +131,7 @@ func (b *Local) opPlan(
 	}
 
 	// Record whether this plan includes any side-effects that could be applied.
-	runningOp.PlanEmpty = !plan.CanApply()
+	runningOp.PlanEmpty = !plan.Applyable
 
 	// Save the plan to disk
 	if path := op.PlanOutPath; path != "" {

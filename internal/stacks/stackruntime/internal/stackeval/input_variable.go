@@ -8,14 +8,16 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // InputVariable represents an input variable belonging to a [Stack].
@@ -107,8 +109,35 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 
 			switch {
 			case v.Addr().Stack.IsRoot():
-				extVal := v.main.RootVariableValue(ctx, v.Addr().Item, phase)
 				wantTy := v.Declaration(ctx).Type.Constraint
+
+				extVal := v.main.RootVariableValue(ctx, v.Addr().Item, phase)
+
+				// We treat a null value as equivalent to an unspecified value,
+				// and replace it with the variable's default value. This is
+				// consistent with how embedded stacks handle defaults.
+				if extVal.Value.IsNull() {
+					cfg := v.Config(ctx)
+
+					// A separate code path will validate the default value, so
+					// we don't need to do that here.
+					defVal := cfg.DefaultValue(ctx)
+					if defVal == cty.NilVal {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "No value for required variable",
+							Detail:   fmt.Sprintf("The root input variable %q is not set, and has no default value.", v.Addr()),
+							Subject:  cfg.config.DeclRange.ToHCL().Ptr(),
+						})
+						return cty.UnknownVal(wantTy), diags
+					}
+
+					extVal = ExternalInputValue{
+						Value:    defVal,
+						DefRange: cfg.Declaration().DeclRange,
+					}
+				}
+
 				val, err := convert.Convert(extVal.Value, wantTy)
 				const errSummary = "Invalid value for root input variable"
 				if err != nil {
@@ -190,7 +219,38 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 	}, diags
 }
 
-// CheckApply implements ApplyChecker.
+// References implements Referrer
+func (v *InputVariable) References(ctx context.Context) []stackaddrs.AbsReference {
+	// The references for an input variable actually come from the
+	// call that defines it, in the parent stack.
+	addr := v.Addr()
+	if addr.Stack.IsRoot() {
+		// Variables declared in the root module can't refer to anything,
+		// because they are defined outside of the stack configuration by
+		// our caller.
+		return nil
+	}
+	stackAddr := addr.Stack
+	parentStack := v.main.StackUnchecked(ctx, stackAddr.Parent())
+	if parentStack == nil {
+		// Weird, but we'll tolerate it for robustness.
+		return nil
+	}
+	callAddr := stackAddr.Call()
+	call := parentStack.EmbeddedStackCall(ctx, callAddr.Item)
+	if call == nil {
+		// Weird, but we'll tolerate it for robustness.
+		return nil
+	}
+	return call.References(ctx)
+}
+
+// RequiredComponents implements Applyable
+func (v *InputVariable) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+	return v.main.requiredComponentsForReferrer(ctx, v, PlanPhase)
+}
+
+// CheckApply implements Applyable.
 func (v *InputVariable) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	return nil, v.checkValid(ctx, ApplyPhase)
 }

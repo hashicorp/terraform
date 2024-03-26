@@ -4,6 +4,7 @@
 package structured
 
 import (
+	"bytes"
 	"encoding/json"
 	"reflect"
 
@@ -89,12 +90,20 @@ type Change struct {
 	// that we should display. Any element/attribute not matched by this Matcher
 	// should be skipped.
 	RelevantAttributes attribute_path.Matcher
+
+	// NonLegacySchema must only be used when rendering the change to the CLI,
+	// and is otherwise ignored. This flag is set when we can be sure that the
+	// change originated from a resource which is not using the legacy SDK, so
+	// we don't need to hide changes between empty and null strings.
+	// NonLegacySchema is only switched to true by the renderer, because that is
+	// where we have most of the schema information to detect the condition.
+	NonLegacySchema bool
 }
 
 // FromJsonChange unmarshals the raw []byte values in the jsonplan.Change
 // structs into generic interface{} types that can be reasoned about.
 func FromJsonChange(change jsonplan.Change, relevantAttributes attribute_path.Matcher) Change {
-	return Change{
+	ret := Change{
 		Before:             unmarshalGeneric(change.Before),
 		After:              unmarshalGeneric(change.After),
 		Unknown:            unmarshalGeneric(change.AfterUnknown),
@@ -103,6 +112,15 @@ func FromJsonChange(change jsonplan.Change, relevantAttributes attribute_path.Ma
 		ReplacePaths:       attribute_path.Parse(change.ReplacePaths, false),
 		RelevantAttributes: relevantAttributes,
 	}
+
+	// A forget-only action (i.e. ["forget"], not ["create", "forget"])
+	// should be represented as a no-op, so it does not look like we are
+	// proposing to delete the resource.
+	if len(change.Actions) == 1 && change.Actions[0] == "forget" {
+		ret = ret.AsNoOp()
+	}
+
+	return ret
 }
 
 // FromJsonResource unmarshals the raw values in the jsonstate.Resource structs
@@ -264,8 +282,11 @@ func unmarshalGeneric(raw json.RawMessage) interface{} {
 		return nil
 	}
 
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber() // We support very big (> 2^64) numbers.
+
 	var out interface{}
-	if err := json.Unmarshal(raw, &out); err != nil {
+	if err := decoder.Decode(&out); err != nil {
 		panic("unrecognized json type: " + err.Error())
 	}
 	return out

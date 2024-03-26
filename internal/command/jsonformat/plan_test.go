@@ -565,26 +565,30 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example will be destroyed
   - resource "test_instance" "example" {
-      - id = "i-02ae66f368e8518a9" -> null
+      - id                 = "i-02ae66f368e8518a9" -> null
+        # (1 unchanged attribute hidden)
     }`,
 		},
 		"forget": {
 			Action: plans.Forget,
 			Mode:   addrs.ManagedResourceMode,
 			Before: cty.ObjectVal(map[string]cty.Value{
-				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-123"),
 			}),
 			After: cty.NullVal(cty.EmptyObject),
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Computed: true},
+					"id":  {Type: cty.String, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: ` # test_instance.example will no longer be managed by Terraform, but will not be destroyed
  # (destroy = false is set in the configuration)
  . resource "test_instance" "example" {
-      - id = "i-02ae66f368e8518a9" -> null
+        id  = "i-02ae66f368e8518a9"
+        # (1 unchanged attribute hidden)
     }`,
 		},
 		"forget (deposed)": {
@@ -605,7 +609,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
  # (left over from a partially-failed replacement of this instance)
  # (destroy = false is set in the configuration)
  . resource "test_instance" "example" {
-      - id = "i-02ae66f368e8518a9" -> null
+        id = "i-02ae66f368e8518a9"
     }`,
 		},
 		"create-then-forget": {
@@ -721,24 +725,95 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 				"id":        cty.StringVal("i-02ae66f368e8518a9"),
 				"ami":       cty.StringVal("ami-BEFORE"),
 				"unchanged": cty.NullVal(cty.String),
+				"empty":     cty.StringVal(""),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":        cty.StringVal("i-02ae66f368e8518a9"),
 				"ami":       cty.StringVal("ami-AFTER"),
 				"unchanged": cty.NullVal(cty.String),
+				"empty":     cty.NullVal(cty.String),
 			}),
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":        {Type: cty.String, Optional: true, Computed: true},
 					"ami":       {Type: cty.String, Optional: true},
 					"unchanged": {Type: cty.String, Optional: true},
+					"empty":     {Type: cty.String, Optional: true},
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+        id    = "i-02ae66f368e8518a9"
+        # (1 unchanged attribute hidden)
+    }`,
+		},
+		"string update (non-legacy)": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":        cty.StringVal("i-02ae66f368e8518a9"),
+				"from_null": cty.NullVal(cty.String),
+				"to_null":   cty.StringVal(""),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":        cty.StringVal("i-02ae66f368e8518a9"),
+				"from_null": cty.StringVal(""),
+				"to_null":   cty.NullVal(cty.String),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":        {Type: cty.String, Optional: true, Computed: true},
+					"from_null": {Type: cty.DynamicPseudoType, Optional: true},
+					"to_null":   {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      + from_null = ""
+        id        = "i-02ae66f368e8518a9"
+      - to_null   = "" -> null
+    }`,
+		},
+		"string update (non-legacy nested object)": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"obj": cty.ObjectVal(map[string]cty.Value{
+					"from_null": cty.NullVal(cty.String),
+					"to_null":   cty.StringVal(""),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"obj": cty.ObjectVal(map[string]cty.Value{
+					"from_null": cty.StringVal(""),
+					"to_null":   cty.NullVal(cty.String),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+					"obj": {NestedType: &configschema.Object{
+						Nesting: configschema.NestingSingle,
+						Attributes: map[string]*configschema.Attribute{
+							"from_null": {Type: cty.DynamicPseudoType, Optional: true},
+							"to_null":   {Type: cty.String, Optional: true},
+						},
+					}},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
         id  = "i-02ae66f368e8518a9"
+      ~ obj = {
+          + from_null = ""
+          - to_null   = "" -> null
+        }
     }`,
 		},
 		"in-place update of multi-line string field": {
@@ -2122,8 +2197,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ list_field = [
             "aaaa",
-          - "bbbb",
-          + (known after apply),
+          ~ "bbbb" -> (known after apply),
             "cccc",
         ]
         # (1 unchanged attribute hidden)
@@ -6210,8 +6284,9 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
       ~ list_field  = [
             # (1 unchanged element hidden)
             "friends",
-          - (sensitive value),
-          + ".",
+          # Warning: this attribute value will no longer be marked as sensitive
+          # after applying this change.
+          ~ (sensitive value),
         ]
       ~ map_key     = {
           # Warning: this attribute value will no longer be marked as sensitive
@@ -6329,8 +6404,9 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
   ~ resource "test_instance" "example" {
         id         = "i-02ae66f368e8518a9"
       ~ list_field = [
-          - "hello",
-          + (sensitive value),
+          # Warning: this attribute value will be marked as sensitive and will not
+          # display in UI output after applying this change.
+          ~ (sensitive value),
             "friends",
         ]
       ~ map_key    = {
@@ -6465,8 +6541,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
       ~ ami        = (sensitive value)
         id         = "i-02ae66f368e8518a9"
       ~ list_field = [
-          - (sensitive value),
-          + (sensitive value),
+          ~ (sensitive value),
             "friends",
         ]
       ~ map_key    = {

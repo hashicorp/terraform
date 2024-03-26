@@ -10,9 +10,9 @@ import (
 
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/mitchellh/cli"
 )
 
 // UnlockCommand is a cli.Command implementation that manually unlocks

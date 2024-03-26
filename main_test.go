@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/cli"
 )
 
 func TestMain_cliArgsFromEnv(t *testing.T) {
@@ -34,7 +34,7 @@ func TestMain_cliArgsFromEnv(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Args     []string
-		Value    string
+		EnvValue string
 		Expected []string
 		Err      bool
 	}{
@@ -111,19 +111,36 @@ func TestMain_cliArgsFromEnv(t *testing.T) {
 			[]string{"-foo", "'bar baz'", "foo"},
 			false,
 		},
+
+		{
+			"backticks taken literally",
+			// The shellwords library we use to parse the environment variables
+			// has the option to automatically execute commands written in
+			// backticks. This test is here to make sure we don't accidentally
+			// enable that.
+			[]string{testCommandName, "foo"},
+			"-foo `echo nope`",
+			[]string{"-foo", "`echo nope`", "foo"},
+			false,
+		},
+
+		{
+			"no nested environment variable expansion",
+			// The shellwords library we use to parse the environment variables
+			// has the option to automatically expand sequences that appear
+			// to be environment variable interpolations. This test is here to
+			// make sure we don't accidentally enable that.
+			[]string{testCommandName, "foo"},
+			"-foo $OTHER_ENV",
+			[]string{"-foo", "$OTHER_ENV", "foo"},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			os.Unsetenv(EnvCLI)
-			defer os.Unsetenv(EnvCLI)
-
-			// Set the env var value
-			if tc.Value != "" {
-				if err := os.Setenv(EnvCLI, tc.Value); err != nil {
-					t.Fatalf("err: %s", err)
-				}
-			}
+			t.Setenv(EnvCLI, tc.EnvValue)
+			t.Setenv("OTHER_ENV", "placeholder")
 
 			// Set up the args
 			args := make([]string, len(tc.Args)+1)

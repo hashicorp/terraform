@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/getmodules"
+	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 )
 
 // ModuleCall represents a "module" block in a module or file.
@@ -80,9 +80,9 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 			var addr addrs.ModuleSource
 			var err error
 			if haveVersionArg {
-				addr, err = addrs.ParseModuleSourceRegistry(mc.SourceAddrRaw)
+				addr, err = moduleaddrs.ParseModuleSourceRegistry(mc.SourceAddrRaw)
 			} else {
-				addr, err = addrs.ParseModuleSource(mc.SourceAddrRaw)
+				addr, err = moduleaddrs.ParseModuleSource(mc.SourceAddrRaw)
 			}
 			mc.SourceAddr = addr
 			if err != nil {
@@ -100,7 +100,7 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 				// though, mostly related to remote package sub-paths and local
 				// paths.
 				switch err := err.(type) {
-				case *getmodules.MaybeRelativePathErr:
+				case *moduleaddrs.MaybeRelativePathErr:
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Invalid module source address",

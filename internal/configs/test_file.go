@@ -8,9 +8,10 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/getmodules"
+	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -437,6 +438,16 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 		NameDeclRange: block.LabelRanges[0],
 		DeclRange:     block.DefRange,
 	}
+
+	if !hclsyntax.ValidIdentifier(r.Name) {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid run block name",
+			Detail:   badIdentifierDetail,
+			Subject:  r.NameDeclRange.Ptr(),
+		})
+	}
+
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "assert":
@@ -625,9 +636,9 @@ func decodeTestRunModuleBlock(block *hcl.Block) (*TestRunModuleCall, hcl.Diagnos
 		if !rawDiags.HasErrors() {
 			var err error
 			if haveVersionArg {
-				module.Source, err = addrs.ParseModuleSourceRegistry(raw)
+				module.Source, err = moduleaddrs.ParseModuleSourceRegistry(raw)
 			} else {
-				module.Source, err = addrs.ParseModuleSource(raw)
+				module.Source, err = moduleaddrs.ParseModuleSource(raw)
 			}
 			if err != nil {
 				// NOTE: We leave mc.SourceAddr as nil for any situation where the
@@ -644,7 +655,7 @@ func decodeTestRunModuleBlock(block *hcl.Block) (*TestRunModuleCall, hcl.Diagnos
 				// though, mostly related to remote package sub-paths and local
 				// paths.
 				switch err := err.(type) {
-				case *getmodules.MaybeRelativePathErr:
+				case *moduleaddrs.MaybeRelativePathErr:
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Invalid module source address",

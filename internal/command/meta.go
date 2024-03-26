@@ -17,13 +17,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/cli"
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
@@ -33,7 +34,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
@@ -201,7 +201,7 @@ type Meta struct {
 	configLoader *configload.Loader
 
 	// backendState is the currently active backend state
-	backendState *legacy.BackendState
+	backendState *workdir.BackendState
 
 	// Variables for the context (private)
 	variableArgs rawFlags
@@ -442,7 +442,7 @@ func (m *Meta) InterruptibleContext(base context.Context) (context.Context, cont
 //
 // This method is just a substitute for passing a context directly to the
 // "Run" method of a command, which we can't do because that API is owned by
-// mitchellh/cli rather than by Terraform. Use this only in situations
+// hashicorp/cli rather than by Terraform. Use this only in situations
 // comparable to the context having been passed in as an argument to Run.
 //
 // If the caller (e.g. "package main") provided a context when it instantiated
@@ -467,7 +467,7 @@ func (m *Meta) CommandContext() context.Context {
 // If the operation runs to completion then no error is returned even if the
 // operation itself is unsuccessful. Use the "Result" field of the
 // returned operation object to recognize operation-level failure.
-func (m *Meta) RunOperation(b backend.Enhanced, opReq *backend.Operation) (*backend.RunningOperation, error) {
+func (m *Meta) RunOperation(b backendrun.OperationsBackend, opReq *backendrun.Operation) (*backendrun.RunningOperation, error) {
 	if opReq.View == nil {
 		panic("RunOperation called with nil View")
 	}

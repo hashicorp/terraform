@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -39,9 +40,22 @@ type Evaluator struct {
 	// Config is the root node in the configuration tree.
 	Config *configs.Config
 
+	// Instances tracks the dynamic instances that are associated with each
+	// module call or resource. The graph walk gradually registers the
+	// set of instances for each object within the graph nodes for those
+	// objects, and so as long as the graph has been built correctly the
+	// set of instances for an object should always be available by the time
+	// we're evaluating expressions that refer to it.
+	Instances *instances.Expander
+
 	// NamedValues is where we keep the values of already-evaluated input
 	// variables, local values, and output values.
 	NamedValues *namedvals.State
+
+	// Deferrals tracks resources and modules that have had either their
+	// expansion or their specific planned actions deferred to a future
+	// plan/apply round.
+	Deferrals *deferring.Deferred
 
 	// Plugins is the library of available plugin components (providers and
 	// provisioners) that we have available to help us evaluate expressions
@@ -68,7 +82,7 @@ type Evaluator struct {
 // If the "self" argument is nil then the "self" object is not available
 // in evaluated expressions. Otherwise, it behaves as an alias for the given
 // address.
-func (e *Evaluator) Scope(data lang.Data, self addrs.Referenceable, source addrs.Referenceable) *lang.Scope {
+func (e *Evaluator) Scope(data lang.Data, self addrs.Referenceable, source addrs.Referenceable, extFuncs lang.ExternalFuncs) *lang.Scope {
 	return &lang.Scope{
 		Data:          data,
 		ParseRef:      addrs.ParseRef,
@@ -77,6 +91,7 @@ func (e *Evaluator) Scope(data lang.Data, self addrs.Referenceable, source addrs
 		PureOnly:      e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,
 		BaseDir:       ".", // Always current working directory for now.
 		PlanTimestamp: e.PlanTimestamp,
+		ExternalFuncs: extFuncs,
 	}
 }
 
@@ -136,6 +151,13 @@ var EvalDataForNoInstanceKey = InstanceKeyEvalData{}
 
 // evaluationStateData must implement lang.Data
 var _ lang.Data = (*evaluationStateData)(nil)
+
+// StaticValidateReferences calls [Evaluator.StaticValidateReferences] on
+// the evaluator embedded in this data object, using this data object's
+// static module path.
+func (d *evaluationStateData) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
+	return d.Evaluator.StaticValidateReferences(refs, d.ModulePath.Module(), self, source)
+}
 
 func (d *evaluationStateData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -313,6 +335,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// Output results live in the module that declares them, which is one of
 	// the child module instances of our current module path.
 	moduleAddr := d.ModulePath.Module().Child(addr.Name)
+	absAddr := addr.Absolute(d.ModulePath)
 
 	parentCfg := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
 	callConfig, ok := parentCfg.Module.ModuleCalls[addr.Name]
@@ -337,193 +360,126 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	}
 	outputConfigs := moduleConfig.Module.Outputs
 
-	// Collect all the relevant outputs that current exist in the state.
-	// We know the instance path up to this point, and the child module name,
-	// so we only need to store these by instance key.
-	stateMap := map[addrs.InstanceKey]map[string]cty.Value{}
-	for _, elem := range d.Evaluator.NamedValues.GetOutputValuesForModuleCall(d.ModulePath, addr).Elems {
-		outputAddr := elem.Key
-		val := elem.Value
-
-		_, callInstance := outputAddr.Module.CallInstance()
-		instance, ok := stateMap[callInstance.Key]
-		if !ok {
-			instance = map[string]cty.Value{}
-			stateMap[callInstance.Key] = instance
-		}
-
-		instance[outputAddr.OutputValue.Name] = val
-	}
-
-	// Get all changes that reside for this module call within our path.
-	// The change contains the full addr, so we can key these with strings.
-	changesMap := map[addrs.InstanceKey]map[string]*plans.OutputChangeSrc{}
-	for _, change := range d.Evaluator.Changes.GetOutputChanges(d.ModulePath, addr) {
-		_, callInstance := change.Addr.Module.CallInstance()
-		instance, ok := changesMap[callInstance.Key]
-		if !ok {
-			instance = map[string]*plans.OutputChangeSrc{}
-			changesMap[callInstance.Key] = instance
-		}
-
-		instance[change.Addr.OutputValue.Name] = change
-	}
-
-	// Build up all the module objects, creating a map of values for each
-	// module instance.
-	moduleInstances := map[addrs.InstanceKey]map[string]cty.Value{}
-
-	// create a dummy object type for validation below
-	unknownMap := map[string]cty.Type{}
-
-	// the structure is based on the configuration, so iterate through all the
-	// defined outputs, and add any instance state or changes we find.
-	for _, cfg := range outputConfigs {
-		// record the output names for validation
-		unknownMap[cfg.Name] = cty.DynamicPseudoType
-
-		// get all instance output for this path from the state
-		for key, states := range stateMap {
-			outputState, ok := states[cfg.Name]
-			if !ok {
-				continue
-			}
-
-			instance, ok := moduleInstances[key]
-			if !ok {
-				instance = map[string]cty.Value{}
-				moduleInstances[key] = instance
-			}
-
-			instance[cfg.Name] = outputState
-		}
-
-		// any pending changes override the state state values
-		for key, changes := range changesMap {
-			changeSrc, ok := changes[cfg.Name]
-			if !ok {
-				continue
-			}
-
-			instance, ok := moduleInstances[key]
-			if !ok {
-				instance = map[string]cty.Value{}
-				moduleInstances[key] = instance
-			}
-
-			change, err := changeSrc.Decode()
-			if err != nil {
-				// This should happen only if someone has tampered with a plan
-				// file, so we won't bother with a pretty error for it.
-				diags = diags.Append(fmt.Errorf("planned change for %s could not be decoded: %s", addr, err))
-				instance[cfg.Name] = cty.DynamicVal
-				continue
-			}
-
-			instance[cfg.Name] = change.After
-
-			if change.Sensitive {
-				instance[cfg.Name] = change.After.Mark(marks.Sensitive)
-			}
-		}
-	}
-
-	var ret cty.Value
-
-	// compile the outputs into the correct value type for the each mode
-	switch {
-	case callConfig.Count != nil:
-		// figure out what the last index we have is
-		length := -1
-		for key := range moduleInstances {
-			intKey, ok := key.(addrs.IntKey)
-			if !ok {
-				// old key from state which is being dropped
-				continue
-			}
-			if int(intKey) >= length {
-				length = int(intKey) + 1
-			}
-		}
-
-		if length > 0 {
-			vals := make([]cty.Value, length)
-			for key, instance := range moduleInstances {
-				intKey, ok := key.(addrs.IntKey)
-				if !ok {
-					// old key from state which is being dropped
-					continue
-				}
-
-				vals[int(intKey)] = cty.ObjectVal(instance)
-			}
-
-			// Insert unknown values where there are any missing instances
-			for i, v := range vals {
-				if v.IsNull() {
-					vals[i] = cty.DynamicVal
-					continue
-				}
-			}
-			ret = cty.TupleVal(vals)
-		} else {
-			ret = cty.EmptyTupleVal
-		}
-
-	case callConfig.ForEach != nil:
-		vals := make(map[string]cty.Value)
-		for key, instance := range moduleInstances {
-			strKey, ok := key.(addrs.StringKey)
-			if !ok {
-				continue
-			}
-
-			vals[string(strKey)] = cty.ObjectVal(instance)
-		}
-
-		if len(vals) > 0 {
-			ret = cty.ObjectVal(vals)
-		} else {
-			ret = cty.EmptyObjectVal
-		}
-
-	default:
-		val, ok := moduleInstances[addrs.NoKey]
-		if !ok {
-			// create the object if there wasn't one known
-			val = map[string]cty.Value{}
-			for k := range outputConfigs {
-				val[k] = cty.DynamicVal
-			}
-		}
-
-		ret = cty.ObjectVal(val)
-	}
-
-	// The module won't be expanded during validation, so we need to return an
-	// unknown value. This will ensure the types looks correct, since we built
-	// the objects based on the configuration.
+	// We don't do instance expansion during validation, and so we need to
+	// return an unknown value. Technically we should always return
+	// cty.DynamicVal here because the final value during plan will always
+	// be an object or tuple type with unpredictable attributes/elements,
+	// but because we never actually carry values forward from validation to
+	// planning we lie a little here and return unknown list and map types,
+	// just to give us more opportunities to catch author mistakes during
+	// validation.
+	//
+	// This means that in practice any expression that refers to a module
+	// call must be written to be valid for either a collection type or
+	// structural type of similar kind, so that it can be considered as
+	// valid during both the validate and plan walks.
 	if d.Operation == walkValidate {
-		// While we know the type here and it would be nice to validate whether
-		// indexes are valid or not, because tuples and objects have fixed
-		// numbers of elements we can't simply return an unknown value of the
-		// same type since we have not expanded any instances during
-		// validation.
-		//
-		// In order to validate the expression a little precisely, we'll create
-		// an unknown map or list here to get more type information.
-		ty := cty.Object(unknownMap)
+		atys := make(map[string]cty.Type, len(outputConfigs))
+		for name := range outputConfigs {
+			atys[name] = cty.DynamicPseudoType // output values are dynamically-typed
+		}
+		instTy := cty.Object(atys)
+
 		switch {
 		case callConfig.Count != nil:
-			ret = cty.UnknownVal(cty.List(ty))
+			return cty.UnknownVal(cty.List(instTy)), diags
 		case callConfig.ForEach != nil:
-			ret = cty.UnknownVal(cty.Map(ty))
+			return cty.UnknownVal(cty.Map(instTy)), diags
 		default:
-			ret = cty.UnknownVal(ty)
+			return cty.UnknownVal(instTy), diags
 		}
 	}
 
-	return ret, diags
+	// For all other walk types, we proceed to dynamic evaluation of individual
+	// instances, using the global instance expander. An earlier graph node
+	// should always have registered the expansion of this module call before
+	// we get here, unless there's a bug in the graph builders.
+	allInstances := d.Evaluator.Instances
+	instKeyType, instKeys, known := allInstances.ExpandAbsModuleCall(absAddr)
+	if !known {
+		// If we don't know which instances exist then we can't really predict
+		// anything at all. We can't even predict the return type based on
+		// instKeyType because output values are dynamically-typed and so
+		// our final result will always be an object or tuple type whose
+		// attribute/element count we cannot predict.
+		return cty.DynamicVal, diags
+	}
+
+	instanceObjVal := func(instKey addrs.InstanceKey) (cty.Value, tfdiags.Diagnostics) {
+		// This function must always return a valid value, even if it's
+		// just a cty.DynamicVal placeholder accompanying error diagnostics.
+		var diags tfdiags.Diagnostics
+
+		namedVals := d.Evaluator.NamedValues
+		moduleInstAddr := absAddr.Instance(instKey)
+		attrs := make(map[string]cty.Value, len(outputConfigs))
+		for name := range outputConfigs {
+			outputAddr := moduleInstAddr.OutputValue(name)
+
+			// Although we do typically expect the graph dependencies to
+			// ensure that values get registered before they are needed,
+			// we track depedencies with specific output values where
+			// possible, instead of with entire module calls, and so
+			// in this specific case it's valid for some of this call's
+			// output values to not be known yet, with the graph builder
+			// being responsible for making sure that no expression
+			// in the configuration can actually observe that.
+			if !namedVals.HasOutputValue(outputAddr) {
+				attrs[name] = cty.DynamicVal
+				continue
+			}
+			outputVal := namedVals.GetOutputValue(outputAddr)
+			attrs[name] = outputVal
+		}
+
+		return cty.ObjectVal(attrs), diags
+	}
+
+	switch instKeyType {
+
+	case addrs.NoKeyType:
+		// In this case we should always have exactly one instance that
+		// is addrs.NoKey. If not then there's a bug in the [instances.Expander]
+		// implementation.
+		if len(instKeys) != 1 {
+			panic(fmt.Sprintf("module call has no instance key type but has %d instances (should be 1)", len(instKeys)))
+		}
+		ret, moreDiags := instanceObjVal(instKeys[0])
+		diags = diags.Append(moreDiags)
+		return ret, diags
+
+	case addrs.IntKeyType:
+		// We can assume that the instance keys are in ascending numerical order
+		// and are consecutive, per the contract of allInstances.ExpandModuleCall.
+		elems := make([]cty.Value, 0, len(instKeys))
+		for _, instKey := range instKeys {
+			instVal, moreDiags := instanceObjVal(instKey)
+			elems = append(elems, instVal)
+			diags = diags.Append(moreDiags)
+		}
+		return cty.TupleVal(elems), diags
+
+	case addrs.StringKeyType:
+		attrs := make(map[string]cty.Value, len(instKeys))
+		for _, instKey := range instKeys {
+			instVal, moreDiags := instanceObjVal(instKey)
+			attrs[string(instKey.(addrs.StringKey))] = instVal
+			diags = diags.Append(moreDiags)
+		}
+		return cty.ObjectVal(attrs), diags
+
+	default:
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Unsupported instance key type`,
+			Detail: fmt.Sprintf(
+				`Module call %s has instance key type %#v, which is not supported by the expression evaluator. This is a bug in Terraform.`,
+				absAddr, instKeyType,
+			),
+			Subject: rng.ToHCL().Ptr(),
+		})
+		return cty.DynamicVal, diags
+	}
 }
 
 func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
@@ -616,6 +572,34 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.DynamicVal, diags
+	}
+
+	// Much of this function was written before we had factored out the
+	// handling of instance keys into the separate instance expander model,
+	// and so it does a bunch of instance-related work itself below. While
+	// the possibility of unknown instance keys remains experimental
+	// (behind the unknown_instances language experiment) we'll use this
+	// function only for detecting that experimental situation, but leave
+	// the rest of this function unchanged for now to minimize the chances
+	// of the experiment code affecting someone who isn't participating.
+	//
+	// TODO: If we decide to stabilize the unknown_instances experiment
+	// then it would be nice to finally rework this function to rely
+	// on the ResourceInstanceKeys result for _all_ of its work, rather
+	// than continuing to duplicate a bunch of the logic we've tried to
+	// encapsulate over ther already.
+	if d.Operation == walkPlan {
+		if _, _, hasUnknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(addr.Absolute(moduleAddr)); hasUnknownKeys {
+			// There really isn't anything interesting we can do in this situation,
+			// because it means we have an unknown for_each/count, in which case
+			// we can't even predict what the result type will be because it
+			// would be either an object or tuple type decided based on the instance
+			// keys.
+			// (We can't get in here for a single-instance resource because in that
+			// case we would know that there's only one key and it's addrs.NoKey,
+			// so we'll fall through to the other logic below.)
+			return cty.DynamicVal, diags
+		}
 	}
 
 	// Build the provider address from configuration, since we may not have
@@ -743,13 +727,9 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				continue
 			}
 
-			// If our provider schema contains sensitive values, mark those as sensitive
-			afterMarks := change.AfterValMarks
-			if schema.ContainsSensitive() {
-				afterMarks = append(afterMarks, schema.ValueMarks(val, nil)...)
-			}
-
-			instances[key] = val.MarkWithPaths(afterMarks)
+			// Unlike decoding state, decoding a change does not automatically
+			// mark values.
+			instances[key] = val.MarkWithPaths(change.AfterValMarks)
 			continue
 		}
 
@@ -768,16 +748,6 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 		val := ios.Value
 
-		// If our schema contains sensitive values, mark those as sensitive.
-		// Since decoding the instance object can also apply sensitivity marks,
-		// we must remove and combine those before remarking to avoid a double-
-		// mark error.
-		if schema.ContainsSensitive() {
-			var marks []cty.PathValueMarks
-			val, marks = val.UnmarkDeepWithPaths()
-			marks = append(marks, schema.ValueMarks(val, nil)...)
-			val = val.MarkWithPaths(marks)
-		}
 		instances[key] = val
 	}
 
@@ -868,6 +838,37 @@ func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAdd
 
 func (d *evaluationStateData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	if d.Evaluator.Meta == nil || d.Evaluator.Meta.Env == "" {
+		// The absense of an "env" (really: workspace) name suggests that
+		// we're running in a non-workspace context, such as in a component
+		// of a stack. terraform.workspace -- and the terraform symbol in
+		// general -- is a legacy thing from workspaces mode that isn't
+		// carried forward to stacks, because stack configurations can instead
+		// vary their behavior based on input variables provided in the
+		// deployment configuration.
+		switch addr.Name {
+		case "workspace":
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Invalid reference`,
+				Detail:   `The terraform.workspace attribute is only available for modules used in Terraform workspaces. Use input variables instead to create variations between different instances of this module.`,
+				Subject:  rng.ToHCL().Ptr(),
+			})
+		default:
+			// A more generic error for any other attribute name, since no
+			// others are valid anyway but it would be confusing to mention
+			// terraform.workspace here.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  `Invalid reference`,
+				Detail:   `The "terraform" object is only available for modules used in Terraform workspaces.`,
+				Subject:  rng.ToHCL().Ptr(),
+			})
+		}
+		return cty.DynamicVal, diags
+	}
+
 	switch addr.Name {
 
 	case "workspace":

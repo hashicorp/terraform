@@ -9,7 +9,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/experiments"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -64,11 +65,11 @@ func (n *nodeExpandModule) References() []*addrs.Reference {
 	// child module instances we might expand to during our evaluation.
 
 	if n.ModuleCall.Count != nil {
-		countRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.ModuleCall.Count)
+		countRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.ModuleCall.Count)
 		refs = append(refs, countRefs...)
 	}
 	if n.ModuleCall.ForEach != nil {
-		forEachRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.ModuleCall.ForEach)
+		forEachRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.ModuleCall.ForEach)
 		refs = append(refs, forEachRefs...)
 	}
 	return refs
@@ -102,31 +103,50 @@ func (n *nodeExpandModule) ReferenceOutside() (selfPath, referencePath addrs.Mod
 }
 
 // GraphNodeExecutable
-func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	expander := ctx.InstanceExpander()
+func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	expander := globalCtx.InstanceExpander()
 	_, call := n.Addr.Call()
 
 	// nodeExpandModule itself does not have visibility into how its ancestors
 	// were expanded, so we use the expander here to provide all possible paths
 	// to our module, and register module instances with each of them.
 	for _, module := range expander.ExpandModule(n.Addr.Parent()) {
-		ctx = ctx.WithPath(module)
+		moduleCtx := evalContextForModuleInstance(globalCtx, module)
+
+		// Allowing unknown values in count and for_each is currently only an
+		// experimental feature. This will hopefully become the default (and only)
+		// behavior in future, if the experiment is successful.
+		//
+		// If this is false then the codepaths that handle unknown values below
+		// become unreachable, because the evaluate functions will reject unknown
+		// values as an error.
+		allowUnknown := moduleCtx.LanguageExperimentActive(experiments.UnknownInstances)
+
 		switch {
 		case n.ModuleCall.Count != nil:
-			count, ctDiags := evaluateCountExpression(n.ModuleCall.Count, ctx)
+			count, ctDiags := evaluateCountExpression(n.ModuleCall.Count, moduleCtx, allowUnknown)
 			diags = diags.Append(ctDiags)
 			if diags.HasErrors() {
 				return diags
 			}
-			expander.SetModuleCount(module, call, count)
+			if count >= 0 {
+				expander.SetModuleCount(module, call, count)
+			} else {
+				// -1 represents "unknown"
+				expander.SetModuleCountUnknown(module, call)
+			}
 
 		case n.ModuleCall.ForEach != nil:
-			forEach, feDiags := evaluateForEachExpression(n.ModuleCall.ForEach, ctx)
+			forEach, known, feDiags := evaluateForEachExpression(n.ModuleCall.ForEach, moduleCtx, allowUnknown)
 			diags = diags.Append(feDiags)
 			if diags.HasErrors() {
 				return diags
 			}
-			expander.SetModuleForEach(module, call, forEach)
+			if known {
+				expander.SetModuleForEach(module, call, forEach)
+			} else {
+				expander.SetModuleForEachUnknown(module, call)
+			}
 
 		default:
 			expander.SetModuleSingle(module, call)
@@ -184,8 +204,8 @@ func (n *nodeCloseModule) Execute(ctx EvalContext, op walkOperation) (diags tfdi
 	}
 
 	// If this is the root module, we are cleaning up the walk, so close
-	// any running provisioners
-	diags = diags.Append(ctx.CloseProvisioners())
+	// any running plugins
+	diags = diags.Append(ctx.ClosePlugins())
 
 	switch op {
 	case walkApply, walkDestroy:
@@ -236,31 +256,31 @@ type nodeValidateModule struct {
 var _ GraphNodeExecutable = (*nodeValidateModule)(nil)
 
 // GraphNodeEvalable
-func (n *nodeValidateModule) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+func (n *nodeValidateModule) Execute(globalCtx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	_, call := n.Addr.Call()
-	expander := ctx.InstanceExpander()
+	expander := globalCtx.InstanceExpander()
 
 	// Modules all evaluate to single instances during validation, only to
 	// create a proper context within which to evaluate. All parent modules
 	// will be a single instance, but still get our address in the expected
 	// manner anyway to ensure they've been registered correctly.
 	for _, module := range expander.ExpandModule(n.Addr.Parent()) {
-		ctx = ctx.WithPath(module)
+		moduleCtx := evalContextForModuleInstance(globalCtx, module)
 
 		// Validate our for_each and count expressions at a basic level
 		// We skip validation on known, because there will be unknown values before
 		// a full expansion, presuming these errors will be caught in later steps
 		switch {
 		case n.ModuleCall.Count != nil:
-			_, countDiags := evaluateCountExpressionValue(n.ModuleCall.Count, ctx)
+			_, countDiags := evaluateCountExpressionValue(n.ModuleCall.Count, moduleCtx)
 			diags = diags.Append(countDiags)
 
 		case n.ModuleCall.ForEach != nil:
-			forEachDiags := newForEachEvaluator(n.ModuleCall.ForEach, ctx).ValidateResourceValue()
+			forEachDiags := newForEachEvaluator(n.ModuleCall.ForEach, moduleCtx, false).ValidateResourceValue()
 			diags = diags.Append(forEachDiags)
 		}
 
-		diags = diags.Append(validateDependsOn(ctx, n.ModuleCall.DependsOn))
+		diags = diags.Append(validateDependsOn(moduleCtx, n.ModuleCall.DependsOn))
 
 		// now set our own mode to single
 		expander.SetModuleSingle(module, call)

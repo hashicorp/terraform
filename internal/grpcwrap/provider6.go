@@ -6,14 +6,16 @@ package grpcwrap
 import (
 	"context"
 
-	"github.com/hashicorp/terraform/internal/plugin6/convert"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/tfplugin6"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/terraform/internal/plugin6/convert"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfplugin6"
 )
 
 // New wraps a providers.Interface to implement a grpc ProviderServer using
@@ -39,6 +41,7 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 	resp := &tfplugin6.GetProviderSchema_Response{
 		ResourceSchemas:   make(map[string]*tfplugin6.Schema),
 		DataSourceSchemas: make(map[string]*tfplugin6.Schema),
+		Functions:         make(map[string]*tfplugin6.Function),
 	}
 
 	resp.Provider = &tfplugin6.Schema{
@@ -67,10 +70,17 @@ func (p *provider6) GetProviderSchema(_ context.Context, req *tfplugin6.GetProvi
 			Block:   convert.ConfigSchemaToProto(dat.Block),
 		}
 	}
+	if decls, err := convert.FunctionDeclsToProto(p.schema.Functions); err == nil {
+		resp.Functions = decls
+	} else {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
 
 	resp.ServerCapabilities = &tfplugin6.ServerCapabilities{
 		GetProviderSchemaOptional: p.schema.ServerCapabilities.GetProviderSchemaOptional,
 		PlanDestroy:               p.schema.ServerCapabilities.PlanDestroy,
+		MoveResourceState:         p.schema.ServerCapabilities.MoveResourceState,
 	}
 
 	// include any diagnostics from the original GetSchema call
@@ -357,6 +367,33 @@ func (p *provider6) ImportResourceState(_ context.Context, req *tfplugin6.Import
 	return resp, nil
 }
 
+func (p *provider6) MoveResourceState(_ context.Context, request *tfplugin6.MoveResourceState_Request) (*tfplugin6.MoveResourceState_Response, error) {
+	resp := &tfplugin6.MoveResourceState_Response{}
+
+	moveResp := p.provider.MoveResourceState(providers.MoveResourceStateRequest{
+		SourceProviderAddress: request.SourceProviderAddress,
+		SourceTypeName:        request.SourceTypeName,
+		SourceSchemaVersion:   request.SourceSchemaVersion,
+		SourceStateJSON:       request.SourceState.Json,
+		SourcePrivate:         request.SourcePrivate,
+		TargetTypeName:        request.TargetTypeName,
+	})
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, moveResp.Diagnostics)
+	if moveResp.Diagnostics.HasErrors() {
+		return resp, nil
+	}
+
+	targetType := p.schema.ResourceTypes[request.TargetTypeName].Block.ImpliedType()
+	targetState, err := encodeDynamicValue6(moveResp.TargetState, targetType)
+	if err != nil {
+		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+	resp.TargetState = targetState
+	resp.TargetPrivate = moveResp.TargetPrivate
+	return resp, nil
+}
+
 func (p *provider6) ReadDataSource(_ context.Context, req *tfplugin6.ReadDataSource_Request) (*tfplugin6.ReadDataSource_Response, error) {
 	resp := &tfplugin6.ReadDataSource_Response{}
 	ty := p.schema.DataSources[req.TypeName].Block.ImpliedType()
@@ -387,6 +424,79 @@ func (p *provider6) ReadDataSource(_ context.Context, req *tfplugin6.ReadDataSou
 	resp.State, err = encodeDynamicValue6(readResp.State, ty)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
+		return resp, nil
+	}
+
+	return resp, nil
+}
+
+func (p *provider6) GetFunctions(context.Context, *tfplugin6.GetFunctions_Request) (*tfplugin6.GetFunctions_Response, error) {
+	panic("unimplemented")
+	return nil, nil
+}
+
+func (p *provider6) CallFunction(_ context.Context, req *tfplugin6.CallFunction_Request) (*tfplugin6.CallFunction_Response, error) {
+	var err error
+	resp := &tfplugin6.CallFunction_Response{}
+
+	funcSchema := p.schema.Functions[req.Name]
+
+	var args []cty.Value
+	if len(req.Arguments) != 0 {
+		args = make([]cty.Value, len(req.Arguments))
+		for i, rawArg := range req.Arguments {
+			idx := int64(i)
+
+			var argTy cty.Type
+			if i < len(funcSchema.Parameters) {
+				argTy = funcSchema.Parameters[i].Type
+			} else {
+				if funcSchema.VariadicParameter == nil {
+					resp.Error = &tfplugin6.FunctionError{
+						Text:             "too many arguments for non-variadic function",
+						FunctionArgument: &idx,
+					}
+					return resp, nil
+				}
+				argTy = funcSchema.VariadicParameter.Type
+			}
+
+			argVal, err := decodeDynamicValue6(rawArg, argTy)
+			if err != nil {
+				resp.Error = &tfplugin6.FunctionError{
+					Text:             err.Error(),
+					FunctionArgument: &idx,
+				}
+				return resp, nil
+			}
+
+			args[i] = argVal
+		}
+	}
+
+	callResp := p.provider.CallFunction(providers.CallFunctionRequest{
+		FunctionName: req.Name,
+		Arguments:    args,
+	})
+	if callResp.Err != nil {
+		resp.Error = &tfplugin6.FunctionError{
+			Text: callResp.Err.Error(),
+		}
+
+		if argErr, ok := callResp.Err.(function.ArgError); ok {
+			idx := int64(argErr.Index)
+			resp.Error.FunctionArgument = &idx
+		}
+
+		return resp, nil
+	}
+
+	resp.Result, err = encodeDynamicValue6(callResp.Result, funcSchema.ReturnType)
+	if err != nil {
+		resp.Error = &tfplugin6.FunctionError{
+			Text: err.Error(),
+		}
+
 		return resp, nil
 	}
 

@@ -93,6 +93,79 @@ message PlanComponentInstance {
     // the input to subsequently applying the component plan but the final
     // input values should be a valid concretization of what's described here.
     map<string, DynamicValue> planned_input_values = 3;
+
+    // The action planned for the component as a whole.
+    //
+    // This does not directly incorporate actions planned for resource
+    // instances within this component instance, but does capture a sense
+    // of the overall action being taken for this particular component
+    // instance.
+    //
+    // The currently-possible values are:
+    //   - CREATE and UPDATE both describe applying a "normal" plan, where
+    //     CREATE additionally represents that the component instance
+    //     did not previously exist.
+    //   - READ describes a refresh-only plan. This is currently possible only
+    //     if the overall stack plan is refresh-only.
+    //   - DELETE describes applying a destroy plan, with the intent of
+    //     deleting all remote objects currently bound to resource instances
+    //     in this component instance.
+    //
+    // The value recorded here is used to achieve a few variations needed in
+    // the apply phase.
+    tfplan.Action planned_action = 4;
+
+    // The appliability flag decided by the modules runtime for this component's
+    // plan. See the docs for plans.Plan.Applyable for details on what this
+    // represents. (It's here largely just so that we can repopulate it
+    // faithfully when we rebuild a plans.Plan object at apply time.)
+    bool plan_applyable = 7;
+
+    // The completion flag decided by the modules runtime for this component's
+    // plan. See the docs for plans.Plan.Complete for details on what this
+    // represents. (It's here largely just so that we can repopulate it
+    // faithfully when we rebuild a plans.Plan object at apply time.)
+    bool plan_complete = 8;
+
+    // A list of absolute component addresses that this component
+    // instance depends on according to the configuration the plan was
+    // created from. (These are components rather than component instances
+    // because the stacks language evaluation model uses components as the
+    // most specific granularity for dependency resolution.)
+    //
+    // Applying this component instance's plan must wait until any
+    // CREATE or UPDATE plans for any of the listed component instances have
+    // completed successfully. Additionally, if any of the component instances
+    // listed here have DELETE plans then this component instance must also
+    // have a DELETE plan and the upstream DELETE must wait until this one
+    // has completed.
+    //
+    // A component instance plan that is not DELETE cannot depend on another
+    // component instance that is not also DELETE, since that would imply that
+    // this component instance's configuration refers to a component that isn't
+    // declared, which should therefore have failed validation.
+    repeated string depends_on_component_addrs = 5;
+
+    // Captures an approximation of the output values for this component with
+    // as much detail as we knew during the planning phase.
+    //
+    // For any planned action other than DELETE this might contain unknown
+    // values as placeholders for values that won't be determined until the
+    // apply phase
+    //
+    // For a DELETE plan the values should always be known because they are
+    // based on the prior state for the component, before it has been destroyed.
+    // The apply phase should use these values to build the representation of
+    // the component instance as an expression, because for DELETE any
+    // dependent objects must also be pending DELETE and their delete must
+    // happen before this instance is destroyed.
+    map<string, DynamicValue> planned_output_values = 6;
+
+    // A list of check results for this component instance, as produced by
+    // the modules runtime during the planning phase. The apply expects to
+    // update check results which were unknown during planning to reflect
+    // the actual results from the apply phase.
+    repeated tfplan.CheckResults planned_check_results = 9;
 }
 
 // Represents a planned change to a particular resource instance within a

@@ -9,7 +9,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -19,8 +19,8 @@ import (
 func (b *Local) opRefresh(
 	stopCtx context.Context,
 	cancelCtx context.Context,
-	op *backend.Operation,
-	runningOp *backend.RunningOperation) {
+	op *backendrun.Operation,
+	runningOp *backendrun.RunningOperation) {
 
 	var diags tfdiags.Diagnostics
 
@@ -61,7 +61,7 @@ func (b *Local) opRefresh(
 		diags := op.StateLocker.Unlock()
 		if diags.HasErrors() {
 			op.View.Diagnostics(diags)
-			runningOp.Result = backend.OperationFailure
+			runningOp.Result = backendrun.OperationFailure
 		}
 	}()
 

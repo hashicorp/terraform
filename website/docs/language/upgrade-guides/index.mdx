@@ -1,152 +1,105 @@
 ---
-page_title: Upgrading to Terraform v1.6
-description: Upgrading to Terraform v1.6
+page_title: Upgrading to Terraform v1.8
+description: Upgrading to Terraform v1.8
 ---
 
-# Upgrading to Terraform v1.6
+# Upgrading to Terraform v1.8
 
 -> **Tip:** Use the version selector to view the upgrade guides for older Terraform versions.
 
-Terraform v1.6 is a minor release in the stable Terraform v1.0 series.
+Terraform v1.8 is a minor release in the stable Terraform v1.0 series.
 
-Terraform v1.6 honors the
+Terraform v1.8 honors the
 [Terraform v1.0 Compatibility Promises](https://developer.hashicorp.com/terraform/language/v1-compatibility-promises),
 but there are some behavior changes outside of those promises that may affect a
 small number of users. Specifically, the following updates may require
 additional upgrade steps:
-* [End of experimental period for `terraform test`](#terraform-test)
-* [Deprecated parameters for the  S3 backend](#s3-backend)
+* [`use_legacy_workflow` is no longer available for the S3 backend](#s3-backend-authentication-changes)
+* [Possible spurious changes when refreshing](#possible-spurious-changes-when-refreshing)
+* [Ending support for macOS 10.15 Catalina](#ending-support-for-macos-1015-catalina)
+* [Minor change to `jsonencode` function results](#minor-change-to-jsonencode-function-results)
 
-See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.6/CHANGELOG.md)
+See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.8/CHANGELOG.md)
 for more details. If you encounter any problems during upgrading which are not
 covered this guide, please start a new topic in
 [the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core)
 to discuss it.
 
-## Terraform Test
+## S3 Backend authentication changes
 
-The previous experimental `terraform test` command has been deprecated and replaced with a fully supported and finalized `terraform test` command.
+Terraform v1.7 began the deprecation of a legacy approach to authentication,
+making the `use_legacy_workflow` argument default to `false` and thus making the
+old authentication workflow opt-in.
 
-There are substantial differences between the previous experimental approach and the finalized approach:
+Terraform v1.8 completes this deprecation process by removing the
+`use_legacy_workflow` argument. The old behavior is no longer available, and
+so you will need to adopt the new behavior when upgrading to Terraform v1.8.
 
-- The builtin test provider, `terraform.io/builtin/test`, has been removed and a dedicated syntax introduced for testing files.
-- A new `.tftest.hcl` file extension has been introduced for testing files, allowing a change into the directory structure and test file layout.
-- Test assertions and conditions execute with extended scope and access to the configuration under test.
+The new implementation follows the authentication process implemented in the
+official AWS SDK for Go, which is therefore more consistent with other AWS
+tools such as the official AWS CLI.
 
-The major differences are discussed here, for more information consult the [CLI](/terraform/cli/test) and [Language](/terraform/language/tests) documentation.
+## Possible spurious changes when refreshing
 
-### Directory structure
+If you use the `-refresh-only` or `-refresh=false` planning options for your
+first plan after upgrading, Terraform might show resource instance diffs without
+any visible changes. This does not affect plans created with both of those
+options disabled.
 
-Previously, test files would be placed within their own subdirectories underneath the `tests` directory from the configuration directory. The following example contains three test files using the experimental framework:
+Previous versions of Terraform used a mixture of both dynamic and static
+tracking of sensitive values in resource instance attributes. That meant that,
+for example, correctly honoring sensitive valeus when interpreting the
+`terraform show -json` output required considering both the dynamic sensitivity
+information directly in the output _and_ static sensitivity information in the
+provider schema.
 
-```
-main.tf
-outputs.tf
-providers.tf
-variables.tf
-tests/
-  defaults/
-    test_defaults.tf
-  maximums/
-    test_maximums.tf
-  minimums/
-    test_minimums.tf
-```
+To simplify handling of sensitivity in these cases, Terraform now copies the
+schema-based sensitivity information into the state along with the dynamic
+information. Terraform must therefore perform a one-time backfill update
+of the state metadata for resource types which have sensitive attributes.
 
-With the new directory structure, tests are defined using the new `.tftest.hcl` file extension and do not need to be embedded within subdirectories. To help with organization, test files can, optionally, be embedded within a test directory. The name for this test directory defaults to `tests`, but can be overridden with the `-test-directory` flag.
+When using the default planning options Terraform should handle this update
+quietly, as part of the refresh step performed during planning. However, if
+you use the `-refresh-only` or `-refresh=false` option then you will effectively
+disable one half of this process, causing the UI to report spurious changes
+that affect only the metadata in the state.
 
-The following examples are both valid directory structures for test files in the updated framework:
+These no-change metadata updates should not cause any problems, and will be
+resolved once a plan has been applied using Terraform v1.8. If you are concerned
+about a particular plan then try removing the `-refresh-only` or `-refresh=false`
+option, which should then quiet the spurious change.
 
-```
-main.tf
-outputs.tf
-providers.tf
-variables.tf
-defaults.tftest.hcl
-maximums.tftest.hcl
-minimums.tftest.hcl
-```
+## Ending support for macOS 10.15 Catalina
 
-```
-main.tf
-outputs.tf
-providers.tf
-variables.tf
-tests/
-  defaults.tftest.hcl
-  maximums.tftest.hcl
-  minimums.tftest.hcl
-```
+Terraform v1.8 is the last series that will support macOS 10.15 Catalina. The
+next minor release series will require macOS 11 Big Sur or later.
 
-### Test structure and assertions
+## Minor change to `jsonencode` function results
 
-Previously, a test file would contain a module call and a collection of resources from the builtin `test` provider:
+In previous versions of Terraform, the `jsonencode` function encoded the
+control characters U+0008 (backspace) and U+000C (form feed) in strings using
+the unicode escape syntax: `\u0008` and `\u000c` respectively.
 
-```hcl
-# tests/defaults/test_defaults.tf
+Terraform now follows the JSON idiom more closely by using `\b` for backspace
+and `\f` for form feed. These shorter encodings are equivalent for a correct
+JSON parser, but are more readable for humans due to being mnemonics.
 
-terraform{
-  required_providers {
-    test = {
-      source = "terraform.io/builtin/test"
-    }
-  }
-}
+These two control characters are relatively rarely used in practical JSON
+and so we don't expect that this change will have significant impact. If you
+are using them then this may cause the following effects:
 
-module "main" {
-  source = "../.."
-}
+- If you are using `jsonencode` to produce JSON-encoded data for consumption
+  by a JSON parser that doesn't correctly support these short encoding forms
+  then it may not be able to parse the new results. Terraform implements
+  JSON encoding as defined in IETF RFC 7159, which requires that parsers
+  support these shorter encodings.
 
-resource "test_assertions" "api_url" {
-  component = "api_url"
+- If you are using `jsonencode` to populate a resource argument where the
+  underlying provider does not perform JSON normalization, the provider might
+  propose changing the affected object to use the new encoding form. As long
+  as the remote system correctly implements JSON, this update should not
+  change the meaning of the JSON document.
 
-  equal "scheme" {
-    description = "default scheme is https"
-    got         = module.main.scheme
-    want        = "https"
-  }
-  check "port_number" {
-    description = "default port number is 8080"
-    condition   = can(regex(":8080$", module.main.authority))
-  }
-}
-```
-
-With the new framework each test file is made up of a series of `run` blocks. Each `run` block represents a single `terraform plan` or a `terraform apply` operation executed against the main configuration. Assertions from within these `run` blocks can access outputs, variables, resources, and local values from the main configuration directly.
-
-```hcl
-# tests/defaults.tftest.hcl
-
-run "test_defaults" {
-  assert {
-    condition     = output.scheme == "https"
-    error_message = "default scheme should be https"
-  }
-
-  assert {
-    condition     = can(regex(":8080", output.authority))
-    error_message = "default port number should be 8080"
-  }
-}
-```
-
-The above examples demonstrates the differences in layout, scope and access between the two approaches. In the experimental framework, access is granted as if the configuration was being called like a normal module call. In the released framework, assertions execute as if they are custom conditions defined within the main configuration directly.
-
-The `run` block also applies or plans the main configuration by default, there is no need for the specific module call seen in the experimental framework.
-
-## S3 Backend
-
-In Terraform 1.7.0 the S3 backend will begin phasing out the legacy credential chain evaluation order by defaulting `use_legacy_workflow` to `false` and deprecating the argument.
-This will bring the default behavior of the backend into alignment with the AWS SDKs and CLI.
-The legacy behavior can be preserved by setting this argument to `true`.
-
-```hcl
-terraform {
-  backend "s3" {
-    # additional configuration omitted for brevity
-    use_legacy_workflow = true
-  }
-}
-```
-
-In Terraform 1.8.0 this argument will be removed, and the S3 backend will always use the default AWS SDK for Go credential chain evaluation order.
+This change only affects strings that include these two specific control
+characters. If you do not use these control characters in the strings you pass
+to `jsonencode` then this change will have no effect for you.

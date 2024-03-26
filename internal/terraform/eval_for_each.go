@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -19,20 +19,21 @@ import (
 // evaluateForEachExpression differs from evaluateForEachExpressionValue by
 // returning an error if the count value is not known, and converting the
 // cty.Value to a map[string]cty.Value for compatibility with other calls.
-func evaluateForEachExpression(expr hcl.Expression, ctx EvalContext) (forEach map[string]cty.Value, diags tfdiags.Diagnostics) {
-	return newForEachEvaluator(expr, ctx).ResourceValue()
+func evaluateForEachExpression(expr hcl.Expression, ctx EvalContext, allowUnknown bool) (forEach map[string]cty.Value, known bool, diags tfdiags.Diagnostics) {
+	return newForEachEvaluator(expr, ctx, allowUnknown).ResourceValue()
 }
 
 // forEachEvaluator is the standard mechanism for interpreting an expression
 // given for a "for_each" argument on a resource, module, or import.
-func newForEachEvaluator(expr hcl.Expression, ctx EvalContext) *forEachEvaluator {
+func newForEachEvaluator(expr hcl.Expression, ctx EvalContext, allowUnknown bool) *forEachEvaluator {
 	if ctx == nil {
 		panic("nil EvalContext")
 	}
 
 	return &forEachEvaluator{
-		ctx:  ctx,
-		expr: expr,
+		ctx:          ctx,
+		expr:         expr,
+		allowUnknown: allowUnknown,
 	}
 }
 
@@ -48,44 +49,54 @@ type forEachEvaluator struct {
 	ctx  EvalContext
 	expr hcl.Expression
 
+	// TEMP: If allowUnknown is set then we skip the usual restriction that
+	// unknown values are not allowed in for_each. A caller that sets this
+	// must therefore be ready to deal with the result being unknown.
+	// This will eventually become the default behavior, once we've updated
+	// the rest of this package to handle that situation in a reasonable way.
+	allowUnknown bool
+
 	// internal
 	hclCtx *hcl.EvalContext
 }
 
 // ResourceForEachValue returns a known for_each map[string]cty.Value
 // appropriate for use within resource expansion.
-func (ev *forEachEvaluator) ResourceValue() (map[string]cty.Value, tfdiags.Diagnostics) {
+func (ev *forEachEvaluator) ResourceValue() (map[string]cty.Value, bool, tfdiags.Diagnostics) {
 	res := map[string]cty.Value{}
 
 	// no expression always results in an empty map
 	if ev.expr == nil {
-		return res, nil
+		return res, true, nil
 	}
 
 	forEachVal, diags := ev.Value()
 	if diags.HasErrors() {
-		return res, diags
+		return res, false, diags
 	}
 
 	// ensure our value is known for use in resource expansion
-	diags = diags.Append(ev.ensureKnownForResource(forEachVal))
-	if diags.HasErrors() {
-		return res, diags
+	unknownDiags := ev.ensureKnownForResource(forEachVal)
+	if unknownDiags.HasErrors() {
+		if !ev.allowUnknown {
+			diags = diags.Append(unknownDiags)
+		}
+		return res, false, diags
 	}
 
 	// validate the for_each value for use in resource expansion
 	diags = diags.Append(ev.validateResource(forEachVal))
 	if diags.HasErrors() {
-		return res, diags
+		return res, false, diags
 	}
 
 	if forEachVal.IsNull() || !forEachVal.IsKnown() || markSafeLengthInt(forEachVal) == 0 {
 		// we check length, because an empty set returns a nil map which will panic below
-		return res, diags
+		return res, true, diags
 	}
 
 	res = forEachVal.AsValueMap()
-	return res, diags
+	return res, true, diags
 }
 
 // ImportValue returns the for_each map for use within an import block,
@@ -135,7 +146,7 @@ func (ev *forEachEvaluator) Value() (cty.Value, tfdiags.Diagnostics) {
 		return cty.NullVal(cty.Map(cty.DynamicPseudoType)), nil
 	}
 
-	refs, moreDiags := lang.ReferencesInExpr(addrs.ParseRef, ev.expr)
+	refs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRef, ev.expr)
 	diags = diags.Append(moreDiags)
 	scope := ev.ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
 	if scope != nil {

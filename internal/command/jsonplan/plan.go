@@ -63,6 +63,8 @@ type plan struct {
 	RelevantAttributes []ResourceAttr    `json:"relevant_attributes,omitempty"`
 	Checks             json.RawMessage   `json:"checks,omitempty"`
 	Timestamp          string            `json:"timestamp,omitempty"`
+	Applyable          bool              `json:"applyable"`
+	Complete           bool              `json:"complete"`
 	Errored            bool              `json:"errored"`
 }
 
@@ -87,21 +89,23 @@ type Change struct {
 	//    ["create"]
 	//    ["read"]
 	//    ["update"]
-	//    ["delete", "create"]
-	//    ["create", "delete"]
+	//    ["delete", "create"] (replace)
+	//    ["create", "delete"] (replace)
 	//    ["delete"]
 	//    ["forget"]
-	// The two "replace" actions are represented in this way to allow callers to
-	// e.g. just scan the list for "delete" to recognize all three situations
-	// where the object will be deleted, allowing for any new deletion
-	// combinations that might be added in future.
+	//    ["create", "forget"] (replace)
+	// The three "replace" actions are represented in this way to allow callers
+	// to, e.g., just scan the list for "delete" to recognize all three
+	// situations where the object will be deleted, allowing for any new
+	// deletion combinations that might be added in future.
 	Actions []string `json:"actions,omitempty"`
 
 	// Before and After are representations of the object value both before and
-	// after the action. For ["create"] and ["delete"] actions, either "before"
-	// or "after" is unset (respectively). For ["no-op"], the before and after
-	// values are identical. The "after" value will be incomplete if there are
-	// values within it that won't be known until after apply.
+	// after the action. For ["create"] and ["delete"]/["forget"] actions,
+	// either "before" or "after" is unset (respectively). For ["no-op"], the
+	// before and after values are identical. The "after" value will be
+	// incomplete if there are values within it that won't be known until after
+	// apply.
 	Before json.RawMessage `json:"before,omitempty"`
 	After  json.RawMessage `json:"after,omitempty"`
 
@@ -223,6 +227,8 @@ func Marshal(
 	output := newPlan()
 	output.TerraformVersion = version.String()
 	output.Timestamp = p.Timestamp.Format(time.RFC3339)
+	output.Applyable = p.Applyable
+	output.Complete = p.Complete
 	output.Errored = p.Errored
 
 	err := output.marshalPlanVariables(p.VariableValues, config.Module.Variables)
@@ -873,7 +879,7 @@ func UnmarshalActions(actions []string) plans.Action {
 // indexes.
 //
 // JavaScript (or similar dynamic language) consumers of these values can
-// iterate over the the steps starting from the root object to reach the
+// iterate over the steps starting from the root object to reach the
 // value that each path is describing.
 func encodePaths(pathSet cty.PathSet) (json.RawMessage, error) {
 	if pathSet.Empty() {

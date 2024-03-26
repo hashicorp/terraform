@@ -58,13 +58,6 @@ func stronglyConnected(acct *sccAcct, g *Graph, v Vertex) int {
 	return minIdx
 }
 
-func min(a, b int) int {
-	if a <= b {
-		return a
-	}
-	return b
-}
-
 // sccAcct is used ot pass around accounting information for
 // the StronglyConnectedComponents algorithm
 type sccAcct struct {

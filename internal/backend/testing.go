@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configtesting"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -68,7 +68,7 @@ func TestBackendConfig(t *testing.T, b Backend, c hcl.Body) Backend {
 // this function will panic.
 func TestWrapConfig(raw map[string]interface{}) hcl.Body {
 	obj := hcl2shim.HCL2ValueFromConfigValue(raw)
-	return configs.SynthBody("<TestWrapConfig>", obj.AsValueMap())
+	return configtesting.SynthBody("<TestWrapConfig>", obj.AsValueMap())
 }
 
 // TestBackend will test the functionality of a Backend. The backend is

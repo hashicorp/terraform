@@ -30,6 +30,7 @@ func TestGraphNodeImportStateExecute(t *testing.T) {
 	provider.ConfigureProvider(providers.ConfigureProviderRequest{})
 
 	ctx := &MockEvalContext{
+		Scope:            evalContextModuleInstance{Addr: addrs.RootModuleInstance},
 		StateState:       state.SyncWrapper(),
 		ProviderProvider: provider,
 	}

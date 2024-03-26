@@ -286,67 +286,81 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			change.ActionReason = plans.ResourceInstanceReplaceByTriggers
 		}
 
-		// We intentionally write the change before the subsequent checks, because
-		// all of the checks below this point are for problems caused by the
-		// context surrounding the change, rather than the change itself, and
-		// so it's helpful to still include the valid-in-isolation change as
-		// part of the plan as additional context in our error output.
-		//
-		// FIXME: it is currently important that we write resource changes to
-		// the plan (n.writeChange) before we write the corresponding state
-		// (n.writeResourceInstanceState).
-		//
-		// This is because the planned resource state will normally have the
-		// status of states.ObjectPlanned, which causes later logic to refer to
-		// the contents of the plan to retrieve the resource data. Because
-		// there is no shared lock between these two data structures, reversing
-		// the order of these writes will cause a brief window of inconsistency
-		// which can lead to a failed safety check.
-		//
-		// Future work should adjust these APIs such that it is impossible to
-		// update these two data structures incorrectly through any objects
-		// reachable via the terraform.EvalContext API.
-		diags = diags.Append(n.writeChange(ctx, change, ""))
-		if diags.HasErrors() {
-			return diags
-		}
-		diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, workingState))
-		if diags.HasErrors() {
-			return diags
-		}
-
-		diags = diags.Append(n.checkPreventDestroy(change))
-		if diags.HasErrors() {
-			return diags
-		}
-
-		// If this plan resulted in a NoOp, then apply won't have a chance to make
-		// any changes to the stored dependencies. Since this is a NoOp we know
-		// that the stored dependencies will have no effect during apply, and we can
-		// write them out now.
-		if change.Action == plans.NoOp && !depsEqual(instanceRefreshState.Dependencies, n.Dependencies) {
-			// the refresh state will be the final state for this resource, so
-			// finalize the dependencies here if they need to be updated.
-			instanceRefreshState.Dependencies = n.Dependencies
-			diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
+		deferrals := ctx.Deferrals()
+		if !deferrals.ShouldDeferResourceInstanceChanges(n.Addr) {
+			// We intentionally write the change before the subsequent checks, because
+			// all of the checks below this point are for problems caused by the
+			// context surrounding the change, rather than the change itself, and
+			// so it's helpful to still include the valid-in-isolation change as
+			// part of the plan as additional context in our error output.
+			//
+			// FIXME: it is currently important that we write resource changes to
+			// the plan (n.writeChange) before we write the corresponding state
+			// (n.writeResourceInstanceState).
+			//
+			// This is because the planned resource state will normally have the
+			// status of states.ObjectPlanned, which causes later logic to refer to
+			// the contents of the plan to retrieve the resource data. Because
+			// there is no shared lock between these two data structures, reversing
+			// the order of these writes will cause a brief window of inconsistency
+			// which can lead to a failed safety check.
+			//
+			// Future work should adjust these APIs such that it is impossible to
+			// update these two data structures incorrectly through any objects
+			// reachable via the terraform.EvalContext API.
+			diags = diags.Append(n.writeChange(ctx, change, ""))
 			if diags.HasErrors() {
 				return diags
 			}
-		}
+			diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, workingState))
+			if diags.HasErrors() {
+				return diags
+			}
 
-		// Post-conditions might block completion. We intentionally do this
-		// _after_ writing the state/diff because we want to check against
-		// the result of the operation, and to fail on future operations
-		// until the user makes the condition succeed.
-		// (Note that some preconditions will end up being skipped during
-		// planning, because their conditions depend on values not yet known.)
-		checkDiags := evalCheckRules(
-			addrs.ResourcePostcondition,
-			n.Config.Postconditions,
-			ctx, n.ResourceInstanceAddr(), repeatData,
-			checkRuleSeverity,
-		)
-		diags = diags.Append(checkDiags)
+			diags = diags.Append(n.checkPreventDestroy(change))
+			if diags.HasErrors() {
+				return diags
+			}
+
+			// If this plan resulted in a NoOp, then apply won't have a chance to make
+			// any changes to the stored dependencies. Since this is a NoOp we know
+			// that the stored dependencies will have no effect during apply, and we can
+			// write them out now.
+			if change.Action == plans.NoOp && !depsEqual(instanceRefreshState.Dependencies, n.Dependencies) {
+				// the refresh state will be the final state for this resource, so
+				// finalize the dependencies here if they need to be updated.
+				instanceRefreshState.Dependencies = n.Dependencies
+				diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
+				if diags.HasErrors() {
+					return diags
+				}
+			}
+
+			// Post-conditions might block completion. We intentionally do this
+			// _after_ writing the state/diff because we want to check against
+			// the result of the operation, and to fail on future operations
+			// until the user makes the condition succeed.
+			// (Note that some preconditions will end up being skipped during
+			// planning, because their conditions depend on values not yet known.)
+			checkDiags := evalCheckRules(
+				addrs.ResourcePostcondition,
+				n.Config.Postconditions,
+				ctx, n.ResourceInstanceAddr(), repeatData,
+				checkRuleSeverity,
+			)
+			diags = diags.Append(checkDiags)
+		} else {
+			// The deferrals tracker says that we must defer changes for
+			// this resource instance, presumably due to a dependency on an
+			// upstream object that was already deferred. Therefore we just
+			// report our own deferral (capturing a placeholder value in the
+			// deferral tracker) and don't add anything to the plan or
+			// working state.
+			// In this case, the expression evaluator should use the placeholder
+			// value registered here as the value of this resource instance,
+			// instead of using the plan.
+			deferrals.ReportResourceInstanceDeferred(n.Addr, change.Action, change.After)
+		}
 	} else {
 		// In refresh-only mode we need to evaluate the for-each expression in
 		// order to supply the value to the pre- and post-condition check
@@ -355,7 +369,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		// values, which could result in a post-condition check relying on that
 		// value being inaccurate. Unless we decide to store the value of the
 		// for-each expression in state, this is unavoidable.
-		forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
+		forEach, _, _ := evaluateForEachExpression(n.Config.ForEach, ctx, false)
 		repeatData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
 		checkDiags := evalCheckRules(
@@ -429,9 +443,13 @@ func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repDat
 func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, importId string, provider providers.Interface, providerSchema providers.ProviderSchema) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	absAddr := addr.Resource.Absolute(ctx.Path())
+	hookResourceID := HookResourceIdentity{
+		Addr:         absAddr,
+		ProviderAddr: n.ResolvedProvider.Provider,
+	}
 
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PrePlanImport(absAddr, importId)
+		return h.PrePlanImport(hookResourceID, importId)
 	}))
 	if diags.HasErrors() {
 		return nil, diags
@@ -463,7 +481,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			return nil, diags
 		}
 
-		forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
+		forEach, _, _ := evaluateForEachExpression(n.Config.ForEach, ctx, false)
 		keyData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 		configVal, _, configDiags := ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
 		if configDiags.HasErrors() {
@@ -539,7 +557,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 
 	// call post-import hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostPlanImport(absAddr, imported)
+		return h.PostPlanImport(hookResourceID, imported)
 	}))
 
 	if imported[0].TypeName == "" {

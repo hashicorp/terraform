@@ -152,6 +152,12 @@ func TestTemplateFile(t *testing.T) {
 			`testdata/recursive.tmpl:1,3-16: Error in function call; Call to function "templatefile" failed: cannot recursively call templatefile from inside templatefile call.`,
 		},
 		{
+			cty.StringVal("testdata/recursive_namespaced.tmpl"),
+			cty.MapValEmpty(cty.String),
+			cty.NilVal,
+			`testdata/recursive_namespaced.tmpl:1,3-22: Error in function call; Call to function "core::templatefile" failed: cannot recursively call templatefile from inside templatefile call.`,
+		},
+		{
 			cty.StringVal("testdata/list.tmpl"),
 			cty.ObjectVal(map[string]cty.Value{
 				"list": cty.ListVal([]cty.Value{
@@ -183,8 +189,10 @@ func TestTemplateFile(t *testing.T) {
 
 	templateFileFn := MakeTemplateFileFunc(".", func() map[string]function.Function {
 		return map[string]function.Function{
-			"join":         stdlib.JoinFunc,
-			"templatefile": MakeFileFunc(".", false), // just a placeholder, since templatefile itself overrides this
+			"join":               stdlib.JoinFunc,
+			"core::join":         stdlib.JoinFunc,
+			"templatefile":       MakeFileFunc(".", false), // just a placeholder, since templatefile itself overrides this
+			"core::templatefile": MakeFileFunc(".", false), // just a placeholder, since templatefile itself overrides this
 		}
 	})
 

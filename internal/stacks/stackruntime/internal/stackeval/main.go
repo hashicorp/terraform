@@ -10,14 +10,20 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-slug/sourcebundle"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	fileProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/file"
+	remoteExecProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
+	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Main is the central node of all data required for performing the major
@@ -62,6 +68,11 @@ type Main struct {
 	// This must never be used outside of test code in this package.
 	testOnlyGlobals map[string]cty.Value
 
+	// languageExperimentsAllowed gets set if our caller enables the use
+	// of language experiments by calling [Main.AllowLanguageExperiments]
+	// shortly after creating this object.
+	languageExperimentsAllowed bool
+
 	// The remaining fields memoize other objects we might create in response
 	// to method calls. Must lock "mu" before interacting with them.
 	mu              sync.Mutex
@@ -88,6 +99,7 @@ type mainPlanning struct {
 
 type mainApplying struct {
 	opts          ApplyOpts
+	plan          *stackplan.Plan
 	rootInputVals map[stackaddrs.InputVariable]cty.Value
 	results       *ChangeExecResults
 }
@@ -125,11 +137,12 @@ func NewForPlanning(config *stackconfig.Config, prevState *stackstate.State, opt
 	}
 }
 
-func NewForApplying(config *stackconfig.Config, rootInputs map[stackaddrs.InputVariable]cty.Value, execResults *ChangeExecResults, opts ApplyOpts) *Main {
+func NewForApplying(config *stackconfig.Config, rootInputs map[stackaddrs.InputVariable]cty.Value, plan *stackplan.Plan, execResults *ChangeExecResults, opts ApplyOpts) *Main {
 	return &Main{
 		config: config,
 		applying: &mainApplying{
 			opts:          opts,
+			plan:          plan,
 			rootInputVals: rootInputs,
 			results:       execResults,
 		},
@@ -149,6 +162,22 @@ func NewForInspecting(config *stackconfig.Config, state *stackstate.State, opts 
 		providerTypes:     make(map[addrs.Provider]*ProviderType),
 		testOnlyGlobals:   opts.TestOnlyGlobals,
 	}
+}
+
+// AllowLanguageExperiments changes the flag for whether language experiments
+// are allowed during evaluation.
+//
+// Call this very shortly after creating a [Main], before performing any other
+// actions on it. Changing this setting after other methods have been called
+// will produce unpredictable results.
+func (m *Main) AllowLanguageExperiments(allow bool) {
+	m.languageExperimentsAllowed = allow
+}
+
+// LanguageExperimentsAllowed returns true if language experiments are allowed
+// to be used during evaluation.
+func (m *Main) LanguageExperimentsAllowed() bool {
+	return m.languageExperimentsAllowed
 }
 
 // Validating returns true if the receiving [Main] is configured for validating.
@@ -214,6 +243,15 @@ func (m *Main) ApplyChangeResults() *ChangeExecResults {
 		panic("stacks language runtime is instantiated for applying but somehow has no change results")
 	}
 	return m.applying.results
+}
+
+// PlanBeingApplied returns the plan that's currently being applied, or panics
+// if called not during an apply phase.
+func (m *Main) PlanBeingApplied() *stackplan.Plan {
+	if !m.Applying() {
+		panic("stacks language runtime is not instantiated for applying")
+	}
+	return m.applying.plan
 }
 
 // InspectingState returns the state snapshot that was provided when
@@ -383,6 +421,31 @@ func (m *Main) ProviderInstance(ctx context.Context, addr stackaddrs.AbsProvider
 	return insts[addr.Item.Key]
 }
 
+// PreviousProviderInstances fetches the set of providers that are required
+// based on the current plan or state file. They are previous in the sense that
+// they're not based on the current config. So if a provider has been removed
+// from the config, this function will still find it.
+func (m *Main) PreviousProviderInstances(addr stackaddrs.AbsComponentInstance, phase EvalPhase) addrs.Set[addrs.RootProviderConfig] {
+	switch phase {
+	case ApplyPhase:
+		return m.PlanBeingApplied().RequiredProviderInstances(addr)
+	case PlanPhase:
+		return m.PlanPrevState().RequiredProviderInstances(addr)
+	case InspectPhase:
+		return m.InspectingState().RequiredProviderInstances(addr)
+	default:
+		// We don't have the required information (like a plan or a state file)
+		// in the other phases so we can't do anything even if we wanted to.
+		// In general, for the other phases we're not doing anything with the
+		// previous provider instances anyway, so we don't need them.
+		return addrs.MakeSet[addrs.RootProviderConfig]()
+	}
+}
+
+// RootVariableValue returns the original root variable value specified by the
+// caller, if any. The caller of this function is responsible for replacing
+// missing values with defaults, and performing type conversion and and
+// validation.
 func (m *Main) RootVariableValue(ctx context.Context, addr stackaddrs.InputVariable, phase EvalPhase) ExternalInputValue {
 	switch phase {
 	case PlanPhase:
@@ -391,6 +454,10 @@ func (m *Main) RootVariableValue(ctx context.Context, addr stackaddrs.InputVaria
 		}
 		ret, ok := m.planning.opts.InputVariableValues[addr]
 		if !ok {
+			// If no value is specified for the given input variable, we return
+			// a null value. Callers should treat a null value as equivalent to
+			// an unspecified one, applying default (if present) or raising an
+			// error (if not).
 			return ExternalInputValue{
 				Value: cty.NullVal(cty.DynamicPseudoType),
 			}
@@ -443,6 +510,23 @@ func (m *Main) RootVariableValue(ctx context.Context, addr stackaddrs.InputVaria
 			Value: cty.DynamicVal, // placeholder value
 		}
 	}
+}
+
+// ResolveAbsExpressionReference tries to resolve the given absolute
+// expression reference within this evaluation context.
+func (m *Main) ResolveAbsExpressionReference(ctx context.Context, ref stackaddrs.AbsReference, phase EvalPhase) (Referenceable, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	stack := m.Stack(ctx, ref.Stack, phase)
+	if stack == nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reference to undeclared stack",
+			Detail:   fmt.Sprintf("Cannot resolve reference to object in undeclared stack %s.", ref.Stack),
+			Subject:  ref.SourceRange().ToHCL().Ptr(),
+		})
+		return nil, diags
+	}
+	return stack.ResolveExpressionReference(ctx, ref.Ref)
 }
 
 // RegisterCleanup registers an arbitrary callback function to run when a
@@ -511,5 +595,34 @@ func (m *Main) reportNamedPromises(cb func(id promising.PromiseID, name string))
 	defer m.mu.Unlock()
 	if m.mainStackConfig != nil {
 		m.mainStackConfig.reportNamedPromises(cb)
+	}
+}
+
+// availableProvisioners returns the table of provisioner factories that should
+// be made available to modules in this component.
+func (m *Main) availableProvisioners() map[string]provisioners.Factory {
+	return map[string]provisioners.Factory{
+		"remote-exec": func() (provisioners.Interface, error) {
+			return remoteExecProvisioner.New(), nil
+		},
+		"file": func() (provisioners.Interface, error) {
+			return fileProvisioner.New(), nil
+		},
+		"local-exec": func() (provisioners.Interface, error) {
+			// We don't yet have any way to ensure a consistent execution
+			// environment for local-exec, which means that use of this
+			// provisioner is very likely to hurt portability between
+			// local and remote usage of stacks. Existing use of local-exec
+			// also tends to assume a writable module directory, whereas
+			// stack components execute from a read-only directory.
+			//
+			// Therefore we'll leave this unavailable for now with an explicit
+			// error message, although we might revisit this later if there's
+			// a strong reason to allow it and if we can find a suitable
+			// way to avoid the portability pitfalls that might inhibit
+			// moving execution of a stack from one execution environment to
+			// another.
+			return nil, fmt.Errorf("local-exec provisioners are not supported in stack components; use provider functionality or remote provisioners instead")
+		},
 	}
 }

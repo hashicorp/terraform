@@ -10,10 +10,10 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // TransformConfigForTest transforms the provided configuration ready for the
@@ -27,7 +27,7 @@ import (
 // We also return a reset function that should be called to return the
 // configuration to it's original state before the next run block or test file
 // needs to use it.
-func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *moduletest.File, availableVariables map[string]backend.UnparsedVariableValue, availableRunOutputs map[addrs.Run]cty.Value, requiredProviders map[string]bool) (func(), hcl.Diagnostics) {
+func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *moduletest.File, availableVariables terraform.InputValues, availableRunOutputs map[addrs.Run]cty.Value, requiredProviders map[string]bool) (func(), hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
 	// Currently, we only need to override the provider settings.
@@ -91,7 +91,6 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 				Version:    testProvider.Version,
 				Config: &hcltest.ProviderConfig{
 					Original:            testProvider.Config,
-					ConfigVariables:     config.Module.Variables,
 					AvailableVariables:  availableVariables,
 					AvailableRunOutputs: availableRunOutputs,
 				},
@@ -119,7 +118,6 @@ func TransformConfigForTest(config *configs.Config, run *moduletest.Run, file *m
 				Version:    provider.Version,
 				Config: &hcltest.ProviderConfig{
 					Original:            provider.Config,
-					ConfigVariables:     config.Module.Variables,
 					AvailableVariables:  availableVariables,
 					AvailableRunOutputs: availableRunOutputs,
 				},

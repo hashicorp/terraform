@@ -19,9 +19,7 @@ on:
   pull_request:
   push:
     branches:
-      - main
-      - 'v[0-9]+.[0-9]+'
-      - checks-workflow-dev/*
+      - '*'
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
 
@@ -62,7 +60,10 @@ jobs:
 
       - name: "Unit tests"
         run: |
-          go test ./...
+          # We run tests for all packages from all modules in this repository.
+          for dir in $(go list -m -f '{{.Dir}}' github.com/hashicorp/terraform/...); do
+              (cd $dir && go test "./...")
+          done
 
   race-tests:
     name: "Race Tests"
@@ -166,9 +167,12 @@ jobs:
 
       - name: "go.mod and go.sum consistency check"
         run: |
-          go mod tidy
-          if [[ -n "$(git status --porcelain)" ]]; then
-            echo >&2 "ERROR: go.mod/go.sum are not up-to-date. Run 'go mod tidy' and then commit the updated files."
+          make syncdeps
+          CHANGED="$(git status --porcelain)"
+          if [[ -n "$CHANGED" ]]; then
+            git diff
+            echo >&2 "ERROR: go.mod/go.sum files are not up-to-date. Run 'make syncdeps' and then commit the updated files."
+            echo >&2 $'Affected files:\n'"$CHANGED"
             exit 1
           fi
 
@@ -182,7 +186,7 @@ jobs:
 
       - name: "Code consistency checks"
         run: |
-          make fmtcheck importscheck generate staticcheck exhaustive protobuf
+          make fmtcheck importscheck copyright generate staticcheck exhaustive protobuf
           if [[ -n "$(git status --porcelain)" ]]; then
             echo >&2 "ERROR: Generated files are inconsistent. Run 'make generate' and 'make protobuf' locally and then commit the updated files."
             git >&2 status --porcelain

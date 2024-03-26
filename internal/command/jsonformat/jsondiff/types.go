@@ -3,7 +3,10 @@
 
 package jsondiff
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type Type string
 
@@ -16,11 +19,11 @@ const (
 	Null   Type = "null"
 )
 
-func GetType(json interface{}) Type {
-	switch json.(type) {
+func GetType(value interface{}) Type {
+	switch value.(type) {
 	case []interface{}:
 		return Array
-	case float64:
+	case json.Number:
 		return Number
 	case string:
 		return String
@@ -31,6 +34,6 @@ func GetType(json interface{}) Type {
 	case map[string]interface{}:
 		return Object
 	default:
-		panic(fmt.Sprintf("unrecognized json type %T", json))
+		panic(fmt.Sprintf("unrecognized json type %T", value))
 	}
 }

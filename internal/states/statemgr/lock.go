@@ -4,8 +4,8 @@
 package statemgr
 
 import (
+	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // LockDisabled implements State and Locker but disables state locking.
@@ -33,7 +33,7 @@ func (s *LockDisabled) RefreshState() error {
 	return s.Inner.RefreshState()
 }
 
-func (s *LockDisabled) PersistState(schemas *terraform.Schemas) error {
+func (s *LockDisabled) PersistState(schemas *schemarepo.Schemas) error {
 	return s.Inner.PersistState(schemas)
 }
 

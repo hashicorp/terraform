@@ -21,7 +21,7 @@ func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData in
 
 	// import blocks only exist in the root module, and must be evaluated in
 	// that context.
-	ctx = ctx.WithPath(addrs.RootModuleInstance)
+	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
 
 	if expr == nil {
 		return "", diags.Append(&hcl.Diagnostic{
@@ -68,6 +68,15 @@ func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData in
 			Severity: hcl.DiagError,
 			Summary:  "Invalid import id argument",
 			Detail:   fmt.Sprintf("The import ID value is unsuitable: %s.", err),
+			Subject:  expr.Range().Ptr(),
+		})
+	}
+
+	if importId == "" {
+		return "", diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid import id argument",
+			Detail:   "The import ID value evaluates to an empty string, please provide a non-empty value.",
 			Subject:  expr.Range().Ptr(),
 		})
 	}

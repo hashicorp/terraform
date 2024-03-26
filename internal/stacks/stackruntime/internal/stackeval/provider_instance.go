@@ -9,7 +9,10 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -18,7 +21,6 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // ProviderInstance represents one instance of a provider.
@@ -70,10 +72,10 @@ func (p *ProviderInstance) ProviderArgsDecoderSpec(ctx context.Context) (hcldec.
 	return p.provider.Config(ctx).ProviderArgsDecoderSpec(ctx)
 }
 
-// ProviderArgs returns an object value representing an approximation of all
-// provider instances declared by this provider configuration, or
-// an unknown value (possibly [cty.DynamicVal]) if the configuration is too
-// invalid to produce any answer at all.
+// ProviderArgs returns an object value representing the provider configuration
+// for this instance, or an unknown value of the correct type if the
+// configuration is invalid. If a provider error occurs, it returns
+// [cty.DynamicVal].
 func (p *ProviderInstance) ProviderArgs(ctx context.Context, phase EvalPhase) cty.Value {
 	v, _ := p.CheckProviderArgs(ctx, phase)
 	return v
@@ -127,8 +129,11 @@ func (p *ProviderInstance) CheckProviderArgs(ctx context.Context, phase EvalPhas
 				return cty.DynamicVal, diags
 			}
 			defer unconfClient.Close()
+			// We unmark the config before making the RPC call, but will still
+			// return the original possibly-marked config if successful.
+			unmarkedConfigVal, _ := configVal.UnmarkDeep()
 			validateResp := unconfClient.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
-				Config: configVal,
+				Config: unmarkedConfigVal,
 			})
 			diags = diags.Append(validateResp.Diagnostics)
 			if validateResp.Diagnostics.HasErrors() {
@@ -231,9 +236,12 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 			// "terraform" package for non-Stacks usage and try to mimick
 			// what it does in as lightweight a way as possible.
 
+			// We unmark the config before making the RPC call, as marks cannot
+			// be serialized.
+			unmarkedArgs, _ := args.UnmarkDeep()
 			resp := client.ConfigureProvider(providers.ConfigureProviderRequest{
 				TerraformVersion: version.SemVer.String(),
-				Config:           args,
+				Config:           unmarkedArgs,
 			})
 			diags = diags.Append(resp.Diagnostics)
 			if resp.Diagnostics.HasErrors() {
@@ -285,7 +293,12 @@ func (p *ProviderInstance) PlanChanges(ctx context.Context) ([]stackplan.Planned
 	return nil, p.checkValid(ctx, PlanPhase)
 }
 
-// CheckApply implements ApplyChecker.
+// RequiredComponents implements Applyable
+func (p *ProviderInstance) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+	return p.provider.RequiredComponents(ctx)
+}
+
+// CheckApply implements Applyable.
 func (p *ProviderInstance) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	return nil, p.checkValid(ctx, ApplyPhase)
 }
@@ -343,6 +356,10 @@ func (stubConfiguredProvider) ApplyResourceChange(req providers.ApplyResourceCha
 	}
 }
 
+func (stubConfiguredProvider) CallFunction(providers.CallFunctionRequest) providers.CallFunctionResponse {
+	panic("can't call functions on the stub provider")
+}
+
 // Close implements providers.Interface.
 func (stubConfiguredProvider) Close() error {
 	return nil
@@ -380,6 +397,29 @@ func (p stubConfiguredProvider) ImportResourceState(req providers.ImportResource
 		))
 	}
 	return providers.ImportResourceStateResponse{
+		Diagnostics: diags,
+	}
+}
+
+// MoveResourceState implements providers.Interface.
+func (p stubConfiguredProvider) MoveResourceState(req providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
+	var diags tfdiags.Diagnostics
+	if p.unknown {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Provider configuration is deferred",
+			"Cannot move an existing object to this resource because its associated provider configuration is deferred to a later operation due to unknown expansion.",
+			nil, // nil attribute path means the overall configuration block
+		))
+	} else {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Provider configuration is invalid",
+			"Cannot move an existing object to this resource because its associated provider configuration is invalid.",
+			nil, // nil attribute path means the overall configuration block
+		))
+	}
+	return providers.MoveResourceStateResponse{
 		Diagnostics: diags,
 	}
 }

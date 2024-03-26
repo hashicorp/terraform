@@ -13,12 +13,13 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/cli"
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
-	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -33,13 +34,13 @@ import (
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
-func testOperationApply(t *testing.T, configDir string) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
+func testOperationApply(t *testing.T, configDir string) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
 	return testOperationApplyWithTimeout(t, configDir, 0)
 }
 
-func testOperationApplyWithTimeout(t *testing.T, configDir string, timeout time.Duration) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
+func testOperationApplyWithTimeout(t *testing.T, configDir string, timeout time.Duration) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
@@ -54,12 +55,12 @@ func testOperationApplyWithTimeout(t *testing.T, configDir string, timeout time.
 	depLocks := depsfile.NewLocks()
 	depLocks.SetProviderOverridden(addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/null"))
 
-	return &backend.Operation{
+	return &backendrun.Operation{
 		ConfigDir:       configDir,
 		ConfigLoader:    configLoader,
 		PlanRefresh:     true,
 		StateLocker:     clistate.NewLocker(timeout, stateLockerView),
-		Type:            backend.OperationTypeApply,
+		Type:            backendrun.OperationTypeApply,
 		View:            operationView,
 		DependencyLocks: depLocks,
 	}, configCleanup, done
@@ -87,7 +88,7 @@ func TestRemote_applyBasic(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -135,7 +136,7 @@ func TestRemote_applyCanceled(t *testing.T) {
 	run.Stop()
 
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 
@@ -175,7 +176,7 @@ func TestRemote_applyWithoutPermissions(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 
@@ -214,7 +215,7 @@ func TestRemote_applyWithVCS(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if !run.PlanEmpty {
@@ -247,7 +248,7 @@ func TestRemote_applyWithParallelism(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 
@@ -274,7 +275,7 @@ func TestRemote_applyWithPlan(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if !run.PlanEmpty {
@@ -304,7 +305,7 @@ func TestRemote_applyWithoutRefresh(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -343,7 +344,7 @@ func TestRemote_applyWithoutRefreshIncompatibleAPIVersion(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if !run.PlanEmpty {
@@ -373,7 +374,7 @@ func TestRemote_applyWithRefreshOnly(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -412,7 +413,7 @@ func TestRemote_applyWithRefreshOnlyIncompatibleAPIVersion(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if !run.PlanEmpty {
@@ -444,7 +445,7 @@ func TestRemote_applyWithTarget(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to succeed")
 	}
 	if run.PlanEmpty {
@@ -487,7 +488,7 @@ func TestRemote_applyWithTargetIncompatibleAPIVersion(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if !run.PlanEmpty {
@@ -519,7 +520,7 @@ func TestRemote_applyWithReplace(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatal("expected plan operation to succeed")
 	}
 	if run.PlanEmpty {
@@ -560,7 +561,7 @@ func TestRemote_applyWithReplaceIncompatibleAPIVersion(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if !run.PlanEmpty {
@@ -590,7 +591,7 @@ func TestRemote_applyWithVariables(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 
@@ -616,7 +617,7 @@ func TestRemote_applyNoConfig(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if !run.PlanEmpty {
@@ -651,7 +652,7 @@ func TestRemote_applyNoChanges(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if !run.PlanEmpty {
@@ -689,7 +690,7 @@ func TestRemote_applyNoApprove(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if !run.PlanEmpty {
@@ -729,7 +730,7 @@ func TestRemote_applyAutoApprove(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -804,7 +805,7 @@ func TestRemote_applyApprovedExternally(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -878,7 +879,7 @@ func TestRemote_applyDiscardedExternally(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if !run.PlanEmpty {
@@ -935,7 +936,7 @@ func TestRemote_applyWithAutoApply(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -991,7 +992,7 @@ func TestRemote_applyForceLocal(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -1054,7 +1055,7 @@ func TestRemote_applyWorkspaceWithoutOperations(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -1174,7 +1175,7 @@ func TestRemote_applyDestroy(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -1220,7 +1221,7 @@ func TestRemote_applyDestroyNoConfig(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -1254,7 +1255,7 @@ func TestRemote_applyPolicyPass(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -1302,7 +1303,7 @@ func TestRemote_applyPolicyHardFail(t *testing.T) {
 
 	<-run.Done()
 	viewOutput := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if !run.PlanEmpty {
@@ -1357,7 +1358,7 @@ func TestRemote_applyPolicySoftFail(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -1404,7 +1405,7 @@ func TestRemote_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 
 	<-run.Done()
 	viewOutput := done(t)
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to success due to auto-approve")
 	}
 
@@ -1470,7 +1471,7 @@ func TestRemote_applyPolicySoftFailAutoApply(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -1512,7 +1513,7 @@ func TestRemote_applyWithRemoteError(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if run.Result.ExitStatus() != 1 {
@@ -1631,7 +1632,7 @@ func TestRemote_applyVersionCheck(t *testing.T) {
 			if tc.wantErr != "" {
 				// ASSERT: if the test case wants an error, check for failure
 				// and the error message
-				if run.Result != backend.OperationFailure {
+				if run.Result != backendrun.OperationFailure {
 					t.Fatalf("expected run to fail, but result was %#v", run.Result)
 				}
 				errOutput := output.Stderr()
@@ -1641,7 +1642,7 @@ func TestRemote_applyVersionCheck(t *testing.T) {
 			} else {
 				// ASSERT: otherwise, check for success and appropriate output
 				// based on whether the run should be local or remote
-				if run.Result != backend.OperationSuccess {
+				if run.Result != backendrun.OperationSuccess {
 					t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 				}
 				output := b.CLI.(*cli.MockUi).OutputWriter.String()

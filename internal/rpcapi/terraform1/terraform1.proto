@@ -438,6 +438,8 @@ message CloseStackConfiguration {
 message ValidateStackConfiguration {
     message Request {
         int64 stack_config_handle = 1;
+        int64 dependency_locks_handle = 2;
+        int64 provider_cache_handle = 3;
     }
     message Response {
         repeated Diagnostic diagnostics = 1;
@@ -469,6 +471,7 @@ message FindStackConfigurationComponents {
     message Component {
         string source_addr = 1;
         Instances instances = 2;
+        string component_addr = 3;
     }
 }
 
@@ -738,6 +741,18 @@ message PlannedChange {
         // and doesn't take into account what actions are planned for any
         // resource instances inside.
         repeated ChangeType actions = 2;
+        // A flag for whether applying this plan is expected to cause the
+        // desired state and actual state to become converged.
+        //
+        // If this field is false, that means Terraform expects that at least
+        // one more plan/apply round will be needed to reach convergence.
+        //
+        // If this field is true then Terraform hopes to be able to converge
+        // after this plan is applied, but callers should ideally still check
+        // anyway by running one more plan to confirm that there aren't any
+        // unexpected differences caused by such situations as contradictory
+        // configuration or provider bugs.
+        bool plan_complete = 3;
     }
     message ResourceInstance {
         ResourceInstanceObjectInStackAddr addr = 1;
@@ -771,6 +786,8 @@ message PlannedChange {
         // optional disclosure in UI contexts where such things are possible.
         bool notable_change_outside = 10;
 
+        repeated AttributePath replace_paths = 11;
+
         // TODO: Everything else we need for feature-parity with the
         // existing JSON plan export format.
 
@@ -782,7 +799,7 @@ message PlannedChange {
         }
     }
     // Note: this is only for output values from the topmost
-    // stack configuration, because all other output values are 
+    // stack configuration, because all other output values are
     // internal to the configuration and not part of its public API.
     message OutputValue {
         string name = 1;
@@ -906,6 +923,7 @@ message AppliedChange {
         bool interim = 3;
     }
     message ComponentInstance {
+        string component_addr = 3;
         string component_instance_addr = 1;
         map<string,DynamicValue> output_values = 2;
     }
@@ -955,6 +973,7 @@ message StackChangeProgress {
     message ResourceInstanceStatus {
         ResourceInstanceObjectInStackAddr addr = 1;
         Status status = 2;
+        string provider_addr = 3;
 
         enum Status {
             INVALID = 0;
@@ -979,6 +998,7 @@ message StackChangeProgress {
         repeated ChangeType actions = 2;
         Moved moved = 3;
         Imported imported = 4;
+        string provider_addr = 5;
 
         message Moved {
             ResourceInstanceInStackAddr prev_addr = 1;

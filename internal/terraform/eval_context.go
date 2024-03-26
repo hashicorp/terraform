@@ -11,11 +11,13 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -94,8 +96,8 @@ type EvalContext interface {
 	// InitProvisioner.
 	ProvisionerSchema(string) (*configschema.Block, error)
 
-	// CloseProvisioner closes all provisioner plugins.
-	CloseProvisioners() error
+	// ClosePlugins closes all cached provisioner and provider plugins.
+	ClosePlugins() error
 
 	// EvaluateBlock takes the given raw configuration block and associated
 	// schema and evaluates it to produce a value of an object type that
@@ -134,6 +136,11 @@ type EvalContext interface {
 	// addresses in this context.
 	EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope
 
+	// LanguageExperimentActive returns true if the given experiment is
+	// active in the module associated with this EvalContext, or false
+	// otherwise.
+	LanguageExperimentActive(experiment experiments.Experiment) bool
+
 	// NamedValues returns the object that tracks the gradual evaluation of
 	// all input variables, local values, and output values during a graph
 	// walk.
@@ -170,6 +177,11 @@ type EvalContext interface {
 	// EvalContext objects for a given configuration.
 	InstanceExpander() *instances.Expander
 
+	// Deferrals returns a helper object for tracking deferred actions, which
+	// means that Terraform either cannot plan an action at all or cannot
+	// perform a planned action due to an upstream dependency being deferred.
+	Deferrals() *deferring.Deferred
+
 	// MoveResults returns a map describing the results of handling any
 	// resource instance move statements prior to the graph walk, so that
 	// the graph walk can then record that information appropriately in other
@@ -184,7 +196,13 @@ type EvalContext interface {
 	// this execution.
 	Overrides() *mocking.Overrides
 
-	// WithPath returns a copy of the context with the internal path set to the
-	// path argument.
-	WithPath(path addrs.ModuleInstance) EvalContext
+	// withScope derives a new EvalContext that has all of the same global
+	// context, but a new evaluation scope.
+	withScope(scope evalContextScope) EvalContext
+}
+
+func evalContextForModuleInstance(baseCtx EvalContext, addr addrs.ModuleInstance) EvalContext {
+	return baseCtx.withScope(evalContextModuleInstance{
+		Addr: addr,
+	})
 }

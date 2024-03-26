@@ -738,6 +738,82 @@ func TestGRPCProvider_ImportResourceStateJSON(t *testing.T) {
 	}
 }
 
+func TestGRPCProvider_MoveResourceState(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	expectedTargetPrivate := []byte(`{"target": "private"}`)
+	expectedTargetState := cty.ObjectVal(map[string]cty.Value{
+		"attr": cty.StringVal("bar"),
+	})
+
+	client.EXPECT().MoveResourceState(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.MoveResourceState_Response{
+		TargetState: &proto.DynamicValue{
+			Msgpack: []byte("\x81\xa4attr\xa3bar"),
+		},
+		TargetPrivate: expectedTargetPrivate,
+	}, nil)
+
+	resp := p.MoveResourceState(providers.MoveResourceStateRequest{
+		SourcePrivate:   []byte(`{"source": "private"}`),
+		SourceStateJSON: []byte(`{"source_attr":"bar"}`),
+		TargetTypeName:  "resource",
+	})
+
+	checkDiags(t, resp.Diagnostics)
+
+	if !cmp.Equal(expectedTargetPrivate, resp.TargetPrivate, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expectedTargetPrivate, resp.TargetPrivate, typeComparer, valueComparer, equateEmpty))
+	}
+
+	if !cmp.Equal(expectedTargetState, resp.TargetState, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expectedTargetState, resp.TargetState, typeComparer, valueComparer, equateEmpty))
+	}
+}
+
+func TestGRPCProvider_MoveResourceStateJSON(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	expectedTargetPrivate := []byte(`{"target": "private"}`)
+	expectedTargetState := cty.ObjectVal(map[string]cty.Value{
+		"attr": cty.StringVal("bar"),
+	})
+
+	client.EXPECT().MoveResourceState(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.MoveResourceState_Response{
+		TargetState: &proto.DynamicValue{
+			Json: []byte(`{"attr":"bar"}`),
+		},
+		TargetPrivate: expectedTargetPrivate,
+	}, nil)
+
+	resp := p.MoveResourceState(providers.MoveResourceStateRequest{
+		SourcePrivate:   []byte(`{"source": "private"}`),
+		SourceStateJSON: []byte(`{"source_attr":"bar"}`),
+		TargetTypeName:  "resource",
+	})
+
+	checkDiags(t, resp.Diagnostics)
+
+	if !cmp.Equal(expectedTargetPrivate, resp.TargetPrivate, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expectedTargetPrivate, resp.TargetPrivate, typeComparer, valueComparer, equateEmpty))
+	}
+
+	if !cmp.Equal(expectedTargetState, resp.TargetState, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expectedTargetState, resp.TargetState, typeComparer, valueComparer, equateEmpty))
+	}
+}
+
 func TestGRPCProvider_ReadDataSource(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{

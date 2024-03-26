@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -43,6 +44,7 @@ func TestContext2Plan_basic(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	checkPlanCompleteAndApplyable(t, plan)
 
 	if l := len(plan.Changes.Resources); l < 2 {
 		t.Fatalf("wrong number of resources %d; want fewer than two\n%s", l, spew.Sdump(plan.Changes.Resources))
@@ -113,6 +115,7 @@ func TestContext2Plan_createBefore_deposed(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	checkPlanCompleteAndApplyable(t, plan)
 
 	// the state should still show one deposed
 	expectedState := strings.TrimSpace(`
@@ -451,7 +454,7 @@ func TestContext2Plan_moduleExpand(t *testing.T) {
 func TestContext2Plan_moduleCycle(t *testing.T) {
 	m := testModule(t, "plan-module-cycle")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -723,7 +726,7 @@ func TestContext2Plan_moduleInputFromVar(t *testing.T) {
 func TestContext2Plan_moduleMultiVar(t *testing.T) {
 	m := testModule(t, "plan-module-multi-var")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -978,7 +981,7 @@ func TestContext2Plan_moduleProviderInherit(t *testing.T) {
 				defer l.Unlock()
 
 				p := testProvider("aws")
-				p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+				p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 					Provider: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"from": {Type: cty.String, Optional: true},
@@ -1041,7 +1044,7 @@ func TestContext2Plan_moduleProviderInheritDeep(t *testing.T) {
 				var from string
 				p := testProvider("aws")
 
-				p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+				p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 					Provider: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"from": {Type: cty.String, Optional: true},
@@ -1095,7 +1098,7 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 				defer l.Unlock()
 
 				p := testProvider("aws")
-				p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+				p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 					Provider: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"to":   {Type: cty.String, Optional: true},
@@ -1158,7 +1161,7 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 func TestContext2Plan_moduleProviderVar(t *testing.T) {
 	m := testModule(t, "plan-module-provider-var")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"value": {Type: cty.String, Optional: true},
@@ -1274,10 +1277,11 @@ func TestContext2Plan_moduleVarWrongTypeBasic(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if !diags.HasErrors() {
 		t.Fatalf("succeeded; want errors")
 	}
+	checkPlanErrored(t, plan)
 }
 
 func TestContext2Plan_moduleVarWrongTypeNested(t *testing.T) {
@@ -1289,10 +1293,11 @@ func TestContext2Plan_moduleVarWrongTypeNested(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if !diags.HasErrors() {
 		t.Fatalf("succeeded; want errors")
 	}
+	checkPlanErrored(t, plan)
 }
 
 func TestContext2Plan_moduleVarWithDefaultValue(t *testing.T) {
@@ -1304,10 +1309,11 @@ func TestContext2Plan_moduleVarWithDefaultValue(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	checkPlanCompleteAndApplyable(t, plan)
 }
 
 func TestContext2Plan_moduleVarComputed(t *testing.T) {
@@ -1382,6 +1388,7 @@ func TestContext2Plan_preventDestroy_bad(t *testing.T) {
 	})
 
 	plan, err := ctx.Plan(m, state, DefaultPlanOpts)
+	checkPlanErrored(t, plan)
 
 	expectedErr := "aws_instance.foo has lifecycle.prevent_destroy"
 	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
@@ -1442,9 +1449,13 @@ func TestContext2Plan_preventDestroy_good(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	checkPlanComplete(t, plan)
 
 	if !plan.Changes.Empty() {
 		t.Fatalf("expected no changes, got %#v\n", plan.Changes)
+	}
+	if plan.Applyable {
+		t.Errorf("plan is applyable; should not be (because it has no changes)")
 	}
 }
 
@@ -1478,6 +1489,7 @@ func TestContext2Plan_preventDestroy_countBad(t *testing.T) {
 	})
 
 	plan, err := ctx.Plan(m, state, DefaultPlanOpts)
+	checkPlanErrored(t, plan)
 
 	expectedErr := "aws_instance.foo[1] has lifecycle.prevent_destroy"
 	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
@@ -1491,7 +1503,7 @@ func TestContext2Plan_preventDestroy_countBad(t *testing.T) {
 func TestContext2Plan_preventDestroy_countGood(t *testing.T) {
 	m := testModule(t, "plan-prevent-destroy-count-good")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -1531,17 +1543,17 @@ func TestContext2Plan_preventDestroy_countGood(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
-
 	if plan.Changes.Empty() {
 		t.Fatalf("Expected non-empty plan, got %s", legacyDiffComparisonString(plan.Changes))
 	}
+	checkPlanCompleteAndApplyable(t, plan)
 }
 
 func TestContext2Plan_preventDestroy_countGoodNoChange(t *testing.T) {
 	m := testModule(t, "plan-prevent-destroy-count-good")
 	p := testProvider("aws")
 	p.PlanResourceChangeFn = testDiffFn
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -1688,7 +1700,7 @@ func TestContext2Plan_computed(t *testing.T) {
 func TestContext2Plan_blockNestingGroup(t *testing.T) {
 	m := testModule(t, "plan-block-nesting-group")
 	p := testProvider("test")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test": {
 				BlockTypes: map[string]*configschema.NestedBlock{
@@ -1759,7 +1771,7 @@ func TestContext2Plan_blockNestingGroup(t *testing.T) {
 func TestContext2Plan_computedDataResource(t *testing.T) {
 	m := testModule(t, "plan-computed-data-resource")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -1822,7 +1834,7 @@ func TestContext2Plan_computedDataResource(t *testing.T) {
 func TestContext2Plan_computedInFunction(t *testing.T) {
 	m := testModule(t, "plan-computed-in-function")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -1852,7 +1864,7 @@ func TestContext2Plan_computedInFunction(t *testing.T) {
 		},
 	})
 
-	diags := ctx.Validate(m)
+	diags := ctx.Validate(m, nil)
 	assertNoErrors(t, diags)
 
 	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
@@ -1866,7 +1878,7 @@ func TestContext2Plan_computedInFunction(t *testing.T) {
 func TestContext2Plan_computedDataCountResource(t *testing.T) {
 	m := testModule(t, "plan-computed-data-count")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -1942,7 +1954,7 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 	m := testModule(t, "plan-data-resource-becomes-computed")
 	p := testProvider("aws")
 
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2033,7 +2045,7 @@ func TestContext2Plan_computedList(t *testing.T) {
 	m := testModule(t, "plan-computed-list")
 	p := testProvider("aws")
 	p.PlanResourceChangeFn = testDiffFn
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2097,7 +2109,7 @@ func TestContext2Plan_computedMultiIndex(t *testing.T) {
 	p := testProvider("aws")
 	p.PlanResourceChangeFn = testDiffFn
 
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2495,7 +2507,7 @@ func TestContext2Plan_countVar(t *testing.T) {
 func TestContext2Plan_countZero(t *testing.T) {
 	m := testModule(t, "plan-count-zero")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -2959,7 +2971,7 @@ func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
 func TestContext2Plan_countIncreaseWithSplatReference(t *testing.T) {
 	m := testModule(t, "plan-count-splat-reference")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -3385,7 +3397,7 @@ func TestContext2Plan_pathVar(t *testing.T) {
 
 	m := testModule(t, "plan-path-var")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -3872,7 +3884,7 @@ func TestContext2Plan_taint(t *testing.T) {
 func TestContext2Plan_taintIgnoreChanges(t *testing.T) {
 	m := testModule(t, "plan-taint-ignore-changes")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -4048,6 +4060,11 @@ func TestContext2Plan_targeted(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	checkPlanApplyable(t, plan)
+	if plan.Complete {
+		t.Error("plan marked as complete; should not be because it used targeting")
+	}
+
 	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
 	ty := schema.ImpliedType()
 
@@ -4098,6 +4115,11 @@ func TestContext2Plan_targetedCrossModule(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	checkPlanApplyable(t, plan)
+	if plan.Complete {
+		t.Error("plan marked as complete; should not be because it used targeting")
+	}
+
 	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
 	ty := schema.ImpliedType()
 
@@ -4135,7 +4157,7 @@ func TestContext2Plan_targetedCrossModule(t *testing.T) {
 func TestContext2Plan_targetedModuleWithProvider(t *testing.T) {
 	m := testModule(t, "plan-targeted-module-with-provider")
 	p := testProvider("null")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"key": {Type: cty.String, Optional: true},
@@ -4162,6 +4184,10 @@ func TestContext2Plan_targetedModuleWithProvider(t *testing.T) {
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	checkPlanApplyable(t, plan)
+	if plan.Complete {
+		t.Error("plan marked as complete; should not be because it used targeting")
 	}
 
 	schema := p.GetProviderSchemaResponse.ResourceTypes["null_resource"].Block
@@ -4221,6 +4247,10 @@ func TestContext2Plan_targetedOrphan(t *testing.T) {
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	checkPlanApplyable(t, plan)
+	if plan.Complete {
+		t.Error("plan marked as complete; should not be because it used targeting")
 	}
 
 	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
@@ -4288,6 +4318,10 @@ func TestContext2Plan_targetedModuleOrphan(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	checkPlanApplyable(t, plan)
+	if plan.Complete {
+		t.Error("plan marked as complete; should not be because it used targeting")
+	}
 
 	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
 	ty := schema.ImpliedType()
@@ -4330,6 +4364,10 @@ func TestContext2Plan_targetedModuleUntargetedVariable(t *testing.T) {
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	checkPlanApplyable(t, plan)
+	if plan.Complete {
+		t.Error("plan marked as complete; should not be because it used targeting")
 	}
 
 	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
@@ -4611,6 +4649,10 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
+	checkPlanComplete(t, plan)
+	if plan.Applyable {
+		t.Error("plan marked as applyable; should not be because all actions should be no-op")
+	}
 
 	for _, res := range plan.Changes.Resources {
 		if res.Action != plans.NoOp {
@@ -4622,7 +4664,7 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 func TestContext2Plan_ignoreChangesInMap(t *testing.T) {
 	p := testProvider("test")
 
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_ignore_changes_map": {
 				Attributes: map[string]*configschema.Attribute{
@@ -4757,7 +4799,7 @@ func TestContext2Plan_ignoreChangesSensitive(t *testing.T) {
 func TestContext2Plan_moduleMapLiteral(t *testing.T) {
 	m := testModule(t, "plan-module-map-literal")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -4796,7 +4838,7 @@ func TestContext2Plan_moduleMapLiteral(t *testing.T) {
 func TestContext2Plan_computedValueInMap(t *testing.T) {
 	m := testModule(t, "plan-computed-value-in-map")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -4868,7 +4910,7 @@ func TestContext2Plan_computedValueInMap(t *testing.T) {
 func TestContext2Plan_moduleVariableFromSplat(t *testing.T) {
 	m := testModule(t, "plan-module-variable-from-splat")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -4922,7 +4964,7 @@ func TestContext2Plan_moduleVariableFromSplat(t *testing.T) {
 func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 	m := testModule(t, "plan-cbd-depends-datasource")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -5025,7 +5067,7 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 func TestContext2Plan_listOrder(t *testing.T) {
 	m := testModule(t, "plan-list-order")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -5069,7 +5111,7 @@ func TestContext2Plan_listOrder(t *testing.T) {
 func TestContext2Plan_ignoreChangesWithFlatmaps(t *testing.T) {
 	m := testModule(t, "plan-ignore-changes-with-flatmaps")
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -5222,7 +5264,7 @@ func TestContext2Plan_resourceNestedCount(t *testing.T) {
 		},
 	})
 
-	diags := ctx.Validate(m)
+	diags := ctx.Validate(m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("validate errors: %s", diags.Err())
 	}
@@ -5289,7 +5331,7 @@ func TestContext2Plan_computedAttrRefTypeMismatch(t *testing.T) {
 
 func TestContext2Plan_selfRef(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -5306,7 +5348,7 @@ func TestContext2Plan_selfRef(t *testing.T) {
 		},
 	})
 
-	diags := c.Validate(m)
+	diags := c.Validate(m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected validation failure: %s", diags.Err())
 	}
@@ -5325,7 +5367,7 @@ func TestContext2Plan_selfRef(t *testing.T) {
 
 func TestContext2Plan_selfRefMulti(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -5342,7 +5384,7 @@ func TestContext2Plan_selfRefMulti(t *testing.T) {
 		},
 	})
 
-	diags := c.Validate(m)
+	diags := c.Validate(m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected validation failure: %s", diags.Err())
 	}
@@ -5361,7 +5403,7 @@ func TestContext2Plan_selfRefMulti(t *testing.T) {
 
 func TestContext2Plan_selfRefMultiAll(t *testing.T) {
 	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -5378,7 +5420,7 @@ func TestContext2Plan_selfRefMultiAll(t *testing.T) {
 		},
 	})
 
-	diags := c.Validate(m)
+	diags := c.Validate(m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected validation failure: %s", diags.Err())
 	}
@@ -5691,7 +5733,7 @@ func objectVal(t *testing.T, schema *configschema.Block, m map[string]cty.Value)
 func TestContext2Plan_requiredModuleOutput(t *testing.T) {
 	m := testModule(t, "plan-required-output")
 	p := testProvider("test")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_resource": {
 				Attributes: map[string]*configschema.Attribute{
@@ -5754,7 +5796,7 @@ func TestContext2Plan_requiredModuleOutput(t *testing.T) {
 func TestContext2Plan_requiredModuleObject(t *testing.T) {
 	m := testModule(t, "plan-required-whole-mod")
 	p := testProvider("test")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_resource": {
 				Attributes: map[string]*configschema.Attribute{
@@ -6089,8 +6131,8 @@ data "test_data_source" "foo" {}
 `,
 	})
 
-	p := new(MockProvider)
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		DataSources: map[string]*configschema.Block{
 			"test_data_source": {
 				Attributes: map[string]*configschema.Attribute{
@@ -6563,7 +6605,7 @@ resource "test_instance" "a" {
 		return resp
 	}
 
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -6619,7 +6661,7 @@ resource "test_instance" "a" {
 		return resp
 	}
 
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -6671,7 +6713,7 @@ resource "test_instance" "a" {
 	})
 
 	p := testProvider("test")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -6729,7 +6771,7 @@ resource "test_instance" "a" {
 	})
 
 	p := testProvider("test")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_instance": {
 				Attributes: map[string]*configschema.Attribute{

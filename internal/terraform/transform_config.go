@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -50,6 +51,14 @@ type ConfigTransformer struct {
 	// try to delete the imported resource unless the config is updated
 	// manually.
 	generateConfigPathForImportTargets string
+
+	// TEMP: [ConfigTransformer.Transform] sets this to true if at least one
+	// module in the configuration has the "unknown_instances" language
+	// experiment enabled, because this particular experiment has cross-module
+	// implications (a module call with unknown instances affects everything
+	// beneath it in the tree) but we want to avoid activating the experimental
+	// code in the common case where no module is using it at all.
+	unknownInstancesExperimentEnabled bool
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
@@ -61,6 +70,16 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 	if t.Config == nil {
 		return nil
 	}
+
+	// TEMP: Before we go further, we'll decide whether we're going to activate
+	// the experimental new behavior for the "unknown_instances" experiment.
+	// See the docstring for [ConfigTransformer.unknownInstancesExperimentEnabled]
+	// for more details.
+	t.Config.DeepEach(func(c *configs.Config) {
+		if c.Module != nil && c.Module.ActiveExperiments.Has(experiments.UnknownInstances) {
+			t.unknownInstancesExperimentEnabled = true
+		}
+	})
 
 	// Start the transformation process
 	return t.transform(g, t.Config)
@@ -161,6 +180,10 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 				Module:   path,
 			},
 			importTargets: imports,
+
+			// TEMP: See the docs for this field in [ConfigTransformer] for
+			// more information.
+			unknownInstancesExperimentEnabled: t.unknownInstancesExperimentEnabled,
 		}
 
 		var node dag.Vertex = abstract

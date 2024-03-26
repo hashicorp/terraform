@@ -59,7 +59,8 @@ func Apply(ctx context.Context, req *ApplyRequest, resp *ApplyResponse) {
 		req.Config,
 		req.RawPlan,
 		stackeval.ApplyOpts{
-			ProviderFactories: req.ProviderFactories,
+			ProviderFactories:  req.ProviderFactories,
+			ExperimentsAllowed: req.ExperimentsAllowed,
 		},
 		outp,
 	)
@@ -96,6 +97,8 @@ type ApplyRequest struct {
 	RawPlan []*anypb.Any
 
 	ProviderFactories map[addrs.Provider]providers.Factory
+
+	ExperimentsAllowed bool
 }
 
 // ApplyResponse is used by [Apply] to describe the results of applying.

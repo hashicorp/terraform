@@ -67,19 +67,44 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			}
 		}()
 
-		// vertexCtx is the context that we use when evaluating. This
-		// is normally the context of our graph but can be overridden
-		// with a GraphNodeModuleInstance impl.
-		vertexCtx := ctx
-		if pn, ok := v.(GraphNodeModuleInstance); ok {
-			vertexCtx = walker.EnterPath(pn.Path())
-			defer walker.ExitPath(pn.Path())
-		}
-
 		if g.checkAndApplyOverrides(ctx.Overrides(), v) {
 			// We can skip whole vertices if they are in a module that has been
 			// overridden.
+			log.Printf("[TRACE] vertex %q: overridden by a test double, so skipping", dag.VertexName(v))
 			return
+		}
+
+		// vertexCtx is the context that we use when evaluating. This
+		// is normally the global context but can be overridden
+		// with either a GraphNodeModuleInstance, GraphNodePartialExpandedModule,
+		// or graphNodeEvalContextScope implementation. (These interfaces are
+		// all intentionally mutually-exclusive by having the same method
+		// name but different signatures, since a node can only belong to
+		// one context at a time.)
+		vertexCtx := ctx
+		if pn, ok := v.(graphNodeEvalContextScope); ok {
+			scope := pn.Path()
+			log.Printf("[TRACE] vertex %q: belongs to %s", dag.VertexName(v), scope)
+			vertexCtx = walker.enterScope(scope)
+			defer walker.exitScope(scope)
+		} else if pn, ok := v.(GraphNodeModuleInstance); ok {
+			moduleAddr := pn.Path() // An addrs.ModuleInstance
+			log.Printf("[TRACE] vertex %q: belongs to %s", dag.VertexName(v), moduleAddr)
+			scope := evalContextModuleInstance{
+				Addr: moduleAddr,
+			}
+			vertexCtx = walker.enterScope(scope)
+			defer walker.exitScope(scope)
+		} else if pn, ok := v.(GraphNodePartialExpandedModule); ok {
+			moduleAddr := pn.Path() // An addrs.PartialExpandedModule
+			log.Printf("[TRACE] vertex %q: belongs to all of %s", dag.VertexName(v), moduleAddr)
+			scope := evalContextPartialExpandedModule{
+				Addr: moduleAddr,
+			}
+			vertexCtx = walker.enterScope(scope)
+			defer walker.exitScope(scope)
+		} else {
+			log.Printf("[TRACE] vertex %q: does not belong to any module instance", dag.VertexName(v))
 		}
 
 		// If the node is exec-able, then execute it.
@@ -196,7 +221,13 @@ func (g *Graph) checkAndApplyOverrides(overrides *mocking.Overrides, target dag.
 
 		setOverride := func(values cty.Value) {
 			key := v.Addr.OutputValue.Name
-			if values.Type().HasAttribute(key) {
+
+			// The values.Type() should be an object type, but it might have
+			// been set to nil by a test or something. We can handle it in the
+			// same way as the attribute just not being specified. It's
+			// functionally the same for us and not something we need to raise
+			// alarms about.
+			if values.Type().IsObjectType() && values.Type().HasAttribute(key) {
 				v.override = values.GetAttr(key)
 			} else {
 				// If we don't have a value provided for an output, then we'll
