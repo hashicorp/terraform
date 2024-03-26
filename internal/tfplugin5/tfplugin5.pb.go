@@ -205,8 +205,8 @@ type Deferred_Reason int32
 const (
 	// UNKNOWN is the default value, and should not be used.
 	Deferred_UNKNOWN Deferred_Reason = 0
-	// RESOURCE_CONFIG_UNKNOWN is used when parts of the resource configuration
-	// are unknown, e.g. the for_each value is only known after the apply is done.
+	// RESOURCE_CONFIG_UNKNOWN is used when the config is partially unknown and the real
+	// values need to be known before the change can be planned.
 	Deferred_RESOURCE_CONFIG_UNKNOWN Deferred_Reason = 1
 	// PROVIDER_CONFIG_UNKNOWN is used when parts of the provider configuration
 	// are unknown, e.g. the provider configuration is only known after the apply is done.
