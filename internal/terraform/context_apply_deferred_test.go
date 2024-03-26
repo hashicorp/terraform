@@ -22,6 +22,10 @@ import (
 )
 
 type deferredActionsTest struct {
+	// If true, this test will be skipped.
+	skip bool
+
+	// The configuration to use for this test. The keys are the filenames.
 	configs map[string]string
 
 	// The starting state for the first stage. This can be nil, and the test
@@ -59,6 +63,10 @@ type deferredActionsTestStage struct {
 	// Some of our tests produce expected warnings, set this to true to allow
 	// warnings to be present in the returned diagnostics.
 	allowWarnings bool
+
+	// buildOpts is an optional field, that lets the test specify additional
+	// options to be used when building the plan.
+	buildOpts func(opts *PlanOpts)
 }
 
 var (
@@ -124,6 +132,7 @@ output "c" {
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
 					}),
 					"<unknown>": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.UnknownVal(cty.String).Refine().
@@ -133,10 +142,12 @@ output "c" {
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"output": cty.UnknownVal(cty.String),
 					}),
 					"c": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("c"),
 						"upstream_names": cty.UnknownVal(cty.Set(cty.String)).RefineNotNull(),
+						"output":         cty.UnknownVal(cty.String),
 					}),
 				},
 				wantActions: map[string]plans.Action{
@@ -148,12 +159,14 @@ output "c" {
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a"),
 					}),
 				},
 				wantOutputs: map[string]cty.Value{
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a"),
 					}),
 
 					// FIXME: The system is currently producing incorrect
@@ -208,6 +221,7 @@ output "c" {
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a"),
 					}),
 					// test.b is now planned for real, once for each instance
 					"b:1": cty.ObjectVal(map[string]cty.Value{
@@ -215,12 +229,14 @@ output "c" {
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"output": cty.UnknownVal(cty.String),
 					}),
 					"b:2": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("b:2"),
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"output": cty.UnknownVal(cty.String),
 					}),
 					// test.c gets re-planned, so we can finalize its values
 					// based on the new results from test.b.
@@ -231,6 +247,7 @@ output "c" {
 							cty.StringVal("b:1"),
 							cty.StringVal("b:2"),
 						}),
+						"output": cty.UnknownVal(cty.String),
 					}),
 				},
 				wantActions: map[string]plans.Action{
@@ -250,12 +267,14 @@ output "c" {
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"output": cty.StringVal("b:1"),
 					}),
 					"b:2": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("b:2"),
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"output": cty.StringVal("b:2"),
 					}),
 					"c": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("c"),
@@ -264,6 +283,7 @@ output "c" {
 							cty.StringVal("b:1"),
 							cty.StringVal("b:2"),
 						}),
+						"output": cty.StringVal("c"),
 					}),
 				},
 				wantOutputs: map[string]cty.Value{
@@ -272,6 +292,7 @@ output "c" {
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a"),
 					}),
 					"b": cty.ObjectVal(map[string]cty.Value{
 						"1": cty.ObjectVal(map[string]cty.Value{
@@ -279,12 +300,14 @@ output "c" {
 							"upstream_names": cty.SetVal([]cty.Value{
 								cty.StringVal("a"),
 							}),
+							"output": cty.StringVal("b:1"),
 						}),
 						"2": cty.ObjectVal(map[string]cty.Value{
 							"name": cty.StringVal("b:2"),
 							"upstream_names": cty.SetVal([]cty.Value{
 								cty.StringVal("a"),
 							}),
+							"output": cty.StringVal("b:2"),
 						}),
 					}),
 					"c": cty.ObjectVal(map[string]cty.Value{
@@ -294,6 +317,7 @@ output "c" {
 							cty.StringVal("b:1"),
 							cty.StringVal("b:2"),
 						}),
+						"output": cty.StringVal("c"),
 					}),
 				},
 				complete: true,
@@ -310,18 +334,21 @@ output "c" {
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a"),
 					}),
 					"b:1": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("b:1"),
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"output": cty.StringVal("b:1"),
 					}),
 					"b:2": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("b:2"),
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"output": cty.StringVal("b:2"),
 					}),
 					"c": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("c"),
@@ -330,6 +357,7 @@ output "c" {
 							cty.StringVal("b:1"),
 							cty.StringVal("b:2"),
 						}),
+						"output": cty.StringVal("c"),
 					}),
 				},
 				wantActions: map[string]plans.Action{
@@ -387,6 +415,7 @@ resource "test" "c" {
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
 					}),
 					"<unknown>": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.UnknownVal(cty.String).Refine().
@@ -396,10 +425,12 @@ resource "test" "c" {
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"output": cty.UnknownVal(cty.String),
 					}),
 					"c": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("c"),
 						"upstream_names": cty.UnknownVal(cty.Set(cty.String)).RefineNotNull(),
+						"output":         cty.UnknownVal(cty.String),
 					}),
 				},
 				wantActions: map[string]plans.Action{
@@ -411,6 +442,7 @@ resource "test" "c" {
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a"),
 					}),
 				},
 				wantOutputs: make(map[string]cty.Value),
@@ -423,18 +455,21 @@ resource "test" "c" {
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a"),
 					}),
 					"b:0": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("b:0"),
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"output": cty.UnknownVal(cty.String),
 					}),
 					"b:1": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("b:1"),
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"output": cty.UnknownVal(cty.String),
 					}),
 					"c": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("c"),
@@ -443,6 +478,7 @@ resource "test" "c" {
 							cty.StringVal("b:0"),
 							cty.StringVal("b:1"),
 						}),
+						"output": cty.UnknownVal(cty.String),
 					}),
 				},
 				wantActions: map[string]plans.Action{
@@ -517,10 +553,12 @@ output "names" {
 							NotNull().
 							NewValue(),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
 					}),
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.UnknownVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
 					}),
 				},
 				wantActions: map[string]plans.Action{},
@@ -538,14 +576,17 @@ output "names" {
 					"b:1": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("b:1"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
 					}),
 					"b:2": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("b:2"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
 					}),
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.SetVal([]cty.Value{cty.StringVal("b:1"), cty.StringVal("b:2")}),
+						"output":         cty.UnknownVal(cty.String),
 					}),
 				},
 				wantActions: map[string]plans.Action{
@@ -558,7 +599,7 @@ output "names" {
 		},
 	}
 
-	createBeforeDestroyLifecycle = deferredActionsTest{
+	createBeforeDestroyLifecycleTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
 terraform {
@@ -642,10 +683,12 @@ resource "test" "c" {
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
 					}),
 					"b": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("b"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
 					}),
 					"<unknown>": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.UnknownVal(cty.String).Refine().
@@ -653,6 +696,7 @@ resource "test" "c" {
 							NotNull().
 							NewValue(),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
 					}),
 				},
 				wantActions: map[string]plans.Action{
@@ -670,7 +714,7 @@ resource "test" "c" {
 	// they're just testing the "removed" block works within the alternate
 	// execution path for deferred actions.
 
-	forgetResources = deferredActionsTest{
+	forgetResourcesTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
 terraform {
@@ -728,7 +772,7 @@ removed {
 		},
 	}
 
-	importIntoUnknownInstances = deferredActionsTest{
+	importIntoUnknownInstancesTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
 terraform {
@@ -756,9 +800,12 @@ import {
 					"resource_count": cty.UnknownVal(cty.Number),
 				},
 				wantPlanned: map[string]cty.Value{
+					// This time round, we don't actually perform the import
+					// because we don't know which instances we're importing.
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
 					}),
 				},
 				wantActions: make(map[string]plans.Action),
@@ -773,6 +820,7 @@ import {
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a"),
 					}),
 				},
 				wantActions: map[string]plans.Action{
@@ -782,19 +830,316 @@ import {
 			},
 		},
 	}
+
+	targetDeferredResourceTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+terraform {
+	experiments = [unknown_instances]
+}
+
+variable "resource_count" {
+	type = number
+}
+
+resource "test" "a" {
+	count = var.resource_count
+	name  = "a:${count.index}"
+}
+
+resource "test" "b" {
+	name = "b"
+}
+
+resource "test" "c" {
+	name = "c"
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"resource_count": cty.UnknownVal(cty.Number),
+				},
+				buildOpts: func(opts *PlanOpts) {
+					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.a[0]"), mustResourceInstanceAddr("test.b")}
+				},
+				wantPlanned: map[string]cty.Value{
+					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.UnknownVal(cty.String).Refine().
+							StringPrefixFull("a:").
+							NotNull().
+							NewValue(),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.b": plans.Create,
+				},
+				allowWarnings: true,
+			},
+			{
+				inputs: map[string]cty.Value{
+					"resource_count": cty.UnknownVal(cty.Number),
+				},
+				buildOpts: func(opts *PlanOpts) {
+					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.a"), mustResourceInstanceAddr("test.b")}
+				},
+				wantPlanned: map[string]cty.Value{
+					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.UnknownVal(cty.String).Refine().
+							StringPrefixFull("a:").
+							NotNull().
+							NewValue(),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.b": plans.Create,
+				},
+				allowWarnings: true,
+			},
+		},
+	}
+
+	targetDeferredResourceTriggersDependenciesTest = deferredActionsTest{
+		// TODO: Enable this. This test is currently disabled because we don't
+		//  pass the deferred resources into the plan at all, which means the
+		//  apply phase targeting doesn't correctly work out the dependencies.
+		//  We have another ticket that will add this information to the plan
+		//  so we should revisit this when we have that.
+		skip: true, // skip this until we have a better way to handle this case.
+		configs: map[string]string{
+			"main.tf": `
+terraform {
+	experiments = [unknown_instances]
+}
+
+resource "test" "a" {
+	count = 2
+	name  = "a:${count.index}"
+}
+
+resource "test" "b" {
+	for_each = toset([ for v in test.a : v.output ])
+	name = "b:${each.value}"
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.b")}
+				},
+				wantPlanned: map[string]cty.Value{
+					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.UnknownVal(cty.String).Refine().
+							StringPrefixFull("b:").
+							NotNull().
+							NewValue(),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+					"a:0": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a:0"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+					"a:1": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a:1"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.a[0]": plans.Create,
+					"test.a[1]": plans.Create,
+				},
+				wantApplied: map[string]cty.Value{
+					"a:0": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a:0"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a:0"),
+					}),
+					"a:1": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a:1"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a:1"),
+					}),
+				},
+				wantOutputs:   make(map[string]cty.Value),
+				allowWarnings: true,
+			},
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.b")}
+				},
+				wantPlanned: map[string]cty.Value{
+					"a:0": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a:0"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a:0"),
+					}),
+					"a:1": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a:1"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a:1"),
+					}),
+					"b:a:0": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b:a:0"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+					"b:a:1": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b:a:1"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.a[0]":       plans.NoOp,
+					"test.a[1]":       plans.NoOp,
+					"test.b[\"a:0\"]": plans.Create,
+					"test.b[\"a:1\"]": plans.Create,
+				},
+				allowWarnings: true,
+				complete:      true,
+			},
+		},
+	}
+
+	replaceDeferredResourceTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+terraform {
+	experiments = [unknown_instances]
+}
+
+variable "resource_count" {
+	type = number
+}
+
+resource "test" "a" {
+	count = var.resource_count
+	name  = "a:${count.index}"
+}
+
+resource "test" "b" {
+	name = "b"
+}
+
+resource "test" "c" {
+	name = "c"
+}
+`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a[0]"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name":   "a:0",
+						"output": "a:0",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.b"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name":   "b",
+						"output": "b",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.c"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name":   "c",
+						"output": "c",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"resource_count": cty.UnknownVal(cty.Number),
+				},
+				buildOpts: func(opts *PlanOpts) {
+					opts.ForceReplace = []addrs.AbsResourceInstance{mustResourceInstanceAddr("test.a[0]"), mustResourceInstanceAddr("test.b")}
+				},
+				wantPlanned: map[string]cty.Value{
+					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.UnknownVal(cty.String).Refine().
+							StringPrefixFull("a:").
+							NotNull().
+							NewValue(),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+					"c": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("c"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("c"),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.b": plans.DeleteThenCreate,
+					"test.c": plans.NoOp,
+				},
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
 	tests := map[string]deferredActionsTest{
-		"resource_for_each":           resourceForEachTest,
-		"resource_in_module_for_each": resourceInModuleForEachTest,
-		"resource_count":              resourceCountTest,
-		"create_before_destroy":       createBeforeDestroyLifecycle,
-		"forget_resources":            forgetResources,
-		"import_into_unknown":         importIntoUnknownInstances,
+		"resource_for_each":                              resourceForEachTest,
+		"resource_in_module_for_each":                    resourceInModuleForEachTest,
+		"resource_count":                                 resourceCountTest,
+		"create_before_destroy":                          createBeforeDestroyLifecycleTest,
+		"forget_resources":                               forgetResourcesTest,
+		"import_into_unknown":                            importIntoUnknownInstancesTest,
+		"target_deferred_resource":                       targetDeferredResourceTest,
+		"target_deferred_resource_triggers_dependencies": targetDeferredResourceTriggersDependenciesTest,
+		"replace_deferred_resource":                      replaceDeferredResourceTest,
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
+			if test.skip {
+				t.SkipNow()
+			}
 
 			// Initialise the config.
 			cfg := testModuleInline(t, test.configs)
@@ -825,7 +1170,7 @@ func TestContextApply_deferredActions(t *testing.T) {
 						},
 					})
 
-					plan, diags := ctx.Plan(cfg, state, &PlanOpts{
+					opts := &PlanOpts{
 						Mode: plans.NormalMode,
 						SetVariables: func() InputValues {
 							values := InputValues{}
@@ -837,7 +1182,13 @@ func TestContextApply_deferredActions(t *testing.T) {
 							}
 							return values
 						}(),
-					})
+					}
+
+					if stage.buildOpts != nil {
+						stage.buildOpts(opts)
+					}
+
+					plan, diags := ctx.Plan(cfg, state, opts)
 					if plan.Complete != stage.complete {
 						t.Errorf("wrong completion status in plan: got %v, want %v", plan.Complete, stage.complete)
 					}
@@ -871,7 +1222,11 @@ func TestContextApply_deferredActions(t *testing.T) {
 					updatedState, diags := ctx.Apply(plan, cfg, nil)
 
 					// We expect the correct applied changes and no diagnostics.
-					assertNoDiagnostics(t, diags)
+					if stage.allowWarnings {
+						assertNoErrors(t, diags)
+					} else {
+						assertNoDiagnostics(t, diags)
+					}
 					provider.appliedChanges.Test(t, stage.wantApplied)
 
 					// We also want the correct output values.
@@ -944,6 +1299,10 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 								Type:     cty.Set(cty.String),
 								Optional: true,
 							},
+							"output": {
+								Type:     cty.String,
+								Computed: true,
+							},
 						},
 					},
 				},
@@ -955,16 +1314,31 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 				key = v.AsString()
 			}
 
-			provider.plannedChanges.Set(key, req.ProposedNewState)
+			plannedState := req.ProposedNewState
+			if plannedState.GetAttr("output").IsNull() {
+				plannedStateValues := req.ProposedNewState.AsValueMap()
+				plannedStateValues["output"] = cty.UnknownVal(cty.String)
+				plannedState = cty.ObjectVal(plannedStateValues)
+			}
+
+			provider.plannedChanges.Set(key, plannedState)
 			return providers.PlanResourceChangeResponse{
-				PlannedState: req.ProposedNewState,
+				PlannedState: plannedState,
 			}
 		},
 		ApplyResourceChangeFn: func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 			key := req.Config.GetAttr("name").AsString()
-			provider.appliedChanges.Set(key, req.PlannedState)
+
+			newState := req.PlannedState
+			if !newState.GetAttr("output").IsKnown() {
+				newStateValues := req.PlannedState.AsValueMap()
+				newStateValues["output"] = cty.StringVal(key)
+				newState = cty.ObjectVal(newStateValues)
+			}
+
+			provider.appliedChanges.Set(key, newState)
 			return providers.ApplyResourceChangeResponse{
-				NewState: req.PlannedState,
+				NewState: newState,
 			}
 		},
 		ImportResourceStateFn: func(request providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
@@ -975,6 +1349,7 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 						State: cty.ObjectVal(map[string]cty.Value{
 							"name":           cty.StringVal(request.ID),
 							"upstream_names": cty.NullVal(cty.Set(cty.String)),
+							"output":         cty.StringVal(request.ID),
 						}),
 					},
 				},

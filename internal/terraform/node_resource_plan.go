@@ -324,35 +324,6 @@ func (n *nodeExpandPlannableResource) dynamicExpandWithUnknownInstancesExperimen
 		}
 	}()
 
-	// TEMP: The code that deals with some other language/workflow features
-	// is not yet updated to be able to handle partial-expanded resource
-	// address prefixes, to constrain the scope of the initial experimental
-	// implementation. We'll reject some of those cases with errors, just to
-	// be explicit that they don't work rather than just quietly doing
-	// something incomplete/broken/strange.
-	if len(partialExpandedAddrs) != 0 {
-		// Some other parts of the system aren't yet able to make sense of
-		// partial-expanded resource addresses, so we'll forbid them for
-		// now and improve on this in later iterations of the experiment.
-		if len(n.Targets) != 0 {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Cannot use resource targeting with unknown count or for_each",
-				"In the current phase of the unknown_instances language experiment, the -target=... planning option is not yet supported whenever unknown count or for_each are present.",
-			))
-		}
-		if len(n.forceReplace) != 0 {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Cannot use forced replacement with unknown count or for_each",
-				"In the current phase of the unknown_instances language experiment, the -replace=... planning option is not yet supported whenever unknown count or for_each are present.",
-			))
-		}
-		if diags.HasErrors() {
-			return nil, diags
-		}
-	}
-
 	// TODO: What about unknowns in for_each attributes within the import blocks
 	//   themselves? For now, we don't actually allow unknown values at all even
 	//   within the `id` and `to` fields of import blocks. Therefore, we'll
