@@ -580,7 +580,6 @@ If you use Terraform Cloud or Terraform Enterprise and need to reference resourc
 
 If you do not use Terraform Cloud or Terraform Enterprise but still need to reference data about other infrastructure resources, use data sources to query the provider. For example, you can use the [`aws_instance` data source](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/instance) to look up an AWS EC2 instance by its ID or tags.
 
-If neither of these options are viable, you can use the [`terraform_remote_state` data source](/terraform/language/state/remote-state-data). If you use this data source with Terraform Cloud or Terraform Enterprise, configure which workspaces have access to your state using the principle of least privilege. Refer to [remote state sharing](/terraform/cloud-docs/workspaces/settings#remote-state-sharing) for more information.
 
 ## Secrets management
 
