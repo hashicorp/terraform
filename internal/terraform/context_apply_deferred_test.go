@@ -54,6 +54,10 @@ type deferredActionsTestStage struct {
 
 	// Whether the plan should be completed during this stage.
 	complete bool
+
+	// buildOpts is an optional field, that lets the test specify additional
+	// options to be used when building the plan.
+	buildOpts func(opts *PlanOpts)
 }
 
 var (
@@ -340,11 +344,59 @@ output "c" {
 			},
 		},
 	}
+
+	// resourceReadTest is a test that covers the behavior of reading resources
+	// in a refresh when the refresh is responding with a deferral.
+	resourceReadTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+// TEMP: unknown for_each currently requires an experiment opt-in.
+// We should remove this block if the experiment gets stabilized.
+terraform {
+	experiments = [unknown_instances]
+}
+
+resource "test" "a" {
+	name = "deferred_read"
+}
+
+output "a" {
+	value = test.a
+}
+		`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.RefreshOnlyMode
+				},
+				inputs:      map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{
+					// The all resources will be deferred, so shouldn't
+					// have any action at this stage.
+				},
+
+				wantActions: map[string]plans.Action{},
+				wantApplied: map[string]cty.Value{
+					// The all resources will be deferred, so shouldn't
+					// have any action at this stage.
+				},
+				wantOutputs: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+				},
+				complete: true,
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
 	tests := map[string]deferredActionsTest{
 		"resource_for_each": resourceForEachTest,
+		"resource_read":     resourceReadTest,
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -378,7 +430,7 @@ func TestContextApply_deferredActions(t *testing.T) {
 						},
 					})
 
-					plan, diags := ctx.Plan(cfg, state, &PlanOpts{
+					opts := &PlanOpts{
 						Mode: plans.NormalMode,
 						SetVariables: func() InputValues {
 							values := InputValues{}
@@ -390,7 +442,13 @@ func TestContextApply_deferredActions(t *testing.T) {
 							}
 							return values
 						}(),
-					})
+					}
+
+					if stage.buildOpts != nil {
+						stage.buildOpts(opts)
+					}
+
+					plan, diags := ctx.Plan(cfg, state, opts)
 					if plan.Complete != stage.complete {
 						t.Errorf("wrong completion status in plan: got %v, want %v", plan.Complete, stage.complete)
 					}
@@ -413,6 +471,11 @@ func TestContextApply_deferredActions(t *testing.T) {
 					}
 
 					if stage.wantApplied == nil {
+						// Don't execute the apply stage if wantApplied is nil.
+						return
+					}
+
+					if opts.Mode == plans.RefreshOnlyMode {
 						// Don't execute the apply stage if wantApplied is nil.
 						return
 					}
@@ -497,6 +560,20 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 					},
 				},
 			},
+		},
+		ReadResourceFn: func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+			if key := req.PriorState.GetAttr("name"); key.IsKnown() && key.AsString() == "deferred_read" {
+				return providers.ReadResourceResponse{
+					NewState: req.PriorState,
+					Deferred: &providers.Deferred{
+						Reason: providers.DEFERRED_REASON_PROVIDER_CONFIG_UNKNOWN,
+					},
+				}
+			}
+
+			return providers.ReadResourceResponse{
+				NewState: req.PriorState,
+			}
 		},
 		PlanResourceChangeFn: func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 			key := "<unknown>"

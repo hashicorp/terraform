@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -183,4 +185,65 @@ aws_instance.foo:
   ID = i-abc123
   provider = provider["registry.terraform.io/hashicorp/aws"]
 	`)
+}
+
+func TestNodeAbstractResourceInstance_refresh_with_deferred_read(t *testing.T) {
+	state := states.NewState()
+	evalCtx := &MockEvalContext{}
+	evalCtx.StateState = state.SyncWrapper()
+	evalCtx.Scope = evalContextModuleInstance{Addr: addrs.RootModuleInstance}
+
+	mockProvider := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	})
+	mockProvider.ConfigureProviderCalled = true
+
+	mockProvider.ReadResourceFn = func(providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{
+			Deferred: &providers.Deferred{
+				Reason: providers.DEFERRED_REASON_ABSENT_PREREQ,
+			},
+		}
+	}
+
+	obj := &states.ResourceInstanceObject{
+		Value: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("i-abc123"),
+		}),
+		Status: states.ObjectReady,
+	}
+
+	node := &NodeAbstractResourceInstance{
+		Addr: mustResourceInstanceAddr("aws_instance.foo"),
+		NodeAbstractResource: NodeAbstractResource{
+			ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		},
+	}
+	evalCtx.ProviderProvider = mockProvider
+	evalCtx.ProviderSchemaSchema = mockProvider.GetProviderSchema()
+	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
+	evalCtx.DeferralsState = deferring.NewDeferred(resourceGraph)
+
+	rio, diags := node.refresh(evalCtx, states.NotDeposed, obj)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	value := rio.Value
+	if value.IsKnown() {
+		t.Fatalf("value was known: %v", value)
+	}
+
+	if !evalCtx.DeferralsCalled {
+		t.Fatalf("expected deferral to be called")
+	}
+
+	if !evalCtx.DeferralsState.HaveAnyDeferrals() {
+		t.Fatalf("expected deferral to be present")
+	}
 }
