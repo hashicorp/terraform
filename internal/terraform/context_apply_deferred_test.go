@@ -666,7 +666,7 @@ resource "test" "c" {
 		},
 	}
 
-	// The next two tests aren't testing deferred actions specifically. Instead,
+	// The next test isn't testing deferred actions specifically. Instead,
 	// they're just testing the "removed" block works within the alternate
 	// execution path for deferred actions.
 
@@ -727,6 +727,61 @@ removed {
 			},
 		},
 	}
+
+	importIntoUnknownInstances = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+terraform {
+	experiments = [unknown_instances]
+}
+
+variable "resource_count" {
+	type = number
+}
+
+resource "test" "a" {
+	count = var.resource_count
+    name  = "a"
+}
+
+import {
+    id = "a"
+	to = test.a[0]
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"resource_count": cty.UnknownVal(cty.Number),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantApplied: make(map[string]cty.Value),
+				wantOutputs: make(map[string]cty.Value),
+			},
+			{
+				inputs: map[string]cty.Value{
+					"resource_count": cty.NumberIntVal(1),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.a[0]": plans.NoOp, // noop not create because of the import.
+				},
+				complete: true,
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
@@ -736,6 +791,7 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"resource_count":              resourceCountTest,
 		"create_before_destroy":       createBeforeDestroyLifecycle,
 		"forget_resources":            forgetResources,
+		"import_into_unknown":         importIntoUnknownInstances,
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -909,6 +965,19 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			provider.appliedChanges.Set(key, req.PlannedState)
 			return providers.ApplyResourceChangeResponse{
 				NewState: req.PlannedState,
+			}
+		},
+		ImportResourceStateFn: func(request providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+			return providers.ImportResourceStateResponse{
+				ImportedResources: []providers.ImportedResource{
+					{
+						TypeName: request.TypeName,
+						State: cty.ObjectVal(map[string]cty.Value{
+							"name":           cty.StringVal(request.ID),
+							"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						}),
+					},
+				},
 			}
 		},
 	}
