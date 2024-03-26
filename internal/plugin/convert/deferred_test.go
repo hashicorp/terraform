@@ -42,7 +42,7 @@ func TestProtoDeferred(t *testing.T) {
 
 			deferred := ProtoToDeferred(d)
 			if deferred.Reason != tc.expected {
-				t.Fatalf("expected %d, got %d", tc.expected, deferred.Reason)
+				t.Fatalf("expected %q, got %q", tc.expected, deferred.Reason)
 			}
 		})
 	}

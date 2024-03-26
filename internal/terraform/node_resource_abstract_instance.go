@@ -641,11 +641,23 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		}
 	} else {
 		resp = provider.ReadResource(providers.ReadResourceRequest{
-			TypeName:     n.Addr.Resource.Resource.Type,
-			PriorState:   priorVal,
-			Private:      state.Private,
-			ProviderMeta: metaConfigVal,
+			TypeName:        n.Addr.Resource.Resource.Type,
+			PriorState:      priorVal,
+			Private:         state.Private,
+			ProviderMeta:    metaConfigVal,
+			DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
 		})
+
+		if resp.Deferred != nil {
+			deferrals := ctx.Deferrals()
+			deferrals.ReportResourceInstanceDeferred(absAddr, resp.Deferred.Reason, &plans.ResourceInstanceChange{
+				Addr: absAddr,
+				Change: plans.Change{
+					Action: plans.Create,
+					After:  cty.DynamicVal,
+				},
+			})
+		}
 	}
 	if n.Config != nil {
 		resp.Diagnostics = resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String())
@@ -663,7 +675,9 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		panic("new state is cty.NilVal")
 	}
 
-	if !resp.NewState.IsWhollyKnown() {
+	// If we have deferred the refresh, we expect the new state not to be wholly known
+	// and callers should be prepared to handle this.
+	if !resp.NewState.IsWhollyKnown() && deferred == nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced invalid object",
