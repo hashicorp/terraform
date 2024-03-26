@@ -6,6 +6,10 @@
     "path": "attr-as-blocks",
     "hidden": true
   },
+  { 
+    "title": "Style Guide", 
+    "path": "style" 
+  },
   {
     "title": "Files and Directories",
     "routes": [
@@ -1055,10 +1059,6 @@
   {
     "title": "Upgrading to Terraform v1.6",
     "path": "upgrade-guides"
-  },
-  { 
-    "title": "Style Guide", 
-    "path": "style" 
   },
   {
     "title": "v1.x Compatibility Promises",
