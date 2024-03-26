@@ -46,7 +46,7 @@ type deferredActionsTestStage struct {
 	wantPlanned map[string]cty.Value
 
 	// The values we want to be deferred within each cycle.
-	wantDeferred map[string]plans.DeferredReason
+	wantDeferred map[string]providers.DeferredReason
 
 	// The expected actions from the plan step.
 	wantActions map[string]plans.Action
@@ -152,9 +152,9 @@ output "c" {
 					// The other resources will be deferred, so shouldn't
 					// have any action at this stage.
 				},
-				wantDeferred: map[string]plans.DeferredReason{
-					"test.b[\"*\"]": plans.DeferredReasonInstanceCountUnknown,
-					"test.c":        plans.DeferredReasonDeferredPrereq,
+				wantDeferred: map[string]providers.DeferredReason{
+					"test.b[\"*\"]": providers.DeferredReasonInstanceCountUnknown,
+					"test.c":        providers.DeferredReasonDeferredPrereq,
 				},
 				wantApplied: map[string]cty.Value{
 					"a": cty.ObjectVal(map[string]cty.Value{
@@ -260,7 +260,7 @@ output "c" {
 					`test.b["2"]`: plans.Create,
 					`test.c`:      plans.Create,
 				},
-				wantDeferred: make(map[string]plans.DeferredReason),
+				wantDeferred: make(map[string]providers.DeferredReason),
 				wantApplied: map[string]cty.Value{
 					// Since test.a is no-op, it isn't visited during apply. The
 					// other instances should all be applied, though.
@@ -369,7 +369,7 @@ output "c" {
 					`test.b["2"]`: plans.NoOp,
 					`test.c`:      plans.NoOp,
 				},
-				wantDeferred: make(map[string]plans.DeferredReason),
+				wantDeferred: make(map[string]providers.DeferredReason),
 				complete:     true,
 				// We won't execute an apply step in this stage, because the
 				// plan should be empty.
@@ -1413,7 +1413,7 @@ func TestContextApply_deferredActions(t *testing.T) {
 						t.Errorf("wrong actions in plan\n%s", diff)
 					}
 
-					gotDeferred := make(map[string]plans.DeferredReason)
+					gotDeferred := make(map[string]providers.DeferredReason)
 					for _, dc := range plan.DeferredResources {
 						gotDeferred[dc.ChangeSrc.Addr.String()] = dc.DeferredReason
 					}

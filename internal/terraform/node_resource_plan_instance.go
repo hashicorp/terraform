@@ -359,7 +359,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			// In this case, the expression evaluator should use the placeholder
 			// value registered here as the value of this resource instance,
 			// instead of using the plan.
-			deferrals.ReportResourceInstanceDeferred(n.Addr, plans.DeferredReasonDeferredPrereq, change)
+			deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
 		}
 	} else {
 		// In refresh-only mode we need to evaluate the for-each expression in

@@ -464,20 +464,20 @@ func deferredChangeFromTfplan(dc *planproto.DeferredResourceInstanceChange) (*pl
 	}, nil
 }
 
-func deferredReasonFromProto(reason planproto.DeferredReason) (plans.DeferredReason, error) {
+func deferredReasonFromProto(reason planproto.DeferredReason) (providers.DeferredReason, error) {
 	switch reason {
 	case planproto.DeferredReason_INSTANCE_COUNT_UNKNOWN:
-		return plans.DeferredReasonInstanceCountUnknown, nil
+		return providers.DeferredReasonInstanceCountUnknown, nil
 	case planproto.DeferredReason_RESOURCE_CONFIG_UNKNOWN:
-		return plans.DeferredReasonResourceConfigUnknown, nil
+		return providers.DeferredReasonResourceConfigUnknown, nil
 	case planproto.DeferredReason_PROVIDER_CONFIG_UNKNOWN:
-		return plans.DeferredReasonProviderConfigUnknown, nil
+		return providers.DeferredReasonProviderConfigUnknown, nil
 	case planproto.DeferredReason_ABSENT_PREREQ:
-		return plans.DeferredReasonAbsentPrereq, nil
+		return providers.DeferredReasonAbsentPrereq, nil
 	case planproto.DeferredReason_DEFERRED_PREREQ:
-		return plans.DeferredReasonDeferredPrereq, nil
+		return providers.DeferredReasonDeferredPrereq, nil
 	default:
-		return plans.DeferredReasonInvalid, fmt.Errorf("invalid deferred reason %s", reason)
+		return providers.DeferredReasonInvalid, fmt.Errorf("invalid deferred reason %s", reason)
 	}
 }
 
@@ -931,17 +931,17 @@ func deferredChangeToTfplan(dc *plans.DeferredResourceInstanceChangeSrc) (*planp
 	}, nil
 }
 
-func deferredReasonToProto(reason plans.DeferredReason) (planproto.DeferredReason, error) {
+func deferredReasonToProto(reason providers.DeferredReason) (planproto.DeferredReason, error) {
 	switch reason {
-	case plans.DeferredReasonInstanceCountUnknown:
+	case providers.DeferredReasonInstanceCountUnknown:
 		return planproto.DeferredReason_INSTANCE_COUNT_UNKNOWN, nil
-	case plans.DeferredReasonResourceConfigUnknown:
+	case providers.DeferredReasonResourceConfigUnknown:
 		return planproto.DeferredReason_RESOURCE_CONFIG_UNKNOWN, nil
-	case plans.DeferredReasonProviderConfigUnknown:
+	case providers.DeferredReasonProviderConfigUnknown:
 		return planproto.DeferredReason_PROVIDER_CONFIG_UNKNOWN, nil
-	case plans.DeferredReasonAbsentPrereq:
+	case providers.DeferredReasonAbsentPrereq:
 		return planproto.DeferredReason_ABSENT_PREREQ, nil
-	case plans.DeferredReasonDeferredPrereq:
+	case providers.DeferredReasonDeferredPrereq:
 		return planproto.DeferredReason_DEFERRED_PREREQ, nil
 	default:
 		return planproto.DeferredReason_INVALID, fmt.Errorf("invalid deferred reason %s", reason)

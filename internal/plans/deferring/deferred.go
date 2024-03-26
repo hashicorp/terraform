@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 // Deferred keeps track of deferrals that have already happened, to help
@@ -313,7 +314,7 @@ func (d *Deferred) ReportResourceExpansionDeferred(addr addrs.PartialExpandedRes
 		panic(fmt.Sprintf("duplicate deferral report for %s", addr))
 	}
 	configMap.Put(addr, &plans.DeferredResourceInstanceChange{
-		DeferredReason: plans.DeferredReasonInstanceCountUnknown,
+		DeferredReason: providers.DeferredReasonInstanceCountUnknown,
 		Change:         change,
 	})
 }
@@ -348,7 +349,7 @@ func (d *Deferred) ReportDataSourceExpansionDeferred(addr addrs.PartialExpandedR
 // ReportResourceInstanceDeferred records that a fully-expanded resource
 // instance has had its planned action deferred to a future round for a reason
 // other than its address being only partially-decided.
-func (d *Deferred) ReportResourceInstanceDeferred(addr addrs.AbsResourceInstance, reason plans.DeferredReason, change *plans.ResourceInstanceChange) {
+func (d *Deferred) ReportResourceInstanceDeferred(addr addrs.AbsResourceInstance, reason providers.DeferredReason, change *plans.ResourceInstanceChange) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
