@@ -153,7 +153,7 @@ func (b *Local) opApply(
 					query = "Do you want to perform these actions?"
 				}
 				desc = "Terraform will perform the actions described above.\n" +
-					"Only 'yes' will be accepted to approve."
+					"Only 'send it' will be accepted to approve."
 			}
 
 			// We'll show any accumulated warnings before we display the prompt,

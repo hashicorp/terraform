@@ -126,6 +126,12 @@ func initCommands(
 			}, nil
 		},
 
+		"iykyk": func() (cli.Command, error) {
+			return &command.ApplyCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"console": func() (cli.Command, error) {
 			return &command.ConsoleCommand{
 				Meta: meta,
@@ -133,6 +139,13 @@ func initCommands(
 		},
 
 		"destroy": func() (cli.Command, error) {
+			return &command.ApplyCommand{
+				Meta:    meta,
+				Destroy: true,
+			}, nil
+		},
+
+		"ick": func() (cli.Command, error) {
 			return &command.ApplyCommand{
 				Meta:    meta,
 				Destroy: true,
@@ -235,6 +248,12 @@ func initCommands(
 		},
 
 		"plan": func() (cli.Command, error) {
+			return &command.PlanCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"bet": func() (cli.Command, error) {
 			return &command.PlanCommand{
 				Meta: meta,
 			}, nil
@@ -352,9 +371,9 @@ func initCommands(
 			}, nil
 		},
 
-		//-----------------------------------------------------------
+		// -----------------------------------------------------------
 		// Plumbing
-		//-----------------------------------------------------------
+		// -----------------------------------------------------------
 
 		"force-unlock": func() (cli.Command, error) {
 			return &command.UnlockCommand{
