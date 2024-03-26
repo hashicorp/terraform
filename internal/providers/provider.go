@@ -237,6 +237,21 @@ type ReadResourceRequest struct {
 	// each provider, and it should not be used without coordination with
 	// HashiCorp. It is considered experimental and subject to change.
 	ProviderMeta cty.Value
+
+	// DeferralAllowed signals that the provider is allowed to defer the
+	// changes. If set the caller needs to handle the deferred response.
+	DeferralAllowed bool
+}
+
+const (
+	DEFERRED_REASON_UNKNOWN                 = 0
+	DEFERRED_REASON_RESOURCE_CONFIG_UNKNOWN = 1
+	DEFERRED_REASON_PROVIDER_CONFIG_UNKNOWN = 2
+	DEFERRED_REASON_ABSENT_PREREQ           = 3
+)
+
+type Deferred struct {
+	Reason int32
 }
 
 type ReadResourceResponse struct {
@@ -249,6 +264,9 @@ type ReadResourceResponse struct {
 	// Private is an opaque blob that will be stored in state along with the
 	// resource. It is intended only for interpretation by the provider itself.
 	Private []byte
+
+	// Deferred TODO: docuemnt this
+	Deferred *Deferred
 }
 
 type PlanResourceChangeRequest struct {
