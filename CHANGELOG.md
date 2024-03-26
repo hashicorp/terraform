@@ -9,6 +9,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * `remote-exec`: Each remote connection will be closed immediately after use [GH-34137]
+* `backend/s3`: Fixed the digest value displayed for DynamoDB/S3 state checksum mismatches [GH-34387]
 
 EXPERIMENTS:
 
