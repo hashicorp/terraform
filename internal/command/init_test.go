@@ -15,9 +15,8 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
+	version "github.com/hashicorp/go-version"
 	"github.com/zclconf/go-cty/cty"
-
-	"github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -184,6 +183,34 @@ func TestInit_get(t *testing.T) {
 	}
 }
 
+func TestInit_json(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-get"), td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	args := []string{"-json"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// Check output
+	output := ui.OutputWriter.String()
+	if !strings.Contains(output, "foo in foo") {
+		t.Fatalf("doesn't look like we installed module 'foo': %s", output)
+	}
+}
+
 func TestInit_getUpgradeModules(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
@@ -315,7 +342,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 
 	t.Run("good-config-file", func(t *testing.T) {
 		ui := new(cli.MockUi)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -325,7 +352,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 		}
 		args := []string{"-backend-config", "input.config"}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+			t.Fatalf("bad: \n%s", done(t).All())
 		}
 
 		// Read our saved backend config and verify we have our settings
@@ -338,7 +365,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 	// the backend config file must not be a full terraform block
 	t.Run("full-backend-config-file", func(t *testing.T) {
 		ui := new(cli.MockUi)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -350,7 +377,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 		if code := c.Run(args); code != 1 {
 			t.Fatalf("expected error, got success\n")
 		}
-		if !strings.Contains(ui.ErrorWriter.String(), "Unsupported block type") {
+		if !strings.Contains(done(t).All(), "Unsupported block type") {
 			t.Fatalf("wrong error: %s", ui.ErrorWriter)
 		}
 	})
@@ -358,7 +385,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 	// the backend config file must match the schema for the backend
 	t.Run("invalid-config-file", func(t *testing.T) {
 		ui := new(cli.MockUi)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -370,7 +397,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 		if code := c.Run(args); code != 1 {
 			t.Fatalf("expected error, got success\n")
 		}
-		if !strings.Contains(ui.ErrorWriter.String(), "Unsupported argument") {
+		if !strings.Contains(done(t).All(), "Unsupported argument") {
 			t.Fatalf("wrong error: %s", ui.ErrorWriter)
 		}
 	})
@@ -378,7 +405,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 	// missing file is an error
 	t.Run("missing-config-file", func(t *testing.T) {
 		ui := new(cli.MockUi)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -390,7 +417,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 		if code := c.Run(args); code != 1 {
 			t.Fatalf("expected error, got success\n")
 		}
-		if !strings.Contains(ui.ErrorWriter.String(), "Failed to read file") {
+		if !strings.Contains(done(t).All(), "Failed to read file") {
 			t.Fatalf("wrong error: %s", ui.ErrorWriter)
 		}
 	})
@@ -398,7 +425,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 	// blank filename clears the backend config
 	t.Run("blank-config-file", func(t *testing.T) {
 		ui := new(cli.MockUi)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -408,7 +435,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 		}
 		args := []string{"-backend-config=", "-migrate-state"}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+			t.Fatalf("bad: \n%s", done(t).All())
 		}
 
 		// Read our saved backend config and verify the backend config is empty
@@ -450,7 +477,7 @@ func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -468,12 +495,13 @@ func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 	// result in an early exit with a diagnostic that the provided
 	// configuration file is not a diretory.
 	args := []string{"-backend-config=", "./input.config"}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
 	}
 
-	output := ui.ErrorWriter.String()
-	if got, want := output, `Too many command line arguments`; !strings.Contains(got, want) {
+	if got, want := output.Stderr(), `Too many command line arguments`; !strings.Contains(got, want) {
 		t.Fatalf("wrong output\ngot:\n%s\n\nwant: message containing %q", got, want)
 	}
 }
@@ -613,10 +641,13 @@ func TestInit_backendConfigFileChangeWithExistingState(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
+
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -786,7 +817,7 @@ func TestInit_backendCli_no_config_block(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -800,7 +831,7 @@ func TestInit_backendCli_no_config_block(t *testing.T) {
 		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
 	}
 
-	errMsg := ui.ErrorWriter.String()
+	errMsg := done(t).All()
 	if !strings.Contains(errMsg, "Warning: Missing backend configuration") {
 		t.Fatal("expected missing backend block warning, got", errMsg)
 	}
@@ -978,7 +1009,7 @@ func TestInit_backendCloudInvalidOptions(t *testing.T) {
 		// configuration is only about which workspaces we'll be working
 		// with.
 		ui := cli.NewMockUi()
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				Ui:   ui,
@@ -990,7 +1021,7 @@ func TestInit_backendCloudInvalidOptions(t *testing.T) {
 			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
 		}
 
-		gotStderr := ui.ErrorWriter.String()
+		gotStderr := done(t).All()
 		wantStderr := `
 Error: Invalid command-line option
 
@@ -999,7 +1030,6 @@ is not applicable to Terraform Cloud-based configurations.
 
 To change the set of workspaces associated with this configuration, edit the
 Cloud configuration block in the root module.
-
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
 			t.Errorf("wrong error output\n%s", diff)
@@ -1017,7 +1047,7 @@ Cloud configuration block in the root module.
 		// -reconfigure doesn't really make sense in that context, particularly
 		// with its design bug with the handling of the implicit local backend.
 		ui := cli.NewMockUi()
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				Ui:   ui,
@@ -1029,7 +1059,7 @@ Cloud configuration block in the root module.
 			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
 		}
 
-		gotStderr := ui.ErrorWriter.String()
+		gotStderr := done(t).All()
 		wantStderr := `
 Error: Invalid command-line option
 
@@ -1038,7 +1068,6 @@ only, and is not needed when changing Terraform Cloud settings.
 
 When using Terraform Cloud, initialization automatically activates any new
 Cloud configuration settings.
-
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
 			t.Errorf("wrong error output\n%s", diff)
@@ -1056,7 +1085,7 @@ Cloud configuration settings.
 		}
 
 		ui := cli.NewMockUi()
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				Ui:   ui,
@@ -1068,13 +1097,12 @@ Cloud configuration settings.
 			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
 		}
 
-		gotStderr := ui.ErrorWriter.String()
+		gotStderr := done(t).All()
 		wantStderr := `
 Error: Invalid command-line option
 
 The -reconfigure option is unsupported when migrating to Terraform Cloud,
 because activating Terraform Cloud involves some additional steps.
-
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
 			t.Errorf("wrong error output\n%s", diff)
@@ -1087,7 +1115,7 @@ because activating Terraform Cloud involves some additional steps.
 		// and changing configuration while staying in cloud mode never migrates
 		// state, so this special option isn't relevant.
 		ui := cli.NewMockUi()
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				Ui:   ui,
@@ -1099,7 +1127,7 @@ because activating Terraform Cloud involves some additional steps.
 			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
 		}
 
-		gotStderr := ui.ErrorWriter.String()
+		gotStderr := done(t).All()
 		wantStderr := `
 Error: Invalid command-line option
 
@@ -1108,7 +1136,6 @@ is not applicable when using Terraform Cloud.
 
 State storage is handled automatically by Terraform Cloud and so the state
 storage location is not configurable.
-
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
 			t.Errorf("wrong error output\n%s", diff)
@@ -1126,7 +1153,7 @@ storage location is not configurable.
 		}
 
 		ui := cli.NewMockUi()
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				Ui:   ui,
@@ -1138,7 +1165,7 @@ storage location is not configurable.
 			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
 		}
 
-		gotStderr := ui.ErrorWriter.String()
+		gotStderr := done(t).All()
 		wantStderr := `
 Error: Invalid command-line option
 
@@ -1147,7 +1174,6 @@ is not applicable when using Terraform Cloud.
 
 Terraform Cloud migration has additional steps, configured by interactive
 prompts.
-
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
 			t.Errorf("wrong error output\n%s", diff)
@@ -1160,7 +1186,7 @@ prompts.
 		// and changing configuration while staying in cloud mode never migrates
 		// state, so this special option isn't relevant.
 		ui := cli.NewMockUi()
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				Ui:   ui,
@@ -1172,7 +1198,7 @@ prompts.
 			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
 		}
 
-		gotStderr := ui.ErrorWriter.String()
+		gotStderr := done(t).All()
 		wantStderr := `
 Error: Invalid command-line option
 
@@ -1181,7 +1207,6 @@ not applicable when using Terraform Cloud.
 
 State storage is handled automatically by Terraform Cloud and so the state
 storage location is not configurable.
-
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
 			t.Errorf("wrong error output\n%s", diff)
@@ -1199,7 +1224,7 @@ storage location is not configurable.
 		}
 
 		ui := cli.NewMockUi()
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				Ui:   ui,
@@ -1211,7 +1236,7 @@ storage location is not configurable.
 			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
 		}
 
-		gotStderr := ui.ErrorWriter.String()
+		gotStderr := done(t).All()
 		wantStderr := `
 Error: Invalid command-line option
 
@@ -1220,7 +1245,6 @@ not applicable when using Terraform Cloud.
 
 Terraform Cloud migration has additional steps, configured by interactive
 prompts.
-
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
 			t.Errorf("wrong error output\n%s", diff)
@@ -1236,7 +1260,7 @@ func TestInit_inputFalse(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -1286,7 +1310,7 @@ func TestInit_inputFalse(t *testing.T) {
 		t.Fatal("init should have failed", ui.OutputWriter)
 	}
 
-	errMsg := ui.ErrorWriter.String()
+	errMsg := done(t).All()
 	if !strings.Contains(errMsg, "interactive input is disabled") {
 		t.Fatal("expected input disabled error, got", errMsg)
 	}
@@ -1394,7 +1418,7 @@ func TestInit_getProvider(t *testing.T) {
 		}
 
 		ui := new(cli.MockUi)
-		view, _ := testView(t)
+		view, done := testView(t)
 		m.Ui = ui
 		m.View = view
 		c := &InitCommand{
@@ -1405,7 +1429,7 @@ func TestInit_getProvider(t *testing.T) {
 			t.Fatal("expected error, got:", ui.OutputWriter)
 		}
 
-		errMsg := ui.ErrorWriter.String()
+		errMsg := done(t).All()
 		if !strings.Contains(errMsg, "Unsupported state file format") {
 			t.Fatal("unexpected error:", errMsg)
 		}
@@ -1470,7 +1494,7 @@ func TestInit_getProviderLegacyFromState(t *testing.T) {
 
 	overrides := metaOverridesForProvider(testProvider())
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		"acme/alpha": {"1.2.3"},
 	})
@@ -1495,7 +1519,7 @@ func TestInit_getProviderLegacyFromState(t *testing.T) {
 		"Invalid legacy provider address",
 		"You must complete the Terraform 0.13 upgrade process",
 	}
-	got := ui.ErrorWriter.String()
+	got := done(t).All()
 	for _, want := range wants {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected output to contain %q, got:\n\n%s", want, got)
@@ -1511,7 +1535,7 @@ func TestInit_getProviderInvalidPackage(t *testing.T) {
 
 	overrides := metaOverridesForProvider(testProvider())
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 
 	// create a provider source which allows installing an invalid package
 	addr := addrs.MustParseProviderSourceString("invalid/package")
@@ -1557,7 +1581,7 @@ func TestInit_getProviderInvalidPackage(t *testing.T) {
 		"Failed to install provider",
 		"could not find executable file starting with terraform-provider-package",
 	}
-	got := ui.ErrorWriter.String()
+	got := done(t).All()
 	for _, wantError := range wantErrors {
 		if !strings.Contains(got, wantError) {
 			t.Fatalf("missing error:\nwant: %q\ngot:\n%s", wantError, got)
@@ -1588,7 +1612,7 @@ func TestInit_getProviderDetectedLegacy(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	m := Meta{
 		Ui:             ui,
 		View:           view,
@@ -1618,7 +1642,7 @@ func TestInit_getProviderDetectedLegacy(t *testing.T) {
 	}
 
 	// error output is the main focus of this test
-	errOutput := ui.ErrorWriter.String()
+	errOutput := done(t).All()
 	errors := []string{
 		"Failed to query available provider packages",
 		"Could not retrieve the list of available versions",
@@ -1646,7 +1670,7 @@ func TestInit_providerSource(t *testing.T) {
 	defer close()
 
 	ui := cli.NewMockUi()
-	view, _ := testView(t)
+	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
@@ -1735,7 +1759,7 @@ func TestInit_providerSource(t *testing.T) {
 	if got, want := ui.OutputWriter.String(), "Installed hashicorp/test v1.2.3 (verified checksum)"; !strings.Contains(got, want) {
 		t.Fatalf("unexpected output: %s\nexpected to include %q", got, want)
 	}
-	if got, want := ui.ErrorWriter.String(), "\n  - hashicorp/source\n  - hashicorp/test\n  - hashicorp/test-beta"; !strings.Contains(got, want) {
+	if got, want := done(t).All(), "\n  - hashicorp/source\n  - hashicorp/test\n  - hashicorp/test-beta"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error message\nshould contain: %s\ngot:\n%s", want, got)
 	}
 }
@@ -1965,7 +1989,7 @@ func TestInit_getProviderMissing(t *testing.T) {
 	defer close()
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
@@ -1982,7 +2006,7 @@ func TestInit_getProviderMissing(t *testing.T) {
 		t.Fatalf("expected error, got output: \n%s", ui.OutputWriter.String())
 	}
 
-	if !strings.Contains(ui.ErrorWriter.String(), "no available releases match") {
+	if !strings.Contains(done(t).All(), "no available releases match") {
 		t.Fatalf("unexpected error output: %s", ui.ErrorWriter)
 	}
 }
@@ -1994,7 +2018,7 @@ func TestInit_checkRequiredVersion(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := cli.NewMockUi()
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -2005,9 +2029,9 @@ func TestInit_checkRequiredVersion(t *testing.T) {
 
 	args := []string{}
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, done(t).All(), ui.OutputWriter.String())
 	}
-	errStr := ui.ErrorWriter.String()
+	errStr := done(t).All()
 	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
 		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
 	}
@@ -2025,7 +2049,7 @@ func TestInit_checkRequiredVersionFirst(t *testing.T) {
 		defer testChdir(t, td)()
 
 		ui := cli.NewMockUi()
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -2036,9 +2060,9 @@ func TestInit_checkRequiredVersionFirst(t *testing.T) {
 
 		args := []string{}
 		if code := c.Run(args); code != 1 {
-			t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+			t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, done(t).All(), ui.OutputWriter.String())
 		}
-		errStr := ui.ErrorWriter.String()
+		errStr := done(t).All()
 		if !strings.Contains(errStr, `Unsupported Terraform Core version`) {
 			t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
 		}
@@ -2049,7 +2073,7 @@ func TestInit_checkRequiredVersionFirst(t *testing.T) {
 		defer testChdir(t, td)()
 
 		ui := cli.NewMockUi()
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -2060,9 +2084,9 @@ func TestInit_checkRequiredVersionFirst(t *testing.T) {
 
 		args := []string{}
 		if code := c.Run(args); code != 1 {
-			t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+			t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, done(t).All(), ui.OutputWriter.String())
 		}
-		errStr := ui.ErrorWriter.String()
+		errStr := done(t).All()
 		if !strings.Contains(errStr, `Unsupported Terraform Core version`) {
 			t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
 		}
@@ -2083,7 +2107,7 @@ func TestInit_providerLockFile(t *testing.T) {
 	defer close()
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
@@ -2128,7 +2152,7 @@ provider "registry.terraform.io/hashicorp/test" {
 	// succeeds, to ensure that we don't try to rewrite an unchanged lock file
 	os.Chmod(".", 0555)
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("bad: \n%s", done(t).All())
 	}
 }
 
@@ -2268,9 +2292,11 @@ provider "registry.terraform.io/hashicorp/test" {
 			defer close()
 
 			ui := new(cli.MockUi)
+			view, _ := testView(t)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
 				Ui:               ui,
+				View:             view,
 				ProviderSource:   providerSource,
 			}
 
@@ -2485,7 +2511,7 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 	defer close()
 
 	ui := cli.NewMockUi()
-	view, _ := testView(t)
+	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
@@ -2531,7 +2557,7 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 	// The error output should mention the "between" provider but should not
 	// mention either the "exact" or "greater-than" provider, because the
 	// latter two are available via the -plugin-dir directories.
-	errStr := ui.ErrorWriter.String()
+	errStr := done(t).All()
 	if subStr := "hashicorp/between"; !strings.Contains(errStr, subStr) {
 		t.Errorf("error output should mention the 'between' provider\nwant substr: %s\ngot:\n%s", subStr, errStr)
 	}
@@ -2596,7 +2622,7 @@ func TestInit_invalidBuiltInProviders(t *testing.T) {
 	defer close()
 
 	ui := cli.NewMockUi()
-	view, _ := testView(t)
+	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
@@ -2612,7 +2638,7 @@ func TestInit_invalidBuiltInProviders(t *testing.T) {
 		t.Fatalf("succeeded, but was expecting error\nstdout:\n%s\nstderr:\n%s", ui.OutputWriter, ui.ErrorWriter)
 	}
 
-	errStr := ui.ErrorWriter.String()
+	errStr := done(t).All()
 	if subStr := "Cannot use terraform.io/builtin/terraform: built-in"; !strings.Contains(errStr, subStr) {
 		t.Errorf("error output should mention the terraform provider\nwant substr: %s\ngot:\n%s", subStr, errStr)
 	}
@@ -2627,7 +2653,7 @@ func TestInit_invalidSyntaxNoBackend(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := cli.NewMockUi()
-	view, _ := testView(t)
+	view, done := testView(t)
 	m := Meta{
 		Ui:   ui,
 		View: view,
@@ -2641,9 +2667,9 @@ func TestInit_invalidSyntaxNoBackend(t *testing.T) {
 		t.Fatalf("succeeded, but was expecting error\nstdout:\n%s\nstderr:\n%s", ui.OutputWriter, ui.ErrorWriter)
 	}
 
-	errStr := ui.ErrorWriter.String()
-	if subStr := "Terraform encountered problems during initialisation, including problems\nwith the configuration, described below."; !strings.Contains(errStr, subStr) {
-		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	errStr := done(t).All()
+	if subStr := "Terraform encountered problems during initialisation, including problems\nwith the configuration, described below."; !strings.Contains(ui.ErrorWriter.String(), subStr) {
+		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, ui.ErrorWriter.String())
 	}
 	if subStr := "Error: Unsupported block type"; !strings.Contains(errStr, subStr) {
 		t.Errorf("Error output should mention the syntax problem\nwant substr: %s\ngot:\n%s", subStr, errStr)
@@ -2656,7 +2682,7 @@ func TestInit_invalidSyntaxWithBackend(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := cli.NewMockUi()
-	view, _ := testView(t)
+	view, done := testView(t)
 	m := Meta{
 		Ui:   ui,
 		View: view,
@@ -2670,9 +2696,9 @@ func TestInit_invalidSyntaxWithBackend(t *testing.T) {
 		t.Fatalf("succeeded, but was expecting error\nstdout:\n%s\nstderr:\n%s", ui.OutputWriter, ui.ErrorWriter)
 	}
 
-	errStr := ui.ErrorWriter.String()
-	if subStr := "Terraform encountered problems during initialisation, including problems\nwith the configuration, described below."; !strings.Contains(errStr, subStr) {
-		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	errStr := done(t).All()
+	if subStr := "Terraform encountered problems during initialisation, including problems\nwith the configuration, described below."; !strings.Contains(ui.ErrorWriter.String(), subStr) {
+		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, ui.ErrorWriter.String())
 	}
 	if subStr := "Error: Unsupported block type"; !strings.Contains(errStr, subStr) {
 		t.Errorf("Error output should mention the syntax problem\nwant substr: %s\ngot:\n%s", subStr, errStr)
@@ -2685,7 +2711,7 @@ func TestInit_invalidSyntaxInvalidBackend(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := cli.NewMockUi()
-	view, _ := testView(t)
+	view, done := testView(t)
 	m := Meta{
 		Ui:   ui,
 		View: view,
@@ -2699,9 +2725,9 @@ func TestInit_invalidSyntaxInvalidBackend(t *testing.T) {
 		t.Fatalf("succeeded, but was expecting error\nstdout:\n%s\nstderr:\n%s", ui.OutputWriter, ui.ErrorWriter)
 	}
 
-	errStr := ui.ErrorWriter.String()
-	if subStr := "Terraform encountered problems during initialisation, including problems\nwith the configuration, described below."; !strings.Contains(errStr, subStr) {
-		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	errStr := done(t).All()
+	if subStr := "Terraform encountered problems during initialisation, including problems\nwith the configuration, described below."; !strings.Contains(ui.ErrorWriter.String(), subStr) {
+		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, ui.ErrorWriter.String())
 	}
 	if subStr := "Error: Unsupported block type"; !strings.Contains(errStr, subStr) {
 		t.Errorf("Error output should mention syntax errors\nwant substr: %s\ngot:\n%s", subStr, errStr)
@@ -2717,7 +2743,7 @@ func TestInit_invalidSyntaxBackendAttribute(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := cli.NewMockUi()
-	view, _ := testView(t)
+	view, done := testView(t)
 	m := Meta{
 		Ui:   ui,
 		View: view,
@@ -2731,9 +2757,9 @@ func TestInit_invalidSyntaxBackendAttribute(t *testing.T) {
 		t.Fatalf("succeeded, but was expecting error\nstdout:\n%s\nstderr:\n%s", ui.OutputWriter, ui.ErrorWriter)
 	}
 
-	errStr := ui.ErrorWriter.String()
-	if subStr := "Terraform encountered problems during initialisation, including problems\nwith the configuration, described below."; !strings.Contains(errStr, subStr) {
-		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	errStr := done(t).All()
+	if subStr := "Terraform encountered problems during initialisation, including problems\nwith the configuration, described below."; !strings.Contains(ui.ErrorWriter.String(), subStr) {
+		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, ui.ErrorWriter.String())
 	}
 	if subStr := "Error: Invalid character"; !strings.Contains(errStr, subStr) {
 		t.Errorf("Error output should mention the invalid character\nwant substr: %s\ngot:\n%s", subStr, errStr)
@@ -2787,7 +2813,7 @@ func TestInit_testsWithProvider(t *testing.T) {
 	defer close()
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(provider),
@@ -2802,18 +2828,49 @@ func TestInit_testsWithProvider(t *testing.T) {
 		t.Fatalf("expected failure but got: \n%s", ui.OutputWriter.String())
 	}
 
-	got := ui.ErrorWriter.String()
+	got := done(t).All()
 	want := `
 Error: Failed to query available provider packages
 
 Could not retrieve the list of available versions for provider
 hashicorp/test: no available releases match the given constraints 1.0.1,
 1.0.2
-
 `
 	if diff := cmp.Diff(got, want); len(diff) > 0 {
 		t.Fatalf("wrong error message: \ngot:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
 	}
+}
+
+func TestInit_jsonTestsWithProvider(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-with-tests-with-provider"), td)
+	defer testChdir(t, td)()
+
+	provider := applyFixtureProvider() // We just want the types from this provider.
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider),
+			Ui:               ui,
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	args := []string{"-json"}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("expected failure but got: \n%s", ui.OutputWriter.String())
+	}
+
+	checkGoldenReference(t, done(t), "init-with-tests-with-provider")
 }
 
 func TestInit_testsWithModule(t *testing.T) {
