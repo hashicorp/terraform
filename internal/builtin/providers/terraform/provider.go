@@ -31,6 +31,8 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		},
 		Functions: map[string]providers.FunctionDecl{
 			"encode_tfvars": {
+				Summary:     "Produce a string representation of an object using the same syntax as for `.tfvars` files",
+				Description: "A rarely-needed function which takes an object value and produces a string containing a description of that object using the same syntax as Terraform CLI would expect in a `.tfvars`.",
 				Parameters: []providers.FunctionParam{
 					{
 						Name:               "value",
@@ -41,6 +43,8 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 				ReturnType: cty.String,
 			},
 			"decode_tfvars": {
+				Summary:     "Parse a string containing syntax like that used in a `.tfvars` file",
+				Description: "A rarely-needed function which takes a string containing the content of a `.tfvars` file and returns an object describing the raw variable values it defines.",
 				Parameters: []providers.FunctionParam{
 					{
 						Name: "src",
@@ -50,6 +54,8 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 				ReturnType: cty.DynamicPseudoType,
 			},
 			"encode_expr": {
+				Summary:     "Produce a string representation of an arbitrary value using Terraform expression syntax",
+				Description: "A rarely-needed function which takes any value and produces a string containing Terraform language expression syntax approximating that value.",
 				Parameters: []providers.FunctionParam{
 					{
 						Name:               "value",
