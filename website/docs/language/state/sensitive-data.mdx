@@ -35,3 +35,6 @@ For example:
 - The S3 backend supports encryption at rest when the `encrypt` option is
   enabled. IAM policies and logging can be used to identify any invalid access.
   Requests for the state go over a TLS connection.
+- The GCS (Google Cloud Storage) backend supports:
+    - [Using customer-supplied encryption keys](https://developer.hashicorp.com/terraform/language/settings/backends/gcs#customer-supplied-encryption-keys).
+    - [Using customer-managed encryption keys (Cloud KMS)](https://developer.hashicorp.com/terraform/language/settings/backends/gcs#customer-managed-encryption-keys-cloud-kms).
