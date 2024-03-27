@@ -60,6 +60,7 @@ func TestRemovedBlock_decode(t *testing.T) {
 			&Removed{
 				From:      mustRemoveEndpointFromExpr(foo_expr),
 				Destroy:   true,
+				Managed:   &ManagedResource{},
 				DeclRange: blockRange,
 			},
 			``,
@@ -93,9 +94,154 @@ func TestRemovedBlock_decode(t *testing.T) {
 			&Removed{
 				From:      mustRemoveEndpointFromExpr(foo_expr),
 				Destroy:   false,
+				Managed:   &ManagedResource{},
 				DeclRange: blockRange,
 			},
 			``,
+		},
+		"provisioner when = destroy": {
+			&hcl.Block{
+				Type: "removed",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"from": {
+							Name: "from",
+							Expr: foo_expr,
+						},
+					},
+					Blocks: hcl.Blocks{
+						&hcl.Block{
+							Type:        "provisioner",
+							Labels:      []string{"remote-exec"},
+							LabelRanges: []hcl.Range{{}},
+							Body: hcltest.MockBody(&hcl.BodyContent{
+								Attributes: hcl.Attributes{
+									"when": {
+										Name: "when",
+										Expr: hcltest.MockExprTraversalSrc("destroy"),
+									},
+								},
+							}),
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			&Removed{
+				From:    mustRemoveEndpointFromExpr(foo_expr),
+				Destroy: true,
+				Managed: &ManagedResource{
+					Provisioners: []*Provisioner{
+						{
+							Type: "remote-exec",
+							Config: hcltest.MockBody(&hcl.BodyContent{
+								Attributes: hcl.Attributes{},
+								Blocks:     hcl.Blocks{},
+							}),
+							When:      ProvisionerWhenDestroy,
+							OnFailure: ProvisionerOnFailureFail,
+						},
+					},
+				},
+				DeclRange: blockRange,
+			},
+			``,
+		},
+		"provisioner when = create": {
+			&hcl.Block{
+				Type: "removed",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"from": {
+							Name: "from",
+							Expr: foo_expr,
+						},
+					},
+					Blocks: hcl.Blocks{
+						&hcl.Block{
+							Type:        "provisioner",
+							Labels:      []string{"local-exec"},
+							LabelRanges: []hcl.Range{{}},
+							Body: hcltest.MockBody(&hcl.BodyContent{
+								Attributes: hcl.Attributes{
+									"when": {
+										Name: "when",
+										Expr: hcltest.MockExprTraversalSrc("create"),
+									},
+								},
+							}),
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			&Removed{
+				From:    mustRemoveEndpointFromExpr(foo_expr),
+				Destroy: true,
+				Managed: &ManagedResource{
+					Provisioners: []*Provisioner{
+						{
+							Type: "local-exec",
+							Config: hcltest.MockBody(&hcl.BodyContent{
+								Attributes: hcl.Attributes{},
+								Blocks:     hcl.Blocks{},
+							}),
+							When:      ProvisionerWhenCreate,
+							OnFailure: ProvisionerOnFailureFail,
+						},
+					},
+				},
+				DeclRange: blockRange,
+			},
+			`Invalid provisioner block`,
+		},
+		"provisioner no when": {
+			&hcl.Block{
+				Type: "removed",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"from": {
+							Name: "from",
+							Expr: foo_expr,
+						},
+					},
+					Blocks: hcl.Blocks{
+						&hcl.Block{
+							Type: "connection",
+							Body: hcltest.MockBody(&hcl.BodyContent{}),
+						},
+						&hcl.Block{
+							Type:        "provisioner",
+							Labels:      []string{"local-exec"},
+							LabelRanges: []hcl.Range{{}},
+							Body:        hcltest.MockBody(&hcl.BodyContent{}),
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			&Removed{
+				From:    mustRemoveEndpointFromExpr(foo_expr),
+				Destroy: true,
+				Managed: &ManagedResource{
+					Connection: &Connection{
+						Config: hcltest.MockBody(&hcl.BodyContent{}),
+					},
+					Provisioners: []*Provisioner{
+						{
+							Type: "local-exec",
+							Config: hcltest.MockBody(&hcl.BodyContent{
+								Attributes: hcl.Attributes{},
+								Blocks:     hcl.Blocks{},
+							}),
+							When:      ProvisionerWhenCreate,
+							OnFailure: ProvisionerOnFailureFail,
+						},
+					},
+				},
+				DeclRange: blockRange,
+			},
+			`Invalid provisioner block`,
 		},
 		"modules": {
 			&hcl.Block{
@@ -130,6 +276,67 @@ func TestRemovedBlock_decode(t *testing.T) {
 			},
 			``,
 		},
+		"provisioner for module": {
+			&hcl.Block{
+				Type: "removed",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"from": {
+							Name: "from",
+							Expr: mod_foo_expr,
+						},
+					},
+					Blocks: hcl.Blocks{
+						&hcl.Block{
+							Type:        "provisioner",
+							Labels:      []string{"local-exec"},
+							LabelRanges: []hcl.Range{{}},
+							Body: hcltest.MockBody(&hcl.BodyContent{
+								Attributes: hcl.Attributes{
+									"when": {
+										Name: "when",
+										Expr: hcltest.MockExprTraversalSrc("destroy"),
+									},
+								},
+							}),
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			&Removed{
+				From:      mustRemoveEndpointFromExpr(mod_foo_expr),
+				Destroy:   true,
+				DeclRange: blockRange,
+			},
+			`Invalid provisioner block`,
+		},
+		"connection for module": {
+			&hcl.Block{
+				Type: "removed",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"from": {
+							Name: "from",
+							Expr: mod_foo_expr,
+						},
+					},
+					Blocks: hcl.Blocks{
+						&hcl.Block{
+							Type: "connection",
+							Body: hcltest.MockBody(&hcl.BodyContent{}),
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			&Removed{
+				From:      mustRemoveEndpointFromExpr(mod_foo_expr),
+				Destroy:   true,
+				DeclRange: blockRange,
+			},
+			`Invalid connection block`,
+		},
 		// KEM Unspecified behaviour
 		"no lifecycle block": {
 			&hcl.Block{
@@ -147,6 +354,7 @@ func TestRemovedBlock_decode(t *testing.T) {
 			&Removed{
 				From:      mustRemoveEndpointFromExpr(foo_expr),
 				Destroy:   true,
+				Managed:   &ManagedResource{},
 				DeclRange: blockRange,
 			},
 			``,
