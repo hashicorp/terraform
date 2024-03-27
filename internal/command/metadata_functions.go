@@ -5,6 +5,7 @@ package command
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/jsonfunction"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -55,6 +56,14 @@ func (c *MetadataFunctionsCommand) Run(args []string) int {
 		if isIgnoredFunction(k) {
 			continue
 		}
+
+		// To remove duplication, we ignore the namespaced core functions.
+		// When consumers ingest the JSON output, they can choose to namespace
+		// the functions as they see fit, similar to the provider-defined functions.
+		if strings.HasPrefix(k, "core::") {
+			continue
+		}
+
 		filteredFuncs[k] = v
 	}
 
