@@ -6,9 +6,11 @@ package providercache
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 
 	getter "github.com/hashicorp/go-getter"
@@ -136,7 +138,48 @@ func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta,
 	// match the allowed hashes and so our caller should catch that after
 	// we return if so.
 
-	err := unzip.Decompress(targetDir, filename, true, 0000)
+	err := os.MkdirAll(targetDir, 0777)
+	if err != nil {
+		return authResult, fmt.Errorf("failed to create new directory: %w", err)
+	}
+
+	stagingDir, err := os.MkdirTemp(path.Dir(targetDir), ".temp")
+	if err != nil {
+		return authResult, fmt.Errorf("failed to create a temp dir: %w", err)
+	}
+	defer os.RemoveAll(stagingDir)
+
+	err = unzip.Decompress(stagingDir, filename, true, 0000)
+	if err != nil {
+		return authResult, fmt.Errorf("failed to decompress: %w", err)
+	}
+
+	// Try to atomically move the files from stagingDir to targetDir.
+	err = filepath.Walk(stagingDir, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return fmt.Errorf("failed to copy path %s to target directory: %w", path, err)
+		}
+		relPath, err := filepath.Rel(stagingDir, path)
+		if err != nil {
+			return fmt.Errorf("failed to calculate relative path: %w", err)
+		}
+
+		if info.IsDir() {
+			// Create the directory
+			err := os.MkdirAll(filepath.Join(targetDir, relPath), info.Mode().Perm())
+			if err != nil {
+				return fmt.Errorf("failed to create path: %w", err)
+			}
+		} else {
+			// On supported platforms, this should perform atomic replacement of the file.
+			err := os.Rename(path, filepath.Join(targetDir, relPath))
+			if err != nil {
+				return fmt.Errorf("failed to move '%s': %w", path, err)
+			}
+		}
+		return nil
+	})
+
 	if err != nil {
 		return authResult, err
 	}
