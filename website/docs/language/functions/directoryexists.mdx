@@ -1,0 +1,29 @@
+---
+page_title: directoryexists - Functions - Configuration Language
+description: The directoryexists function determines whether a directory exists at a given path.
+---
+
+# `directoryexists` Function
+
+`directoryexists` determines whether a directory exists at a given path.
+
+```hcl
+directoryexists(path)
+```
+
+Functions are evaluated during configuration parsing rather than at apply time,
+so this function can only be used with files that are already present on disk
+before Terraform takes any actions.
+
+This function works only with directories. If used with a FIFO,
+or other special mode, it will return an error.
+
+## Examples
+
+```
+> directoryexists("${path.module}")
+true
+
+> directoryexists("${path.module}/someboguspath")
+false
+```
