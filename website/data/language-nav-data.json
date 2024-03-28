@@ -6,6 +6,10 @@
     "path": "attr-as-blocks",
     "hidden": true
   },
+  { 
+    "title": "Style Guide", 
+    "path": "style" 
+  },
   {
     "title": "Terraform v1.0 Compatibility Promises",
     "path": "v1-compatibility-promises",
@@ -33,8 +37,7 @@
       {
         "title": "JSON Configuration Syntax",
         "path": "syntax/json"
-      },
-      { "title": "Style Conventions", "path": "syntax/style" }
+      }
     ]
   },
   {
