@@ -108,28 +108,15 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	expander := ctx.InstanceExpander()
 	moduleInstances := expander.ExpandModule(n.Addr.Module)
 
-	// The possibility of partial-expanded modules and resources is
-	// currently guarded by a language experiment, and so to minimize the
-	// risk of that experiment impacting mainline behavior we currently
-	// branch off into an entirely-separate codepath in those situations,
-	// at the expense of duplicating some of the logic for behavior this
-	// method would normally handle.
-	//
-	// Normally language experiments are confined to only a single module,
-	// but this one has potential cross-module impact once enabled for at
-	// least one, and so this flag is true if _any_ module in the configuration
-	// has opted in to the experiment. Our intent is for this different
-	// codepath to produce the same results when there aren't any
-	// partial-expanded modules, but bugs might make that not true and so
-	// this is conservative to minimize the risk of breaking things for
-	// those who aren't participating in the experiment.
-	//
-	// TODO: If this experiment is stablized then we should aim to combine
-	// these two codepaths back together, so that the behavior is less likely
-	// to diverge under future maintenence.
-	if n.unknownInstancesExperimentEnabled {
+	// The possibility of partial-expanded modules and resources is guarded by a
+	// top-level option for the whole plan, so that we can preserve mainline
+	// behavior for the modules runtime. So, we currently branch off into an
+	// entirely-separate codepath in those situations, at the expense of
+	// duplicating some of the logic for behavior this method would normally
+	// handle.
+	if ctx.Deferrals().DeferralAllowed() {
 		pem := expander.UnknownModuleInstances(n.Addr.Module)
-		return n.dynamicExpandWithUnknownInstancesExperiment(ctx, moduleInstances, pem)
+		return n.dynamicExpandWithDeferralAllowed(ctx, moduleInstances, pem)
 	}
 
 	// Lock the state while we inspect it
@@ -218,22 +205,14 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	return &g, diags
 }
 
-// dynamicExpandWithUnknownInstancesExperiment is a temporary experimental
-// variant of DynamicExpand that we use when at least one module is
-// participating in the "unknown_instances" language experiment.
+// dynamicExpandWithDeferralAllowed is a variant of DynamicExpand that we use
+// when deferred actions are enabled for the current plan.
 //
-// This is not exactly in the typical spirit of language experiments in that
-// the effect is not scoped only to the module where the opt-in is declared:
-// if there are bugs in this method then they could potentially also affect
-// resources in modules not directly participating. We're accepting that
-// as a pragmatic compromise here since unknown expansion of a module call
-// is inherently a cross-module concern.
-//
-// If we move forward with unknown instances as a stable feature then we
-// should find a way to meld this logic with the main DynamicExpand logic,
-// but it's separate for now to minimize the risk of the experiment impacting
-// configurations that are not opted into it.
-func (n *nodeExpandPlannableResource) dynamicExpandWithUnknownInstancesExperiment(globalCtx EvalContext, knownInsts []addrs.ModuleInstance, partialInsts addrs.Set[addrs.PartialExpandedModule]) (*Graph, tfdiags.Diagnostics) {
+// Once deferred actions are more stable and robust in the stacks runtime, it
+// would be nice to integrate this logic a little better with the main
+// DynamicExpand logic, but it's separate for now to minimize the risk of
+// stacks-specific behavior impacting configurations that are not opted into it.
+func (n *nodeExpandPlannableResource) dynamicExpandWithDeferralAllowed(globalCtx EvalContext, knownInsts []addrs.ModuleInstance, partialInsts addrs.Set[addrs.PartialExpandedModule]) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 	var diags tfdiags.Diagnostics
 

@@ -70,12 +70,6 @@ var (
 	resourceForEachTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
-// TEMP: unknown for_each currently requires an experiment opt-in.
-// We should remove this block if the experiment gets stabilized.
-terraform {
-	experiments = [unknown_instances]
-}
-
 variable "each" {
 	type = set(string)
 }

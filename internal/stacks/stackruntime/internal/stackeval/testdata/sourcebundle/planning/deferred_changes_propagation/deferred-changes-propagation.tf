@@ -5,12 +5,6 @@ terraform {
       source = "terraform.io/builtin/test"
     }
   }
-
-  # TODO: Remove this if this experiment gets stabilized.
-  # If you're removing this, remember to also update the calling test so
-  # that it no longer enables the use of experiments, to ensure that we're
-  # really not depending on any experimental features.
-  experiments = [unknown_instances]
 }
 
 variable "instance_count" {
