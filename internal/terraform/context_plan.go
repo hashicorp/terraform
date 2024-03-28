@@ -77,6 +77,17 @@ type PlanOpts struct {
 	// fully-functional new object.
 	ForceReplace []addrs.AbsResourceInstance
 
+	// DeferralAllowed specifies that the plan is allowed to defer some actions,
+	// so that a subset of the plan can be applied even if parts of it can't yet
+	// be planned at all. Plans that contain deferred actions can't converge in
+	// a single run, and their configuration must be planned again after the
+	// dependencies of their deferred objects are in a usable state. Various
+	// events can cause deferrals, including unknown values in count and
+	// for_each arguments, and deferral notices from providers. If
+	// DeferralAllowed is false, the plan will error upon encountering an object
+	// that would be unplannable until after the apply.
+	DeferralAllowed bool
+
 	// ExternalReferences allows the external caller to pass in references to
 	// nodes that should not be pruned even if they are not referenced within
 	// the actual graph.
@@ -674,6 +685,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		Config:                     config,
 		InputState:                 prevRunState,
 		ExternalProviderConfigs:    externalProviderConfigs,
+		DeferralAllowed:            opts.DeferralAllowed,
 		ExternalDependencyDeferred: opts.ExternalDependencyDeferred,
 		Changes:                    changes,
 		MoveResults:                moveResults,
