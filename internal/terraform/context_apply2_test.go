@@ -3304,3 +3304,76 @@ resource "test_resource" "a" {
 		t.Errorf("unexpected sensitive paths\ndiff:\n%s", diff)
 	}
 }
+
+func TestContext2Apply_sensitiveNestedComputedAttributes(t *testing.T) {
+	// Ensure we're not trying to double-mark values decoded from state
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_object": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"list": {
+						Computed: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"secret": {
+									Type:      cty.String,
+									Computed:  true,
+									Sensitive: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		obj := req.PlannedState.AsValueMap()
+		obj["list"] = cty.ListVal([]cty.Value{
+			cty.ObjectVal(map[string]cty.Value{
+				"secret": cty.StringVal("secret"),
+			}),
+		})
+		obj["id"] = cty.StringVal("id")
+		resp.NewState = cty.ObjectVal(obj)
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	if len(state.ResourceInstance(mustResourceInstanceAddr("test_object.a")).Current.AttrSensitivePaths) < 1 {
+		t.Fatal("no attributes marked as sensitive in state")
+	}
+
+	plan, diags = ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	if c := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.a")); c.Action != plans.NoOp {
+		t.Errorf("Unexpected %s change for %s", c.Action, c.Addr)
+	}
+}
