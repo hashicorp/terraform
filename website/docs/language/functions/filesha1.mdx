@@ -13,3 +13,7 @@ that hashes the contents of a given file rather than a literal string.
 This is similar to `sha1(file(filename))`, but
 because [`file`](/terraform/language/functions/file) accepts only UTF-8 text it cannot be used to
 create hashes for binary files.
+
+Collision attacks have been successfully performed against this hashing
+function. Before using this function for anything security-sensitive, review
+relevant literature to understand the security implications.
