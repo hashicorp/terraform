@@ -4,7 +4,14 @@
 package webbrowser
 
 import (
+	"context"
+	"fmt"
+	"os"
+	"os/exec"
+	"time"
+
 	"github.com/pkg/browser"
+	"golang.org/x/xerrors"
 )
 
 // NewNativeLauncher creates and returns a Launcher that will attempt to interact
@@ -17,5 +24,18 @@ func NewNativeLauncher() Launcher {
 type nativeLauncher struct{}
 
 func (l nativeLauncher) OpenURL(url string) error {
+	browserEnv := os.Getenv("BROWSER")
+	if browserEnv != "" {
+		browserSh := fmt.Sprintf("%s '%s'", browserEnv, url)
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, "sh", "-c", browserSh)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			return xerrors.Errorf("failed to run %v (out: %q): %w", cmd.Args, out, err)
+		}
+		return nil
+	}
+
 	return browser.OpenURL(url)
 }
