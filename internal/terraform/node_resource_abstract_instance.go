@@ -727,7 +727,6 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 	// the prior state. New marks may appear when the prior state was from an
 	// import operation, or if the provider added new marks to the schema.
 	if marks := dedupePathValueMarks(append(priorMarks, schema.ValueMarks(ret.Value, nil)...)); len(marks) > 0 {
-		//if marks := priorMarks; len(marks) > 0 {
 		ret.Value = ret.Value.MarkWithPaths(marks)
 	}
 
@@ -2490,9 +2489,12 @@ func (n *NodeAbstractResourceInstance) apply(
 	// incomplete.
 	newVal := resp.NewState
 
-	// If we have paths to mark, mark those on this new value
-	if len(afterPaths) > 0 {
-		newVal = newVal.MarkWithPaths(afterPaths)
+	// If we have paths to mark, mark those on this new value we need to
+	// re-check the value against the schema, because nested computed values
+	// won't be included in afterPaths, which are only what was read from the
+	// After plan value.
+	if marks := dedupePathValueMarks(append(afterPaths, schema.ValueMarks(newVal, nil)...)); len(marks) > 0 {
+		newVal = newVal.MarkWithPaths(marks)
 	}
 
 	if newVal == cty.NilVal {

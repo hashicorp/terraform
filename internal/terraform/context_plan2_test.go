@@ -5430,7 +5430,7 @@ resource "test_object" "obj" {
 }
 
 // When a schema declares that attributes nested within sets are sensitive, the
-// resulting cty values wil transfer those marks to the containing set. Verify
+// resulting cty values will transfer those marks to the containing set. Verify
 // that this does not present a change in the plan.
 func TestContext2Plan_nestedSensitiveMarks(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
