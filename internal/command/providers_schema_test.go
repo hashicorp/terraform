@@ -59,9 +59,11 @@ func TestProvidersSchema_output(t *testing.T) {
 
 			p := providersSchemaFixtureProvider()
 			ui := new(cli.MockUi)
+			view, _ := testView(t)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				View:             view,
 				ProviderSource:   providerSource,
 			}
 

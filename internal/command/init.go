@@ -1174,8 +1174,8 @@ Options:
 
   -no-color               If specified, output won't contain any color.
 
-	-json                   If specified, machine readable output will be
-	                        printed in JSON format.
+  -json                   If specified, machine readable output will be
+                          printed in JSON format.
 
   -plugin-dir             Directory containing plugin binaries. This overrides all
                           default search paths for plugins, and prevents the

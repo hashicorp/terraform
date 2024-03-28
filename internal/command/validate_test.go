@@ -362,6 +362,20 @@ func TestValidateWithInvalidOverrides(t *testing.T) {
 
 	actual := output.All()
 	expected := `
+Warning: Incomplete lock file information for providers
+
+Due to your customized provider installation methods, Terraform was forced to
+calculate lock file checksums locally for the following providers:
+  - hashicorp/test
+
+The current .terraform.lock.hcl file only includes checksums for linux_amd64,
+so Terraform running on another platform will fail to install these
+providers.
+
+To calculate additional checksums for another platform, run:
+  terraform providers lock -platform=linux_amd64
+(where linux_amd64 is the platform to generate)
+
 Warning: Invalid override target
 
   on main.tftest.hcl line 4, in mock_provider "test":
