@@ -379,7 +379,7 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		// computed+optional attributes has become unset
 		configVal, err := path.Apply(r.Config)
 		if err != nil {
-			return v, err
+			return v, nil
 		}
 
 		switch {
