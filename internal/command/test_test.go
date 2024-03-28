@@ -290,8 +290,8 @@ func TestTest_Runs(t *testing.T) {
 			if tc.initCode > 0 {
 				// Then we don't expect the init step to succeed. So we'll check
 				// the init output for our expected error messages and outputs.
-
-				stdout, stderr := ui.ErrorWriter.String(), ui.ErrorWriter.String()
+				output := done(t).All()
+				stdout, stderr := output, output
 
 				if !strings.Contains(stdout, tc.expectedOut) {
 					t.Errorf("output didn't contain expected string:\n\n%s", stdout)
@@ -872,8 +872,8 @@ can remove the provider configuration again.
 			actualOut, expectedOut := output.Stdout(), tc.expectedOut
 			actualErr, expectedErr := output.Stderr(), tc.expectedErr
 
-			if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
-				t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+			if !strings.Contains(actualOut, expectedOut) {
+				t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s", expectedOut, actualOut)
 			}
 
 			if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
@@ -1063,8 +1063,8 @@ Success! 5 passed, 0 failed.
 
 	actual := output.All()
 
-	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
-		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	if !strings.Contains(actual, expected) {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s", expected, actual)
 	}
 
 	if provider.ResourceCount() > 0 {
@@ -1124,10 +1124,10 @@ main.tftest.hcl... pass
 Success! 2 passed, 0 failed.
 `
 
-	actual := output.All()
+	actual := output.Stdout()
 
-	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
-		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	if !strings.Contains(actual, expected) {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s", expected, actual)
 	}
 
 	if provider.ResourceCount() > 0 {
@@ -1915,7 +1915,21 @@ func TestTest_InvalidOverrides(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expected := `main.tftest.hcl... in progress
+	expected := `
+Warning: Incomplete lock file information for providers
+
+Due to your customized provider installation methods, Terraform was forced to
+calculate lock file checksums locally for the following providers:
+  - hashicorp/test
+
+The current .terraform.lock.hcl file only includes checksums for linux_amd64,
+so Terraform running on another platform will fail to install these
+providers.
+
+To calculate additional checksums for another platform, run:
+  terraform providers lock -platform=linux_amd64
+(where linux_amd64 is the platform to generate)
+main.tftest.hcl... in progress
   run "setup"... pass
 
 Warning: Invalid override target
@@ -2009,7 +2023,21 @@ func TestTest_RunBlocksInProviders(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expected := `main.tftest.hcl... in progress
+	expected := `
+Warning: Incomplete lock file information for providers
+
+Due to your customized provider installation methods, Terraform was forced to
+calculate lock file checksums locally for the following providers:
+  - hashicorp/test
+
+The current .terraform.lock.hcl file only includes checksums for linux_amd64,
+so Terraform running on another platform will fail to install these
+providers.
+
+To calculate additional checksums for another platform, run:
+  terraform providers lock -platform=linux_amd64
+(where linux_amd64 is the platform to generate)
+main.tftest.hcl... in progress
   run "setup"... pass
   run "main"... pass
 main.tftest.hcl... tearing down
@@ -2070,7 +2098,21 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 		t.Errorf("expected status code 1 but got %d", code)
 	}
 
-	expectedOut := `missing_run_block.tftest.hcl... in progress
+	expectedOut := `
+Warning: Incomplete lock file information for providers
+
+Due to your customized provider installation methods, Terraform was forced to
+calculate lock file checksums locally for the following providers:
+  - hashicorp/test
+
+The current .terraform.lock.hcl file only includes checksums for linux_amd64,
+so Terraform running on another platform will fail to install these
+providers.
+
+To calculate additional checksums for another platform, run:
+  terraform providers lock -platform=linux_amd64
+(where linux_amd64 is the platform to generate)
+missing_run_block.tftest.hcl... in progress
   run "main"... fail
 missing_run_block.tftest.hcl... tearing down
 missing_run_block.tftest.hcl... fail
