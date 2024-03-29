@@ -89,7 +89,7 @@ var EndsWithFunc = function.New(&function.Spec{
 })
 
 // ReplaceFunc constructs a function that searches a given string for another
-// given substring, and replaces each occurence with a given replacement string.
+// given substring, and replaces each occurrence with a given replacement string.
 var ReplaceFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{

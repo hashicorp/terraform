@@ -53,7 +53,7 @@ func parseIPv4(s string) IP {
 		// backwards-incompatible change for Terraform users, who might have
 		// already written modules with leading zeroes.
 		//
-		//if c > 1 && s[0] == '0' {
+		// if c > 1 && s[0] == '0' {
 		//	// Reject non-zero components with leading zeroes.
 		//	return nil
 		//}
