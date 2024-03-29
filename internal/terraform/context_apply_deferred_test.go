@@ -373,7 +373,8 @@ func TestContextApply_deferredActions(t *testing.T) {
 					})
 
 					plan, diags := ctx.Plan(cfg, state, &PlanOpts{
-						Mode: plans.NormalMode,
+						Mode:            plans.NormalMode,
+						DeferralAllowed: true,
 						SetVariables: func() InputValues {
 							values := InputValues{}
 							for name, value := range stage.inputs {
