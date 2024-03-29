@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/pkg/browser"
-	"golang.org/x/xerrors"
 )
 
 // NewNativeLauncher creates and returns a Launcher that will attempt to interact
@@ -30,11 +29,8 @@ func (l nativeLauncher) OpenURL(url string) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		cmd := exec.CommandContext(ctx, "sh", "-c", browserSh)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			return xerrors.Errorf("failed to run %v (out: %q): %w", cmd.Args, out, err)
-		}
-		return nil
+		_, err := cmd.CombinedOutput()
+		return err
 	}
 
 	return browser.OpenURL(url)
