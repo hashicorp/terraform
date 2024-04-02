@@ -491,6 +491,23 @@ ImportValidation:
 		g.Add(v)
 	}
 
+	// If this is a resource that participates in custom condition checks
+	// (i.e. it has preconditions or postconditions) then the check state
+	// wants to know the addresses of the checkable objects so that it can
+	// treat them as unknown status if we encounter an error before actually
+	// visiting the checks.
+	if checkState := globalCtx.Checks(); checkState.ConfigHasChecks(n.NodeAbstractResource.Addr) {
+		checkables := addrs.MakeSet[addrs.Checkable]()
+		for _, addr := range knownAddrs {
+			checkables.Add(addr)
+		}
+		for _, addr := range maybeOrphanAddrs {
+			checkables.Add(addr)
+		}
+
+		checkState.ReportCheckableObjects(n.NodeAbstractResource.Addr, checkables)
+	}
+
 	addRootNodeToGraph(&g)
 	return &g, diags
 }
