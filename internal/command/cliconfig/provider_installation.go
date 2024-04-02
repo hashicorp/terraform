@@ -5,6 +5,7 @@ package cliconfig
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 
 	"github.com/hashicorp/hcl"
@@ -253,7 +254,23 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 						))
 						continue
 					}
-					dirPath := filepath.Clean(rawPath)
+					unsetEnvVars := make(map[string]bool)
+					interpolatedPath := os.Expand(rawPath, func(envVarName string) string {
+						if value, ok := os.LookupEnv(envVarName); ok {
+							return value
+						} else {
+							if _, reported := unsetEnvVars[envVarName]; !reported {
+								diags = diags.Append(tfdiags.Sourceless(
+									tfdiags.Error,
+									"Interpolated environment variable not set",
+									fmt.Sprintf("The environment variable %s is not set or empty and can result in undesired behavior", envVarName),
+								))
+								unsetEnvVars[envVarName] = true
+							}
+							return ""
+						}
+					})
+					dirPath := filepath.Clean(interpolatedPath)
 					devOverrides[addr] = getproviders.PackageLocalDir(dirPath)
 				}
 
