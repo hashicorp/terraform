@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 	"testing"
@@ -123,6 +124,7 @@ output "c" {
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"defer_read":     cty.NullVal(cty.Bool),
 					}),
 					"<unknown>": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.UnknownVal(cty.String).Refine().
@@ -132,10 +134,12 @@ output "c" {
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"defer_read": cty.NullVal(cty.Bool),
 					}),
 					"c": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("c"),
 						"upstream_names": cty.UnknownVal(cty.Set(cty.String)).RefineNotNull(),
+						"defer_read":     cty.NullVal(cty.Bool),
 					}),
 				},
 				wantActions: map[string]plans.Action{
@@ -147,12 +151,14 @@ output "c" {
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"defer_read":     cty.NullVal(cty.Bool),
 					}),
 				},
 				wantOutputs: map[string]cty.Value{
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"defer_read":     cty.NullVal(cty.Bool),
 					}),
 
 					// FIXME: The system is currently producing incorrect
@@ -207,6 +213,7 @@ output "c" {
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"defer_read":     cty.NullVal(cty.Bool),
 					}),
 					// test.b is now planned for real, once for each instance
 					"b:1": cty.ObjectVal(map[string]cty.Value{
@@ -214,12 +221,14 @@ output "c" {
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"defer_read": cty.NullVal(cty.Bool),
 					}),
 					"b:2": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("b:2"),
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"defer_read": cty.NullVal(cty.Bool),
 					}),
 					// test.c gets re-planned, so we can finalize its values
 					// based on the new results from test.b.
@@ -230,6 +239,7 @@ output "c" {
 							cty.StringVal("b:1"),
 							cty.StringVal("b:2"),
 						}),
+						"defer_read": cty.NullVal(cty.Bool),
 					}),
 				},
 				wantActions: map[string]plans.Action{
@@ -249,12 +259,14 @@ output "c" {
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"defer_read": cty.NullVal(cty.Bool),
 					}),
 					"b:2": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("b:2"),
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"defer_read": cty.NullVal(cty.Bool),
 					}),
 					"c": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("c"),
@@ -263,6 +275,7 @@ output "c" {
 							cty.StringVal("b:1"),
 							cty.StringVal("b:2"),
 						}),
+						"defer_read": cty.NullVal(cty.Bool),
 					}),
 				},
 				wantOutputs: map[string]cty.Value{
@@ -271,6 +284,7 @@ output "c" {
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"defer_read":     cty.NullVal(cty.Bool),
 					}),
 					"b": cty.ObjectVal(map[string]cty.Value{
 						"1": cty.ObjectVal(map[string]cty.Value{
@@ -278,12 +292,14 @@ output "c" {
 							"upstream_names": cty.SetVal([]cty.Value{
 								cty.StringVal("a"),
 							}),
+							"defer_read": cty.NullVal(cty.Bool),
 						}),
 						"2": cty.ObjectVal(map[string]cty.Value{
 							"name": cty.StringVal("b:2"),
 							"upstream_names": cty.SetVal([]cty.Value{
 								cty.StringVal("a"),
 							}),
+							"defer_read": cty.NullVal(cty.Bool),
 						}),
 					}),
 					"c": cty.ObjectVal(map[string]cty.Value{
@@ -293,6 +309,7 @@ output "c" {
 							cty.StringVal("b:1"),
 							cty.StringVal("b:2"),
 						}),
+						"defer_read": cty.NullVal(cty.Bool),
 					}),
 				},
 				complete: true,
@@ -309,18 +326,21 @@ output "c" {
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"defer_read":     cty.NullVal(cty.Bool),
 					}),
 					"b:1": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("b:1"),
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"defer_read": cty.NullVal(cty.Bool),
 					}),
 					"b:2": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("b:2"),
 						"upstream_names": cty.SetVal([]cty.Value{
 							cty.StringVal("a"),
 						}),
+						"defer_read": cty.NullVal(cty.Bool),
 					}),
 					"c": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("c"),
@@ -329,6 +349,7 @@ output "c" {
 							cty.StringVal("b:1"),
 							cty.StringVal("b:2"),
 						}),
+						"defer_read": cty.NullVal(cty.Bool),
 					}),
 				},
 				wantActions: map[string]plans.Action{
@@ -357,7 +378,8 @@ terraform {
 }
 
 resource "test" "a" {
-	name = "deferred_read"
+	name       = "a"
+	defer_read = true
 }
 
 output "a" {
@@ -365,6 +387,21 @@ output "a" {
 }
 		`,
 		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name":       "_a", // this is different from the config
+						"defer_read": true,
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
 		stages: []deferredActionsTestStage{
 			{
 				buildOpts: func(opts *PlanOpts) {
@@ -387,8 +424,23 @@ output "a" {
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
 					}),
 				},
-				complete: true,
+				complete: false,
 			},
+			// TODO: This test currently panics with
+			// ProposedNew only supports object-typed values
+			// during the plan stage. This will be fixed in TF-13953.
+			//
+			// {
+			// 	inputs: map[string]cty.Value{},
+			// 	wantPlanned: map[string]cty.Value{
+			// 		"a": cty.UnknownAsNull(cty.DynamicVal),
+			// 	},
+
+			// 	wantActions: map[string]plans.Action{},
+			// 	wantApplied: map[string]cty.Value{},
+			// 	wantOutputs: map[string]cty.Value{},
+			// 	complete:    false,
+			// },
 		},
 	}
 )
@@ -556,13 +608,17 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 								Type:     cty.Set(cty.String),
 								Optional: true,
 							},
+							"defer_read": {
+								Type:     cty.Bool,
+								Optional: true,
+							},
 						},
 					},
 				},
 			},
 		},
 		ReadResourceFn: func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
-			if key := req.PriorState.GetAttr("name"); key.IsKnown() && key.AsString() == "deferred_read" {
+			if key := req.PriorState.GetAttr("defer_read"); key.IsKnown() && key.True() {
 				return providers.ReadResourceResponse{
 					NewState: req.PriorState,
 					Deferred: &providers.Deferred{
@@ -594,4 +650,12 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			}
 		},
 	}
+}
+
+func mustParseJson(values map[string]interface{}) []byte {
+	data, err := json.Marshal(values)
+	if err != nil {
+		panic(err)
+	}
+	return data
 }
