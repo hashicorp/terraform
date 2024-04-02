@@ -206,7 +206,7 @@ func TestNodeAbstractResourceInstance_refresh_with_deferred_read(t *testing.T) {
 	mockProvider.ReadResourceFn = func(providers.ReadResourceRequest) providers.ReadResourceResponse {
 		return providers.ReadResourceResponse{
 			Deferred: &providers.Deferred{
-				Reason: providers.DEFERRED_REASON_ABSENT_PREREQ,
+				Reason: providers.DeferredReasonAbsentPrereq,
 			},
 		}
 	}

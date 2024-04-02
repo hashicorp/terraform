@@ -566,7 +566,7 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 				return providers.ReadResourceResponse{
 					NewState: req.PriorState,
 					Deferred: &providers.Deferred{
-						Reason: providers.DEFERRED_REASON_PROVIDER_CONFIG_UNKNOWN,
+						Reason: providers.DeferredReasonProviderConfigUnknown,
 					},
 				}
 			}

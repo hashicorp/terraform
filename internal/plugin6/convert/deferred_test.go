@@ -18,19 +18,19 @@ func TestProtoDeferred(t *testing.T) {
 	}{
 		{
 			reason:   proto.Deferred_UNKNOWN,
-			expected: providers.DEFERRED_REASON_UNKNOWN,
+			expected: providers.DeferredReasonUnknown,
 		},
 		{
 			reason:   proto.Deferred_RESOURCE_CONFIG_UNKNOWN,
-			expected: providers.DEFERRED_REASON_RESOURCE_CONFIG_UNKNOWN,
+			expected: providers.DeferredReasonResourceConfigUnknown,
 		},
 		{
 			reason:   proto.Deferred_PROVIDER_CONFIG_UNKNOWN,
-			expected: providers.DEFERRED_REASON_PROVIDER_CONFIG_UNKNOWN,
+			expected: providers.DeferredReasonProviderConfigUnknown,
 		},
 		{
 			reason:   proto.Deferred_ABSENT_PREREQ,
-			expected: providers.DEFERRED_REASON_ABSENT_PREREQ,
+			expected: providers.DeferredReasonAbsentPrereq,
 		},
 	}
 

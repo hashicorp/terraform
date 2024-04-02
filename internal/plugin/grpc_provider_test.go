@@ -395,7 +395,7 @@ func TestGRPCProvider_ReadResource_deferred(t *testing.T) {
 	checkDiags(t, resp.Diagnostics)
 
 	expectedDeferred := &providers.Deferred{
-		Reason: providers.DEFERRED_REASON_ABSENT_PREREQ,
+		Reason: providers.DeferredReasonAbsentPrereq,
 	}
 	if !cmp.Equal(expectedDeferred, resp.Deferred, typeComparer, valueComparer, equateEmpty) {
 		t.Fatal(cmp.Diff(expectedDeferred, resp.Deferred, typeComparer, valueComparer, equateEmpty))

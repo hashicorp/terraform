@@ -17,18 +17,18 @@ func ProtoToDeferred(d *proto.Deferred) *providers.Deferred {
 	var reason int32
 	switch d.Reason {
 	case proto.Deferred_UNKNOWN:
-		reason = providers.DEFERRED_REASON_UNKNOWN
+		reason = providers.DeferredReasonUnknown
 	case proto.Deferred_RESOURCE_CONFIG_UNKNOWN:
-		reason = providers.DEFERRED_REASON_RESOURCE_CONFIG_UNKNOWN
+		reason = providers.DeferredReasonResourceConfigUnknown
 	case proto.Deferred_PROVIDER_CONFIG_UNKNOWN:
-		reason = providers.DEFERRED_REASON_PROVIDER_CONFIG_UNKNOWN
+		reason = providers.DeferredReasonProviderConfigUnknown
 	case proto.Deferred_ABSENT_PREREQ:
-		reason = providers.DEFERRED_REASON_ABSENT_PREREQ
+		reason = providers.DeferredReasonAbsentPrereq
 	default:
-		reason = providers.DEFERRED_REASON_UNKNOWN
+		reason = providers.DeferredReasonUnknown
 	}
 
 	return &providers.Deferred{
-		Reason: reason,
+		Reason: providers.DeferredReason(reason),
 	}
 }

@@ -656,6 +656,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			expectedValue := cty.UnknownVal(cty.DynamicPseudoType)
 			deferrals.ReportResourceInstanceDeferred(absAddr, plans.Read, expectedValue)
 
+			// TODO: Add this to the plan (TF-13953)
 			return &states.ResourceInstanceObject{
 				Value: expectedValue,
 			}, diags

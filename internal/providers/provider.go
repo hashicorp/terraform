@@ -243,15 +243,17 @@ type ReadResourceRequest struct {
 	DeferralAllowed bool
 }
 
+type DeferredReason int32
+
 const (
-	DEFERRED_REASON_UNKNOWN                 = 0
-	DEFERRED_REASON_RESOURCE_CONFIG_UNKNOWN = 1
-	DEFERRED_REASON_PROVIDER_CONFIG_UNKNOWN = 2
-	DEFERRED_REASON_ABSENT_PREREQ           = 3
+	DeferredReasonUnknown = iota
+	DeferredReasonResourceConfigUnknown
+	DeferredReasonProviderConfigUnknown
+	DeferredReasonAbsentPrereq
 )
 
 type Deferred struct {
-	Reason int32
+	Reason DeferredReason
 }
 
 type ReadResourceResponse struct {
@@ -265,7 +267,8 @@ type ReadResourceResponse struct {
 	// resource. It is intended only for interpretation by the provider itself.
 	Private []byte
 
-	// Deferred TODO: docuemnt this
+	// Deferred if present signals that the provider was not able to fully
+	// complete this operation and a susequent run is required.
 	Deferred *Deferred
 }
 
