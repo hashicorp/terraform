@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -1628,7 +1629,9 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		))
 	}
 
-	if !newVal.IsNull() && !newVal.IsWhollyKnown() {
+	// TODO: This should also allow the option created in TF-13948
+	deferralAllowed := ctx.LanguageExperimentActive(experiments.UnknownInstances)
+	if !newVal.IsNull() && !newVal.IsWhollyKnown() && !deferralAllowed {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced invalid object",
