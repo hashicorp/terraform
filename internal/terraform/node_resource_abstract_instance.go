@@ -726,8 +726,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 	// configuration, as well as any marks from the schema which were not in
 	// the prior state. New marks may appear when the prior state was from an
 	// import operation, or if the provider added new marks to the schema.
-	if marks := dedupePathValueMarks(append(priorMarks, schema.ValueMarks(ret.Value, nil)...)); len(marks) > 0 {
-		//if marks := priorMarks; len(marks) > 0 {
+	if marks := append(priorMarks, schema.ValueMarks(ret.Value, nil)...); len(marks) > 0 {
 		ret.Value = ret.Value.MarkWithPaths(marks)
 	}
 
@@ -878,7 +877,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	// Store the paths for the config val to re-mark after we've sent things
 	// over the wire.
 	unmarkedConfigVal, unmarkedPaths := configValIgnored.UnmarkDeepWithPaths()
-	unmarkedPriorVal, priorPaths := priorVal.UnmarkDeepWithPaths()
+	unmarkedPriorVal, _ := priorVal.UnmarkDeepWithPaths()
 
 	proposedNewVal := objchange.ProposedNew(schema, unmarkedPriorVal, unmarkedConfigVal)
 
@@ -1009,7 +1008,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	// to ensure that provider defined private attributes are marked correctly
 	// here.
 	unmarkedPlannedNewVal := plannedNewVal
-	unmarkedPaths = dedupePathValueMarks(append(unmarkedPaths, schema.ValueMarks(plannedNewVal, nil)...))
+	unmarkedPaths = append(unmarkedPaths, schema.ValueMarks(plannedNewVal, nil)...)
 
 	if len(unmarkedPaths) > 0 {
 		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
@@ -1212,16 +1211,15 @@ func (n *NodeAbstractResourceInstance) plan(
 		actionReason = plans.ResourceInstanceReplaceBecauseTainted
 	}
 
-	// If we plan to write or delete sensitive paths from state,
-	// this is an Update action.
+	// If we plan to change the sensitivity on some portion of the value, this
+	// is an Update action even when the values are otherwise equal.
 	//
-	// We need to filter out any marks which may not apply to the new planned
-	// value before comparison. The one case where a provider is allowed to
-	// return a different value from the configuration is when a config change
-	// is not functionally significant and the prior state can be returned. If a
-	// new mark was also discarded from that config change, it needs to be
-	// ignored here to prevent an errant update action.
-	if action == plans.NoOp && !marksEqual(filterMarks(plannedNewVal, unmarkedPaths), priorPaths) {
+	// The marks should be normalized by being applied to the new value. We
+	// don't try to compare the marks we had collected from the config and
+	// schema, because the act of applying marks to a value may result in
+	// slightly different marks. For example marks within a set transfer to the
+	// entire set, and are not saved on the individual elements.
+	if action == plans.NoOp && !valueMarksEqual(plannedNewVal, priorVal) {
 		action = plans.Update
 	}
 
@@ -1647,7 +1645,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		newVal = cty.UnknownAsNull(newVal)
 	}
 
-	pvm = dedupePathValueMarks(append(pvm, schema.ValueMarks(newVal, nil)...))
+	pvm = append(pvm, schema.ValueMarks(newVal, nil)...)
 	if len(pvm) > 0 {
 		newVal = newVal.MarkWithPaths(pvm)
 	}
@@ -1801,7 +1799,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 		// even though we are only returning the config value because we can't
 		// yet read the data source, we need to incorporate the schema marks so
 		// that downstream consumers can detect them when planning.
-		unmarkedPaths = dedupePathValueMarks(append(unmarkedPaths, schema.ValueMarks(proposedNewVal, nil)...))
+		unmarkedPaths = append(unmarkedPaths, schema.ValueMarks(proposedNewVal, nil)...)
 		if len(unmarkedPaths) > 0 {
 			proposedNewVal = proposedNewVal.MarkWithPaths(unmarkedPaths)
 		}
@@ -1869,7 +1867,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 			// not only do we want to ensure this synthetic value has the marks,
 			// but since this is the value being returned from the data source
 			// we need to ensure the schema marks are added as well.
-			unmarkedPaths = dedupePathValueMarks(append(unmarkedPaths, schema.ValueMarks(newVal, nil)...))
+			unmarkedPaths = append(unmarkedPaths, schema.ValueMarks(newVal, nil)...)
 
 			if len(unmarkedPaths) > 0 {
 				newVal = newVal.MarkWithPaths(unmarkedPaths)
@@ -2491,9 +2489,12 @@ func (n *NodeAbstractResourceInstance) apply(
 	// incomplete.
 	newVal := resp.NewState
 
-	// If we have paths to mark, mark those on this new value
-	if len(afterPaths) > 0 {
-		newVal = newVal.MarkWithPaths(afterPaths)
+	// If we have paths to mark, mark those on this new value we need to
+	// re-check the value against the schema, because nested computed values
+	// won't be included in afterPaths, which are only what was read from the
+	// After plan value.
+	if marks := append(afterPaths, schema.ValueMarks(newVal, nil)...); len(marks) > 0 {
+		newVal = newVal.MarkWithPaths(marks)
 	}
 
 	if newVal == cty.NilVal {

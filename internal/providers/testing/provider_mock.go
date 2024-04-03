@@ -379,7 +379,12 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		// computed+optional attributes has become unset
 		configVal, err := path.Apply(r.Config)
 		if err != nil {
-			return v, err
+			// cty can't currently apply some paths, so don't try to guess
+			// what's needed here and return the proposed part of the value.
+			// This is only a helper to create a default plan value, any tests
+			// relying on specific plan behavior will create their own
+			// PlanResourceChange responses.
+			return v, nil
 		}
 
 		switch {
