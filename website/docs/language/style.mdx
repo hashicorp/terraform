@@ -209,7 +209,7 @@ While variables make your modules more flexible, overusing variables can make co
     description = "Number of web instances to deploy. This application requires at least two instances."
 
     validation {
-      condition     = var.aws_instance_count > 1
+      condition     = var.web_instance_count > 1
       error_message = "This application requires at least two web instances."
     }
   }
