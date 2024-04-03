@@ -133,7 +133,10 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 
 		// If we refreshed then our subsequent planning should be in terms of
 		// the new object, not the original object.
-		state = refreshedState
+		// If there are deferred changes in the refresh we won't update the state
+		if !ctx.Deferrals().HaveAnyDeferrals() {
+			state = refreshedState
+		}
 	}
 
 	if !n.skipPlanChanges {

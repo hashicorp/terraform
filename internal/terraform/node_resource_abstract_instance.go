@@ -653,13 +653,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 
 		if resp.Deferred != nil {
 			deferrals := ctx.Deferrals()
-			expectedValue := cty.UnknownVal(cty.DynamicPseudoType)
-			deferrals.ReportResourceInstanceDeferred(absAddr, plans.Read, expectedValue)
-
-			// TODO: Add this to the plan (TF-13953)
-			return &states.ResourceInstanceObject{
-				Value: expectedValue,
-			}, diags
+			deferrals.ReportResourceInstanceDeferred(absAddr, plans.Read, resp.NewState, resp.Deferred.Reason)
 		}
 	}
 	if n.Config != nil {

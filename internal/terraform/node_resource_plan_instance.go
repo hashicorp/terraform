@@ -211,7 +211,14 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			return diags
 		}
 
-		instanceRefreshState = s
+		if ctx.Deferrals().HaveAnyDeferrals() {
+			// If we have deferrals we will continue the operation without the
+			// refresh. We also need to clear the deferrals to not confuse upcoming operations.
+			ctx.Deferrals().Clear()
+		} else {
+			// If we don't have any deferrals, we can just use the state we got
+			instanceRefreshState = s
+		}
 
 		if instanceRefreshState != nil {
 			// When refreshing we start by merging the stored dependencies and
@@ -596,20 +603,34 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	// verify the existence of the imported resource
 	if instanceRefreshState.Value.IsNull() {
 		var diags tfdiags.Diagnostics
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Cannot import non-existent remote object",
-			fmt.Sprintf(
-				"While attempting to import an existing object to %q, "+
-					"the provider detected that no object exists with the given id. "+
-					"Only pre-existing objects can be imported; check that the id "+
-					"is correct and that it is associated with the provider's "+
-					"configured region or endpoint, or use \"terraform apply\" to "+
-					"create a new remote object for this resource.",
-				n.Addr,
-			),
-		))
-		return instanceRefreshState, diags
+		if ctx.Deferrals().HaveAnyDeferrals() {
+			// We reset the deferral tracking so that import can deal with deferrals
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot import remote object with deferred changes",
+				fmt.Sprintf(
+					"While attempting to import an existing object to %q, "+
+						"the provider detected that there is a reason it can not fetch "+
+						"the resource in question currently.",
+					n.Addr,
+				),
+			))
+		} else {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot import non-existent remote object",
+				fmt.Sprintf(
+					"While attempting to import an existing object to %q, "+
+						"the provider detected that no object exists with the given id. "+
+						"Only pre-existing objects can be imported; check that the id "+
+						"is correct and that it is associated with the provider's "+
+						"configured region or endpoint, or use \"terraform apply\" to "+
+						"create a new remote object for this resource.",
+					n.Addr,
+				),
+			))
+			return instanceRefreshState, diags
+		}
 	}
 
 	// If we're importing and generating config, generate it now.

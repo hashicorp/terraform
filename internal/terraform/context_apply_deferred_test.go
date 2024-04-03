@@ -424,23 +424,37 @@ output "a" {
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
 					}),
 				},
-				complete: false,
+				complete: true,
 			},
-			// TODO: This test currently panics with
-			// ProposedNew only supports object-typed values
-			// during the plan stage. This will be fixed in TF-13953.
-			//
-			// {
-			// 	inputs: map[string]cty.Value{},
-			// 	wantPlanned: map[string]cty.Value{
-			// 		"a": cty.UnknownAsNull(cty.DynamicVal),
-			// 	},
+			{
+				inputs: map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"defer_read":     cty.True,
+					}),
+				},
 
-			// 	wantActions: map[string]plans.Action{},
-			// 	wantApplied: map[string]cty.Value{},
-			// 	wantOutputs: map[string]cty.Value{},
-			// 	complete:    false,
-			// },
+				wantActions: map[string]plans.Action{
+					`test.a`: plans.Update,
+				},
+				wantApplied: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"defer_read":     cty.True,
+					}),
+				},
+				wantOutputs: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"defer_read":     cty.True,
+					}),
+				},
+				complete: true,
+			},
 		},
 	}
 )

@@ -129,7 +129,10 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 
 		// If we refreshed then our subsequent planning should be in terms of
 		// the new object, not the original object.
-		oldState = refreshedState
+		// If the refresh has deferrals, we need to keep the old state
+		if !ctx.Deferrals().HaveAnyDeferrals() {
+			oldState = refreshedState
+		}
 	}
 
 	// If we're skipping planning, all we need to do is write the state. If the

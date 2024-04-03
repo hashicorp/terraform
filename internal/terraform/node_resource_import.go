@@ -237,19 +237,32 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 	// Verify the existance of the imported resource
 	if state.Value.IsNull() {
 		var diags tfdiags.Diagnostics
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Cannot import non-existent remote object",
-			fmt.Sprintf(
-				"While attempting to import an existing object to %q, "+
-					"the provider detected that no object exists with the given id. "+
-					"Only pre-existing objects can be imported; check that the id "+
-					"is correct and that it is associated with the provider's "+
-					"configured region or endpoint, or use \"terraform apply\" to "+
-					"create a new remote object for this resource.",
-				n.TargetAddr,
-			),
-		))
+
+		if deferred, deferralReason := ctx.Deferrals().ShouldDeferResourceInstanceChanges(n.TargetAddr); deferred {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot import remote object with deferred changes",
+				fmt.Sprintf(
+					"While attempting to import an existing object to %q, "+
+						"the provider detected that the resource can not be fetched. This is due to %s",
+					n.TargetAddr, deferralReason,
+				),
+			))
+		} else {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot import non-existent remote object",
+				fmt.Sprintf(
+					"While attempting to import an existing object to %q, "+
+						"the provider detected that no object exists with the given id. "+
+						"Only pre-existing objects can be imported; check that the id "+
+						"is correct and that it is associated with the provider's "+
+						"configured region or endpoint, or use \"terraform apply\" to "+
+						"create a new remote object for this resource.",
+					n.TargetAddr,
+				),
+			))
+		}
 		return diags
 	}
 

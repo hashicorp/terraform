@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -26,7 +27,7 @@ func TestDeferred_externalDependency(t *testing.T) {
 
 	// With the above flag set, now ShouldDeferResourceInstanceChanges should
 	// return true regardless of any other information.
-	got := deferred.ShouldDeferResourceInstanceChanges(addrs.AbsResourceInstance{
+	got, gotReason := deferred.ShouldDeferResourceInstanceChanges(addrs.AbsResourceInstance{
 		Module: addrs.RootModuleInstance,
 		Resource: addrs.ResourceInstance{
 			Resource: addrs.Resource{
@@ -39,6 +40,11 @@ func TestDeferred_externalDependency(t *testing.T) {
 	if !got {
 		t.Errorf("did not report that the instance should have its changes deferred; should have")
 	}
+
+	if gotReason != providers.DeferredReasonExternalDependencyDeferred {
+		t.Errorf("wrong reason reported for deferral: got %q, want %q", gotReason, providers.DeferredReasonExternalDependencyDeferred)
+	}
+
 }
 
 func TestDeferred_absResourceInstanceDeferred(t *testing.T) {
@@ -82,20 +88,26 @@ func TestDeferred_absResourceInstanceDeferred(t *testing.T) {
 	// they don't need to have their actions deferred.
 	t.Run("without any deferrals yet", func(t *testing.T) {
 		for _, instAddr := range []addrs.AbsResourceInstance{instAAddr, instBAddr, instCAddr} {
-			if deferred.ShouldDeferResourceInstanceChanges(instAddr) {
+			if d, _ := deferred.ShouldDeferResourceInstanceChanges(instAddr); d {
 				t.Errorf("%s reported as needing deferred; should not be, yet", instAddr)
 			}
 		}
 	})
 
 	// Instance A has its Create action deferred for some reason.
-	deferred.ReportResourceInstanceDeferred(instAAddr, plans.Create, cty.DynamicVal)
+	deferred.ReportResourceInstanceDeferred(instAAddr, plans.Create, cty.DynamicVal, providers.DeferredReasonAbsentPrereq)
 
 	t.Run("with one resource instance deferred", func(t *testing.T) {
-		if !deferred.ShouldDeferResourceInstanceChanges(instCAddr) {
+		cDeferred, cDeferredReason := deferred.ShouldDeferResourceInstanceChanges(instCAddr)
+		if !cDeferred {
 			t.Errorf("%s was not reported as needing deferred; should be deferred", instCAddr)
 		}
-		if deferred.ShouldDeferResourceInstanceChanges(instBAddr) {
+
+		if cDeferredReason != providers.DeferredReasonAbsentPrereq {
+			t.Errorf("wrong reason reported for deferral: got %q, want %q", cDeferredReason, providers.DeferredReasonAbsentPrereq)
+		}
+
+		if d, _ := deferred.ShouldDeferResourceInstanceChanges(instBAddr); d {
 			t.Errorf("%s reported as needing deferred; should not be", instCAddr)
 		}
 	})
@@ -145,20 +157,26 @@ func TestDeferred_partialExpandedResource(t *testing.T) {
 	// they don't need to have their actions deferred.
 	t.Run("without any deferrals yet", func(t *testing.T) {
 		for _, instAddr := range []addrs.AbsResourceInstance{instAAddr, instBAddr, instCAddr} {
-			if deferred.ShouldDeferResourceInstanceChanges(instAddr) {
+			if d, _ := deferred.ShouldDeferResourceInstanceChanges(instAddr); d {
 				t.Errorf("%s reported as needing deferred; should not be, yet", instAddr)
 			}
 		}
 	})
 
 	// Resource A hasn't been expanded fully, so is deferred.
-	deferred.ReportResourceExpansionDeferred(instAPartial, cty.DynamicVal)
+	deferred.ReportResourceExpansionDeferred(instAPartial, cty.DynamicVal, providers.DeferredReasonResourceConfigUnknown)
 
 	t.Run("with one resource instance deferred", func(t *testing.T) {
-		if !deferred.ShouldDeferResourceInstanceChanges(instCAddr) {
+		cDeferred, cDeferredReason := deferred.ShouldDeferResourceInstanceChanges(instCAddr)
+		if !cDeferred {
 			t.Errorf("%s was not reported as needing deferred; should be deferred", instCAddr)
 		}
-		if deferred.ShouldDeferResourceInstanceChanges(instBAddr) {
+
+		if cDeferredReason != providers.DeferredReasonResourceConfigUnknown {
+			t.Errorf("wrong reason reported for deferral: got %q, want %q", cDeferredReason, providers.DeferredReasonResourceConfigUnknown)
+		}
+
+		if d, _ := deferred.ShouldDeferResourceInstanceChanges(instBAddr); d {
 			t.Errorf("%s reported as needing deferred; should not be", instCAddr)
 		}
 	})
