@@ -20,9 +20,16 @@ type ModuleProviderVersions struct {
 // ModuleVersion is the output metadata for a given version needed by CLI to
 // resolve candidate versions to satisfy requirements.
 type ModuleVersion struct {
-	Version    string              `json:"version"`
-	Root       VersionSubmodule    `json:"root"`
-	Submodules []*VersionSubmodule `json:"submodules"`
+	Version     string              `json:"version"`
+	Root        VersionSubmodule    `json:"root"`
+	Submodules  []*VersionSubmodule `json:"submodules"`
+	Deprecation Deprecation         `json:"deprecation"` // mdTODO: no idea if this is correct HA placeholder for now
+}
+
+type Deprecation struct {
+	Deprecated   bool   `json:"deprecated"`
+	Message      string `json:"message"`
+	ExternalLink string `json:"externalLink"`
 }
 
 // VersionSubmodule is the output metadata for a submodule within a given
