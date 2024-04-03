@@ -78,6 +78,18 @@ type Operation struct {
 	// learn a use-case for broader matching.
 	ForceReplace []addrs.AbsResourceInstance
 
+	// DeferralAllowed enables experimental support for automatically performing
+	// a partial plan if some objects are not yet plannable (due to unknown
+	// values in count/for_each, or due to other missing dependencies that can't
+	// be resolved in a single plan/apply cycle).
+	//
+	// IMPORTANT: This feature should only be available when Terraform is built
+	// with experimental features enabled. Since extendedFlagSet can't currently
+	// test whether experimental features are enabled, the check needs to happen
+	// when _reading_ these Operation arguments and transferring values to the
+	// backendrun.Operation struct.
+	DeferralAllowed bool
+
 	// These private fields are used only temporarily during decoding. Use
 	// method Parse to populate the exported fields from these, validating
 	// the raw values in the process.
@@ -223,6 +235,7 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 
 	if operation != nil {
 		f.IntVar(&operation.Parallelism, "parallelism", DefaultParallelism, "parallelism")
+		f.BoolVar(&operation.DeferralAllowed, "allow-deferral", false, "allow-deferral")
 		f.BoolVar(&operation.Refresh, "refresh", true, "refresh")
 		f.BoolVar(&operation.destroyRaw, "destroy", false, "destroy")
 		f.BoolVar(&operation.refreshOnlyRaw, "refresh-only", false, "refresh-only")
