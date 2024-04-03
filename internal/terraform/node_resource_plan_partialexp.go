@@ -99,7 +99,7 @@ func (n *nodePlannablePartialExpandedResource) Execute(ctx EvalContext, op walkO
 	// Registering this allows downstream resources that depend on this one
 	// to know that they need to defer themselves too, in order to preserve
 	// correct dependency order.
-	ctx.Deferrals().ReportResourceExpansionDeferred(n.addr, placeholderVal)
+	ctx.Deferrals().ReportResourceExpansionDeferred(n.addr, placeholderVal, providers.DeferredReasonUnknown)
 	return diags
 }
 

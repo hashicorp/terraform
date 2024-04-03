@@ -4,6 +4,7 @@
 package deferring
 
 import (
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -21,4 +22,9 @@ type deferredPartialExpandedResource struct {
 	// have in common, using unknown values for any parts where we cannot
 	// guarantee that all instances will agree.
 	valuePlaceholder cty.Value
+
+	// deferralReason is the reason why this resource instance is being
+	// deferred. This is used to help the user understand why Terraform
+	// isn't able to plan this resource instance in the current round.
+	deferralReason providers.DeferredReason
 }

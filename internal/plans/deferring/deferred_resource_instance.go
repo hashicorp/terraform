@@ -5,6 +5,7 @@ package deferring
 
 import (
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -35,4 +36,9 @@ type deferredResourceInstance struct {
 	// on a future round, and thus shorten the iteration time to find that
 	// problem.
 	plannedValue cty.Value
+
+	// deferralReason is the reason why this resource instance is being
+	// deferred. This is used to help the user understand why Terraform
+	// isn't able to plan this resource instance in the current round.
+	deferralReason providers.DeferredReason
 }

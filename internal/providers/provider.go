@@ -252,6 +252,21 @@ const (
 	DeferredReasonAbsentPrereq
 )
 
+func (r DeferredReason) String() string {
+	switch r {
+	case DeferredReasonResourceConfigUnknown:
+		return "resource config unknown"
+
+	case DeferredReasonProviderConfigUnknown:
+		return "provider config unknown"
+
+	case DeferredReasonAbsentPrereq:
+		return "absent prerequisite"
+	}
+
+	return "unknown"
+}
+
 type Deferred struct {
 	Reason DeferredReason
 }
