@@ -107,6 +107,10 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	// Build the operation request
 	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, planFile, args.Operation, args.AutoApprove)
 	diags = diags.Append(opDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
 
 	// Collect variable value and add them to the operation request
 	diags = diags.Append(c.GatherVariables(opReq, args.Vars))
