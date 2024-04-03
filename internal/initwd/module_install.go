@@ -58,6 +58,23 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 	}
 }
 
+// mdTODO: remove this later, only for iteration while the api hasn't been updated.
+// Example function to inject mock deprecations into ModuleVersions
+func injectMockDeprecations(modules *response.ModuleVersions) {
+	for _, module := range modules.Modules {
+		for _, version := range module.Versions {
+			// Inject a mock deprecation into each version
+			if version.Version == "5.36.0" || version.Version == "5.37.0" {
+				version.Deprecation = response.Deprecation{
+					Deprecated:   true,
+					Message:      "Mock deprecation message.",
+					ExternalLink: "https://example.com/mock-deprecation",
+				}
+			}
+		}
+	}
+}
+
 // InstallModules analyses the root module in the given directory and installs
 // all of its direct and transitive dependencies into the given modules
 // directory, which must already exist.
@@ -253,6 +270,40 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 					}
 
 					log.Printf("[TRACE] ModuleInstaller: Module installer: %s %s already installed in %s", key, record.Version, record.Dir)
+
+					// Checking for module deprecations in the case no new module versions need installation
+					if addr, isRegistryModule := req.SourceAddr.(addrs.ModuleSourceRegistry); isRegistryModule {
+						log.Printf("[DEBUG] where we make request to registry when no new modules need installation")
+						// mdTODO: make GET Request to registry, see if there are any deprecations.
+						regClient := i.reg
+
+						regsrcAddr := regsrc.ModuleFromRegistryPackageAddr(addr.Package)
+						resp, err := regClient.ModuleVersions(ctx, regsrcAddr)
+
+						// mdTODO: remove this later on
+						injectMockDeprecations(resp)
+
+						// mdTODO: shouldn't error out, will need to continue on as normal
+						if err != nil {
+
+						} else {
+							for _, module := range resp.Modules {
+								for _, version := range module.Versions {
+									if version.Deprecation.Deprecated {
+										diags = diags.Append(&hcl.Diagnostic{
+											Severity: hcl.DiagWarning,
+											Summary:  version.Deprecation.Message,
+											Detail:   version.Deprecation.ExternalLink,
+											Subject:  req.CallRange.Ptr(),
+										})
+									}
+									// mdTODO: do I need to do something with the submodules?
+								}
+
+							}
+						}
+					}
+
 					return mod, record.Version, diags
 				}
 			}
@@ -434,6 +485,8 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 		var err error
 		log.Printf("[DEBUG] %s listing available versions of %s at %s", key, addr, hostname)
 		resp, err = reg.ModuleVersions(ctx, regsrcAddr)
+		// mdTODO: remove this
+		injectMockDeprecations(resp)
 		if err != nil {
 			if registry.IsModuleNotFound(err) {
 				diags = diags.Append(&hcl.Diagnostic{
@@ -547,6 +600,22 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 			if latestMatch == nil || v.GreaterThan(latestMatch) {
 				latestMatch = v
 			}
+		}
+		log.Print("[DEBUG] where modules are actually installed")
+		// mdTODO: if there are deprecations for modules, add the warnings here
+		for _, module := range resp.Modules {
+			for _, version := range module.Versions {
+				if version.Deprecation.Deprecated {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  version.Deprecation.Message,
+						Detail:   version.Deprecation.ExternalLink,
+						Subject:  req.CallRange.Ptr(),
+					})
+				}
+				// mdTODO: do I need to do something with the submodules?
+			}
+
 		}
 	}
 
