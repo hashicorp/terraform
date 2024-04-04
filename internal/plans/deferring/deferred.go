@@ -34,6 +34,11 @@ type Deferred struct {
 	// anyway due to its dependencies not yet being fully planned.
 	resourceGraph addrs.DirectedGraph[addrs.ConfigResource]
 
+	// deferralAllowed marks whether deferred actions are supported by the
+	// current runtime. At time of writing, the modules runtime does not support
+	// deferral, but the stacks runtime does.
+	deferralAllowed bool
+
 	// externalDependencyDeferred marks the special situation where the
 	// subsystem that's calling the modules runtime knows that some external
 	// dependency of the configuration has deferred changes itself, and thus
@@ -96,9 +101,10 @@ type Deferred struct {
 //
 // Callers must not modify anything reachable through resourceGraph after
 // calling this function.
-func NewDeferred(resourceGraph addrs.DirectedGraph[addrs.ConfigResource]) *Deferred {
+func NewDeferred(resourceGraph addrs.DirectedGraph[addrs.ConfigResource], enabled bool) *Deferred {
 	return &Deferred{
 		resourceGraph:                    resourceGraph,
+		deferralAllowed:                  enabled,
 		resourceInstancesDeferred:        addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, deferredResourceInstance]](),
 		partialExpandedResourcesDeferred: addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, deferredPartialExpandedResource]](),
 		partialExpandedModulesDeferred:   addrs.MakeSet[addrs.PartialExpandedModule](),
@@ -117,6 +123,17 @@ func (d *Deferred) SetExternalDependencyDeferred() {
 	d.externalDependencyDeferred = true
 }
 
+// DeferralAllowed checks whether deferred actions are supported by the current
+// runtime.
+func (d *Deferred) DeferralAllowed() bool {
+	// Gracefully recover from being called on nil, for tests that use
+	// MockEvalContext without a real Deferred pointer set up.
+	if d == nil {
+		return false
+	}
+	return d.deferralAllowed
+}
+
 // HaveAnyDeferrals returns true if at least one deferral has been registered
 // with the receiver.
 //
@@ -125,10 +142,11 @@ func (d *Deferred) SetExternalDependencyDeferred() {
 // as having their own changes deferred without having to duplicate the
 // modules runtime's rules for what counts as a deferral.
 func (d *Deferred) HaveAnyDeferrals() bool {
-	return d.externalDependencyDeferred ||
-		d.resourceInstancesDeferred.Len() != 0 ||
-		d.partialExpandedResourcesDeferred.Len() != 0 ||
-		len(d.partialExpandedModulesDeferred) != 0
+	return d.deferralAllowed &&
+		(d.externalDependencyDeferred ||
+			d.resourceInstancesDeferred.Len() != 0 ||
+			d.partialExpandedResourcesDeferred.Len() != 0 ||
+			len(d.partialExpandedModulesDeferred) != 0)
 }
 
 // ShouldDeferResourceChanges returns true if the receiver knows some reason
