@@ -243,13 +243,25 @@ type ReadResourceRequest struct {
 	DeferralAllowed bool
 }
 
+// DeferredReason describes the reason why a change was deferred.
+// Ideally this would be part of the deferring package, but this would
+// lead to a circular dependency.
 type DeferredReason int32
 
 const (
+	// DeferredReasonUnknown is the default value for DeferredReason.
 	DeferredReasonUnknown = iota
+	// DeferredReasonResourceConfigUnknown is used when the config is partially unknown and the real
+	// values need to be known before the change can be planned.
 	DeferredReasonResourceConfigUnknown
+	// DeferredReasonProviderConfigUnknown is used when parts of the provider configuration
+	// are unknown, e.g. the provider configuration is only known after the apply is done.
 	DeferredReasonProviderConfigUnknown
+	// DeferredReasonAbsentPrereq is used when a hard dependency has not been satisfied.
 	DeferredReasonAbsentPrereq
+	// DeferredReasonExternalDependencyDeferred is used an external dependency has deferred the change.
+	// This could be another component this component depends on.
+	DeferredReasonExternalDependencyDeferred
 )
 
 func (r DeferredReason) String() string {
@@ -262,6 +274,9 @@ func (r DeferredReason) String() string {
 
 	case DeferredReasonAbsentPrereq:
 		return "absent prerequisite"
+
+	case DeferredReasonExternalDependencyDeferred:
+		return "external dependency deferred"
 	}
 
 	return "unknown"

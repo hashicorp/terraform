@@ -169,7 +169,7 @@ func (d *Deferred) HaveAnyDeferrals() bool {
 func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInstance) (bool, providers.DeferredReason) {
 	if d.externalDependencyDeferred {
 		// This is an easy case: _all_ actions must be deferred.
-		return true, providers.DeferredReasonUnknown // FIXME: This should probably be a new reason tied to sth like "external dependency"?
+		return true, providers.DeferredReasonExternalDependencyDeferred
 	}
 
 	// If neither of our resource-deferral-tracking collections have anything
