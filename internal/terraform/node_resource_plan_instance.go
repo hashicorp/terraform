@@ -205,17 +205,13 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// Refresh, maybe
 	// The import process handles its own refresh
 	if !n.skipRefresh && !importing {
-		s, refreshDiags := n.refresh(ctx, states.NotDeposed, instanceRefreshState)
+		s, refreshDiags, refreshDeferred := n.refresh(ctx, states.NotDeposed, instanceRefreshState)
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
 		}
 
-		if ctx.Deferrals().HaveAnyDeferrals() {
-			// If we have deferrals we will continue the operation without the
-			// refresh. We also need to clear the deferrals to not confuse upcoming operations.
-			ctx.Deferrals().ResetResourceInstanceDeferred(n.NodeAbstractResource.Addr, addr)
-		} else {
+		if refreshDeferred == nil {
 			// If we don't have any deferrals, we can just use the state we got
 			instanceRefreshState = s
 		}
@@ -594,7 +590,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		},
 		override: n.override,
 	}
-	instanceRefreshState, refreshDiags := riNode.refresh(ctx, states.NotDeposed, importedState)
+	instanceRefreshState, refreshDiags, refreshDeferred := riNode.refresh(ctx, states.NotDeposed, importedState)
 	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
 		return instanceRefreshState, diags
@@ -603,16 +599,17 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	// verify the existence of the imported resource
 	if instanceRefreshState.Value.IsNull() {
 		var diags tfdiags.Diagnostics
-		if ctx.Deferrals().HaveAnyDeferrals() {
+		if refreshDeferred != nil {
 			// We reset the deferral tracking so that import can deal with deferrals
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Cannot import remote object with deferred changes",
 				fmt.Sprintf(
 					"While attempting to import an existing object to %q, "+
-						"the provider detected that there is a reason it can not fetch "+
-						"the resource in question currently.",
+						"the provider detected that the reason in question can not be fetched "+
+						"as it's deferred. %s",
 					n.Addr,
+					providers.DeferredReasonExplanation(refreshDeferred.Reason),
 				),
 			))
 		} else {

@@ -228,7 +228,7 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 			ResolvedProvider: n.ResolvedProvider,
 		},
 	}
-	state, refreshDiags := riNode.refresh(ctx, states.NotDeposed, state)
+	state, refreshDiags, refreshDeferred := riNode.refresh(ctx, states.NotDeposed, state)
 	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
 		return diags
@@ -238,14 +238,14 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 	if state.Value.IsNull() {
 		var diags tfdiags.Diagnostics
 
-		if deferred, deferralReason := ctx.Deferrals().ShouldDeferResourceInstanceChanges(n.TargetAddr); deferred {
+		if refreshDeferred != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Cannot import remote object with deferred changes",
 				fmt.Sprintf(
 					"While attempting to import an existing object to %q, "+
 						"the provider detected that the resource can not be fetched. %s",
-					n.TargetAddr, providers.DeferredReasonExplanation(deferralReason),
+					n.TargetAddr, providers.DeferredReasonExplanation(refreshDeferred.Reason),
 				),
 			))
 		} else {

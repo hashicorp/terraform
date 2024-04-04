@@ -120,7 +120,7 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		// resource during Delete correctly. If this is a simple refresh,
 		// Terraform is expected to remove the missing resource from the state
 		// entirely
-		refreshedState, refreshDiags := n.refresh(ctx, n.DeposedKey, state)
+		refreshedState, refreshDiags, refreshDeferred := n.refresh(ctx, n.DeposedKey, state)
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
@@ -134,7 +134,7 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		// If we refreshed then our subsequent planning should be in terms of
 		// the new object, not the original object.
 		// If there are deferred changes in the refresh we won't update the state
-		if !ctx.Deferrals().HaveAnyDeferrals() {
+		if refreshDeferred == nil {
 			state = refreshedState
 		}
 	}

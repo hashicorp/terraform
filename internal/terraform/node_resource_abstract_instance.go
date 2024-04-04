@@ -585,8 +585,10 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 }
 
 // refresh does a refresh for a resource
-func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey states.DeposedKey, state *states.ResourceInstanceObject) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey states.DeposedKey, state *states.ResourceInstanceObject) (*states.ResourceInstanceObject, tfdiags.Diagnostics, *providers.Deferred) {
 	var diags tfdiags.Diagnostics
+	var deferred *providers.Deferred
+
 	absAddr := n.Addr
 	if deposedKey == states.NotDeposed {
 		log.Printf("[TRACE] NodeAbstractResourceInstance.refresh for %s", absAddr)
@@ -595,25 +597,25 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 	}
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		return state, diags.Append(err)
+		return state, diags.Append(err), deferred
 	}
 	// If we have no state, we don't do any refreshing
 	if state == nil {
 		log.Printf("[DEBUG] refresh: %s: no state, so not refreshing", absAddr)
-		return state, diags
+		return state, diags, deferred
 	}
 
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.Resource.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
-		return state, diags
+		return state, diags, deferred
 	}
 
 	metaConfigVal, metaDiags := n.providerMetas(ctx)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
-		return state, diags
+		return state, diags, deferred
 	}
 
 	// Call pre-refresh hook
@@ -621,7 +623,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		return h.PreRefresh(n.HookResourceIdentity(), deposedKey, state.Value)
 	}))
 	if diags.HasErrors() {
-		return state, diags
+		return state, diags, deferred
 	}
 
 	// Refresh!
@@ -652,8 +654,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		})
 
 		if resp.Deferred != nil {
-			deferrals := ctx.Deferrals()
-			deferrals.ReportResourceInstanceDeferred(absAddr, plans.Read, resp.NewState, resp.Deferred.Reason)
+			deferred = resp.Deferred
 		}
 	}
 	if n.Config != nil {
@@ -662,7 +663,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
-		return state, diags
+		return state, diags, deferred
 	}
 
 	if resp.NewState == cty.NilVal {
@@ -694,7 +695,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		))
 	}
 	if diags.HasErrors() {
-		return state, diags
+		return state, diags, deferred
 	}
 
 	newState := objchange.NormalizeObjectFromLegacySDK(resp.NewState, schema)
@@ -727,7 +728,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		return h.PostRefresh(n.HookResourceIdentity(), deposedKey, priorVal, ret.Value)
 	}))
 	if diags.HasErrors() {
-		return ret, diags
+		return ret, diags, deferred
 	}
 
 	// Mark the value with any prior marks from the state, and the marks from
@@ -740,7 +741,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		ret.Value = ret.Value.MarkWithPaths(marks)
 	}
 
-	return ret, diags
+	return ret, diags, deferred
 }
 
 func (n *NodeAbstractResourceInstance) plan(

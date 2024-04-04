@@ -116,7 +116,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		// plan before apply, and may not handle a missing resource during
 		// Delete correctly.  If this is a simple refresh, Terraform is
 		// expected to remove the missing resource from the state entirely
-		refreshedState, refreshDiags := n.refresh(ctx, states.NotDeposed, oldState)
+		refreshedState, refreshDiags, refreshDeferred := n.refresh(ctx, states.NotDeposed, oldState)
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
@@ -130,7 +130,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		// If we refreshed then our subsequent planning should be in terms of
 		// the new object, not the original object.
 		// If the refresh has deferrals, we need to keep the old state
-		if !ctx.Deferrals().HaveAnyDeferrals() {
+		if refreshDeferred == nil {
 			oldState = refreshedState
 		}
 	}

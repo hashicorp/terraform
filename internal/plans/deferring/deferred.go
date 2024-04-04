@@ -106,19 +106,6 @@ func NewDeferred(resourceGraph addrs.DirectedGraph[addrs.ConfigResource]) *Defer
 	}
 }
 
-// ResetResourceInstanceDeferred clears deferred changes related to the provided config
-// and resource instance address.
-func (d *Deferred) ResetResourceInstanceDeferred(configResourceAddr addrs.ConfigResource, resourceInstanceAddr addrs.AbsResourceInstance) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if instances, ok := d.resourceInstancesDeferred.GetOk(configResourceAddr); ok {
-		if instances.Has(resourceInstanceAddr) {
-			instances.Remove(resourceInstanceAddr)
-		}
-	}
-}
-
 // SetExternalDependencyDeferred modifies a freshly-constructed [Deferred]
 // so that it will consider all resource instances as needing their actions
 // deferred, even if there's no other reason to do that.
