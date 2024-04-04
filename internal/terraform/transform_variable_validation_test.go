@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/zclconf/go-cty/cty"
 
@@ -130,11 +131,17 @@ type nodeTestOnlyInputVariable struct {
 	rules      []*configs.CheckRule
 }
 
+var _ graphNodeValidatableVariable = (*nodeTestOnlyInputVariable)(nil)
+
 func (n *nodeTestOnlyInputVariable) Name() string {
 	return fmt.Sprintf("%s (test fake)", n.configAddr)
 }
 
 // variableValidationRules implements [graphNodeValidatableVariable].
-func (n *nodeTestOnlyInputVariable) variableValidationRules() (addrs.ConfigInputVariable, []*configs.CheckRule) {
-	return n.configAddr, n.rules
+func (n *nodeTestOnlyInputVariable) variableValidationRules() (addrs.ConfigInputVariable, []*configs.CheckRule, hcl.Range) {
+	return n.configAddr, n.rules, hcl.Range{
+		Filename: "test",
+		Start:    hcl.InitialPos,
+		End:      hcl.InitialPos,
+	}
 }
