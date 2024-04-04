@@ -457,12 +457,66 @@ output "a" {
 			},
 		},
 	}
+
+	deferredDatasourceRead = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+// TEMP: unknown for_each currently requires an experiment opt-in.
+// We should remove this block if the experiment gets stabilized.
+terraform {
+	experiments = [unknown_instances]
+}
+
+data "test" "a" {
+	name       = "a"
+	defer_read = true
+}
+
+resource "test" "b" {
+	name = data.test.a.name
+
+}
+
+output "a" {
+	value = data.test.a
+}
+
+output "b" {
+	value = test.b
+}
+		`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs:      map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{
+					// The all resources will be deferred, so shouldn't
+					// have any action at this stage.
+				},
+
+				wantActions: map[string]plans.Action{},
+				wantApplied: map[string]cty.Value{
+					// The all resources will be deferred, so shouldn't
+					// have any action at this stage.
+				},
+				wantOutputs: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":       cty.StringVal("a"),
+						"defer_read": cty.BoolVal(true),
+					}),
+					"b": cty.UnknownVal(cty.NilType),
+				},
+				complete: false,
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
 	tests := map[string]deferredActionsTest{
 		"resource_for_each": resourceForEachTest,
 		"resource_read":     resourceReadTest,
+		"data_read":         deferredDatasourceRead,
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -630,6 +684,22 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 					},
 				},
 			},
+			DataSources: map[string]providers.Schema{
+				"test": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"name": {
+								Type:     cty.String,
+								Required: true,
+							},
+							"defer_read": {
+								Type:     cty.Bool,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
 		},
 		ReadResourceFn: func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 			if key := req.PriorState.GetAttr("defer_read"); key.IsKnown() && key.True() {
@@ -643,6 +713,19 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 
 			return providers.ReadResourceResponse{
 				NewState: req.PriorState,
+			}
+		},
+		ReadDataSourceFn: func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+			if key := req.Config.GetAttr("defer_read"); key.IsKnown() && key.True() {
+				return providers.ReadDataSourceResponse{
+					State: req.Config,
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonProviderConfigUnknown,
+					},
+				}
+			}
+			return providers.ReadDataSourceResponse{
+				State: req.Config,
 			}
 		},
 		PlanResourceChangeFn: func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {

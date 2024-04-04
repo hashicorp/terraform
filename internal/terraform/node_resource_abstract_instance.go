@@ -1601,6 +1601,10 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 			Config:       configVal,
 			ProviderMeta: metaConfigVal,
 		})
+		if resp.Deferred != nil {
+			deffered := ctx.Deferrals()
+			deffered.ReportResourceInstanceDeferred(n.Addr, plans.Read, cty.UnknownVal(cty.DynamicPseudoType), resp.Deferred.Reason)
+		}
 	}
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
