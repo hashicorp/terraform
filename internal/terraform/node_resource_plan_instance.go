@@ -626,8 +626,9 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 					n.Addr,
 				),
 			))
-			return instanceRefreshState, diags
 		}
+
+		return instanceRefreshState, diags
 	}
 
 	// If we're importing and generating config, generate it now.
