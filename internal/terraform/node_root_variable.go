@@ -135,3 +135,12 @@ func (n *NodeRootVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNode 
 		},
 	}
 }
+
+// variableValidationRules implements [graphNodeValidatableVariable].
+func (n *NodeRootVariable) variableValidationRules() (addrs.ConfigInputVariable, []*configs.CheckRule) {
+	var rules []*configs.CheckRule
+	if n.Config != nil { // always in normal code, but sometimes not in unit tests
+		rules = n.Config.Validations
+	}
+	return n.Addr.InModule(addrs.RootModule), rules
+}

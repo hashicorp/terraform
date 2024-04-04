@@ -262,7 +262,7 @@ func TestPlanGraphBuilder_forEach(t *testing.T) {
 const testPlanGraphBuilderStr = `
 aws_instance.web (expand)
   aws_security_group.firewall (expand)
-  var.foo
+  var.foo (validation)
 aws_load_balancer.weblb (expand)
   aws_instance.web (expand)
 aws_security_group.firewall (expand)
@@ -285,6 +285,8 @@ root
   provider["registry.terraform.io/hashicorp/aws"] (close)
   provider["registry.terraform.io/hashicorp/openstack"] (close)
 var.foo
+var.foo (validation)
+  var.foo
 `
 const testPlanGraphBuilderForEachStr = `
 aws_instance.bar (expand)
