@@ -424,7 +424,7 @@ output "a" {
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
 					}),
 				},
-				complete: true,
+				complete: false,
 			},
 			{
 				inputs: map[string]cty.Value{},
@@ -453,7 +453,7 @@ output "a" {
 						"defer_read":     cty.True,
 					}),
 				},
-				complete: true,
+				complete: false,
 			},
 		},
 	}

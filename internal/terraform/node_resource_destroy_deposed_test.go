@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
@@ -35,7 +36,9 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 			"id": cty.StringVal("bar"),
 		}),
 	}
+	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
 	ctx := &MockEvalContext{
+		DeferralsState:    deferring.NewDeferred(resourceGraph),
 		StateState:        state.SyncWrapper(),
 		PrevRunStateState: state.DeepCopy().SyncWrapper(),
 		RefreshStateState: state.DeepCopy().SyncWrapper(),

@@ -205,6 +205,9 @@ func TestNodeAbstractResourceInstance_refresh_with_deferred_read(t *testing.T) {
 
 	mockProvider.ReadResourceFn = func(providers.ReadResourceRequest) providers.ReadResourceResponse {
 		return providers.ReadResourceResponse{
+			NewState: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.UnknownVal(cty.String),
+			}),
 			Deferred: &providers.Deferred{
 				Reason: providers.DeferredReasonAbsentPrereq,
 			},
@@ -235,7 +238,7 @@ func TestNodeAbstractResourceInstance_refresh_with_deferred_read(t *testing.T) {
 	}
 
 	value := rio.Value
-	if value.IsKnown() {
+	if value.IsWhollyKnown() {
 		t.Fatalf("value was known: %v", value)
 	}
 

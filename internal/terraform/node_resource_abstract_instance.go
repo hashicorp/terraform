@@ -672,7 +672,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		panic("new state is cty.NilVal")
 	}
 
-	if !resp.NewState.IsWhollyKnown() {
+	if resp.Deferred == nil && !resp.NewState.IsWhollyKnown() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Provider produced invalid object",

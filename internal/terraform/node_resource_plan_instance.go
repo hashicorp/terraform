@@ -214,7 +214,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		if ctx.Deferrals().HaveAnyDeferrals() {
 			// If we have deferrals we will continue the operation without the
 			// refresh. We also need to clear the deferrals to not confuse upcoming operations.
-			ctx.Deferrals().Clear()
+			ctx.Deferrals().ResetResourceInstanceDeferred(n.NodeAbstractResource.Addr, addr)
 		} else {
 			// If we don't have any deferrals, we can just use the state we got
 			instanceRefreshState = s

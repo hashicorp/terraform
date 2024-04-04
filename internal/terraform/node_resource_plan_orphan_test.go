@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
@@ -34,9 +35,12 @@ func TestNodeResourcePlanOrphanExecute(t *testing.T) {
 		},
 	)
 
+	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
+
 	p := simpleMockProvider()
 	p.ConfigureProvider(providers.ConfigureProviderRequest{})
 	ctx := &MockEvalContext{
+		DeferralsState:           deferring.NewDeferred(resourceGraph),
 		StateState:               state.SyncWrapper(),
 		RefreshStateState:        state.DeepCopy().SyncWrapper(),
 		PrevRunStateState:        state.DeepCopy().SyncWrapper(),
@@ -102,7 +106,9 @@ func TestNodeResourcePlanOrphanExecute_alreadyDeleted(t *testing.T) {
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["test_string"].Block.ImpliedType()),
 	}
+	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
 	ctx := &MockEvalContext{
+		DeferralsState:           deferring.NewDeferred(resourceGraph),
 		StateState:               state.SyncWrapper(),
 		RefreshStateState:        refreshState.SyncWrapper(),
 		PrevRunStateState:        prevRunState.SyncWrapper(),
@@ -184,7 +190,9 @@ func TestNodeResourcePlanOrphanExecute_deposed(t *testing.T) {
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["test_string"].Block.ImpliedType()),
 	}
+	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
 	ctx := &MockEvalContext{
+		DeferralsState:           deferring.NewDeferred(resourceGraph),
 		StateState:               state.SyncWrapper(),
 		RefreshStateState:        refreshState.SyncWrapper(),
 		PrevRunStateState:        prevRunState.SyncWrapper(),
