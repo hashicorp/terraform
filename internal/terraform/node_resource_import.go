@@ -244,8 +244,8 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 				"Cannot import remote object with deferred changes",
 				fmt.Sprintf(
 					"While attempting to import an existing object to %q, "+
-						"the provider detected that the resource can not be fetched. This is due to %s",
-					n.TargetAddr, deferralReason,
+						"the provider detected that the resource can not be fetched. %s",
+					n.TargetAddr, providers.DeferredReasonExplanation(deferralReason),
 				),
 			))
 		} else {

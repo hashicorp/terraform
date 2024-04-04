@@ -282,6 +282,24 @@ func (r DeferredReason) String() string {
 	return "unknown"
 }
 
+// DeferredReasonExplanation returns a human-readable explanation of the
+// given DeferredReason. This is intended for use in error messages and
+// diagnostics.
+func DeferredReasonExplanation(r DeferredReason) string {
+	switch r {
+	case DeferredReasonResourceConfigUnknown:
+		return "The resource configuration is partially unknown and the real values need to be known before the change can be processed. This is typically solved when re-running the operation after the next apply."
+
+	case DeferredReasonProviderConfigUnknown:
+		return "Parts of the provider configuration are unknown, e.g. the provider configuration is only known after the apply is done. This is typically solved when re-running the operation after the next apply."
+
+	case DeferredReasonAbsentPrereq:
+		return "A hard dependency has not been satisfied. This is typically solved by ensuring the dependency is present before attempting the operation."
+	}
+
+	return "The reason for deferring this change is unknown."
+}
+
 type Deferred struct {
 	Reason DeferredReason
 }
