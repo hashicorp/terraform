@@ -4,6 +4,10 @@
 package terraform
 
 import (
+	"log"
+
+	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -14,7 +18,21 @@ import (
 // nodes created alongside them to verify that the final value matches
 // the author's validation rules.
 type graphNodeValidatableVariable interface {
-	variableValidationRules() (addrs.ConfigInputVariable, []*configs.CheckRule)
+	// variableValidationRules returns the information required to validate
+	// the final value produced by the implementing node.
+	//
+	// configAddr is the address of the static declaration of the variable
+	// that is to be validated.
+	//
+	// rules is the set of validation rules to use to check the final value
+	// of the variable.
+	//
+	// defnRange is the source range to "blame" for any problems. This
+	// should ideally cover the source code of the expression that was evaluated
+	// to produce the variable's value, but if there is no such expression --
+	// for example, if the value came from an environment variable -- then
+	// the location of the variable declaration is a plausible substitute.
+	variableValidationRules() (configAddr addrs.ConfigInputVariable, rules []*configs.CheckRule, defnRange hcl.Range)
 }
 
 // Correct behavior requires both of the input variable node types to
@@ -40,21 +58,28 @@ type variableValidationTransformer struct {
 var _ GraphTransformer = (*variableValidationTransformer)(nil)
 
 func (t *variableValidationTransformer) Transform(g *Graph) error {
+	log.Printf("[TRACE] variableValidationTransformer: adding validation nodes for any existing variable evaluation nodes")
 	for _, v := range g.Vertices() {
 		v, ok := v.(graphNodeValidatableVariable)
 		if !ok {
 			continue // irrelevant node
 		}
 
-		configAddr, rules := v.variableValidationRules()
+		configAddr, rules, defnRange := v.variableValidationRules()
 
 		newV := &nodeVariableValidation{
 			configAddr: configAddr,
 			rules:      rules,
+			defnRange:  defnRange,
 		}
 
-		g.Add(newV)
-		g.Connect(dag.BasicEdge(newV, v))
+		if len(rules) != 0 {
+			log.Printf("[TRACE] variableValidationTransformer: %s has %d validation rule(s)", configAddr, len(rules))
+			g.Add(newV)
+			g.Connect(dag.BasicEdge(newV, v))
+		} else {
+			log.Printf("[TRACE] variableValidationTransformer: %s has no validation rules", configAddr)
+		}
 	}
 	return nil
 }

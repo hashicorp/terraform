@@ -55,6 +55,11 @@ func TestNodeRootVariableExecute(t *testing.T) {
 	t.Run("validation", func(t *testing.T) {
 		ctx := new(MockEvalContext)
 
+		// Validation is actually handled by a separate node of type
+		// nodeVariableValidation, so this test will combine NodeRootVariable
+		// and nodeVariableValidation to check that they work together
+		// correctly in integration.
+
 		ctx.NamedValuesState = namedvals.NewState()
 
 		// The variable validation function gets called with Terraform's
@@ -102,6 +107,12 @@ func TestNodeRootVariableExecute(t *testing.T) {
 			},
 			Planning: true,
 		}
+		configAddr, validationRules, defnRange := n.variableValidationRules()
+		validateN := &nodeVariableValidation{
+			configAddr: configAddr,
+			rules:      validationRules,
+			defnRange:  defnRange,
+		}
 
 		ctx.ChecksState = checks.NewState(&configs.Config{
 			Module: &configs.Module{
@@ -113,7 +124,11 @@ func TestNodeRootVariableExecute(t *testing.T) {
 
 		diags := n.Execute(ctx, walkApply)
 		if diags.HasErrors() {
-			t.Fatalf("unexpected error: %s", diags.Err())
+			t.Fatalf("unexpected error from NodeRootVariable: %s", diags.Err())
+		}
+		diags = validateN.Execute(ctx, walkApply)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected error from nodeVariableValidation: %s", diags.Err())
 		}
 
 		absAddr := addrs.RootModuleInstance.InputVariable(n.Addr.Name)

@@ -1463,15 +1463,15 @@ resource.tftest.hcl... fail
 Failure! 1 passed, 3 failed.
 `
 	actualOut := output.Stdout()
-	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
+	if diff := cmp.Diff(expectedOut, actualOut); len(diff) > 0 {
 		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
 	}
 
 	expectedErr := `
 Error: Invalid value for variable
 
-  on main.tf line 2:
-   2: variable "input" {
+  on input.tftest.hcl line 5, in run "input_failure":
+   5:     input = "bcd"
     ├────────────────
     │ var.input is "bcd"
 

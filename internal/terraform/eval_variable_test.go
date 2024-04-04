@@ -1180,7 +1180,7 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
 			gotDiags := evalVariableValidations(
-				varAddr, varCfg, nil, ctx,
+				varAddr, ctx, varCfg.Validations, varCfg.DeclRange,
 			)
 
 			if ctx.ChecksState.ObjectCheckStatus(varAddr) != test.status {
@@ -1333,7 +1333,7 @@ variable "bar" {
 			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
 			gotDiags := evalVariableValidations(
-				varAddr, varCfg, nil, ctx,
+				varAddr, ctx, varCfg.Validations, varCfg.DeclRange,
 			)
 
 			if ctx.ChecksState.ObjectCheckStatus(varAddr) != test.status {

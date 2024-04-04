@@ -7,9 +7,12 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // nodeVariableValidation checks the author-specified validation rules against
@@ -23,11 +26,20 @@ import (
 type nodeVariableValidation struct {
 	configAddr addrs.ConfigInputVariable
 	rules      []*configs.CheckRule
+
+	// defnRange is whatever source range we consider to best represent
+	// the definition of the variable, which should ideally cover the
+	// source code of the expression that was assigned to the variable.
+	// When that's not possible -- for example, if the variable was
+	// set from a non-configuration location like an environment variable --
+	// it's acceptable to use the declaration location instead.
+	defnRange hcl.Range
 }
 
 var _ GraphNodeModulePath = (*nodeVariableValidation)(nil)
 var _ GraphNodeReferenceable = (*nodeVariableValidation)(nil)
 var _ GraphNodeReferencer = (*nodeVariableValidation)(nil)
+var _ GraphNodeExecutable = (*nodeVariableValidation)(nil)
 
 func (n *nodeVariableValidation) Name() string {
 	return fmt.Sprintf("%s (validation)", n.configAddr.String())
@@ -83,4 +95,25 @@ func (n *nodeVariableValidation) appendRefsFilterSelf(to []*addrs.Reference, new
 		ret = append(ret, ref)
 	}
 	return ret
+}
+
+func (n *nodeVariableValidation) Execute(globalCtx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// We need to perform validation work separately for each instance of
+	// the variable across expanded modules, because each one could potentially
+	// have a different value assigned to it and other different data in scope.
+	expander := globalCtx.InstanceExpander()
+	for _, modInst := range expander.ExpandModule(n.configAddr.Module) {
+		addr := n.configAddr.Variable.Absolute(modInst)
+		moduleCtx := globalCtx.withScope(evalContextModuleInstance{Addr: addr.Module})
+		diags = diags.Append(evalVariableValidations(
+			addr,
+			moduleCtx,
+			n.rules,
+			n.defnRange,
+		))
+	}
+
+	return diags
 }
