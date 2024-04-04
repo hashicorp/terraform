@@ -71,6 +71,12 @@ message Plan {
     // after refresh.
     repeated ResourceInstanceChange resource_drift = 18;
 
+    // An unordered set of deferred changes. These are changes that will be
+    // applied in a subsequent plan, but were deferred in this plan for some
+    // reason. Generally, if complete is set to false there should be entries
+    // in this list.
+    repeated DeferredResourceInstanceChange deferred_changes = 27;
+
     // An unordered set of proposed changes to outputs in the root module
     // of the configuration. This set also includes "no action" changes for
     // outputs that are not changing, as context for detecting inconsistencies
@@ -253,6 +259,19 @@ message ResourceInstanceChange {
     ResourceInstanceActionReason action_reason = 12;
 }
 
+// DeferredResourceInstanceChange represents a resource instance change that
+// was deferred for some reason.
+//
+// It contains the original change that was deferred, along with the reason
+// why it was deferred.
+message DeferredResourceInstanceChange {
+    // The reason why the change was deferred.
+    Deferred deferred = 1;
+
+    // The original change that was deferred.
+    ResourceInstanceChange change = 2;
+}
+
 message OutputChange {
     // Name of the output as defined in the root module.
     string name = 1;
@@ -352,4 +371,21 @@ message Path {
 message Importing {
     // The original ID of the resource.
     string id = 1;
+}
+
+// DeferredReason describes the reason why a resource instance change was
+// deferred.
+enum DeferredReason {
+    INVALID = 0;
+    INSTANCE_COUNT_UNKNOWN = 1;
+    RESOURCE_CONFIG_UNKNOWN = 2;
+    PROVIDER_CONFIG_UNKNOWN = 3;
+    ABSENT_PREREQ = 4;
+    DEFERRED_PREREQ = 5;
+}
+
+// Deferred contains all the metadata about a the deferral of a resource
+// instance change.
+message Deferred {
+    DeferredReason reason = 1;
 }

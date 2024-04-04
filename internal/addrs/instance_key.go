@@ -53,6 +53,11 @@ func ParseInstanceKey(key cty.Value) (InstanceKey, error) {
 // of a configuration object that does not use "count" or "for_each" at all.
 var NoKey InstanceKey
 
+// WildcardKey represents the "unknown" value of an InstanceKey. This is used
+// within the deferral logic to express absolute module and resource addresses
+// that are not known at the time of planning.
+var WildcardKey InstanceKey = StringKey("*")
+
 // IntKey is the InstanceKey representation representing integer indices, as
 // used when the "count" argument is specified or if for_each is used with
 // a sequence type.

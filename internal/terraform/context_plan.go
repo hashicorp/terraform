@@ -722,6 +722,9 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	driftedResources, driftDiags := c.driftedResources(config, prevRunState, priorState, moveResults)
 	diags = diags.Append(driftDiags)
 
+	deferredResources, deferredDiags := c.deferredResources(config, walker.Deferrals.GetDeferredChanges(), priorState)
+	diags = diags.Append(deferredDiags)
+
 	var forgottenResources []string
 	for _, rc := range changes.Resources {
 		if rc.Action == plans.Forget {
@@ -741,6 +744,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		UIMode:                  opts.Mode,
 		Changes:                 changes,
 		DriftedResources:        driftedResources,
+		DeferredResources:       deferredResources,
 		PrevRunState:            prevRunState,
 		PriorState:              priorState,
 		PlannedState:            walker.State.Close(),
@@ -791,6 +795,36 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	evalScope := evalScopeFromGraphWalk(walker, addrs.RootModuleInstance)
 
 	return plan, evalScope, diags
+}
+
+func (c *Context) deferredResources(config *configs.Config, deferrals []*plans.DeferredResourceInstanceChange, state *states.State) ([]*plans.DeferredResourceInstanceChangeSrc, tfdiags.Diagnostics) {
+	var deferredResources []*plans.DeferredResourceInstanceChangeSrc
+
+	schemas, diags := c.Schemas(config, state)
+	if diags.HasErrors() {
+		return deferredResources, diags
+	}
+
+	for _, deferral := range deferrals {
+
+		schema, _ := schemas.ResourceTypeConfig(
+			deferral.Change.ProviderAddr.Provider,
+			deferral.Change.Addr.Resource.Resource.Mode,
+			deferral.Change.Addr.Resource.Resource.Type)
+
+		ty := schema.ImpliedType()
+		deferralSrc, err := deferral.Encode(ty)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to prepare deferred resource for plan",
+				fmt.Sprintf("The deferred resource %q could not be serialized to store in the plan: %s.", deferral.Change.Addr, err)))
+			continue
+		}
+
+		deferredResources = append(deferredResources, deferralSrc)
+	}
+	return deferredResources, diags
 }
 
 func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*Graph, walkOperation, tfdiags.Diagnostics) {
