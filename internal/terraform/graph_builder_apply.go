@@ -116,6 +116,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Config:       b.Config,
 			DestroyApply: b.Operation == walkDestroy,
 		},
+		&variableValidationTransformer{},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
 			Config:     b.Config,

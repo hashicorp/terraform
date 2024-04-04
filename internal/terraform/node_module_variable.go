@@ -150,6 +150,15 @@ func (n *nodeExpandModuleVariable) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr}
 }
 
+// variableValidationRules implements [graphNodeValidatableVariable].
+func (n *nodeExpandModuleVariable) variableValidationRules() (addrs.ConfigInputVariable, []*configs.CheckRule) {
+	var rules []*configs.CheckRule
+	if n.Config != nil { // always in normal code, but sometimes not in unit tests
+		rules = n.Config.Validations
+	}
+	return n.Addr.InModule(n.Module), rules
+}
+
 // nodeModuleVariable represents a module variable input during
 // the apply step.
 type nodeModuleVariable struct {
