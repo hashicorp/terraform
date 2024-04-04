@@ -5428,3 +5428,68 @@ resource "test_object" "obj" {
 		t.Fatal("data.test_data_source.foo schema contains a sensitive attribute, should be marked in state")
 	}
 }
+
+// When a schema declares that attributes nested within sets are sensitive, the
+// resulting cty values will transfer those marks to the containing set. Verify
+// that this does not present a change in the plan.
+func TestContext2Plan_nestedSensitiveMarks(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "obj" {
+  set_block {
+    foo = "bar"
+  }
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_object": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"set_block": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"foo": {
+									Type:      cty.String,
+									Sensitive: true,
+									Optional:  true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.obj"), &states.ResourceInstanceObjectSrc{
+			AttrsJSON:          []byte(`{"id":"z","set_block":[{"foo":"bar"}]}`),
+			AttrSensitivePaths: []cty.PathValueMarks{{Path: cty.Path{cty.GetAttrStep{Name: "set_block"}}, Marks: cty.NewValueMarks(marks.Sensitive)}},
+			Status:             states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	ch := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.obj"))
+	if ch.Action != plans.NoOp {
+		t.Fatal("expected no change in plan")
+	}
+}
