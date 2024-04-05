@@ -45,7 +45,7 @@ func newPolicyEvaluationSummarizer(b *Cloud, ts *tfe.TaskStage) taskStageSummari
 
 func (pes *policyEvaluationSummarizer) Summarize(context *IntegrationContext, output IntegrationOutputWriter, ts *tfe.TaskStage) (bool, *string, error) {
 	if pes.counter == 0 {
-		//output.Output("[bold]Policy Evaluations\n")
+		output.Output("[bold]Policy Evaluations\n")
 		pes.counter++
 	}
 
@@ -122,6 +122,7 @@ func (pes *policyEvaluationSummarizer) taskStageWithPolicyEvaluation(context *In
 			result = fmt.Sprintf("[red]%s", strings.ToUpper(string(tfe.PolicyEvaluationFailed)))
 		}
 
+		output.Output("")
 		output.Output(fmt.Sprintf("[bold]%s Policy Evaluation\n", kind))
 		output.Output(fmt.Sprintf("[bold]%c%c Overall Result: %s", Arrow, Arrow, result))
 
