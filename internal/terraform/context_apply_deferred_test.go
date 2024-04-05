@@ -432,8 +432,10 @@ resource "test" "c" {
 				},
 				wantActions: map[string]plans.Action{
 					"test.a": plans.Create,
-					// The other resources will be deferred, so shouldn't
-					// have any action at this stage.
+				},
+				wantDeferred: map[string]plans.DeferredReason{
+					"test.b[\"*\"]": plans.DeferredReasonInstanceCountUnknown,
+					"test.c":        plans.DeferredReasonDeferredPrereq,
 				},
 				wantApplied: map[string]cty.Value{
 					"a": cty.ObjectVal(map[string]cty.Value{
@@ -487,7 +489,8 @@ resource "test" "c" {
 					`test.b[1]`: plans.Create,
 					`test.c`:    plans.Create,
 				},
-				complete: true,
+				wantDeferred: map[string]plans.DeferredReason{},
+				complete:     true,
 				// Don't run an apply for this cycle.
 			},
 		},
@@ -547,6 +550,10 @@ output "names" {
 					}),
 				},
 				wantActions: map[string]plans.Action{},
+				wantDeferred: map[string]plans.DeferredReason{
+					"module.mod.test.names[\"*\"]": plans.DeferredReasonInstanceCountUnknown,
+					"test.a":                       plans.DeferredReasonDeferredPrereq,
+				},
 				wantApplied: make(map[string]cty.Value),
 				wantOutputs: make(map[string]cty.Value),
 			},
@@ -579,7 +586,8 @@ output "names" {
 					"module.mod.test.names[\"2\"]": plans.Create,
 					"test.a":                       plans.Create,
 				},
-				complete: true,
+				wantDeferred: map[string]plans.DeferredReason{},
+				complete:     true,
 			},
 		},
 	}
@@ -683,9 +691,9 @@ resource "test" "c" {
 				wantActions: map[string]plans.Action{
 					"test.a": plans.CreateThenDelete,
 					"test.b": plans.DeleteThenCreate,
-					// test.c[0] is not mentioned here because it's removed
-					// from the plan. TODO: Update this test when we have the
-					// deferred actions within the plan.
+				},
+				wantDeferred: map[string]plans.DeferredReason{
+					"test.c[\"*\"]": plans.DeferredReasonInstanceCountUnknown,
 				},
 			},
 		},
@@ -743,6 +751,7 @@ removed {
 					"test.a[0]": plans.Forget,
 					"test.a[1]": plans.Forget,
 				},
+				wantDeferred:  map[string]plans.DeferredReason{},
 				allowWarnings: true,
 				complete:      true,
 			},
@@ -782,6 +791,9 @@ import {
 					}),
 				},
 				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]plans.DeferredReason{
+					"test.a[\"*\"]": plans.DeferredReasonInstanceCountUnknown,
+				},
 				wantApplied: make(map[string]cty.Value),
 				wantOutputs: make(map[string]cty.Value),
 			},
@@ -799,7 +811,8 @@ import {
 				wantActions: map[string]plans.Action{
 					"test.a[0]": plans.NoOp, // noop not create because of the import.
 				},
-				complete: true,
+				wantDeferred: map[string]plans.DeferredReason{},
+				complete:     true,
 			},
 		},
 	}
@@ -851,6 +864,9 @@ resource "test" "c" {
 				wantActions: map[string]plans.Action{
 					"test.b": plans.Create,
 				},
+				wantDeferred: map[string]plans.DeferredReason{
+					"test.a[\"*\"]": plans.DeferredReasonInstanceCountUnknown,
+				},
 				allowWarnings: true,
 			},
 			{
@@ -877,6 +893,9 @@ resource "test" "c" {
 				},
 				wantActions: map[string]plans.Action{
 					"test.b": plans.Create,
+				},
+				wantDeferred: map[string]plans.DeferredReason{
+					"test.a[\"*\"]": plans.DeferredReasonInstanceCountUnknown,
 				},
 				allowWarnings: true,
 			},
@@ -1079,6 +1098,9 @@ resource "test" "c" {
 					"test.b": plans.DeleteThenCreate,
 					"test.c": plans.NoOp,
 				},
+				wantDeferred: map[string]plans.DeferredReason{
+					"test.a[\"*\"]": plans.DeferredReasonInstanceCountUnknown,
+				},
 			},
 		},
 	}
@@ -1137,6 +1159,9 @@ resource "test" "b" {
 				wantActions: map[string]plans.Action{
 					"test.b": plans.Create,
 				},
+				wantDeferred: map[string]plans.DeferredReason{
+					"test.a[\"*\"]": plans.DeferredReasonInstanceCountUnknown,
+				},
 				wantApplied: map[string]cty.Value{
 					"b": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("b"),
@@ -1166,7 +1191,8 @@ resource "test" "b" {
 					"test.a[0]": plans.Create,
 					"test.b":    plans.NoOp,
 				},
-				complete: true,
+				wantDeferred: map[string]plans.DeferredReason{},
+				complete:     true,
 			},
 		},
 	}
@@ -1257,6 +1283,9 @@ resource "test" "c" {
 				wantActions: map[string]plans.Action{
 					"test.b": plans.Create,
 				},
+				wantDeferred: map[string]plans.DeferredReason{
+					"test.c[\"*\"]": plans.DeferredReasonInstanceCountUnknown,
+				},
 				wantApplied: map[string]cty.Value{
 					"b": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("b"),
@@ -1287,7 +1316,8 @@ resource "test" "c" {
 					"test.c[1]": plans.Delete,
 					"test.b":    plans.NoOp,
 				},
-				complete: true,
+				wantDeferred: map[string]plans.DeferredReason{},
+				complete:     true,
 			},
 		},
 	}
