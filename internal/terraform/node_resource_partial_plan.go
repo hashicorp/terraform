@@ -10,6 +10,13 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// dynamicExpandWithDeferralAllowed is a variant of dynamicExpand that we use
+// when deferred actions are enabled for the current plan.
+//
+// Once deferred actions are more stable and robust in the stacks runtime, it
+// would be nice to integrate this logic a little better with the main
+// DynamicExpand logic, but it's separate for now to minimize the risk of
+// stacks-specific behavior impacting configurations that are not opted into it.
 func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, knownModules []addrs.ModuleInstance, partialModules addrs.Set[addrs.PartialExpandedModule], imports addrs.Map[addrs.AbsResourceInstance, string]) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 	var diags tfdiags.Diagnostics

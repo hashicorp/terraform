@@ -371,12 +371,6 @@ output "c" {
 	resourceCountTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
-// TEMP: unknown for_each currently requires an experiment opt-in.
-// We should remove this block if the experiment gets stabilized.
-terraform {
-	experiments = [unknown_instances]
-}
-
 variable "resource_count" {
 	type = number
 }
@@ -493,12 +487,6 @@ resource "test" "c" {
 	resourceInModuleForEachTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
-// TEMP: unknown for_each currently requires an experiment opt-in.
-// We should remove this block if the experiment gets stabilized.
-terraform {
-	experiments = [unknown_instances]
-}
-
 variable "each" {
 	type = set(string)
 }
@@ -515,12 +503,6 @@ resource "test" "a" {
 }
 `,
 			"mod/main.tf": `
-// TEMP: unknown for_each currently requires an experiment opt-in.
-// We should remove this block if the experiment gets stabilized.
-terraform {
-	experiments = [unknown_instances]
-}
-
 variable "each" {
 	type = set(string)
 }
@@ -596,10 +578,6 @@ output "names" {
 	createBeforeDestroyLifecycleTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
-terraform {
-	experiments = [unknown_instances]
-}
-
 # This resource should be replaced in the plan, with create before destroy.
 resource "test" "a" {
 	name = "a"
@@ -711,10 +689,6 @@ resource "test" "c" {
 	forgetResourcesTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
-terraform {
-	experiments = [unknown_instances]
-}
-
 # This should work as expected, with the resource being removed from state
 # but not destroyed. This should work even with the unknown_instances experiment
 # enabled.
@@ -769,10 +743,6 @@ removed {
 	importIntoUnknownInstancesTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
-terraform {
-	experiments = [unknown_instances]
-}
-
 variable "resource_count" {
 	type = number
 }
@@ -828,10 +798,6 @@ import {
 	targetDeferredResourceTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
-terraform {
-	experiments = [unknown_instances]
-}
-
 variable "resource_count" {
 	type = number
 }
@@ -917,10 +883,6 @@ resource "test" "c" {
 		skip: true, // skip this until we have a better way to handle this case.
 		configs: map[string]string{
 			"main.tf": `
-terraform {
-	experiments = [unknown_instances]
-}
-
 resource "test" "a" {
 	count = 2
 	name  = "a:${count.index}"
@@ -1017,10 +979,6 @@ resource "test" "b" {
 	replaceDeferredResourceTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
-terraform {
-	experiments = [unknown_instances]
-}
-
 variable "resource_count" {
 	type = number
 }
@@ -1119,10 +1077,6 @@ resource "test" "c" {
 	customConditionsTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
-terraform {
-	experiments = [unknown_instances]
-}
-
 variable "resource_count" {
 	type = number
 }
@@ -1211,10 +1165,6 @@ resource "test" "b" {
 	customConditionsWithOrphansTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
-terraform {
-	experiments = [unknown_instances]
-}
-
 variable "resource_count" {
 	type = number
 }
@@ -1384,7 +1334,7 @@ func TestContextApply_deferredActions(t *testing.T) {
 					})
 
 					opts := &PlanOpts{
-						Mode: plans.NormalMode,
+						Mode:            plans.NormalMode,
 						DeferralAllowed: true,
 						SetVariables: func() InputValues {
 							values := InputValues{}
