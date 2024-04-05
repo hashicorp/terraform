@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/experiments"
 )
 
 // graphNodeValidatableVariable is implemented by nodes that represent
@@ -54,7 +53,6 @@ var _ graphNodeValidatableVariable = (*nodeExpandModuleVariable)(nil)
 // with the new [nodeVariableValidation] nodes to prevent downstream nodes
 // from relying on unvalidated values.
 type variableValidationTransformer struct {
-	config *configs.Config
 }
 
 var _ GraphTransformer = (*variableValidationTransformer)(nil)
@@ -67,19 +65,11 @@ func (t *variableValidationTransformer) Transform(g *Graph) error {
 			continue // irrelevant node
 		}
 
-		crossRefAllowed := false
 		configAddr, rules, defnRange := v.variableValidationRules()
-		if moduleConfig := t.config.Descendent(configAddr.Module); moduleConfig != nil {
-			if moduleConfig.Module.ActiveExperiments.Has(experiments.VariableValidationCrossRef) {
-				crossRefAllowed = true
-			}
-		}
-
 		newV := &nodeVariableValidation{
-			configAddr:             configAddr,
-			rules:                  rules,
-			defnRange:              defnRange,
-			allowGeneralReferences: crossRefAllowed,
+			configAddr: configAddr,
+			rules:      rules,
+			defnRange:  defnRange,
 		}
 
 		if len(rules) != 0 {

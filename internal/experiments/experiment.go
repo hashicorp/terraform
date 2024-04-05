@@ -31,7 +31,7 @@ func init() {
 	// a current or a concluded experiment.
 	registerConcludedExperiment(UnknownInstances, "Unknown instances are being rolled into a larger feature for deferring unready resources and modules.")
 	registerConcludedExperiment(VariableValidation, "Custom variable validation can now be used by default, without enabling an experiment.")
-	registerCurrentExperiment(VariableValidationCrossRef)
+	registerConcludedExperiment(VariableValidationCrossRef, "Input variable validation rules may now refer to other objects in the same module without enabling any experiment.")
 	registerConcludedExperiment(SuppressProviderSensitiveAttrs, "Provider-defined sensitive attributes are now redacted by default, without enabling an experiment.")
 	registerCurrentExperiment(TemplateStringFunc)
 	registerConcludedExperiment(ConfigDrivenMove, "Declarations of moved resource instances using \"moved\" blocks can now be used by default, without enabling an experiment.")
