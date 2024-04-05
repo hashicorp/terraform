@@ -149,9 +149,9 @@ func (d *Deferred) HaveAnyDeferrals() bool {
 			len(d.partialExpandedModulesDeferred) != 0)
 }
 
-// ShouldDeferResourceChanges returns true if the receiver knows some reason
-// why the resource instance with the given address should have its planned
-// action deferred for a future plan/apply round.
+// ShouldDeferResourceInstanceChanges returns true if the receiver knows some
+// reason why the resource instance with the given address should have its
+// planned action deferred for a future plan/apply round.
 //
 // This method is specifically for resource instances whose full address is
 // known and thus it would be possible in principle to plan changes, but we
@@ -170,6 +170,9 @@ func (d *Deferred) HaveAnyDeferrals() bool {
 // method will panic in that case. Callers should always test whether a resource
 // instance action should be deferred _before_ reporting that it has been.
 func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInstance) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	if d.externalDependencyDeferred {
 		// This is an easy case: _all_ actions must be deferred.
 		return true
