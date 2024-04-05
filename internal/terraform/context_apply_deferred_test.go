@@ -1351,7 +1351,6 @@ output "a" {
 		}),
 		stages: []deferredActionsTestStage{
 			{
-
 				buildOpts: func(opts *PlanOpts) {
 					opts.Mode = plans.RefreshOnlyMode
 				},
@@ -1613,9 +1612,7 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			},
 		},
 		ReadResourceFn: func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
-			fmt.Println("ReadResourceFn called")
 			if key := req.PriorState.GetAttr("name"); key.IsKnown() && key.AsString() == "deferred_read" {
-				fmt.Println("Deferring read")
 				return providers.ReadResourceResponse{
 					NewState: req.PriorState,
 					Deferred: &providers.Deferred{

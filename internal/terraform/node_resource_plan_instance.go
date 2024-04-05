@@ -298,7 +298,11 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		deferrals := ctx.Deferrals()
-		if !deferrals.ShouldDeferResourceInstanceChanges(n.Addr) {
+
+		if deferrals.IsResourceInstanceDeferred(n.Addr) {
+			// This resource instance is already deferred, probably because it
+			// was deferred during the refresh or import step.
+		} else if !deferrals.ShouldDeferResourceInstanceChanges(n.Addr) {
 			// We intentionally write the change before the subsequent checks, because
 			// all of the checks below this point are for problems caused by the
 			// context surrounding the change, rather than the change itself, and
@@ -614,7 +618,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	}
 
 	// verify the existence of the imported resource
-	if instanceRefreshState.Value.IsNull() {
+	if instanceRefreshState.Value.IsNull() && deferred == nil {
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
