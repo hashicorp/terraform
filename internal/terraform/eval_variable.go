@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -234,6 +235,69 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContex
 			}),
 		},
 		Functions: ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey).Functions(),
+	}
+
+	for ix, validation := range rules {
+		result, ruleDiags := evalVariableValidation(validation, hclCtx, valueRng, addr, ix)
+		diags = diags.Append(ruleDiags)
+
+		log.Printf("[TRACE] evalVariableValidations: %s status is now %s", addr, result.Status)
+		if result.Status == checks.StatusFail {
+			checkState.ReportCheckFailure(addr, addrs.InputValidation, ix, result.FailureMessage)
+		} else {
+			checkState.ReportCheckResult(addr, addrs.InputValidation, ix, result.Status)
+		}
+	}
+
+	return diags
+}
+
+// evalVariableValidationsCrossRef is an experimental variant of
+// [evalVariableValidations] that allows arbitrary references to any object
+// declared in the same module as the variable.
+//
+// If the experiment is successful, this function should replace
+// [evalVariableValidations], but it's currently written separately to minimize
+// the risk of the experiment impacting non-opted modules.
+func evalVariableValidationsCrossRef(addr addrs.AbsInputVariableInstance, ctx EvalContext, rules []*configs.CheckRule, valueRng hcl.Range) (diags tfdiags.Diagnostics) {
+	if len(rules) == 0 {
+		log.Printf("[TRACE] evalVariableValidations: no validation rules declared for %s, so skipping", addr)
+		return nil
+	}
+	log.Printf("[TRACE] evalVariableValidations: validating %s", addr)
+
+	checkState := ctx.Checks()
+	if !checkState.ConfigHasChecks(addr.ConfigCheckable()) {
+		// We have nothing to do if this object doesn't have any checks,
+		// but the "rules" slice should agree that we don't.
+		if ct := len(rules); ct != 0 {
+			panic(fmt.Sprintf("check state says that %s should have no rules, but it has %d", addr, ct))
+		}
+		return diags
+	}
+
+	// We'll build just one evaluation context covering the data needed by
+	// all of the rules together, since that'll minimize lock contention
+	// on the state, plan, etc.
+	scope := ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
+	var refs []*addrs.Reference
+	for _, rule := range rules {
+		condRefs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRef, rule.Condition)
+		diags = diags.Append(moreDiags)
+		msgRefs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRef, rule.ErrorMessage)
+		diags = diags.Append(moreDiags)
+		refs = append(refs, condRefs...)
+		refs = append(refs, msgRefs...)
+	}
+	if diags.HasErrors() {
+		// If any of the references were invalid then evaluating the expressions
+		// will duplicate those errors, so we'll bail out early.
+		return diags
+	}
+	hclCtx, moreDiags := scope.EvalContext(refs)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return diags
 	}
 
 	for ix, validation := range rules {

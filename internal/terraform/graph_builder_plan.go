@@ -154,7 +154,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Planning:     true,
 			DestroyApply: false, // always false for planning
 		},
-		&variableValidationTransformer{},
+		&variableValidationTransformer{
+			config: b.Config,
+		},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
 			Config:      b.Config,
