@@ -124,6 +124,13 @@ type Operation struct {
 	// the variables set in the plan are used instead, and they must be valid.
 	AllowUnsetVariables bool
 
+	// DeferralAllowed enables experimental support for automatically performing
+	// a partial plan if some objects are not yet plannable.
+	//
+	// IMPORTANT: When configuring an Operation, you should only set a value for
+	// this field if Terraform was built with experimental features enabled.
+	DeferralAllowed bool
+
 	// View implements the logic for all UI interactions.
 	View views.Operation
 

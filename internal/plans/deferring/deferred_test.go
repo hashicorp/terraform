@@ -17,7 +17,7 @@ func TestDeferred_externalDependency(t *testing.T) {
 	// defer any resource instance changes regardless. Therefore an empty
 	// graph is just fine.
 	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
-	deferred := NewDeferred(resourceGraph)
+	deferred := NewDeferred(resourceGraph, true)
 
 	// This reports that something outside of the modules runtime knows that
 	// everything in this configuration depends on some elsewhere-action
@@ -77,7 +77,7 @@ func TestDeferred_absResourceInstanceDeferred(t *testing.T) {
 	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
 	resourceGraph.AddDependency(instCAddr.ConfigResource(), instBAddr.ConfigResource())
 	resourceGraph.AddDependency(instCAddr.ConfigResource(), instAAddr.ConfigResource())
-	deferred := NewDeferred(resourceGraph)
+	deferred := NewDeferred(resourceGraph, true)
 
 	// Before we report anything, all three addresses should indicate that
 	// they don't need to have their actions deferred.
@@ -146,7 +146,7 @@ func TestDeferred_partialExpandedDatasource(t *testing.T) {
 	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
 	resourceGraph.AddDependency(instCAddr.ConfigResource(), instBAddr.ConfigResource())
 	resourceGraph.AddDependency(instCAddr.ConfigResource(), instAAddr.ConfigResource())
-	deferred := NewDeferred(resourceGraph)
+	deferred := NewDeferred(resourceGraph, true)
 
 	// Before we report anything, all three addresses should indicate that
 	// they don't need to have their actions deferred.
@@ -210,7 +210,7 @@ func TestDeferred_partialExpandedResource(t *testing.T) {
 	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
 	resourceGraph.AddDependency(instCAddr.ConfigResource(), instBAddr.ConfigResource())
 	resourceGraph.AddDependency(instCAddr.ConfigResource(), instAAddr.ConfigResource())
-	deferred := NewDeferred(resourceGraph)
+	deferred := NewDeferred(resourceGraph, true)
 
 	// Before we report anything, all three addresses should indicate that
 	// they don't need to have their actions deferred.

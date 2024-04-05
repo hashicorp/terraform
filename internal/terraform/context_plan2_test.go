@@ -4818,6 +4818,7 @@ func TestContext2Apply_externalDependencyDeferred(t *testing.T) {
 
 	plan, diags := ctx.Plan(cfg, states.NewState(), &PlanOpts{
 		Mode:                       plans.NormalMode,
+		DeferralAllowed:            true,
 		ExternalDependencyDeferred: true,
 	})
 	assertNoDiagnostics(t, diags)

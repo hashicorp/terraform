@@ -73,12 +73,6 @@ var (
 	resourceForEachTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
-// TEMP: unknown for_each currently requires an experiment opt-in.
-// We should remove this block if the experiment gets stabilized.
-terraform {
-	experiments = [unknown_instances]
-}
-
 variable "each" {
 	type = set(string)
 }
@@ -388,7 +382,8 @@ func TestContextApply_deferredActions(t *testing.T) {
 					})
 
 					plan, diags := ctx.Plan(cfg, state, &PlanOpts{
-						Mode: plans.NormalMode,
+						Mode:            plans.NormalMode,
+						DeferralAllowed: true,
 						SetVariables: func() InputValues {
 							values := InputValues{}
 							for name, value := range stage.inputs {
@@ -403,10 +398,6 @@ func TestContextApply_deferredActions(t *testing.T) {
 					if plan.Complete != stage.complete {
 						t.Errorf("wrong completion status in plan: got %v, want %v", plan.Complete, stage.complete)
 					}
-
-					// TODO: Once we are including information about the
-					//   individual deferred actions in the plan, this would be
-					//   a good place to assert that they are correct!
 
 					// We expect the correct planned changes and no diagnostics.
 					assertNoDiagnostics(t, diags)
