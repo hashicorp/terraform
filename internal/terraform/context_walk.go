@@ -44,6 +44,9 @@ type graphWalkOpts struct {
 	// always take into account what walk type it's dealing with.
 	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
 
+	// DeferralAlowed indicates that the current runtime supports deferred actions.
+	DeferralAllowed bool
+
 	// ExternalDependencyDeferred indicates that something that this entire
 	// configuration depends on (outside the view of this modules runtime)
 	// has deferred changes, and therefore we must treat _all_ actions
@@ -168,7 +171,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 	// We'll produce a derived graph that only includes the static resource
 	// blocks, since we need that for deferral tracking.
 	resourceGraph := graph.ResourceGraph()
-	deferred := deferring.NewDeferred(resourceGraph)
+	deferred := deferring.NewDeferred(resourceGraph, opts.DeferralAllowed)
 	if opts.ExternalDependencyDeferred {
 		deferred.SetExternalDependencyDeferred()
 	}

@@ -83,12 +83,6 @@ var (
 	resourceForEachTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
-// TEMP: unknown for_each currently requires an experiment opt-in.
-// We should remove this block if the experiment gets stabilized.
-terraform {
-	experiments = [unknown_instances]
-}
-
 variable "each" {
 	type = set(string)
 }
@@ -1391,6 +1385,7 @@ func TestContextApply_deferredActions(t *testing.T) {
 
 					opts := &PlanOpts{
 						Mode: plans.NormalMode,
+						DeferralAllowed: true,
 						SetVariables: func() InputValues {
 							values := InputValues{}
 							for name, value := range stage.inputs {

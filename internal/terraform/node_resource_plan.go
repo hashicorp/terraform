@@ -106,26 +106,13 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	imports, importDiags := n.expandResourceImports(ctx)
 	diags = diags.Append(importDiags)
 
-	// The possibility of partial-expanded modules and resources is
-	// currently guarded by a language experiment, and so to minimize the
-	// risk of that experiment impacting mainline behavior we currently
-	// branch off into an entirely-separate codepath in those situations,
-	// at the expense of duplicating some of the logic for behavior this
-	// method would normally handle.
-	//
-	// Normally language experiments are confined to only a single module,
-	// but this one has potential cross-module impact once enabled for at
-	// least one, and so this flag is true if _any_ module in the configuration
-	// has opted in to the experiment. Our intent is for this different
-	// codepath to produce the same results when there aren't any
-	// partial-expanded modules, but bugs might make that not true and so
-	// this is conservative to minimize the risk of breaking things for
-	// those who aren't participating in the experiment.
-	//
-	// TODO: If this experiment is stablized then we should aim to combine
-	// these two codepaths back together, so that the behavior is less likely
-	// to diverge under future maintenence.
-	if n.unknownInstancesExperimentEnabled {
+	// The possibility of partial-expanded modules and resources is guarded by a
+	// top-level option for the whole plan, so that we can preserve mainline
+	// behavior for the modules runtime. So, we currently branch off into an
+	// entirely-separate codepath in those situations, at the expense of
+	// duplicating some of the logic for behavior this method would normally
+	// handle.
+	if ctx.Deferrals().DeferralAllowed() {
 		pem := expander.UnknownModuleInstances(n.Addr.Module)
 		g, expandDiags := n.dynamicExpandPartial(ctx, moduleInstances, pem, imports)
 		diags = diags.Append(expandDiags)

@@ -27,7 +27,7 @@ const (
 func init() {
 	// Each experiment constant defined above must be registered here as either
 	// a current or a concluded experiment.
-	registerCurrentExperiment(UnknownInstances)
+	registerConcludedExperiment(UnknownInstances, "Unknown instances are being rolled into a larger feature for deferring unready resources and modules.")
 	registerConcludedExperiment(VariableValidation, "Custom variable validation can now be used by default, without enabling an experiment.")
 	registerConcludedExperiment(SuppressProviderSensitiveAttrs, "Provider-defined sensitive attributes are now redacted by default, without enabling an experiment.")
 	registerConcludedExperiment(ConfigDrivenMove, "Declarations of moved resource instances using \"moved\" blocks can now be used by default, without enabling an experiment.")
