@@ -29,9 +29,9 @@ For more information on when to use certain custom conditions, see [Choosing Bet
 
 ## Input Variable Validation
 
--> **Note:** Input variable validation is available in Terraform v0.13.0 and later.
+-> **Note:** Input variable validation is available in Terraform v0.13.0 and later. Before Terraform v1.9.0, validation rules can refer only to the variable being validated, and not to any other variables.
 
-Add one or more `validation` blocks within the `variable` block to specify custom conditions. Each validation requires a [`condition` argument](#condition-expressions), an expression that must use the value of the variable to return `true` if the value is valid, or `false` if it is invalid. The expression can refer only to the containing variable and must not produce errors.
+Add one or more `validation` blocks within the `variable` block to specify custom conditions. Each validation requires a [`condition` argument](#condition-expressions), an expression that must use the value of the variable to return `true` if the value is valid, or `false` if it is invalid. The expression must not cause errors directly itself.
 
 If the condition evaluates to `false`, Terraform produces an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple validations, Terraform returns error messages for all failed conditions.
 
