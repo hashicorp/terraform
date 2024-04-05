@@ -232,7 +232,7 @@ func TestNodeAbstractResourceInstance_refresh_with_deferred_read(t *testing.T) {
 	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
 	evalCtx.DeferralsState = deferring.NewDeferred(resourceGraph, true)
 
-	rio, diags := node.refresh(evalCtx, states.NotDeposed, obj)
+	rio, deferred, diags := node.refresh(evalCtx, states.NotDeposed, obj)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -242,11 +242,11 @@ func TestNodeAbstractResourceInstance_refresh_with_deferred_read(t *testing.T) {
 		t.Fatalf("value was known: %v", value)
 	}
 
-	if !evalCtx.DeferralsCalled {
-		t.Fatalf("expected deferral to be called")
+	if deferred == nil {
+		t.Fatalf("expected deferral to be present")
 	}
 
-	if !evalCtx.DeferralsState.HaveAnyDeferrals() {
-		t.Fatalf("expected deferral to be present")
+	if deferred.Reason != providers.DeferredReasonAbsentPrereq {
+		t.Fatalf("expected deferral to be AbsentPrereq, got %s", deferred.Reason)
 	}
 }

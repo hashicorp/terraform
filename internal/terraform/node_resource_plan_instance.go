@@ -205,13 +205,24 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// Refresh, maybe
 	// The import process handles its own refresh
 	if !n.skipRefresh && !importing {
-		s, refreshDiags := n.refresh(ctx, states.NotDeposed, instanceRefreshState)
+		s, deferred, refreshDiags := n.refresh(ctx, states.NotDeposed, instanceRefreshState)
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
 		}
 
-		instanceRefreshState = s
+		if deferred == nil {
+			instanceRefreshState = s
+		} else {
+			ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, &plans.ResourceInstanceChange{
+				Addr: n.Addr,
+				Change: plans.Change{
+					Action: plans.Read,
+					Before: s.Value,
+					After:  cty.DynamicVal,
+				},
+			})
+		}
 
 		if instanceRefreshState != nil {
 			// When refreshing we start by merging the stored dependencies and
@@ -586,10 +597,20 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		},
 		override: n.override,
 	}
-	instanceRefreshState, refreshDiags := riNode.refresh(ctx, states.NotDeposed, importedState)
+	instanceRefreshState, deferred, refreshDiags := riNode.refresh(ctx, states.NotDeposed, importedState)
 	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
 		return instanceRefreshState, diags
+	}
+
+	if deferred != nil {
+		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, &plans.ResourceInstanceChange{
+			Addr: n.Addr,
+			Change: plans.Change{
+				Action: plans.Read,
+				After:  instanceRefreshState.Value,
+			},
+		})
 	}
 
 	// verify the existence of the imported resource

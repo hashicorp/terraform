@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -228,29 +229,40 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 			ResolvedProvider: n.ResolvedProvider,
 		},
 	}
-	state, refreshDiags := riNode.refresh(ctx, states.NotDeposed, state)
+	state, deferred, refreshDiags := riNode.refresh(ctx, states.NotDeposed, state)
 	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
 		return diags
 	}
 
-	// Verify the existance of the imported resource
-	if state.Value.IsNull() {
-		var diags tfdiags.Diagnostics
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Cannot import non-existent remote object",
-			fmt.Sprintf(
-				"While attempting to import an existing object to %q, "+
-					"the provider detected that no object exists with the given id. "+
-					"Only pre-existing objects can be imported; check that the id "+
-					"is correct and that it is associated with the provider's "+
-					"configured region or endpoint, or use \"terraform apply\" to "+
-					"create a new remote object for this resource.",
-				n.TargetAddr,
-			),
-		))
-		return diags
+	// If the refresh is deferred we will need to do another cycle to import the resource
+	if deferred != nil {
+		ctx.Deferrals().ReportResourceInstanceDeferred(n.TargetAddr, deferred.Reason, &plans.ResourceInstanceChange{
+			Addr: n.TargetAddr,
+			Change: plans.Change{
+				Action: plans.Read,
+				After:  state.Value,
+			},
+		})
+	} else {
+		// Verify the existance of the imported resource
+		if state.Value.IsNull() {
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot import non-existent remote object",
+				fmt.Sprintf(
+					"While attempting to import an existing object to %q, "+
+						"the provider detected that no object exists with the given id. "+
+						"Only pre-existing objects can be imported; check that the id "+
+						"is correct and that it is associated with the provider's "+
+						"configured region or endpoint, or use \"terraform apply\" to "+
+						"create a new remote object for this resource.",
+					n.TargetAddr,
+				),
+			))
+			return diags
+		}
 	}
 
 	diags = diags.Append(riNode.writeResourceInstanceState(ctx, state, workingState))
