@@ -40,6 +40,9 @@ type deferredActionsTestStage struct {
 	// The values we want to be planned within each cycle.
 	wantPlanned map[string]cty.Value
 
+	// The values we want to be deferred within each cycle.
+	wantDeferred map[string]plans.DeferredReason
+
 	// The expected actions from the plan step.
 	wantActions map[string]plans.Action
 
@@ -132,6 +135,10 @@ output "c" {
 					"test.a": plans.Create,
 					// The other resources will be deferred, so shouldn't
 					// have any action at this stage.
+				},
+				wantDeferred: map[string]plans.DeferredReason{
+					"test.b[\"*\"]": plans.DeferredReasonInstanceCountUnknown,
+					"test.c":        plans.DeferredReasonDeferredPrereq,
 				},
 				wantApplied: map[string]cty.Value{
 					"a": cty.ObjectVal(map[string]cty.Value{
@@ -231,6 +238,7 @@ output "c" {
 					`test.b["2"]`: plans.Create,
 					`test.c`:      plans.Create,
 				},
+				wantDeferred: make(map[string]plans.DeferredReason),
 				wantApplied: map[string]cty.Value{
 					// Since test.a is no-op, it isn't visited during apply. The
 					// other instances should all be applied, though.
@@ -328,7 +336,8 @@ output "c" {
 					`test.b["2"]`: plans.NoOp,
 					`test.c`:      plans.NoOp,
 				},
-				complete: true,
+				wantDeferred: make(map[string]plans.DeferredReason),
+				complete:     true,
 				// We won't execute an apply step in this stage, because the
 				// plan should be empty.
 			},
@@ -390,10 +399,6 @@ func TestContextApply_deferredActions(t *testing.T) {
 						t.Errorf("wrong completion status in plan: got %v, want %v", plan.Complete, stage.complete)
 					}
 
-					// TODO: Once we are including information about the
-					//   individual deferred actions in the plan, this would be
-					//   a good place to assert that they are correct!
-
 					// We expect the correct planned changes and no diagnostics.
 					assertNoDiagnostics(t, diags)
 					provider.plannedChanges.Test(t, stage.wantPlanned)
@@ -405,6 +410,14 @@ func TestContextApply_deferredActions(t *testing.T) {
 					}
 					if diff := cmp.Diff(stage.wantActions, gotActions); diff != "" {
 						t.Errorf("wrong actions in plan\n%s", diff)
+					}
+
+					gotDeferred := make(map[string]plans.DeferredReason)
+					for _, dc := range plan.DeferredResources {
+						gotDeferred[dc.ChangeSrc.Addr.String()] = dc.DeferredReason
+					}
+					if diff := cmp.Diff(stage.wantDeferred, gotDeferred); diff != "" {
+						t.Errorf("wrong deferred reasons in plan\n%s", diff)
 					}
 
 					if stage.wantApplied == nil {

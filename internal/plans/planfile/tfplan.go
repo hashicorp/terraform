@@ -63,8 +63,9 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			Outputs:   []*plans.OutputChangeSrc{},
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 		},
-		DriftedResources: []*plans.ResourceInstanceChangeSrc{},
-		Checks:           &states.CheckResults{},
+		DriftedResources:  []*plans.ResourceInstanceChangeSrc{},
+		DeferredResources: []*plans.DeferredResourceInstanceChangeSrc{},
+		Checks:            &states.CheckResults{},
 	}
 
 	plan.Applyable = rawPlan.Applyable
@@ -123,6 +124,15 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		}
 
 		plan.DriftedResources = append(plan.DriftedResources, change)
+	}
+
+	for _, rawDC := range rawPlan.DeferredChanges {
+		change, err := deferredChangeFromTfplan(rawDC)
+		if err != nil {
+			return nil, err
+		}
+
+		plan.DeferredResources = append(plan.DeferredResources, change)
 	}
 
 	for _, rawRA := range rawPlan.RelevantAttributes {
@@ -433,6 +443,44 @@ func valueFromTfplan(rawV *planproto.DynamicValue) (plans.DynamicValue, error) {
 	return plans.DynamicValue(rawV.Msgpack), nil
 }
 
+func deferredChangeFromTfplan(dc *planproto.DeferredResourceInstanceChange) (*plans.DeferredResourceInstanceChangeSrc, error) {
+	if dc == nil {
+		return nil, fmt.Errorf("deferred change object is absent")
+	}
+
+	change, err := resourceChangeFromTfplan(dc.Change)
+	if err != nil {
+		return nil, err
+	}
+
+	reason, err := deferredReasonFromProto(dc.Deferred.Reason)
+	if err != nil {
+		return nil, err
+	}
+
+	return &plans.DeferredResourceInstanceChangeSrc{
+		DeferredReason: reason,
+		ChangeSrc:      change,
+	}, nil
+}
+
+func deferredReasonFromProto(reason planproto.DeferredReason) (plans.DeferredReason, error) {
+	switch reason {
+	case planproto.DeferredReason_INSTANCE_COUNT_UNKNOWN:
+		return plans.DeferredReasonInstanceCountUnknown, nil
+	case planproto.DeferredReason_RESOURCE_CONFIG_UNKNOWN:
+		return plans.DeferredReasonResourceConfigUnknown, nil
+	case planproto.DeferredReason_PROVIDER_CONFIG_UNKNOWN:
+		return plans.DeferredReasonProviderConfigUnknown, nil
+	case planproto.DeferredReason_ABSENT_PREREQ:
+		return plans.DeferredReasonAbsentPrereq, nil
+	case planproto.DeferredReason_DEFERRED_PREREQ:
+		return plans.DeferredReasonDeferredPrereq, nil
+	default:
+		return plans.DeferredReasonInvalid, fmt.Errorf("invalid deferred reason %s", reason)
+	}
+}
+
 // writeTfplan serializes the given plan into the protobuf-based format used
 // for the "tfplan" portion of a plan file.
 func writeTfplan(plan *plans.Plan, w io.Writer) error {
@@ -452,6 +500,7 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		CheckResults:    []*planproto.CheckResults{},
 		ResourceChanges: []*planproto.ResourceInstanceChange{},
 		ResourceDrift:   []*planproto.ResourceInstanceChange{},
+		DeferredChanges: []*planproto.DeferredResourceInstanceChange{},
 	}
 
 	rawPlan.Applyable = plan.Applyable
@@ -514,6 +563,14 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 			return err
 		}
 		rawPlan.ResourceDrift = append(rawPlan.ResourceDrift, rawRC)
+	}
+
+	for _, dc := range plan.DeferredResources {
+		rawDC, err := deferredChangeToTfplan(dc)
+		if err != nil {
+			return err
+		}
+		rawPlan.DeferredChanges = append(rawPlan.DeferredChanges, rawDC)
 	}
 
 	for _, ra := range plan.RelevantAttributes {
@@ -853,6 +910,42 @@ func pathFromTfplan(path *planproto.Path) (cty.Path, error) {
 
 func pathToTfplan(path cty.Path) (*planproto.Path, error) {
 	return planproto.NewPath(path)
+}
+
+func deferredChangeToTfplan(dc *plans.DeferredResourceInstanceChangeSrc) (*planproto.DeferredResourceInstanceChange, error) {
+	change, err := resourceChangeToTfplan(dc.ChangeSrc)
+	if err != nil {
+		return nil, err
+	}
+
+	reason, err := deferredReasonToProto(dc.DeferredReason)
+	if err != nil {
+		return nil, err
+	}
+
+	return &planproto.DeferredResourceInstanceChange{
+		Change: change,
+		Deferred: &planproto.Deferred{
+			Reason: reason,
+		},
+	}, nil
+}
+
+func deferredReasonToProto(reason plans.DeferredReason) (planproto.DeferredReason, error) {
+	switch reason {
+	case plans.DeferredReasonInstanceCountUnknown:
+		return planproto.DeferredReason_INSTANCE_COUNT_UNKNOWN, nil
+	case plans.DeferredReasonResourceConfigUnknown:
+		return planproto.DeferredReason_RESOURCE_CONFIG_UNKNOWN, nil
+	case plans.DeferredReasonProviderConfigUnknown:
+		return planproto.DeferredReason_PROVIDER_CONFIG_UNKNOWN, nil
+	case plans.DeferredReasonAbsentPrereq:
+		return planproto.DeferredReason_ABSENT_PREREQ, nil
+	case plans.DeferredReasonDeferredPrereq:
+		return planproto.DeferredReason_DEFERRED_PREREQ, nil
+	default:
+		return planproto.DeferredReason_INVALID, fmt.Errorf("invalid deferred reason %s", reason)
+	}
 }
 
 // CheckResultsFromPlanProto decodes a slice of check results from their protobuf

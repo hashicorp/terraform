@@ -36,6 +36,19 @@ func (m ModuleInstance) UnexpandedChild(call ModuleCall) PartialExpandedModule {
 	}
 }
 
+// UnknownModuleInstance expands the receiver to a full ModuleInstance by
+// replacing the unknown instance keys with a wildcard value.
+func (pem PartialExpandedModule) UnknownModuleInstance() ModuleInstance {
+	base := pem.expandedPrefix
+	for _, call := range pem.unexpandedSuffix {
+		base = append(base, ModuleInstanceStep{
+			Name:        call,
+			InstanceKey: WildcardKey,
+		})
+	}
+	return base
+}
+
 // LevelsKnown returns the number of module path segments of the address that
 // have known instance keys.
 //
@@ -195,8 +208,8 @@ func (pem PartialExpandedModule) String() string {
 	return buf.String()
 }
 
-func (per PartialExpandedModule) UniqueKey() UniqueKey {
-	return partialExpandedModuleKey(per.String())
+func (pem PartialExpandedModule) UniqueKey() UniqueKey {
+	return partialExpandedModuleKey(pem.String())
 }
 
 type partialExpandedModuleKey string
@@ -258,6 +271,16 @@ func (r AbsResource) UnexpandedResource() PartialExpandedResource {
 			expandedPrefix: r.Module,
 		},
 		resource: r.Resource,
+	}
+}
+
+// UnknownResourceInstance returns an [AbsResourceInstance] that represents the
+// same resource as the receiver but with all instance keys replaced with a
+// wildcard value.
+func (per PartialExpandedResource) UnknownResourceInstance() AbsResourceInstance {
+	return AbsResourceInstance{
+		Module:   per.module.UnknownModuleInstance(),
+		Resource: per.resource.Instance(WildcardKey),
 	}
 }
 
