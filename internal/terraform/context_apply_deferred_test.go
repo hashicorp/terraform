@@ -1351,6 +1351,7 @@ output "a" {
 		}),
 		stages: []deferredActionsTestStage{
 			{
+
 				buildOpts: func(opts *PlanOpts) {
 					opts.Mode = plans.RefreshOnlyMode
 				},
@@ -1481,9 +1482,6 @@ func TestContextApply_deferredActions(t *testing.T) {
 					}
 
 					plan, diags := ctx.Plan(cfg, state, opts)
-					if plan.Complete != stage.complete {
-						t.Errorf("wrong completion status in plan: got %v, want %v", plan.Complete, stage.complete)
-					}
 
 					// We expect the correct planned changes and no diagnostics.
 					if stage.allowWarnings {
@@ -1491,6 +1489,11 @@ func TestContextApply_deferredActions(t *testing.T) {
 					} else {
 						assertNoDiagnostics(t, diags)
 					}
+
+					if plan.Complete != stage.complete {
+						t.Errorf("wrong completion status in plan: got %v, want %v", plan.Complete, stage.complete)
+					}
+
 					provider.plannedChanges.Test(t, stage.wantPlanned)
 
 					// We expect the correct actions.
