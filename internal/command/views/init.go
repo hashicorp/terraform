@@ -85,7 +85,7 @@ func (v *InitJSON) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 func (v *InitJSON) Output(messageCode string, params ...any) {
-	current_timestamp := time.Now().Format(time.RFC3339)
+	current_timestamp := time.Now().UTC().Format(time.RFC3339)
 
 	json_data := map[string]string{
 		"@level":     "info",
@@ -314,49 +314,6 @@ see any changes that are required for your infrastructure.
 If you ever set or change modules or Terraform Settings, run "terraform init"
 again to reinitialize your working directory.
 `
-
-// providerProtocolTooOld is a message sent to the CLI UI if the provider's
-// supported protocol versions are too old for the user's version of terraform,
-// but a newer version of the provider is compatible.
-const providerProtocolTooOld = `Provider %q v%s is not compatible with Terraform %s.
-Provider version %s is the latest compatible version. Select it with the following version constraint:
-	version = %q
-
-Terraform checked all of the plugin versions matching the given constraint:
-	%s
-
-Consult the documentation for this provider for more information on compatibility between provider and Terraform versions.
-`
-
-// providerProtocolTooNew is a message sent to the CLI UI if the provider's
-// supported protocol versions are too new for the user's version of terraform,
-// and the user could either upgrade terraform or choose an older version of the
-// provider.
-const providerProtocolTooNew = `Provider %q v%s is not compatible with Terraform %s.
-You need to downgrade to v%s or earlier. Select it with the following constraint:
-	version = %q
-
-Terraform checked all of the plugin versions matching the given constraint:
-	%s
-
-Consult the documentation for this provider for more information on compatibility between provider and Terraform versions.
-Alternatively, upgrade to the latest version of Terraform for compatibility with newer provider releases.
-`
-
-// incompleteLockFileInformationHeader is the summary displayed to users when
-// the lock file has only recorded local hashes.
-const incompleteLockFileInformationHeader = `Incomplete lock file information for providers`
-
-// incompleteLockFileInformationBody is the body of text displayed to users when
-// the lock file has only recorded local hashes.
-const incompleteLockFileInformationBody = `Due to your customized provider installation methods, Terraform was forced to calculate lock file checksums locally for the following providers:
-  - %s
-
-The current .terraform.lock.hcl file only includes checksums for %s, so Terraform running on another platform will fail to install these providers.
-
-To calculate additional checksums for another platform, run:
-  terraform providers lock -platform=linux_amd64
-(where linux_amd64 is the platform to generate)`
 
 const previousLockInfoHuman = `
 Terraform has created a lock file [bold].terraform.lock.hcl[reset] to record the provider

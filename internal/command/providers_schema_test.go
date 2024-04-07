@@ -59,7 +59,7 @@ func TestProvidersSchema_output(t *testing.T) {
 
 			p := providersSchemaFixtureProvider()
 			ui := new(cli.MockUi)
-			view, _ := testView(t)
+			view, done := testView(t)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
@@ -72,11 +72,8 @@ func TestProvidersSchema_output(t *testing.T) {
 				Meta: m,
 			}
 			if code := ic.Run([]string{}); code != 0 {
-				t.Fatalf("init failed\n%s", ui.ErrorWriter)
+				t.Fatalf("init failed\n%s", done(t).Stderr())
 			}
-
-			// flush the init output from the mock ui
-			ui.OutputWriter.Reset()
 
 			// `terraform provider schemas` command
 			pc := &ProvidersSchemaCommand{Meta: m}

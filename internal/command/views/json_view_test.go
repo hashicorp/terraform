@@ -410,7 +410,7 @@ func testJSONViewOutputEqualsFull(t *testing.T, output string, want []map[string
 			delete(gotStruct, "@timestamp")
 
 			// Verify the timestamp format
-			if _, err := time.Parse("2006-01-02T15:04:05.000000Z07:00", timestamp.(string)); err != nil {
+			if _, err := time.Parse(time.RFC3339, timestamp.(string)); err != nil {
 				t.Errorf("error parsing timestamp on line %d: %s", i, err)
 			}
 		}

@@ -148,7 +148,7 @@ func (c *InitCommand) Run(args []string) int {
 		view.Output(views.CopyingConfigurationMessage, src)
 		header = true
 
-		hooks := uiModuleInstallHooks{ // here check to verify if downloading prints text, update to handle view type
+		hooks := uiModuleInstallHooks{
 			Ui:             c.Ui,
 			ShowLocalPaths: false, // since they are in a weird location for init
 			View:           view,

@@ -1,2 +1,0 @@
-{"@level":"info","@message":"Terraform 1.9.0-dev","@module":"terraform.ui","terraform":"1.9.0-dev","type":"version","ui":"1.2"}
-{"@level":"error","@message":"Error: Failed to query available provider packages","@module":"terraform.ui","diagnostic":{"severity":"error","summary":"Failed to query available provider packages","detail":"Could not retrieve the list of available versions for provider hashicorp/test: no available releases match the given constraints 1.0.1, 1.0.2"},"type":"diagnostic"}

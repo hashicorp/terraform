@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/terminal"
@@ -15,7 +16,7 @@ import (
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
-func TestNewInit_jsonView(t *testing.T) {
+func TestNewInit_jsonViewDiagnostics(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 
 	newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
@@ -64,7 +65,7 @@ func TestNewInit_jsonView(t *testing.T) {
 	testJSONViewOutputEqualsFull(t, actual, want)
 }
 
-func TestNewInit_humanView(t *testing.T) {
+func TestNewInit_humanViewDiagnostics(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 
 	newInit := NewInit(arguments.ViewHuman, NewView(streams).SetRunningInAutomation(true))
@@ -82,7 +83,7 @@ func TestNewInit_humanView(t *testing.T) {
 	}
 }
 
-func TestNewInit_unsupportedView(t *testing.T) {
+func TestNewInit_unsupportedViewDiagnostics(t *testing.T) {
 	defer func() {
 		r := recover()
 		if r == nil {
@@ -117,4 +118,234 @@ func getTestDiags(t *testing.T) tfdiags.Diagnostics {
 	)
 
 	return diags
+}
+
+func TestNewInit_jsonViewOutput(t *testing.T) {
+	t.Run("no param", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+
+		newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
+		if _, ok := newInit.(*InitJSON); !ok {
+			t.Fatalf("unexpected return type %t", newInit)
+		}
+
+		messageCode := "initializing_provider_plugin_message"
+		newInit.Output(messageCode)
+
+		version := tfversion.String()
+		want := []map[string]interface{}{
+			{
+				"@level":    "info",
+				"@message":  fmt.Sprintf("Terraform %s", version),
+				"@module":   "terraform.ui",
+				"terraform": version,
+				"type":      "version",
+				"ui":        JSON_UI_VERSION,
+			},
+			{
+				"@level":   "info",
+				"@message": "Initializing provider plugins...",
+				"@module":  "terraform.ui",
+				"type":     "init_output",
+			},
+		}
+
+		actual := done(t).Stdout()
+		testJSONViewOutputEqualsFull(t, actual, want)
+	})
+
+	t.Run("single param", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+
+		newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
+		if _, ok := newInit.(*InitJSON); !ok {
+			t.Fatalf("unexpected return type %t", newInit)
+		}
+
+		packageName := "hashicorp/aws"
+		messageCode := "finding_latest_version_message"
+		newInit.Output(messageCode, packageName)
+
+		version := tfversion.String()
+		want := []map[string]interface{}{
+			{
+				"@level":    "info",
+				"@message":  fmt.Sprintf("Terraform %s", version),
+				"@module":   "terraform.ui",
+				"terraform": version,
+				"type":      "version",
+				"ui":        JSON_UI_VERSION,
+			},
+			{
+				"@level":   "info",
+				"@message": fmt.Sprintf("- Finding latest version of %s...", packageName),
+				"@module":  "terraform.ui",
+				"type":     "init_output",
+			},
+		}
+
+		actual := done(t).Stdout()
+		testJSONViewOutputEqualsFull(t, actual, want)
+	})
+
+	t.Run("variable length params", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+
+		newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
+		if _, ok := newInit.(*InitJSON); !ok {
+			t.Fatalf("unexpected return type %t", newInit)
+		}
+
+		var packageName, packageVersion = "hashicorp/aws", "3.0.0"
+		messageCode := "provider_already_installed_message"
+		newInit.Output(messageCode, packageName, packageVersion)
+
+		version := tfversion.String()
+		want := []map[string]interface{}{
+			{
+				"@level":    "info",
+				"@message":  fmt.Sprintf("Terraform %s", version),
+				"@module":   "terraform.ui",
+				"terraform": version,
+				"type":      "version",
+				"ui":        JSON_UI_VERSION,
+			},
+			{
+				"@level":   "info",
+				"@message": fmt.Sprintf("- Using previously-installed %s v%s", packageName, packageVersion),
+				"@module":  "terraform.ui",
+				"type":     "init_output",
+			},
+		}
+
+		actual := done(t).Stdout()
+		testJSONViewOutputEqualsFull(t, actual, want)
+	})
+}
+
+func TestNewInit_jsonViewLog(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+
+	newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
+	if _, ok := newInit.(*InitJSON); !ok {
+		t.Fatalf("unexpected return type %t", newInit)
+	}
+
+	messageCode := "initializing_provider_plugin_message"
+	newInit.Log(messageCode)
+
+	version := tfversion.String()
+	want := []map[string]interface{}{
+		{
+			"@level":    "info",
+			"@message":  fmt.Sprintf("Terraform %s", version),
+			"@module":   "terraform.ui",
+			"terraform": version,
+			"type":      "version",
+			"ui":        JSON_UI_VERSION,
+		},
+		{
+			"@level":   "info",
+			"@message": "Initializing provider plugins...",
+			"@module":  "terraform.ui",
+			"type":     "log",
+		},
+	}
+
+	actual := done(t).Stdout()
+	testJSONViewOutputEqualsFull(t, actual, want)
+}
+
+func TestNewInit_jsonViewPrepareMessage(t *testing.T) {
+	t.Run("message code that does not exists", func(t *testing.T) {
+		streams, _ := terminal.StreamsForTesting(t)
+
+		newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
+		if _, ok := newInit.(*InitJSON); !ok {
+			t.Fatalf("unexpected return type %t", newInit)
+		}
+
+		messageCode := "Terraform has been successfully initialized!"
+		want := messageCode
+
+		actual := newInit.PrepareMessage(messageCode)
+		if !cmp.Equal(want, actual) {
+			t.Errorf("unexpected output: %s", cmp.Diff(want, actual))
+		}
+	})
+
+	t.Run("existing message code", func(t *testing.T) {
+		streams, _ := terminal.StreamsForTesting(t)
+
+		newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
+		if _, ok := newInit.(*InitJSON); !ok {
+			t.Fatalf("unexpected return type %t", newInit)
+		}
+
+		messageCode := "initializing_modules_message"
+		want := "Initializing modules..."
+
+		actual := newInit.PrepareMessage(messageCode)
+		if !cmp.Equal(want, actual) {
+			t.Errorf("unexpected output: %s", cmp.Diff(want, actual))
+		}
+	})
+}
+
+func TestNewInit_humanViewOutput(t *testing.T) {
+	t.Run("no param", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+
+		newInit := NewInit(arguments.ViewHuman, NewView(streams).SetRunningInAutomation(true))
+		if _, ok := newInit.(*InitHuman); !ok {
+			t.Fatalf("unexpected return type %t", newInit)
+		}
+
+		messageCode := "initializing_provider_plugin_message"
+		newInit.Output(messageCode)
+
+		actual := done(t).All()
+		expected := "Initializing provider plugins..."
+		if !strings.Contains(actual, expected) {
+			t.Fatalf("expected output to contain: %s, but got %s", expected, actual)
+		}
+	})
+
+	t.Run("single param", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+
+		newInit := NewInit(arguments.ViewHuman, NewView(streams).SetRunningInAutomation(true))
+		if _, ok := newInit.(*InitHuman); !ok {
+			t.Fatalf("unexpected return type %t", newInit)
+		}
+
+		packageName := "hashicorp/aws"
+		messageCode := "finding_latest_version_message"
+		newInit.Output(messageCode, packageName)
+
+		actual := done(t).All()
+		expected := "Finding latest version of hashicorp/aws"
+		if !strings.Contains(actual, expected) {
+			t.Fatalf("expected output to contain: %s, but got %s", expected, actual)
+		}
+	})
+
+	t.Run("variable length params", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+
+		newInit := NewInit(arguments.ViewHuman, NewView(streams).SetRunningInAutomation(true))
+		if _, ok := newInit.(*InitHuman); !ok {
+			t.Fatalf("unexpected return type %t", newInit)
+		}
+
+		var packageName, packageVersion = "hashicorp/aws", "3.0.0"
+		messageCode := "provider_already_installed_message"
+		newInit.Output(messageCode, packageName, packageVersion)
+
+		actual := done(t).All()
+		expected := "- Using previously-installed hashicorp/aws v3.0.0"
+		if !strings.Contains(actual, expected) {
+			t.Fatalf("expected output to contain: %s, but got %s", expected, actual)
+		}
+	})
 }
