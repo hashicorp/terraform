@@ -77,6 +77,16 @@ func (c *InitCommand) Run(args []string) int {
 	c.migrateState = initArgs.MigrateState
 	c.Meta.ignoreRemoteVersion = initArgs.IgnoreRemoteVersion
 
+	if initArgs.MigrateState && initArgs.Json {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"The -migrate-state and -json options are mutually-exclusive",
+			"Terraform cannot ask for interactive approval when -json is set. To use the -migrate-state option, disable the -json option.",
+		))
+		view.Diagnostics(diags)
+		return 1
+	}
+
 	if c.migrateState && c.reconfigure {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
