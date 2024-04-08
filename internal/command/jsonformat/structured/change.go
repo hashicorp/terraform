@@ -6,6 +6,8 @@ package structured
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"reflect"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
@@ -282,11 +284,8 @@ func unmarshalGeneric(raw json.RawMessage) interface{} {
 		return nil
 	}
 
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.UseNumber() // We support very big (> 2^64) numbers.
-
-	var out interface{}
-	if err := decoder.Decode(&out); err != nil {
+	out, err := ParseJson(bytes.NewReader(raw))
+	if err != nil {
 		panic("unrecognized json type: " + err.Error())
 	}
 	return out
@@ -298,4 +297,22 @@ func unwrapAttributeValues(values jsonstate.AttributeValues) map[string]interfac
 		out[key] = unmarshalGeneric(value)
 	}
 	return out
+}
+
+func ParseJson(reader io.Reader) (interface{}, error) {
+	decoder := json.NewDecoder(reader)
+	decoder.UseNumber()
+
+	var jv interface{}
+	if err := decoder.Decode(&jv); err != nil {
+		return nil, err
+	}
+
+	// The JSON decoder should have consumed the entire input stream, so
+	// we should be at EOF now.
+	if token, err := decoder.Token(); err != io.EOF {
+		return nil, fmt.Errorf("unexpected token after valid JSON: %v", token)
+	}
+
+	return jv, nil
 }
