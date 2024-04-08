@@ -324,6 +324,10 @@ type PlanResourceChangeRequest struct {
 	// each provider, and it should not be used without coordination with
 	// HashiCorp. It is considered experimental and subject to change.
 	ProviderMeta cty.Value
+
+	// DeferralAllowed signals that the provider is allowed to defer the
+	// changes. If set the caller needs to handle the deferred response.
+	DeferralAllowed bool
 }
 
 type PlanResourceChangeResponse struct {
@@ -349,6 +353,10 @@ type PlanResourceChangeResponse struct {
 	// otherwise fail due to this imprecise mapping. No other provider or SDK
 	// implementation is permitted to set this.
 	LegacyTypeSystem bool
+
+	// Deferred if present signals that the provider was not able to fully
+	// complete this operation and a susequent run is required.
+	Deferred *Deferred
 }
 
 type ApplyResourceChangeRequest struct {

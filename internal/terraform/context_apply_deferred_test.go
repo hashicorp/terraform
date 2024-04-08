@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type deferredActionsTest struct {
@@ -1413,6 +1414,332 @@ output "a" {
 			},
 		},
 	}
+
+	// planCreateResourceChange is a test that covers the behavior of planning a resource that is being created.
+	planCreateResourceChange = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "deferred_resource_change"
+}
+output "a" {
+	value = test.a
+}
+		`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+
+				inputs: map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{
+					"deferred_resource_change": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("deferred_resource_change"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+
+				wantActions: map[string]plans.Action{},
+				wantApplied: map[string]cty.Value{
+					// The all resources will be deferred, so shouldn't
+					// have any action at this stage.
+				},
+				wantOutputs: map[string]cty.Value{
+					"a": cty.NullVal(cty.DynamicPseudoType),
+				},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Create},
+				},
+				complete: false,
+			},
+		},
+	}
+
+	// planUpdateResourceChange is a test that covers the behavior of planning a resource that is being updated
+	planUpdateResourceChange = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "deferred_resource_change"
+}
+output "a" {
+	value = test.a
+}
+		`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "old_value",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+
+				inputs: map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{
+					"deferred_resource_change": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("deferred_resource_change"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+
+				wantActions: map[string]plans.Action{},
+				wantApplied: map[string]cty.Value{
+					// The all resources will be deferred, so shouldn't
+					// have any action at this stage.
+				},
+				wantOutputs: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("old_value"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.NullVal(cty.String),
+					}),
+				},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Update},
+				},
+				complete: false,
+			},
+		},
+	}
+
+	// planNoOpResourceChange is a test that covers the behavior of planning a resource that is the same as the current state.
+	planNoOpResourceChange = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "deferred_resource_change"
+}
+output "a" {
+	value = test.a
+}
+		`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name":   "deferred_resource_change",
+						"output": "computed_output",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+
+				inputs: map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{
+					"deferred_resource_change": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("deferred_resource_change"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("computed_output"),
+					}),
+				},
+
+				wantActions: map[string]plans.Action{},
+				wantApplied: map[string]cty.Value{
+					// The all resources will be deferred, so shouldn't
+					// have any action at this stage.
+				},
+				wantOutputs: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("deferred_resource_change"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("computed_output"),
+					}),
+				},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.NoOp},
+				},
+				complete: false,
+			},
+		},
+	}
+
+	// planForceReplaceResourceChange is a test that covers the behavior of planning a resource that is marked for replacement
+	planForceReplaceResourceChange = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "deferred_resource_change"
+}
+output "a" {
+	value = test.a
+}
+		`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name":   "old_value",
+						"output": "computed_output",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.ForceReplace = []addrs.AbsResourceInstance{
+						{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test",
+									Name: "a",
+								},
+								Key: addrs.NoKey,
+							},
+						},
+					}
+				},
+				inputs: map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{
+					"deferred_resource_change": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("deferred_resource_change"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("computed_output"),
+					}),
+				},
+
+				wantActions: map[string]plans.Action{},
+				wantApplied: map[string]cty.Value{
+					// The all resources will be deferred, so shouldn't
+					// have any action at this stage.
+				},
+				wantOutputs: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("old_value"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("computed_output"),
+					}),
+				},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.DeleteThenCreate},
+				},
+				complete: false,
+			},
+		},
+	}
+
+	// planDeleteResourceChange is a test that covers the behavior of planning a resource that is removed from the config.
+	planDeleteResourceChange = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+// Empty config, expect to delete everything
+		`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name":   "deferred_resource_change",
+						"output": "computed_output",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+
+				inputs:      map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{},
+
+				wantActions: map[string]plans.Action{},
+				wantApplied: map[string]cty.Value{
+					// The all resources will be deferred, so shouldn't
+					// have any action at this stage.
+				},
+				wantOutputs: map[string]cty.Value{},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Delete},
+				},
+				complete: false,
+			},
+		},
+	}
+
+	// planDestroyResourceChange is a test that covers the behavior of planning a resource
+	planDestroyResourceChange = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "deferred_resource_change"
+}
+output "a" {
+	value = test.a
+}
+		`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "deferred_resource_change",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.DestroyMode
+				},
+				inputs: map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{
+					"deferred_resource_change": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("deferred_resource_change"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+
+				wantActions: map[string]plans.Action{},
+				wantApplied: map[string]cty.Value{
+					// The all resources will be deferred, so shouldn't
+					// have any action at this stage.
+				},
+				wantOutputs: map[string]cty.Value{},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Delete},
+				},
+				complete: false,
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
@@ -1430,6 +1757,12 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"custom_conditions":                              customConditionsTest,
 		"custom_conditions_with_orphans":                 customConditionsWithOrphansTest,
 		"resource_read":                                  resourceReadTest,
+		"plan_create_resource_change":                    planCreateResourceChange,
+		"plan_update_resource_change":                    planUpdateResourceChange,
+		"plan_noop_resource_change":                      planNoOpResourceChange,
+		"plan_force_replace_resource_change":             planForceReplaceResourceChange,
+		"plan_delete_resource_change":                    planDeleteResourceChange,
+		"plan_destroy_resource_change":                   planDestroyResourceChange,
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -1485,37 +1818,43 @@ func TestContextApply_deferredActions(t *testing.T) {
 						stage.buildOpts(opts)
 					}
 
-					plan, diags := ctx.Plan(cfg, state, opts)
+					var plan *plans.Plan
+					t.Run("plan", func(t *testing.T) {
 
-					// We expect the correct planned changes and no diagnostics.
-					if stage.allowWarnings {
-						assertNoErrors(t, diags)
-					} else {
-						assertNoDiagnostics(t, diags)
-					}
+						var diags tfdiags.Diagnostics
+						plan, diags = ctx.Plan(cfg, state, opts)
 
-					if plan.Complete != stage.complete {
-						t.Errorf("wrong completion status in plan: got %v, want %v", plan.Complete, stage.complete)
-					}
+						// We expect the correct planned changes and no diagnostics.
+						if stage.allowWarnings {
+							assertNoErrors(t, diags)
+						} else {
+							assertNoDiagnostics(t, diags)
+						}
 
-					provider.plannedChanges.Test(t, stage.wantPlanned)
+						if plan.Complete != stage.complete {
+							t.Errorf("wrong completion status in plan: got %v, want %v", plan.Complete, stage.complete)
+						}
 
-					// We expect the correct actions.
-					gotActions := make(map[string]plans.Action)
-					for _, cs := range plan.Changes.Resources {
-						gotActions[cs.Addr.String()] = cs.Action
-					}
-					if diff := cmp.Diff(stage.wantActions, gotActions); diff != "" {
-						t.Errorf("wrong actions in plan\n%s", diff)
-					}
+						provider.plannedChanges.Test(t, stage.wantPlanned)
 
-					gotDeferred := make(map[string]ExpectedDeferred)
-					for _, dc := range plan.DeferredResources {
-						gotDeferred[dc.ChangeSrc.Addr.String()] = ExpectedDeferred{Reason: dc.DeferredReason, Action: dc.ChangeSrc.Action}
-					}
-					if diff := cmp.Diff(stage.wantDeferred, gotDeferred); diff != "" {
-						t.Errorf("wrong deferred reasons or actions in plan\n%s", diff)
-					}
+						// We expect the correct actions.
+						gotActions := make(map[string]plans.Action)
+						for _, cs := range plan.Changes.Resources {
+							gotActions[cs.Addr.String()] = cs.Action
+						}
+						if diff := cmp.Diff(stage.wantActions, gotActions); diff != "" {
+							t.Errorf("wrong actions in plan\n%s", diff)
+						}
+
+						gotDeferred := make(map[string]ExpectedDeferred)
+						for _, dc := range plan.DeferredResources {
+							gotDeferred[dc.ChangeSrc.Addr.String()] = ExpectedDeferred{Reason: dc.DeferredReason, Action: dc.ChangeSrc.Action}
+						}
+						if diff := cmp.Diff(stage.wantDeferred, gotDeferred); diff != "" {
+							t.Errorf("wrong deferred reasons or actions in plan\n%s", diff)
+						}
+
+					})
 
 					if stage.wantApplied == nil {
 						// Don't execute the apply stage if wantApplied is nil.
@@ -1523,31 +1862,34 @@ func TestContextApply_deferredActions(t *testing.T) {
 					}
 
 					if opts.Mode == plans.RefreshOnlyMode {
-						// Don't execute the apply stage if wantApplied is nil.
+						// Don't execute the apply stage if mode is refresh-only.
 						return
 					}
 
-					updatedState, diags := ctx.Apply(plan, cfg, nil)
+					t.Run("apply", func(t *testing.T) {
 
-					// We expect the correct applied changes and no diagnostics.
-					if stage.allowWarnings {
-						assertNoErrors(t, diags)
-					} else {
-						assertNoDiagnostics(t, diags)
-					}
-					provider.appliedChanges.Test(t, stage.wantApplied)
+						updatedState, diags := ctx.Apply(plan, cfg, nil)
 
-					// We also want the correct output values.
-					gotOutputs := make(map[string]cty.Value)
-					for name, output := range updatedState.RootOutputValues {
-						gotOutputs[name] = output.Value
-					}
-					if diff := cmp.Diff(stage.wantOutputs, gotOutputs, ctydebug.CmpOptions); diff != "" {
-						t.Errorf("wrong output values\n%s", diff)
-					}
+						// We expect the correct applied changes and no diagnostics.
+						if stage.allowWarnings {
+							assertNoErrors(t, diags)
+						} else {
+							assertNoDiagnostics(t, diags)
+						}
+						provider.appliedChanges.Test(t, stage.wantApplied)
 
-					// Update the state for the next stage.
-					state = updatedState
+						// We also want the correct output values.
+						gotOutputs := make(map[string]cty.Value)
+						for name, output := range updatedState.RootOutputValues {
+							gotOutputs[name] = output.Value
+						}
+						if diff := cmp.Diff(stage.wantOutputs, gotOutputs, ctydebug.CmpOptions); diff != "" {
+							t.Errorf("wrong output values\n%s", diff)
+						}
+
+						// Update the state for the next stage.
+						state = updatedState
+					})
 				})
 			}
 		})
@@ -1631,10 +1973,18 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			}
 		},
 		PlanResourceChangeFn: func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+			var deferred *providers.Deferred
 			if req.ProposedNewState.IsNull() {
 				// Then we're deleting a concrete instance.
+				if key := req.PriorState.GetAttr("name"); key.IsKnown() && key.AsString() == "deferred_resource_change" {
+					deferred = &providers.Deferred{
+						Reason: providers.DeferredReasonProviderConfigUnknown,
+					}
+				}
+
 				return providers.PlanResourceChangeResponse{
 					PlannedState: req.ProposedNewState,
+					Deferred:     deferred,
 				}
 			}
 
@@ -1644,6 +1994,12 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			}
 
 			plannedState := req.ProposedNewState
+			if key == "deferred_resource_change" {
+				deferred = &providers.Deferred{
+					Reason: providers.DeferredReasonProviderConfigUnknown,
+				}
+			}
+
 			if plannedState.GetAttr("output").IsNull() {
 				plannedStateValues := req.ProposedNewState.AsValueMap()
 				plannedStateValues["output"] = cty.UnknownVal(cty.String)
@@ -1653,13 +2009,20 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			provider.plannedChanges.Set(key, plannedState)
 			return providers.PlanResourceChangeResponse{
 				PlannedState: plannedState,
+				Deferred:     deferred,
 			}
 		},
 		ApplyResourceChangeFn: func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
-			key := req.Config.GetAttr("name").AsString()
+			var key string
+			if v := req.Config.GetAttr("name"); v.IsKnown() {
+				key = req.Config.GetAttr("name").AsString()
+			} else {
+				key = "<unknown>"
+			}
 
 			newState := req.PlannedState
-			if !newState.GetAttr("output").IsKnown() {
+
+			if req.PlannedState.IsKnown() && !req.PlannedState.IsNull() && !newState.GetAttr("output").IsKnown() {
 				newStateValues := req.PlannedState.AsValueMap()
 				newStateValues["output"] = cty.StringVal(key)
 				newState = cty.ObjectVal(newStateValues)

@@ -181,7 +181,10 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	// We might be able to offer an approximate reason for why we are
 	// planning to delete this object. (This is best-effort; we might
 	// sometimes not have a reason.)
-	change.ActionReason = n.deleteActionReason(ctx)
+	// The change can be nil in case of deferred destroys.
+	if change != nil {
+		change.ActionReason = n.deleteActionReason(ctx)
+	}
 
 	// We intentionally write the change before the subsequent checks, because
 	// all of the checks below this point are for problems caused by the

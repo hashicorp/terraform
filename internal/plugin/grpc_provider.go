@@ -483,6 +483,7 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		Config:           &proto.DynamicValue{Msgpack: configMP},
 		ProposedNewState: &proto.DynamicValue{Msgpack: propMP},
 		PriorPrivate:     r.PriorPrivate,
+		DeferralAllowed:  r.DeferralAllowed,
 	}
 
 	if metaSchema.Block != nil {
@@ -520,6 +521,8 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	resp.PlannedPrivate = protoResp.PlannedPrivate
 
 	resp.LegacyTypeSystem = protoResp.LegacyTypeSystem
+
+	resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
 
 	return resp
 }

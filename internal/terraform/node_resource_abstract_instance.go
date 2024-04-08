@@ -438,6 +438,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			ProposedNewState: nullVal,
 			PriorPrivate:     currentState.Private,
 			ProviderMeta:     metaConfigVal,
+			DeferralAllowed:  ctx.Deferrals().DeferralAllowed(),
 		})
 
 		// We may not have a config for all destroys, but we want to reference
@@ -447,6 +448,18 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		}
 		diags = diags.Append(resp.Diagnostics)
 		if diags.HasErrors() {
+			return plan, diags
+		}
+
+		if resp.Deferred != nil {
+			ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, resp.Deferred.Reason, &plans.ResourceInstanceChange{
+				Addr: n.Addr,
+				Change: plans.Change{
+					Action: plans.Delete,
+					Before: unmarkedPriorVal,
+					After:  resp.PlannedState,
+				},
+			})
 			return plan, diags
 		}
 
@@ -926,10 +939,25 @@ func (n *NodeAbstractResourceInstance) plan(
 			ProposedNewState: proposedNewVal,
 			PriorPrivate:     priorPrivate,
 			ProviderMeta:     metaConfigVal,
+			DeferralAllowed:  ctx.Deferrals().DeferralAllowed(),
 		})
 	}
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
+		return nil, nil, keyData, diags
+	}
+
+	if resp.Deferred != nil {
+		reqRep := cty.NewPathSet() // TODO: Unclear if we need this information in this case
+		action, _ := getAction(n.Addr, priorVal, resp.PlannedState, createBeforeDestroy, forceReplace, reqRep)
+		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, resp.Deferred.Reason, &plans.ResourceInstanceChange{
+			Addr: n.Addr,
+			Change: plans.Change{
+				Action: action,
+				Before: unmarkedPriorVal,
+				After:  unmarkedConfigVal,
+			},
+		})
 		return nil, nil, keyData, diags
 	}
 
@@ -1174,6 +1202,7 @@ func (n *NodeAbstractResourceInstance) plan(
 				ProposedNewState: proposedNewVal,
 				PriorPrivate:     plannedPrivate,
 				ProviderMeta:     metaConfigVal,
+				DeferralAllowed:  ctx.Deferrals().DeferralAllowed(),
 			})
 		}
 		// We need to tread carefully here, since if there are any warnings
@@ -1185,6 +1214,19 @@ func (n *NodeAbstractResourceInstance) plan(
 			diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 			return nil, nil, keyData, diags
 		}
+
+		if resp.Deferred != nil {
+			ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, resp.Deferred.Reason, &plans.ResourceInstanceChange{
+				Addr: n.Addr,
+				Change: plans.Change{
+					Action: action,
+					Before: nullPriorVal,
+					After:  resp.PlannedState,
+				},
+			})
+			return nil, nil, keyData, diags
+		}
+
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
 
