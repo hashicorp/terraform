@@ -197,6 +197,9 @@ func (d *Deferred) HaveAnyDeferrals() bool {
 // method will panic in that case. Callers should always test whether a resource
 // instance action should be deferred _before_ reporting that it has been.
 func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInstance) bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	if d.externalDependencyDeferred {
 		// This is an easy case: _all_ actions must be deferred.
 		return true
