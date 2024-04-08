@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 // Deferred keeps track of deferrals that have already happened, to help
@@ -176,6 +177,22 @@ func (d *Deferred) HaveAnyDeferrals() bool {
 			len(d.partialExpandedModulesDeferred) != 0)
 }
 
+// IsResourceInstanceDeferred returns true if the receiver knows some reason
+// why the resource instance with the given address should have its planned
+// action deferred for a future plan/apply round.
+func (d *Deferred) IsResourceInstanceDeferred(addr addrs.AbsResourceInstance) bool {
+	if d.externalDependencyDeferred {
+		return true
+	}
+
+	// Our resource graph describes relationships between the static resource
+	// configuration blocks, not their dynamic instances, so we need to start
+	// with the config address that the given instance belongs to.
+	configAddr := addr.ConfigResource()
+
+	return d.resourceInstancesDeferred.Get(configAddr).Has(addr)
+}
+
 // ShouldDeferResourceInstanceChanges returns true if the receiver knows some
 // reason why the resource instance with the given address should have its
 // planned action deferred for a future plan/apply round.
@@ -195,7 +212,8 @@ func (d *Deferred) HaveAnyDeferrals() bool {
 // It's invalid to call this method for an address that was already reported
 // as deferred using [Deferred.ReportResourceInstanceDeferred], and so this
 // method will panic in that case. Callers should always test whether a resource
-// instance action should be deferred _before_ reporting that it has been.
+// instance action should be deferred _before_ reporting that it has been by calling
+// [Deferred.IsResourceInstanceDeferred].
 func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInstance) bool {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -313,7 +331,7 @@ func (d *Deferred) ReportResourceExpansionDeferred(addr addrs.PartialExpandedRes
 		panic(fmt.Sprintf("duplicate deferral report for %s", addr))
 	}
 	configMap.Put(addr, &plans.DeferredResourceInstanceChange{
-		DeferredReason: plans.DeferredReasonInstanceCountUnknown,
+		DeferredReason: providers.DeferredReasonInstanceCountUnknown,
 		Change:         change,
 	})
 }
@@ -348,7 +366,7 @@ func (d *Deferred) ReportDataSourceExpansionDeferred(addr addrs.PartialExpandedR
 // ReportResourceInstanceDeferred records that a fully-expanded resource
 // instance has had its planned action deferred to a future round for a reason
 // other than its address being only partially-decided.
-func (d *Deferred) ReportResourceInstanceDeferred(addr addrs.AbsResourceInstance, reason plans.DeferredReason, change *plans.ResourceInstanceChange) {
+func (d *Deferred) ReportResourceInstanceDeferred(addr addrs.AbsResourceInstance, reason providers.DeferredReason, change *plans.ResourceInstanceChange) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 

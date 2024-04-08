@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -195,7 +196,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 		},
 		DeferredResources: []*plans.DeferredResourceInstanceChangeSrc{
 			{
-				DeferredReason: plans.DeferredReasonInstanceCountUnknown,
+				DeferredReason: providers.DeferredReasonInstanceCountUnknown,
 				ChangeSrc: &plans.ResourceInstanceChangeSrc{
 					Addr: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,

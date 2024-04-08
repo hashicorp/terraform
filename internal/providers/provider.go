@@ -237,6 +237,47 @@ type ReadResourceRequest struct {
 	// each provider, and it should not be used without coordination with
 	// HashiCorp. It is considered experimental and subject to change.
 	ProviderMeta cty.Value
+
+	// DeferralAllowed signals that the provider is allowed to defer the
+	// changes. If set the caller needs to handle the deferred response.
+	DeferralAllowed bool
+}
+
+// DeferredReason is a string that describes why a resource was deferred.
+// It differs from the protobuf enum in that it adds more cases
+// since it's more widely used to represent the reason for deferral.
+// Reasons like instance count unknown and deferred prereq are not
+// relevant for providers but can occur in general.
+type DeferredReason string
+
+const (
+	// DeferredReasonInvalid is used when the reason for deferring is
+	// unknown or irrelevant.
+	DeferredReasonInvalid DeferredReason = "invalid"
+
+	// DeferredReasonInstanceCountUnknown is used when the reason for deferring
+	// is that the count or for_each meta-attribute was unknown.
+	DeferredReasonInstanceCountUnknown DeferredReason = "instance_count_unknown"
+
+	// DeferredReasonResourceConfigUnknown is used when the reason for deferring
+	// is that the resource configuration was unknown.
+	DeferredReasonResourceConfigUnknown DeferredReason = "resource_config_unknown"
+
+	// DeferredReasonProviderConfigUnknown is used when the reason for deferring
+	// is that the provider configuration was unknown.
+	DeferredReasonProviderConfigUnknown DeferredReason = "provider_config_unknown"
+
+	// DeferredReasonAbsentPrereq is used when the reason for deferring is that
+	// a required prerequisite resource was absent.
+	DeferredReasonAbsentPrereq DeferredReason = "absent_prereq"
+
+	// DeferredReasonDeferredPrereq is used when the reason for deferring is
+	// that a required prerequisite resource was itself deferred.
+	DeferredReasonDeferredPrereq DeferredReason = "deferred_prereq"
+)
+
+type Deferred struct {
+	Reason DeferredReason
 }
 
 type ReadResourceResponse struct {
@@ -249,6 +290,10 @@ type ReadResourceResponse struct {
 	// Private is an opaque blob that will be stored in state along with the
 	// resource. It is intended only for interpretation by the provider itself.
 	Private []byte
+
+	// Deferred if present signals that the provider was not able to fully
+	// complete this operation and a susequent run is required.
+	Deferred *Deferred
 }
 
 type PlanResourceChangeRequest struct {

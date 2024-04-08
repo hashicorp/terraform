@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 func TestDeferred_externalDependency(t *testing.T) {
@@ -90,7 +91,7 @@ func TestDeferred_absResourceInstanceDeferred(t *testing.T) {
 	})
 
 	// Instance A has its Create action deferred for some reason.
-	deferred.ReportResourceInstanceDeferred(instAAddr, plans.DeferredReasonResourceConfigUnknown, &plans.ResourceInstanceChange{
+	deferred.ReportResourceInstanceDeferred(instAAddr, providers.DeferredReasonResourceConfigUnknown, &plans.ResourceInstanceChange{
 		Addr: instAAddr,
 		Change: plans.Change{
 			Action: plans.Create,

@@ -3,41 +3,16 @@
 
 package plans
 
-import "github.com/zclconf/go-cty/cty"
-
-type DeferredReason string
-
-const (
-	// DeferredReasonInvalid is used when the reason for deferring is
-	// unknown or irrelevant.
-	DeferredReasonInvalid DeferredReason = "invalid"
-
-	// DeferredReasonInstanceCountUnknown is used when the reason for deferring
-	// is that the count or for_each meta-attribute was unknown.
-	DeferredReasonInstanceCountUnknown DeferredReason = "instance_count_unknown"
-
-	// DeferredReasonResourceConfigUnknown is used when the reason for deferring
-	// is that the resource configuration was unknown.
-	DeferredReasonResourceConfigUnknown DeferredReason = "resource_config_unknown"
-
-	// DeferredReasonProviderConfigUnknown is used when the reason for deferring
-	// is that the provider configuration was unknown.
-	DeferredReasonProviderConfigUnknown DeferredReason = "provider_config_unknown"
-
-	// DeferredReasonAbsentPrereq is used when the reason for deferring is that
-	// a required prerequisite resource was absent.
-	DeferredReasonAbsentPrereq DeferredReason = "absent_prereq"
-
-	// DeferredReasonDeferredPrereq is used when the reason for deferring is
-	// that a required prerequisite resource was itself deferred.
-	DeferredReasonDeferredPrereq DeferredReason = "deferred_prereq"
+import (
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // DeferredResourceInstanceChangeSrc tracks information about a resource that
 // has been deferred for some reason.
 type DeferredResourceInstanceChangeSrc struct {
 	// DeferredReason is the reason why this resource instance was deferred.
-	DeferredReason DeferredReason
+	DeferredReason providers.DeferredReason
 
 	// ChangeSrc contains any information we have about the deferred change.
 	// This could be incomplete so must be parsed with care.
@@ -60,7 +35,7 @@ func (rcs *DeferredResourceInstanceChangeSrc) Decode(ty cty.Type) (*DeferredReso
 // has been deferred for some reason.
 type DeferredResourceInstanceChange struct {
 	// DeferredReason is the reason why this resource instance was deferred.
-	DeferredReason DeferredReason
+	DeferredReason providers.DeferredReason
 
 	// Change contains any information we have about the deferred change. This
 	// could be incomplete so must be parsed with care.
