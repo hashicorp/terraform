@@ -10,8 +10,16 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// dynamicExpandWithDeferralAllowed is a variant of dynamicExpand that we use
-// when deferred actions are enabled for the current plan.
+// This file is a temporary split from the node_resource_plan.go file. We handle
+// the unknown instances branch of execution within here, while this is still
+// being developed.
+//
+// We have split the files to make structuring the code easier, eventually once
+// the functions within this file are production ready, we will merge them back
+// into the node_resource_plan.go file.
+
+// dynamicExpandPartial is a variant of dynamicExpand that we use when deferred
+// actions are enabled for the current plan.
 //
 // Once deferred actions are more stable and robust in the stacks runtime, it
 // would be nice to integrate this logic a little better with the main
@@ -104,6 +112,9 @@ func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, know
 	// We need to ensure that all of the expanded import targets are actually
 	// present in the configuration, because we can't import something that
 	// doesn't exist.
+	//
+	// See the validateExpandedImportTargets function for the equivalent of
+	// this for the known resources path.
 ImportValidation:
 	for _, addr := range imports.Keys() {
 		if knownResources.Has(addr) {

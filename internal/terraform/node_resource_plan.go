@@ -211,6 +211,10 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext) (ad
 
 // validateExpandedImportTargets checks that all expanded imports correspond to
 // a configured instance.
+//
+// This function is only called from within the dynamicExpand method, the
+// import validation is inlined within the dynamicExpandPartial method for the
+// alternate code path.
 func (n *nodeExpandPlannableResource) validateExpandedImportTargets(expandedImports addrs.Map[addrs.AbsResourceInstance, string], expandedInstances addrs.Set[addrs.Checkable]) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
