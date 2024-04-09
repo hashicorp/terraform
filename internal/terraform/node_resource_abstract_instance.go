@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -948,7 +949,11 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 
 	if resp.Deferred != nil {
-		reqRep := cty.NewPathSet() // TODO: Unclear if we need this information in this case
+		reqRep, reqRepDiags := getRequiredReplaces(priorVal, proposedNewVal, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
+		diags = diags.Append(reqRepDiags)
+		if diags.HasErrors() {
+			return nil, nil, keyData, diags
+		}
 		action, _ := getAction(n.Addr, priorVal, resp.PlannedState, createBeforeDestroy, forceReplace, reqRep)
 		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, resp.Deferred.Reason, &plans.ResourceInstanceChange{
 			Addr: n.Addr,
@@ -1051,64 +1056,10 @@ func (n *NodeAbstractResourceInstance) plan(
 		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 	}
 
-	// The provider produces a list of paths to attributes whose changes mean
-	// that we must replace rather than update an existing remote object.
-	// However, we only need to do that if the identified attributes _have_
-	// actually changed -- particularly after we may have undone some of the
-	// changes in processIgnoreChanges -- so now we'll filter that list to
-	// include only where changes are detected.
-	reqRep := cty.NewPathSet()
-	if len(resp.RequiresReplace) > 0 {
-		for _, path := range resp.RequiresReplace {
-			if priorVal.IsNull() {
-				// If prior is null then we don't expect any RequiresReplace at all,
-				// because this is a Create action.
-				continue
-			}
-
-			priorChangedVal, priorPathDiags := hcl.ApplyPath(unmarkedPriorVal, path, nil)
-			plannedChangedVal, plannedPathDiags := hcl.ApplyPath(plannedNewVal, path, nil)
-			if plannedPathDiags.HasErrors() && priorPathDiags.HasErrors() {
-				// This means the path was invalid in both the prior and new
-				// values, which is an error with the provider itself.
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Provider produced invalid plan",
-					fmt.Sprintf(
-						"Provider %q has indicated \"requires replacement\" on %s for a non-existent attribute path %#v.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-						n.ResolvedProvider.Provider, n.Addr, path,
-					),
-				))
-				continue
-			}
-
-			// Make sure we have valid Values for both values.
-			// Note: if the opposing value was of the type
-			// cty.DynamicPseudoType, the type assigned here may not exactly
-			// match the schema. This is fine here, since we're only going to
-			// check for equality, but if the NullVal is to be used, we need to
-			// check the schema for th true type.
-			switch {
-			case priorChangedVal == cty.NilVal && plannedChangedVal == cty.NilVal:
-				// this should never happen without ApplyPath errors above
-				panic("requires replace path returned 2 nil values")
-			case priorChangedVal == cty.NilVal:
-				priorChangedVal = cty.NullVal(plannedChangedVal.Type())
-			case plannedChangedVal == cty.NilVal:
-				plannedChangedVal = cty.NullVal(priorChangedVal.Type())
-			}
-
-			// Unmark for this value for the equality test. If only sensitivity has changed,
-			// this does not require an Update or Replace
-			unmarkedPlannedChangedVal, _ := plannedChangedVal.UnmarkDeep()
-			eqV := unmarkedPlannedChangedVal.Equals(priorChangedVal)
-			if !eqV.IsKnown() || eqV.False() {
-				reqRep.Add(path)
-			}
-		}
-		if diags.HasErrors() {
-			return nil, nil, keyData, diags
-		}
+	reqRep, reqRepDiags := getRequiredReplaces(priorVal, plannedNewVal, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
+	diags = diags.Append(reqRepDiags)
+	if diags.HasErrors() {
+		return nil, nil, keyData, diags
 	}
 
 	action, actionReason := getAction(n.Addr, priorVal, plannedNewVal, createBeforeDestroy, forceReplace, reqRep)
@@ -2765,4 +2716,74 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 	}
 
 	return
+}
+
+// getRequiredReplaces returns a list of paths to attributes whose changes mean
+// that we must replace rather than update an existing remote object.
+//
+// The provider produces a list of paths to attributes whose changes mean
+// that we must replace rather than update an existing remote object.
+// However, we only need to do that if the identified attributes _have_
+// actually changed -- particularly after we may have undone some of the
+// changes in processIgnoreChanges -- so now we'll filter that list to
+// include only where changes are detected.
+func getRequiredReplaces(priorVal, plannedNewVal cty.Value, requiredReplaces []cty.Path, providerAddr tfaddr.Provider, addr addrs.AbsResourceInstance) (cty.PathSet, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	unmarkedPriorVal, _ := priorVal.UnmarkDeepWithPaths()
+
+	reqRep := cty.NewPathSet()
+	if len(requiredReplaces) > 0 {
+		for _, path := range requiredReplaces {
+			if priorVal.IsNull() {
+				// If prior is null then we don't expect any RequiresReplace at all,
+				// because this is a Create action.
+				continue
+			}
+
+			priorChangedVal, priorPathDiags := hcl.ApplyPath(unmarkedPriorVal, path, nil)
+			plannedChangedVal, plannedPathDiags := hcl.ApplyPath(plannedNewVal, path, nil)
+			if plannedPathDiags.HasErrors() && priorPathDiags.HasErrors() {
+				// This means the path was invalid in both the prior and new
+				// values, which is an error with the provider itself.
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Provider produced invalid plan",
+					fmt.Sprintf(
+						"Provider %q has indicated \"requires replacement\" on %s for a non-existent attribute path %#v.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+						providerAddr, addr, path,
+					),
+				))
+				continue
+			}
+
+			// Make sure we have valid Values for both values.
+			// Note: if the opposing value was of the type
+			// cty.DynamicPseudoType, the type assigned here may not exactly
+			// match the schema. This is fine here, since we're only going to
+			// check for equality, but if the NullVal is to be used, we need to
+			// check the schema for th true type.
+			switch {
+			case priorChangedVal == cty.NilVal && plannedChangedVal == cty.NilVal:
+				// this should never happen without ApplyPath errors above
+				panic("requires replace path returned 2 nil values")
+			case priorChangedVal == cty.NilVal:
+				priorChangedVal = cty.NullVal(plannedChangedVal.Type())
+			case plannedChangedVal == cty.NilVal:
+				plannedChangedVal = cty.NullVal(priorChangedVal.Type())
+			}
+
+			// Unmark for this value for the equality test. If only sensitivity has changed,
+			// this does not require an Update or Replace
+			unmarkedPlannedChangedVal, _ := plannedChangedVal.UnmarkDeep()
+			eqV := unmarkedPlannedChangedVal.Equals(priorChangedVal)
+			if !eqV.IsKnown() || eqV.False() {
+				reqRep.Add(path)
+			}
+		}
+		if diags.HasErrors() {
+			return reqRep, diags
+		}
+	}
+
+	return reqRep, diags
 }
