@@ -1016,7 +1016,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	// ignore changes have been processed. We add in the schema marks as well,
 	// to ensure that provider defined private attributes are marked correctly
 	// here.
-	unmarkedPlannedNewVal := plannedNewVal
+
 	unmarkedPaths = append(unmarkedPaths, schema.ValueMarks(plannedNewVal, nil)...)
 
 	if len(unmarkedPaths) > 0 {
@@ -1083,56 +1083,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 	}
 
-	// The user might also ask us to force replacing a particular resource
-	// instance, regardless of whether the provider thinks it needs replacing.
-	// For example, users typically do this if they learn a particular object
-	// has become degraded in an immutable infrastructure scenario and so
-	// replacing it with a new object is a viable repair path.
-	matchedForceReplace := false
-	for _, candidateAddr := range forceReplace {
-		if candidateAddr.Equal(n.Addr) {
-			matchedForceReplace = true
-			break
-		}
-
-		// For "force replace" purposes we require an exact resource instance
-		// address to match. If a user forgets to include the instance key
-		// for a multi-instance resource then it won't match here, but we
-		// have an earlier check in NodePlannableResource.Execute that should
-		// prevent us from getting here in that case.
-	}
-
-	// Unmark for this test for value equality.
-	eqV := unmarkedPlannedNewVal.Equals(unmarkedPriorVal)
-	eq := eqV.IsKnown() && eqV.True()
-
-	var action plans.Action
-	var actionReason plans.ResourceInstanceChangeActionReason
-	switch {
-	case priorVal.IsNull():
-		action = plans.Create
-	case eq && !matchedForceReplace:
-		action = plans.NoOp
-	case matchedForceReplace || !reqRep.Empty():
-		// If the user "forced replace" of this instance of if there are any
-		// "requires replace" paths left _after our filtering above_ then this
-		// is a replace action.
-		if createBeforeDestroy {
-			action = plans.CreateThenDelete
-		} else {
-			action = plans.DeleteThenCreate
-		}
-		switch {
-		case matchedForceReplace:
-			actionReason = plans.ResourceInstanceReplaceByRequest
-		case !reqRep.Empty():
-			actionReason = plans.ResourceInstanceReplaceBecauseCannotUpdate
-		}
-	default:
-		action = plans.Update
-		// "Delete" is never chosen here, because deletion plans are always
-		// created more directly elsewhere, such as in "orphan" handling.
-	}
+	action, actionReason := getAction(n.Addr, priorVal, plannedNewVal, createBeforeDestroy, forceReplace, reqRep)
 
 	if action.IsReplace() {
 		// In this strange situation we want to produce a change object that
@@ -2733,4 +2684,60 @@ func (n *NodeAbstractResourceInstance) prevRunAddr(ctx EvalContext) addrs.AbsRes
 func resourceInstancePrevRunAddr(ctx EvalContext, currentAddr addrs.AbsResourceInstance) addrs.AbsResourceInstance {
 	table := ctx.MoveResults()
 	return table.OldAddr(currentAddr)
+}
+
+func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value, createBeforeDestroy bool, forceReplace []addrs.AbsResourceInstance, reqRep cty.PathSet) (action plans.Action, actionReason plans.ResourceInstanceChangeActionReason) {
+	unmarkedPriorVal, _ := priorVal.UnmarkDeepWithPaths()
+	unmarkedPlannedNewVal, _ := plannedNewVal.UnmarkDeepWithPaths()
+
+	// The user might also ask us to force replacing a particular resource
+	// instance, regardless of whether the provider thinks it needs replacing.
+	// For example, users typically do this if they learn a particular object
+	// has become degraded in an immutable infrastructure scenario and so
+	// replacing it with a new object is a viable repair path.
+	matchedForceReplace := false
+	for _, candidateAddr := range forceReplace {
+		if candidateAddr.Equal(addr) {
+			matchedForceReplace = true
+			break
+		}
+
+		// For "force replace" purposes we require an exact resource instance
+		// address to match. If a user forgets to include the instance key
+		// for a multi-instance resource then it won't match here, but we
+		// have an earlier check in NodePlannableResource.Execute that should
+		// prevent us from getting here in that case.
+	}
+
+	// Unmark for this test for value equality.
+	eqV := unmarkedPlannedNewVal.Equals(unmarkedPriorVal)
+	eq := eqV.IsKnown() && eqV.True()
+
+	switch {
+	case priorVal.IsNull():
+		action = plans.Create
+	case eq && !matchedForceReplace:
+		action = plans.NoOp
+	case matchedForceReplace || !reqRep.Empty():
+		// If the user "forced replace" of this instance of if there are any
+		// "requires replace" paths left _after our filtering above_ then this
+		// is a replace action.
+		if createBeforeDestroy {
+			action = plans.CreateThenDelete
+		} else {
+			action = plans.DeleteThenCreate
+		}
+		switch {
+		case matchedForceReplace:
+			actionReason = plans.ResourceInstanceReplaceByRequest
+		case !reqRep.Empty():
+			actionReason = plans.ResourceInstanceReplaceBecauseCannotUpdate
+		}
+	default:
+		action = plans.Update
+		// "Delete" is never chosen here, because deletion plans are always
+		// created more directly elsewhere, such as in "orphan" handling.
+	}
+
+	return
 }
