@@ -1,4 +1,4 @@
-## 1.8.0 (Unreleased)
+## 1.8.0 (April 10, 2024)
 
 If you are upgrading from Terraform v1.7 or earlier, please refer to
 [the Terraform v1.8 Upgrade Guide](https://developer.hashicorp.com/terraform/language/v1.8.x/upgrade-guides).
