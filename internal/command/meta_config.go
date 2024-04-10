@@ -208,7 +208,7 @@ func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upg
 
 	if ctx.Err() == context.Canceled {
 		m.showDiagnostics(diags)
-		m.Ui.Error("Module installation was canceled by an interrupt signal.")
+		diags = diags.Append(fmt.Errorf("Module installation was canceled by an interrupt signal."))
 		return true, diags
 	}
 
@@ -241,7 +241,7 @@ func (m *Meta) initDirFromModule(ctx context.Context, targetDir string, addr str
 	diags = diags.Append(moreDiags)
 	if ctx.Err() == context.Canceled {
 		m.showDiagnostics(diags)
-		m.Ui.Error("Module initialization was canceled by an interrupt signal.")
+		diags = diags.Append(fmt.Errorf("Module initialization was canceled by an interrupt signal."))
 		return true, diags
 	}
 	return false, diags
