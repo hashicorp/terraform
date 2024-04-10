@@ -8,7 +8,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -237,13 +236,19 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 
 	// If the refresh is deferred we will need to do another cycle to import the resource
 	if deferred != nil {
-		ctx.Deferrals().ReportResourceInstanceDeferred(n.TargetAddr, deferred.Reason, &plans.ResourceInstanceChange{
-			Addr: n.TargetAddr,
-			Change: plans.Change{
-				Action: plans.Read,
-				After:  state.Value,
-			},
-		})
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Cannot import deferred remote object",
+			fmt.Sprintf(
+				"While attempting to import an existing object to %q, "+
+					"the provider deferred reading the resource. "+
+					"Please either use an import block for importing this resource "+
+					"or remove the to be imported resource from your configuration, "+
+					"apply the configuration using \"terraform apply\", "+
+					"add the to be imported resource again, and retry the import operation.",
+				n.TargetAddr,
+			),
+		))
 	} else {
 		// Verify the existance of the imported resource
 		if state.Value.IsNull() {
