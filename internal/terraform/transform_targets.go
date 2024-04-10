@@ -126,13 +126,30 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetable) bool {
 	var vertexAddr addrs.Targetable
 	switch r := v.(type) {
+	case *nodeApplyableDeferredPartialInstance:
+
+		// Partial instances are not targeted directly, but they might be
+		// targeted after they have been expanded so we need to perform a custom
+		// check for them here.
+		//
+		// The other types of nodes can be targeted directly, and are handled
+		// together.
+
+		for _, targetAddr := range targets {
+			if r.PartialAddr.IsTargetedBy(targetAddr) {
+				return true
+			}
+		}
+		return false
+
 	case GraphNodeResourceInstance:
 		vertexAddr = r.ResourceInstanceAddr()
 	case GraphNodeConfigResource:
 		vertexAddr = r.ResourceAddr()
 
 	default:
-		// Only resource and resource instance nodes can be targeted.
+		// Only partial nodes and resource and resource instance nodes can be
+		// targeted.
 		return false
 	}
 

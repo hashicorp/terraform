@@ -839,6 +839,9 @@ resource "test" "c" {
 `,
 		},
 		stages: []deferredActionsTestStage{
+			// In this stage, we're testing that targeting test.a[0] will still
+			// prompt the plan to include the deferral of the unknown
+			// test.a["*"] instances.
 			{
 				inputs: map[string]cty.Value{
 					"resource_count": cty.UnknownVal(cty.Number),
@@ -869,6 +872,9 @@ resource "test" "c" {
 				},
 				allowWarnings: true,
 			},
+			// This stage is the same as above, except we're targeting the
+			// non-instanced test.a. This should still make the unknown
+			// test.a["*"] instances appear in the plan as deferrals.
 			{
 				inputs: map[string]cty.Value{
 					"resource_count": cty.UnknownVal(cty.Number),
@@ -899,16 +905,175 @@ resource "test" "c" {
 				},
 				allowWarnings: true,
 			},
+			// Finally, we don't target test.a at all. So we shouldn't see it
+			// anywhere in planning or deferrals.
+			{
+				inputs: map[string]cty.Value{
+					"resource_count": cty.UnknownVal(cty.Number),
+				},
+				buildOpts: func(opts *PlanOpts) {
+					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.b")}
+				},
+				wantPlanned: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.b": plans.Create,
+				},
+				wantDeferred:  map[string]providers.DeferredReason{},
+				allowWarnings: true,
+			},
+		},
+	}
+
+	targetResourceThatDependsOnDeferredResourceTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "resource_count" {	
+	type = number
+}
+
+resource "test" "c" {
+	name = "c"
+}
+
+resource "test" "a" {
+	count = var.resource_count
+	name  = "a:${count.index}"
+	upstream_names = [test.c.name]
+}
+
+resource "test" "b" {
+	name = "b"
+	upstream_names = [for v in test.a : v.name]
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.b")}
+				},
+				inputs: map[string]cty.Value{
+					"resource_count": cty.UnknownVal(cty.Number),
+				},
+				wantPlanned: map[string]cty.Value{
+					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.UnknownVal(cty.String).Refine().
+							StringPrefixFull("a:").
+							NotNull().
+							NewValue(),
+						"upstream_names": cty.SetVal([]cty.Value{
+							cty.StringVal("c"),
+						}),
+						"output": cty.UnknownVal(cty.String),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.UnknownVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+					"c": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("c"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.c": plans.Create,
+				},
+				wantDeferred: map[string]providers.DeferredReason{
+					"test.a[\"*\"]": providers.DeferredReasonInstanceCountUnknown,
+					"test.b":        providers.DeferredReasonDeferredPrereq,
+				},
+				wantApplied: map[string]cty.Value{
+					"c": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("c"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("c"),
+					}),
+				},
+				wantOutputs:   map[string]cty.Value{},
+				allowWarnings: true,
+			},
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.b")}
+				},
+				inputs: map[string]cty.Value{
+					"resource_count": cty.NumberIntVal(2),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a:0": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("a:0"),
+						"upstream_names": cty.SetVal([]cty.Value{
+							cty.StringVal("c"),
+						}),
+						"output": cty.UnknownVal(cty.String),
+					}),
+					"a:1": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("a:1"),
+						"upstream_names": cty.SetVal([]cty.Value{
+							cty.StringVal("c"),
+						}),
+						"output": cty.UnknownVal(cty.String),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("b"),
+						"upstream_names": cty.SetVal([]cty.Value{
+							cty.StringVal("a:0"),
+							cty.StringVal("a:1"),
+						}),
+						"output": cty.UnknownVal(cty.String),
+					}),
+					"c": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("c"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("c"),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.a[0]": plans.Create,
+					"test.a[1]": plans.Create,
+					"test.b":    plans.Create,
+					"test.c":    plans.NoOp,
+				},
+				wantDeferred: map[string]providers.DeferredReason{},
+				wantApplied: map[string]cty.Value{
+					"a:0": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("a:0"),
+						"upstream_names": cty.SetVal([]cty.Value{
+							cty.StringVal("c"),
+						}),
+						"output": cty.StringVal("a:0"),
+					}),
+					"a:1": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("a:1"),
+						"upstream_names": cty.SetVal([]cty.Value{
+							cty.StringVal("c"),
+						}),
+						"output": cty.StringVal("a:1"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("b"),
+						"upstream_names": cty.SetVal([]cty.Value{
+							cty.StringVal("a:0"),
+							cty.StringVal("a:1"),
+						}),
+						"output": cty.StringVal("b"),
+					}),
+				},
+				wantOutputs:   map[string]cty.Value{},
+				allowWarnings: true,
+			},
 		},
 	}
 
 	targetDeferredResourceTriggersDependenciesTest = deferredActionsTest{
-		// TODO: Enable this. This test is currently disabled because we don't
-		//  pass the deferred resources into the plan at all, which means the
-		//  apply phase targeting doesn't correctly work out the dependencies.
-		//  We have another ticket that will add this information to the plan
-		//  so we should revisit this when we have that.
-		skip: true, // skip this until we have a better way to handle this case.
 		configs: map[string]string{
 			"main.tf": `
 resource "test" "a" {
@@ -923,9 +1088,13 @@ resource "test" "b" {
 `,
 		},
 		stages: []deferredActionsTestStage{
+			// The first time round, we target test.b only. Because test.b
+			// depends on test.a, we should see test.a instances in the plan.
+			// Then, when we apply the plan test.a should still be applied even
+			// through test.b was deferred and is technically not in the plan.
 			{
 				buildOpts: func(opts *PlanOpts) {
-					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.b")}
+					opts.Targets = []addrs.Targetable{mustAbsResourceAddr("test.b")}
 				},
 				wantPlanned: map[string]cty.Value{
 					"<unknown>": cty.ObjectVal(map[string]cty.Value{
@@ -951,6 +1120,9 @@ resource "test" "b" {
 					"test.a[0]": plans.Create,
 					"test.a[1]": plans.Create,
 				},
+				wantDeferred: map[string]providers.DeferredReason{
+					"test.b[\"*\"]": providers.DeferredReasonInstanceCountUnknown,
+				},
 				wantApplied: map[string]cty.Value{
 					"a:0": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("a:0"),
@@ -968,7 +1140,7 @@ resource "test" "b" {
 			},
 			{
 				buildOpts: func(opts *PlanOpts) {
-					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.b")}
+					opts.Targets = []addrs.Targetable{mustAbsResourceAddr("test.b")}
 				},
 				wantPlanned: map[string]cty.Value{
 					"a:0": cty.ObjectVal(map[string]cty.Value{
@@ -998,8 +1170,9 @@ resource "test" "b" {
 					"test.b[\"a:0\"]": plans.Create,
 					"test.b[\"a:1\"]": plans.Create,
 				},
+				wantDeferred:  make(map[string]providers.DeferredReason),
 				allowWarnings: true,
-				complete:      true,
+				complete:      false, // because we still did targeting
 			},
 		},
 	}
@@ -1413,18 +1586,19 @@ output "a" {
 func TestContextApply_deferredActions(t *testing.T) {
 	tests := map[string]deferredActionsTest{
 
-		"resource_for_each":                              resourceForEachTest,
-		"resource_in_module_for_each":                    resourceInModuleForEachTest,
-		"resource_count":                                 resourceCountTest,
-		"create_before_destroy":                          createBeforeDestroyLifecycleTest,
-		"forget_resources":                               forgetResourcesTest,
-		"import_into_unknown":                            importIntoUnknownInstancesTest,
-		"target_deferred_resource":                       targetDeferredResourceTest,
-		"target_deferred_resource_triggers_dependencies": targetDeferredResourceTriggersDependenciesTest,
-		"replace_deferred_resource":                      replaceDeferredResourceTest,
-		"custom_conditions":                              customConditionsTest,
-		"custom_conditions_with_orphans":                 customConditionsWithOrphansTest,
-		"resource_read":                                  resourceReadTest,
+		"resource_for_each":                                 resourceForEachTest,
+		"resource_in_module_for_each":                       resourceInModuleForEachTest,
+		"resource_count":                                    resourceCountTest,
+		"create_before_destroy":                             createBeforeDestroyLifecycleTest,
+		"forget_resources":                                  forgetResourcesTest,
+		"import_into_unknown":                               importIntoUnknownInstancesTest,
+		"target_deferred_resource":                          targetDeferredResourceTest,
+		"target_resource_that_depends_on_deferred_resource": targetResourceThatDependsOnDeferredResourceTest,
+		"target_deferred_resource_triggers_dependencies":    targetDeferredResourceTriggersDependenciesTest,
+		"replace_deferred_resource":                         replaceDeferredResourceTest,
+		"custom_conditions":                                 customConditionsTest,
+		"custom_conditions_with_orphans":                    customConditionsWithOrphansTest,
+		"resource_read":                                     resourceReadTest,
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
