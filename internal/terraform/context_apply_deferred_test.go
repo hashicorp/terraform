@@ -1625,8 +1625,9 @@ output "b" {
 					"b": cty.NullVal(cty.DynamicPseudoType),
 				},
 				wantDeferred: map[string]providers.DeferredReason{
-					"data.test.a": providers.DeferredReasonProviderConfigUnknown,
-					"test.b":      providers.DeferredReasonDeferredPrereq,
+					// data.test.a is not part of the plan so we can only
+					// observe the indirect consequence on the resource.
+					"test.b": providers.DeferredReasonDeferredPrereq,
 				},
 				complete: false,
 			},
