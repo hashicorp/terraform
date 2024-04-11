@@ -42,8 +42,6 @@ jobs:
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
           go-version: ${{ inputs.go-version }}
-      - name: Determine artifact basename
-        run: echo "ARTIFACT_BASENAME=${{ inputs.package-name }}_${{ inputs.product-version }}_${{ inputs.goos }}_${{ inputs.goarch }}.zip" >> $GITHUB_ENV
       - name: Build Terraform
         env:
           GOOS: ${{ inputs.goos }}
@@ -59,15 +57,9 @@ jobs:
           os: ${{ inputs.goos }}
           arch: ${{ inputs.goarch }}
           reproducible: nope
-          zip_name: ${{ env.ARTIFACT_BASENAME }}
           instructions: |-
             go build -ldflags "${{ inputs.ld-flags }}" -o "$BIN_PATH" -trimpath -buildvcs=false
             cp LICENSE "$TARGET_DIR/LICENSE.txt"
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-        with:
-          name: ${{ env.ARTIFACT_BASENAME }}
-          path: ${{ env.ARTIFACT_BASENAME }}
-          if-no-files-found: error
       - name: Copy license file to config_dir
         if: ${{ matrix.goos == 'linux' }}
         env:
