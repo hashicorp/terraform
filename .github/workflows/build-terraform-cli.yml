@@ -51,7 +51,7 @@ jobs:
           GO_LDFLAGS: ${{ inputs.ld-flags }}
           ACTIONSOS: ${{ inputs.runson }}
           CGO_ENABLED: ${{ inputs.cgo-enabled }}
-        uses: hashicorp/actions-go-build@v0.1.7
+        uses: hashicorp/actions-go-build@e20c6be7bf010e40e930dab20e6da63176725ec1 # v0.1.9
         with:
           product_name: ${{ inputs.package-name }}
           product_version: ${{ inputs.product-version }}
@@ -59,16 +59,21 @@ jobs:
           os: ${{ inputs.goos }}
           arch: ${{ inputs.goarch }}
           reproducible: nope
+          zip_name: ${{ env.ARTIFACT_BASENAME }}
           instructions: |-
-            mkdir dist out
-            set -x
-            go build -ldflags "${{ inputs.ld-flags }}" -o dist/ .
-            zip -r -j out/${{ env.ARTIFACT_BASENAME }} dist/
+            go build -ldflags "${{ inputs.ld-flags }}" -o "$BIN_PATH" -trimpath -buildvcs=false
+            cp LICENSE "$TARGET_DIR/LICENSE.txt"
       - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: ${{ env.ARTIFACT_BASENAME }}
-          path: out/${{ env.ARTIFACT_BASENAME }}
+          path: ${{ env.ARTIFACT_BASENAME }}
           if-no-files-found: error
+      - name: Copy license file to config_dir
+        if: ${{ matrix.goos == 'linux' }}
+        env:
+          LICENSE_DIR: ".release/linux/package/usr/share/doc/${{ inputs.package-name }}"
+        run: |
+          mkdir -p "$LICENSE_DIR" && cp LICENSE "$LICENSE_DIR/LICENSE.txt"
       - if: ${{ inputs.goos == 'linux' }}
         uses: hashicorp/actions-packaging-linux@v1
         with:
@@ -82,6 +87,7 @@ jobs:
           binary: "dist/terraform"
           deb_depends: "git"
           rpm_depends: "git"
+          config_dir: ".release/linux/package/"
       - if: ${{ inputs.goos == 'linux' }}
         name: Determine package file names
         run: |
