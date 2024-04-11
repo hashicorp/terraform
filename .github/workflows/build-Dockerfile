@@ -44,8 +44,7 @@ LABEL org.opencontainers.image.title=${BIN_NAME} \
 RUN apk add --no-cache git openssh
 
 # Copy the license file as per Legal requirement
-RUN mkdir -p /licenses
-COPY LICENSE /licenses/LICENSE.txt
+COPY LICENSE "/usr/share/doc/${BIN_NAME}/LICENSE.txt"
 
 # The hashicorp/actions-docker-build GitHub Action extracts the appropriate
 # release package for our target architecture into the current working
