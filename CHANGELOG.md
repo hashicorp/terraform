@@ -1,5 +1,9 @@
 ## 1.8.1 (Unreleased)
 
+BUG FIXES:
+
+* Plan renderer: Correctly render strings that begin with JSON compatible text but don't end with it. ([#34959](https://github.com/hashicorp/terraform/pull/34959))
+
 ## 1.8.0 (April 10, 2024)
 
 If you are upgrading from Terraform v1.7 or earlier, please refer to
