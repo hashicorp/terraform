@@ -111,6 +111,13 @@ null -> jsonencode(
     )
 `,
 		},
+		"primitive_create_fake_json": {
+			diff: computed.Diff{
+				Renderer: Primitive(nil, "[\"hello\"] and some more", cty.String),
+				Action:   plans.Create,
+			},
+			expected: `"[\"hello\"] and some more"`,
+		},
 		"primitive_create_null_string": {
 			diff: computed.Diff{
 				Renderer: Primitive(nil, nil, cty.String),
