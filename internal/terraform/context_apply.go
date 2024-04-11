@@ -277,6 +277,7 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 	graph, moreDiags := (&ApplyGraphBuilder{
 		Config:                  config,
 		Changes:                 plan.Changes,
+		DeferredChanges:         plan.DeferredResources,
 		State:                   plan.PriorState,
 		RootVariableValues:      variables,
 		ExternalProviderConfigs: externalProviderConfigs,

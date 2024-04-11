@@ -44,12 +44,6 @@ func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, know
 		maybeOrphanResources = maybeOrphanResources.Union(maybeOrphans)
 	}
 
-	// TODO: What about targeting and force replacement for these resources?
-	//   For now, it actually kind of works out because we don't want to make
-	//   any changes for these and that's what happens. Later, when we start
-	//   tracking deferrals in the plan, we'll need to make sure that the
-	//   targeting is applied properly.
-
 	for _, moduleAddr := range partialModules {
 		resourceAddr := moduleAddr.Resource(n.Addr.Resource)
 		partialResources.Add(resourceAddr)
