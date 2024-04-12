@@ -755,6 +755,7 @@ func (n *NodeAbstractResourceInstance) plan(
 ) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var keyData instances.RepetitionData
+	var deferred *providers.Deferred
 
 	resource := n.Addr.Resource.Resource
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
@@ -938,82 +939,72 @@ func (n *NodeAbstractResourceInstance) plan(
 		return nil, nil, keyData, diags
 	}
 
+	// We mark this node as deferred at a later point when we know the complete change
 	if resp.Deferred != nil {
-		reqRep, reqRepDiags := getRequiredReplaces(priorVal, proposedNewVal, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
-		diags = diags.Append(reqRepDiags)
-		if diags.HasErrors() {
-			return nil, nil, keyData, diags
-		}
-
-		unmarkedPlannedState, _ := resp.PlannedState.UnmarkDeepWithPaths()
-		action, _ := getAction(n.Addr, unmarkedPriorVal, unmarkedPlannedState, createBeforeDestroy, forceReplace, reqRep)
-		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, resp.Deferred.Reason, &plans.ResourceInstanceChange{
-			Addr: n.Addr,
-			Change: plans.Change{
-				Action: action,
-				Before: priorVal,
-				After:  unmarkedConfigVal,
-			},
-		})
-		return nil, nil, keyData, diags
+		deferred = resp.Deferred
 	}
 
 	plannedNewVal := resp.PlannedState
 	plannedPrivate := resp.PlannedPrivate
 
-	if plannedNewVal == cty.NilVal {
-		// Should never happen. Since real-world providers return via RPC a nil
-		// is always a bug in the client-side stub. This is more likely caused
-		// by an incompletely-configured mock provider in tests, though.
-		panic(fmt.Sprintf("PlanResourceChange of %s produced nil value", n.Addr))
-	}
+	// These checks are only relevant if the provider is not deferring the
+	// change.
+	if deferred == nil {
+		if plannedNewVal == cty.NilVal {
+			// Should never happen. Since real-world providers return via RPC a nil
+			// is always a bug in the client-side stub. This is more likely caused
+			// by an incompletely-configured mock provider in tests, though.
+			panic(fmt.Sprintf("PlanResourceChange of %s produced nil value", n.Addr))
+		}
 
-	// We allow the planned new value to disagree with configuration _values_
-	// here, since that allows the provider to do special logic like a
-	// DiffSuppressFunc, but we still require that the provider produces
-	// a value whose type conforms to the schema.
-	for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced invalid plan",
-			fmt.Sprintf(
-				"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider.Provider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
-			),
-		))
-	}
-	if diags.HasErrors() {
-		return nil, nil, keyData, diags
-	}
+		// We allow the planned new value to disagree with configuration _values_
+		// here, since that allows the provider to do special logic like a
+		// DiffSuppressFunc, but we still require that the provider produces
+		// a value whose type conforms to the schema.
+		for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced invalid plan",
+				fmt.Sprintf(
+					"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider.Provider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
+				),
+			))
+		}
 
-	if errs := objchange.AssertPlanValid(schema, unmarkedPriorVal, unmarkedConfigVal, plannedNewVal); len(errs) > 0 {
-		if resp.LegacyTypeSystem {
-			// The shimming of the old type system in the legacy SDK is not precise
-			// enough to pass this consistency check, so we'll give it a pass here,
-			// but we will generate a warning about it so that we are more likely
-			// to notice in the logs if an inconsistency beyond the type system
-			// leads to a downstream provider failure.
-			var buf strings.Builder
-			fmt.Fprintf(&buf,
-				"[WARN] Provider %q produced an invalid plan for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:",
-				n.ResolvedProvider.Provider, n.Addr,
-			)
-			for _, err := range errs {
-				fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
-			}
-			log.Print(buf.String())
-		} else {
-			for _, err := range errs {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Provider produced invalid plan",
-					fmt.Sprintf(
-						"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-						n.ResolvedProvider.Provider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
-					),
-				))
-			}
+		if diags.HasErrors() {
 			return nil, nil, keyData, diags
+		}
+
+		if errs := objchange.AssertPlanValid(schema, unmarkedPriorVal, unmarkedConfigVal, plannedNewVal); len(errs) > 0 {
+			if resp.LegacyTypeSystem {
+				// The shimming of the old type system in the legacy SDK is not precise
+				// enough to pass this consistency check, so we'll give it a pass here,
+				// but we will generate a warning about it so that we are more likely
+				// to notice in the logs if an inconsistency beyond the type system
+				// leads to a downstream provider failure.
+				var buf strings.Builder
+				fmt.Fprintf(&buf,
+					"[WARN] Provider %q produced an invalid plan for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:",
+					n.ResolvedProvider.Provider, n.Addr,
+				)
+				for _, err := range errs {
+					fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
+				}
+				log.Print(buf.String())
+			} else {
+				for _, err := range errs {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Provider produced invalid plan",
+						fmt.Sprintf(
+							"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+							n.ResolvedProvider.Provider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
+						),
+					))
+				}
+				return nil, nil, keyData, diags
+			}
 		}
 	}
 
@@ -1111,15 +1102,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 
 		if resp.Deferred != nil {
-			ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, resp.Deferred.Reason, &plans.ResourceInstanceChange{
-				Addr: n.Addr,
-				Change: plans.Change{
-					Action: action,
-					Before: nullPriorVal,
-					After:  resp.PlannedState,
-				},
-			})
-			return nil, nil, keyData, diags
+			deferred = resp.Deferred
 		}
 
 		plannedNewVal = resp.PlannedState
@@ -1209,6 +1192,12 @@ func (n *NodeAbstractResourceInstance) plan(
 		},
 		ActionReason:    actionReason,
 		RequiredReplace: reqRep,
+	}
+
+	// If we defer the change we need to report it and return early
+	if deferred != nil {
+		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, plan)
+		return nil, nil, keyData, diags
 	}
 
 	// Update our return state

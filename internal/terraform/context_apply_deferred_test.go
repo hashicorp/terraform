@@ -1831,7 +1831,7 @@ output "a" {
 					"deferred_resource_change": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("deferred_resource_change"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.StringVal("mark_for_replacement"),
+						"output":         cty.UnknownVal(cty.String),
 					}),
 				},
 
@@ -1904,7 +1904,7 @@ output "a" {
 					"deferred_resource_change": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("deferred_resource_change"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.StringVal("computed_output"),
+						"output":         cty.UnknownVal(cty.String),
 					}),
 				},
 
