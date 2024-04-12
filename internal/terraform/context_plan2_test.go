@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
@@ -5493,4 +5494,50 @@ resource "test_object" "obj" {
 	if ch.Action != plans.NoOp {
 		t.Fatal("expected no change in plan")
 	}
+}
+
+// This test explicitly reproduces the issue described in #34976.
+func TestContext2Plan_34976(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "test_object" "obj" {}
+
+module "a" {
+  depends_on = [data.test_object.obj]
+  source = "./mod"
+}
+
+output "value" {
+  value = try(module.a.notreal, null)
+}
+`,
+		"mod/main.tf": ``,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		DataSources: map[string]*configschema.Block{
+			"test_object": {},
+		},
+	})
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+
+		// Just very small delay that means the output will be processed before
+		// the module.
+		time.Sleep(50 * time.Millisecond)
+
+		return providers.ReadDataSourceResponse{
+			State: req.Config,
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	// Just shouldn't crash.
+	_, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
 }
