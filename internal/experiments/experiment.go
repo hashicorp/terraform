@@ -17,6 +17,7 @@ type Experiment string
 // identifier so that it can be specified in configuration.
 const (
 	VariableValidation             = Experiment("variable_validation")
+	VariableValidationCrossRef     = Experiment("variable_validation_crossref")
 	ModuleVariableOptionalAttrs    = Experiment("module_variable_optional_attrs")
 	SuppressProviderSensitiveAttrs = Experiment("provider_sensitive_attrs")
 	ConfigDrivenMove               = Experiment("config_driven_move")
@@ -27,8 +28,9 @@ const (
 func init() {
 	// Each experiment constant defined above must be registered here as either
 	// a current or a concluded experiment.
-	registerCurrentExperiment(UnknownInstances)
+	registerConcludedExperiment(UnknownInstances, "Unknown instances are being rolled into a larger feature for deferring unready resources and modules.")
 	registerConcludedExperiment(VariableValidation, "Custom variable validation can now be used by default, without enabling an experiment.")
+	registerCurrentExperiment(VariableValidationCrossRef)
 	registerConcludedExperiment(SuppressProviderSensitiveAttrs, "Provider-defined sensitive attributes are now redacted by default, without enabling an experiment.")
 	registerConcludedExperiment(ConfigDrivenMove, "Declarations of moved resource instances using \"moved\" blocks can now be used by default, without enabling an experiment.")
 	registerConcludedExperiment(PreconditionsPostconditions, "Condition blocks can now be used by default, without enabling an experiment.")

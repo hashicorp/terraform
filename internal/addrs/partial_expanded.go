@@ -36,6 +36,33 @@ func (m ModuleInstance) UnexpandedChild(call ModuleCall) PartialExpandedModule {
 	}
 }
 
+// PartialModule reverses the process of UnknownModuleInstance by converting a
+// ModuleInstance back into a PartialExpandedModule.
+func (m ModuleInstance) PartialModule() PartialExpandedModule {
+	pem := PartialExpandedModule{}
+	for _, step := range m {
+		if step.InstanceKey == WildcardKey {
+			pem.unexpandedSuffix = append(pem.unexpandedSuffix, step.Name)
+			continue
+		}
+		pem.expandedPrefix = append(pem.expandedPrefix, step)
+	}
+	return pem
+}
+
+// UnknownModuleInstance expands the receiver to a full ModuleInstance by
+// replacing the unknown instance keys with a wildcard value.
+func (pem PartialExpandedModule) UnknownModuleInstance() ModuleInstance {
+	base := pem.expandedPrefix
+	for _, call := range pem.unexpandedSuffix {
+		base = append(base, ModuleInstanceStep{
+			Name:        call,
+			InstanceKey: WildcardKey,
+		})
+	}
+	return base
+}
+
 // LevelsKnown returns the number of module path segments of the address that
 // have known instance keys.
 //
@@ -195,8 +222,8 @@ func (pem PartialExpandedModule) String() string {
 	return buf.String()
 }
 
-func (per PartialExpandedModule) UniqueKey() UniqueKey {
-	return partialExpandedModuleKey(per.String())
+func (pem PartialExpandedModule) UniqueKey() UniqueKey {
+	return partialExpandedModuleKey(pem.String())
 }
 
 type partialExpandedModuleKey string
@@ -258,6 +285,25 @@ func (r AbsResource) UnexpandedResource() PartialExpandedResource {
 			expandedPrefix: r.Module,
 		},
 		resource: r.Resource,
+	}
+}
+
+// PartialResource reverses UnknownResourceInstance by converting the
+// AbsResourceInstance back into a PartialExpandedResource.
+func (r AbsResourceInstance) PartialResource() PartialExpandedResource {
+	return PartialExpandedResource{
+		module:   r.Module.PartialModule(),
+		resource: r.Resource.Resource,
+	}
+}
+
+// UnknownResourceInstance returns an [AbsResourceInstance] that represents the
+// same resource as the receiver but with all instance keys replaced with a
+// wildcard value.
+func (per PartialExpandedResource) UnknownResourceInstance() AbsResourceInstance {
+	return AbsResourceInstance{
+		Module:   per.module.UnknownModuleInstance(),
+		Resource: per.resource.Instance(WildcardKey),
 	}
 }
 
@@ -349,6 +395,105 @@ func (per PartialExpandedResource) PartialExpandedModule() (PartialExpandedModul
 		return PartialExpandedModule{}, false
 	}
 	return per.module, true
+}
+
+// IsTargetedBy returns true if and only if the given targetable address might
+// target the resource instances that could exist if the receiver were fully
+// expanded.
+func (per PartialExpandedResource) IsTargetedBy(addr Targetable) bool {
+
+	compareModule := func(module Module) bool {
+		// We'll step through each step in the module address and compare it
+		// to the known prefix and unexpanded suffix of the receiver. If we
+		// find a mismatch then we know the receiver can't be targeted by this
+		// address.
+		for ix, step := range module {
+			if ix >= len(per.module.expandedPrefix) {
+				ix = ix - len(per.module.expandedPrefix)
+				if ix >= len(per.module.unexpandedSuffix) {
+					// Then the target address has more steps than the receiver
+					// and so can't possibly target it.
+					return false
+				}
+				if step != per.module.unexpandedSuffix[ix] {
+					// Then the target address has a different step at this
+					// position than the receiver does, so it can't target it.
+					return false
+				}
+			} else {
+				if step != per.module.expandedPrefix[ix].Name {
+					// Then the target address has a different step at this
+					// position than the receiver does, so it can't target it.
+					return false
+				}
+			}
+		}
+
+		// If we make it here then the target address is a prefix of the
+		// receivers module address, so it could potentially target the
+		// receiver.
+		return true
+	}
+
+	compareModuleInstance := func(inst ModuleInstance) bool {
+		// We'll step through each step in the module address and compare it
+		// to the known prefix and unexpanded suffix of the receiver. If we
+		// find a mismatch then we know the receiver can't be targeted by this
+		// address.
+		for ix, step := range inst {
+			if ix >= len(per.module.expandedPrefix) {
+				ix = ix - len(per.module.expandedPrefix)
+				if ix >= len(per.module.unexpandedSuffix) {
+					// Then the target address has more steps than the receiver
+					// and so can't possibly target it.
+					return false
+				}
+				if step.Name != per.module.unexpandedSuffix[ix] {
+					// Then the target address has a different step at this
+					// position than the receiver does, so it can't target it.
+					return false
+				}
+			} else {
+				if step.Name != per.module.expandedPrefix[ix].Name || (step.InstanceKey != NoKey && step.InstanceKey != per.module.expandedPrefix[ix].InstanceKey) {
+					// Then the target address has a different step at this
+					// position than the receiver does, so it can't target it.
+					return false
+				}
+			}
+		}
+
+		// If we make it here then the target address is a prefix of the
+		// receivers module address, so it could potentially target the
+		// receiver.
+		return true
+	}
+
+	switch addr.AddrType() {
+	case ConfigResourceAddrType:
+		addr := addr.(ConfigResource)
+		if !compareModule(addr.Module) {
+			return false
+		}
+		return addr.Resource.Equal(per.resource)
+	case AbsResourceAddrType:
+		addr := addr.(AbsResource)
+		if !compareModuleInstance(addr.Module) {
+			return false
+		}
+		return addr.Resource.Equal(per.resource)
+	case AbsResourceInstanceAddrType:
+		addr := addr.(AbsResourceInstance)
+		if !compareModuleInstance(addr.Module) {
+			return false
+		}
+		return addr.Resource.Resource.Equal(per.resource)
+	case ModuleAddrType:
+		return compareModule(addr.(Module))
+	case ModuleInstanceAddrType:
+		return compareModuleInstance(addr.(ModuleInstance))
+	}
+
+	return false
 }
 
 // String returns a string representation of the pattern which uses the special

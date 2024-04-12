@@ -228,29 +228,46 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 			ResolvedProvider: n.ResolvedProvider,
 		},
 	}
-	state, refreshDiags := riNode.refresh(ctx, states.NotDeposed, state)
+	state, deferred, refreshDiags := riNode.refresh(ctx, states.NotDeposed, state)
 	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
 		return diags
 	}
 
-	// Verify the existance of the imported resource
-	if state.Value.IsNull() {
-		var diags tfdiags.Diagnostics
+	// If the refresh is deferred we will need to do another cycle to import the resource
+	if deferred != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Cannot import non-existent remote object",
+			"Cannot import deferred remote object",
 			fmt.Sprintf(
 				"While attempting to import an existing object to %q, "+
-					"the provider detected that no object exists with the given id. "+
-					"Only pre-existing objects can be imported; check that the id "+
-					"is correct and that it is associated with the provider's "+
-					"configured region or endpoint, or use \"terraform apply\" to "+
-					"create a new remote object for this resource.",
+					"the provider deferred reading the resource. "+
+					"Please either use an import block for importing this resource "+
+					"or remove the to be imported resource from your configuration, "+
+					"apply the configuration using \"terraform apply\", "+
+					"add the to be imported resource again, and retry the import operation.",
 				n.TargetAddr,
 			),
 		))
-		return diags
+	} else {
+		// Verify the existance of the imported resource
+		if state.Value.IsNull() {
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot import non-existent remote object",
+				fmt.Sprintf(
+					"While attempting to import an existing object to %q, "+
+						"the provider detected that no object exists with the given id. "+
+						"Only pre-existing objects can be imported; check that the id "+
+						"is correct and that it is associated with the provider's "+
+						"configured region or endpoint, or use \"terraform apply\" to "+
+						"create a new remote object for this resource.",
+					n.TargetAddr,
+				),
+			))
+			return diags
+		}
 	}
 
 	diags = diags.Append(riNode.writeResourceInstanceState(ctx, state, workingState))

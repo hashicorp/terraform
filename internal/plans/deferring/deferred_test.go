@@ -6,9 +6,11 @@ package deferring
 import (
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/zclconf/go-cty/cty"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 func TestDeferred_externalDependency(t *testing.T) {
@@ -16,7 +18,7 @@ func TestDeferred_externalDependency(t *testing.T) {
 	// defer any resource instance changes regardless. Therefore an empty
 	// graph is just fine.
 	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
-	deferred := NewDeferred(resourceGraph)
+	deferred := NewDeferred(resourceGraph, true)
 
 	// This reports that something outside of the modules runtime knows that
 	// everything in this configuration depends on some elsewhere-action
@@ -76,7 +78,7 @@ func TestDeferred_absResourceInstanceDeferred(t *testing.T) {
 	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
 	resourceGraph.AddDependency(instCAddr.ConfigResource(), instBAddr.ConfigResource())
 	resourceGraph.AddDependency(instCAddr.ConfigResource(), instAAddr.ConfigResource())
-	deferred := NewDeferred(resourceGraph)
+	deferred := NewDeferred(resourceGraph, true)
 
 	// Before we report anything, all three addresses should indicate that
 	// they don't need to have their actions deferred.
@@ -89,7 +91,13 @@ func TestDeferred_absResourceInstanceDeferred(t *testing.T) {
 	})
 
 	// Instance A has its Create action deferred for some reason.
-	deferred.ReportResourceInstanceDeferred(instAAddr, plans.Create, cty.DynamicVal)
+	deferred.ReportResourceInstanceDeferred(instAAddr, providers.DeferredReasonResourceConfigUnknown, &plans.ResourceInstanceChange{
+		Addr: instAAddr,
+		Change: plans.Change{
+			Action: plans.Create,
+			After:  cty.DynamicVal,
+		},
+	})
 
 	t.Run("with one resource instance deferred", func(t *testing.T) {
 		if !deferred.ShouldDeferResourceInstanceChanges(instCAddr) {
@@ -99,6 +107,70 @@ func TestDeferred_absResourceInstanceDeferred(t *testing.T) {
 			t.Errorf("%s reported as needing deferred; should not be", instCAddr)
 		}
 	})
+}
+
+func TestDeferred_partialExpandedDatasource(t *testing.T) {
+	instAAddr := addrs.AbsResourceInstance{
+		Module: addrs.RootModuleInstance.Child("foo", addrs.NoKey),
+		Resource: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.DataResourceMode,
+				Type: "test",
+				Name: "a",
+			},
+		},
+	}
+	instBAddr := addrs.AbsResourceInstance{
+		Module: addrs.RootModuleInstance,
+		Resource: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test",
+				Name: "a",
+			},
+		},
+	}
+	instCAddr := addrs.AbsResourceInstance{
+		Module: addrs.RootModuleInstance,
+		Resource: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.DataResourceMode,
+				Type: "test",
+				Name: "c",
+			},
+		},
+	}
+	instAPartial := addrs.RootModuleInstance.
+		UnexpandedChild(addrs.ModuleCall{Name: "foo"}).
+		Resource(instAAddr.Resource.Resource)
+
+	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
+	resourceGraph.AddDependency(instCAddr.ConfigResource(), instBAddr.ConfigResource())
+	resourceGraph.AddDependency(instCAddr.ConfigResource(), instAAddr.ConfigResource())
+	deferred := NewDeferred(resourceGraph, true)
+
+	// Before we report anything, all three addresses should indicate that
+	// they don't need to have their actions deferred.
+	t.Run("without any deferrals yet", func(t *testing.T) {
+		for _, instAddr := range []addrs.AbsResourceInstance{instAAddr, instBAddr, instCAddr} {
+			if deferred.ShouldDeferResourceInstanceChanges(instAddr) {
+				t.Errorf("%s reported as needing deferred; should not be, yet", instAddr)
+			}
+		}
+	})
+
+	// Resource A hasn't been expanded fully, so is deferred.
+	deferred.ReportDataSourceExpansionDeferred(instAPartial)
+
+	t.Run("with one resource instance deferred", func(t *testing.T) {
+		if !deferred.ShouldDeferResourceInstanceChanges(instCAddr) {
+			t.Errorf("%s was not reported as needing deferred; should be deferred", instCAddr)
+		}
+		if deferred.ShouldDeferResourceInstanceChanges(instBAddr) {
+			t.Errorf("%s reported as needing deferred; should not be", instCAddr)
+		}
+	})
+
 }
 
 func TestDeferred_partialExpandedResource(t *testing.T) {
@@ -139,7 +211,7 @@ func TestDeferred_partialExpandedResource(t *testing.T) {
 	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
 	resourceGraph.AddDependency(instCAddr.ConfigResource(), instBAddr.ConfigResource())
 	resourceGraph.AddDependency(instCAddr.ConfigResource(), instAAddr.ConfigResource())
-	deferred := NewDeferred(resourceGraph)
+	deferred := NewDeferred(resourceGraph, true)
 
 	// Before we report anything, all three addresses should indicate that
 	// they don't need to have their actions deferred.
@@ -152,7 +224,13 @@ func TestDeferred_partialExpandedResource(t *testing.T) {
 	})
 
 	// Resource A hasn't been expanded fully, so is deferred.
-	deferred.ReportResourceExpansionDeferred(instAPartial, cty.DynamicVal)
+	deferred.ReportResourceExpansionDeferred(instAPartial, &plans.ResourceInstanceChange{
+		Addr: instAAddr,
+		Change: plans.Change{
+			Action: plans.Create,
+			After:  cty.DynamicVal,
+		},
+	})
 
 	t.Run("with one resource instance deferred", func(t *testing.T) {
 		if !deferred.ShouldDeferResourceInstanceChanges(instCAddr) {

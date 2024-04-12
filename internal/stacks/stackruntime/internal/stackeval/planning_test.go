@@ -593,6 +593,12 @@ func TestPlanning_DeferredChangesPropagation(t *testing.T) {
 	cfg := testStackConfig(t, "planning", "deferred_changes_propagation")
 	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
 		PlanningMode: plans.NormalMode,
+		// TEMP: Currently there's no way in normal operation to set this to
+		// true in the PlanOpts, because it would regress other features. So,
+		// the test has to set it manually. In the future, deferred actions will
+		// always be enabled for stacks, and we'll remove this option from the
+		// stackeval.PlanOpts struct.
+		DeferralAllowed: true,
 		InputVariableValues: map[stackaddrs.InputVariable]ExternalInputValue{
 			// This causes the first component to have a module whose
 			// instance count isn't known yet.
@@ -617,10 +623,6 @@ func TestPlanning_DeferredChangesPropagation(t *testing.T) {
 			},
 		},
 	})
-	// TEMP: This test currently relies on the experimental module language
-	// feature of allowing unknown values in a resource's "count" argument.
-	// We should remove this if the experiment gets stabilized.
-	main.AllowLanguageExperiments(true)
 
 	componentFirstInstAddr := stackaddrs.AbsComponentInstance{
 		Stack: stackaddrs.RootStackInstance,

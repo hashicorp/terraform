@@ -178,7 +178,7 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 		switch block.Type {
 
 		case "validation":
-			vv, moreDiags := decodeVariableValidationBlock(v.Name, block, override)
+			vv, moreDiags := decodeVariableValidationBlock(block, override)
 			diags = append(diags, moreDiags...)
 			v.Validations = append(v.Validations, vv)
 
@@ -327,8 +327,13 @@ func (m VariableParsingMode) Parse(name, value string) (cty.Value, hcl.Diagnosti
 // decodeVariableValidationBlock is a wrapper around decodeCheckRuleBlock
 // that imposes the additional rule that the condition expression can refer
 // only to an input variable of the given name.
-func decodeVariableValidationBlock(varName string, block *hcl.Block, override bool) (*CheckRule, hcl.Diagnostics) {
-	vv, diags := decodeCheckRuleBlock(block, override)
+func decodeVariableValidationBlock(block *hcl.Block, override bool) (*CheckRule, hcl.Diagnostics) {
+	return decodeCheckRuleBlock(block, override)
+}
+
+func checkVariableValidationBlock(varName string, vv *CheckRule) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
 	if vv.Condition != nil {
 		// The validation condition can only refer to the variable itself,
 		// to ensure that the variable declaration can't create additional
@@ -387,7 +392,7 @@ func decodeVariableValidationBlock(varName string, block *hcl.Block, override bo
 		}
 	}
 
-	return vv, diags
+	return diags
 }
 
 // Output represents an "output" block in a module or file.

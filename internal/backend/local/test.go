@@ -349,7 +349,9 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 			}
 		}
 
+		startTime := time.Now()
 		state, updatedState := runner.run(run, file, runner.RelevantStates[key].State, config)
+		runDuration := time.Since(startTime)
 		if updatedState {
 			// Only update the most recent run and state if the state was
 			// actually updated by this change. We want to use the run that
@@ -359,6 +361,11 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 			runner.RelevantStates[key].Run = run
 		}
 
+		// If we got far enough to actually execute the run then we'll give
+		// the view some additional metadata about the execution.
+		run.ExecutionMeta = &moduletest.RunExecutionMeta{
+			Duration: runDuration,
+		}
 		runner.Suite.View.Run(run, file, moduletest.Complete, 0)
 		file.Status = file.Status.Merge(run.Status)
 	}

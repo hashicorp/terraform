@@ -46,6 +46,7 @@ type Plan struct {
 	VariableMarks     map[string][]cty.PathValueMarks
 	Changes           *Changes
 	DriftedResources  []*ResourceInstanceChangeSrc
+	DeferredResources []*DeferredResourceInstanceChangeSrc
 	TargetAddrs       []addrs.Targetable
 	ForceReplaceAddrs []addrs.AbsResourceInstance
 	Backend           Backend
