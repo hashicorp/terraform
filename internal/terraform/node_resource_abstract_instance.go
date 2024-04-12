@@ -1531,28 +1531,29 @@ func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChangesPath [
 // readDataSource handles everything needed to call ReadDataSource on the provider.
 // A previously evaluated configVal can be passed in, or a new one is generated
 // from the resource configuration.
-func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal cty.Value) (cty.Value, *providers.Deferred, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var newVal cty.Value
+	var deferred *providers.Deferred
 
 	config := *n.Config
 
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
-		return newVal, diags
+		return newVal, deferred, diags
 	}
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ResolvedProvider, n.Addr.ContainingResource().Resource.Type))
-		return newVal, diags
+		return newVal, deferred, diags
 	}
 
 	metaConfigVal, metaDiags := n.providerMetas(ctx)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
-		return newVal, diags
+		return newVal, deferred, diags
 	}
 
 	// Unmark before sending to provider, will re-mark before returning
@@ -1568,7 +1569,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	)
 	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
-		return newVal, diags
+		return newVal, deferred, diags
 	}
 
 	// If we get down here then our configuration is complete and we're read
@@ -1579,7 +1580,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		return h.PreApply(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, cty.NullVal(configVal.Type()), configVal)
 	}))
 	if diags.HasErrors() {
-		return newVal, diags
+		return newVal, deferred, diags
 	}
 
 	var resp providers.ReadDataSourceResponse
@@ -1601,12 +1602,12 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		})
 
 		if resp.Deferred != nil {
-			ctx.Deferrals().ReportDataSourceInstanceDeferred(n.Addr)
+			deferred = resp.Deferred
 		}
 	}
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
-		return newVal, diags
+		return newVal, deferred, diags
 	}
 	newVal = resp.State
 	if newVal == cty.NilVal {
@@ -1615,50 +1616,52 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		newVal = cty.NullVal(schema.ImpliedType())
 	}
 
-	for _, err := range newVal.Type().TestConformance(schema.ImpliedType()) {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced invalid object",
-			fmt.Sprintf(
-				"Provider %q produced an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
-			),
-		))
-	}
-	if diags.HasErrors() {
-		return newVal, diags
-	}
+	// We don't want to run the checks if the data source read is deferred
+	if deferred == nil {
+		for _, err := range newVal.Type().TestConformance(schema.ImpliedType()) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced invalid object",
+				fmt.Sprintf(
+					"Provider %q produced an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
+				),
+			))
+		}
+		if diags.HasErrors() {
+			return newVal, deferred, diags
+		}
 
-	if newVal.IsNull() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced null object",
-			fmt.Sprintf(
-				"Provider %q produced a null value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider, n.Addr,
-			),
-		))
+		if newVal.IsNull() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced null object",
+				fmt.Sprintf(
+					"Provider %q produced a null value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider, n.Addr,
+				),
+			))
+		}
+
+		if !newVal.IsNull() && !newVal.IsWhollyKnown() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced invalid object",
+				fmt.Sprintf(
+					"Provider %q produced a value for %s that is not wholly known.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider, n.Addr,
+				),
+			))
+
+			// We'll still save the object, but we need to eliminate any unknown
+			// values first because we can't serialize them in the state file.
+			// Note that this may cause set elements to be coalesced if they
+			// differed only by having unknown values, but we don't worry about
+			// that here because we're saving the value only for inspection
+			// purposes; the error we added above will halt the graph walk.
+			newVal = cty.UnknownAsNull(newVal)
+		}
 	}
-
-	if !newVal.IsNull() && !newVal.IsWhollyKnown() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced invalid object",
-			fmt.Sprintf(
-				"Provider %q produced a value for %s that is not wholly known.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider, n.Addr,
-			),
-		))
-
-		// We'll still save the object, but we need to eliminate any unknown
-		// values first because we can't serialize them in the state file.
-		// Note that this may cause set elements to be coalesced if they
-		// differed only by having unknown values, but we don't worry about
-		// that here because we're saving the value only for inspection
-		// purposes; the error we added above will halt the graph walk.
-		newVal = cty.UnknownAsNull(newVal)
-	}
-
 	pvm = append(pvm, schema.ValueMarks(newVal, nil)...)
 	if len(pvm) > 0 {
 		newVal = newVal.MarkWithPaths(pvm)
@@ -1668,7 +1671,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		return h.PostApply(n.HookResourceIdentity(), addrs.NotDeposed, newVal, diags.Err())
 	}))
 
-	return newVal, diags
+	return newVal, deferred, diags
 }
 
 func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
@@ -1847,7 +1850,11 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	// We have a complete configuration with no dependencies to wait on, so we
 	// can read the data source into the state.
 	// newVal is fully marked by the readDataSource method.
-	newVal, readDiags := n.readDataSource(ctx, configVal)
+	newVal, readDeferred, readDiags := n.readDataSource(ctx, configVal)
+
+	if readDeferred != nil {
+		ctx.Deferrals().ReportDataSourceInstanceDeferred(n.Addr)
+	}
 
 	// Now we've loaded the data, and diags tells us whether we were successful
 	// or not, we are going to create our plannedChange and our
@@ -1901,7 +1908,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 			}
 		})
 
-		if !skipPlanChanges {
+		if !skipPlanChanges && readDeferred == nil {
 			// refreshOnly plans cannot produce planned changes, so we only do
 			// this if skipPlanChanges is false.
 			plannedChange = &plans.ResourceInstanceChange{
@@ -2054,7 +2061,7 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 		return nil, keyData, diags
 	}
 
-	newVal, readDiags := n.readDataSource(ctx, configVal)
+	newVal, readDeferred, readDiags := n.readDataSource(ctx, configVal)
 	if check, nested := n.nestedInCheckBlock(); nested {
 		addr := check.Addr().Absolute(n.Addr.Module)
 
@@ -2085,6 +2092,11 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 
 	diags = diags.Append(readDiags)
 	if readDiags.HasErrors() {
+		return nil, keyData, diags
+	}
+
+	if readDeferred != nil {
+		ctx.Deferrals().ReportDataSourceInstanceDeferred(n.Addr)
 		return nil, keyData, diags
 	}
 

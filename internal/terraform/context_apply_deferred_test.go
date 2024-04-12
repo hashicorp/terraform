@@ -1604,15 +1604,8 @@ output "b" {
 		},
 		stages: []deferredActionsTestStage{
 			{
-				inputs: map[string]cty.Value{},
-				wantPlanned: map[string]cty.Value{
-					"deferred_read": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("deferred_read"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.UnknownVal(cty.String),
-					}),
-				},
-
+				inputs:      map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{},
 				wantActions: map[string]plans.Action{},
 				wantApplied: map[string]cty.Value{
 					// The all resources will be deferred, so shouldn't
