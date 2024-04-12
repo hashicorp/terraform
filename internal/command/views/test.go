@@ -880,15 +880,39 @@ func junitXMLTestReport(suite *moduletest.Suite) ([]byte, error) {
 				Body    string `xml:",cdata"`
 			}
 			type TestCase struct {
-				Name    string       `xml:"name,attr"`
-				Skipped *WithMessage `xml:"skipped,omitempty"`
-				Failure *WithMessage `xml:"failure,omitempty"`
-				Error   *WithMessage `xml:"error,omitempty"`
-				Stderr  *WithMessage `xml:"system-err,omitempty"`
+				Name      string       `xml:"name,attr"`
+				Classname string       `xml:"classname,attr"`
+				Skipped   *WithMessage `xml:"skipped,omitempty"`
+				Failure   *WithMessage `xml:"failure,omitempty"`
+				Error     *WithMessage `xml:"error,omitempty"`
+				Stderr    *WithMessage `xml:"system-err,omitempty"`
+
+				// RunTime is the time spent executing the run associated
+				// with this test case, in seconds with the fractional component
+				// representing partial seconds.
+				//
+				// We assume here that it's not practically possible for an
+				// execution to take literally zero fractional seconds at
+				// the accuracy we're using here (nanoseconds converted into
+				// floating point seconds) and so use zero to represent
+				// "not known", and thus omit that case. (In practice many
+				// JUnit XML consumers treat the absense of this attribute
+				// as zero anyway.)
+				RunTime float64 `xml:"time,attr,omitempty"`
 			}
 
 			testCase := TestCase{
 				Name: run.Name,
+
+				// We treat the test scenario filename as the "class name",
+				// implying that the run name is the "method name", just
+				// because that seems to inspire more useful rendering in
+				// some consumers of JUnit XML that were designed for
+				// Java-shaped languages.
+				Classname: file.Name,
+			}
+			if execMeta := run.ExecutionMeta; execMeta != nil {
+				testCase.RunTime = execMeta.Duration.Seconds()
 			}
 			switch run.Status {
 			case moduletest.Skip:

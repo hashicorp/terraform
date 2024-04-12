@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -197,8 +198,8 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 // This must be used only after any side-effects that make the value of the
 // variable available for use in expression evaluation, such as
 // EvalModuleCallArgument for variables in descendent modules.
-func evalVariableValidations(addr addrs.AbsInputVariableInstance, config *configs.Variable, expr hcl.Expression, ctx EvalContext) (diags tfdiags.Diagnostics) {
-	if config == nil || len(config.Validations) == 0 {
+func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContext, rules []*configs.CheckRule, valueRng hcl.Range) (diags tfdiags.Diagnostics) {
+	if len(rules) == 0 {
 		log.Printf("[TRACE] evalVariableValidations: no validation rules declared for %s, so skipping", addr)
 		return nil
 	}
@@ -208,21 +209,16 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, config *config
 	if !checkState.ConfigHasChecks(addr.ConfigCheckable()) {
 		// We have nothing to do if this object doesn't have any checks,
 		// but the "rules" slice should agree that we don't.
-		if ct := len(config.Validations); ct != 0 {
+		if ct := len(rules); ct != 0 {
 			panic(fmt.Sprintf("check state says that %s should have no rules, but it has %d", addr, ct))
 		}
 		return diags
 	}
 
-	// Variable nodes evaluate in the parent module to where they were declared
-	// because the value expression (n.Expr, if set) comes from the calling
-	// "module" block in the parent module.
-	//
 	// Validation expressions are statically validated (during configuration
 	// loading) to refer only to the variable being validated, so we can
 	// bypass our usual evaluation machinery here and just produce a minimal
-	// evaluation context containing just the required value, and thus avoid
-	// the problem that ctx's evaluation functions refer to the wrong module.
+	// evaluation context containing just the required value.
 	val := ctx.NamedValues().GetInputVariableValue(addr)
 	if val == cty.NilVal {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -235,14 +231,14 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, config *config
 	hclCtx := &hcl.EvalContext{
 		Variables: map[string]cty.Value{
 			"var": cty.ObjectVal(map[string]cty.Value{
-				config.Name: val,
+				addr.Variable.Name: val,
 			}),
 		},
 		Functions: ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey).Functions(),
 	}
 
-	for ix, validation := range config.Validations {
-		result, ruleDiags := evalVariableValidation(validation, hclCtx, addr, config, expr, ix)
+	for ix, validation := range rules {
+		result, ruleDiags := evalVariableValidation(validation, hclCtx, valueRng, addr, ix)
 		diags = diags.Append(ruleDiags)
 
 		log.Printf("[TRACE] evalVariableValidations: %s status is now %s", addr, result.Status)
@@ -256,7 +252,70 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, config *config
 	return diags
 }
 
-func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalContext, addr addrs.AbsInputVariableInstance, config *configs.Variable, expr hcl.Expression, ix int) (checkResult, tfdiags.Diagnostics) {
+// evalVariableValidationsCrossRef is an experimental variant of
+// [evalVariableValidations] that allows arbitrary references to any object
+// declared in the same module as the variable.
+//
+// If the experiment is successful, this function should replace
+// [evalVariableValidations], but it's currently written separately to minimize
+// the risk of the experiment impacting non-opted modules.
+func evalVariableValidationsCrossRef(addr addrs.AbsInputVariableInstance, ctx EvalContext, rules []*configs.CheckRule, valueRng hcl.Range) (diags tfdiags.Diagnostics) {
+	if len(rules) == 0 {
+		log.Printf("[TRACE] evalVariableValidations: no validation rules declared for %s, so skipping", addr)
+		return nil
+	}
+	log.Printf("[TRACE] evalVariableValidations: validating %s", addr)
+
+	checkState := ctx.Checks()
+	if !checkState.ConfigHasChecks(addr.ConfigCheckable()) {
+		// We have nothing to do if this object doesn't have any checks,
+		// but the "rules" slice should agree that we don't.
+		if ct := len(rules); ct != 0 {
+			panic(fmt.Sprintf("check state says that %s should have no rules, but it has %d", addr, ct))
+		}
+		return diags
+	}
+
+	// We'll build just one evaluation context covering the data needed by
+	// all of the rules together, since that'll minimize lock contention
+	// on the state, plan, etc.
+	scope := ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
+	var refs []*addrs.Reference
+	for _, rule := range rules {
+		condRefs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRef, rule.Condition)
+		diags = diags.Append(moreDiags)
+		msgRefs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRef, rule.ErrorMessage)
+		diags = diags.Append(moreDiags)
+		refs = append(refs, condRefs...)
+		refs = append(refs, msgRefs...)
+	}
+	if diags.HasErrors() {
+		// If any of the references were invalid then evaluating the expressions
+		// will duplicate those errors, so we'll bail out early.
+		return diags
+	}
+	hclCtx, moreDiags := scope.EvalContext(refs)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return diags
+	}
+
+	for ix, validation := range rules {
+		result, ruleDiags := evalVariableValidation(validation, hclCtx, valueRng, addr, ix)
+		diags = diags.Append(ruleDiags)
+
+		log.Printf("[TRACE] evalVariableValidations: %s status is now %s", addr, result.Status)
+		if result.Status == checks.StatusFail {
+			checkState.ReportCheckFailure(addr, addrs.InputValidation, ix, result.FailureMessage)
+		} else {
+			checkState.ReportCheckResult(addr, addrs.InputValidation, ix, result.Status)
+		}
+	}
+
+	return diags
+}
+
+func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalContext, valueRng hcl.Range, addr addrs.AbsInputVariableInstance, ix int) (checkResult, tfdiags.Diagnostics) {
 	const errInvalidCondition = "Invalid variable validation result"
 	const errInvalidValue = "Invalid value for variable"
 	var diags tfdiags.Diagnostics
@@ -396,34 +455,17 @@ You can correct this by removing references to sensitive values, or by carefully
 		errorMessage = "Failed to evaluate condition error message."
 	}
 
-	if expr != nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity:    hcl.DiagError,
-			Summary:     errInvalidValue,
-			Detail:      fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", errorMessage, validation.DeclRange.String()),
-			Subject:     expr.Range().Ptr(),
-			Expression:  validation.Condition,
-			EvalContext: hclCtx,
-			Extra: &addrs.CheckRuleDiagnosticExtra{
-				CheckRule: addr.CheckRule(addrs.InputValidation, ix),
-			},
-		})
-	} else {
-		// Since we don't have a source expression for a root module
-		// variable, we'll just report the error from the perspective
-		// of the variable declaration itself.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity:    hcl.DiagError,
-			Summary:     errInvalidValue,
-			Detail:      fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", errorMessage, validation.DeclRange.String()),
-			Subject:     config.DeclRange.Ptr(),
-			Expression:  validation.Condition,
-			EvalContext: hclCtx,
-			Extra: &addrs.CheckRuleDiagnosticExtra{
-				CheckRule: addr.CheckRule(addrs.InputValidation, ix),
-			},
-		})
-	}
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity:    hcl.DiagError,
+		Summary:     errInvalidValue,
+		Detail:      fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", errorMessage, validation.DeclRange.String()),
+		Subject:     valueRng.Ptr(),
+		Expression:  validation.Condition,
+		EvalContext: hclCtx,
+		Extra: &addrs.CheckRuleDiagnosticExtra{
+			CheckRule: addr.CheckRule(addrs.InputValidation, ix),
+		},
+	})
 
 	return checkResult{
 		Status:         status,

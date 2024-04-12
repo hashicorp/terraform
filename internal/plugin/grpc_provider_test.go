@@ -367,6 +367,41 @@ func TestGRPCProvider_ReadResource(t *testing.T) {
 	}
 }
 
+func TestGRPCProvider_ReadResource_deferred(t *testing.T) {
+	client := mockProviderClient(t)
+	p := &GRPCProvider{
+		client: client,
+	}
+
+	client.EXPECT().ReadResource(
+		gomock.Any(),
+		gomock.Any(),
+	).Return(&proto.ReadResource_Response{
+		NewState: &proto.DynamicValue{
+			Msgpack: []byte("\x81\xa4attr\xa3bar"),
+		},
+		Deferred: &proto.Deferred{
+			Reason: proto.Deferred_ABSENT_PREREQ,
+		},
+	}, nil)
+
+	resp := p.ReadResource(providers.ReadResourceRequest{
+		TypeName: "resource",
+		PriorState: cty.ObjectVal(map[string]cty.Value{
+			"attr": cty.StringVal("foo"),
+		}),
+	})
+
+	checkDiags(t, resp.Diagnostics)
+
+	expectedDeferred := &providers.Deferred{
+		Reason: providers.DeferredReasonAbsentPrereq,
+	}
+	if !cmp.Equal(expectedDeferred, resp.Deferred, typeComparer, valueComparer, equateEmpty) {
+		t.Fatal(cmp.Diff(expectedDeferred, resp.Deferred, typeComparer, valueComparer, equateEmpty))
+	}
+}
+
 func TestGRPCProvider_ReadResourceJSON(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{

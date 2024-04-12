@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -107,20 +106,18 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 	expander := globalCtx.InstanceExpander()
 	_, call := n.Addr.Call()
 
+	// Allowing unknown values in count and for_each is a top-level plan option.
+	//
+	// If this is false then the codepaths that handle unknown values below
+	// become unreachable, because the evaluate functions will reject unknown
+	// values as an error.
+	allowUnknown := globalCtx.Deferrals().DeferralAllowed()
+
 	// nodeExpandModule itself does not have visibility into how its ancestors
 	// were expanded, so we use the expander here to provide all possible paths
 	// to our module, and register module instances with each of them.
 	for _, module := range expander.ExpandModule(n.Addr.Parent()) {
 		moduleCtx := evalContextForModuleInstance(globalCtx, module)
-
-		// Allowing unknown values in count and for_each is currently only an
-		// experimental feature. This will hopefully become the default (and only)
-		// behavior in future, if the experiment is successful.
-		//
-		// If this is false then the codepaths that handle unknown values below
-		// become unreachable, because the evaluate functions will reject unknown
-		// values as an error.
-		allowUnknown := moduleCtx.LanguageExperimentActive(experiments.UnknownInstances)
 
 		switch {
 		case n.ModuleCall.Count != nil:

@@ -388,9 +388,10 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	}
 
 	protoReq := &proto6.ReadResource_Request{
-		TypeName:     r.TypeName,
-		CurrentState: &proto6.DynamicValue{Msgpack: mp},
-		Private:      r.Private,
+		TypeName:        r.TypeName,
+		CurrentState:    &proto6.DynamicValue{Msgpack: mp},
+		Private:         r.Private,
+		DeferralAllowed: r.DeferralAllowed,
 	}
 
 	if metaSchema.Block != nil {
@@ -416,6 +417,7 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	}
 	resp.NewState = state
 	resp.Private = protoResp.Private
+	resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
 
 	return resp
 }

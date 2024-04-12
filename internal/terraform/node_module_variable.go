@@ -150,6 +150,25 @@ func (n *nodeExpandModuleVariable) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr}
 }
 
+// variableValidationRules implements [graphNodeValidatableVariable].
+func (n *nodeExpandModuleVariable) variableValidationRules() (addrs.ConfigInputVariable, []*configs.CheckRule, hcl.Range) {
+	var defnRange hcl.Range
+	if n.Expr != nil { // should always be set in real calls, but not always in tests
+		defnRange = n.Expr.Range()
+	}
+	if n.DestroyApply {
+		// We don't perform any variable validation during the apply phase
+		// of a destroy, because validation rules typically aren't prepared
+		// for dealing with things already having been destroyed.
+		return n.Addr.InModule(n.Module), nil, defnRange
+	}
+	var rules []*configs.CheckRule
+	if n.Config != nil { // always in normal code, but sometimes not in unit tests
+		rules = n.Config.Validations
+	}
+	return n.Addr.InModule(n.Module), rules, defnRange
+}
+
 // nodeModuleVariable represents a module variable input during
 // the apply step.
 type nodeModuleVariable struct {
@@ -222,13 +241,9 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 	// during expression evaluation.
 	ctx.NamedValues().SetInputVariableValue(n.Addr, val)
 
-	// Skip evalVariableValidations during destroy operations. We still want
-	// to evaluate the variable in case it is used to initialise providers
-	// or something downstream but we don't need to report on the success
-	// or failure of any validations for destroy operations.
-	if !n.DestroyApply {
-		diags = diags.Append(evalVariableValidations(n.Addr, n.Config, n.Expr, ctx))
-	}
+	// Custom validation rules are handled by a separate graph node of type
+	// nodeVariableValidation, added by variableValidationTransformer.
+
 	return diags
 }
 

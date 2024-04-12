@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -83,13 +82,6 @@ type NodeAbstractResource struct {
 	// generateConfigPath tells this node which file to write generated config
 	// into. If empty, then config should not be generated.
 	generateConfigPath string
-
-	// TEMP: [ConfigTransformer] sets this to true when at least one module
-	// in the configuration has opted in to the unknown_instances experiment.
-	// See the field of the same name in [ConfigTransformer] for more details.
-	// (And if that field has been removed already, then this one should've
-	// been too!)
-	unknownInstancesExperimentEnabled bool
 }
 
 var (
@@ -410,14 +402,12 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 	// to expand the module here to create all resources.
 	expander := ctx.InstanceExpander()
 
-	// Allowing unknown values in count and for_each is currently only an
-	// experimental feature. This will hopefully become the default (and only)
-	// behavior in future, if the experiment is successful.
+	// Allowing unknown values in count and for_each is a top-level plan option.
 	//
 	// If this is false then the codepaths that handle unknown values below
 	// become unreachable, because the evaluate functions will reject unknown
 	// values as an error.
-	allowUnknown := ctx.LanguageExperimentActive(experiments.UnknownInstances)
+	allowUnknown := ctx.Deferrals().DeferralAllowed()
 
 	switch {
 	case n.Config != nil && n.Config.Count != nil:

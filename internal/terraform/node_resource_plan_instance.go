@@ -205,13 +205,24 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// Refresh, maybe
 	// The import process handles its own refresh
 	if !n.skipRefresh && !importing {
-		s, refreshDiags := n.refresh(ctx, states.NotDeposed, instanceRefreshState)
+		s, deferred, refreshDiags := n.refresh(ctx, states.NotDeposed, instanceRefreshState)
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
 		}
 
-		instanceRefreshState = s
+		if deferred == nil {
+			instanceRefreshState = s
+		} else {
+			ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, &plans.ResourceInstanceChange{
+				Addr: n.Addr,
+				Change: plans.Change{
+					Action: plans.Read,
+					Before: s.Value,
+					After:  cty.DynamicVal,
+				},
+			})
+		}
 
 		if instanceRefreshState != nil {
 			// When refreshing we start by merging the stored dependencies and
@@ -287,7 +298,11 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		deferrals := ctx.Deferrals()
-		if !deferrals.ShouldDeferResourceInstanceChanges(n.Addr) {
+
+		if deferrals.IsResourceInstanceDeferred(n.Addr) {
+			// This resource instance is already deferred, probably because it
+			// was deferred during the refresh or import step.
+		} else if !deferrals.ShouldDeferResourceInstanceChanges(n.Addr) {
 			// We intentionally write the change before the subsequent checks, because
 			// all of the checks below this point are for problems caused by the
 			// context surrounding the change, rather than the change itself, and
@@ -359,7 +374,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			// In this case, the expression evaluator should use the placeholder
 			// value registered here as the value of this resource instance,
 			// instead of using the plan.
-			deferrals.ReportResourceInstanceDeferred(n.Addr, change.Action, change.After)
+			deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
 		}
 	} else {
 		// In refresh-only mode we need to evaluate the for-each expression in
@@ -586,14 +601,24 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		},
 		override: n.override,
 	}
-	instanceRefreshState, refreshDiags := riNode.refresh(ctx, states.NotDeposed, importedState)
+	instanceRefreshState, deferred, refreshDiags := riNode.refresh(ctx, states.NotDeposed, importedState)
 	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
 		return instanceRefreshState, diags
 	}
 
+	if deferred != nil {
+		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, &plans.ResourceInstanceChange{
+			Addr: n.Addr,
+			Change: plans.Change{
+				Action: plans.Read,
+				After:  instanceRefreshState.Value,
+			},
+		})
+	}
+
 	// verify the existence of the imported resource
-	if instanceRefreshState.Value.IsNull() {
+	if instanceRefreshState.Value.IsNull() && deferred == nil {
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,

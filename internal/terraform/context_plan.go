@@ -77,6 +77,17 @@ type PlanOpts struct {
 	// fully-functional new object.
 	ForceReplace []addrs.AbsResourceInstance
 
+	// DeferralAllowed specifies that the plan is allowed to defer some actions,
+	// so that a subset of the plan can be applied even if parts of it can't yet
+	// be planned at all. Plans that contain deferred actions can't converge in
+	// a single run, and their configuration must be planned again after the
+	// dependencies of their deferred objects are in a usable state. Various
+	// events can cause deferrals, including unknown values in count and
+	// for_each arguments, and deferral notices from providers. If
+	// DeferralAllowed is false, the plan will error upon encountering an object
+	// that would be unplannable until after the apply.
+	DeferralAllowed bool
+
 	// ExternalReferences allows the external caller to pass in references to
 	// nodes that should not be pruned even if they are not referenced within
 	// the actual graph.
@@ -674,6 +685,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		Config:                     config,
 		InputState:                 prevRunState,
 		ExternalProviderConfigs:    externalProviderConfigs,
+		DeferralAllowed:            opts.DeferralAllowed,
 		ExternalDependencyDeferred: opts.ExternalDependencyDeferred,
 		Changes:                    changes,
 		MoveResults:                moveResults,
@@ -722,6 +734,9 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	driftedResources, driftDiags := c.driftedResources(config, prevRunState, priorState, moveResults)
 	diags = diags.Append(driftDiags)
 
+	deferredResources, deferredDiags := c.deferredResources(config, walker.Deferrals.GetDeferredChanges(), priorState)
+	diags = diags.Append(deferredDiags)
+
 	var forgottenResources []string
 	for _, rc := range changes.Resources {
 		if rc.Action == plans.Forget {
@@ -741,6 +756,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		UIMode:                  opts.Mode,
 		Changes:                 changes,
 		DriftedResources:        driftedResources,
+		DeferredResources:       deferredResources,
 		PrevRunState:            prevRunState,
 		PriorState:              priorState,
 		PlannedState:            walker.State.Close(),
@@ -791,6 +807,36 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	evalScope := evalScopeFromGraphWalk(walker, addrs.RootModuleInstance)
 
 	return plan, evalScope, diags
+}
+
+func (c *Context) deferredResources(config *configs.Config, deferrals []*plans.DeferredResourceInstanceChange, state *states.State) ([]*plans.DeferredResourceInstanceChangeSrc, tfdiags.Diagnostics) {
+	var deferredResources []*plans.DeferredResourceInstanceChangeSrc
+
+	schemas, diags := c.Schemas(config, state)
+	if diags.HasErrors() {
+		return deferredResources, diags
+	}
+
+	for _, deferral := range deferrals {
+
+		schema, _ := schemas.ResourceTypeConfig(
+			deferral.Change.ProviderAddr.Provider,
+			deferral.Change.Addr.Resource.Resource.Mode,
+			deferral.Change.Addr.Resource.Resource.Type)
+
+		ty := schema.ImpliedType()
+		deferralSrc, err := deferral.Encode(ty)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to prepare deferred resource for plan",
+				fmt.Sprintf("The deferred resource %q could not be serialized to store in the plan: %s.", deferral.Change.Addr, err)))
+			continue
+		}
+
+		deferredResources = append(deferredResources, deferralSrc)
+	}
+	return deferredResources, diags
 }
 
 func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*Graph, walkOperation, tfdiags.Diagnostics) {

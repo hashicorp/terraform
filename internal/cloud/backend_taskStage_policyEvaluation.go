@@ -45,7 +45,8 @@ func newPolicyEvaluationSummarizer(b *Cloud, ts *tfe.TaskStage) taskStageSummari
 
 func (pes *policyEvaluationSummarizer) Summarize(context *IntegrationContext, output IntegrationOutputWriter, ts *tfe.TaskStage) (bool, *string, error) {
 	if pes.counter == 0 {
-		output.Output("[bold]OPA Policy Evaluation\n")
+		output.Output("------------------------------------------------------------------------\n")
+		output.Output("[bold]Policy Evaluations\n")
 		pes.counter++
 	}
 
@@ -103,20 +104,27 @@ func summarizePolicyEvaluationResults(policyEvaluations []*tfe.PolicyEvaluation)
 }
 
 func (pes *policyEvaluationSummarizer) taskStageWithPolicyEvaluation(context *IntegrationContext, output IntegrationOutputWriter, policyEvaluation []*tfe.PolicyEvaluation) error {
-	var result, message string
+	var result, message, kind string
 	// Currently only one policy evaluation supported : OPA
 	for _, polEvaluation := range policyEvaluation {
+		if polEvaluation.PolicyKind == "opa" {
+			kind = "OPA"
+		} else {
+			kind = "Sentinel"
+		}
 		if polEvaluation.Status == tfe.PolicyEvaluationPassed {
-			message = "[dim] This result means that all OPA policies passed and the protected behavior is allowed"
+			message = fmt.Sprintf("[dim] This result means that all %s policies passed and the protected behavior is allowed", kind)
 			result = fmt.Sprintf("[green]%s", strings.ToUpper(string(tfe.PolicyEvaluationPassed)))
 			if polEvaluation.ResultCount.AdvisoryFailed > 0 {
 				result += " (with advisory)"
 			}
 		} else {
-			message = "[dim] This result means that one or more OPA policies failed. More than likely, this was due to the discovery of violations by the main rule and other sub rules"
+			message = fmt.Sprintf("[dim] This result means that one or more %s policies failed. More than likely, this was due to the discovery of violations by the main rule and other sub rules", kind)
 			result = fmt.Sprintf("[red]%s", strings.ToUpper(string(tfe.PolicyEvaluationFailed)))
 		}
 
+		output.Output("--------------------------------\n")
+		output.Output(fmt.Sprintf("[bold]%s Policy Evaluation\n", kind))
 		output.Output(fmt.Sprintf("[bold]%c%c Overall Result: %s", Arrow, Arrow, result))
 
 		output.Output(message)

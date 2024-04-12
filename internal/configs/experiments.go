@@ -208,5 +208,19 @@ func checkModuleExperiments(m *Module) hcl.Diagnostics {
 		}
 	*/
 
+	if !m.ActiveExperiments.Has(experiments.VariableValidationCrossRef) {
+		// Without this experiment, validation rules are subject to the old
+		// rule that they can only refer to the variable whose value they
+		// are checking. This experiment removes that constraint, and makes
+		// the modules runtime responsible for validating and evaluating
+		// the conditions and error messages, just as we'd do for any other
+		// dynamic expression.
+		for varName, vc := range m.Variables {
+			for _, vv := range vc.Validations {
+				diags = append(diags, checkVariableValidationBlock(varName, vv)...)
+			}
+		}
+	}
+
 	return diags
 }

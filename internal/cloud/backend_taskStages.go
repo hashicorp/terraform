@@ -114,6 +114,9 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 				errs = e
 			}
 			if ok {
+				if b.CLI != nil {
+					b.CLI.Output("------------------------------------------------------------------------")
+				}
 				return true, nil
 			}
 		case tfe.TaskStageCanceled, tfe.TaskStageErrored, tfe.TaskStageFailed:
@@ -122,6 +125,9 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 				errs = e
 			}
 			if ok {
+				if b.CLI != nil {
+					b.CLI.Output("------------------------------------------------------------------------")
+				}
 				return true, nil
 			}
 			return false, fmt.Errorf("Task Stage %s.", stage.Status)
@@ -137,6 +143,9 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 			if err != nil {
 				errs = errors.Join(errs, err)
 			} else {
+				if b.CLI != nil {
+					b.CLI.Output("------------------------------------------------------------------------")
+				}
 				return cont, nil
 			}
 		case tfe.TaskStageUnreachable:
@@ -170,9 +179,13 @@ func processSummarizers(ctx *IntegrationContext, output IntegrationOutputWriter,
 }
 
 func (b *Cloud) processStageOverrides(context *IntegrationContext, output IntegrationOutputWriter, taskStageID string) (bool, error) {
+	if b.CLI != nil {
+		b.CLI.Output("--------------------------------\n")
+		b.CLI.Output(b.Colorize().Color(fmt.Sprintf("%c%c [bold]Override", Arrow, Arrow)))
+	}
 	opts := &terraform.InputOpts{
 		Id:          fmt.Sprintf("%c%c [bold]Override", Arrow, Arrow),
-		Query:       "\nDo you want to override the failed policy check?",
+		Query:       "\nDo you want to override the failed policies?",
 		Description: "Only 'override' will be accepted to override.",
 	}
 	runURL := fmt.Sprintf(taskStageHeader, b.Hostname, b.Organization, context.Op.Workspace, context.Run.ID)
