@@ -949,7 +949,8 @@ func (n *NodeAbstractResourceInstance) plan(
 			return nil, nil, keyData, diags
 		}
 
-		action, _ := getAction(n.Addr, priorVal, resp.PlannedState, createBeforeDestroy, forceReplace, reqRep)
+		unmarkedPlannedState, _ := resp.PlannedState.UnmarkDeepWithPaths()
+		action, _ := getAction(n.Addr, unmarkedPriorVal, unmarkedPlannedState, createBeforeDestroy, forceReplace, reqRep)
 		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, resp.Deferred.Reason, &plans.ResourceInstanceChange{
 			Addr: n.Addr,
 			Change: plans.Change{
@@ -1046,6 +1047,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	// here.
 
 	unmarkedPaths = append(unmarkedPaths, schema.ValueMarks(plannedNewVal, nil)...)
+	unmarkedPlannedNewVal := plannedNewVal
 
 	if len(unmarkedPaths) > 0 {
 		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
@@ -1057,7 +1059,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		return nil, nil, keyData, diags
 	}
 
-	action, actionReason := getAction(n.Addr, priorVal, plannedNewVal, createBeforeDestroy, forceReplace, reqRep)
+	action, actionReason := getAction(n.Addr, unmarkedPriorVal, unmarkedPlannedNewVal, createBeforeDestroy, forceReplace, reqRep)
 
 	if action.IsReplace() {
 		// In this strange situation we want to produce a change object that
@@ -2675,9 +2677,6 @@ func resourceInstancePrevRunAddr(ctx EvalContext, currentAddr addrs.AbsResourceI
 }
 
 func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value, createBeforeDestroy bool, forceReplace []addrs.AbsResourceInstance, reqRep cty.PathSet) (action plans.Action, actionReason plans.ResourceInstanceChangeActionReason) {
-	unmarkedPriorVal, _ := priorVal.UnmarkDeepWithPaths()
-	unmarkedPlannedNewVal, _ := plannedNewVal.UnmarkDeepWithPaths()
-
 	// The user might also ask us to force replacing a particular resource
 	// instance, regardless of whether the provider thinks it needs replacing.
 	// For example, users typically do this if they learn a particular object
@@ -2698,7 +2697,7 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 	}
 
 	// Unmark for this test for value equality.
-	eqV := unmarkedPlannedNewVal.Equals(unmarkedPriorVal)
+	eqV := plannedNewVal.Equals(priorVal)
 	eq := eqV.IsKnown() && eqV.True()
 
 	switch {
@@ -2741,7 +2740,6 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 // include only where changes are detected.
 func getRequiredReplaces(priorVal, plannedNewVal cty.Value, requiredReplaces []cty.Path, providerAddr tfaddr.Provider, addr addrs.AbsResourceInstance) (cty.PathSet, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	unmarkedPriorVal, _ := priorVal.UnmarkDeepWithPaths()
 
 	reqRep := cty.NewPathSet()
 	if len(requiredReplaces) > 0 {
@@ -2752,7 +2750,7 @@ func getRequiredReplaces(priorVal, plannedNewVal cty.Value, requiredReplaces []c
 				continue
 			}
 
-			priorChangedVal, priorPathDiags := hcl.ApplyPath(unmarkedPriorVal, path, nil)
+			priorChangedVal, priorPathDiags := hcl.ApplyPath(priorVal, path, nil)
 			plannedChangedVal, plannedPathDiags := hcl.ApplyPath(plannedNewVal, path, nil)
 			if plannedPathDiags.HasErrors() && priorPathDiags.HasErrors() {
 				// This means the path was invalid in both the prior and new
