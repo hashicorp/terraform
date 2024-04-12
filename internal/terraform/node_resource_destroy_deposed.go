@@ -174,11 +174,8 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		}
 		if deferred != nil {
 			ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, &plans.ResourceInstanceChange{
-				Addr: n.Addr,
-				Change: plans.Change{
-					Action: plans.Delete,
-					Before: state.Value,
-				},
+				Addr:   n.Addr,
+				Change: change.Change,
 			})
 			return diags
 		}
@@ -295,11 +292,8 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 
 	if deferred != nil {
 		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, &plans.ResourceInstanceChange{
-			Addr: n.Addr,
-			Change: plans.Change{
-				Action: plans.Delete,
-				Before: state.Value,
-			},
+			Addr:   n.Addr,
+			Change: change.Change,
 		})
 		return diags
 	}

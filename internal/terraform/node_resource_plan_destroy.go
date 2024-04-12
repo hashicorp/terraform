@@ -98,11 +98,8 @@ func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalCon
 
 	if deferred != nil {
 		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, &plans.ResourceInstanceChange{
-			Addr: n.Addr,
-			Change: plans.Change{
-				Action: plans.Delete,
-				Before: state.Value,
-			},
+			Addr:   n.Addr,
+			Change: change.Change,
 		})
 		return diags
 	}

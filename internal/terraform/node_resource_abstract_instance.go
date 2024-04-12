@@ -454,13 +454,9 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			return plan, deferred, diags
 		}
 
-		if resp.Deferred != nil {
-			return plan, deferred, diags
-		}
-
 		// Check that the provider returned a null value here, since that is the
 		// only valid value for a destroy plan.
-		if !resp.PlannedState.IsNull() {
+		if !resp.PlannedState.IsNull() && deferred == nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Provider produced invalid plan",
@@ -956,7 +952,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			Change: plans.Change{
 				Action: action,
 				Before: priorVal,
-				After:  origConfigVal,
+				After:  unmarkedConfigVal,
 			},
 		})
 		return nil, nil, keyData, diags
