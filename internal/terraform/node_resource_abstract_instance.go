@@ -955,8 +955,8 @@ func (n *NodeAbstractResourceInstance) plan(
 			Addr: n.Addr,
 			Change: plans.Change{
 				Action: action,
-				Before: unmarkedPriorVal,
-				After:  unmarkedConfigVal,
+				Before: priorVal,
+				After:  origConfigVal,
 			},
 		})
 		return nil, nil, keyData, diags
