@@ -368,8 +368,9 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 }
 
 // planDestroy returns a plain destroy diff.
-func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, *providers.Deferred, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	var deferred *providers.Deferred
 	var plan *plans.ResourceInstanceChange
 
 	absAddr := n.Addr
@@ -400,7 +401,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			},
 			ProviderAddr: n.ResolvedProvider,
 		}
-		return noop, nil
+		return noop, deferred, nil
 	}
 
 	unmarkedPriorVal, _ := currentState.Value.UnmarkDeep()
@@ -411,13 +412,13 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 
 	provider, _, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		return plan, diags.Append(err)
+		return plan, deferred, diags.Append(err)
 	}
 
 	metaConfigVal, metaDiags := n.providerMetas(ctx)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
-		return plan, diags
+		return plan, deferred, diags
 	}
 
 	var resp providers.PlanResourceChangeResponse
@@ -441,6 +442,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			ProviderMeta:     metaConfigVal,
 			DeferralAllowed:  ctx.Deferrals().DeferralAllowed(),
 		})
+		deferred = resp.Deferred
 
 		// We may not have a config for all destroys, but we want to reference
 		// it in the diagnostics if we do.
@@ -449,19 +451,11 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		}
 		diags = diags.Append(resp.Diagnostics)
 		if diags.HasErrors() {
-			return plan, diags
+			return plan, deferred, diags
 		}
 
 		if resp.Deferred != nil {
-			ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, resp.Deferred.Reason, &plans.ResourceInstanceChange{
-				Addr: n.Addr,
-				Change: plans.Change{
-					Action: plans.Delete,
-					Before: unmarkedPriorVal,
-					After:  resp.PlannedState,
-				},
-			})
-			return plan, diags
+			return plan, deferred, diags
 		}
 
 		// Check that the provider returned a null value here, since that is the
@@ -475,7 +469,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 					n.ResolvedProvider.Provider, n.Addr),
 			),
 			)
-			return plan, diags
+			return plan, deferred, diags
 		}
 	}
 
@@ -493,7 +487,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		ProviderAddr: n.ResolvedProvider,
 	}
 
-	return plan, diags
+	return plan, deferred, diags
 }
 
 // planForget returns a Forget change.

@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -164,13 +165,22 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	}
 	var change *plans.ResourceInstanceChange
 	var pDiags tfdiags.Diagnostics
+	var deferred *providers.Deferred
 	if forget {
 		change, pDiags = n.planForget(ctx, oldState, "")
 		diags = diags.Append(pDiags)
 	} else {
-		change, pDiags = n.planDestroy(ctx, oldState, "")
+		change, deferred, pDiags = n.planDestroy(ctx, oldState, "")
 		diags = diags.Append(pDiags)
-		if diags.HasErrors() {
+
+		if deferred != nil {
+			ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, &plans.ResourceInstanceChange{
+				Addr: n.Addr,
+				Change: plans.Change{
+					Action: plans.Delete,
+					Before: oldState.Value,
+				},
+			})
 			return diags
 		}
 	}
@@ -181,10 +191,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	// We might be able to offer an approximate reason for why we are
 	// planning to delete this object. (This is best-effort; we might
 	// sometimes not have a reason.)
-	// The change can be nil in case of deferred destroys.
-	if change != nil {
-		change.ActionReason = n.deleteActionReason(ctx)
-	}
+	change.ActionReason = n.deleteActionReason(ctx)
 
 	// We intentionally write the change before the subsequent checks, because
 	// all of the checks below this point are for problems caused by the
