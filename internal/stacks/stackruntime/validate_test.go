@@ -61,6 +61,7 @@ var (
 				"input": cty.StringVal("input"),
 			},
 		},
+		filepath.Join("with-single-input", "provider-for-each"): {},
 	}
 
 	// invalidConfigurations are shared between the validate and plan tests.
