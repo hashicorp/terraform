@@ -12,7 +12,7 @@ Terraform can generate code for the resources you define in [`import` blocks](/t
 
 Starting with Terraform's generated HCL, we recommend iterating to find your ideal configuration by removing some attributes, adjusting the value of others, and rearranging `resource` blocks into files and modules as appropriate.
 
-To generate configuration, run `terraform plan` with the `-generate-config-out` flag and supply a new file path. Do not supply a path to an existing file, or Terraform throws an error.
+To generate configuration, run `terraform plan` with the `-generate-config-out` flag and supply a new file path. Do not supply a path to an existing file - in this case, Terraform would throw an error.
 
 ```shell
 $ terraform plan -generate-config-out=generated_resources.tf
