@@ -1031,6 +1031,61 @@ func TestContextImport_33572(t *testing.T) {
 	}
 }
 
+func TestContextImport_deferred(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "import-provider")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		Deferred: &providers.Deferred{
+			Reason: providers.DeferredReasonAbsentPrereq,
+		},
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+		Targets: []*ImportTarget{
+			{
+				LegacyAddr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
+				),
+				IDString: "bar",
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatalf("expected errors, got none.")
+	}
+	if len(diags) != 1 {
+		t.Fatalf("expected 1 error, got %d", len(diags))
+	}
+
+	expectedDiagSummary := "Cannot import deferred remote object"
+	if !strings.Contains(diags[0].Description().Summary, expectedDiagSummary) {
+		t.Fatalf("expected error to contain %q, got %q", expectedDiagSummary, diags[0].Description().Summary)
+	}
+
+	expectedDiagDetail := `While attempting to import an existing object to "aws_instance.foo", the provider deferred importing the resource`
+	if !strings.Contains(diags[0].Description().Detail, expectedDiagDetail) {
+		t.Fatalf("expected error to contain %q, got %q", expectedDiagDetail, diags[0].Description().Detail)
+	}
+
+	if !state.Empty() {
+		t.Fatalf("expected empty state, got %s", state)
+	}
+}
+
 const testImportStr = `
 aws_instance.foo:
   ID = foo
