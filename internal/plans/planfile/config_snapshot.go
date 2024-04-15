@@ -7,7 +7,7 @@ import (
 	"archive/zip"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"path"
 	"sort"
 	"strings"
@@ -55,7 +55,7 @@ func readConfigSnapshot(z *zip.Reader) (*configload.Snapshot, error) {
 			if err != nil {
 				return nil, fmt.Errorf("failed to open module manifest: %s", r)
 			}
-			manifestSrc, err = ioutil.ReadAll(r)
+			manifestSrc, err = io.ReadAll(r)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read module manifest: %s", r)
 			}
@@ -77,7 +77,7 @@ func readConfigSnapshot(z *zip.Reader) (*configload.Snapshot, error) {
 			if err != nil {
 				return nil, fmt.Errorf("failed to open snapshot of %s from module %q: %s", fileName, moduleKey, err)
 			}
-			fileSrc, err := ioutil.ReadAll(r)
+			fileSrc, err := io.ReadAll(r)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read snapshot of %s from module %q: %s", fileName, moduleKey, err)
 			}
