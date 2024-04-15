@@ -491,7 +491,25 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 	// Extract paths from path value marks
 	var paths []cty.Path
 	for _, vm := range obj.AttrSensitivePaths {
-		paths = append(paths, vm.Path)
+		// It's a bug for AttrSensitivePaths to contain anything other than
+		// sensitive marks, because we don't know how to serialize anything
+		// else here. (The main "states" package should've previously rejected
+		// such marks, so this is here just for robustness.)
+		for mark := range vm.Marks {
+			if mark != marks.Sensitive {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Unserializable value mark",
+					fmt.Sprintf(
+						"An attribute of %s has unserializable value mark %#v. This is a bug in Terraform.",
+						rs.Addr.Instance(key), mark,
+					),
+				))
+			}
+		}
+		if _, ok := vm.Marks[marks.Sensitive]; ok {
+			paths = append(paths, vm.Path)
+		}
 	}
 
 	// Marshal paths to JSON

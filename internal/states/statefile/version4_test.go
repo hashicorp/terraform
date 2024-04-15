@@ -8,8 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // This test verifies that modules are sorted before resources:
@@ -257,5 +260,51 @@ func TestVersion4_marshalPaths(t *testing.T) {
 				t.Fatalf("wrong JSON output\n got: %s\nwant: %s\n", got, want)
 			}
 		})
+	}
+}
+
+func TestVersion4_unsupportedMarksInResourceObject(t *testing.T) {
+	// This tests that we reject attempts to serialize unsupported kinds
+	// of value marks as part of the AttrSensitivePaths collection, which
+	// is supposed to be filtered by a caller to include only marks.Sensitive
+	// in particular.
+
+	_, diags := appendInstanceObjectStateV4(
+		&states.Resource{
+			Addr: addrs.AbsResource{
+				Resource: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "any_type",
+					Name: "any_name",
+				},
+			},
+			ProviderConfig: addrs.AbsProviderConfig{
+				Provider: addrs.NewBuiltInProvider("test"),
+			},
+		},
+		&states.ResourceInstance{},
+		addrs.NoKey,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			AttrSensitivePaths: []cty.PathValueMarks{
+				{
+					Marks: cty.ValueMarks{
+						"unsupported": struct{}{},
+					},
+					Path: cty.GetAttrPath("foo"),
+				},
+			},
+		},
+		addrs.NotDeposed,
+		nil,
+	)
+	if !diags.HasErrors() {
+		t.Fatalf("unexpected success; want error")
+	}
+	got := diags.Err().Error()
+	want := `Unserializable value mark: An attribute of any_type.any_name has unserializable value mark "unsupported". This is a bug in Terraform.`
+	if got != want {
+		t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
 	}
 }
