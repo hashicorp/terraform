@@ -2328,16 +2328,10 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			}
 		},
 		ApplyResourceChangeFn: func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
-			var key string
-			if v := req.Config.GetAttr("name"); v.IsKnown() {
-				key = req.Config.GetAttr("name").AsString()
-			} else {
-				key = "<unknown>"
-			}
-
+			key := req.Config.GetAttr("name").AsString()
 			newState := req.PlannedState
 
-			if req.PlannedState.IsKnown() && !req.PlannedState.IsNull() && !newState.GetAttr("output").IsKnown() {
+			if !newState.GetAttr("output").IsKnown() {
 				newStateValues := req.PlannedState.AsValueMap()
 				newStateValues["output"] = cty.StringVal(key)
 				newState = cty.ObjectVal(newStateValues)
