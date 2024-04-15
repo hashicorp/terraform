@@ -2025,6 +2025,63 @@ output "a" {
 			},
 		},
 	}
+
+	importDeferredTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "import_id" {
+    type = string
+}
+
+resource "test" "a" {
+    name = "a"
+}
+
+import {
+    id = var.import_id
+    to = test.a
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"import_id": cty.StringVal("deferred"), // Telling the test case to defer the import
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonAbsentPrereq, Action: plans.NoOp},
+				},
+				wantApplied: make(map[string]cty.Value),
+				wantOutputs: make(map[string]cty.Value),
+				complete:    false,
+			},
+			{
+				inputs: map[string]cty.Value{
+					"import_id": cty.StringVal("can_be_imported"),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("can_be_imported"),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.a": plans.Update,
+				},
+				wantDeferred: map[string]ExpectedDeferred{},
+				complete:     true,
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
@@ -2050,6 +2107,7 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"plan_force_replace_resource_change":                planForceReplaceResourceChange,
 		"plan_delete_resource_change":                       planDeleteResourceChange,
 		"plan_destroy_resource_change":                      planDestroyResourceChange,
+		"import_deferred":                                   importDeferredTest,
 	}
 
 	for name, test := range tests {
@@ -2345,7 +2403,7 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			}
 		},
 		ImportResourceStateFn: func(request providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
-			return providers.ImportResourceStateResponse{
+			resp := providers.ImportResourceStateResponse{
 				ImportedResources: []providers.ImportedResource{
 					{
 						TypeName: request.TypeName,
@@ -2357,6 +2415,13 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 					},
 				},
 			}
+			if request.ID == "deferred" {
+				resp.Deferred = &providers.Deferred{
+					Reason: providers.DeferredReasonAbsentPrereq,
+				}
+			}
+
+			return resp
 		},
 	}
 }

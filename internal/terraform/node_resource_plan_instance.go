@@ -534,6 +534,9 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		resp = provider.ImportResourceState(providers.ImportResourceStateRequest{
 			TypeName: addr.Resource.Resource.Type,
 			ID:       importId,
+			ClientCapabilities: providers.ClientCapabilities{
+				DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+			},
 		})
 	}
 	diags = diags.Append(resp.Diagnostics)
@@ -543,7 +546,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 
 	imported := resp.ImportedResources
 
-	if len(imported) == 0 {
+	if len(imported) == 0 && resp.Deferred == nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Import returned no resources",
@@ -567,6 +570,22 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 				importId,
 			),
 		))
+		return nil, diags
+	}
+
+	// If the import was deferred we can't do more here
+	if resp.Deferred != nil {
+		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, resp.Deferred.Reason, &plans.ResourceInstanceChange{
+			Addr: n.Addr,
+			Change: plans.Change{
+				Action: plans.NoOp,
+				Before: cty.UnknownVal(cty.DynamicPseudoType),
+				After:  cty.UnknownVal(cty.DynamicPseudoType),
+				Importing: &plans.Importing{
+					ID: importId,
+				},
+			},
+		})
 		return nil, diags
 	}
 
@@ -601,14 +620,15 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		},
 		override: n.override,
 	}
-	instanceRefreshState, deferred, refreshDiags := riNode.refresh(ctx, states.NotDeposed, importedState)
+	instanceRefreshState, refreshDeferred, refreshDiags := riNode.refresh(ctx, states.NotDeposed, importedState)
 	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
 		return instanceRefreshState, diags
 	}
 
-	if deferred != nil {
-		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, &plans.ResourceInstanceChange{
+	// report the refresh was deferred, we don't need to error since the import step succeeded
+	if refreshDeferred != nil {
+		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, refreshDeferred.Reason, &plans.ResourceInstanceChange{
 			Addr: n.Addr,
 			Change: plans.Change{
 				Action: plans.Read,
@@ -618,7 +638,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	}
 
 	// verify the existence of the imported resource
-	if instanceRefreshState.Value.IsNull() && deferred == nil {
+	if instanceRefreshState.Value.IsNull() && refreshDeferred == nil {
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
