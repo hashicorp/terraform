@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -860,6 +861,14 @@ func pathValueMarksFromTfplan(paths []*planproto.Path, marks cty.ValueMarks) ([]
 func pathValueMarksToTfplan(pvm []cty.PathValueMarks) ([]*planproto.Path, error) {
 	ret := make([]*planproto.Path, 0, len(pvm))
 	for _, p := range pvm {
+		for mark := range p.Marks {
+			if mark != marks.Sensitive {
+				return nil, fmt.Errorf("%s: cannot serialize values marked as %#v (this is a bug in Terraform)", tfdiags.FormatCtyPath(p.Path), mark)
+			}
+		}
+		if _, ok := p.Marks[marks.Sensitive]; !ok {
+			continue
+		}
 		path, err := pathToTfplan(p.Path)
 		if err != nil {
 			return nil, err
