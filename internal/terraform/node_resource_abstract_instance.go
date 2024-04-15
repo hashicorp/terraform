@@ -1926,7 +1926,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	}
 
 	diags = diags.Append(readDiags)
-	if !diags.HasErrors() {
+	if !diags.HasErrors() && readDeferred == nil {
 		// Finally, let's make our new state.
 		plannedNewState = &states.ResourceInstanceObject{
 			Value:  newVal,
