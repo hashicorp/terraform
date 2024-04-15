@@ -414,6 +414,10 @@ type ImportResourceStateRequest struct {
 	// ID is a string with which the provider can identify the resource to be
 	// imported.
 	ID string
+
+	// DeferralAllowed signals that the provider is allowed to defer the
+	// changes. If set the caller needs to handle the deferred response.
+	DeferralAllowed bool
 }
 
 type ImportResourceStateResponse struct {
@@ -425,6 +429,10 @@ type ImportResourceStateResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// Deferred if present signals that the provider was not able to fully
+	// complete this operation and a susequent run is required.
+	Deferred *Deferred
 }
 
 // ImportedResource represents an object being imported into Terraform with the

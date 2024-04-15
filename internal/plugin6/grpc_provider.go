@@ -602,8 +602,9 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 	}
 
 	protoReq := &proto6.ImportResourceState_Request{
-		TypeName: r.TypeName,
-		Id:       r.ID,
+		TypeName:        r.TypeName,
+		Id:              r.ID,
+		DeferralAllowed: r.DeferralAllowed,
 	}
 
 	protoResp, err := p.client.ImportResourceState(p.ctx, protoReq)
@@ -612,6 +613,7 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 		return resp
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+	resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
 
 	for _, imported := range protoResp.ImportedResources {
 		resource := providers.ImportedResource{
