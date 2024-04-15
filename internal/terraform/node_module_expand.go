@@ -26,6 +26,7 @@ type nodeExpandModule struct {
 
 var (
 	_ GraphNodeExecutable       = (*nodeExpandModule)(nil)
+	_ GraphNodeReferenceable    = (*nodeExpandModule)(nil)
 	_ GraphNodeReferencer       = (*nodeExpandModule)(nil)
 	_ GraphNodeReferenceOutside = (*nodeExpandModule)(nil)
 	_ graphNodeExpandsInstances = (*nodeExpandModule)(nil)
@@ -74,6 +75,14 @@ func (n *nodeExpandModule) References() []*addrs.Reference {
 	return refs
 }
 
+func (n *nodeExpandModule) ReferenceableAddrs() []addrs.Referenceable {
+	// Anything referencing this module must do so after the ExpandModule call
+	// has been made to the expander, so we return the module call address as
+	// the only referenceable address.
+	_, call := n.Addr.Call()
+	return []addrs.Referenceable{call}
+}
+
 func (n *nodeExpandModule) DependsOn() []*addrs.Reference {
 	if n.ModuleCall == nil {
 		return nil
@@ -98,7 +107,7 @@ func (n *nodeExpandModule) DependsOn() []*addrs.Reference {
 
 // GraphNodeReferenceOutside
 func (n *nodeExpandModule) ReferenceOutside() (selfPath, referencePath addrs.Module) {
-	return n.Addr, n.Addr.Parent()
+	return n.Addr.Parent(), n.Addr.Parent()
 }
 
 // GraphNodeExecutable
