@@ -5,6 +5,7 @@ package jsonstate
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -114,15 +115,18 @@ func TestMarshalOutputs(t *testing.T) {
 
 func TestMarshalAttributeValues(t *testing.T) {
 	tests := []struct {
-		Attr cty.Value
-		Want AttributeValues
+		Attr      cty.Value
+		Want      AttributeValues
+		WantMarks []cty.PathValueMarks
 	}{
 		{
 			cty.NilVal,
 			nil,
+			nil,
 		},
 		{
 			cty.NullVal(cty.String),
+			nil,
 			nil,
 		},
 		{
@@ -130,12 +134,14 @@ func TestMarshalAttributeValues(t *testing.T) {
 				"foo": cty.StringVal("bar"),
 			}),
 			AttributeValues{"foo": json.RawMessage(`"bar"`)},
+			nil,
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.NullVal(cty.String),
 			}),
 			AttributeValues{"foo": json.RawMessage(`null`)},
+			nil,
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
@@ -151,8 +157,9 @@ func TestMarshalAttributeValues(t *testing.T) {
 				"bar": json.RawMessage(`{"hello":"world"}`),
 				"baz": json.RawMessage(`["goodnight","moon"]`),
 			},
+			nil,
 		},
-		// Marked values
+		// Sensitive values
 		{
 			cty.ObjectVal(map[string]cty.Value{
 				"bar": cty.MapVal(map[string]cty.Value{
@@ -167,16 +174,46 @@ func TestMarshalAttributeValues(t *testing.T) {
 				"bar": json.RawMessage(`{"hello":"world"}`),
 				"baz": json.RawMessage(`["goodnight","moon"]`),
 			},
+			[]cty.PathValueMarks{
+				{
+					Path:  cty.GetAttrPath("baz").IndexInt(1),
+					Marks: cty.NewValueMarks(marks.Sensitive),
+				},
+			},
 		},
 	}
 
 	for _, test := range tests {
-		got := marshalAttributeValues(test.Attr)
-		eq := reflect.DeepEqual(got, test.Want)
-		if !eq {
-			t.Fatalf("wrong result:\nGot: %#v\nWant: %#v\n", got, test.Want)
-		}
+		t.Run(fmt.Sprintf("%#v", test.Attr), func(t *testing.T) {
+			val, got, marks, err := marshalAttributeValues(test.Attr)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if !reflect.DeepEqual(got, test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v\n", got, test.Want)
+			}
+			if !reflect.DeepEqual(marks, test.WantMarks) {
+				t.Errorf("wrong marks\ngot:  %#v\nwant: %#v\n", marks, test.WantMarks)
+			}
+			if _, marks := val.Unmark(); len(marks) != 0 {
+				t.Errorf("returned value still has marks; should have been unmarked\n%#v", marks)
+			}
+		})
 	}
+
+	t.Run("reject unsupported marks", func(t *testing.T) {
+		_, _, _, err := marshalAttributeValues(cty.ObjectVal(map[string]cty.Value{
+			"disallowed": cty.StringVal("a").Mark("unsupported"),
+		}))
+		if err == nil {
+			t.Fatalf("unexpected success; want error")
+		}
+		got := err.Error()
+		want := `.disallowed: cannot serialize value marked as "unsupported" for inclusion in a state snapshot (this is a bug in Terraform)`
+		if got != want {
+			t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
+		}
+	})
 }
 
 func TestMarshalResources(t *testing.T) {
