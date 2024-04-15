@@ -4,8 +4,6 @@
 package arguments
 
 import (
-	"flag"
-	"io"
 	"strings"
 	"testing"
 	"time"
@@ -86,10 +84,7 @@ func TestParseInit_basicValid(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			cmdFlags := flag.NewFlagSet("init", flag.ContinueOnError)
-			cmdFlags.SetOutput(io.Discard)
-
-			got, diags := ParseInit(tc.args, cmdFlags)
+			got, diags := ParseInit(tc.args)
 			if len(diags) > 0 {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
@@ -118,10 +113,7 @@ func TestParseInit_invalid(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			cmdFlags := flag.NewFlagSet("init", flag.ContinueOnError)
-			cmdFlags.SetOutput(io.Discard)
-
-			got, diags := ParseInit(tc.args, cmdFlags)
+			got, diags := ParseInit(tc.args)
 			if len(diags) == 0 {
 				t.Fatal("expected diags but got none")
 			}

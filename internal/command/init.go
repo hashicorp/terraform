@@ -43,24 +43,9 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
-	var flagPluginPath FlagStringSlice
-	flagConfigExtra := newRawFlags("-backend-config")
-
 	var diags tfdiags.Diagnostics
 	args = c.Meta.process(args)
-	cmdFlags := c.Meta.extendedFlagSet("init")
-	cmdFlags.Usage = func() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to parse command-line flags",
-			c.Help(),
-		))
-	}
-
-	cmdFlags.Var(flagConfigExtra, "backend-config", "")
-	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
-
-	initArgs, initDiags := arguments.ParseInit(args, cmdFlags)
+	initArgs, initDiags := arguments.ParseInit(args)
 
 	view := views.NewInit(initArgs.ViewType, c.View)
 
@@ -76,26 +61,17 @@ func (c *InitCommand) Run(args []string) int {
 	c.reconfigure = initArgs.Reconfigure
 	c.migrateState = initArgs.MigrateState
 	c.Meta.ignoreRemoteVersion = initArgs.IgnoreRemoteVersion
+	c.Meta.input = initArgs.InputEnabled
+	c.Meta.targetFlags = initArgs.TargetFlags
+	c.Meta.compactWarnings = initArgs.CompactWarnings
 
-	if initArgs.MigrateState && initArgs.Json {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"The -migrate-state and -json options are mutually-exclusive",
-			"Terraform cannot ask for interactive approval when -json is set. To use the -migrate-state option, disable the -json option.",
-		))
-		view.Diagnostics(diags)
-		return 1
+	varArgs := initArgs.Vars.All()
+	items := make([]arguments.FlagNameValue, len(varArgs))
+	for i := range varArgs {
+		items[i].Name = varArgs[i].Name
+		items[i].Value = varArgs[i].Value
 	}
-
-	if c.migrateState && c.reconfigure {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Invalid init options",
-			"The -migrate-state and -reconfigure options are mutually-exclusive",
-		))
-		view.Diagnostics(diags)
-		return 1
-	}
+	c.Meta.variableArgs = arguments.FlagNameValueSlice{Items: &items}
 
 	// Copying the state only happens during backend migration, so setting
 	// -force-copy implies -migrate-state
@@ -103,13 +79,12 @@ func (c *InitCommand) Run(args []string) int {
 		c.migrateState = true
 	}
 
-	if len(flagPluginPath) > 0 {
-		c.pluginPath = flagPluginPath
+	if len(initArgs.PluginPath) > 0 {
+		c.pluginPath = initArgs.PluginPath
 	}
 
 	// Validate the arg count and get the working directory
-	args = cmdFlags.Args()
-	path, err := ModulePath(args)
+	path, err := ModulePath(initArgs.Args)
 	if err != nil {
 		diags = diags.Append(err)
 		view.Diagnostics(diags)
@@ -207,9 +182,9 @@ func (c *InitCommand) Run(args []string) int {
 
 	switch {
 	case initArgs.Cloud && rootModEarly.CloudConfig != nil:
-		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, flagConfigExtra, initArgs.ViewType, view)
+		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	case initArgs.Backend:
-		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, flagConfigExtra, initArgs.ViewType, view)
+		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, initArgs.BackendConfig, initArgs.ViewType, view)
 	default:
 		// load the previously-stored backend config
 		back, backDiags = c.Meta.backendFromState(ctx)
@@ -317,7 +292,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providersAbort, providerDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, flagPluginPath, initArgs.Lockfile, view)
+	providersOutput, providersAbort, providerDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 	diags = diags.Append(providerDiags)
 	if providersAbort || providerDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -413,7 +388,7 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 	return true, installAbort, diags
 }
 
-func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extraConfig rawFlags, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize Terraform Cloud")
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
 	defer span.End()
@@ -442,7 +417,7 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 	return back, true, diags
 }
 
-func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig rawFlags, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig arguments.FlagNameValueSlice, viewType arguments.ViewType, view views.Init) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "initialize backend")
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
 	defer span.End()
@@ -604,10 +579,10 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 			view.Output(views.InitializingProviderPluginMessage)
 		},
 		ProviderAlreadyInstalled: func(provider addrs.Provider, selectedVersion getproviders.Version) {
-			view.Log(views.ProviderAlreadyInstalledMessage, provider.ForDisplay(), selectedVersion)
+			view.LogInitMessage(views.ProviderAlreadyInstalledMessage, provider.ForDisplay(), selectedVersion)
 		},
 		BuiltInProviderAvailable: func(provider addrs.Provider) {
-			view.Log(views.BuiltInProviderAvailableMessage, provider.ForDisplay())
+			view.LogInitMessage(views.BuiltInProviderAvailableMessage, provider.ForDisplay())
 		},
 		BuiltInProviderFailure: func(provider addrs.Provider, err error) {
 			diags = diags.Append(tfdiags.Sourceless(
@@ -618,20 +593,20 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 		},
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
-				view.Log(views.ReusingPreviousVersionInfo, provider.ForDisplay())
+				view.LogInitMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay())
 			} else {
 				if len(versionConstraints) > 0 {
-					view.Log(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
+					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
 				} else {
-					view.Log(views.FindingLatestVersionMessage, provider.ForDisplay())
+					view.LogInitMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
 				}
 			}
 		},
 		LinkFromCacheBegin: func(provider addrs.Provider, version getproviders.Version, cacheRoot string) {
-			view.Log(views.UsingProviderFromCacheDirInfo, provider.ForDisplay(), version)
+			view.LogInitMessage(views.UsingProviderFromCacheDirInfo, provider.ForDisplay(), version)
 		},
 		FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
-			view.Log(views.InstallingProviderMessage, provider.ForDisplay(), version)
+			view.LogInitMessage(views.InstallingProviderMessage, provider.ForDisplay(), version)
 		},
 		QueryPackagesFailure: func(provider addrs.Provider, err error) {
 			switch errorTy := err.(type) {
@@ -831,7 +806,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 				keyID = view.PrepareMessage(views.KeyID, keyID)
 			}
 
-			view.Log(views.InstalledProviderVersionInfo, provider.ForDisplay(), version, authResult, keyID)
+			view.LogInitMessage(views.InstalledProviderVersionInfo, provider.ForDisplay(), version, authResult, keyID)
 		},
 		ProvidersLockUpdated: func(provider addrs.Provider, version getproviders.Version, localHashes []getproviders.Hash, signedHashes []getproviders.Hash, priorHashes []getproviders.Hash) {
 			// We're going to use this opportunity to track if we have any
@@ -877,7 +852,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 				}
 			}
 			if thirdPartySigned {
-				view.Log(views.PartnerAndCommunityProvidersMessage)
+				view.LogInitMessage(views.PartnerAndCommunityProvidersMessage)
 			}
 		},
 	}
@@ -983,7 +958,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 //
 // If the returned diagnostics contains errors then the returned body may be
 // incomplete or invalid.
-func (c *InitCommand) backendConfigOverrideBody(flags rawFlags, schema *configschema.Block) (hcl.Body, tfdiags.Diagnostics) {
+func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSlice, schema *configschema.Block) (hcl.Body, tfdiags.Diagnostics) {
 	items := flags.AllItems()
 	if len(items) == 0 {
 		return nil, nil

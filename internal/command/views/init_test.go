@@ -129,8 +129,7 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		messageCode := "initializing_provider_plugin_message"
-		newInit.Output(messageCode)
+		newInit.Output(InitializingProviderPluginMessage)
 
 		version := tfversion.String()
 		want := []map[string]interface{}{
@@ -163,8 +162,7 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 		}
 
 		packageName := "hashicorp/aws"
-		messageCode := "finding_latest_version_message"
-		newInit.Output(messageCode, packageName)
+		newInit.Output(FindingLatestVersionMessage, packageName)
 
 		version := tfversion.String()
 		want := []map[string]interface{}{
@@ -197,8 +195,7 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 		}
 
 		var packageName, packageVersion = "hashicorp/aws", "3.0.0"
-		messageCode := "provider_already_installed_message"
-		newInit.Output(messageCode, packageName, packageVersion)
+		newInit.Output(ProviderAlreadyInstalledMessage, packageName, packageVersion)
 
 		version := tfversion.String()
 		want := []map[string]interface{}{
@@ -231,8 +228,7 @@ func TestNewInit_jsonViewLog(t *testing.T) {
 		t.Fatalf("unexpected return type %t", newInit)
 	}
 
-	messageCode := "initializing_provider_plugin_message"
-	newInit.Log(messageCode)
+	newInit.LogInitMessage(InitializingProviderPluginMessage)
 
 	version := tfversion.String()
 	want := []map[string]interface{}{
@@ -257,23 +253,6 @@ func TestNewInit_jsonViewLog(t *testing.T) {
 }
 
 func TestNewInit_jsonViewPrepareMessage(t *testing.T) {
-	t.Run("message code that does not exists", func(t *testing.T) {
-		streams, _ := terminal.StreamsForTesting(t)
-
-		newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
-		if _, ok := newInit.(*InitJSON); !ok {
-			t.Fatalf("unexpected return type %t", newInit)
-		}
-
-		messageCode := "Terraform has been successfully initialized!"
-		want := messageCode
-
-		actual := newInit.PrepareMessage(messageCode)
-		if !cmp.Equal(want, actual) {
-			t.Errorf("unexpected output: %s", cmp.Diff(want, actual))
-		}
-	})
-
 	t.Run("existing message code", func(t *testing.T) {
 		streams, _ := terminal.StreamsForTesting(t)
 
@@ -282,10 +261,9 @@ func TestNewInit_jsonViewPrepareMessage(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		messageCode := "initializing_modules_message"
 		want := "Initializing modules..."
 
-		actual := newInit.PrepareMessage(messageCode)
+		actual := newInit.PrepareMessage(InitializingModulesMessage)
 		if !cmp.Equal(want, actual) {
 			t.Errorf("unexpected output: %s", cmp.Diff(want, actual))
 		}
@@ -301,8 +279,7 @@ func TestNewInit_humanViewOutput(t *testing.T) {
 			t.Fatalf("unexpected return type %t", newInit)
 		}
 
-		messageCode := "initializing_provider_plugin_message"
-		newInit.Output(messageCode)
+		newInit.Output(InitializingProviderPluginMessage)
 
 		actual := done(t).All()
 		expected := "Initializing provider plugins..."
@@ -320,8 +297,7 @@ func TestNewInit_humanViewOutput(t *testing.T) {
 		}
 
 		packageName := "hashicorp/aws"
-		messageCode := "finding_latest_version_message"
-		newInit.Output(messageCode, packageName)
+		newInit.Output(FindingLatestVersionMessage, packageName)
 
 		actual := done(t).All()
 		expected := "Finding latest version of hashicorp/aws"
@@ -339,8 +315,7 @@ func TestNewInit_humanViewOutput(t *testing.T) {
 		}
 
 		var packageName, packageVersion = "hashicorp/aws", "3.0.0"
-		messageCode := "provider_already_installed_message"
-		newInit.Output(messageCode, packageName, packageVersion)
+		newInit.Output(ProviderAlreadyInstalledMessage, packageName, packageVersion)
 
 		actual := done(t).All()
 		expected := "- Using previously-installed hashicorp/aws v3.0.0"

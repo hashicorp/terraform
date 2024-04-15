@@ -4,7 +4,6 @@
 package arguments
 
 import (
-	"flag"
 	"time"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -58,15 +57,39 @@ type Init struct {
 
 	// IgnoreRemoteVersion specifies whether to ignore remote and local Terraform versions compatibility
 	IgnoreRemoteVersion bool
+
+	BackendConfig FlagNameValueSlice
+
+	Vars *Vars
+
+	// InputEnabled is used to disable interactive input for unspecified
+	// variable and backend config values. Default is true.
+	InputEnabled bool
+
+	TargetFlags []string
+
+	CompactWarnings bool
+
+	PluginPath FlagStringSlice
+
+	Args []string
 }
 
 // ParseInit processes CLI arguments, returning an Init value and errors.
 // If errors are encountered, an Init value is still returned representing
 // the best effort interpretation of the arguments.
-func ParseInit(args []string, cmdFlags *flag.FlagSet) (*Init, tfdiags.Diagnostics) {
+func ParseInit(args []string) (*Init, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	init := &Init{}
+	init := &Init{
+		Vars: &Vars{},
+	}
+	init.BackendConfig = NewFlagNameValueSlice("-backend-config")
 
+	cmdFlags := extendedFlagSet("init", nil, nil, init.Vars)
+
+	cmdFlags.Var((*FlagStringSlice)(&init.TargetFlags), "target", "resource to target")
+	cmdFlags.BoolVar(&init.InputEnabled, "input", true, "input")
+	cmdFlags.BoolVar(&init.CompactWarnings, "compact-warnings", false, "use compact warnings")
 	cmdFlags.BoolVar(&init.Backend, "backend", true, "")
 	cmdFlags.BoolVar(&init.Cloud, "cloud", true, "")
 	cmdFlags.StringVar(&init.FromModule, "from-module", "", "copy the source of the given module into the directory before init")
@@ -81,6 +104,8 @@ func ParseInit(args []string, cmdFlags *flag.FlagSet) (*Init, tfdiags.Diagnostic
 	cmdFlags.BoolVar(&init.IgnoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local Terraform versions are incompatible")
 	cmdFlags.StringVar(&init.TestsDirectory, "test-directory", "tests", "test-directory")
 	cmdFlags.BoolVar(&init.Json, "json", false, "json")
+	cmdFlags.Var(&init.BackendConfig, "backend-config", "")
+	cmdFlags.Var(&init.PluginPath, "plugin-dir", "plugin directory")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -89,6 +114,24 @@ func ParseInit(args []string, cmdFlags *flag.FlagSet) (*Init, tfdiags.Diagnostic
 			err.Error(),
 		))
 	}
+
+	if init.MigrateState && init.Json {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"The -migrate-state and -json options are mutually-exclusive",
+			"Terraform cannot ask for interactive approval when -json is set. To use the -migrate-state option, disable the -json option.",
+		))
+	}
+
+	if init.MigrateState && init.Reconfigure {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid init options",
+			"The -migrate-state and -reconfigure options are mutually-exclusive.",
+		))
+	}
+
+	init.Args = cmdFlags.Args()
 
 	backendFlagSet := FlagIsSet(cmdFlags, "backend")
 	cloudFlagSet := FlagIsSet(cmdFlags, "cloud")

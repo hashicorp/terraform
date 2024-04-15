@@ -150,13 +150,13 @@ func (m *Meta) collectVariableValues() (map[string]backendrun.UnparsedVariableVa
 
 	// Finally we process values given explicitly on the command line, either
 	// as individual literal settings or as additional files to read.
-	for _, rawFlag := range m.variableArgs.AllItems() {
-		switch rawFlag.Name {
+	for _, flagNameValue := range m.variableArgs.AllItems() {
+		switch flagNameValue.Name {
 		case "-var":
 			// Value should be in the form "name=value", where value is a
 			// raw string whose interpretation will depend on the variable's
 			// parsing mode.
-			raw := rawFlag.Value
+			raw := flagNameValue.Value
 			eq := strings.Index(raw, "=")
 			if eq == -1 {
 				diags = diags.Append(tfdiags.Sourceless(
@@ -183,13 +183,13 @@ func (m *Meta) collectVariableValues() (map[string]backendrun.UnparsedVariableVa
 			}
 
 		case "-var-file":
-			moreDiags := m.addVarsFromFile(rawFlag.Value, terraform.ValueFromNamedFile, ret)
+			moreDiags := m.addVarsFromFile(flagNameValue.Value, terraform.ValueFromNamedFile, ret)
 			diags = diags.Append(moreDiags)
 
 		default:
 			// Should never happen; always a bug in the code that built up
 			// the contents of m.variableArgs.
-			diags = diags.Append(fmt.Errorf("unsupported variable option name %q (this is a bug in Terraform)", rawFlag.Name))
+			diags = diags.Append(fmt.Errorf("unsupported variable option name %q (this is a bug in Terraform)", flagNameValue.Name))
 		}
 	}
 

@@ -16,9 +16,10 @@ import (
 // The Init view is used for the init command.
 type Init interface {
 	Diagnostics(diags tfdiags.Diagnostics)
-	Output(messageCode string, params ...any)
-	Log(messageCode string, params ...any)
-	PrepareMessage(messageCode string, params ...any) string
+	Output(messageCode InitMessageCode, params ...any)
+	LogInitMessage(messageCode InitMessageCode, params ...any)
+	Log(message string, params ...any)
+	PrepareMessage(messageCode InitMessageCode, params ...any) string
 }
 
 // NewInit returns Init implementation for the given ViewType.
@@ -49,19 +50,24 @@ func (v *InitHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-func (v *InitHuman) Output(messageCode string, params ...any) {
+func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
 	v.view.streams.Println(v.PrepareMessage(messageCode, params...))
 }
 
-func (v *InitHuman) Log(messageCode string, params ...any) {
+func (v *InitHuman) LogInitMessage(messageCode InitMessageCode, params ...any) {
 	v.view.streams.Println(v.PrepareMessage(messageCode, params...))
 }
 
-func (v *InitHuman) PrepareMessage(messageCode string, params ...any) string {
+// this implements log method for use by interfaces that need to log generic string messages, e.g used for logging in hook_module_install.go
+func (v *InitHuman) Log(message string, params ...any) {
+	v.view.streams.Println(strings.TrimSpace(fmt.Sprintf(message, params...)))
+}
+
+func (v *InitHuman) PrepareMessage(messageCode InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[messageCode]
 	if !ok {
 		// display the message code as fallback if not found in the message registry
-		return messageCode
+		return string(messageCode)
 	}
 
 	if message.HumanValue == "" {
@@ -84,29 +90,46 @@ func (v *InitJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-func (v *InitJSON) Output(messageCode string, params ...any) {
-	current_timestamp := time.Now().UTC().Format(time.RFC3339)
+func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
+	// don't add empty messages to json output
+	preppedMessage := v.PrepareMessage(messageCode, params...)
+	if preppedMessage == "" {
+		return
+	}
 
+	current_timestamp := time.Now().UTC().Format(time.RFC3339)
 	json_data := map[string]string{
-		"@level":     "info",
-		"@message":   v.PrepareMessage(messageCode, params...),
-		"@module":    "terraform.ui",
-		"@timestamp": current_timestamp,
-		"type":       "init_output"}
+		"@level":       "info",
+		"@message":     preppedMessage,
+		"@module":      "terraform.ui",
+		"@timestamp":   current_timestamp,
+		"type":         "init_output",
+		"message_code": string(messageCode),
+	}
 
 	init_output, _ := json.Marshal(json_data)
 	v.view.view.streams.Println(string(init_output))
 }
 
-func (v *InitJSON) Log(messageCode string, params ...any) {
-	v.view.Log(v.PrepareMessage(messageCode, params...))
+func (v *InitJSON) LogInitMessage(messageCode InitMessageCode, params ...any) {
+	preppedMessage := v.PrepareMessage(messageCode, params...)
+	if preppedMessage == "" {
+		return
+	}
+
+	v.view.Log(preppedMessage)
 }
 
-func (v *InitJSON) PrepareMessage(messageCode string, params ...any) string {
+// this implements log method for use by services that need to log generic string messages, e.g usage logging in hook_module_install.go
+func (v *InitJSON) Log(message string, params ...any) {
+	v.view.Log(strings.TrimSpace(fmt.Sprintf(message, params...)))
+}
+
+func (v *InitJSON) PrepareMessage(messageCode InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[messageCode]
 	if !ok {
 		// display the message code as fallback if not found in the message registry
-		return messageCode
+		return string(messageCode)
 	}
 
 	return strings.TrimSpace(fmt.Sprintf(message.JSONValue, params...))
@@ -118,7 +141,7 @@ type InitMessage struct {
 	JSONValue  string
 }
 
-var MessageRegistry map[string]InitMessage = map[string]InitMessage{
+var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
 	"copying_configuration_message": {
 		HumanValue: "[reset][bold]Copying configuration[reset] from %q...",
 		JSONValue:  "Copying configuration from %q...",
@@ -221,32 +244,34 @@ var MessageRegistry map[string]InitMessage = map[string]InitMessage{
 	},
 }
 
+type InitMessageCode string
+
 const (
-	CopyingConfigurationMessage         string = "copying_configuration_message"
-	EmptyMessage                        string = "empty_message"
-	OutputInitEmptyMessage              string = "output_init_empty_message"
-	OutputInitSuccessMessage            string = "output_init_success_message"
-	OutputInitSuccessCloudMessage       string = "output_init_success_cloud_message"
-	OutputInitSuccessCLIMessage         string = "output_init_success_cli_message"
-	OutputInitSuccessCLICloudMessage    string = "output_init_success_cli_cloud_message"
-	UpgradingModulesMessage             string = "upgrading_modules_message"
-	InitializingTerraformCloudMessage   string = "initializing_terraform_cloud_message"
-	InitializingModulesMessage          string = "initializing_modules_message"
-	InitializingBackendMessage          string = "initializing_backend_message"
-	InitializingProviderPluginMessage   string = "initializing_provider_plugin_message"
-	LockInfo                            string = "lock_info"
-	DependenciesLockChangesInfo         string = "dependencies_lock_changes_info"
-	ProviderAlreadyInstalledMessage     string = "provider_already_installed_message"
-	BuiltInProviderAvailableMessage     string = "built_in_provider_available_message"
-	ReusingPreviousVersionInfo          string = "reusing_previous_version_info"
-	FindingMatchingVersionMessage       string = "finding_matching_version_message"
-	FindingLatestVersionMessage         string = "finding_latest_version_message"
-	UsingProviderFromCacheDirInfo       string = "using_provider_from_cache_dir_info"
-	InstallingProviderMessage           string = "installing_provider_message"
-	KeyID                               string = "key_id"
-	InstalledProviderVersionInfo        string = "installed_provider_version_info"
-	PartnerAndCommunityProvidersMessage string = "partner_and_community_providers_message"
-	InitConfigError                     string = "init_config_error"
+	CopyingConfigurationMessage         InitMessageCode = "copying_configuration_message"
+	EmptyMessage                        InitMessageCode = "empty_message"
+	OutputInitEmptyMessage              InitMessageCode = "output_init_empty_message"
+	OutputInitSuccessMessage            InitMessageCode = "output_init_success_message"
+	OutputInitSuccessCloudMessage       InitMessageCode = "output_init_success_cloud_message"
+	OutputInitSuccessCLIMessage         InitMessageCode = "output_init_success_cli_message"
+	OutputInitSuccessCLICloudMessage    InitMessageCode = "output_init_success_cli_cloud_message"
+	UpgradingModulesMessage             InitMessageCode = "upgrading_modules_message"
+	InitializingTerraformCloudMessage   InitMessageCode = "initializing_terraform_cloud_message"
+	InitializingModulesMessage          InitMessageCode = "initializing_modules_message"
+	InitializingBackendMessage          InitMessageCode = "initializing_backend_message"
+	InitializingProviderPluginMessage   InitMessageCode = "initializing_provider_plugin_message"
+	LockInfo                            InitMessageCode = "lock_info"
+	DependenciesLockChangesInfo         InitMessageCode = "dependencies_lock_changes_info"
+	ProviderAlreadyInstalledMessage     InitMessageCode = "provider_already_installed_message"
+	BuiltInProviderAvailableMessage     InitMessageCode = "built_in_provider_available_message"
+	ReusingPreviousVersionInfo          InitMessageCode = "reusing_previous_version_info"
+	FindingMatchingVersionMessage       InitMessageCode = "finding_matching_version_message"
+	FindingLatestVersionMessage         InitMessageCode = "finding_latest_version_message"
+	UsingProviderFromCacheDirInfo       InitMessageCode = "using_provider_from_cache_dir_info"
+	InstallingProviderMessage           InitMessageCode = "installing_provider_message"
+	KeyID                               InitMessageCode = "key_id"
+	InstalledProviderVersionInfo        InitMessageCode = "installed_provider_version_info"
+	PartnerAndCommunityProvidersMessage InitMessageCode = "partner_and_community_providers_message"
+	InitConfigError                     InitMessageCode = "init_config_error"
 )
 
 const outputInitEmpty = `

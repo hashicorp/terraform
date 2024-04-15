@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
@@ -40,7 +41,7 @@ func (c *ProvidersLockCommand) Synopsis() string {
 func (c *ProvidersLockCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	cmdFlags := c.Meta.defaultFlagSet("providers lock")
-	var optPlatforms FlagStringSlice
+	var optPlatforms arguments.FlagStringSlice
 	var fsMirrorDir string
 	var netMirrorURL string
 

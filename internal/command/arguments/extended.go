@@ -192,13 +192,13 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 }
 
 // Vars describes arguments which specify non-default variable values. This
-// interfce is unfortunately obscure, because the order of the CLI arguments
+// interface is unfortunately obscure, because the order of the CLI arguments
 // determines the final value of the gathered variables. In future it might be
 // desirable for the arguments package to handle the gathering of variables
 // directly, returning a map of variable values.
 type Vars struct {
-	vars     *flagNameValueSlice
-	varFiles *flagNameValueSlice
+	vars     *FlagNameValueSlice
+	varFiles *FlagNameValueSlice
 }
 
 func (v *Vars) All() []FlagNameValue {
@@ -239,14 +239,14 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 		f.BoolVar(&operation.Refresh, "refresh", true, "refresh")
 		f.BoolVar(&operation.destroyRaw, "destroy", false, "destroy")
 		f.BoolVar(&operation.refreshOnlyRaw, "refresh-only", false, "refresh-only")
-		f.Var((*flagStringSlice)(&operation.targetsRaw), "target", "target")
-		f.Var((*flagStringSlice)(&operation.forceReplaceRaw), "replace", "replace")
+		f.Var((*FlagStringSlice)(&operation.targetsRaw), "target", "target")
+		f.Var((*FlagStringSlice)(&operation.forceReplaceRaw), "replace", "replace")
 	}
 
 	// Gather all -var and -var-file arguments into one heterogenous structure
 	// to preserve the overall order.
 	if vars != nil {
-		varsFlags := newFlagNameValueSlice("-var")
+		varsFlags := NewFlagNameValueSlice("-var")
 		varFilesFlags := varsFlags.Alias("-var-file")
 		vars.vars = &varsFlags
 		vars.varFiles = &varFilesFlags

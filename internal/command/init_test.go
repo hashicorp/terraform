@@ -19,6 +19,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
@@ -494,7 +495,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 				},
 			},
 		}
-		flagConfigExtra := newRawFlags("-backend-config")
+		flagConfigExtra := arguments.NewFlagNameValueSlice("-backend-config")
 		flagConfigExtra.Set("input.config")
 		_, diags := c.backendConfigOverrideBody(flagConfigExtra, schema)
 		if len(diags) != 0 {

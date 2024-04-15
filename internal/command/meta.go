@@ -204,7 +204,7 @@ type Meta struct {
 	backendState *workdir.BackendState
 
 	// Variables for the context (private)
-	variableArgs rawFlags
+	variableArgs arguments.FlagNameValueSlice
 	input        bool
 
 	// Targets for this context (private)
@@ -579,11 +579,11 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 	f := m.defaultFlagSet(n)
 
 	f.BoolVar(&m.input, "input", true, "input")
-	f.Var((*FlagStringSlice)(&m.targetFlags), "target", "resource to target")
+	f.Var((*arguments.FlagStringSlice)(&m.targetFlags), "target", "resource to target")
 	f.BoolVar(&m.compactWarnings, "compact-warnings", false, "use compact warnings")
 
-	if m.variableArgs.items == nil {
-		m.variableArgs = newRawFlags("-var")
+	if m.variableArgs.Items == nil {
+		m.variableArgs = arguments.NewFlagNameValueSlice("-var")
 	}
 	varValues := m.variableArgs.Alias("-var")
 	varFiles := m.variableArgs.Alias("-var-file")
