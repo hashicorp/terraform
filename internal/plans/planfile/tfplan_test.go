@@ -447,3 +447,28 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 		}
 	}
 }
+
+func TestTFPlanEncodeUnsupportedMarks(t *testing.T) {
+	v := cty.ObjectVal(map[string]cty.Value{
+		"beep": cty.StringVal("boop").Mark("unsupported"),
+	})
+	change := &plans.Change{
+		Action: plans.Create,
+		Before: cty.NullVal(v.Type()),
+		After:  v,
+	}
+	changeSrc, err := change.Encode(v.Type())
+	if err != nil {
+		t.Fatalf("failed to encode change for testing: %s", err)
+	}
+
+	_, err = changeToTfplan(changeSrc)
+	if err == nil {
+		t.Fatalf("unexpected success; want error")
+	}
+	got := err.Error()
+	want := `.beep: cannot serialize values marked as "unsupported" (this is a bug in Terraform)`
+	if got != want {
+		t.Errorf("wrong error\ngot: %s\nwant: %s", got, want)
+	}
+}
