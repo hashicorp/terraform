@@ -3,6 +3,8 @@
 BUG FIXES:
 
 * Plan renderer: Correctly render strings that begin with JSON compatible text but don't end with it. ([#34959](https://github.com/hashicorp/terraform/pull/34959))
+* Fix crash in terraform plan when referencing a module output that does not exist within the try(...) function. ([#34985](https://github.com/hashicorp/terraform/pull/34985))
+* Fix crash in terraform apply when referencing a module with no planned changes. ([#34985](https://github.com/hashicorp/terraform/pull/34985))
 
 ## 1.8.0 (April 10, 2024)
 
