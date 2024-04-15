@@ -1606,8 +1606,8 @@ output "b" {
 			{
 				inputs: map[string]cty.Value{},
 				wantPlanned: map[string]cty.Value{
-					// test.b is deffered but still in the plan. This is a bug
-					// that will be fixed when resource update is fixed.
+					// test.b is deferred but still being planned. It being listed
+					// here does not mean it's in the plan.
 					"<unknown>": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.UnknownVal(cty.String),
 						"output":         cty.UnknownVal(cty.String),
