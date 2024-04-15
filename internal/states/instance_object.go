@@ -4,12 +4,14 @@
 package states
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 )
 
 // ResourceInstanceObject is the local representation of a specific remote
@@ -95,7 +97,10 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	// If it contains marks, remove these marks before traversing the
 	// structure with UnknownAsNull, and save the PathValueMarks
 	// so we can save them in state.
-	val, pvm := o.Value.UnmarkDeepWithPaths()
+	val, pvm, err := unmarkValueForStorage(o.Value)
+	if err != nil {
+		return nil, err
+	}
 
 	// Our state serialization can't represent unknown values, so we convert
 	// them to nulls here. This is lossy, but nobody should be writing unknown
@@ -148,4 +153,32 @@ func (o *ResourceInstanceObject) AsTainted() *ResourceInstanceObject {
 	ret := o.DeepCopy()
 	ret.Status = ObjectTainted
 	return ret
+}
+
+// unmarkValueForStorage takes a value that possibly contains marked values
+// and returns an equal value without markings along with the separated mark
+// metadata that should be stored alongside the value in another field.
+//
+// This function only accepts the marks that are valid to store, and so will
+// return an error if other marks are present. Marks that this package doesn't
+// know how to store must be dealt with somehow by a caller -- presumably by
+// replacing each marked value with some sort of storage placeholder -- before
+// writing a value into the state.
+func unmarkValueForStorage(v cty.Value) (cty.Value, []cty.PathValueMarks, error) {
+	val, pvms := v.UnmarkDeepWithPaths()
+	var err error
+
+Pvms:
+	for _, pvm := range pvms {
+		for mark := range pvm.Marks {
+			// Currently "Sensitive" is the only mark that we know how to
+			// preserve between rounds in a state snapshot.
+			if mark != marks.Sensitive {
+				err = fmt.Errorf("cannot serialize value marked as %q for inclusion in a state snapshot (this is a bug in Terraform)", mark)
+				break Pvms
+			}
+		}
+	}
+
+	return val, pvms, err
 }
