@@ -6,6 +6,7 @@ package command
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path"
 	"strings"
 	"testing"
@@ -25,6 +26,7 @@ func TestTest_Runs(t *testing.T) {
 	tcs := map[string]struct {
 		override              string
 		args                  []string
+		envVars               map[string]string
 		expectedOut           string
 		expectedErr           []string
 		expectedResourceCount int
@@ -245,6 +247,20 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: "1 passed, 0 failed.",
 			code:        0,
 		},
+		"env_vars": {
+			expectedOut: "1 passed, 0 failed.",
+			envVars: map[string]string{
+				"TF_VAR_input": "foo",
+			},
+			code: 0,
+		},
+		"env_vars_in_module": {
+			expectedOut: "2 passed, 0 failed.",
+			envVars: map[string]string{
+				"TF_VAR_input": "foo",
+			},
+			code: 0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -270,6 +286,15 @@ func TestTest_Runs(t *testing.T) {
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
 			ui := new(cli.MockUi)
+
+			for k, v := range tc.envVars {
+				os.Setenv(k, v)
+			}
+			defer func() {
+				for k := range tc.envVars {
+					os.Unsetenv(k)
+				}
+			}()
 
 			meta := Meta{
 				testingOverrides: metaOverridesForProvider(provider.Provider),

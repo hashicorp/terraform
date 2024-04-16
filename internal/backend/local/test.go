@@ -108,6 +108,17 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	}
 	sort.Strings(files) // execute the files in alphabetical order
 
+	testDirectoryGlobalVariables := make(map[string]backendrun.UnparsedVariableValue)
+	for k, v := range runner.GlobalVariables {
+		testDirectoryGlobalVariables[k] = v
+	}
+	for k, v := range runner.GlobalTestVariables {
+		// to variables defined within the test directory, as well as the global
+		// variables from the root directory. In addition, we don't mind about
+		// clashes here, as the test directory variables should take precedence.
+		testDirectoryGlobalVariables[k] = v
+	}
+
 	suite.Status = moduletest.Pass
 	for _, name := range files {
 		if runner.Cancelled {
@@ -125,6 +136,13 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 			priorOutputs[run.Addr()] = cty.NilVal
 		}
 
+		globalVariables := runner.GlobalVariables
+		if filepath.Dir(file.Name) == runner.TestingDirectory {
+			// If the file is in the testing directory, then use the expanded
+			// set of global variables.
+			globalVariables = testDirectoryGlobalVariables
+		}
+
 		fileRunner := &TestFileRunner{
 			Suite: runner,
 			RelevantStates: map[string]*TestFileState{
@@ -133,7 +151,8 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 					State: states.NewState(),
 				},
 			},
-			PriorOutputs: priorOutputs,
+			PriorOutputs:    priorOutputs,
+			GlobalVariables: globalVariables,
 		}
 
 		runner.View.File(file, moduletest.Starting)
@@ -244,14 +263,26 @@ type TestFileRunner struct {
 	// variables within run blocks.
 	PriorOutputs map[addrs.Run]cty.Value
 
-	// globalVariables are globally defined variables, e.g. through tfvars or CLI flags
-	globalVariables terraform.InputValues
-	// fileVariables are defined in the variables section of a test file
-	fileVariables terraform.InputValues
-	// fileVariableExpressions are the hcl expressions for the fileVariables
+	// GlobalVariables are the set of unparsed global variables available to
+	// this test file.
+	GlobalVariables map[string]backendrun.UnparsedVariableValue
+
+	// parsedGlobalVariables are globally defined variables, e.g. through tfvars
+	// or CLI flags. These have been converted from GlobalVariables to
+	// cty.Value objects, ready for consumption within Terraform Core.
+	parsedGlobalVariables terraform.InputValues
+
+	// parsedFileVariables are defined in the variables section of a test file.
+	// These have been converted from hcl.Expression to cty.Value objects, ready
+	// for consumption within Terraform Core.
+	parsedFileVariables terraform.InputValues
+
+	// fileVariableExpressions are the hcl expressions for the
+	// parsedFileVariables. These are cached for convenience of access.
 	fileVariableExpressions map[string]hcl.Expression
-	// globalAndFileVariables is a combination of globalVariables and fileVariables
-	// created for convenience
+
+	// globalAndFileVariables is a combination of parsedGlobalVariables and
+	// parsedFileVariables created for convenience of access.
 	globalAndFileVariables terraform.InputValues
 }
 
@@ -269,10 +300,10 @@ func (runner *TestFileRunner) Test(file *moduletest.File) {
 	runner.initVariables(file)
 
 	vars := make(terraform.InputValues)
-	for name, value := range runner.globalVariables {
+	for name, value := range runner.parsedGlobalVariables {
 		vars[name] = value
 	}
-	for name, value := range runner.fileVariables {
+	for name, value := range runner.parsedFileVariables {
 		vars[name] = value
 	}
 
@@ -1056,7 +1087,7 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 	values := make(terraform.InputValues)
 
 	// First, let's look at the global variables.
-	for name, value := range runner.globalVariables {
+	for name, value := range runner.parsedGlobalVariables {
 		if !relevantVariables[name] {
 			// Then this run block doesn't need this value.
 			continue
@@ -1141,32 +1172,47 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 	return values, diags
 }
 
-func (runner *TestFileRunner) getGlobalVariable(name string, variable backendrun.UnparsedVariableValue, config *configs.Config) *terraform.InputValue {
-	// By default, we parse global variables as HCL inputs.
-	parsingMode := configs.VariableParseHCL
+// getGlobalVariable attempts to parse the provided variable as a global
+// variable. This function will attempt to parse the variable as an HCL
+// expression first, and then as a literal string if that fails.
+func (runner *TestFileRunner) getGlobalVariable(variable backendrun.UnparsedVariableValue) (*terraform.InputValue, tfdiags.Diagnostics) {
 
-	cfg, exists := config.Module.Variables[name]
+	// We don't actually know what the expected type for a global variable is at
+	// this point. We will try and parse it as HCL so we can get a value if it
+	// is a boolean, or an integer, or a complex type. If that fails, we'll
+	// parse it as a literal string as a fallback.
 
-	if exists {
-		// Unless we have some configuration that can actually tell us
-		// what parsing mode to use.
-		parsingMode = cfg.ParsingMode
+	value, hclDiags := variable.ParseVariableValue(configs.VariableParseHCL)
+	if !hclDiags.HasErrors() {
+		return value, nil
 	}
 
-	value, diags := variable.ParseVariableValue(parsingMode)
-	if diags.HasErrors() {
-		// We still add a value for this variable even though we couldn't
-		// parse it as we don't want to compound errors later. For example,
-		// the system would report this variable didn't have a value which
-		// would confuse the user because it does have a value, it's just
-		// not a valid value. We have added the diagnostics so the user
-		// will be informed about the error, and the test won't run. We'll
-		// just report only the relevant errors.
-		return &terraform.InputValue{
-			Value: cty.NilVal,
-		}
+	// The above maybe failed because the user tried to cram a map or list
+	// definition into the CLI or an environment variable and got the syntax
+	// wrong. In this case, we would interpret the value as a string and then
+	// later the user will likely get a type error because a string is being
+	// provider where a complex type is expected. For now, we'll just accept
+	// that risk as 99% of use cases will have users placing primitive types
+	// into these variables. Numbers and booleans are easily convertible into
+	// strings and Terraform handles this automatically so we don't have a
+	// problem if the input is interpreted as a boolean/number and then needed
+	// as a string later.
+
+	value, literalDiags := variable.ParseVariableValue(configs.VariableParseLiteral)
+	if !literalDiags.HasErrors() {
+		return value, nil
 	}
-	return value
+
+	// This shouldn't really happen, it's always possible to parse an input
+	// variable as a literal string. In case it does happen, we'll just return
+	// both sets of diagnostics. We'll also return a "valid" input value to
+	// avoid compounding errors later. IF we return nothing here, then the
+	// user will see an error about the variable being missing. Which it isn't,
+	// it's just not the right type. We return the diags about the type while
+	// still providing a value so the user can see the type error later.
+	return &terraform.InputValue{
+		Value: cty.NilVal,
+	}, literalDiags.Append(hclDiags)
 }
 
 // getVariablesFromConfiguration will process the variables from the configuration
@@ -1313,22 +1359,17 @@ func (runner *TestFileRunner) AddVariablesToConfig(config *configs.Config, varia
 	}
 }
 
-// initVariables initialises the globalVariables within the test runner by
+// initVariables initialises the parsedGlobalVariables within the test runner by
 // merging the global variables from the test suite into the variables from
 // the file.
 func (runner *TestFileRunner) initVariables(file *moduletest.File) {
+
 	// First, we get the global variables from the suite and test suite
-	runner.globalVariables = make(terraform.InputValues)
-	for name, value := range runner.Suite.GlobalVariables {
-		runner.globalVariables[name] = runner.getGlobalVariable(name, value, runner.Suite.Config)
-	}
-	if filepath.Dir(file.Name) == runner.Suite.TestingDirectory {
-		// If the file is in the testing directory, then also include any
-		// variables that are defined within the default variable file also in
-		// the test directory.
-		for name, value := range runner.Suite.GlobalTestVariables {
-			runner.globalVariables[name] = runner.getGlobalVariable(name, value, runner.Suite.Config)
-		}
+	runner.parsedGlobalVariables = make(terraform.InputValues)
+	for name, value := range runner.GlobalVariables {
+		var globalDiags tfdiags.Diagnostics
+		runner.parsedGlobalVariables[name], globalDiags = runner.getGlobalVariable(value)
+		file.Diagnostics = file.Diagnostics.Append(globalDiags)
 	}
 
 	// Second, we collect the variable expressions so they can later be used to
@@ -1339,21 +1380,21 @@ func (runner *TestFileRunner) initVariables(file *moduletest.File) {
 	}
 
 	// Third, we get the variables from the file
-	runner.fileVariables = make(terraform.InputValues)
-	fileValues, fileDiags := runner.getVariablesFromConfiguration(runner.globalVariables, func(s string, e hcl.Expression) tfdiags.Diagnostics { return tfdiags.Diagnostics{} }, runner.fileVariableExpressions)
+	runner.parsedFileVariables = make(terraform.InputValues)
+	fileValues, fileDiags := runner.getVariablesFromConfiguration(runner.parsedGlobalVariables, func(s string, e hcl.Expression) tfdiags.Diagnostics { return tfdiags.Diagnostics{} }, runner.fileVariableExpressions)
 
 	for name, value := range fileValues {
-		runner.fileVariables[name] = value
+		runner.parsedFileVariables[name] = value
 	}
 	file.Diagnostics = file.Diagnostics.Append(fileDiags)
 
 	// Finally, we merge the global and file variables together to get all
 	// available variables outside the run specific ones
 	runner.globalAndFileVariables = make(terraform.InputValues)
-	for name, value := range runner.globalVariables {
+	for name, value := range runner.parsedGlobalVariables {
 		runner.globalAndFileVariables[name] = value
 	}
-	for name, value := range runner.fileVariables {
+	for name, value := range runner.parsedFileVariables {
 		runner.globalAndFileVariables[name] = value
 	}
 }
