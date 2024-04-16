@@ -592,7 +592,7 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 
 // refresh does a refresh for a resource
 // if the second return value is non-nil, the refresh is deferred
-func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey states.DeposedKey, state *states.ResourceInstanceObject) (*states.ResourceInstanceObject, *providers.Deferred, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey states.DeposedKey, state *states.ResourceInstanceObject, deferralAllowed bool) (*states.ResourceInstanceObject, *providers.Deferred, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var deferred *providers.Deferred
 	absAddr := n.Addr
