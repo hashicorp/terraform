@@ -232,7 +232,7 @@ func TestNodeAbstractResourceInstance_refresh_with_deferred_read(t *testing.T) {
 	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
 	evalCtx.DeferralsState = deferring.NewDeferred(resourceGraph, true)
 
-	rio, deferred, diags := node.refresh(evalCtx, states.NotDeposed, obj)
+	rio, deferred, diags := node.refresh(evalCtx, states.NotDeposed, obj, true)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}

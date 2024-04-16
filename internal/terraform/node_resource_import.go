@@ -97,24 +97,9 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
 		TypeName:        n.Addr.Resource.Resource.Type,
 		ID:              n.ID,
-		DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+		DeferralAllowed: false,
 	})
 	diags = diags.Append(resp.Diagnostics)
-	if resp.Deferred != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Cannot import deferred remote object",
-			fmt.Sprintf(
-				"While attempting to import an existing object to %q, "+
-					"the provider deferred importing the resource. "+
-					"Please either use an import block for importing this resource "+
-					"or remove the to be imported resource from your configuration, "+
-					"apply the configuration using \"terraform apply\", "+
-					"add the to be imported resource again, and retry the import operation.",
-				n.Addr,
-			),
-		))
-	}
 	if diags.HasErrors() {
 		return diags
 	}
@@ -244,7 +229,7 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 			ResolvedProvider: n.ResolvedProvider,
 		},
 	}
-	state, deferred, refreshDiags := riNode.refresh(ctx, states.NotDeposed, state)
+	state, deferred, refreshDiags := riNode.refresh(ctx, states.NotDeposed, state, false)
 	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
 		return diags
