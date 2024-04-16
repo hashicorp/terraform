@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -1413,7 +1414,7 @@ func TestContext2Plan_importGenerateNone(t *testing.T) {
 import {
   for_each = []
   to   = test_object.a
-  id   = "123"
+  id   = "81ba7c97"
 }
 `,
 	})
@@ -1435,5 +1436,68 @@ import {
 
 	if len(plan.Changes.Resources) != 0 {
 		t.Fatal("expected no resource changes")
+	}
+}
+
+// This is a test for the issue raised in #34992
+func TestContext2Plan_importWithSensitives(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to = test_object.a
+  id = "123"
+}
+`,
+	})
+
+	p := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": {
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"sensitive_string": {
+								Type:      cty.String,
+								Sensitive: true,
+								Optional:  true,
+							},
+							"sensitive_list": {
+								Type:      cty.List(cty.String),
+								Sensitive: true,
+								Optional:  true,
+							},
+						},
+					},
+				},
+			},
+		},
+		ImportResourceStateFn: func(request providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+			return providers.ImportResourceStateResponse{
+				ImportedResources: []providers.ImportedResource{
+					{
+						TypeName: "test_object",
+						State: cty.ObjectVal(map[string]cty.Value{
+							"sensitive_string": cty.StringVal("sensitive"),
+							"sensitive_list":   cty.ListVal([]cty.Value{cty.StringVal("hello"), cty.StringVal("world")}),
+						}),
+					},
+				},
+			}
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	// Just don't crash!
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf",
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
 }
