@@ -5,7 +5,8 @@ BUG FIXES:
 * Plan renderer: Correctly render strings that begin with JSON compatible text but don't end with it. ([#34959](https://github.com/hashicorp/terraform/pull/34959))
 * Fix crash in terraform plan when referencing a module output that does not exist within the try(...) function. ([#34985](https://github.com/hashicorp/terraform/pull/34985))
 * Fix crash in terraform apply when referencing a module with no planned changes. ([#34985](https://github.com/hashicorp/terraform/pull/34985))
-* `moved` block: Fix crash when move targets a module which no longer exists [GH-34986]
+* `moved` block: Fix crash when move targets a module which no longer exists. [GH-34986]
+* `import` block: Fix crash when generating configuration for resources with complex sensitive attributes. ([#34996](https://github.com/hashicorp/terraform/pull/34996))
 
 ## 1.8.0 (April 10, 2024)
 
