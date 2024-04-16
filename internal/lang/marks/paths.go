@@ -36,3 +36,27 @@ func PathsWithMark(pvms []cty.PathValueMarks, wantMark any) (withWanted []cty.Pa
 
 	return withWanted, withOthers
 }
+
+// MarkPaths transforms the given value by marking each of the given paths
+// with the given mark value.
+func MarkPaths(val cty.Value, mark any, paths []cty.Path) cty.Value {
+	if len(paths) == 0 {
+		// No-allocations path for the common case where there are no marked paths at all.
+		return val
+	}
+
+	// For now we'll use cty's slightly lower-level function to achieve this
+	// result. This is a little inefficient due to an additional dynamic
+	// allocation for the intermediate data structure, so if that becomes
+	// a problem in practice then we may wish to write a more direct
+	// implementation here.
+	markses := make([]cty.PathValueMarks, len(paths))
+	marks := cty.NewValueMarks(mark)
+	for i, path := range paths {
+		markses[i] = cty.PathValueMarks{
+			Path:  path,
+			Marks: marks,
+		}
+	}
+	return val.MarkWithPaths(markses)
+}
