@@ -77,7 +77,7 @@ The `terraform fmt` command formats your Terraform configuration to a subset of 
 
 We recommend that you run `terraform fmt` before each commit to version control. You can use mechanisms such as [Git pre-commit hooks](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks) to automatically run this command each time you commit your code.
 
-If you use Microsoft VS Code, use the [Terraform VS Code extension](https://marketplace.visualstudio.com/items?itemName=HashiCorp.terraform) to enable features such as syntax highlighting and validation, automatic code formatting, and integration with Terraform Cloud. If your development environment or text editor supports the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), you can use the [Terraform Language Server](https://github.com/hashicorp/terraform-ls) to access most of the VS Code extension features.
+If you use Microsoft VS Code, use the [Terraform VS Code extension](https://marketplace.visualstudio.com/items?itemName=HashiCorp.terraform) to enable features such as syntax highlighting and validation, automatic code formatting, and integration with HCP Terraform. If your development environment or text editor supports the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/), you can use the [Terraform Language Server](https://github.com/hashicorp/terraform-ls) to access most of the VS Code extension features.
 
 ## Code validation
 
@@ -449,12 +449,12 @@ For an example, refer to [GitHub's Terraform .gitignore file](https://github.com
 This section reviews standards that enable predictable and secure Terraform workflows, such as:
 
 - Pin your Terraform, provider, and module versions.
-- Name your module repositories using this three-part name `terraform-<PROVIDER>-<NAME>` when using the Terraform Cloud registry.
+- Name your module repositories using this three-part name `terraform-<PROVIDER>-<NAME>` when using the HCP Terraform registry.
 - Store local modules at `./modules/<module_name>`.
 - Use the [`tfe_outputs`](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs) data source or provider-specific data sources to share state between two state files.
 - Protect credentials by using [dynamic provider credentials](/terraform/tutorials/cloud/dynamic-credentials) or a secrets manager such as HashiCorp Vault.
 - Write [tests](/terraform/language/tests) for your modules.
-- Use [policy enforcement](/terraform/cloud-docs/policy-enforcement) on Terraform Cloud to set guardrails for infrastructure operations.
+- Use [policy enforcement](/terraform/cloud-docs/policy-enforcement) on HCP Terraform to set guardrails for infrastructure operations.
 
 ## Version pinning
 
@@ -516,7 +516,7 @@ Review the [module creation recommended pattern documentation](/terraform/tutori
 
 ## Local modules
 
-Local modules are sourced from local disk rather than a remote module registry. We recommend publishing your modules to a module registry, such as the [Terraform Cloud private module registry](/terraform/cloud-docs/registry), to easily version, share, and reuse modules across your organization. If you cannot use a module registry, using local modules can simplify maintaining and updating your code. 
+Local modules are sourced from local disk rather than a remote module registry. We recommend publishing your modules to a module registry, such as the [HCP Terraform private module registry](/terraform/cloud-docs/registry), to easily version, share, and reuse modules across your organization. If you cannot use a module registry, using local modules can simplify maintaining and updating your code. 
 
 We recommend that you define child modules in the `./modules/<module_name>` directory. 
 
@@ -556,7 +556,7 @@ Another approach is to group all modules and infrastructure configuration into a
 
 The advantage of monolithic repositories is having a single source of truth that tracks every infrastructure change. However, monolithic repositories can complicate your CI/CD automation: since any code change triggers a deployment that operates on your entire repository, your workflow must target only the modified directories. You also lose the granular access control, since anyone with repository access can modify any file in it. 
 
-If your organization requires a monolithic approach, Terraform Cloud and Terraform Enterprise let you scope a workspace to a specific directory in a repository, simplifying your workflows.
+If your organization requires a monolithic approach, HCP Terraform and Terraform Enterprise let you scope a workspace to a specific directory in a repository, simplifying your workflows.
 
 ## Branching strategy
 
@@ -569,11 +569,11 @@ To collaborate on your Terraform code, we recommend using the [GitHub flow](http
 1. Merge the pull request
 1. Delete the branch
 
-Terraform Cloud and Terraform Enterprise can run [speculative plans for pull requests](/terraform/cloud-docs/run/ui#speculative-plans-on-pull-requests). These speculative plans run automatically when you create or update a pull request, and you can use them to see the effect that your changes will have on your infrastructure before you merge them to your main branch. When you merge your pull request, Terraform Cloud will start a new run to apply these changes.
+HCP Terraform and Terraform Enterprise can run [speculative plans for pull requests](/terraform/cloud-docs/run/ui#speculative-plans-on-pull-requests). These speculative plans run automatically when you create or update a pull request, and you can use them to see the effect that your changes will have on your infrastructure before you merge them to your main branch. When you merge your pull request, HCP Terraform will start a new run to apply these changes.
 
 ## Multiple environments
 
-We recommend that your repository's `main` branch be the source of truth for all environments. For Terraform Cloud and Terraform Enterprise users, we recommend that you use separate workspaces for each environment. For larger codebases, we recommend that you split your resources across multiple workspaces to prevent large state files and limit unintended consequences from changes. For example, you could structure your code as follows:
+We recommend that your repository's `main` branch be the source of truth for all environments. For HCP Terraform and Terraform Enterprise users, we recommend that you use separate workspaces for each environment. For larger codebases, we recommend that you split your resources across multiple workspaces to prevent large state files and limit unintended consequences from changes. For example, you could structure your code as follows:
 
 <CodeBlockConfig hideClipboard>
 
@@ -597,7 +597,7 @@ We recommend that your repository's `main` branch be the source of truth for all
 
 In this scenario, you would create three workspaces per environment. For example, your production environment would have a `prod-compute`, `prod-database`, and `prod-networking` workspace. Read more about [Terraform workspace and project best practices](/well-architected-framework/operational-excellence/operational-excellence-workspaces-projects). 
 
-If you do not use Terraform Cloud or Terraform Enterprise, we recommend that you use modules to encapsulate your configuration, and use a directory for each environment so that each one has a separate state file. The configuration in each of these directories would call the local modules, each with parameters specific to their environment. This also lets you maintain separate variable and backend configurations for each environment. 
+If you do not use HCP Terraform or Terraform Enterprise, we recommend that you use modules to encapsulate your configuration, and use a directory for each environment so that each one has a separate state file. The configuration in each of these directories would call the local modules, each with parameters specific to their environment. This also lets you maintain separate variable and backend configurations for each environment. 
 
 <CodeBlockConfig hideClipboard>
 
@@ -629,19 +629,19 @@ If you do not use Terraform Cloud or Terraform Enterprise, we recommend that you
 
 Since your state contains sensitive information, avoid sharing full state files when possible. 
 
-If you use Terraform Cloud or Terraform Enterprise and need to reference resources across workspaces, use the [`tfe_outputs`](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs) data source.
+If you use HCP Terraform or Terraform Enterprise and need to reference resources across workspaces, use the [`tfe_outputs`](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs) data source.
 
-If you do not use Terraform Cloud or Terraform Enterprise but still need to reference data about other infrastructure resources, use data sources to query the provider. For example, you can use the [`aws_instance` data source](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/instance) to look up an AWS EC2 instance by its ID or tags.
+If you do not use HCP Terraform or Terraform Enterprise but still need to reference data about other infrastructure resources, use data sources to query the provider. For example, you can use the [`aws_instance` data source](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/instance) to look up an AWS EC2 instance by its ID or tags.
 
 
 ## Secrets management
 
-If you do not configure remote state storage, the Terraform CLI stores the entire state in plaintext on the local disk. State can include sensitive data, such as passwords and private keys. Terraform Cloud and Terraform Enterprise provide state encryption through HashiCorp Vault.
+If you do not configure remote state storage, the Terraform CLI stores the entire state in plaintext on the local disk. State can include sensitive data, such as passwords and private keys. HCP Terraform and Terraform Enterprise provide state encryption through HashiCorp Vault.
 
-If you use Terraform Cloud or Terraform Enterprise, we recommend the following:
+If you use HCP Terraform or Terraform Enterprise, we recommend the following:
 
 - When using Terraform Enterprise, define and enforce a Sentinel policy to prevent use of the `local_exec` provisioner or external data sources.
-- When using Terraform Cloud or Terraform Enterprise, use [dynamic provider credentials](/terraform/tutorials/cloud/dynamic-credentials) to avoid using long-lived static credentials.
+- When using HCP Terraform or Terraform Enterprise, use [dynamic provider credentials](/terraform/tutorials/cloud/dynamic-credentials) to avoid using long-lived static credentials.
 
 
 If you use Terraform Community Edition, we recommend the following:
@@ -663,7 +663,7 @@ Tests differ from validation methods such as variable validation, preconditions,
 
 ## Policy
 
-Policies are rules that Terraform Cloud enforces on Terraform runs. You can use policies to validate that the Terraform plan complies with your organization's best practices. For example, you can write policies that:
+Policies are rules that HCP Terraform enforces on Terraform runs. You can use policies to validate that the Terraform plan complies with your organization's best practices. For example, you can write policies that:
 
 - Limit the size of a web instance
 - Check for required resource tags

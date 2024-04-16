@@ -2,14 +2,14 @@
 page_title: 'Command: login'
 description: >-
   The terraform login command can be used to automatically obtain and save an
-  API token for Terraform Cloud, Terraform Enterprise, or any other host that
+  API token for HCP Terraform, Terraform Enterprise, or any other host that
   offers Terraform services.
 ---
 
 # Command: login
 
 The `terraform login` command can be used to automatically obtain and save an
-API token for Terraform Cloud, Terraform Enterprise, or any other host that offers Terraform services.
+API token for HCP Terraform, Terraform Enterprise, or any other host that offers Terraform services.
 
 -> **Note:** This command is suitable only for use in interactive scenarios
 where it is possible to launch a web browser on the same host where Terraform
@@ -22,7 +22,7 @@ you can
 Usage: `terraform login [hostname]`
 
 If you don't provide an explicit hostname, Terraform will assume you want to
-log in to Terraform Cloud at `app.terraform.io`.
+log in to HCP Terraform at `app.terraform.io`.
 
 ## Credentials Storage
 
@@ -41,5 +41,5 @@ your organization's existing secrets management system.
 ## Login Server Support
 
 The `terraform login` command works with any server supporting the
-[login protocol](/terraform/internals/login-protocol), including Terraform Cloud
+[login protocol](/terraform/internals/login-protocol), including HCP Terraform
 and Terraform Enterprise.
