@@ -56,3 +56,55 @@ func TestPathsWithMark(t *testing.T) {
 		t.Errorf("wrong set of entries with other marks\n%s", diff)
 	}
 }
+
+func TestMarkPaths(t *testing.T) {
+	value := cty.ObjectVal(map[string]cty.Value{
+		"s": cty.StringVal(".s"),
+		"l": cty.ListVal([]cty.Value{
+			cty.StringVal(".l[0]"),
+			cty.StringVal(".l[1]"),
+		}),
+		"m": cty.MapVal(map[string]cty.Value{
+			"a": cty.StringVal(`.m["a"]`),
+			"b": cty.StringVal(`.m["b"]`),
+		}),
+		"o": cty.ObjectVal(map[string]cty.Value{
+			"a": cty.StringVal(".o.a"),
+			"b": cty.StringVal(".o.b"),
+		}),
+		"t": cty.TupleVal([]cty.Value{
+			cty.StringVal(`.t[0]`),
+			cty.StringVal(`.t[1]`),
+		}),
+	})
+	sensitivePaths := []cty.Path{
+		cty.GetAttrPath("s"),
+		cty.GetAttrPath("l").IndexInt(1),
+		cty.GetAttrPath("m").IndexString("a"),
+		cty.GetAttrPath("o").GetAttr("b"),
+		cty.GetAttrPath("t").IndexInt(0),
+	}
+	got := MarkPaths(value, Sensitive, sensitivePaths)
+	want := cty.ObjectVal(map[string]cty.Value{
+		"s": cty.StringVal(".s").Mark(Sensitive),
+		"l": cty.ListVal([]cty.Value{
+			cty.StringVal(".l[0]"),
+			cty.StringVal(".l[1]").Mark(Sensitive),
+		}),
+		"m": cty.MapVal(map[string]cty.Value{
+			"a": cty.StringVal(`.m["a"]`).Mark(Sensitive),
+			"b": cty.StringVal(`.m["b"]`),
+		}),
+		"o": cty.ObjectVal(map[string]cty.Value{
+			"a": cty.StringVal(".o.a"),
+			"b": cty.StringVal(".o.b").Mark(Sensitive),
+		}),
+		"t": cty.TupleVal([]cty.Value{
+			cty.StringVal(`.t[0]`).Mark(Sensitive),
+			cty.StringVal(`.t[1]`),
+		}),
+	})
+	if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
+	}
+}
