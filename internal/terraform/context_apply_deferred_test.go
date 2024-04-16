@@ -2003,6 +2003,8 @@ output "a" {
 				},
 				inputs: map[string]cty.Value{},
 				wantPlanned: map[string]cty.Value{
+					// This is here because of the additional full plan run if
+					// the previous state is not empty (and refresh is not skipped).
 					"deferred_resource_change": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("deferred_resource_change"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
