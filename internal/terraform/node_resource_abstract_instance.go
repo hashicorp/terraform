@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -367,8 +368,9 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 }
 
 // planDestroy returns a plain destroy diff.
-func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, *providers.Deferred, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	var deferred *providers.Deferred
 	var plan *plans.ResourceInstanceChange
 
 	absAddr := n.Addr
@@ -399,7 +401,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			},
 			ProviderAddr: n.ResolvedProvider,
 		}
-		return noop, nil
+		return noop, deferred, nil
 	}
 
 	unmarkedPriorVal, _ := currentState.Value.UnmarkDeep()
@@ -410,13 +412,13 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 
 	provider, _, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		return plan, diags.Append(err)
+		return plan, deferred, diags.Append(err)
 	}
 
 	metaConfigVal, metaDiags := n.providerMetas(ctx)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
-		return plan, diags
+		return plan, deferred, diags
 	}
 
 	var resp providers.PlanResourceChangeResponse
@@ -438,7 +440,9 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			ProposedNewState: nullVal,
 			PriorPrivate:     currentState.Private,
 			ProviderMeta:     metaConfigVal,
+			DeferralAllowed:  ctx.Deferrals().DeferralAllowed(),
 		})
+		deferred = resp.Deferred
 
 		// We may not have a config for all destroys, but we want to reference
 		// it in the diagnostics if we do.
@@ -447,12 +451,12 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		}
 		diags = diags.Append(resp.Diagnostics)
 		if diags.HasErrors() {
-			return plan, diags
+			return plan, deferred, diags
 		}
 
 		// Check that the provider returned a null value here, since that is the
 		// only valid value for a destroy plan.
-		if !resp.PlannedState.IsNull() {
+		if !resp.PlannedState.IsNull() && deferred == nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Provider produced invalid plan",
@@ -461,7 +465,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 					n.ResolvedProvider.Provider, n.Addr),
 			),
 			)
-			return plan, diags
+			return plan, deferred, diags
 		}
 	}
 
@@ -479,7 +483,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		ProviderAddr: n.ResolvedProvider,
 	}
 
-	return plan, diags
+	return plan, deferred, diags
 }
 
 // planForget returns a Forget change.
@@ -751,6 +755,7 @@ func (n *NodeAbstractResourceInstance) plan(
 ) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var keyData instances.RepetitionData
+	var deferred *providers.Deferred
 
 	resource := n.Addr.Resource.Resource
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
@@ -926,6 +931,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			ProposedNewState: proposedNewVal,
 			PriorPrivate:     priorPrivate,
 			ProviderMeta:     metaConfigVal,
+			DeferralAllowed:  ctx.Deferrals().DeferralAllowed(),
 		})
 	}
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
@@ -933,62 +939,72 @@ func (n *NodeAbstractResourceInstance) plan(
 		return nil, nil, keyData, diags
 	}
 
+	// We mark this node as deferred at a later point when we know the complete change
+	if resp.Deferred != nil {
+		deferred = resp.Deferred
+	}
+
 	plannedNewVal := resp.PlannedState
 	plannedPrivate := resp.PlannedPrivate
 
-	if plannedNewVal == cty.NilVal {
-		// Should never happen. Since real-world providers return via RPC a nil
-		// is always a bug in the client-side stub. This is more likely caused
-		// by an incompletely-configured mock provider in tests, though.
-		panic(fmt.Sprintf("PlanResourceChange of %s produced nil value", n.Addr))
-	}
+	// These checks are only relevant if the provider is not deferring the
+	// change.
+	if deferred == nil {
+		if plannedNewVal == cty.NilVal {
+			// Should never happen. Since real-world providers return via RPC a nil
+			// is always a bug in the client-side stub. This is more likely caused
+			// by an incompletely-configured mock provider in tests, though.
+			panic(fmt.Sprintf("PlanResourceChange of %s produced nil value", n.Addr))
+		}
 
-	// We allow the planned new value to disagree with configuration _values_
-	// here, since that allows the provider to do special logic like a
-	// DiffSuppressFunc, but we still require that the provider produces
-	// a value whose type conforms to the schema.
-	for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced invalid plan",
-			fmt.Sprintf(
-				"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider.Provider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
-			),
-		))
-	}
-	if diags.HasErrors() {
-		return nil, nil, keyData, diags
-	}
+		// We allow the planned new value to disagree with configuration _values_
+		// here, since that allows the provider to do special logic like a
+		// DiffSuppressFunc, but we still require that the provider produces
+		// a value whose type conforms to the schema.
+		for _, err := range plannedNewVal.Type().TestConformance(schema.ImpliedType()) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced invalid plan",
+				fmt.Sprintf(
+					"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider.Provider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
+				),
+			))
+		}
 
-	if errs := objchange.AssertPlanValid(schema, unmarkedPriorVal, unmarkedConfigVal, plannedNewVal); len(errs) > 0 {
-		if resp.LegacyTypeSystem {
-			// The shimming of the old type system in the legacy SDK is not precise
-			// enough to pass this consistency check, so we'll give it a pass here,
-			// but we will generate a warning about it so that we are more likely
-			// to notice in the logs if an inconsistency beyond the type system
-			// leads to a downstream provider failure.
-			var buf strings.Builder
-			fmt.Fprintf(&buf,
-				"[WARN] Provider %q produced an invalid plan for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:",
-				n.ResolvedProvider.Provider, n.Addr,
-			)
-			for _, err := range errs {
-				fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
-			}
-			log.Print(buf.String())
-		} else {
-			for _, err := range errs {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Provider produced invalid plan",
-					fmt.Sprintf(
-						"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-						n.ResolvedProvider.Provider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
-					),
-				))
-			}
+		if diags.HasErrors() {
 			return nil, nil, keyData, diags
+		}
+
+		if errs := objchange.AssertPlanValid(schema, unmarkedPriorVal, unmarkedConfigVal, plannedNewVal); len(errs) > 0 {
+			if resp.LegacyTypeSystem {
+				// The shimming of the old type system in the legacy SDK is not precise
+				// enough to pass this consistency check, so we'll give it a pass here,
+				// but we will generate a warning about it so that we are more likely
+				// to notice in the logs if an inconsistency beyond the type system
+				// leads to a downstream provider failure.
+				var buf strings.Builder
+				fmt.Fprintf(&buf,
+					"[WARN] Provider %q produced an invalid plan for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:",
+					n.ResolvedProvider.Provider, n.Addr,
+				)
+				for _, err := range errs {
+					fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
+				}
+				log.Print(buf.String())
+			} else {
+				for _, err := range errs {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Provider produced invalid plan",
+						fmt.Sprintf(
+							"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+							n.ResolvedProvider.Provider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
+						),
+					))
+				}
+				return nil, nil, keyData, diags
+			}
 		}
 	}
 
@@ -1016,123 +1032,21 @@ func (n *NodeAbstractResourceInstance) plan(
 	// ignore changes have been processed. We add in the schema marks as well,
 	// to ensure that provider defined private attributes are marked correctly
 	// here.
-	unmarkedPlannedNewVal := plannedNewVal
+
 	unmarkedPaths = append(unmarkedPaths, schema.ValueMarks(plannedNewVal, nil)...)
+	unmarkedPlannedNewVal := plannedNewVal
 
 	if len(unmarkedPaths) > 0 {
 		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 	}
 
-	// The provider produces a list of paths to attributes whose changes mean
-	// that we must replace rather than update an existing remote object.
-	// However, we only need to do that if the identified attributes _have_
-	// actually changed -- particularly after we may have undone some of the
-	// changes in processIgnoreChanges -- so now we'll filter that list to
-	// include only where changes are detected.
-	reqRep := cty.NewPathSet()
-	if len(resp.RequiresReplace) > 0 {
-		for _, path := range resp.RequiresReplace {
-			if priorVal.IsNull() {
-				// If prior is null then we don't expect any RequiresReplace at all,
-				// because this is a Create action.
-				continue
-			}
-
-			priorChangedVal, priorPathDiags := hcl.ApplyPath(unmarkedPriorVal, path, nil)
-			plannedChangedVal, plannedPathDiags := hcl.ApplyPath(plannedNewVal, path, nil)
-			if plannedPathDiags.HasErrors() && priorPathDiags.HasErrors() {
-				// This means the path was invalid in both the prior and new
-				// values, which is an error with the provider itself.
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Provider produced invalid plan",
-					fmt.Sprintf(
-						"Provider %q has indicated \"requires replacement\" on %s for a non-existent attribute path %#v.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-						n.ResolvedProvider.Provider, n.Addr, path,
-					),
-				))
-				continue
-			}
-
-			// Make sure we have valid Values for both values.
-			// Note: if the opposing value was of the type
-			// cty.DynamicPseudoType, the type assigned here may not exactly
-			// match the schema. This is fine here, since we're only going to
-			// check for equality, but if the NullVal is to be used, we need to
-			// check the schema for th true type.
-			switch {
-			case priorChangedVal == cty.NilVal && plannedChangedVal == cty.NilVal:
-				// this should never happen without ApplyPath errors above
-				panic("requires replace path returned 2 nil values")
-			case priorChangedVal == cty.NilVal:
-				priorChangedVal = cty.NullVal(plannedChangedVal.Type())
-			case plannedChangedVal == cty.NilVal:
-				plannedChangedVal = cty.NullVal(priorChangedVal.Type())
-			}
-
-			// Unmark for this value for the equality test. If only sensitivity has changed,
-			// this does not require an Update or Replace
-			unmarkedPlannedChangedVal, _ := plannedChangedVal.UnmarkDeep()
-			eqV := unmarkedPlannedChangedVal.Equals(priorChangedVal)
-			if !eqV.IsKnown() || eqV.False() {
-				reqRep.Add(path)
-			}
-		}
-		if diags.HasErrors() {
-			return nil, nil, keyData, diags
-		}
+	reqRep, reqRepDiags := getRequiredReplaces(priorVal, plannedNewVal, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
+	diags = diags.Append(reqRepDiags)
+	if diags.HasErrors() {
+		return nil, nil, keyData, diags
 	}
 
-	// The user might also ask us to force replacing a particular resource
-	// instance, regardless of whether the provider thinks it needs replacing.
-	// For example, users typically do this if they learn a particular object
-	// has become degraded in an immutable infrastructure scenario and so
-	// replacing it with a new object is a viable repair path.
-	matchedForceReplace := false
-	for _, candidateAddr := range forceReplace {
-		if candidateAddr.Equal(n.Addr) {
-			matchedForceReplace = true
-			break
-		}
-
-		// For "force replace" purposes we require an exact resource instance
-		// address to match. If a user forgets to include the instance key
-		// for a multi-instance resource then it won't match here, but we
-		// have an earlier check in NodePlannableResource.Execute that should
-		// prevent us from getting here in that case.
-	}
-
-	// Unmark for this test for value equality.
-	eqV := unmarkedPlannedNewVal.Equals(unmarkedPriorVal)
-	eq := eqV.IsKnown() && eqV.True()
-
-	var action plans.Action
-	var actionReason plans.ResourceInstanceChangeActionReason
-	switch {
-	case priorVal.IsNull():
-		action = plans.Create
-	case eq && !matchedForceReplace:
-		action = plans.NoOp
-	case matchedForceReplace || !reqRep.Empty():
-		// If the user "forced replace" of this instance of if there are any
-		// "requires replace" paths left _after our filtering above_ then this
-		// is a replace action.
-		if createBeforeDestroy {
-			action = plans.CreateThenDelete
-		} else {
-			action = plans.DeleteThenCreate
-		}
-		switch {
-		case matchedForceReplace:
-			actionReason = plans.ResourceInstanceReplaceByRequest
-		case !reqRep.Empty():
-			actionReason = plans.ResourceInstanceReplaceBecauseCannotUpdate
-		}
-	default:
-		action = plans.Update
-		// "Delete" is never chosen here, because deletion plans are always
-		// created more directly elsewhere, such as in "orphan" handling.
-	}
+	action, actionReason := getAction(n.Addr, unmarkedPriorVal, unmarkedPlannedNewVal, createBeforeDestroy, forceReplace, reqRep)
 
 	if action.IsReplace() {
 		// In this strange situation we want to produce a change object that
@@ -1174,6 +1088,7 @@ func (n *NodeAbstractResourceInstance) plan(
 				ProposedNewState: proposedNewVal,
 				PriorPrivate:     plannedPrivate,
 				ProviderMeta:     metaConfigVal,
+				DeferralAllowed:  ctx.Deferrals().DeferralAllowed(),
 			})
 		}
 		// We need to tread carefully here, since if there are any warnings
@@ -1185,6 +1100,11 @@ func (n *NodeAbstractResourceInstance) plan(
 			diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 			return nil, nil, keyData, diags
 		}
+
+		if resp.Deferred != nil {
+			deferred = resp.Deferred
+		}
+
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
 
@@ -1272,6 +1192,12 @@ func (n *NodeAbstractResourceInstance) plan(
 		},
 		ActionReason:    actionReason,
 		RequiredReplace: reqRep,
+	}
+
+	// If we defer the change we need to report it and return early
+	if deferred != nil {
+		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, plan)
+		return nil, nil, keyData, diags
 	}
 
 	// Update our return state
@@ -2733,4 +2659,126 @@ func (n *NodeAbstractResourceInstance) prevRunAddr(ctx EvalContext) addrs.AbsRes
 func resourceInstancePrevRunAddr(ctx EvalContext, currentAddr addrs.AbsResourceInstance) addrs.AbsResourceInstance {
 	table := ctx.MoveResults()
 	return table.OldAddr(currentAddr)
+}
+
+func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value, createBeforeDestroy bool, forceReplace []addrs.AbsResourceInstance, reqRep cty.PathSet) (action plans.Action, actionReason plans.ResourceInstanceChangeActionReason) {
+	// The user might also ask us to force replacing a particular resource
+	// instance, regardless of whether the provider thinks it needs replacing.
+	// For example, users typically do this if they learn a particular object
+	// has become degraded in an immutable infrastructure scenario and so
+	// replacing it with a new object is a viable repair path.
+	matchedForceReplace := false
+	for _, candidateAddr := range forceReplace {
+		if candidateAddr.Equal(addr) {
+			matchedForceReplace = true
+			break
+		}
+
+		// For "force replace" purposes we require an exact resource instance
+		// address to match. If a user forgets to include the instance key
+		// for a multi-instance resource then it won't match here, but we
+		// have an earlier check in NodePlannableResource.Execute that should
+		// prevent us from getting here in that case.
+	}
+
+	// Unmark for this test for value equality.
+	eqV := plannedNewVal.Equals(priorVal)
+	eq := eqV.IsKnown() && eqV.True()
+
+	switch {
+	case priorVal.IsNull():
+		action = plans.Create
+	case eq && !matchedForceReplace:
+		action = plans.NoOp
+	case matchedForceReplace || !reqRep.Empty():
+		// If the user "forced replace" of this instance of if there are any
+		// "requires replace" paths left _after our filtering above_ then this
+		// is a replace action.
+		if createBeforeDestroy {
+			action = plans.CreateThenDelete
+		} else {
+			action = plans.DeleteThenCreate
+		}
+		switch {
+		case matchedForceReplace:
+			actionReason = plans.ResourceInstanceReplaceByRequest
+		case !reqRep.Empty():
+			actionReason = plans.ResourceInstanceReplaceBecauseCannotUpdate
+		}
+	default:
+		action = plans.Update
+		// "Delete" is never chosen here, because deletion plans are always
+		// created more directly elsewhere, such as in "orphan" handling.
+	}
+
+	return
+}
+
+// getRequiredReplaces returns a list of paths to attributes whose changes mean
+// that we must replace rather than update an existing remote object.
+//
+// The provider produces a list of paths to attributes whose changes mean
+// that we must replace rather than update an existing remote object.
+// However, we only need to do that if the identified attributes _have_
+// actually changed -- particularly after we may have undone some of the
+// changes in processIgnoreChanges -- so now we'll filter that list to
+// include only where changes are detected.
+func getRequiredReplaces(priorVal, plannedNewVal cty.Value, requiredReplaces []cty.Path, providerAddr tfaddr.Provider, addr addrs.AbsResourceInstance) (cty.PathSet, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	reqRep := cty.NewPathSet()
+	if len(requiredReplaces) > 0 {
+		for _, path := range requiredReplaces {
+			if priorVal.IsNull() {
+				// If prior is null then we don't expect any RequiresReplace at all,
+				// because this is a Create action.
+				continue
+			}
+
+			priorChangedVal, priorPathDiags := hcl.ApplyPath(priorVal, path, nil)
+			plannedChangedVal, plannedPathDiags := hcl.ApplyPath(plannedNewVal, path, nil)
+			if plannedPathDiags.HasErrors() && priorPathDiags.HasErrors() {
+				// This means the path was invalid in both the prior and new
+				// values, which is an error with the provider itself.
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Provider produced invalid plan",
+					fmt.Sprintf(
+						"Provider %q has indicated \"requires replacement\" on %s for a non-existent attribute path %#v.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+						providerAddr, addr, path,
+					),
+				))
+				continue
+			}
+
+			// Make sure we have valid Values for both values.
+			// Note: if the opposing value was of the type
+			// cty.DynamicPseudoType, the type assigned here may not exactly
+			// match the schema. This is fine here, since we're only going to
+			// check for equality, but if the NullVal is to be used, we need to
+			// check the schema for th true type.
+			switch {
+			case priorChangedVal == cty.NilVal && plannedChangedVal == cty.NilVal:
+				// this should never happen without ApplyPath errors above
+				panic("requires replace path returned 2 nil values")
+			case priorChangedVal == cty.NilVal:
+				priorChangedVal = cty.NullVal(plannedChangedVal.Type())
+			case plannedChangedVal == cty.NilVal:
+				plannedChangedVal = cty.NullVal(priorChangedVal.Type())
+			}
+
+			// Unmark for this value for the equality test. If only sensitivity has changed,
+			// this does not require an Update or Replace
+			unmarkedPlannedChangedVal, _ := plannedChangedVal.UnmarkDeep()
+			eqV := unmarkedPlannedChangedVal.Equals(priorChangedVal)
+			if !eqV.IsKnown() || eqV.False() {
+				reqRep.Add(path)
+			}
+		}
+		if diags.HasErrors() {
+			return reqRep, diags
+		}
+	}
+
+	return reqRep, diags
 }
