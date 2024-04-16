@@ -8,7 +8,7 @@ description: >-
 
 A backend defines where Terraform stores its [state](/terraform/language/state) data files.
 
-Terraform uses persisted state data to keep track of the resources it manages. Most non-trivial Terraform configurations either [integrate with HCP Terraform](/terraform/language/settings/terraform-cloud) or use a backend to store state remotely. This lets multiple people access the state data and work together on that collection of infrastructure resources.
+Terraform uses persisted state data to keep track of the resources it manages. Most non-trivial Terraform configurations either [integrate with HCP Terraform](/terraform/language/settings/cloud) or use a backend to store state remotely. This lets multiple people access the state data and work together on that collection of infrastructure resources.
 
 This page describes how to configure a backend by adding the [`backend` block](#using-a-backend-block) to your configuration.
 
@@ -25,7 +25,7 @@ Some of these backends act like plain remote disks for state files, while others
 ## Using a Backend Block
 
 You do not need to configure a backend when using HCP Terraform because
-HCP Terraform automatically manages state in the workspaces associated with your configuration. If your configuration includes a [`cloud` block](/terraform/language/settings/terraform-cloud), it cannot include a `backend` block.
+HCP Terraform automatically manages state in the workspaces associated with your configuration. If your configuration includes a [`cloud` block](/terraform/language/settings/cloud), it cannot include a `backend` block.
 
 To configure a backend, add a nested `backend` block within the top-level
 `terraform` block. The following example configures the `remote` backend.
