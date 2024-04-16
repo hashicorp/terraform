@@ -142,10 +142,11 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 				"ui":        JSON_UI_VERSION,
 			},
 			{
-				"@level":   "info",
-				"@message": "Initializing provider plugins...",
-				"@module":  "terraform.ui",
-				"type":     "init_output",
+				"@level":       "info",
+				"@message":     "Initializing provider plugins...",
+				"message_code": "initializing_provider_plugin_message",
+				"@module":      "terraform.ui",
+				"type":         "init_output",
 			},
 		}
 
@@ -175,10 +176,11 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 				"ui":        JSON_UI_VERSION,
 			},
 			{
-				"@level":   "info",
-				"@message": fmt.Sprintf("- Finding latest version of %s...", packageName),
-				"@module":  "terraform.ui",
-				"type":     "init_output",
+				"@level":       "info",
+				"@message":     fmt.Sprintf("- Finding latest version of %s...", packageName),
+				"@module":      "terraform.ui",
+				"message_code": "finding_latest_version_message",
+				"type":         "init_output",
 			},
 		}
 
@@ -208,10 +210,11 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 				"ui":        JSON_UI_VERSION,
 			},
 			{
-				"@level":   "info",
-				"@message": fmt.Sprintf("- Using previously-installed %s v%s", packageName, packageVersion),
-				"@module":  "terraform.ui",
-				"type":     "init_output",
+				"@level":       "info",
+				"@message":     fmt.Sprintf("- Using previously-installed %s v%s", packageName, packageVersion),
+				"@module":      "terraform.ui",
+				"message_code": "provider_already_installed_message",
+				"type":         "init_output",
 			},
 		}
 
