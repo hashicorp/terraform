@@ -84,6 +84,7 @@ func TestProviders_modules(t *testing.T) {
 
 	// first run init with mock provider sources to install the module
 	initUi := new(cli.MockUi)
+	view, _ := testView(t)
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		"foo": {"1.0.0"},
 		"bar": {"2.0.0"},
@@ -93,6 +94,7 @@ func TestProviders_modules(t *testing.T) {
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               initUi,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 	ic := &InitCommand{
