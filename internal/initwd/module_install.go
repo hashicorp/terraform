@@ -294,7 +294,7 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 							log.Printf("[DEBUG] Deprecation for %s could not be checked: call to registry failed", addr.Package.Namespace)
 
 						} else {
-							log.Print("mdTODO: figure out the path forward here, either loop through and get a request for a single verison going")
+							// mdTODO: we need to figure out path forward here, use exisiting endpoint or get new one for a single module version.
 							found := false
 							for _, modProviderVersions := range resp.Modules {
 								for _, modVersions := range modProviderVersions.Versions {
@@ -311,7 +311,8 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 							}
 						}
 					}
-					modDeprecation = collectModuleDeprecationWarnings(moduleVersion, req.CallRange.Ptr(), req.Name)
+
+					modDeprecation = collectModuleDeprecationWarnings(moduleVersion, req.Name, record.Version)
 					return mod, record.Version, diags, modDeprecation
 				}
 			}
@@ -990,7 +991,7 @@ func maybeImproveLocalInstallError(req *configs.ModuleRequest, diags hcl.Diagnos
 func collectModuleDeprecationWarnings(moduleVersion *response.ModuleVersion, subject *hcl.Range, sourceName string) *configs.ModuleDeprecationInfo {
 	var registryModDeprecation *configs.RegistryModuleDeprecation
 
-	// mdTODO: don't like this nil check, maybe a better way to do it?
+	// mdTODO: don't like this nil check, maybe handle a nil moduleVersion before this function call instead?
 	if moduleVersion != nil && moduleVersion.Deprecation.Deprecated {
 		registryModDeprecation = &configs.RegistryModuleDeprecation{
 			Subject:      subject,

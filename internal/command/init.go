@@ -366,6 +366,7 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 		View:           view,
 	}
 
+	// mdTODO: need to build the actual warning from the deprecations returned here, ¡designs pending!
 	installAbort, installDiags, moduleDeprecations := c.installModules(ctx, path, testsDir, upgrade, false, hooks)
 	jsonBytes, _ := json.MarshalIndent(moduleDeprecations, "", "  ")
 	log.Printf("[INFO] module deprecation: %s", string(jsonBytes))

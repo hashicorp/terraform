@@ -200,7 +200,7 @@ func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upg
 		diags = diags.Append(err)
 		return true, diags, nil
 	}
-	// markdecrane: what does this installer do? looks like a higher level entry for installing ALL modules
+
 	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient())
 
 	_, moreDiags, moduleDeprecations := inst.InstallModules(ctx, rootDir, testsDir, upgrade, installErrsOnly, hooks)

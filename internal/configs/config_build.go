@@ -112,7 +112,6 @@ func buildTestModules(root *Config, walker ModuleWalker) hcl.Diagnostics {
 				CallRange:         run.Module.DeclRange,
 			}
 
-			// mdTODO: don't think mod deprecations are relevant here, check!
 			cfg, modDiags, _ := loadModule(root, &req, walker)
 			diags = append(diags, modDiags...)
 
@@ -225,6 +224,7 @@ func loadModule(root *Config, req *ModuleRequest, walker ModuleWalker) (*Config,
 			ExternalDependencies: []*ModuleDeprecationInfo{},
 		}
 	}
+	// mdTODO: better error handling here, think of some more ways this can break
 	if modDeprecation != nil && childModDeprecations != nil {
 		modDeprecation.ExternalDependencies = childModDeprecations
 	}
