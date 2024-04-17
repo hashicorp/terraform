@@ -178,9 +178,16 @@ func TestEvaluateForEachExpr(t *testing.T) {
 }
 
 func TestInstancesMap(t *testing.T) {
+
 	type InstanceObj struct {
 		Key addrs.InstanceKey
 		Rep instances.RepetitionData
+	}
+	// This is a temporary nusiance while we gradually rollout support for
+	// unknown for_each values.
+	type Expectation struct {
+		UnknownForEachSupported   map[addrs.InstanceKey]InstanceObj
+		UnknownForEachUnsupported map[addrs.InstanceKey]InstanceObj
 	}
 	makeObj := func(k addrs.InstanceKey, r instances.RepetitionData) InstanceObj {
 		return InstanceObj{
@@ -191,7 +198,7 @@ func TestInstancesMap(t *testing.T) {
 
 	tests := []struct {
 		Input cty.Value
-		Want  map[addrs.InstanceKey]InstanceObj
+		Want  Expectation
 
 		// This function always either succeeds or panics, because it
 		// expects to be given already-validated input from another function.
@@ -200,11 +207,21 @@ func TestInstancesMap(t *testing.T) {
 		// No for_each at all
 		{
 			cty.NilVal,
-			map[addrs.InstanceKey]InstanceObj{
-				addrs.NoKey: {
-					Key: addrs.NoKey,
-					Rep: instances.RepetitionData{
-						// No data available for the non-repeating case
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.NoKey: {
+						Key: addrs.NoKey,
+						Rep: instances.RepetitionData{
+							// No data available for the non-repeating case
+						},
+					},
+				},
+				UnknownForEachUnsupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.NoKey: {
+						Key: addrs.NoKey,
+						Rep: instances.RepetitionData{
+							// No data available for the non-repeating case
+						},
 					},
 				},
 			},
@@ -213,40 +230,94 @@ func TestInstancesMap(t *testing.T) {
 		// Unknowns
 		{
 			cty.UnknownVal(cty.EmptyObject),
-			nil, // a nil map means "unknown" for this function
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.WildcardKey: {
+						Key: addrs.WildcardKey,
+						Rep: instances.RepetitionData{
+							EachKey:   cty.DynamicVal,
+							EachValue: cty.DynamicVal,
+						},
+					},
+				},
+				UnknownForEachUnsupported: nil, // a nil map means "unknown" for this function
+			},
 		},
 		{
 			cty.UnknownVal(cty.Map(cty.Bool)),
-			nil, // a nil map means "unknown" for this function
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.WildcardKey: {
+						Key: addrs.WildcardKey,
+						Rep: instances.RepetitionData{
+							EachKey:   cty.DynamicVal,
+							EachValue: cty.DynamicVal,
+						},
+					},
+				},
+				UnknownForEachUnsupported: nil, // a nil map means "unknown" for this function
+			},
 		},
 		{
 			cty.UnknownVal(cty.Set(cty.String)),
-			nil, // a nil map means "unknown" for this function
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.WildcardKey: {
+						Key: addrs.WildcardKey,
+						Rep: instances.RepetitionData{
+							EachKey:   cty.DynamicVal,
+							EachValue: cty.DynamicVal,
+						},
+					},
+				},
+				UnknownForEachUnsupported: nil, // a nil map means "unknown" for this function
+			},
 		},
 
 		// Empties
 		{
 			cty.EmptyObjectVal,
-			map[addrs.InstanceKey]InstanceObj{
-				// intentionally a non-nil empty map to assert that we know
-				// that there are zero instances, rather than that we don't
-				// know how many there are.
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					// intentionally a non-nil empty map to assert that we know
+					// that there are zero instances, rather than that we don't
+					// know how many there are.
+				},
+				UnknownForEachUnsupported: map[addrs.InstanceKey]InstanceObj{
+					// intentionally a non-nil empty map to assert that we know
+					// that there are zero instances, rather than that we don't
+					// know how many there are.
+				},
 			},
 		},
 		{
 			cty.MapValEmpty(cty.String),
-			map[addrs.InstanceKey]InstanceObj{
-				// intentionally a non-nil empty map to assert that we know
-				// that there are zero instances, rather than that we don't
-				// know how many there are.
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					// intentionally a non-nil empty map to assert that we know
+					// that there are zero instances, rather than that we don't
+					// know how many there are.
+				},
+				UnknownForEachUnsupported: map[addrs.InstanceKey]InstanceObj{
+					// intentionally a non-nil empty map to assert that we know
+					// that there are zero instances, rather than that we don't
+					// know how many there are.
+				},
 			},
 		},
 		{
 			cty.SetValEmpty(cty.String),
-			map[addrs.InstanceKey]InstanceObj{
-				// intentionally a non-nil empty map to assert that we know
-				// that there are zero instances, rather than that we don't
-				// know how many there are.
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					// intentionally a non-nil empty map to assert that we know
+					// that there are zero instances, rather than that we don't
+					// know how many there are.
+				},
+				UnknownForEachUnsupported: map[addrs.InstanceKey]InstanceObj{
+					// intentionally a non-nil empty map to assert that we know
+					// that there are zero instances, rather than that we don't
+					// know how many there are.
+				},
 			},
 		},
 
@@ -256,19 +327,37 @@ func TestInstancesMap(t *testing.T) {
 				"a": cty.StringVal("beep"),
 				"b": cty.StringVal("boop"),
 			}),
-			map[addrs.InstanceKey]InstanceObj{
-				addrs.StringKey("a"): {
-					Key: addrs.StringKey("a"),
-					Rep: instances.RepetitionData{
-						EachKey:   cty.StringVal("a"),
-						EachValue: cty.StringVal("beep"),
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.StringKey("a"): {
+						Key: addrs.StringKey("a"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("a"),
+							EachValue: cty.StringVal("beep"),
+						},
+					},
+					addrs.StringKey("b"): {
+						Key: addrs.StringKey("b"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("b"),
+							EachValue: cty.StringVal("boop"),
+						},
 					},
 				},
-				addrs.StringKey("b"): {
-					Key: addrs.StringKey("b"),
-					Rep: instances.RepetitionData{
-						EachKey:   cty.StringVal("b"),
-						EachValue: cty.StringVal("boop"),
+				UnknownForEachUnsupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.StringKey("a"): {
+						Key: addrs.StringKey("a"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("a"),
+							EachValue: cty.StringVal("beep"),
+						},
+					},
+					addrs.StringKey("b"): {
+						Key: addrs.StringKey("b"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("b"),
+							EachValue: cty.StringVal("boop"),
+						},
 					},
 				},
 			},
@@ -278,19 +367,37 @@ func TestInstancesMap(t *testing.T) {
 				"a": cty.StringVal("beep"),
 				"b": cty.StringVal("boop"),
 			}),
-			map[addrs.InstanceKey]InstanceObj{
-				addrs.StringKey("a"): {
-					Key: addrs.StringKey("a"),
-					Rep: instances.RepetitionData{
-						EachKey:   cty.StringVal("a"),
-						EachValue: cty.StringVal("beep"),
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.StringKey("a"): {
+						Key: addrs.StringKey("a"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("a"),
+							EachValue: cty.StringVal("beep"),
+						},
+					},
+					addrs.StringKey("b"): {
+						Key: addrs.StringKey("b"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("b"),
+							EachValue: cty.StringVal("boop"),
+						},
 					},
 				},
-				addrs.StringKey("b"): {
-					Key: addrs.StringKey("b"),
-					Rep: instances.RepetitionData{
-						EachKey:   cty.StringVal("b"),
-						EachValue: cty.StringVal("boop"),
+				UnknownForEachUnsupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.StringKey("a"): {
+						Key: addrs.StringKey("a"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("a"),
+							EachValue: cty.StringVal("beep"),
+						},
+					},
+					addrs.StringKey("b"): {
+						Key: addrs.StringKey("b"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("b"),
+							EachValue: cty.StringVal("boop"),
+						},
 					},
 				},
 			},
@@ -300,19 +407,37 @@ func TestInstancesMap(t *testing.T) {
 				cty.StringVal("beep"),
 				cty.StringVal("boop"),
 			}),
-			map[addrs.InstanceKey]InstanceObj{
-				addrs.StringKey("beep"): {
-					Key: addrs.StringKey("beep"),
-					Rep: instances.RepetitionData{
-						EachKey:   cty.StringVal("beep"),
-						EachValue: cty.StringVal("beep"),
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.StringKey("beep"): {
+						Key: addrs.StringKey("beep"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("beep"),
+							EachValue: cty.StringVal("beep"),
+						},
+					},
+					addrs.StringKey("boop"): {
+						Key: addrs.StringKey("boop"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("boop"),
+							EachValue: cty.StringVal("boop"),
+						},
 					},
 				},
-				addrs.StringKey("boop"): {
-					Key: addrs.StringKey("boop"),
-					Rep: instances.RepetitionData{
-						EachKey:   cty.StringVal("boop"),
-						EachValue: cty.StringVal("boop"),
+				UnknownForEachUnsupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.StringKey("beep"): {
+						Key: addrs.StringKey("beep"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("beep"),
+							EachValue: cty.StringVal("beep"),
+						},
+					},
+					addrs.StringKey("boop"): {
+						Key: addrs.StringKey("boop"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("boop"),
+							EachValue: cty.StringVal("boop"),
+						},
 					},
 				},
 			},
@@ -321,11 +446,20 @@ func TestInstancesMap(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%s", test.Input), func(t *testing.T) {
-			got := instancesMap(test.Input, makeObj)
+			t.Run("unknown for_each supported", func(t *testing.T) {
+				got := instancesMap(test.Input, makeObj, true)
 
-			if diff := cmp.Diff(test.Want, got, ctydebug.CmpOptions); diff != "" {
-				t.Errorf("wrong result\ninput: %#v\n%s", test.Input, diff)
-			}
+				if diff := cmp.Diff(test.Want.UnknownForEachSupported, got, ctydebug.CmpOptions); diff != "" {
+					t.Errorf("wrong result\ninput: %#v\n%s", test.Input, diff)
+				}
+			})
+			t.Run("unknown for_each unsupported", func(t *testing.T) {
+				got := instancesMap(test.Input, makeObj, false)
+
+				if diff := cmp.Diff(test.Want.UnknownForEachUnsupported, got, ctydebug.CmpOptions); diff != "" {
+					t.Errorf("wrong result\ninput: %#v\n%s", test.Input, diff)
+				}
+			})
 		})
 	}
 }

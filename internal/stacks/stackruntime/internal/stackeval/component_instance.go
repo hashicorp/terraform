@@ -576,6 +576,11 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				}
 			}
 
+			// The instance is also upstream deferred if the for_each value for this instance is unknown.
+			if c.key == addrs.WildcardKey {
+				upstreamDeferred = true
+			}
+
 			// NOTE: This ComponentInstance type only deals with component
 			// instances currently declared in the configuration. See
 			// [ComponentInstanceRemoved] for the model of a component instance

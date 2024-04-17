@@ -145,7 +145,7 @@ func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPha
 // If maybeForEach value is non-nil but not a valid value produced by
 // [evaluateForEachExpr] then the behavior is unpredictable, including the
 // possibility of a panic.
-func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.InstanceKey, instances.RepetitionData) T) map[addrs.InstanceKey]T {
+func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.InstanceKey, instances.RepetitionData) T, allowsUnknown bool) map[addrs.InstanceKey]T {
 	switch {
 
 	case maybeForEachVal == cty.NilVal:
@@ -154,10 +154,12 @@ func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.Instance
 		return noForEachInstancesMap(makeInst)
 
 	case !maybeForEachVal.IsKnown():
-		// The for_each expression is too invalid for us to be able to
-		// know which instances exist. A totally nil map (as opposed to a
-		// non-nil map of length zero) signals that situation.
-		return nil
+		// This is temporary to gradually rollout support for unknown for_each values
+		if allowsUnknown {
+			return unknownForEachInstancesMap(makeInst)
+		} else {
+			return nil
+		}
 
 	default:
 		// Otherwise we should be able to assume the value is valid per the
@@ -235,6 +237,17 @@ func noForEachInstancesMap[T any](makeInst func(addrs.InstanceKey, instances.Rep
 	return map[addrs.InstanceKey]T{
 		addrs.NoKey: makeInst(addrs.NoKey, instances.RepetitionData{
 			// no repetition symbols available in this case
+		}),
+	}
+}
+
+func unknownForEachInstancesMap[T any](makeInst func(addrs.InstanceKey, instances.RepetitionData) T) map[addrs.InstanceKey]T {
+	return map[addrs.InstanceKey]T{
+		addrs.WildcardKey: makeInst(addrs.WildcardKey, instances.RepetitionData{
+			// As we don't know the for_each value, we can only provide dynamic values
+			// for the repetition symbols.
+			EachKey:   cty.DynamicVal,
+			EachValue: cty.DynamicVal,
 		}),
 	}
 }

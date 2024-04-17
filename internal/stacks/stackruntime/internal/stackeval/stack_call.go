@@ -167,7 +167,7 @@ func (c *StackCall) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 
 			return instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *StackCallInstance {
 				return newStackCallInstance(c, ik, rd)
-			}), diags
+			}, false), diags
 		},
 	)
 }

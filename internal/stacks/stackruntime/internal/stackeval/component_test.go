@@ -190,14 +190,12 @@ func TestComponentCheckInstances(t *testing.T) {
 			}
 
 			// When the for_each expression is invalid, CheckInstances should
-			// return nil to represent that we don't know enough to predict
-			// how many instances there are. This is a different result than
-			// when we know there are zero instances, which would be a non-nil
-			// empty map.
+			// return a single instance with dynamic values in the repetition data.
+			// We don't distinguish between invalid and unknown for_each values.
 			gotInsts, diags := component.CheckInstances(ctx, InspectPhase)
 			assertNoDiags(t, diags)
-			if gotInsts != nil {
-				t.Errorf("wrong instances; want nil\n%#v", gotInsts)
+			if got, want := len(gotInsts), 1; got != want {
+				t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, gotInsts)
 			}
 		})
 		subtestInPromisingTask(t, "unknown", func(ctx context.Context, t *testing.T) {
@@ -208,30 +206,33 @@ func TestComponentCheckInstances(t *testing.T) {
 				},
 			})
 
-			// For now it's invalid to use an unknown value in for_each.
-			// Later we're expecting to make this succeed but announce that
-			// planning everything beneath this component must be deferred to a
-			// future plan after everything else has been applied first.
 			component := getComponent(ctx, main)
 			gotVal, diags := component.CheckForEachValue(ctx, InspectPhase)
-			assertMatchingDiag(t, diags, func(diag tfdiags.Diagnostic) bool {
-				return (diag.Severity() == tfdiags.Error &&
-					diag.Description().Detail == "The for_each value must not be derived from values that will be determined only during the apply phase.")
-			})
+			assertNoDiags(t, diags)
+
 			wantVal := cty.UnknownVal(cty.Map(cty.EmptyObject))
 			if !wantVal.RawEquals(gotVal) {
 				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", gotVal, wantVal)
 			}
 
-			// When the for_each expression is invalid, CheckInstances should
-			// return nil to represent that we don't know enough to predict
-			// how many instances there are. This is a different result than
-			// when we know there are zero instances, which would be a non-nil
-			// empty map.
+			// When the for_each expression is unknown, CheckInstances should
+			// return a single instance with dynamic values in the repetition data.
 			gotInsts, diags := component.CheckInstances(ctx, InspectPhase)
 			assertNoDiags(t, diags)
-			if gotInsts != nil {
-				t.Errorf("wrong instances; want nil\n%#v", gotInsts)
+			if got, want := len(gotInsts), 1; got != want {
+				t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, gotInsts)
+			}
+
+			if gotInsts[addrs.WildcardKey] == nil {
+				t.Fatalf("missing expected addrs.WildcardKey instance\n%#v", gotInsts)
+			}
+
+			if gotInsts[addrs.WildcardKey].repetition.EachKey.IsKnown() {
+				t.Errorf("EachKey should be unknown, but is known")
+			}
+
+			if gotInsts[addrs.WildcardKey].repetition.EachValue.IsKnown() {
+				t.Errorf("EachValue should be unknown, but is known")
 			}
 		})
 	})

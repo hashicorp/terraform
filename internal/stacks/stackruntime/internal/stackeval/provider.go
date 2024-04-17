@@ -181,7 +181,7 @@ func (p *Provider) CheckInstances(ctx context.Context, phase EvalPhase) (map[add
 			forEachVal := p.ForEachValue(ctx, phase)
 			return instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ProviderInstance {
 				return newProviderInstance(p, ik, rd)
-			}), diags
+			}, false), diags
 		},
 	)
 }
