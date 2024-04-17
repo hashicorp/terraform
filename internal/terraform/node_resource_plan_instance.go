@@ -544,7 +544,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 
 	imported := resp.ImportedResources
 
-	if len(imported) == 0 && resp.Deferred == nil {
+	if len(imported) == 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Import returned no resources",
@@ -587,27 +587,33 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		return nil, diags
 	}
 
-	// call post-import hook
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostPlanImport(hookResourceID, imported)
-	}))
-
-	if imported[0].TypeName == "" {
-		diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.Addr.String()))
-		return nil, diags
-	}
-
+	// We expect the import to return a single instance object,
+	// even when deferring the import.
 	importedState := imported[0].AsInstanceObject()
 
-	if importedState.Value.IsNull() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Import returned null resource",
-			fmt.Sprintf("While attempting to import with ID %s, the provider"+
-				"returned an instance with no state.",
-				n.importTarget.IDString,
-			),
-		))
+	// We can only call the hooks and validate the imported state if we have
+	// actually done the import.
+	if resp.Deferred == nil {
+		// call post-import hook
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostPlanImport(hookResourceID, imported)
+		}))
+
+		if imported[0].TypeName == "" {
+			diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.Addr.String()))
+			return nil, diags
+		}
+
+		if importedState.Value.IsNull() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Import returned null resource",
+				fmt.Sprintf("While attempting to import with ID %s, the provider"+
+					"returned an instance with no state.",
+					n.importTarget.IDString,
+				),
+			))
+		}
 	}
 
 	// refresh
