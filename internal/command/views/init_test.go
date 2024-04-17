@@ -177,7 +177,7 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 			},
 			{
 				"@level":       "info",
-				"@message":     fmt.Sprintf("- Finding latest version of %s...", packageName),
+				"@message":     fmt.Sprintf("%s: Finding latest version...", packageName),
 				"@module":      "terraform.ui",
 				"message_code": "finding_latest_version_message",
 				"type":         "init_output",
@@ -211,7 +211,7 @@ func TestNewInit_jsonViewOutput(t *testing.T) {
 			},
 			{
 				"@level":       "info",
-				"@message":     fmt.Sprintf("- Using previously-installed %s v%s", packageName, packageVersion),
+				"@message":     fmt.Sprintf("%s v%s: Using previously-installed provider version", packageName, packageVersion),
 				"@module":      "terraform.ui",
 				"message_code": "provider_already_installed_message",
 				"type":         "init_output",

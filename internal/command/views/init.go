@@ -196,39 +196,39 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 	},
 	"provider_already_installed_message": {
 		HumanValue: "- Using previously-installed %s v%s",
-		JSONValue:  "- Using previously-installed %s v%s",
+		JSONValue:  "%s v%s: Using previously-installed provider version",
 	},
 	"built_in_provider_available_message": {
 		HumanValue: "- %s is built in to Terraform",
-		JSONValue:  "- %s is built in to Terraform",
+		JSONValue:  "%s is built in to Terraform",
 	},
 	"reusing_previous_version_info": {
 		HumanValue: "- Reusing previous version of %s from the dependency lock file",
-		JSONValue:  "- Reusing previous version of %s from the dependency lock file",
+		JSONValue:  "%s: Reusing previous version from the dependency lock file",
 	},
 	"finding_matching_version_message": {
 		HumanValue: "- Finding %s versions matching %q...",
-		JSONValue:  "- Finding %s versions matching %q...",
+		JSONValue:  "Finding matching versions for provider: %s, version_constraint: %q",
 	},
 	"finding_latest_version_message": {
 		HumanValue: "- Finding latest version of %s...",
-		JSONValue:  "- Finding latest version of %s...",
+		JSONValue:  "%s: Finding latest version...",
 	},
 	"using_provider_from_cache_dir_info": {
 		HumanValue: "- Using %s v%s from the shared cache directory",
-		JSONValue:  "- Using %s v%s from the shared cache directory",
+		JSONValue:  "%s v%s: Using from the shared cache directory",
 	},
 	"installing_provider_message": {
 		HumanValue: "- Installing %s v%s...",
-		JSONValue:  "- Installing %s v%s...",
+		JSONValue:  "Installing provider version: %s v%s...",
 	},
 	"key_id": {
 		HumanValue: ", key ID [reset][bold]%s[reset]",
-		JSONValue:  ", key ID %s",
+		JSONValue:  "key_id: %s",
 	},
 	"installed_provider_version_info": {
 		HumanValue: "- Installed %s v%s (%s%s)",
-		JSONValue:  "- Installed %s v%s (%s%s)",
+		JSONValue:  "Installed provider version: %s v%s (%s%s)",
 	},
 	"partner_and_community_providers_message": {
 		HumanValue: partnerAndCommunityProvidersInfo,
