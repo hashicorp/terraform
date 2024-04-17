@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -90,11 +89,8 @@ func TestTFPlanRoundTrip(t *testing.T) {
 								cty.StringVal("honk"),
 							}),
 						}), objTy),
-						AfterValMarks: []cty.PathValueMarks{
-							{
-								Path:  cty.GetAttrPath("boop").IndexInt(1),
-								Marks: cty.NewValueMarks(marks.Sensitive),
-							},
+						AfterSensitivePaths: []cty.Path{
+							cty.GetAttrPath("boop").IndexInt(1),
 						},
 					},
 					RequiredReplace: cty.NewPathSet(
@@ -185,11 +181,8 @@ func TestTFPlanRoundTrip(t *testing.T) {
 							cty.StringVal("bonk"),
 						}),
 					}), objTy),
-					AfterValMarks: []cty.PathValueMarks{
-						{
-							Path:  cty.GetAttrPath("boop").IndexInt(1),
-							Marks: cty.NewValueMarks(marks.Sensitive),
-						},
+					AfterSensitivePaths: []cty.Path{
+						cty.GetAttrPath("boop").IndexInt(1),
 					},
 				},
 			},
@@ -445,30 +438,5 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 		if oc.After == cty.NilVal {
 			t.Fatalf("unexpected nil After value: %#v\n", ocs)
 		}
-	}
-}
-
-func TestTFPlanEncodeUnsupportedMarks(t *testing.T) {
-	v := cty.ObjectVal(map[string]cty.Value{
-		"beep": cty.StringVal("boop").Mark("unsupported"),
-	})
-	change := &plans.Change{
-		Action: plans.Create,
-		Before: cty.NullVal(v.Type()),
-		After:  v,
-	}
-	changeSrc, err := change.Encode(v.Type())
-	if err != nil {
-		t.Fatalf("failed to encode change for testing: %s", err)
-	}
-
-	_, err = changeToTfplan(changeSrc)
-	if err == nil {
-		t.Fatalf("unexpected success; want error")
-	}
-	got := err.Error()
-	want := `.beep: cannot serialize values marked as "unsupported" (this is a bug in Terraform)`
-	if got != want {
-		t.Errorf("wrong error\ngot: %s\nwant: %s", got, want)
 	}
 }

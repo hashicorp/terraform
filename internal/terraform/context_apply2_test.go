@@ -14,6 +14,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -421,11 +422,8 @@ resource "test_resource" "b" {
 			mustResourceInstanceAddr(`test_resource.a`),
 			&states.ResourceInstanceObjectSrc{
 				AttrsJSON: []byte(`{"id":"a","sensitive_attr":["secret"]}`),
-				AttrSensitivePaths: []cty.PathValueMarks{
-					{
-						Path:  cty.GetAttrPath("sensitive_attr"),
-						Marks: cty.NewValueMarks(marks.Sensitive),
-					},
+				AttrSensitivePaths: []cty.Path{
+					cty.GetAttrPath("sensitive_attr"),
 				},
 				Status: states.ObjectReady,
 			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
@@ -555,8 +553,8 @@ resource "test_object" "y" {
 	// make sure the same marks are compared in the next plan as well
 	for _, c := range plan.Changes.Resources {
 		if c.Action != plans.NoOp {
-			t.Logf("marks before: %#v", c.BeforeValMarks)
-			t.Logf("marks after:  %#v", c.AfterValMarks)
+			t.Logf("sensitive paths before: %#v", c.BeforeSensitivePaths)
+			t.Logf("sensitive paths after:  %#v", c.AfterSensitivePaths)
 			t.Errorf("Unexpcetd %s change for %s", c.Action, c.Addr)
 		}
 	}
@@ -2770,11 +2768,8 @@ resource "test_resource" "a" {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"value":"secret"}]}`),
-			AttrSensitivePaths: []cty.PathValueMarks{
-				{
-					Path:  cty.GetAttrPath("value"),
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AttrSensitivePaths: []cty.Path{
+				cty.GetAttrPath("value"),
 			},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
@@ -2810,13 +2805,10 @@ resource "test_resource" "a" {
 	if diff := cmp.Diff(string(instance.Current.AttrsJSON), expected); len(diff) > 0 {
 		t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expected, string(instance.Current.AttrsJSON), diff)
 	}
-	expectedMarkses := []cty.PathValueMarks{
-		{
-			Path:  cty.GetAttrPath("value"),
-			Marks: cty.NewValueMarks(marks.Sensitive),
-		},
+	expectedSensitivePaths := []cty.Path{
+		cty.GetAttrPath("value"),
 	}
-	if diff := cmp.Diff(instance.Current.AttrSensitivePaths, expectedMarkses); len(diff) > 0 {
+	if diff := cmp.Diff(expectedSensitivePaths, instance.Current.AttrSensitivePaths, ctydebug.CmpOptions); len(diff) > 0 {
 		t.Errorf("unexpected sensitive paths\ndiff:\n%s", diff)
 	}
 }

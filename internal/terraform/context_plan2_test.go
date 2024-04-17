@@ -201,11 +201,8 @@ data "test_data_source" "foo" {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"data_id", "foo":[{"bar":"baz"}]}`),
-			AttrSensitivePaths: []cty.PathValueMarks{
-				{
-					Path:  cty.GetAttrPath("foo"),
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AttrSensitivePaths: []cty.Path{
+				cty.GetAttrPath("foo"),
 			},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
@@ -2706,11 +2703,8 @@ data "test_data_source" "foo" {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"string":"data_id", "foo":[{"bar":"old"}]}`),
-			AttrSensitivePaths: []cty.PathValueMarks{
-				{
-					Path:  cty.GetAttrPath("foo"),
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AttrSensitivePaths: []cty.Path{
+				cty.GetAttrPath("foo"),
 			},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
@@ -2720,11 +2714,8 @@ data "test_data_source" "foo" {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"sensitive":"old"}`),
-			AttrSensitivePaths: []cty.PathValueMarks{
-				{
-					Path:  cty.GetAttrPath("sensitive"),
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AttrSensitivePaths: []cty.Path{
+				cty.GetAttrPath("sensitive"),
 			},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
@@ -5403,11 +5394,8 @@ resource "test_resource" "a" {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"value":"secret"}]}`),
-			AttrSensitivePaths: []cty.PathValueMarks{
-				{
-					Path:  cty.GetAttrPath("value"),
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AttrSensitivePaths: []cty.Path{
+				cty.GetAttrPath("value"),
 			},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
@@ -5484,7 +5472,7 @@ resource "test_object" "obj" {
 	assertNoErrors(t, diags)
 
 	ch := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.obj"))
-	if len(ch.AfterValMarks) == 0 {
+	if len(ch.AfterSensitivePaths) == 0 {
 		t.Fatal("expected marked values in test_object.obj")
 	}
 
@@ -5540,9 +5528,11 @@ resource "test_object" "obj" {
 
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.obj"), &states.ResourceInstanceObjectSrc{
-			AttrsJSON:          []byte(`{"id":"z","set_block":[{"foo":"bar"}]}`),
-			AttrSensitivePaths: []cty.PathValueMarks{{Path: cty.Path{cty.GetAttrStep{Name: "set_block"}}, Marks: cty.NewValueMarks(marks.Sensitive)}},
-			Status:             states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"z","set_block":[{"foo":"bar"}]}`),
+			AttrSensitivePaths: []cty.Path{
+				cty.GetAttrPath("set_block"),
+			},
+			Status: states.ObjectReady,
 		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 	})
 

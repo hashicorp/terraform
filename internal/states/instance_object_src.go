@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 )
 
 // ResourceInstanceObjectSrc is a not-fully-decoded version of
@@ -54,7 +55,7 @@ type ResourceInstanceObjectSrc struct {
 
 	// AttrSensitivePaths is an array of paths to mark as sensitive coming out of
 	// state, or to save as sensitive paths when saving state
-	AttrSensitivePaths []cty.PathValueMarks
+	AttrSensitivePaths []cty.Path
 
 	// These fields all correspond to the fields of the same name on
 	// ResourceInstanceObject.
@@ -85,10 +86,7 @@ func (os *ResourceInstanceObjectSrc) Decode(ty cty.Type) (*ResourceInstanceObjec
 		}
 	} else {
 		val, err = ctyjson.Unmarshal(os.AttrsJSON, ty)
-		// Mark the value with paths if applicable
-		if os.AttrSensitivePaths != nil {
-			val = val.MarkWithPaths(os.AttrSensitivePaths)
-		}
+		val = marks.MarkPaths(val, marks.Sensitive, os.AttrSensitivePaths)
 		if err != nil {
 			return nil, err
 		}

@@ -71,6 +71,13 @@ func ComponentInstanceResultsToTFStackData1(outputValues map[addrs.OutputValue]c
 
 func DynamicValueToTFStackData1(val cty.Value, ty cty.Type) (*DynamicValue, error) {
 	unmarkedVal, markPaths := val.UnmarkDeepWithPaths()
+	sensitivePaths, withOtherMarks := marks.PathsWithMark(markPaths, marks.Sensitive)
+	if len(withOtherMarks) != 0 {
+		return nil, withOtherMarks[0].Path.NewErrorf(
+			"can't serialize value marked with %#v (this is a bug in Terraform)",
+			withOtherMarks[0].Marks,
+		)
+	}
 
 	rawVal, err := msgpack.Marshal(unmarkedVal, ty)
 	if err != nil {
@@ -86,16 +93,12 @@ func DynamicValueToTFStackData1(val cty.Value, ty cty.Type) (*DynamicValue, erro
 	}
 
 	ret.SensitivePaths = make([]*planproto.Path, 0, len(markPaths))
-	for _, pathMarks := range markPaths {
-		if _, isSensitive := pathMarks.Marks[marks.Sensitive]; !isSensitive {
-			// Some other kind of mark we don't know how to handle, then.
-			continue
-		}
-		path, err := planproto.NewPath(pathMarks.Path)
+	for _, path := range sensitivePaths {
+		protoPath, err := planproto.NewPath(path)
 		if err != nil {
-			return nil, pathMarks.Path.NewErrorf("failed to encode path: %w", err)
+			return nil, path.NewErrorf("failed to encode path: %w", err)
 		}
-		ret.SensitivePaths = append(ret.SensitivePaths, path)
+		ret.SensitivePaths = append(ret.SensitivePaths, protoPath)
 	}
 	return ret, nil
 }

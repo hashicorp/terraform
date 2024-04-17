@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
@@ -74,6 +75,16 @@ func (i *stacksInspector) InspectExpressionResult(ctx context.Context, req *terr
 	}
 
 	val, markses := val.UnmarkDeepWithPaths()
+	sensitivePaths, otherMarkses := marks.PathsWithMark(markses, marks.Sensitive)
+	if len(otherMarkses) != 0 {
+		// Any other marks should've been dealt with by the stacks runtime
+		// before getting here, since we only know how to preserve the sensitive
+		// marking.
+		return nil, fmt.Errorf(
+			"%s: unhandled value marks %#v (this is a bug in Terraform)",
+			tfdiags.FormatCtyPath(otherMarkses[0].Path), otherMarkses[0].Marks,
+		)
+	}
 	valRaw, err := plans.NewDynamicValue(val, cty.DynamicPseudoType)
 	if err != nil {
 		// We might get here if the result was of a type we cannot send
@@ -89,7 +100,7 @@ func (i *stacksInspector) InspectExpressionResult(ctx context.Context, req *terr
 	}
 
 	return &terraform1.InspectExpressionResult_Response{
-		Result:      terraform1.NewDynamicValue(valRaw, markses),
+		Result:      terraform1.NewDynamicValue(valRaw, sensitivePaths),
 		Diagnostics: diagnosticsToProto(diags),
 	}, nil
 }
