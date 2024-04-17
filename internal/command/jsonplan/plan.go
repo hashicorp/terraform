@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonconfig"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -418,11 +419,9 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 			if err != nil {
 				return nil, err
 			}
-			marks := rc.BeforeValMarks
-			if schema.ContainsSensitive() {
-				marks = append(marks, schema.ValueMarks(changeV.Before, nil)...)
-			}
-			bs := jsonstate.SensitiveAsBool(changeV.Before.MarkWithPaths(marks))
+			sensitivePaths := rc.BeforeSensitivePaths
+			sensitivePaths = append(sensitivePaths, schema.SensitivePaths(changeV.Before, nil)...)
+			bs := jsonstate.SensitiveAsBool(marks.MarkPaths(changeV.Before, marks.Sensitive, sensitivePaths))
 			beforeSensitive, err = ctyjson.Marshal(bs, bs.Type())
 			if err != nil {
 				return nil, err
@@ -447,11 +446,9 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 				}
 				afterUnknown = unknownAsBool(changeV.After)
 			}
-			marks := rc.AfterValMarks
-			if schema.ContainsSensitive() {
-				marks = append(marks, schema.ValueMarks(changeV.After, nil)...)
-			}
-			as := jsonstate.SensitiveAsBool(changeV.After.MarkWithPaths(marks))
+			sensitivePaths := rc.AfterSensitivePaths
+			sensitivePaths = append(sensitivePaths, schema.SensitivePaths(changeV.After, nil)...)
+			as := jsonstate.SensitiveAsBool(marks.MarkPaths(changeV.After, marks.Sensitive, sensitivePaths))
 			afterSensitive, err = ctyjson.Marshal(as, as.Type())
 			if err != nil {
 				return nil, err

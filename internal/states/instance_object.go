@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // ResourceInstanceObject is the local representation of a specific remote
@@ -97,7 +98,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	// If it contains marks, remove these marks before traversing the
 	// structure with UnknownAsNull, and save the PathValueMarks
 	// so we can save them in state.
-	val, pvm, err := unmarkValueForStorage(o.Value)
+	val, sensitivePaths, err := unmarkValueForStorage(o.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +134,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	return &ResourceInstanceObjectSrc{
 		SchemaVersion:       schemaVersion,
 		AttrsJSON:           src,
-		AttrSensitivePaths:  pvm,
+		AttrSensitivePaths:  sensitivePaths,
 		Private:             o.Private,
 		Status:              o.Status,
 		Dependencies:        dependencies,
@@ -164,21 +165,14 @@ func (o *ResourceInstanceObject) AsTainted() *ResourceInstanceObject {
 // know how to store must be dealt with somehow by a caller -- presumably by
 // replacing each marked value with some sort of storage placeholder -- before
 // writing a value into the state.
-func unmarkValueForStorage(v cty.Value) (cty.Value, []cty.PathValueMarks, error) {
+func unmarkValueForStorage(v cty.Value) (unmarkedV cty.Value, sensitivePaths []cty.Path, err error) {
 	val, pvms := v.UnmarkDeepWithPaths()
-	var err error
-
-Pvms:
-	for _, pvm := range pvms {
-		for mark := range pvm.Marks {
-			// Currently "Sensitive" is the only mark that we know how to
-			// preserve between rounds in a state snapshot.
-			if mark != marks.Sensitive {
-				err = fmt.Errorf("cannot serialize value marked as %q for inclusion in a state snapshot (this is a bug in Terraform)", mark)
-				break Pvms
-			}
-		}
+	sensitivePaths, withOtherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
+	if len(withOtherMarks) != 0 {
+		return cty.NilVal, nil, fmt.Errorf(
+			"%s: cannot serialize value marked as %#v for inclusion in a state snapshot (this is a bug in Terraform)",
+			tfdiags.FormatCtyPath(withOtherMarks[0].Path), withOtherMarks[0].Marks,
+		)
 	}
-
-	return val, pvms, err
+	return val, sensitivePaths, nil
 }

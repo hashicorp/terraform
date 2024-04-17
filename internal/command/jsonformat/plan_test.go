@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -3503,11 +3502,8 @@ func TestResourceChange_nestedSet(t *testing.T) {
 					}),
 				}),
 			}),
-			AfterValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "disks"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AfterSensitivePaths: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "disks"}},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema:          testSchema(configschema.NestingSet),
@@ -3597,11 +3593,8 @@ func TestResourceChange_nestedSet(t *testing.T) {
 					}),
 				}),
 			}),
-			AfterValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "disks"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AfterSensitivePaths: []cty.Path{
+				cty.GetAttrPath("disks"),
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema:          testSchema(configschema.NestingSet),
@@ -3647,11 +3640,8 @@ func TestResourceChange_nestedSet(t *testing.T) {
 					"volume_type": cty.String,
 				})),
 			}),
-			AfterValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "disks"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AfterSensitivePaths: []cty.Path{
+				cty.GetAttrPath("disks"),
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema:          testSchema(configschema.NestingSet),
@@ -4397,14 +4387,8 @@ func TestResourceChange_nestedMap(t *testing.T) {
 					}),
 				}),
 			}),
-			AfterValMarks: []cty.PathValueMarks{
-				{
-					Path: cty.Path{cty.GetAttrStep{Name: "disks"},
-						cty.IndexStep{Key: cty.StringVal("disk_a")},
-						cty.GetAttrStep{Name: "mount_point"},
-					},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AfterSensitivePaths: []cty.Path{
+				cty.GetAttrPath("disks").IndexString("disk_a").GetAttr("mount_point"),
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema:          testSchemaPlus(configschema.NestingMap),
@@ -6067,32 +6051,14 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					}),
 				}),
 			}),
-			AfterValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(1)}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					// Nested blocks/sets will mark the whole set/block as sensitive
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_list"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AfterSensitivePaths: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "ami"}},
+				cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(1)}},
+				cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+				cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+				// Nested blocks/sets will mark the whole set/block as sensitive
+				cty.Path{cty.GetAttrStep{Name: "nested_block_list"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema: &configschema.Block{
@@ -6211,39 +6177,15 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					}),
 				}),
 			}),
-			BeforeValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "special"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "some_number"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(2)}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			BeforeSensitivePaths: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "ami"}},
+				cty.Path{cty.GetAttrStep{Name: "special"}},
+				cty.Path{cty.GetAttrStep{Name: "some_number"}},
+				cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(2)}},
+				cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+				cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema: &configschema.Block{
@@ -6359,27 +6301,12 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					"an_attr": cty.StringVal("changed"),
 				}),
 			}),
-			AfterValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "tags"}, cty.IndexStep{Key: cty.StringVal("address")}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_single"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AfterSensitivePaths: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "tags"}, cty.IndexStep{Key: cty.StringVal("address")}},
+				cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
+				cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+				cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block_single"}},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema: &configschema.Block{
@@ -6472,49 +6399,19 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					}),
 				}),
 			}),
-			BeforeValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_map"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			BeforeSensitivePaths: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "ami"}},
+				cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
+				cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+				cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block_map"}},
 			},
-			AfterValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_map"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AfterSensitivePaths: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "ami"}},
+				cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
+				cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+				cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block_map"}},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema: &configschema.Block{
@@ -6617,39 +6514,15 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					}),
 				}),
 			}),
-			BeforeValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "special"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "some_number"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(2)}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			BeforeSensitivePaths: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "ami"}},
+				cty.Path{cty.GetAttrStep{Name: "special"}},
+				cty.Path{cty.GetAttrStep{Name: "some_number"}},
+				cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(2)}},
+				cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+				cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema: &configschema.Block{
@@ -6757,31 +6630,13 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 				}),
 			}),
 			After: cty.NullVal(cty.EmptyObject),
-			BeforeValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(1)}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			BeforeSensitivePaths: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "ami"}},
+				cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(1)}},
+				cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+				cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema: &configschema.Block{
@@ -6845,25 +6700,13 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					}),
 				}),
 			}),
-			BeforeValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.GetAttrPath("ami"),
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.GetAttrPath("nested_block_set"),
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			BeforeSensitivePaths: []cty.Path{
+				cty.GetAttrPath("ami"),
+				cty.GetAttrPath("nested_block_set"),
 			},
-			AfterValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.GetAttrPath("ami"),
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.GetAttrPath("nested_block_set"),
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AfterSensitivePaths: []cty.Path{
+				cty.GetAttrPath("ami"),
+				cty.GetAttrPath("nested_block_set"),
 			},
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -7046,20 +6889,20 @@ func TestResourceChange_moved(t *testing.T) {
 }
 
 type testCase struct {
-	Action          plans.Action
-	ActionReason    plans.ResourceInstanceChangeActionReason
-	ModuleInst      addrs.ModuleInstance
-	Mode            addrs.ResourceMode
-	InstanceKey     addrs.InstanceKey
-	DeposedKey      states.DeposedKey
-	Before          cty.Value
-	BeforeValMarks  []cty.PathValueMarks
-	AfterValMarks   []cty.PathValueMarks
-	After           cty.Value
-	Schema          *configschema.Block
-	RequiredReplace cty.PathSet
-	ExpectedOutput  string
-	PrevRunAddr     addrs.AbsResourceInstance
+	Action               plans.Action
+	ActionReason         plans.ResourceInstanceChangeActionReason
+	ModuleInst           addrs.ModuleInstance
+	Mode                 addrs.ResourceMode
+	InstanceKey          addrs.InstanceKey
+	DeposedKey           states.DeposedKey
+	Before               cty.Value
+	BeforeSensitivePaths []cty.Path
+	After                cty.Value
+	AfterSensitivePaths  []cty.Path
+	Schema               *configschema.Block
+	RequiredReplace      cty.PathSet
+	ExpectedOutput       string
+	PrevRunAddr          addrs.AbsResourceInstance
 }
 
 func runTestCases(t *testing.T, testCases map[string]testCase) {
@@ -7110,11 +6953,11 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 
 			src := &plans.ResourceInstanceChangeSrc{
 				ChangeSrc: plans.ChangeSrc{
-					Action:         tc.Action,
-					Before:         beforeDynamicValue,
-					BeforeValMarks: tc.BeforeValMarks,
-					After:          afterDynamicValue,
-					AfterValMarks:  tc.AfterValMarks,
+					Action:               tc.Action,
+					Before:               beforeDynamicValue,
+					BeforeSensitivePaths: tc.BeforeSensitivePaths,
+					After:                afterDynamicValue,
+					AfterSensitivePaths:  tc.AfterSensitivePaths,
 				},
 
 				Addr:        addr,

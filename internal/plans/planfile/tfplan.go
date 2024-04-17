@@ -14,12 +14,10 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -416,20 +414,19 @@ func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 	}
 	ret.GeneratedConfig = rawChange.GeneratedConfig
 
-	sensitive := cty.NewValueMarks(marks.Sensitive)
-	beforeValMarks, err := pathValueMarksFromTfplan(rawChange.BeforeSensitivePaths, sensitive)
+	beforeValSensitiveAttrs, err := pathsFromTfplan(rawChange.BeforeSensitivePaths)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode before sensitive paths: %s", err)
 	}
-	afterValMarks, err := pathValueMarksFromTfplan(rawChange.AfterSensitivePaths, sensitive)
+	afterValSensitiveAttrs, err := pathsFromTfplan(rawChange.AfterSensitivePaths)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode after sensitive paths: %s", err)
 	}
-	if len(beforeValMarks) > 0 {
-		ret.BeforeValMarks = beforeValMarks
+	if len(beforeValSensitiveAttrs) > 0 {
+		ret.BeforeSensitivePaths = beforeValSensitiveAttrs
 	}
-	if len(afterValMarks) > 0 {
-		ret.AfterValMarks = afterValMarks
+	if len(afterValSensitiveAttrs) > 0 {
+		ret.AfterSensitivePaths = afterValSensitiveAttrs
 	}
 
 	return ret, nil
@@ -788,11 +785,11 @@ func changeToTfplan(change *plans.ChangeSrc) (*planproto.Change, error) {
 	before := valueToTfplan(change.Before)
 	after := valueToTfplan(change.After)
 
-	beforeSensitivePaths, err := pathValueMarksToTfplan(change.BeforeValMarks)
+	beforeSensitivePaths, err := pathsToTfplan(change.BeforeSensitivePaths)
 	if err != nil {
 		return nil, err
 	}
-	afterSensitivePaths, err := pathValueMarksToTfplan(change.AfterValMarks)
+	afterSensitivePaths, err := pathsToTfplan(change.AfterSensitivePaths)
 	if err != nil {
 		return nil, err
 	}
@@ -842,33 +839,28 @@ func valueToTfplan(val plans.DynamicValue) *planproto.DynamicValue {
 	return planproto.NewPlanDynamicValue(val)
 }
 
-func pathValueMarksFromTfplan(paths []*planproto.Path, marks cty.ValueMarks) ([]cty.PathValueMarks, error) {
-	ret := make([]cty.PathValueMarks, 0, len(paths))
+func pathsFromTfplan(paths []*planproto.Path) ([]cty.Path, error) {
+	if len(paths) == 0 {
+		return nil, nil
+	}
+	ret := make([]cty.Path, 0, len(paths))
 	for _, p := range paths {
 		path, err := pathFromTfplan(p)
 		if err != nil {
 			return nil, err
 		}
-		ret = append(ret, cty.PathValueMarks{
-			Path:  path,
-			Marks: marks,
-		})
+		ret = append(ret, path)
 	}
 	return ret, nil
 }
 
-func pathValueMarksToTfplan(pvm []cty.PathValueMarks) ([]*planproto.Path, error) {
-	ret := make([]*planproto.Path, 0, len(pvm))
-	for _, p := range pvm {
-		for mark := range p.Marks {
-			if mark != marks.Sensitive {
-				return nil, fmt.Errorf("%s: cannot serialize values marked as %#v (this is a bug in Terraform)", tfdiags.FormatCtyPath(p.Path), mark)
-			}
-		}
-		if _, ok := p.Marks[marks.Sensitive]; !ok {
-			continue
-		}
-		path, err := pathToTfplan(p.Path)
+func pathsToTfplan(paths []cty.Path) ([]*planproto.Path, error) {
+	if len(paths) == 0 {
+		return nil, nil
+	}
+	ret := make([]*planproto.Path, 0, len(paths))
+	for _, p := range paths {
+		path, err := pathToTfplan(p)
 		if err != nil {
 			return nil, err
 		}

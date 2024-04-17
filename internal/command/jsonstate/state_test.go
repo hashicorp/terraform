@@ -115,9 +115,9 @@ func TestMarshalOutputs(t *testing.T) {
 
 func TestMarshalAttributeValues(t *testing.T) {
 	tests := []struct {
-		Attr      cty.Value
-		Want      AttributeValues
-		WantMarks []cty.PathValueMarks
+		Attr               cty.Value
+		Want               AttributeValues
+		WantSensitivePaths []cty.Path
 	}{
 		{
 			cty.NilVal,
@@ -174,26 +174,23 @@ func TestMarshalAttributeValues(t *testing.T) {
 				"bar": json.RawMessage(`{"hello":"world"}`),
 				"baz": json.RawMessage(`["goodnight","moon"]`),
 			},
-			[]cty.PathValueMarks{
-				{
-					Path:  cty.GetAttrPath("baz").IndexInt(1),
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			[]cty.Path{
+				cty.GetAttrPath("baz").IndexInt(1),
 			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%#v", test.Attr), func(t *testing.T) {
-			val, got, marks, err := marshalAttributeValues(test.Attr)
+			val, got, sensitivePaths, err := marshalAttributeValues(test.Attr)
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}
 			if !reflect.DeepEqual(got, test.Want) {
 				t.Errorf("wrong result\ngot:  %#v\nwant: %#v\n", got, test.Want)
 			}
-			if !reflect.DeepEqual(marks, test.WantMarks) {
-				t.Errorf("wrong marks\ngot:  %#v\nwant: %#v\n", marks, test.WantMarks)
+			if !reflect.DeepEqual(sensitivePaths, test.WantSensitivePaths) {
+				t.Errorf("wrong marks\ngot:  %#v\nwant: %#v\n", sensitivePaths, test.WantSensitivePaths)
 			}
 			if _, marks := val.Unmark(); len(marks) != 0 {
 				t.Errorf("returned value still has marks; should have been unmarked\n%#v", marks)
@@ -209,7 +206,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 			t.Fatalf("unexpected success; want error")
 		}
 		got := err.Error()
-		want := `.disallowed: cannot serialize value marked as "unsupported" for inclusion in a state snapshot (this is a bug in Terraform)`
+		want := `.disallowed: cannot serialize value marked as cty.NewValueMarks("unsupported") for inclusion in a state snapshot (this is a bug in Terraform)`
 		if got != want {
 			t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
 		}
@@ -329,9 +326,8 @@ func TestMarshalResources(t *testing.T) {
 							Current: &states.ResourceInstanceObjectSrc{
 								Status:    states.ObjectReady,
 								AttrsJSON: []byte(`{"foozles":"confuzles"}`),
-								AttrSensitivePaths: []cty.PathValueMarks{{
-									Path:  cty.Path{cty.GetAttrStep{Name: "foozles"}},
-									Marks: cty.NewValueMarks(marks.Sensitive)},
+								AttrSensitivePaths: []cty.Path{
+									cty.GetAttrPath("foozles"),
 								},
 							},
 						},
@@ -595,9 +591,8 @@ func TestMarshalResources(t *testing.T) {
 							Current: &states.ResourceInstanceObjectSrc{
 								Status:    states.ObjectReady,
 								AttrsJSON: []byte(`{"data":{"woozles":"confuzles"}}`),
-								AttrSensitivePaths: []cty.PathValueMarks{{
-									Path:  cty.Path{cty.GetAttrStep{Name: "data"}},
-									Marks: cty.NewValueMarks(marks.Sensitive)},
+								AttrSensitivePaths: []cty.Path{
+									cty.GetAttrPath("data"),
 								},
 							},
 						},

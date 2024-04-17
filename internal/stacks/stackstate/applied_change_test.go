@@ -9,11 +9,6 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/plans/planproto"
-	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 	ctymsgpack "github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/protobuf/proto"
@@ -21,8 +16,12 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 func TestAppliedChangeAsProto(t *testing.T) {
@@ -69,11 +68,8 @@ func TestAppliedChangeAsProto(t *testing.T) {
 				NewStateSrc: &states.ResourceInstanceObjectSrc{
 					Status:    states.ObjectReady,
 					AttrsJSON: []byte(`{"id":"bar","secret":"top"}`),
-					AttrSensitivePaths: []cty.PathValueMarks{
-						{
-							Path:  []cty.PathStep{cty.GetAttrStep{Name: "secret"}},
-							Marks: map[interface{}]struct{}{marks.Sensitive: {}},
-						},
+					AttrSensitivePaths: []cty.Path{
+						cty.GetAttrPath("secret"),
 					},
 				},
 			},

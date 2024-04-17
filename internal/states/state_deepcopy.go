@@ -142,9 +142,9 @@ func (os *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 		copy(attrsJSON, os.AttrsJSON)
 	}
 
-	var attrPaths []cty.PathValueMarks
+	var attrPaths []cty.Path
 	if os.AttrSensitivePaths != nil {
-		attrPaths = make([]cty.PathValueMarks, len(os.AttrSensitivePaths))
+		attrPaths = make([]cty.Path, len(os.AttrSensitivePaths))
 		copy(attrPaths, os.AttrSensitivePaths)
 	}
 
