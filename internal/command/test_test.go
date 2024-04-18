@@ -284,7 +284,8 @@ func TestTest_Runs(t *testing.T) {
 			}
 
 			if code := init.Run(nil); code != tc.initCode {
-				t.Fatalf("expected status code %d but got %d: %s", tc.initCode, code, ui.ErrorWriter)
+				output := done(t)
+				t.Fatalf("expected status code %d but got %d: %s", tc.initCode, code, output.All())
 			}
 
 			if tc.initCode > 0 {
@@ -312,6 +313,14 @@ func TestTest_Runs(t *testing.T) {
 				// here.
 				return
 			}
+
+			// discard the output from the init command
+			done(t)
+
+			// Reset the streams for the next command.
+			streams, done = terminal.StreamsForTesting(t)
+			meta.Streams = streams
+			meta.View = views.NewView(streams)
 
 			c := &TestCommand{
 				Meta: meta,
@@ -486,16 +495,23 @@ func TestTest_ProviderAlias(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
+
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
 	command := &TestCommand{
 		Meta: meta,
 	}
 
 	code := command.Run(nil)
-	output := done(t)
+	output = done(t)
 
 	printedOutput := false
 
@@ -562,16 +578,23 @@ func TestTest_ModuleDependencies(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
+
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
 	command := &TestCommand{
 		Meta: meta,
 	}
 
 	code := command.Run(nil)
-	output := done(t)
+	output = done(t)
 
 	printedOutput := false
 
@@ -854,16 +877,23 @@ can remove the provider configuration again.
 				Meta: meta,
 			}
 
+			output := done(t)
+
 			if code := init.Run(nil); code != 0 {
-				t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+				t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 			}
+
+			// Reset the streams for the next command.
+			streams, done = terminal.StreamsForTesting(t)
+			meta.Streams = streams
+			meta.View = views.NewView(streams)
 
 			c := &TestCommand{
 				Meta: meta,
 			}
 
 			code := c.Run([]string{"-no-color"})
-			output := done(t)
+			output = done(t)
 
 			if code != 1 {
 				t.Errorf("expected status code 1 but got %d", code)
@@ -970,16 +1000,23 @@ func TestTest_StatePropagation(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
+
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
 	c := &TestCommand{
 		Meta: meta,
 	}
 
 	code := c.Run([]string{"-verbose", "-no-color"})
-	output := done(t)
+	output = done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -1100,16 +1137,23 @@ func TestTest_OnlyExternalModules(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
+
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
 	c := &TestCommand{
 		Meta: meta,
 	}
 
 	code := c.Run([]string{"-no-color"})
-	output := done(t)
+	output = done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -1681,11 +1725,9 @@ func TestTest_SensitiveInputValues(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
 		Streams:          streams,
 		ProviderSource:   providerSource,
@@ -1695,48 +1737,50 @@ func TestTest_SensitiveInputValues(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
+
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
 	c := &TestCommand{
 		Meta: meta,
 	}
 
-	code := c.Run([]string{"-no-color"})
-	output := done(t)
+	code := c.Run([]string{"-no-color", "-verbose"})
+	output = done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expected := `Initializing the backend...
-Initializing modules...
-- test.main.setup in setup
-Initializing provider plugins...
-
-Terraform has been successfully initialized!
-
-You may now begin working with Terraform. Try running "terraform plan" to see
-any changes that are required for your infrastructure. All Terraform commands
-should now work.
-
-If you ever set or change modules or backend configuration for Terraform,
-rerun this command to reinitialize your working directory. If you forget, other
-commands will detect it and remind you to do so if necessary.
-main.tftest.hcl... in progress
+	expected := `main.tftest.hcl... in progress
   run "setup"... pass
+
+
+
+Outputs:
+
+password = (sensitive value)
+
   run "test"... pass
 
-Warning: Sensitive metadata on variable lost
+# test_resource.resource:
+resource "test_resource" "resource" {
+    destroy_fail = false
+    id           = "9ddca5a9"
+    value        = (sensitive value)
+}
 
-  on main.tftest.hcl line 13, in run "test":
-  13:     password = run.setup.password
 
-The input variable is marked as sensitive, while the receiving configuration
-is not. The underlying sensitive information may be exposed when var.password
-is referenced. Mark the variable block in the configuration as sensitive to
-resolve this warning.
+Outputs:
+
+password = (sensitive value)
 
 main.tftest.hcl... tearing down
 main.tftest.hcl... pass
@@ -1914,58 +1958,29 @@ func TestTest_InvalidOverrides(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
+
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
 	c := &TestCommand{
 		Meta: meta,
 	}
 
 	code := c.Run([]string{"-no-color"})
-	output := done(t)
+	output = done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expected := `Initializing the backend...
-Initializing modules...
-- setup in setup
-- test.main.setup in setup
-Initializing provider plugins...
-- Finding latest version of hashicorp/test...
-- Installing hashicorp/test v1.0.0...
-- Installed hashicorp/test v1.0.0 (verified checksum)
-Terraform has created a lock file .terraform.lock.hcl to record the provider
-selections it made above. Include this file in your version control repository
-so that Terraform can guarantee to make the same selections by default when
-you run "terraform init" in the future.
-
-
-Warning: Incomplete lock file information for providers
-
-Due to your customized provider installation methods, Terraform was forced to
-calculate lock file checksums locally for the following providers:
-  - hashicorp/test
-
-The current .terraform.lock.hcl file only includes checksums for linux_amd64,
-so Terraform running on another platform will fail to install these
-providers.
-
-To calculate additional checksums for another platform, run:
-  terraform providers lock -platform=linux_amd64
-(where linux_amd64 is the platform to generate)
-Terraform has been successfully initialized!
-
-You may now begin working with Terraform. Try running "terraform plan" to see
-any changes that are required for your infrastructure. All Terraform commands
-should now work.
-
-If you ever set or change modules or backend configuration for Terraform,
-rerun this command to reinitialize your working directory. If you forget, other
-commands will detect it and remind you to do so if necessary.
-main.tftest.hcl... in progress
+	expected := `main.tftest.hcl... in progress
   run "setup"... pass
 
 Warning: Invalid override target
@@ -2044,57 +2059,29 @@ func TestTest_RunBlocksInProviders(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
+
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
 	test := &TestCommand{
 		Meta: meta,
 	}
 
 	code := test.Run([]string{"-no-color"})
-	output := done(t)
+	output = done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expected := `Initializing the backend...
-Initializing modules...
-- test.main.setup in setup
-Initializing provider plugins...
-- Finding latest version of hashicorp/test...
-- Installing hashicorp/test v1.0.0...
-- Installed hashicorp/test v1.0.0 (verified checksum)
-Terraform has created a lock file .terraform.lock.hcl to record the provider
-selections it made above. Include this file in your version control repository
-so that Terraform can guarantee to make the same selections by default when
-you run "terraform init" in the future.
-
-
-Warning: Incomplete lock file information for providers
-
-Due to your customized provider installation methods, Terraform was forced to
-calculate lock file checksums locally for the following providers:
-  - hashicorp/test
-
-The current .terraform.lock.hcl file only includes checksums for linux_amd64,
-so Terraform running on another platform will fail to install these
-providers.
-
-To calculate additional checksums for another platform, run:
-  terraform providers lock -platform=linux_amd64
-(where linux_amd64 is the platform to generate)
-Terraform has been successfully initialized!
-
-You may now begin working with Terraform. Try running "terraform plan" to see
-any changes that are required for your infrastructure. All Terraform commands
-should now work.
-
-If you ever set or change modules or backend configuration for Terraform,
-rerun this command to reinitialize your working directory. If you forget, other
-commands will detect it and remind you to do so if necessary.
-main.tftest.hcl... in progress
+	expected := `main.tftest.hcl... in progress
   run "setup"... pass
   run "main"... pass
 main.tftest.hcl... tearing down
@@ -2140,55 +2127,29 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
+
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
 	test := &TestCommand{
 		Meta: meta,
 	}
 
 	code := test.Run([]string{"-no-color"})
-	output := done(t)
+	output = done(t)
 
 	if code != 1 {
 		t.Errorf("expected status code 1 but got %d", code)
 	}
 
-	expectedOut := `Initializing the backend...
-Initializing provider plugins...
-- Finding latest version of hashicorp/test...
-- Installing hashicorp/test v1.0.0...
-- Installed hashicorp/test v1.0.0 (verified checksum)
-Terraform has created a lock file .terraform.lock.hcl to record the provider
-selections it made above. Include this file in your version control repository
-so that Terraform can guarantee to make the same selections by default when
-you run "terraform init" in the future.
-
-
-Warning: Incomplete lock file information for providers
-
-Due to your customized provider installation methods, Terraform was forced to
-calculate lock file checksums locally for the following providers:
-  - hashicorp/test
-
-The current .terraform.lock.hcl file only includes checksums for linux_amd64,
-so Terraform running on another platform will fail to install these
-providers.
-
-To calculate additional checksums for another platform, run:
-  terraform providers lock -platform=linux_amd64
-(where linux_amd64 is the platform to generate)
-Terraform has been successfully initialized!
-
-You may now begin working with Terraform. Try running "terraform plan" to see
-any changes that are required for your infrastructure. All Terraform commands
-should now work.
-
-If you ever set or change modules or backend configuration for Terraform,
-rerun this command to reinitialize your working directory. If you forget, other
-commands will detect it and remind you to do so if necessary.
-missing_run_block.tftest.hcl... in progress
+	expectedOut := `missing_run_block.tftest.hcl... in progress
   run "main"... fail
 missing_run_block.tftest.hcl... tearing down
 missing_run_block.tftest.hcl... fail
