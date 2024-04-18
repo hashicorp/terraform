@@ -10,6 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
@@ -42,8 +43,27 @@ type Plan struct {
 	// checked carefully against existing destroy behaviors.
 	UIMode Mode
 
-	VariableValues    map[string]DynamicValue
-	VariableMarks     map[string][]cty.PathValueMarks
+	// VariableValues, VariableMarks, and ApplyTimeVariables together describe
+	// how Terraform should decide the input variable values for the apply
+	// phase if this plan is to be applied.
+	//
+	// VariableValues and VariableMarks describe persisted (non-ephemeral)
+	// values that were set as part of the planning options and are to be
+	// re-used during the apply phase. VariableValues can potentially contain
+	// unknown values for a speculative plan, but the variable values must
+	// all be known for a plan that will subsequently be applied.
+	//
+	// ApplyTimeVariables retains the names of any ephemeral variables that were
+	// set (non-null) during the planning phase and must therefore be
+	// re-supplied by the caller (potentially with different values) during
+	// the apply phase. Ephemeral input variables are intended for populating
+	// arguments for other ephemeral objects in the configuration, such as
+	// provider configurations. Although the values for these variables can
+	// change between plan and apply, their "nullness" may not.
+	VariableValues     map[string]DynamicValue
+	VariableMarks      map[string][]cty.PathValueMarks
+	ApplyTimeVariables collections.Set[string]
+
 	Changes           *Changes
 	DriftedResources  []*ResourceInstanceChangeSrc
 	DeferredResources []*DeferredResourceInstanceChangeSrc
