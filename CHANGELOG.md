@@ -7,6 +7,7 @@ ENHANCEMENTS:
     If an entered line contains opening paretheses/etc that are not closed, Terraform will await another line of input to complete the expression. This initial implementation is primarily intended to support pasting in multi-line expressions from elsewhere, rather than for manual multi-line editing, so the interactive editing support is currently limited.
 * `cli`: Updates the Terraform CLI output to show logical separation between OPA and Sentinel policy evaluations
 * `terraform init` now accepts a `-json` option. If specified, enables the machine readable JSON output. ([#34886](https://github.com/hashicorp/terraform/pull/34886))
+* `terraform test:` The test framework will now maintain sensitive metadata between run blocks. ([#35021](https://github.com/hashicorp/terraform/pull/35021))
 
 BUG FIXES:
 
