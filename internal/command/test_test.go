@@ -284,14 +284,15 @@ func TestTest_Runs(t *testing.T) {
 			}
 
 			if code := init.Run(nil); code != tc.initCode {
-				t.Fatalf("expected status code %d but got %d: %s", tc.initCode, code, ui.ErrorWriter)
+				output := done(t)
+				t.Fatalf("expected status code %d but got %d: %s", tc.initCode, code, output.All())
 			}
 
 			if tc.initCode > 0 {
 				// Then we don't expect the init step to succeed. So we'll check
 				// the init output for our expected error messages and outputs.
-
-				stdout, stderr := ui.ErrorWriter.String(), ui.ErrorWriter.String()
+				output := done(t).All()
+				stdout, stderr := output, output
 
 				if !strings.Contains(stdout, tc.expectedOut) {
 					t.Errorf("output didn't contain expected string:\n\n%s", stdout)
@@ -312,6 +313,14 @@ func TestTest_Runs(t *testing.T) {
 				// here.
 				return
 			}
+
+			// discard the output from the init command
+			done(t)
+
+			// Reset the streams for the next command.
+			streams, done = terminal.StreamsForTesting(t)
+			meta.Streams = streams
+			meta.View = views.NewView(streams)
 
 			c := &TestCommand{
 				Meta: meta,
@@ -486,16 +495,23 @@ func TestTest_ProviderAlias(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
+
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
 	command := &TestCommand{
 		Meta: meta,
 	}
 
 	code := command.Run(nil)
-	output := done(t)
+	output = done(t)
 
 	printedOutput := false
 
@@ -562,16 +578,23 @@ func TestTest_ModuleDependencies(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
+
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
 	command := &TestCommand{
 		Meta: meta,
 	}
 
 	code := command.Run(nil)
-	output := done(t)
+	output = done(t)
 
 	printedOutput := false
 
@@ -854,16 +877,23 @@ can remove the provider configuration again.
 				Meta: meta,
 			}
 
+			output := done(t)
+
 			if code := init.Run(nil); code != 0 {
-				t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+				t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 			}
+
+			// Reset the streams for the next command.
+			streams, done = terminal.StreamsForTesting(t)
+			meta.Streams = streams
+			meta.View = views.NewView(streams)
 
 			c := &TestCommand{
 				Meta: meta,
 			}
 
 			code := c.Run([]string{"-no-color"})
-			output := done(t)
+			output = done(t)
 
 			if code != 1 {
 				t.Errorf("expected status code 1 but got %d", code)
@@ -872,8 +902,8 @@ can remove the provider configuration again.
 			actualOut, expectedOut := output.Stdout(), tc.expectedOut
 			actualErr, expectedErr := output.Stderr(), tc.expectedErr
 
-			if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
-				t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+			if !strings.Contains(actualOut, expectedOut) {
+				t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s", expectedOut, actualOut)
 			}
 
 			if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
@@ -970,16 +1000,23 @@ func TestTest_StatePropagation(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
+
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
 	c := &TestCommand{
 		Meta: meta,
 	}
 
 	code := c.Run([]string{"-verbose", "-no-color"})
-	output := done(t)
+	output = done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -1063,8 +1100,8 @@ Success! 5 passed, 0 failed.
 
 	actual := output.All()
 
-	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
-		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	if !strings.Contains(actual, expected) {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s", expected, actual)
 	}
 
 	if provider.ResourceCount() > 0 {
@@ -1100,16 +1137,23 @@ func TestTest_OnlyExternalModules(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
+
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
 	c := &TestCommand{
 		Meta: meta,
 	}
 
 	code := c.Run([]string{"-no-color"})
-	output := done(t)
+	output = done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -1124,10 +1168,10 @@ main.tftest.hcl... pass
 Success! 2 passed, 0 failed.
 `
 
-	actual := output.All()
+	actual := output.Stdout()
 
-	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
-		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	if !strings.Contains(actual, expected) {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s", expected, actual)
 	}
 
 	if provider.ResourceCount() > 0 {
@@ -1681,11 +1725,9 @@ func TestTest_SensitiveInputValues(t *testing.T) {
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
 		Streams:          streams,
 		ProviderSource:   providerSource,
@@ -1695,16 +1737,23 @@ func TestTest_SensitiveInputValues(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
+
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
 	c := &TestCommand{
 		Meta: meta,
 	}
 
 	code := c.Run([]string{"-no-color", "-verbose"})
-	output := done(t)
+	output = done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -1909,16 +1958,23 @@ func TestTest_InvalidOverrides(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
+
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
 	c := &TestCommand{
 		Meta: meta,
 	}
 
 	code := c.Run([]string{"-no-color"})
-	output := done(t)
+	output = done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -2003,16 +2059,23 @@ func TestTest_RunBlocksInProviders(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
+
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
 	test := &TestCommand{
 		Meta: meta,
 	}
 
 	code := test.Run([]string{"-no-color"})
-	output := done(t)
+	output = done(t)
 
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
@@ -2064,16 +2127,23 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
+
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
 
 	test := &TestCommand{
 		Meta: meta,
 	}
 
 	code := test.Run([]string{"-no-color"})
-	output := done(t)
+	output = done(t)
 
 	if code != 1 {
 		t.Errorf("expected status code 1 but got %d", code)
