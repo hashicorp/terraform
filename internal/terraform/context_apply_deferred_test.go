@@ -2403,7 +2403,16 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			}
 		},
 		ImportResourceStateFn: func(request providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
-			resp := providers.ImportResourceStateResponse{
+			if request.ID == "deferred" {
+				return providers.ImportResourceStateResponse{
+					ImportedResources: []providers.ImportedResource{},
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonAbsentPrereq,
+					},
+				}
+			}
+
+			return providers.ImportResourceStateResponse{
 				ImportedResources: []providers.ImportedResource{
 					{
 						TypeName: request.TypeName,
@@ -2415,13 +2424,6 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 					},
 				},
 			}
-			if request.ID == "deferred" {
-				resp.Deferred = &providers.Deferred{
-					Reason: providers.DeferredReasonAbsentPrereq,
-				}
-			}
-
-			return resp
 		},
 	}
 }
