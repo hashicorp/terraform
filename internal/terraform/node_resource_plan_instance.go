@@ -545,21 +545,31 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	}
 
 	imported := resp.ImportedResources
+	var importedState *states.ResourceInstanceObject
 
 	if len(imported) == 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Import returned no resources",
-			fmt.Sprintf("While attempting to import with ID %s, the provider"+
-				"returned no instance states.",
-				importId,
-			),
-		))
-		return nil, diags
+		if resp.Deferred == nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Import returned no resources",
+				fmt.Sprintf("While attempting to import with ID %s, the provider"+
+					"returned no instance states.",
+					importId,
+				),
+			))
+			return nil, diags
+		} else {
+			importedState = &states.ResourceInstanceObject{
+				Value: cty.NullVal(schema.ImpliedType()),
+			}
+		}
+	} else {
+		importedState = imported[0].AsInstanceObject()
 	}
 	for _, obj := range imported {
 		log.Printf("[TRACE] graphNodeImportState: import %s %q produced instance object of type %s", absAddr.String(), importId, obj.TypeName)
 	}
+
 	if len(imported) > 1 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -570,7 +580,6 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 				importId,
 			),
 		))
-		return nil, diags
 	}
 
 	// If the import was deferred we can't do more here
@@ -588,10 +597,6 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		})
 		return nil, diags
 	}
-
-	// We expect the import to return a single instance object,
-	// even when deferring the import.
-	importedState := imported[0].AsInstanceObject()
 
 	// We can only call the hooks and validate the imported state if we have
 	// actually done the import.
