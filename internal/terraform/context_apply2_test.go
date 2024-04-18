@@ -1336,7 +1336,6 @@ output "out" {
 
 	_, diags = ctx.Plan(m, state, opts)
 	assertNoErrors(t, diags)
-	return
 
 	otherProvider.ConfigureProviderCalled = false
 	otherProvider.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
@@ -2101,7 +2100,7 @@ resource "test_resource" "a" {
 
 import {
   to = test_resource.a
-  id = "importable" 
+  id = "importable"
 }
 `,
 	})
