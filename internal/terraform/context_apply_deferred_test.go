@@ -1627,7 +1627,8 @@ output "b" {
 				},
 				wantOutputs: map[string]cty.Value{
 					"a": cty.NullVal(cty.Object(map[string]cty.Type{
-						"name": cty.String,
+						"name":   cty.String,
+						"output": cty.String,
 					})),
 					"b": cty.NullVal(cty.DynamicPseudoType),
 				},
@@ -2311,6 +2312,10 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 								Type:     cty.String,
 								Required: true,
 							},
+							"output": {
+								Computed: true,
+								Type:     cty.String,
+							},
 						},
 					},
 				},
@@ -2340,7 +2345,10 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 				}
 			}
 			return providers.ReadDataSourceResponse{
-				State: req.Config,
+				State: cty.ObjectVal(map[string]cty.Value{
+					"name":   req.Config.GetAttr("name"),
+					"output": req.Config.GetAttr("name"),
+				}),
 			}
 		},
 		PlanResourceChangeFn: func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
