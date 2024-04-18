@@ -1703,7 +1703,7 @@ func TestTest_SensitiveInputValues(t *testing.T) {
 		Meta: meta,
 	}
 
-	code := c.Run([]string{"-no-color"})
+	code := c.Run([]string{"-no-color", "-verbose"})
 	output := done(t)
 
 	if code != 0 {
@@ -1712,17 +1712,26 @@ func TestTest_SensitiveInputValues(t *testing.T) {
 
 	expected := `main.tftest.hcl... in progress
   run "setup"... pass
+
+
+
+Outputs:
+
+password = (sensitive value)
+
   run "test"... pass
 
-Warning: Sensitive metadata on variable lost
+# test_resource.resource:
+resource "test_resource" "resource" {
+    destroy_fail = false
+    id           = "9ddca5a9"
+    value        = (sensitive value)
+}
 
-  on main.tftest.hcl line 13, in run "test":
-  13:     password = run.setup.password
 
-The input variable is marked as sensitive, while the receiving configuration
-is not. The underlying sensitive information may be exposed when var.password
-is referenced. Mark the variable block in the configuration as sensitive to
-resolve this warning.
+Outputs:
+
+password = (sensitive value)
 
 main.tftest.hcl... tearing down
 main.tftest.hcl... pass
