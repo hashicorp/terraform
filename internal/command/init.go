@@ -5,7 +5,6 @@ package command
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -368,9 +367,16 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 
 	// mdTODO: need to build the actual warning from the deprecations returned here, ¡designs pending!
 	installAbort, installDiags, moduleDeprecations := c.installModules(ctx, path, testsDir, upgrade, false, hooks)
-	jsonBytes, _ := json.MarshalIndent(moduleDeprecations, "", "  ")
-	log.Printf("[INFO] module deprecation: %s", string(jsonBytes))
 	diags = diags.Append(installDiags)
+	workspaceDeprecations := &configs.WorkspaceDeprecations{
+		ModuleDeprecationInfos: moduleDeprecations,
+	}
+	deprecationString := workspaceDeprecations.BuildDeprecationWarningString()
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Warning,
+		"Deprecated module versions found, consider installing updated versions",
+		deprecationString,
+	))
 
 	// At this point, installModules may have generated error diags or been
 	// aborted by SIGINT. In any case we continue and the manifest as best

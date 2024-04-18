@@ -328,7 +328,11 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 				mod, mDiags := i.installLocalModule(req, key, manifest, hooks)
 				mDiags = maybeImproveLocalInstallError(req, mDiags)
 				diags = append(diags, mDiags...)
-				return mod, nil, diags, nil
+				return mod, nil, diags, &configs.ModuleDeprecationInfo{
+					SourceName:           req.Name,
+					RegistryDeprecation:  nil,
+					ExternalDependencies: []*configs.ModuleDeprecationInfo{},
+				}
 
 			case addrs.ModuleSourceRegistry:
 				log.Printf("[TRACE] ModuleInstaller: %s is a registry module at %s", key, addr.String())
@@ -340,7 +344,11 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 				log.Printf("[TRACE] ModuleInstaller: %s address %q will be handled by go-getter", key, addr.String())
 				mod, mDiags := i.installGoGetterModule(ctx, req, key, instPath, manifest, hooks, fetcher)
 				diags = append(diags, mDiags...)
-				return mod, nil, diags, nil
+				return mod, nil, diags, &configs.ModuleDeprecationInfo{
+					SourceName:           req.Name,
+					RegistryDeprecation:  nil,
+					ExternalDependencies: []*configs.ModuleDeprecationInfo{},
+				}
 
 			default:
 				// Shouldn't get here, because there are no other implementations
@@ -635,7 +643,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 		return nil, nil, diags, nil
 	}
 
-	modDeprecation := collectModuleDeprecationWarnings(moduleVersionsMap[latestMatch.Original()], req.CallRange.Ptr(), req.Name)
+	modDeprecation := collectModuleDeprecationWarnings(moduleVersionsMap[latestMatch.Original()], req.Name, latestMatch)
 
 	// Report up to the caller that we're about to start downloading.
 	hooks.Download(key, packageAddr.String(), latestMatch)
@@ -988,15 +996,14 @@ func maybeImproveLocalInstallError(req *configs.ModuleRequest, diags hcl.Diagnos
 	return diags
 }
 
-func collectModuleDeprecationWarnings(moduleVersion *response.ModuleVersion, subject *hcl.Range, sourceName string) *configs.ModuleDeprecationInfo {
+func collectModuleDeprecationWarnings(moduleVersion *response.ModuleVersion, sourceName string, version *version.Version) *configs.ModuleDeprecationInfo {
 	var registryModDeprecation *configs.RegistryModuleDeprecation
 
 	// mdTODO: don't like this nil check, maybe handle a nil moduleVersion before this function call instead?
 	if moduleVersion != nil && moduleVersion.Deprecation.Deprecated {
 		registryModDeprecation = &configs.RegistryModuleDeprecation{
-			Subject:      subject,
 			ExternalLink: moduleVersion.Deprecation.ExternalLink,
-			Message:      moduleVersion.Deprecation.Message,
+			Version:      version.Original(),
 		}
 	}
 	return &configs.ModuleDeprecationInfo{

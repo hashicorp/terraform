@@ -215,16 +215,8 @@ func loadModule(root *Config, req *ModuleRequest, walker ModuleWalker) (*Config,
 
 	cfg.Children, modDiags, childModDeprecations = buildChildModules(cfg, walker)
 	diags = append(diags, modDiags...)
-	// mdTODO: Should we return something from the non registry module install methods? Might be more sensable there rather than here.
-	// if the module is not a registry module we won't have a parent ModuleDeprecationInfo to attach any registry modules it has as external dependencies
-	if _, isRegistryModule := req.SourceAddr.(addrs.ModuleSourceRegistry); !isRegistryModule {
-		modDeprecation = &ModuleDeprecationInfo{
-			SourceName:           req.Name,
-			RegistryDeprecation:  nil,
-			ExternalDependencies: []*ModuleDeprecationInfo{},
-		}
-	}
 	// mdTODO: better error handling here, think of some more ways this can break
+	// Child deprecations can surely be nil, but theorectically modDeprecation can never be.
 	if modDeprecation != nil && childModDeprecations != nil {
 		modDeprecation.ExternalDependencies = childModDeprecations
 	}
@@ -270,17 +262,7 @@ func rebaseChildModule(cfg *Config, root *Config) {
 	cfg.Root = root
 }
 
-type ModuleDeprecationInfo struct {
-	SourceName           string
-	RegistryDeprecation  *RegistryModuleDeprecation
-	ExternalDependencies []*ModuleDeprecationInfo
-}
-
-type RegistryModuleDeprecation struct {
-	Subject      *hcl.Range
-	Message      string
-	ExternalLink string
-}
+// refactor this into it's own file, doesn't make sense to place this here
 
 // A ModuleWalker knows how to find and load a child module given details about
 // the module to be loaded and a reference to its partially-loaded parent
