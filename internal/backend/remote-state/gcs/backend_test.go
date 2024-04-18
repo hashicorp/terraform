@@ -243,7 +243,10 @@ func TestAccRemoteClient(t *testing.T) {
 	t.Parallel()
 
 	bucket := bucketName(t)
-	be := setupBackend(t, bucket, noPrefix, noEncryptionKey, noKmsKeyName)
+	config := map[string]interface{}{
+		"bucket": bucket,
+	}
+	be := setupBackend(t, config)
 	defer teardownBackend(t, be, noPrefix)
 
 	ss, err := be.StateMgr(backend.DefaultStateName)
@@ -264,7 +267,11 @@ func TestAccRemoteClientWithEncryption(t *testing.T) {
 	t.Parallel()
 
 	bucket := bucketName(t)
-	be := setupBackend(t, bucket, noPrefix, encryptionKey, noKmsKeyName)
+	config := map[string]interface{}{
+		"bucket":         bucket,
+		"encryption_key": encryptionKey,
+	}
+	be := setupBackend(t, config)
 	defer teardownBackend(t, be, noPrefix)
 
 	ss, err := be.StateMgr(backend.DefaultStateName)
@@ -285,7 +292,10 @@ func TestAccRemoteLocks(t *testing.T) {
 	t.Parallel()
 
 	bucket := bucketName(t)
-	be := setupBackend(t, bucket, noPrefix, noEncryptionKey, noKmsKeyName)
+	config := map[string]interface{}{
+		"bucket": bucket,
+	}
+	be := setupBackend(t, config)
 	defer teardownBackend(t, be, noPrefix)
 
 	remoteClient := func() (remote.Client, error) {
@@ -320,10 +330,13 @@ func TestAccBackend(t *testing.T) {
 
 	bucket := bucketName(t)
 
-	be0 := setupBackend(t, bucket, noPrefix, noEncryptionKey, noKmsKeyName)
+	config := map[string]interface{}{
+		"bucket": bucket,
+	}
+	be0 := setupBackend(t, config)
 	defer teardownBackend(t, be0, noPrefix)
 
-	be1 := setupBackend(t, bucket, noPrefix, noEncryptionKey, noKmsKeyName)
+	be1 := setupBackend(t, config)
 
 	backend.TestBackendStates(t, be0)
 	backend.TestBackendStateLocks(t, be0, be1)
@@ -337,10 +350,16 @@ func TestAccBackendWithPrefix(t *testing.T) {
 	prefix := "test/prefix"
 	bucket := bucketName(t)
 
-	be0 := setupBackend(t, bucket, prefix, noEncryptionKey, noKmsKeyName)
+	config := map[string]interface{}{
+		"bucket":         bucket,
+		"prefix":         prefix,
+		"encryption_key": encryptionKey,
+	}
+	be0 := setupBackend(t, config)
 	defer teardownBackend(t, be0, prefix)
 
-	be1 := setupBackend(t, bucket, prefix+"/", noEncryptionKey, noKmsKeyName)
+	config["prefix"] = prefix + "/"
+	be1 := setupBackend(t, config)
 
 	backend.TestBackendStates(t, be0)
 	backend.TestBackendStateLocks(t, be0, be1)
@@ -352,10 +371,14 @@ func TestAccBackendWithCustomerSuppliedEncryption(t *testing.T) {
 
 	bucket := bucketName(t)
 
-	be0 := setupBackend(t, bucket, noPrefix, encryptionKey, noKmsKeyName)
+	config := map[string]interface{}{
+		"bucket":         bucket,
+		"encryption_key": encryptionKey,
+	}
+	be0 := setupBackend(t, config)
 	defer teardownBackend(t, be0, noPrefix)
 
-	be1 := setupBackend(t, bucket, noPrefix, encryptionKey, noKmsKeyName)
+	be1 := setupBackend(t, config)
 
 	backend.TestBackendStates(t, be0)
 	backend.TestBackendStateLocks(t, be0, be1)
@@ -378,10 +401,16 @@ func TestAccBackendWithCustomerManagedKMSEncryption(t *testing.T) {
 
 	kmsName := setupKmsKey(t, kmsDetails)
 
-	be0 := setupBackend(t, bucket, noPrefix, noEncryptionKey, kmsName)
+	config := map[string]interface{}{
+		"bucket":             bucket,
+		"prefix":             noPrefix,
+		"kms_encryption_key": kmsName,
+	}
+
+	be0 := setupBackend(t, config)
 	defer teardownBackend(t, be0, noPrefix)
 
-	be1 := setupBackend(t, bucket, noPrefix, noEncryptionKey, kmsName)
+	be1 := setupBackend(t, config)
 
 	backend.TestBackendStates(t, be0)
 	backend.TestBackendStateLocks(t, be0, be1)
@@ -438,7 +467,7 @@ func TestBackendEncryptionKeyEmptyConflict(t *testing.T) {
 }
 
 // setupBackend returns a new GCS backend.
-func setupBackend(t *testing.T, bucket, prefix, key, kmsName string) backend.Backend {
+func setupBackend(t *testing.T, config map[string]interface{}) backend.Backend {
 	t.Helper()
 	ctx := context.Background()
 
@@ -449,24 +478,11 @@ func setupBackend(t *testing.T, bucket, prefix, key, kmsName string) backend.Bac
 			"the TF_ACC and GOOGLE_PROJECT environment variables are set.")
 	}
 
-	config := map[string]interface{}{
-		"bucket": bucket,
-		"prefix": prefix,
-	}
-	// Only add encryption keys to config if non-zero value set
-	// If not set here, default values are supplied in `TestBackendConfig` by `PrepareConfig` function call
-	if len(key) > 0 {
-		config["encryption_key"] = key
-	}
-	if len(kmsName) > 0 {
-		config["kms_encryption_key"] = kmsName
-	}
-
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config))
 	be := b.(*Backend)
 
 	// create the bucket if it doesn't exist
-	bkt := be.storageClient.Bucket(bucket)
+	bkt := be.storageClient.Bucket(config["bucket"].(string))
 	_, err := bkt.Attrs(ctx)
 	if err != nil {
 		if err != storage.ErrBucketNotExist {
