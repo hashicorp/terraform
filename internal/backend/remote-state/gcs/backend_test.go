@@ -5,10 +5,12 @@ package gcs
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -31,6 +33,7 @@ const (
 
 // See https://cloud.google.com/storage/docs/using-encryption-keys#generating_your_own_encryption_key
 const encryptionKey = "yRyCOikXi1ZDNE0xN3yiFsJjg7LGimoLrGFcLZgQoVk="
+const encryptionKey2 = "cRKXxV+HVAITvGlqxLJL8hZ95VTFHT2djkoRQjBpQls="
 
 // KMS key ring name and key name are hardcoded here and re-used because key rings (and keys) cannot be deleted
 // Test code asserts their presence and creates them if they're absent. They're not deleted at the end of tests.
@@ -48,6 +51,163 @@ func preCheckTestAcc(t *testing.T) {
 		t.Fatalf("TF_ACC must be set to run acceptance tests, as they provision real resources")
 	}
 }
+
+func TestBackendConfig_encryptionKey(t *testing.T) {
+
+	getWantValue := func(key string) []byte {
+		var want []byte
+		if key == "" {
+			want = nil
+		}
+		if key != "" {
+			var err error
+			want, err = base64.StdEncoding.DecodeString(key)
+			if err != nil {
+				t.Fatalf("error in test setup: %s", err.Error())
+			}
+		}
+		return want
+	}
+
+	cases := map[string]struct {
+		config map[string]interface{}
+		envs   map[string]string
+		want   []byte
+	}{
+		"unset in config and ENVs": {
+			config: map[string]interface{}{
+				"bucket": "foobar",
+			},
+			want: getWantValue(""),
+		},
+
+		"set in config only": {
+			config: map[string]interface{}{
+				"bucket":         "foobar",
+				"encryption_key": encryptionKey,
+			},
+			want: getWantValue(encryptionKey),
+		},
+
+		"set in config and GOOGLE_ENCRYPTION_KEY": {
+			config: map[string]interface{}{
+				"bucket":         "foobar",
+				"encryption_key": encryptionKey,
+			},
+			envs: map[string]string{
+				"GOOGLE_ENCRYPTION_KEY": encryptionKey2, // Different
+			},
+			want: getWantValue(encryptionKey),
+		},
+
+		"set in GOOGLE_ENCRYPTION_KEY only": {
+			config: map[string]interface{}{
+				"bucket": "foobar",
+			},
+			envs: map[string]string{
+				"GOOGLE_ENCRYPTION_KEY": encryptionKey2,
+			},
+			want: getWantValue(encryptionKey2),
+		},
+
+		"set in config as empty string and in GOOGLE_ENCRYPTION_KEY": {
+			config: map[string]interface{}{
+				"bucket":         "foobar",
+				"encryption_key": "",
+			},
+			envs: map[string]string{
+				"GOOGLE_ENCRYPTION_KEY": encryptionKey2,
+			},
+			want: getWantValue(encryptionKey2),
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			for k, v := range tc.envs {
+				t.Setenv(k, v)
+			}
+
+			b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(tc.config))
+			be := b.(*Backend)
+
+			if !reflect.DeepEqual(be.encryptionKey, tc.want) {
+				t.Fatalf("unexpected encryption_key value: wanted %v, got %v", tc.want, be.encryptionKey)
+			}
+		})
+	}
+}
+
+func TestBackendConfig_kmsKey(t *testing.T) {
+
+	cases := map[string]struct {
+		config map[string]interface{}
+		envs   map[string]string
+		want   string
+	}{
+		"unset in config and ENVs": {
+			config: map[string]interface{}{
+				"bucket": "foobar",
+			},
+		},
+
+		"set in config only": {
+			config: map[string]interface{}{
+				"bucket":             "foobar",
+				"kms_encryption_key": "value from config",
+			},
+			want: "value from config",
+		},
+
+		"set in config and GOOGLE_KMS_ENCRYPTION_KEY": {
+			config: map[string]interface{}{
+				"bucket":             "foobar",
+				"kms_encryption_key": "value from config",
+			},
+			envs: map[string]string{
+				"GOOGLE_KMS_ENCRYPTION_KEY": "value from GOOGLE_KMS_ENCRYPTION_KEY",
+			},
+			want: "value from config",
+		},
+
+		"set in GOOGLE_KMS_ENCRYPTION_KEY only": {
+			config: map[string]interface{}{
+				"bucket": "foobar",
+			},
+			envs: map[string]string{
+				"GOOGLE_KMS_ENCRYPTION_KEY": "value from GOOGLE_KMS_ENCRYPTION_KEY",
+			},
+			want: "value from GOOGLE_KMS_ENCRYPTION_KEY",
+		},
+
+		"set in config as empty string and in GOOGLE_KMS_ENCRYPTION_KEY": {
+			config: map[string]interface{}{
+				"bucket":             "foobar",
+				"kms_encryption_key": "",
+			},
+			envs: map[string]string{
+				"GOOGLE_KMS_ENCRYPTION_KEY": "value from GOOGLE_KMS_ENCRYPTION_KEY",
+			},
+			want: "value from GOOGLE_KMS_ENCRYPTION_KEY",
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			for k, v := range tc.envs {
+				t.Setenv(k, v)
+			}
+
+			b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(tc.config))
+			be := b.(*Backend)
+
+			if be.kmsKeyName != tc.want {
+				t.Fatalf("unexpected kms_encryption_key value: wanted %v, got %v", tc.want, be.kmsKeyName)
+			}
+		})
+	}
+}
+
 
 func TestStateFile(t *testing.T) {
 	t.Parallel()
