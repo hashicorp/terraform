@@ -208,6 +208,74 @@ func TestBackendConfig_kmsKey(t *testing.T) {
 	}
 }
 
+func TestAccBackendConfig_credentials(t *testing.T) {
+	preCheckTestAcc(t)
+	// Cannot use t.Parallel() due to t.Setenv
+
+	credentials := os.Getenv("GOOGLE_BACKEND_CREDENTIALS")
+	if credentials == "" {
+		credentials = os.Getenv("GOOGLE_CREDENTIALS")
+	}
+	if credentials == "" {
+		t.Fatalf("test requires credentials to be set as either GOOGLE_BACKEND_CREDENTIALS or GOOGLE_CREDENTIALS but neither is set")
+	}
+
+	t.Setenv("GOOGLE_BACKEND_CREDENTIALS", "") // unset value
+	t.Setenv("GOOGLE_CREDENTIALS", "")         // unset value
+
+	cases := map[string]struct {
+		config map[string]interface{}
+		envs   map[string]string
+		want   string
+	}{
+		"empty credentials in config doesn't affect use of GOOGLE_BACKEND_CREDENTIALS": {
+			config: map[string]interface{}{
+				"bucket":      "tf-test-testaccbackendconfig_credentials_1",
+				"credentials": "",
+			},
+			envs: map[string]string{
+				"GOOGLE_BACKEND_CREDENTIALS": credentials,
+			},
+		},
+		"empty credentials in config doesn't affect use of GOOGLE_CREDENTIALS": {
+			config: map[string]interface{}{
+				"bucket":      "tf-test-testaccbackendconfig_credentials_2",
+				"credentials": "",
+			},
+			envs: map[string]string{
+				"GOOGLE_CREDENTIALS": credentials,
+			},
+		},
+		// Uncomment below for sanity checking
+		// Testing with TestBackendConfig currently doesn't let us assert for errors, so instead
+		// run the below and expect it to fail.
+		// "nonsense in config causes an error and GOOGLE_CREDENTIALS isn't used": {
+		// 	config: map[string]interface{}{
+		// 		"bucket":      "tf-test-testaccbackendconfig_credentials_3",
+		// 		"credentials": "foobar",
+		// 	},
+		// 	envs: map[string]string{
+		// 		"GOOGLE_CREDENTIALS": credentials,
+		// 	},
+		// },
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			for k, v := range tc.envs {
+				t.Setenv(k, v)
+			}
+
+			be0 := setupBackend(t, tc.config)
+			defer teardownBackend(t, be0, noPrefix)
+
+			be1 := setupBackend(t, tc.config)
+
+			backend.TestBackendStates(t, be0)
+			backend.TestBackendStateLocks(t, be0, be1)
+		})
+	}
+
+}
 
 func TestStateFile(t *testing.T) {
 	t.Parallel()
