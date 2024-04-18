@@ -82,6 +82,188 @@ var (
 	// We build some fairly complex configurations here, so we'll use separate
 	// variables for each one outside of the test function itself for clarity.
 
+	// dataForEachTest is a test for deferral of data sources due to unknown
+	// for_each values. Since data sources don't result in planned changes,
+	// deferral has to be observed indirectly by checking for deferral of
+	// downstream objects that would otherwise have no reason to be deferred.
+	dataForEachTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "each" {
+	type = set(string)
+}
+
+data "test" "a" {
+	for_each = var.each
+
+	name = "a:${each.key}"
+}
+
+resource "test" "b" {
+	name = "b"
+	upstream_names = [for v in data.test.a : v.name]
+}
+
+output "from_data" {
+	value = [for v in data.test.a : v.output]
+}
+
+output "from_resource" {
+	value = test.b.output
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			// Stage 0. Unknown for_each in data source. The resource and
+			// outputs get transitively deferred.
+			{
+				inputs: map[string]cty.Value{
+					"each": cty.DynamicVal,
+				},
+				wantPlanned: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.UnknownVal(cty.String),
+						"upstream_names": cty.UnknownVal(cty.Set(cty.String)),
+					}),
+				},
+				wantActions: map[string]plans.Action{},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.b": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+				},
+				wantApplied: map[string]cty.Value{},
+				// TODO: These deferred output values are wrong, but outputs are a separate ticket.
+				wantOutputs: map[string]cty.Value{
+					"from_data":     cty.EmptyTupleVal,
+					"from_resource": cty.NullVal(cty.DynamicPseudoType),
+				},
+				complete:      false,
+				allowWarnings: false,
+			},
+			// Stage 1. Everything's known now, so it converges.
+			{
+				inputs: map[string]cty.Value{
+					"each": cty.SetVal([]cty.Value{cty.StringVal("hey"), cty.StringVal("ho"), cty.StringVal("let's go")}),
+				},
+				wantPlanned: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.UnknownVal(cty.String),
+						"upstream_names": cty.SetVal([]cty.Value{cty.StringVal("a:hey"), cty.StringVal("a:ho"), cty.StringVal("a:let's go")}),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.b": plans.Create,
+				},
+				wantDeferred: map[string]ExpectedDeferred{},
+				wantApplied: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.StringVal("b"),
+						"upstream_names": cty.SetVal([]cty.Value{cty.StringVal("a:hey"), cty.StringVal("a:ho"), cty.StringVal("a:let's go")}),
+					}),
+				},
+				wantOutputs: map[string]cty.Value{
+					"from_data":     cty.TupleVal([]cty.Value{cty.StringVal("a:hey"), cty.StringVal("a:ho"), cty.StringVal("a:let's go")}),
+					"from_resource": cty.StringVal("b"),
+				},
+				complete:      true,
+				allowWarnings: false,
+			},
+		},
+	}
+
+	// dataCountTest is a test for deferral of data sources due to unknown
+	// count values. Since data sources don't result in planned changes,
+	// deferral has to be observed indirectly by checking for deferral of
+	// downstream objects that would otherwise have no reason to be deferred.
+	dataCountTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "data_count" {
+	type = number
+}
+
+data "test" "a" {
+	count = var.data_count
+
+	name = "a:${count.index}"
+}
+
+resource "test" "b" {
+	name = "b"
+	upstream_names = [for v in data.test.a : v.name]
+}
+
+output "from_data" {
+	value = [for v in data.test.a : v.output]
+}
+
+output "from_resource" {
+	value = test.b.output
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			// Stage 0. Unknown count in data source. The resource and
+			// outputs get transitively deferred.
+			{
+				inputs: map[string]cty.Value{
+					"data_count": cty.DynamicVal,
+				},
+				wantPlanned: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.UnknownVal(cty.String),
+						"upstream_names": cty.UnknownVal(cty.Set(cty.String)),
+					}),
+				},
+				wantActions: map[string]plans.Action{},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.b": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+				},
+				wantApplied: map[string]cty.Value{},
+				// TODO: These deferred output values are wrong, but outputs are a separate ticket.
+				wantOutputs: map[string]cty.Value{
+					"from_data":     cty.EmptyTupleVal,
+					"from_resource": cty.NullVal(cty.DynamicPseudoType),
+				},
+				complete:      false,
+				allowWarnings: false,
+			},
+			// Stage 1. Everything's known now, so it converges.
+			{
+				inputs: map[string]cty.Value{
+					"data_count": cty.NumberIntVal(3),
+				},
+				wantPlanned: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.UnknownVal(cty.String),
+						"upstream_names": cty.SetVal([]cty.Value{cty.StringVal("a:0"), cty.StringVal("a:1"), cty.StringVal("a:2")}),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.b": plans.Create,
+				},
+				wantDeferred: map[string]ExpectedDeferred{},
+				wantApplied: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.StringVal("b"),
+						"upstream_names": cty.SetVal([]cty.Value{cty.StringVal("a:0"), cty.StringVal("a:1"), cty.StringVal("a:2")}),
+					}),
+				},
+				wantOutputs: map[string]cty.Value{
+					"from_data":     cty.TupleVal([]cty.Value{cty.StringVal("a:0"), cty.StringVal("a:1"), cty.StringVal("a:2")}),
+					"from_resource": cty.StringVal("b"),
+				},
+				complete:      true,
+				allowWarnings: false,
+			},
+		},
+	}
+
 	// resourceForEachTest is a test that exercises the deferred actions
 	// mechanism with a configuration that has a resource with an unknown
 	// for_each attribute.
@@ -2101,6 +2283,8 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"custom_conditions_with_orphans":                    customConditionsWithOrphansTest,
 		"resource_read":                                     resourceReadTest,
 		"data_read":                                         readDataSourceTest,
+		"data_for_each":                                     dataForEachTest,
+		"data_count":                                        dataCountTest,
 		"plan_create_resource_change":                       planCreateResourceChange,
 		"plan_update_resource_change":                       planUpdateResourceChange,
 		"plan_noop_resource_change":                         planNoOpResourceChange,
