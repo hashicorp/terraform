@@ -43,6 +43,12 @@ const (
 
 var keyRingLocation = os.Getenv("GOOGLE_REGION")
 
+func preCheckTestAcc(t *testing.T) {
+	if v := os.Getenv("TF_ACC"); v == "" {
+		t.Fatalf("TF_ACC must be set to run acceptance tests, as they provision real resources")
+	}
+}
+
 func TestStateFile(t *testing.T) {
 	t.Parallel()
 
@@ -72,7 +78,8 @@ func TestStateFile(t *testing.T) {
 	}
 }
 
-func TestRemoteClient(t *testing.T) {
+func TestAccRemoteClient(t *testing.T) {
+	preCheckTestAcc(t)
 	t.Parallel()
 
 	bucket := bucketName(t)
@@ -91,7 +98,9 @@ func TestRemoteClient(t *testing.T) {
 
 	remote.TestClient(t, rs.Client)
 }
-func TestRemoteClientWithEncryption(t *testing.T) {
+
+func TestAccRemoteClientWithEncryption(t *testing.T) {
+	preCheckTestAcc(t)
 	t.Parallel()
 
 	bucket := bucketName(t)
@@ -111,7 +120,8 @@ func TestRemoteClientWithEncryption(t *testing.T) {
 	remote.TestClient(t, rs.Client)
 }
 
-func TestRemoteLocks(t *testing.T) {
+func TestAccRemoteLocks(t *testing.T) {
+	preCheckTestAcc(t)
 	t.Parallel()
 
 	bucket := bucketName(t)
@@ -144,7 +154,8 @@ func TestRemoteLocks(t *testing.T) {
 	remote.TestRemoteLocks(t, c0, c1)
 }
 
-func TestBackend(t *testing.T) {
+func TestAccBackend(t *testing.T) {
+	preCheckTestAcc(t)
 	t.Parallel()
 
 	bucket := bucketName(t)
@@ -159,7 +170,8 @@ func TestBackend(t *testing.T) {
 	backend.TestBackendStateForceUnlock(t, be0, be1)
 }
 
-func TestBackendWithPrefix(t *testing.T) {
+func TestAccBackendWithPrefix(t *testing.T) {
+	preCheckTestAcc(t)
 	t.Parallel()
 
 	prefix := "test/prefix"
@@ -173,7 +185,9 @@ func TestBackendWithPrefix(t *testing.T) {
 	backend.TestBackendStates(t, be0)
 	backend.TestBackendStateLocks(t, be0, be1)
 }
-func TestBackendWithCustomerSuppliedEncryption(t *testing.T) {
+
+func TestAccBackendWithCustomerSuppliedEncryption(t *testing.T) {
+	preCheckTestAcc(t)
 	t.Parallel()
 
 	bucket := bucketName(t)
@@ -187,7 +201,8 @@ func TestBackendWithCustomerSuppliedEncryption(t *testing.T) {
 	backend.TestBackendStateLocks(t, be0, be1)
 }
 
-func TestBackendWithCustomerManagedKMSEncryption(t *testing.T) {
+func TestAccBackendWithCustomerManagedKMSEncryption(t *testing.T) {
+	preCheckTestAcc(t)
 	t.Parallel()
 
 	projectID := os.Getenv("GOOGLE_PROJECT")
