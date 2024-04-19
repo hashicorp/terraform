@@ -933,7 +933,7 @@
     "title": "Terraform Settings",
     "routes": [
       { "title": "Overview", "path": "settings" },
-      { "title": "HCP Terraform", "path": "settings/settings/cloud" },
+      { "title": "HCP Terraform", "path": "settings/cloud" },
       {
         "title": "Backends",
         "routes": [
