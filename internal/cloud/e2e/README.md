@@ -10,7 +10,7 @@ Required flags
   external network calls. This is needed to run these tests. Without it, the
   tests do not run.
 * `TFE_TOKEN=<admin token>` and `TFE_HOSTNAME=<hostname>`. The helpers
-for these tests require admin access to a HCP Terraform/TFE instance.
+for these tests require admin access to an HCP Terraform/TFE instance.
 * `-timeout=30m`. Some of these tests take longer than the default 10m timeout for `go test`.
 
 ### Flags
