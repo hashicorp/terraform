@@ -148,6 +148,19 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 			fmt.Errorf("can't set both encryption_key and kms_encryption_key"),
 		)
 	}
+	// The above catches the main case where both of the arguments are set to
+	// a non-empty value, but we also want to reject the situation where
+	// both are present in the configuration regardless of what values were
+	// assigned to them. (This check doesn't take the environment variables
+	// into account, so must allow neither to be set in the main configuration.)
+	if !(configVal.GetAttr("encryption_key").IsNull() || configVal.GetAttr("kms_encryption_key").IsNull()) {
+		// This rejects a configuration like:
+		//     encryption_key     = ""
+		//     kms_encryption_key = ""
+		return backendbase.ErrorAsDiagnostics(
+			fmt.Errorf("can't set both encryption_key and kms_encryption_key"),
+		)
+	}
 
 	b.bucketName = data.String("bucket")
 	b.prefix = strings.TrimLeft(data.String("prefix"), "/")
