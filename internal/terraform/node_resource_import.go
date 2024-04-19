@@ -245,6 +245,7 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 			fmt.Sprintf(
 				"While attempting to import an existing object to %q, "+
 					"the provider deferred reading the resource. "+
+					"This is a bug in the provider since deferrals are not supported when importing through the CLI, please file an issue."+
 					"Please either use an import block for importing this resource "+
 					"or remove the to be imported resource from your configuration, "+
 					"apply the configuration using \"terraform apply\", "+
