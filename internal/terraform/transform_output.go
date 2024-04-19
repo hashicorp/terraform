@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 )
 
 // OutputTransformer is a GraphTransformer that adds all the outputs
@@ -30,6 +31,10 @@ type OutputTransformer struct {
 	// If this is a planned destroy, root outputs are still in the configuration
 	// so we need to record that we wish to remove them.
 	Destroying bool
+
+	// Overrides supplies the values for any output variables that should be
+	// overridden by the testing framework.
+	Overrides *mocking.Overrides
 }
 
 func (t *OutputTransformer) Transform(g *Graph) error {
@@ -61,6 +66,7 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 			Destroying:  t.Destroying,
 			RefreshOnly: t.RefreshOnly,
 			Planning:    t.Planning,
+			Overrides:   t.Overrides,
 		}
 
 		log.Printf("[TRACE] OutputTransformer: adding %s as %T", o.Name, node)
