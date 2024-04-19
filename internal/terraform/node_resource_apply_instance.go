@@ -275,10 +275,19 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, _, repeatData, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
+	diffApply, _, deferred, repeatData, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
+	}
+
+	if deferred != nil {
+		// This should never happen, it means the provider didn't defer the
+		// resource during the actual plan but then did when we tried to apply
+		// it. This is a bug in the provider.
+		// TODO: Return a nice diagnostic for this, asking the user to file a
+		// bug with the provider.
+		panic("provider deferred resource during apply")
 	}
 
 	// Compare the diffs
