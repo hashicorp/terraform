@@ -69,19 +69,15 @@ func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPha
 	case ty.IsObjectType() || ty.IsMapType():
 		// okay
 
-	case !result.Value.IsKnown():
-		// we can't validate further without knowing the value
-		return result, diags
-
 	case ty.IsSetType():
-		if markSafeLengthInt(result.Value) == 0 {
-			// we are okay with an empty set
-			return result, diags
-		}
-
 		// since we can't use a set values that are unknown, we treat the
 		// entire set as unknown
 		if !result.Value.IsWhollyKnown() {
+			return result, diags
+		}
+
+		if markSafeLengthInt(result.Value) == 0 {
+			// we are okay with an empty set
 			return result, diags
 		}
 

@@ -1705,9 +1705,9 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 	}
 }
 
-func TestPlanWithDeferredComponentForEachDueToParentComponentOutput(t *testing.T) {
+func TestPlanWithDeferredComponentForEachOfInvalidType(t *testing.T) {
 	ctx := context.Background()
-	cfg := loadMainBundleConfigForTest(t, "deferred-component-for-each-from-component")
+	cfg := loadMainBundleConfigForTest(t, "deferred-component-for-each-from-component-of-invalid-type")
 
 	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
 	if err != nil {
@@ -1738,133 +1738,26 @@ func TestPlanWithDeferredComponentForEachDueToParentComponentOutput(t *testing.T
 		Diagnostics:    diagsCh,
 	}
 	go Plan(ctx, &req, &resp)
-	gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+	_, diags := collectPlanOutput(changesCh, diagsCh)
 
-	reportDiagnosticsForTest(t, diags)
-	if len(diags) != 0 {
-		t.FailNow() // We reported the diags above/
+	if len(diags) != 1 {
+		t.Fatalf("expected 1 diagnostic, got %d: %s", len(diags), diags)
 	}
 
-	sort.SliceStable(gotChanges, func(i, j int) bool {
-		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
-	})
-
-	wantChanges := []stackplan.PlannedChange{
-		&stackplan.PlannedChangeApplyable{
-			Applyable: true,
-		},
-		&stackplan.PlannedChangeComponentInstance{
-			Addr: stackaddrs.Absolute(
-				stackaddrs.RootStackInstance,
-				stackaddrs.ComponentInstance{
-					Component: stackaddrs.Component{Name: "parent"},
-				},
-			),
-			PlanApplyable: true,
-			PlanComplete:  true,
-			Action:        plans.Create,
-			PlannedInputValues: map[string]plans.DynamicValue{
-				"id":    mustPlanDynamicValueDynamicType(cty.NullVal(cty.String)),
-				"input": mustPlanDynamicValueDynamicType(cty.StringVal("parent")),
-			},
-			PlannedOutputValues: map[string]cty.Value{
-				"letters_in_id": cty.UnknownVal(cty.Set(cty.DynamicPseudoType)),
-			},
-			PlannedCheckResults: &states.CheckResults{},
-			PlanTimestamp:       fakePlanTimestamp,
-			PlannedInputValueMarks: map[string][]cty.PathValueMarks{
-				"id":    nil,
-				"input": nil,
-			},
-		},
-		&stackplan.PlannedChangeResourceInstancePlanned{
-			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
-				Component: stackaddrs.Absolute(
-					stackaddrs.RootStackInstance,
-					stackaddrs.ComponentInstance{
-						Component: stackaddrs.Component{Name: "parent"},
-					},
-				),
-				Item: addrs.AbsResourceInstanceObject{
-					ResourceInstance: addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "testing_resource",
-						Name: "data",
-					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-				},
-			},
-			ProviderConfigAddr: addrs.AbsProviderConfig{
-				Module:   addrs.RootModule,
-				Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
-			},
-			ChangeSrc: &plans.ResourceInstanceChangeSrc{
-				Addr: addrs.Resource{
-					Mode: addrs.ManagedResourceMode,
-					Type: "testing_resource",
-					Name: "data",
-				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-				PrevRunAddr: addrs.Resource{
-					Mode: addrs.ManagedResourceMode,
-					Type: "testing_resource",
-					Name: "data",
-				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-				ProviderAddr: addrs.AbsProviderConfig{
-					Module:   addrs.RootModule,
-					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
-				},
-				ChangeSrc: plans.ChangeSrc{
-					Action: plans.Create,
-					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
-					After:  plans.DynamicValue{
-						// This is ignored for this test
-					},
-				},
-			},
-			Schema: stacks_testing_provider.TestingResourceSchema,
-		},
-		&stackplan.PlannedChangeComponentInstance{
-			Addr: stackaddrs.Absolute(
-				stackaddrs.RootStackInstance,
-				stackaddrs.ComponentInstance{
-					Component: stackaddrs.Component{Name: "self"},
-					Key:       addrs.WildcardKey,
-				},
-			),
-			PlanApplyable: false,
-			PlanComplete:  true,
-			Action:        plans.Create,
-			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](
-				stackaddrs.AbsComponent{
-					Stack: stackaddrs.RootStackInstance,
-					Item:  stackaddrs.Component{Name: "parent"},
-				},
-			),
-			PlannedInputValues: map[string]plans.DynamicValue{
-				"id":    mustPlanDynamicValueDynamicType(cty.NullVal(cty.String)),
-				"input": mustPlanDynamicValueDynamicType(cty.UnknownVal(cty.String)),
-			},
-			PlannedOutputValues: map[string]cty.Value{},
-			PlannedCheckResults: &states.CheckResults{},
-			PlanTimestamp:       fakePlanTimestamp,
-			PlannedInputValueMarks: map[string][]cty.PathValueMarks{
-				"id":    nil,
-				"input": nil,
-			},
-		},
-		&stackplan.PlannedChangeHeader{
-			TerraformVersion: version.SemVer,
-		},
+	if diags[0].Severity() != tfdiags.Error {
+		t.Errorf("expected error diagnostic, got %q", diags[0].Severity())
 	}
 
-	// Ignore dynamic value
-	gotChanges[2].(*stackplan.PlannedChangeResourceInstancePlanned).ChangeSrc.After = wantChanges[2].(*stackplan.PlannedChangeResourceInstancePlanned).ChangeSrc.After
+	expectedSummary := "Invalid for_each value"
+	if diags[0].Description().Summary != expectedSummary {
+		t.Errorf("expected diagnostic with summary %q, got %q", expectedSummary, diags[0].Description().Summary)
+	}
 
-	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
-		t.Errorf("wrong changes\n%s", diff)
+	expectedDetail := "The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this component."
+	if diags[0].Description().Detail != expectedDetail {
+		t.Errorf("expected diagnostic with detail %q, got %q", expectedDetail, diags[0].Description().Detail)
 	}
 }
-
-// TODO: Test that we throw diagnostics if the output used in component for each has a non-set type
 
 // collectPlanOutput consumes the two output channels emitting results from
 // a call to [Plan], and collects all of the data written to them before
