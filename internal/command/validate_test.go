@@ -342,9 +342,15 @@ func TestValidateWithInvalidOverrides(t *testing.T) {
 		Meta: meta,
 	}
 
+	output := done(t)
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
+
+	// reset streams for next command
+	streams, done = terminal.StreamsForTesting(t)
+	meta.View = views.NewView(streams)
+	meta.Streams = streams
 
 	c := &ValidateCommand{
 		Meta: meta,
@@ -354,7 +360,7 @@ func TestValidateWithInvalidOverrides(t *testing.T) {
 	args = append(args, "-no-color")
 
 	code := c.Run(args)
-	output := done(t)
+	output = done(t)
 
 	if code != 0 {
 		t.Errorf("Should have passed: %d\n\n%s", code, output.Stderr())

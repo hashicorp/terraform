@@ -119,7 +119,7 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	}
 
 	expander := ctx.InstanceExpander()
-	moduleInstances := expander.ExpandModule(n.Addr.Module)
+	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
 
 	// The possibility of partial-expanded modules and resources is
 	// currently guarded by a language experiment, and so to minimize the
@@ -141,7 +141,7 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	// these two codepaths back together, so that the behavior is less likely
 	// to diverge under future maintenence.
 	if n.unknownInstancesExperimentEnabled {
-		pem := expander.UnknownModuleInstances(n.Addr.Module)
+		pem := expander.UnknownModuleInstances(n.Addr.Module, false)
 		return n.dynamicExpandWithUnknownInstancesExperiment(ctx, moduleInstances, pem)
 	}
 

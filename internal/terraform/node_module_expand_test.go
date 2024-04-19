@@ -7,16 +7,17 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2/hcltest"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestNodeExpandModuleExecute(t *testing.T) {
 	ctx := &MockEvalContext{
-		InstanceExpanderExpander: instances.NewExpander(),
+		InstanceExpanderExpander: instances.NewExpander(nil),
 	}
 	ctx.installSimpleEval()
 
@@ -90,7 +91,7 @@ func TestNodeCloseModuleExecute(t *testing.T) {
 func TestNodeValidateModuleExecute(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		ctx := &MockEvalContext{
-			InstanceExpanderExpander: instances.NewExpander(),
+			InstanceExpanderExpander: instances.NewExpander(nil),
 		}
 		ctx.installSimpleEval()
 		node := nodeValidateModule{
@@ -110,7 +111,7 @@ func TestNodeValidateModuleExecute(t *testing.T) {
 
 	t.Run("invalid count", func(t *testing.T) {
 		ctx := &MockEvalContext{
-			InstanceExpanderExpander: instances.NewExpander(),
+			InstanceExpanderExpander: instances.NewExpander(nil),
 		}
 		ctx.installSimpleEval()
 		node := nodeValidateModule{
