@@ -6,6 +6,7 @@ package planfile
 import (
 	"archive/zip"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -62,7 +63,7 @@ func Open(filename string) (*Reader, error) {
 		// like our old plan format from versions prior to 0.12.
 		if b, sErr := os.ReadFile(filename); sErr == nil {
 			if bytes.HasPrefix(b, []byte("tfplan")) {
-				return nil, errUnusable(fmt.Errorf("the given plan file was created by an earlier version of Terraform; plan files cannot be shared between different Terraform versions"))
+				return nil, errUnusable(errors.New("the given plan file was created by an earlier version of Terraform; plan files cannot be shared between different Terraform versions"))
 			}
 		}
 		return nil, err

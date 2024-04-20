@@ -525,7 +525,7 @@ var SumFunc = function.New(&function.Spec{
 			if r := recover(); r != nil {
 				if _, ok := r.(big.ErrNaN); ok {
 					ret = cty.NilVal
-					err = fmt.Errorf("can't compute sum of opposing infinities")
+					err = errors.New("can't compute sum of opposing infinities")
 				} else {
 					// not a panic we recognize
 					panic(r)

@@ -12,6 +12,7 @@ import (
 	"encoding/asn1"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -119,7 +120,7 @@ var BcryptFunc = function.New(&function.Spec{
 		}
 
 		if len(args) > 2 {
-			return cty.UnknownVal(cty.String), fmt.Errorf("bcrypt() takes no more than two arguments")
+			return cty.UnknownVal(cty.String), errors.New("bcrypt() takes no more than two arguments")
 		}
 
 		input := args[0].AsString()

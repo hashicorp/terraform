@@ -77,7 +77,7 @@ func (g *AcyclicGraph) Root() (Vertex, error) {
 	}
 
 	if len(roots) == 0 {
-		return nil, fmt.Errorf("no roots found")
+		return nil, errors.New("no roots found")
 	}
 
 	return roots[0], nil

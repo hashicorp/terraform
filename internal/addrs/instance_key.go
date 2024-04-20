@@ -4,6 +4,7 @@
 package addrs
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"unicode"
@@ -45,7 +46,7 @@ func ParseInstanceKey(key cty.Value) (InstanceKey, error) {
 		err := gocty.FromCtyValue(key, &idx)
 		return IntKey(idx), err
 	default:
-		return NoKey, fmt.Errorf("either a string or an integer is required")
+		return NoKey, errors.New("either a string or an integer is required")
 	}
 }
 

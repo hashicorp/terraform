@@ -5,6 +5,7 @@ package addrs
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -600,14 +601,14 @@ func NewDeposedKey() DeposedKey {
 // returning an error if it doesn't conform to the expected syntax.
 func ParseDeposedKey(raw string) (DeposedKey, error) {
 	if len(raw) != 8 {
-		return "00000000", fmt.Errorf("must be eight hexadecimal digits")
+		return "00000000", errors.New("must be eight hexadecimal digits")
 	}
 	if raw != strings.ToLower(raw) {
-		return "00000000", fmt.Errorf("must use lowercase hex digits")
+		return "00000000", errors.New("must use lowercase hex digits")
 	}
 	_, err := hex.DecodeString(raw)
 	if err != nil {
-		return "00000000", fmt.Errorf("must be eight hexadecimal digits")
+		return "00000000", errors.New("must be eight hexadecimal digits")
 	}
 	return DeposedKey(raw), nil
 }

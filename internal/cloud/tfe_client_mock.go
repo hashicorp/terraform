@@ -920,7 +920,7 @@ func (m *MockPolicyChecks) Read(ctx context.Context, policyCheckID string) (*tfe
 	}
 
 	if _, err := os.Stat(logfile); os.IsNotExist(err) {
-		return nil, fmt.Errorf("logfile does not exist")
+		return nil, errors.New("logfile does not exist")
 	}
 
 	logs, err := ioutil.ReadFile(logfile)
@@ -1520,7 +1520,7 @@ func (m *MockStateVersions) Create(ctx context.Context, workspaceID string, opti
 	url := fmt.Sprintf("https://app.terraform.io/_archivist/%s", id)
 
 	if runID != "" && (options.Run == nil || runID != options.Run.ID) {
-		return nil, fmt.Errorf("option.Run.ID does not contain the ID exported by TFE_RUN_ID")
+		return nil, errors.New("option.Run.ID does not contain the ID exported by TFE_RUN_ID")
 	}
 
 	sv := &tfe.StateVersion{
@@ -1730,7 +1730,7 @@ func (m *MockTestRuns) Create(ctx context.Context, options tfe.TestRunCreateOpti
 	defer m.Unlock()
 
 	if options.ConfigurationVersion.Status != tfe.ConfigurationUploaded {
-		return nil, fmt.Errorf("configuration hasn't been uploaded")
+		return nil, errors.New("configuration hasn't been uploaded")
 	}
 
 	id := GenerateID("testrun-")
@@ -1997,7 +1997,7 @@ func (m *MockWorkspaces) List(ctx context.Context, organization string, options 
 func (m *MockWorkspaces) Create(ctx context.Context, organization string, options tfe.WorkspaceCreateOptions) (*tfe.Workspace, error) {
 	// for TestCloud_setUnavailableTerraformVersion
 	if *options.Name == "unavailable-terraform-version" && options.TerraformVersion != nil {
-		return nil, fmt.Errorf("requested Terraform version not available in this TFC instance")
+		return nil, errors.New("requested Terraform version not available in this TFC instance")
 	}
 	if strings.HasSuffix(*options.Name, "no-operations") {
 		options.Operations = tfe.Bool(false)
@@ -2119,7 +2119,7 @@ func (m *MockWorkspaces) UpdateByID(ctx context.Context, workspaceID string, opt
 func updateMockWorkspaceAttributes(w *tfe.Workspace, options tfe.WorkspaceUpdateOptions) error {
 	// for TestCloud_setUnavailableTerraformVersion
 	if w.Name == "unavailable-terraform-version" && options.TerraformVersion != nil {
-		return fmt.Errorf("requested Terraform version not available in this TFC instance")
+		return errors.New("requested Terraform version not available in this TFC instance")
 	}
 
 	if options.Operations != nil {

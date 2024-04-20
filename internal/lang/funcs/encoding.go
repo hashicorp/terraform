@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -37,7 +38,7 @@ var Base64DecodeFunc = function.New(&function.Spec{
 		}
 		if !utf8.Valid([]byte(sDec)) {
 			log.Printf("[DEBUG] the result of decoding the provided string is not valid UTF-8: %s", redactIfSensitive(sDec, strMarks))
-			return cty.UnknownVal(cty.String), fmt.Errorf("the result of decoding the provided string is not valid UTF-8")
+			return cty.UnknownVal(cty.String), errors.New("the result of decoding the provided string is not valid UTF-8")
 		}
 		return cty.StringVal(string(sDec)).WithMarks(strMarks), nil
 	},

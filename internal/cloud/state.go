@@ -460,7 +460,7 @@ func (s *State) Unlock(id string) error {
 	if s.lockInfo != nil {
 		// Verify the expected lock ID.
 		if s.lockInfo.ID != id {
-			lockErr.Err = fmt.Errorf("lock ID does not match existing lock")
+			lockErr.Err = errors.New("lock ID does not match existing lock")
 			return lockErr
 		}
 
