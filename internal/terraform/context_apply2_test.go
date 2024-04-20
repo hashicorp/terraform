@@ -19,6 +19,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
@@ -2915,6 +2916,123 @@ resource "test_object" "obj" {
 	// Just don't crash.
 	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
+}
+
+func TestContext2Apply_applyTimeVariables(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			# If this experimental feature becomes stablized and this test
+			# is still relevant, consider just removing this opt-in while
+			# retaining the rest.
+			terraform {
+				experiments = [ephemeral_values]
+			}
+
+			variable "e" {
+				type      = string
+				default   = null
+				ephemeral = true
+			}
+
+			variable "p" {
+				type    = string
+				default = null
+			}
+		`,
+	})
+
+	t.Run("set during plan", func(t *testing.T) {
+		ctx := testContext2(t, &ContextOpts{})
+		plan, diags := ctx.Plan(
+			m, states.NewState(),
+			SimplePlanOpts(plans.NormalMode, InputValues{
+				"e": {Value: cty.StringVal("e value")},
+				"p": {Value: cty.StringVal("p value")},
+			}),
+		)
+		assertNoErrors(t, diags)
+
+		{
+			got := plan.ApplyTimeVariables
+			want := collections.NewSetCmp[string]("e")
+			if diff := cmp.Diff(want, got, collections.CmpOptions); diff != "" {
+				t.Errorf("wrong apply-time variables\n%s", diff)
+			}
+		}
+		{
+			got := plan.VariableValues
+			want := map[string]plans.DynamicValue{
+				// The following is a msgpack-encoded representation of
+				// the type and value of the variable.
+				"p": plans.DynamicValue("\x92\xc4\x08\x22string\x22\xa7p value"),
+			}
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("wrong persisted variables\n%s", diff)
+			}
+		}
+
+		_, diags = ctx.Apply(plan, m, &ApplyOpts{
+			// Intentionally not setting any variables for this first
+			// check, which should therefore fail.
+		})
+		if !diags.HasErrors() {
+			t.Fatal("apply succeeded without value for 'e'; should have failed")
+		}
+
+		_, diags = ctx.Apply(plan, m, &ApplyOpts{
+			SetVariables: InputValues{
+				"e": {Value: cty.StringVal("different e value")},
+			},
+		})
+		assertNoErrors(t, diags)
+	})
+
+	t.Run("unset during plan", func(t *testing.T) {
+		ctx := testContext2(t, &ContextOpts{})
+		plan, diags := ctx.Plan(
+			m, states.NewState(),
+			SimplePlanOpts(plans.NormalMode, InputValues{
+				"e": {Value: cty.NilVal},
+				"p": {Value: cty.StringVal("p value")},
+			}),
+		)
+		assertNoErrors(t, diags)
+
+		{
+			got := plan.ApplyTimeVariables
+			want := collections.NewSetCmp[string]( /* none */ )
+			if diff := cmp.Diff(want, got, collections.CmpOptions); diff != "" {
+				t.Errorf("wrong apply-time variables\n%s", diff)
+			}
+		}
+		{
+			got := plan.VariableValues
+			want := map[string]plans.DynamicValue{
+				// The following is a msgpack-encoded representation of
+				// the type and value of the variable.
+				"p": plans.DynamicValue("\x92\xc4\x08\x22string\x22\xa7p value"),
+			}
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("wrong persisted variables\n%s", diff)
+			}
+		}
+
+		_, diags = ctx.Apply(plan, m, &ApplyOpts{
+			SetVariables: InputValues{
+				// 'e' was unset during planning, so this is invalid because
+				// it must remain unset during apply too.
+				"e": {Value: cty.StringVal("surprising e value")},
+			},
+		})
+		if !diags.HasErrors() {
+			t.Fatal("apply succeeded with invalid new value for 'e'; should have failed")
+		}
+
+		_, diags = ctx.Apply(plan, m, &ApplyOpts{
+			// Applying with 'e' still unset should be valid.
+		})
+		assertNoErrors(t, diags)
+	})
 }
 
 func TestContext2Apply_35039(t *testing.T) {
