@@ -14,6 +14,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -272,7 +273,25 @@ The -target option is not for routine use, and is provided only for exceptional 
 	// convert the variables into the format expected for the plan
 	varVals := make(map[string]plans.DynamicValue, len(opts.SetVariables))
 	varMarks := make(map[string][]cty.PathValueMarks, len(opts.SetVariables))
+	applyTimeVariables := collections.NewSetCmp[string]()
 	for k, iv := range opts.SetVariables {
+		// If any input variables were declared as ephemeral and set to a
+		// non-null value then those variables must be provided again (possibly
+		// with _different_ non-null values) during the apply phase.
+		if vc, ok := config.Module.Variables[k]; ok && vc.Ephemeral {
+			// FIXME: We should actually do this based on the final value
+			// in the named values state, rather than the value as provided
+			// by the caller, so we can take into account the transforms
+			// done during variable evaluation. This is a plausible starting
+			// point for now, though.
+			if iv.Value != cty.NilVal && !iv.Value.IsNull() {
+				applyTimeVariables.Add(k)
+			}
+			continue
+		}
+
+		// Non-ephemeral variables must remain unchanged between plan and
+		// apply, so we'll record their actual values.
 		if iv.Value == cty.NilVal {
 			continue // We only record values that the caller actually set
 		}
@@ -306,6 +325,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 	// targets and provider SHAs.
 	if plan != nil {
 		plan.VariableValues = varVals
+		plan.ApplyTimeVariables = applyTimeVariables
 		if len(varMarks) > 0 {
 			plan.VariableMarks = varMarks
 		}
