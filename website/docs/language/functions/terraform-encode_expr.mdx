@@ -32,7 +32,7 @@ provider's resource type
 which expects variable values to be provided in Terraform expression syntax.
 
 For example, the following concisely declares multiple input variables for
-a particular Terraform Cloud workspace:
+a particular HCP Terraform workspace:
 
 ```hcl
 locals {
@@ -55,7 +55,7 @@ resource "tfe_variable" "test" {
 ```
 
 When using this pattern, always set `hcl = true` in the resource declaration
-to ensure that Terraform Cloud will expect `value` to be given as Terraform
+to ensure that HCP Terraform will expect `value` to be given as Terraform
 expression syntax.
 
 We do not recommend using this function in any other situation.

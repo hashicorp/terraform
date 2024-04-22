@@ -1,19 +1,19 @@
 ---
-page_title: Terraform Cloud Settings - Terraform CLI
+page_title: HCP Terraform Settings - Terraform CLI
 description: >-
-  Configure the Terraform Cloud CLI integration.
+  Configure the HCP Terraform CLI integration.
 ---
 
-# Terraform Cloud Settings
+# HCP Terraform Settings
 
-Terraform CLI can integrate with Terraform Cloud, acting as a client for Terraform Cloud's
+Terraform CLI can integrate with HCP Terraform, acting as a client for HCP Terraform's
 [CLI-driven run workflow](/terraform/cloud-docs/run/cli).
 
-> **Hands On:** Try the [Migrate State to Terraform Cloud](/terraform/tutorials/cloud/cloud-migrate) tutorial.
+> **Hands On:** Try the [Migrate State to HCP Terraform](/terraform/tutorials/cloud/cloud-migrate) tutorial.
 
-You must configure the following settings to use Terraform Cloud for a particular working directory:
+You must configure the following settings to use HCP Terraform for a particular working directory:
 
-- Provide credentials to access Terraform Cloud, preferably by using the
+- Provide credentials to access HCP Terraform, preferably by using the
   [`terraform login`](/terraform/cli/commands/login) command.
 - Add a `cloud` block to the directory's Terraform configuration, to specify
   which organization and workspace(s) to use.
@@ -25,7 +25,7 @@ After adding or changing a `cloud` block, you must run `terraform init`.
 ## The `cloud` Block
 
 The `cloud` block is a nested block within the top-level `terraform` settings
-block. It specifies which Terraform Cloud workspaces to use for the current
+block. It specifies which HCP Terraform workspaces to use for the current
 working directory.
 
 ```hcl
@@ -50,7 +50,7 @@ The `cloud` block also has some special restrictions:
 - A `cloud` block cannot refer to named values (like input variables, locals, or
   data source attributes).
 
-The `cloud` block only affects Terraform CLI's behavior. When Terraform Cloud uses a configuration
+The `cloud` block only affects Terraform CLI's behavior. When HCP Terraform uses a configuration
 that contains a cloud block - for example, when a workspace is configured to use a VCS provider
 directly - it ignores the block and behaves according to its own workspace settings.
 
@@ -61,29 +61,29 @@ The `cloud` block supports the following configuration arguments:
 - `organization` - (Required) The name of the organization containing the
   workspace(s) the current configuration should use.
 
-- `workspaces` - (Required) A nested block that specifies which remote Terraform Cloud workspaces to
+- `workspaces` - (Required) A nested block that specifies which remote HCP Terraform workspaces to
   use for the current configuration. The `workspaces` block must contain **exactly one** of the
   following arguments, each denoting a strategy for how workspaces should be mapped:
 
-  - `tags` - (Optional) A set of Terraform Cloud workspace tags. You will be able to use
+  - `tags` - (Optional) A set of HCP Terraform workspace tags. You will be able to use
     this working directory with any workspaces that have all of the specified tags,
     and can use [the `terraform workspace` commands](/terraform/cli/workspaces)
     to switch between them or create new workspaces. New workspaces will automatically have
     the specified tags. This option conflicts with `name`.
 
-  - `name` - (Optional) The name of a single Terraform Cloud workspace. You will
+  - `name` - (Optional) The name of a single HCP Terraform workspace. You will
     only be able to use the workspace specified in the configuration with this working
     directory, and cannot manage workspaces from the CLI (e.g. `terraform workspace select` or
     `terraform workspace new`). This option conflicts with `tags`.
 
-  - `project` - (Optional) The name of a Terraform Cloud project. Workspaces that need creating
+  - `project` - (Optional) The name of an HCP Terraform project. Workspaces that need creating
     will be created within this project. `terraform workspace list` will be filtered by workspaces
     in the supplied project.
 
 - `hostname` - (Optional) The hostname of a Terraform Enterprise installation, if using Terraform
-  Enterprise. Defaults to Terraform Cloud (app.terraform.io).
+  Enterprise. Defaults to HCP Terraform (app.terraform.io).
 
-- `token` - (Optional) The token used to authenticate with Terraform Cloud.
+- `token` - (Optional) The token used to authenticate with HCP Terraform.
   We recommend omitting the token from the configuration, and instead using
   [`terraform login`](/terraform/cli/commands/login) or manually configuring
   `credentials` in the
@@ -103,14 +103,14 @@ Use the following environment variables to configure the `cloud` block:
 
 - `TF_CLOUD_HOSTNAME` - The hostname of a Terraform Enterprise installation. Terraform reads this when `hostname` is omitted from the `cloud` block. If both are specified, the configuration takes precedence.
 
-- `TF_CLOUD_PROJECT` - The name of a Terraform Cloud project. Terraform reads this when `workspaces.project` is omitted from the `cloud` block. If both are specified, the cloud block configuration takes precedence.
+- `TF_CLOUD_PROJECT` - The name of an HCP Terraform project. Terraform reads this when `workspaces.project` is omitted from the `cloud` block. If both are specified, the cloud block configuration takes precedence.
 
-- `TF_WORKSPACE` - The name of a single Terraform Cloud workspace. Terraform reads this when `workspaces` is omitted from the `cloud` block. Terraform Cloud will not create a new workspace from this variable; the workspace must exist in the specified organization. You can set `TF_WORKSPACE` if the `cloud` block uses tags. However, the value of `TF_WORKSPACE` must be included in the set of tags. This variable also selects the workspace in your local environment. Refer to [TF_WORKSPACE](/terraform/cli/config/environment-variables#tf_workspace) for details.
+- `TF_WORKSPACE` - The name of a single HCP Terraform workspace. Terraform reads this when `workspaces` is omitted from the `cloud` block. HCP Terraform will not create a new workspace from this variable; the workspace must exist in the specified organization. You can set `TF_WORKSPACE` if the `cloud` block uses tags. However, the value of `TF_WORKSPACE` must be included in the set of tags. This variable also selects the workspace in your local environment. Refer to [TF_WORKSPACE](/terraform/cli/config/environment-variables#tf_workspace) for details.
 
 ## Excluding Files from Upload with .terraformignore
 
 When executing a remote `plan` or `apply` in a [CLI-driven run](/terraform/cloud-docs/run/cli),
-a copy of your configuration directory is uploaded to Terraform Cloud. You can define
+a copy of your configuration directory is uploaded to HCP Terraform. You can define
 paths to exclude from upload by adding a `.terraformignore` file at the root of your
 configuration directory. If this file is not present, the upload will exclude
 the following by default:
