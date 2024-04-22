@@ -165,7 +165,7 @@ func TestCloud_withBackendConfig(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	expected := "Terraform Cloud Plugin v0.1.0\n\n"
+	expected := "HCP Terraform Plugin v0.1.0\n\n"
 	if output != expected {
 		t.Fatalf("the output did not equal the expected string:\n%s", cmp.Diff(expected, output))
 	}
@@ -202,7 +202,7 @@ func TestCloud_withENVConfig(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	expected := "Terraform Cloud Plugin v0.1.0\n\n"
+	expected := "HCP Terraform Plugin v0.1.0\n\n"
 	if output != expected {
 		t.Fatalf("the output did not equal the expected string:\n%s", cmp.Diff(expected, output))
 	}

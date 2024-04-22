@@ -60,7 +60,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 							command:           []string{"init"},
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
 							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
+							postInputOutput:   []string{`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -125,7 +125,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 							command:           []string{"init"},
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
 							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
+							postInputOutput:   []string{`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "list"},
@@ -191,7 +191,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 							command:           []string{"init"},
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
 							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
+							postInputOutput:   []string{`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:     []string{"workspace", "select", "default"},
@@ -286,12 +286,12 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
+							expectedCmdOutput: `HCP Terraform requires all workspaces to be given an explicit name.`,
 							userInput:         []string{"dev", "1", "app-*"},
 							postInputOutput: []string{
 								`Would you like to rename your workspaces?`,
 								"How would you like to rename your workspaces?",
-								"Terraform Cloud has been successfully initialized!"},
+								"HCP Terraform has been successfully initialized!"},
 						},
 						{
 							command:           []string{"workspace", "select", "app-dev"},
@@ -391,12 +391,12 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
+							expectedCmdOutput: `HCP Terraform requires all workspaces to be given an explicit name.`,
 							userInput:         []string{"dev", "1", "app-*"},
 							postInputOutput: []string{
 								`Would you like to rename your workspaces?`,
 								"How would you like to rename your workspaces?",
-								"Terraform Cloud has been successfully initialized!"},
+								"HCP Terraform has been successfully initialized!"},
 						},
 						{
 							command:           []string{"workspace", "select", "app-billing"},

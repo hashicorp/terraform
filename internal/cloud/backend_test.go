@@ -641,7 +641,7 @@ func TestCloud_configVerifyMinimumTFEVersionInAutomation(t *testing.T) {
 		t.Fatalf("expected configure to error")
 	}
 
-	expected := `This version of Terraform Cloud/Enterprise does not support the state mechanism
+	expected := `This version of HCP Terraform does not support the state mechanism
 attempting to be used by the platform. This should never happen.`
 	if !strings.Contains(confDiags.Err().Error(), expected) {
 		t.Fatalf("expected configure to error with %q, got %q", expected, confDiags.Err().Error())
@@ -650,7 +650,7 @@ attempting to be used by the platform. This should never happen.`
 
 func TestCloud_setUnavailableTerraformVersion(t *testing.T) {
 	// go-tfe returns an error IRL if you try to set a Terraform version that's
-	// not available in your TFC instance. To test this, tfe_client_mock errors if
+	// not available in your HCP Terraform instance. To test this, tfe_client_mock errors if
 	// you try to set any Terraform version for this specific workspace name.
 	workspaceName := "unavailable-terraform-version"
 

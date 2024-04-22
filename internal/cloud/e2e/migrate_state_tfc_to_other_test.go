@@ -23,7 +23,7 @@ func Test_migrate_tfc_to_other(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized!`,
 						},
 					},
 				},
@@ -35,7 +35,7 @@ func Test_migrate_tfc_to_other(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Migrating state from Terraform Cloud to another backend is not yet implemented.`,
+							expectedCmdOutput: `Migrating state from HCP Terraform to another backend is not yet implemented.`,
 							expectError:       true,
 						},
 					},

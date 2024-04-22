@@ -175,8 +175,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  "Initializing modules...",
 	},
 	"initializing_terraform_cloud_message": {
-		HumanValue: "\n[reset][bold]Initializing Terraform Cloud...",
-		JSONValue:  "Initializing Terraform Cloud...",
+		HumanValue: "\n[reset][bold]Initializing HCP Terraform...",
+		JSONValue:  "Initializing HCP Terraform...",
 	},
 	"initializing_backend_message": {
 		HumanValue: "\n[reset][bold]Initializing the backend...",
@@ -297,11 +297,11 @@ Terraform has been successfully initialized!
 `
 
 const outputInitSuccessCloud = `
-[reset][bold][green]Terraform Cloud has been successfully initialized![reset][green]
+[reset][bold][green]HCP Terraform has been successfully initialized![reset][green]
 `
 
 const outputInitSuccessCloudJSON = `
-Terraform Cloud has been successfully initialized!
+HCP Terraform has been successfully initialized!
 `
 
 const outputInitSuccessCLI = `[reset][green]
@@ -325,7 +325,7 @@ commands will detect it and remind you to do so if necessary.
 `
 
 const outputInitSuccessCLICloud = `[reset][green]
-You may now begin working with Terraform Cloud. Try running "terraform plan" to
+You may now begin working with HCP Terraform. Try running "terraform plan" to
 see any changes that are required for your infrastructure.
 
 If you ever set or change modules or Terraform Settings, run "terraform init"
@@ -333,7 +333,7 @@ again to reinitialize your working directory.
 `
 
 const outputInitSuccessCLICloudJSON = `
-You may now begin working with Terraform Cloud. Try running "terraform plan" to
+You may now begin working with HCP Terraform. Try running "terraform plan" to
 see any changes that are required for your infrastructure.
 
 If you ever set or change modules or Terraform Settings, run "terraform init"

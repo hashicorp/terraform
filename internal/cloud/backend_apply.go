@@ -51,8 +51,8 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Custom parallelism values are currently not supported",
-			`Terraform Cloud does not support setting a custom parallelism `+
-				`value at this time.`,
+			fmt.Sprintf("%s does not support setting a custom parallelism ", b.appName)+
+				"value at this time.",
 		))
 	}
 
@@ -60,7 +60,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Applying a saved local plan is not supported",
-			`Terraform Cloud can apply a saved cloud plan, or create a new plan when `+
+			fmt.Sprintf("%s can apply a saved cloud plan, or create a new plan when ", b.appName)+
 				`configuration is present. It cannot apply a saved local plan.`,
 		))
 	}
@@ -91,7 +91,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Saved plan is for a different hostname",
-				fmt.Sprintf("The given saved plan refers to a run on %s, but the currently configured Terraform Cloud or Terraform Enterprise instance is %s.", cp.Hostname, b.Hostname),
+				fmt.Sprintf("The given saved plan refers to a run on %s, but the currently configured %s instance is %s.", cp.Hostname, b.appName, b.Hostname),
 			))
 			return r, diags.Err()
 		}
@@ -115,12 +115,12 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 
 		if !r.Actions.IsConfirmable {
 			url := runURL(b.Hostname, b.Organization, op.Workspace, r.ID)
-			return r, unusableSavedPlanError(r.Status, url)
+			return r, unusableSavedPlanError(r.Status, url, b.appName)
 		}
 
 		// Since we're not calling plan(), we need to print a run header ourselves:
 		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(applySavedHeader) + "\n"))
+			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(fmt.Sprintf(applySavedHeader, b.appName) + "\n")))
 			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(fmt.Sprintf(
 				runHeader, b.Hostname, b.Organization, r.Workspace.Name, r.ID)) + "\n"))
 		}
@@ -276,7 +276,7 @@ func runURL(hostname, orgName, wsName, runID string) string {
 	return fmt.Sprintf("https://%s/app/%s/%s/runs/%s", hostname, orgName, wsName, runID)
 }
 
-func unusableSavedPlanError(status tfe.RunStatus, url string) error {
+func unusableSavedPlanError(status tfe.RunStatus, url, appName string) error {
 	var diags tfdiags.Diagnostics
 	var summary, reason string
 
@@ -289,10 +289,10 @@ func unusableSavedPlanError(status tfe.RunStatus, url string) error {
 		reason = "The given plan file is already being applied, and cannot be applied again."
 	case tfe.RunCanceled:
 		summary = "Saved plan is canceled"
-		reason = "The given plan file can no longer be applied because the run was canceled via the Terraform Cloud UI or API."
+		reason = fmt.Sprintf("The given plan file can no longer be applied because the run was canceled via the %s UI or API.", appName)
 	case tfe.RunDiscarded:
 		summary = "Saved plan is discarded"
-		reason = "The given plan file can no longer be applied; either another run was applied first, or a user discarded it via the Terraform Cloud UI or API."
+		reason = fmt.Sprintf("The given plan file can no longer be applied; either another run was applied first, or a user discarded it via the %s UI or API.", appName)
 	case tfe.RunErrored:
 		summary = "Saved plan is errored"
 		reason = "The given plan file refers to a plan that had errors and did not complete successfully. It cannot be applied."
@@ -307,7 +307,7 @@ func unusableSavedPlanError(status tfe.RunStatus, url string) error {
 		reason = "The given plan file has soft policy failures, and cannot be applied until a user with appropriate permissions overrides the policy check."
 	default:
 		summary = "Saved plan cannot be applied"
-		reason = "Terraform Cloud cannot apply the given plan file. This may mean the plan and checks have not yet completed, or may indicate another problem."
+		reason = fmt.Sprintf("%s cannot apply the given plan file. This may mean the plan and checks have not yet completed, or may indicate another problem.", appName)
 	}
 
 	diags = diags.Append(tfdiags.Sourceless(
@@ -319,7 +319,7 @@ func unusableSavedPlanError(status tfe.RunStatus, url string) error {
 }
 
 const applyDefaultHeader = `
-[reset][yellow]Running apply in Terraform Cloud. Output will stream here. Pressing Ctrl-C
+[reset][yellow]Running apply in %s. Output will stream here. Pressing Ctrl-C
 will cancel the remote apply if it's still pending. If the apply started it
 will stop streaming the logs, but will not stop the apply running remotely.[reset]
 
@@ -327,7 +327,7 @@ Preparing the remote apply...
 `
 
 const applySavedHeader = `
-[reset][yellow]Running apply in Terraform Cloud. Output will stream here. Pressing Ctrl-C
+[reset][yellow]Running apply in %s. Output will stream here. Pressing Ctrl-C
 will stop streaming the logs, but will not stop the apply running remotely.[reset]
 
 Preparing the remote apply...
