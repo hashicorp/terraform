@@ -759,7 +759,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		DeferredResources:       deferredResources,
 		PrevRunState:            prevRunState,
 		PriorState:              priorState,
-		PlannedState:            walker.State.Close(),
 		ExternalReferences:      opts.ExternalReferences,
 		Overrides:               opts.Overrides,
 		Checks:                  states.NewCheckResults(walker.Checks),
