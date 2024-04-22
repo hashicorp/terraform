@@ -62,8 +62,8 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Custom parallelism values are currently not supported",
-			`Terraform Cloud does not support setting a custom parallelism `+
-				`value at this time.`,
+			fmt.Sprintf("%s does not support setting a custom parallelism ", b.appName)+
+				"value at this time.",
 		))
 	}
 
@@ -71,8 +71,8 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Displaying a saved plan is currently not supported",
-			`Terraform Cloud currently requires configuration to be present and `+
-				`does not accept an existing saved plan as an argument at this time.`,
+			fmt.Sprintf("%s currently requires configuration to be present and ", b.appName)+
+				"does not accept an existing saved plan as an argument at this time.",
 		))
 	}
 
@@ -120,9 +120,9 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 
 func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	if b.CLI != nil {
-		header := planDefaultHeader
+		header := fmt.Sprintf(planDefaultHeader, b.appName)
 		if op.Type == backend.OperationTypeApply || op.Type == backend.OperationTypeRefresh {
-			header = applyDefaultHeader
+			header = fmt.Sprintf(applyDefaultHeader, b.appName)
 		}
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(header) + "\n"))
 	}
@@ -247,7 +247,7 @@ in order to capture the filesystem context the remote workspace expects:
 		// field.
 		return nil, generalError(
 			"Invalid plan mode",
-			fmt.Errorf("Terraform Cloud doesn't support %s", op.PlanMode),
+			fmt.Errorf("%s doesn't support %s", b.appName, op.PlanMode),
 		)
 	}
 
@@ -420,15 +420,15 @@ func (b *Cloud) AssertImportCompatible(config *configs.Config) error {
 		// Second, check the agent version is high enough.
 		agentEnv, isSet := os.LookupEnv("TFC_AGENT_VERSION")
 		if !isSet {
-			return fmt.Errorf("Error reading TFC agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: TFC_AGENT_VERSION not present.")
+			return fmt.Errorf("Error reading Terraform Cloud agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: TFC_AGENT_VERSION not present.")
 		}
 		currentAgentVersion, err := version.NewVersion(agentEnv)
 		if err != nil {
-			return fmt.Errorf("Error parsing TFC agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: %s", err)
+			return fmt.Errorf("Error parsing Terraform Cloud agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: %s", err)
 		}
 		desiredAgentVersion, _ := version.NewVersion("1.10")
 		if currentAgentVersion.LessThan(desiredAgentVersion) {
-			return fmt.Errorf("Import blocks are not supported in this version of the Terraform Cloud Agent. You are using agent version %s, but this feature requires version %s. Please remove any import blocks from your config or upgrade your agent.", currentAgentVersion, desiredAgentVersion)
+			return fmt.Errorf("Import blocks are not supported in this version of the HCP Terraform Agent. You are using agent version %s, but this feature requires version %s. Please remove any import blocks from your config or upgrade your agent.", currentAgentVersion, desiredAgentVersion)
 		}
 	}
 	return nil
@@ -631,7 +631,7 @@ func shouldGenerateConfig(out string, run *tfe.Run) bool {
 }
 
 const planDefaultHeader = `
-[reset][yellow]Running plan in Terraform Cloud. Output will stream here. Pressing Ctrl-C
+[reset][yellow]Running plan in %s. Output will stream here. Pressing Ctrl-C
 will stop streaming the logs, but will not stop the plan running remotely.[reset]
 
 Preparing the remote plan...

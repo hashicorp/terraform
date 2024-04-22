@@ -1400,7 +1400,7 @@ func TestContext2Plan_preventDestroy_bad(t *testing.T) {
 
 	// The plan should still include the proposal to replace the object
 	// that cannot be destroyed, since the change is valid in isolation,
-	// and this then allows Terraform CLI and Terraform Cloud to still
+	// and this then allows Terraform CLI and HCP Terraform to still
 	// show the problematic change that caused the error as additional
 	// context.
 	changes := plan.Changes

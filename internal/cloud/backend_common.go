@@ -645,3 +645,7 @@ func decodeErrorPayload(r *http.Response) ([]string, error) {
 
 	return errs, nil
 }
+
+func isValidAppName(name string) bool {
+	return name == "HCP Terraform" || name == "Terraform Enterprise"
+}

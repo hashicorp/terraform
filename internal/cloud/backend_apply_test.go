@@ -103,8 +103,8 @@ func TestCloud_applyBasic(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -684,8 +684,8 @@ func TestCloud_applyWithRequiredVariables(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("unexpected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("unexpected HCP Terraform header in output: %s", output)
 	}
 }
 
@@ -838,8 +838,8 @@ func TestCloud_applyAutoApprove(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -909,8 +909,8 @@ func TestCloud_applyApprovedExternally(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -983,8 +983,8 @@ func TestCloud_applyDiscardedExternally(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -1052,8 +1052,8 @@ func TestCloud_applyWithAutoApprove(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -1108,8 +1108,8 @@ func TestCloud_applyForceLocal(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("unexpected TFC header in output: %s", output)
+	if strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("unexpected HCP Terraform header in output: %s", output)
 	}
 	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
@@ -1171,8 +1171,8 @@ func TestCloud_applyWorkspaceWithoutOperations(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("unexpected TFC header in output: %s", output)
+	if strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("unexpected HCP Terraform header in output: %s", output)
 	}
 	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
@@ -1242,8 +1242,8 @@ func TestCloud_applyLockTimeout(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "Lock timeout exceeded") {
 		t.Fatalf("expected lock timout error in output: %s", output)
@@ -1291,8 +1291,8 @@ func TestCloud_applyDestroy(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "0 to add, 0 to change, 1 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -1468,8 +1468,8 @@ func TestCloud_applyPolicyPass(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -1521,8 +1521,8 @@ func TestCloud_applyPolicyHardFail(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -1571,8 +1571,8 @@ func TestCloud_applyPolicySoftFail(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -1720,8 +1720,8 @@ func TestCloud_applyPolicySoftFailAutoApprove(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -1924,19 +1924,19 @@ func TestCloud_applyVersionCheck(t *testing.T) {
 					t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 				}
 				output := b.CLI.(*cli.MockUi).OutputWriter.String()
-				hasRemote := strings.Contains(output, "Running apply in Terraform Cloud")
+				hasRemote := strings.Contains(output, "Running apply in HCP Terraform")
 				hasSummary := strings.Contains(output, "1 added, 0 changed, 0 destroyed")
 				hasResources := run.State.HasManagedResourceInstanceObjects()
 				if !tc.forceLocal && !isLocalExecutionMode(tc.executionMode) {
 					if !hasRemote {
-						t.Errorf("missing TFC header in output: %s", output)
+						t.Errorf("missing HCP Terraform header in output: %s", output)
 					}
 					if !hasSummary {
 						t.Errorf("expected apply summary in output: %s", output)
 					}
 				} else {
 					if hasRemote {
-						t.Errorf("unexpected TFC header in output: %s", output)
+						t.Errorf("unexpected HCP Terraform header in output: %s", output)
 					}
 					if !hasResources {
 						t.Errorf("expected resources in state")

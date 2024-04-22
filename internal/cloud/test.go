@@ -96,6 +96,10 @@ type TestSuiteRunner struct {
 	View    views.Test
 	Streams *terminal.Streams
 
+	// appName is the name of the instance this test suite runner is configured
+	// against. Can be "HCP Terraform" or "Terraform Enterprise"
+	appName string
+
 	// clientOverride allows tests to specify the client instead of letting the
 	// system initialise one itself.
 	clientOverride *tfe.Client
@@ -145,7 +149,7 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
 			"Module source points to the public registry",
-			"Terraform Cloud can only execute tests for modules held within private registries.",
+			"HCP Terraform and Terraform Enterprise can only execute tests for modules held within private registries.",
 			cty.Path{cty.GetAttrStep{Name: "source"}}))
 		return moduletest.Error, diags
 	}
@@ -188,9 +192,9 @@ func (runner *TestSuiteRunner) Test() (moduletest.Status, tfdiags.Diagnostics) {
 	// the test run tidies up any state properly. This means, we'll send the
 	// cancellation signals and then still wait for and process the logs.
 	//
-	// This also means that all calls to TFC will use context.Background()
+	// This also means that all calls to HCP Terraform will use context.Background()
 	// instead of the stopped or cancelled context as we want them to finish and
-	// the run to be cancelled by TFC properly.
+	// the run to be cancelled by HCP Terraform properly.
 
 	opts := tfe.TestRunCreateOptions{
 		Filters:       runner.Filters,
@@ -386,10 +390,10 @@ func (runner *TestSuiteRunner) client(addr tfaddr.Module, id tfe.RegistryModuleI
 		if client, err = tfe.NewClient(cfg); err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Failed to create the Terraform Cloud/Enterprise client",
+				"Failed to create the HCP Terraform or Terraform Enterprise client",
 				fmt.Sprintf(
 					`Encountered an unexpected error while creating the `+
-						`Terraform Cloud/Enterprise client: %s.`, err,
+						`HCP Terraform or Terraform Enterprise client: %s.`, err,
 				),
 			))
 			return nil, nil, diags
@@ -413,6 +417,11 @@ func (runner *TestSuiteRunner) client(addr tfaddr.Module, id tfe.RegistryModuleI
 	// Enable retries for server errors.
 	client.RetryServerErrors(true)
 
+	runner.appName = client.AppName()
+	if isValidAppName(runner.appName) {
+		runner.appName = "HCP Terraform"
+	}
+
 	// Aaaaand I'm done.
 	return client, module, diags
 }
@@ -425,13 +434,13 @@ func (runner *TestSuiteRunner) wait(ctx context.Context, client *tfe.Client, run
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Could not cancel the test run",
-				fmt.Sprintf("Terraform could not cancel the test run, you will have to navigate to the Terraform Cloud console and cancel the test run manually.\n\nThe error message received when cancelling the test run was %s", err)))
+				fmt.Sprintf("Terraform could not cancel the test run, you will have to navigate to the %s console and cancel the test run manually.\n\nThe error message received when cancelling the test run was %s", client.AppName(), err)))
 			return
 		}
 
 		// At this point we've requested a force cancel, and we know that
 		// Terraform locally is just going to quit after some amount of time so
-		// we'll just wait for that to happen or for TFC to finish, whichever
+		// we'll just wait for that to happen or for HCP Terraform to finish, whichever
 		// happens first.
 		<-ctx.Done()
 	}
@@ -441,11 +450,11 @@ func (runner *TestSuiteRunner) wait(ctx context.Context, client *tfe.Client, run
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Could not stop the test run",
-				fmt.Sprintf("Terraform could not stop the test run, you will have to navigate to the Terraform Cloud console and cancel the test run manually.\n\nThe error message received when stopping the test run was %s", err)))
+				fmt.Sprintf("Terraform could not stop the test run, you will have to navigate to the %s console and cancel the test run manually.\n\nThe error message received when stopping the test run was %s", client.AppName(), err)))
 			return
 		}
 
-		// We've request a cancel, we're happy to just wait for TFC to cancel
+		// We've request a cancel, we're happy to just wait for HCP Terraform to cancel
 		// the run appropriately.
 		select {
 		case <-runner.CancelledCtx.Done():

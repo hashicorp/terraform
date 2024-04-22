@@ -49,7 +49,7 @@ func (hooks *CloudHooks) RetryLogHook(attemptNum int, resp *http.Response, color
 
 // The newline in this error is to make it look good in the CLI!
 const initialRetryError = `
-There was an error connecting to Terraform Cloud. Please do not exit
+There was an error connecting to HCP Terraform. Please do not exit
 Terraform to prevent data loss! Trying to restore the connection...
 `
 
