@@ -96,13 +96,21 @@ func (n *nodeExpandPlannableResource) ModifyCreateBeforeDestroy(v bool) error {
 }
 
 func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// First, make sure the count and the foreach don't refer to the same resource
+	diags = diags.Append(validateSelfRefInExpr(n.Addr.Resource, n.Config.Count))
+	diags = diags.Append(validateSelfRefInExpr(n.Addr.Resource, n.Config.ForEach))
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
 	// Expand the current module.
 	expander := ctx.InstanceExpander()
 	moduleInstances := expander.ExpandModule(n.Addr.Module)
 
 	// Expand the imports for this resource.
 	// TODO: Add support for unknown instances in import blocks.
-	var diags tfdiags.Diagnostics
 	imports, importDiags := n.expandResourceImports(ctx)
 	diags = diags.Append(importDiags)
 
