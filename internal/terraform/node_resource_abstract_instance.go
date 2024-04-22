@@ -2438,15 +2438,6 @@ func (n *NodeAbstractResourceInstance) apply(
 	// incomplete.
 	newVal := resp.NewState
 
-	// If we have paths to mark, mark those on this new value we need to
-	// re-check the value against the schema, because nested computed values
-	// won't be included in afterPaths, which are only what was read from the
-	// After plan value.
-	newVal = newVal.MarkWithPaths(afterPaths)
-	if sensitivePaths := schema.SensitivePaths(newVal, nil); len(sensitivePaths) != 0 {
-		newVal = marks.MarkPaths(newVal, marks.Sensitive, sensitivePaths)
-	}
-
 	if newVal == cty.NilVal {
 		// Providers are supposed to return a partial new value even when errors
 		// occur, but sometimes they don't and so in that case we'll patch that up
@@ -2530,6 +2521,15 @@ func (n *NodeAbstractResourceInstance) apply(
 		// bug, we accept this because storing a result here is always a
 		// best-effort sort of thing.
 		newVal = cty.UnknownAsNull(newVal)
+	}
+
+	// If we have paths to mark, mark those on this new value we need to
+	// re-check the value against the schema, because nested computed values
+	// won't be included in afterPaths, which are only what was read from the
+	// After plan value.
+	newVal = newVal.MarkWithPaths(afterPaths)
+	if sensitivePaths := schema.SensitivePaths(newVal, nil); len(sensitivePaths) != 0 {
+		newVal = marks.MarkPaths(newVal, marks.Sensitive, sensitivePaths)
 	}
 
 	if change.Action != plans.Delete && !diags.HasErrors() {
