@@ -98,11 +98,15 @@ func (n *nodeExpandPlannableResource) ModifyCreateBeforeDestroy(v bool) error {
 func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	// First, make sure the count and the foreach don't refer to the same resource
-	diags = diags.Append(validateSelfRefInExpr(n.Addr.Resource, n.Config.Count))
-	diags = diags.Append(validateSelfRefInExpr(n.Addr.Resource, n.Config.ForEach))
-	if diags.HasErrors() {
-		return nil, diags
+	// First, make sure the count and the foreach don't refer to the same
+	// resource. The config maybe nil if we are generating configuration, or
+	// deleting a resource.
+	if n.Config != nil {
+		diags = diags.Append(validateSelfRefInExpr(n.Addr.Resource, n.Config.Count))
+		diags = diags.Append(validateSelfRefInExpr(n.Addr.Resource, n.Config.ForEach))
+		if diags.HasErrors() {
+			return nil, diags
+		}
 	}
 
 	// Expand the current module.
