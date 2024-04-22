@@ -105,7 +105,7 @@ authorization errors once the token expires, after which the user can run
 
 -> **Note:** As a special case, Terraform can use a
 [Resource Owner Password Credentials Grant](https://tools.ietf.org/html/rfc6749#section-4.3)
-only when interacting with `app.terraform.io` ([Terraform Cloud](https://cloud.hashicorp.com/products/terraform)),
+only when interacting with `app.terraform.io` ([HCP Terraform](https://cloud.hashicorp.com/products/terraform)),
 under the recommendation in the OAuth specification to use this grant type only
 when the client and server are closely related. The `password` grant type is
 not supported for any other hostname and will be ignored.

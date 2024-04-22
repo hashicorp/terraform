@@ -12,7 +12,7 @@ Each Terraform configuration has an associated [backend](/terraform/language/set
 The persistent data stored in the backend belongs to a workspace. The backend initially has only one workspace containing one Terraform state associated with that configuration. Some backends support multiple named workspaces, allowing multiple states to be associated with a single configuration. The configuration still has only one backend, but you can deploy multiple distinct instances of that configuration without configuring a new backend or changing authentication
 credentials.
 
--> **Note**: The Terraform CLI workspaces are different from [workspaces in Terraform Cloud](/terraform/cloud-docs/workspaces). Refer to [Initializing and Migrating](/terraform/cli/cloud/migrating) for details about migrating a configuration with multiple workspaces to Terraform Cloud.
+-> **Note**: The Terraform CLI workspaces are different from [workspaces in HCP Terraform](/terraform/cloud-docs/workspaces). Refer to [Initializing and Migrating](/terraform/cli/cloud/migrating) for details about migrating a configuration with multiple workspaces to HCP Terraform.
 
 ## Backends Supporting Multiple Workspaces
 
