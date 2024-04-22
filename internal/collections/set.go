@@ -49,6 +49,11 @@ func NewSetCmp[T comparable]() Set[T] {
 // Has returns true if the given value is present in the set, or false
 // otherwise.
 func (s Set[T]) Has(v T) bool {
+	if len(s.members) == 0 {
+		// We'll skip calling "s.key" in this case, so that we don't panic
+		// if called on an uninitialized Set.
+		return false
+	}
 	k := s.key(v)
 	_, ok := s.members[k]
 	return ok
