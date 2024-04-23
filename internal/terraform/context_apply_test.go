@@ -28,7 +28,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -11973,29 +11972,25 @@ resource "test_resource" "foo" {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	verifySensitiveValue := func(pvms []cty.PathValueMarks) {
-		if len(pvms) != 2 {
-			t.Fatalf("expected 2 sensitive paths, got %d", len(pvms))
+	verifySensitiveValue := func(paths []cty.Path) {
+		if len(paths) != 2 {
+			t.Fatalf("expected 2 sensitive paths, got %d", len(paths))
 		}
 
-		for _, pvm := range pvms {
+		for _, path := range paths {
 			switch {
-			case pvm.Path.Equals(cty.GetAttrPath("value")):
-			case pvm.Path.Equals(cty.GetAttrPath("sensitive_value")):
+			case path.Equals(cty.GetAttrPath("value")):
+			case path.Equals(cty.GetAttrPath("sensitive_value")):
 			default:
-				t.Errorf("unexpected path mark: %#v", pvm)
+				t.Errorf("unexpected sensitive path: %#v", path)
 				return
-			}
-
-			if want := cty.NewValueMarks(marks.Sensitive); !pvm.Marks.Equal(want) {
-				t.Errorf("wrong marks\n got: %#v\nwant: %#v", pvm.Marks, want)
 			}
 		}
 	}
 
 	addr := mustResourceInstanceAddr("test_resource.foo")
 	fooChangeSrc := plan.Changes.ResourceInstance(addr)
-	verifySensitiveValue(fooChangeSrc.AfterValMarks)
+	verifySensitiveValue(fooChangeSrc.AfterSensitivePaths)
 
 	state, diags := ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
@@ -12043,19 +12038,22 @@ resource "test_resource" "baz" {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	verifySensitiveValue := func(pvms []cty.PathValueMarks) {
-		for _, pvm := range pvms {
-			switch {
-			case pvm.Path.Equals(cty.GetAttrPath("value")):
-			case pvm.Path.Equals(cty.GetAttrPath("sensitive_value")):
-			case pvm.Path.Equals(cty.GetAttrPath("nesting_single").GetAttr("sensitive_value")):
-			default:
-				t.Errorf("unexpected path mark: %#v", pvm)
-				return
+	wantSensitivePaths := []cty.Path{
+		cty.GetAttrPath("value"),
+		cty.GetAttrPath("sensitive_value"),
+		cty.GetAttrPath("nesting_single").GetAttr("sensitive_value"),
+	}
+	verifySensitiveValue := func(gotSensitivePaths []cty.Path) {
+		for _, gotPath := range gotSensitivePaths {
+			wantSensitive := false
+			for _, wantPath := range wantSensitivePaths {
+				if wantPath.Equals(gotPath) {
+					wantSensitive = true
+					break
+				}
 			}
-
-			if want := cty.NewValueMarks(marks.Sensitive); !pvm.Marks.Equal(want) {
-				t.Errorf("wrong marks\n got: %#v\nwant: %#v", pvm.Marks, want)
+			if !wantSensitive {
+				t.Errorf("unexpected sensitive path %s", tfdiags.FormatCtyPath(gotPath))
 			}
 		}
 	}
@@ -12065,11 +12063,11 @@ resource "test_resource" "baz" {
 	// "bar" references sensitive resources in "foo"
 	barAddr := mustResourceInstanceAddr("test_resource.bar")
 	barChangeSrc := plan.Changes.ResourceInstance(barAddr)
-	verifySensitiveValue(barChangeSrc.AfterValMarks)
+	verifySensitiveValue(barChangeSrc.AfterSensitivePaths)
 
 	bazAddr := mustResourceInstanceAddr("test_resource.baz")
 	bazChangeSrc := plan.Changes.ResourceInstance(bazAddr)
-	verifySensitiveValue(bazChangeSrc.AfterValMarks)
+	verifySensitiveValue(bazChangeSrc.AfterSensitivePaths)
 
 	state, diags := ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
@@ -12138,17 +12136,13 @@ resource "test_resource" "foo" {
 		t.Fatalf("wrong number of sensitive paths, expected 2, got, %v", len(fooState.Current.AttrSensitivePaths))
 	}
 
-	for _, pvm := range fooState.Current.AttrSensitivePaths {
+	for _, path := range fooState.Current.AttrSensitivePaths {
 		switch {
-		case pvm.Path.Equals(cty.GetAttrPath("value")):
-		case pvm.Path.Equals(cty.GetAttrPath("sensitive_value")):
+		case path.Equals(cty.GetAttrPath("value")):
+		case path.Equals(cty.GetAttrPath("sensitive_value")):
 		default:
-			t.Errorf("unexpected path mark: %#v", pvm)
+			t.Errorf("unexpected sensitive path: %#v", path)
 			return
-		}
-
-		if want := cty.NewValueMarks(marks.Sensitive); !pvm.Marks.Equal(want) {
-			t.Errorf("wrong marks\n got: %#v\nwant: %#v", pvm.Marks, want)
 		}
 	}
 
@@ -12611,16 +12605,13 @@ func TestContext2Apply_dataSensitive(t *testing.T) {
 	addr := mustResourceInstanceAddr("data.null_data_source.testing")
 
 	dataSourceState := state.ResourceInstance(addr)
-	pvms := dataSourceState.Current.AttrSensitivePaths
-	if len(pvms) != 1 {
-		t.Fatalf("expected 1 sensitive path, got %d", len(pvms))
+	sensitivePaths := dataSourceState.Current.AttrSensitivePaths
+	if len(sensitivePaths) != 1 {
+		t.Fatalf("expected 1 sensitive path, got %d", len(sensitivePaths))
 	}
-	pvm := pvms[0]
-	if gotPath, wantPath := pvm.Path, cty.GetAttrPath("foo"); !gotPath.Equals(wantPath) {
+	sensitivePath := sensitivePaths[0]
+	if gotPath, wantPath := sensitivePath, cty.GetAttrPath("foo"); !gotPath.Equals(wantPath) {
 		t.Errorf("wrong path\n got: %#v\nwant: %#v", gotPath, wantPath)
-	}
-	if gotMarks, wantMarks := pvm.Marks, cty.NewValueMarks(marks.Sensitive); !gotMarks.Equal(wantMarks) {
-		t.Errorf("wrong marks\n got: %#v\nwant: %#v", gotMarks, wantMarks)
 	}
 }
 

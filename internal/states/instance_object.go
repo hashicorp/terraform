@@ -4,12 +4,15 @@
 package states
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // ResourceInstanceObject is the local representation of a specific remote
@@ -95,7 +98,10 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	// If it contains marks, remove these marks before traversing the
 	// structure with UnknownAsNull, and save the PathValueMarks
 	// so we can save them in state.
-	val, pvm := o.Value.UnmarkDeepWithPaths()
+	val, sensitivePaths, err := unmarkValueForStorage(o.Value)
+	if err != nil {
+		return nil, err
+	}
 
 	// Our state serialization can't represent unknown values, so we convert
 	// them to nulls here. This is lossy, but nobody should be writing unknown
@@ -128,7 +134,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	return &ResourceInstanceObjectSrc{
 		SchemaVersion:       schemaVersion,
 		AttrsJSON:           src,
-		AttrSensitivePaths:  pvm,
+		AttrSensitivePaths:  sensitivePaths,
 		Private:             o.Private,
 		Status:              o.Status,
 		Dependencies:        dependencies,
@@ -148,4 +154,25 @@ func (o *ResourceInstanceObject) AsTainted() *ResourceInstanceObject {
 	ret := o.DeepCopy()
 	ret.Status = ObjectTainted
 	return ret
+}
+
+// unmarkValueForStorage takes a value that possibly contains marked values
+// and returns an equal value without markings along with the separated mark
+// metadata that should be stored alongside the value in another field.
+//
+// This function only accepts the marks that are valid to store, and so will
+// return an error if other marks are present. Marks that this package doesn't
+// know how to store must be dealt with somehow by a caller -- presumably by
+// replacing each marked value with some sort of storage placeholder -- before
+// writing a value into the state.
+func unmarkValueForStorage(v cty.Value) (unmarkedV cty.Value, sensitivePaths []cty.Path, err error) {
+	val, pvms := v.UnmarkDeepWithPaths()
+	sensitivePaths, withOtherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
+	if len(withOtherMarks) != 0 {
+		return cty.NilVal, nil, fmt.Errorf(
+			"%s: cannot serialize value marked as %#v for inclusion in a state snapshot (this is a bug in Terraform)",
+			tfdiags.FormatCtyPath(withOtherMarks[0].Path), withOtherMarks[0].Marks,
+		)
+	}
+	return val, sensitivePaths, nil
 }

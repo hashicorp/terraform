@@ -13,7 +13,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 )
 
 func TestState(t *testing.T) {
@@ -220,11 +219,8 @@ func TestStateDeepCopy(t *testing.T) {
 			SchemaVersion: 1,
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 			// Sensitive path at "woozles"
-			AttrSensitivePaths: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "woozles"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AttrSensitivePaths: []cty.Path{
+				cty.GetAttrPath("woozles"),
 			},
 			Private: []byte("private data"),
 			Dependencies: []addrs.ConfigResource{

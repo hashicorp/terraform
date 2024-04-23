@@ -7,7 +7,8 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"os"
 
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
@@ -59,7 +60,7 @@ func Open(filename string) (*Reader, error) {
 	if err != nil {
 		// To give a better error message, we'll sniff to see if this looks
 		// like our old plan format from versions prior to 0.12.
-		if b, sErr := ioutil.ReadFile(filename); sErr == nil {
+		if b, sErr := os.ReadFile(filename); sErr == nil {
 			if bytes.HasPrefix(b, []byte("tfplan")) {
 				return nil, errUnusable(fmt.Errorf("the given plan file was created by an earlier version of Terraform; plan files cannot be shared between different Terraform versions"))
 			}
@@ -236,7 +237,7 @@ func (r *Reader) ReadDependencyLocks() (*depsfile.Locks, tfdiags.Diagnostics) {
 				))
 				return nil, diags
 			}
-			src, err := ioutil.ReadAll(r)
+			src, err := io.ReadAll(r)
 			if err != nil {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,

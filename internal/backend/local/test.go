@@ -21,7 +21,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	configtest "github.com/hashicorp/terraform/internal/moduletest/config"
@@ -1169,34 +1168,11 @@ func (runner *TestFileRunner) FilterVariablesToModule(config *configs.Config, va
 	moduleVars = make(terraform.InputValues)
 	testOnlyVars = make(terraform.InputValues)
 	for name, value := range values {
-		variableConfig, exists := config.Module.Variables[name]
+		_, exists := config.Module.Variables[name]
 		if !exists {
 			// If it's not in the configuration then it's a test-only variable.
 			testOnlyVars[name] = value
 			continue
-		}
-
-		if marks.Has(value.Value, marks.Sensitive) {
-			unmarkedValue, _ := value.Value.Unmark()
-			if !variableConfig.Sensitive {
-				// Then we are passing a sensitive value into a non-sensitive
-				// variable. Let's add a warning and tell the user they should
-				// mark the config as sensitive as well. If the config variable
-				// is sensitive, then we don't need to worry.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagWarning,
-					Summary:  "Sensitive metadata on variable lost",
-					Detail:   fmt.Sprintf("The input variable is marked as sensitive, while the receiving configuration is not. The underlying sensitive information may be exposed when var.%s is referenced. Mark the variable block in the configuration as sensitive to resolve this warning.", variableConfig.Name),
-					Subject:  value.SourceRange.ToHCL().Ptr(),
-				})
-			}
-
-			// Set the unmarked value into the input value.
-			value = &terraform.InputValue{
-				Value:       unmarkedValue,
-				SourceType:  value.SourceType,
-				SourceRange: value.SourceRange,
-			}
 		}
 
 		moduleVars[name] = value
