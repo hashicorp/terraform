@@ -12,8 +12,9 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 func TestValidateSelfRef(t *testing.T) {
@@ -98,7 +99,20 @@ func TestValidateSelfRef(t *testing.T) {
 				},
 			}
 
+			// First test the expression within the context of the configuration
+			// body.
 			diags := validateSelfRef(test.Addr, body, ps)
+			if diags.HasErrors() != test.Err {
+				if test.Err {
+					t.Errorf("unexpected success; want error")
+				} else {
+					t.Errorf("unexpected error\n\n%s", diags.Err())
+				}
+			}
+
+			// We can use the same expressions to test the expression
+			// validation.
+			diags = validateSelfRefInExpr(test.Addr, test.Expr)
 			if diags.HasErrors() != test.Err {
 				if test.Err {
 					t.Errorf("unexpected success; want error")
