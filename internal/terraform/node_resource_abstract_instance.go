@@ -441,7 +441,9 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			ProposedNewState: nullVal,
 			PriorPrivate:     currentState.Private,
 			ProviderMeta:     metaConfigVal,
-			DeferralAllowed:  ctx.Deferrals().DeferralAllowed(),
+			ClientCapabilities: providers.ClientCapabilities{
+				DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+			},
 		})
 		deferred = resp.Deferred
 
@@ -646,11 +648,13 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		}
 	} else {
 		resp = provider.ReadResource(providers.ReadResourceRequest{
-			TypeName:        n.Addr.Resource.Resource.Type,
-			PriorState:      priorVal,
-			Private:         state.Private,
-			ProviderMeta:    metaConfigVal,
-			DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+			TypeName:     n.Addr.Resource.Resource.Type,
+			PriorState:   priorVal,
+			Private:      state.Private,
+			ProviderMeta: metaConfigVal,
+			ClientCapabilities: providers.ClientCapabilities{
+				DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+			},
 		})
 
 		if resp.Deferred != nil {
@@ -931,7 +935,9 @@ func (n *NodeAbstractResourceInstance) plan(
 			ProposedNewState: proposedNewVal,
 			PriorPrivate:     priorPrivate,
 			ProviderMeta:     metaConfigVal,
-			DeferralAllowed:  ctx.Deferrals().DeferralAllowed(),
+			ClientCapabilities: providers.ClientCapabilities{
+				DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+			},
 		})
 	}
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
@@ -1086,7 +1092,9 @@ func (n *NodeAbstractResourceInstance) plan(
 				ProposedNewState: proposedNewVal,
 				PriorPrivate:     plannedPrivate,
 				ProviderMeta:     metaConfigVal,
-				DeferralAllowed:  ctx.Deferrals().DeferralAllowed(),
+				ClientCapabilities: providers.ClientCapabilities{
+					DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+				},
 			})
 		}
 		// We need to tread carefully here, since if there are any warnings
@@ -1519,10 +1527,12 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		}
 	} else {
 		resp = provider.ReadDataSource(providers.ReadDataSourceRequest{
-			TypeName:        n.Addr.ContainingResource().Resource.Type,
-			Config:          configVal,
-			ProviderMeta:    metaConfigVal,
-			DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+			TypeName:     n.Addr.ContainingResource().Resource.Type,
+			Config:       configVal,
+			ProviderMeta: metaConfigVal,
+			ClientCapabilities: providers.ClientCapabilities{
+				DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+			},
 		})
 
 		if resp.Deferred != nil {
