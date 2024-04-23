@@ -168,12 +168,18 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		}
 	}
 
-	// We'll produce a derived graph that only includes the static resource
-	// blocks, since we need that for deferral tracking.
-	resourceGraph := graph.ResourceGraph()
-	deferred := deferring.NewDeferred(resourceGraph, opts.DeferralAllowed)
-	if opts.ExternalDependencyDeferred {
-		deferred.SetExternalDependencyDeferred()
+	var deferred *deferring.Deferred
+
+	if opts.DeferralAllowed {
+		// We'll produce a derived graph that only includes the static resource
+		// blocks, since we need that for deferral tracking.
+		resourceGraph := graph.ResourceGraph()
+		deferred = deferring.NewDeferred(resourceGraph, opts.DeferralAllowed)
+		if opts.ExternalDependencyDeferred {
+			deferred.SetExternalDependencyDeferred()
+		}
+	} else {
+		deferred = deferring.NewDeferred(addrs.NewDirectedGraph[addrs.ConfigResource](), false)
 	}
 
 	return &ContextGraphWalker{
