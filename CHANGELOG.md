@@ -6,6 +6,13 @@ BUG FIXES:
 * `terraform plan`: Replace panic with error message when self-referencing resources and data sources from the `count` and `for_each` meta attributes. ([#35047](https://github.com/hashicorp/terraform/pull/35047))
 * `terraform test`: Restore TF_ENV_* variables being made available to testing modules. ([#35014](https://github.com/hashicorp/terraform/pull/35014))
 
+NOTE:
+
+Starting with this release, we are including a copy of our license file in all packaged versions of our releases, such as the release .zip files. If you are consuming these files directly and would prefer to extract the one terraform file instead of extracting everything, you need to add an extra argument specifying the file to extract, like this:
+```
+unzip terraform_1.8.2_linux_amd64.zip terraform
+```
+
 ## 1.8.1 (April 17, 2024)
 
 BUG FIXES:
