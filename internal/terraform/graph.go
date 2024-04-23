@@ -285,14 +285,23 @@ func (g *Graph) ResourceGraph() addrs.DirectedGraph[addrs.ConfigResource] {
 	// and then using that temporary graph to construct the final graph to
 	// return.
 
+	log.Printf("[TRACE] ResourceGraph: copying source graph\n")
 	tmpG := Graph{}
 	tmpG.Subsume(&g.Graph)
+	log.Printf("[TRACE] ResourceGraph: reducing graph\n")
 	tmpG.reducePreservingRelationships(func(n dag.Vertex) bool {
 		_, ret := n.(GraphNodeConfigResource)
 		return ret
 	})
+	log.Printf("[TRACE] ResourceGraph: TransitiveReduction\n")
+
+	// The resulting graph could have many more edges now, but alternate paths
+	// are not a problem for the deferral system, so we may choose not to run
+	// this as it may be very time consuming. The reducePreservingRelationships
+	// method also doesn't add many (if any) redundant new edges to most graphs.
 	tmpG.TransitiveReduction()
 
+	log.Printf("[TRACE] ResourceGraph: creating address graph\n")
 	ret := addrs.NewDirectedGraph[addrs.ConfigResource]()
 	for _, n := range tmpG.Vertices() {
 		sourceR := n.(GraphNodeConfigResource)
@@ -300,9 +309,11 @@ func (g *Graph) ResourceGraph() addrs.DirectedGraph[addrs.ConfigResource] {
 		ret.Add(sourceAddr)
 		for _, dn := range tmpG.DownEdges(n) {
 			targetR := dn.(GraphNodeConfigResource)
+
 			ret.AddDependency(sourceAddr, targetR.ResourceAddr())
 		}
 	}
+	log.Printf("[TRACE] ResourceGraph: completed with %d nodes\n", len(ret.AllNodes()))
 	return ret
 }
 
@@ -311,46 +322,25 @@ func (g *Graph) ResourceGraph() addrs.DirectedGraph[addrs.ConfigResource] {
 // edges to preserve the dependency relationships for all of the nodes
 // that still remain.
 func (g *Graph) reducePreservingRelationships(keepNode func(dag.Vertex) bool) {
-	// This is a naive algorithm for now. Maybe we'll improve it later.
-
-	// We'll keep iterating as long as we find new edges to add because we
-	// might need to bridge across multiple nodes that we're going to remove
-	// in order to retain the relationships, and one iteration can only
-	// bridge a single node at a time.
-	changed := true
-	for changed {
-		changed = false
-		for _, n := range g.Vertices() {
-			if keepNode(n) {
-				continue
-			}
-
-			// If we're not going to keep this node then we need to connect
-			// all of its dependents to all of its dependencies so that the
-			// ordering is still preserved for those nodes that remain.
-			// However, this will often generate more edges than are strictly
-			// required and so it could be productive to run a transitive
-			// reduction afterwards.
-			dependents := g.UpEdges(n)
-			dependencies := g.DownEdges(n)
-			for dependent := range dependents {
-				for dependency := range dependencies {
-					edge := dag.BasicEdge(dependent, dependency)
-					if !g.HasEdge(edge) {
-						g.Connect(edge)
-						changed = true
-					}
-				}
-			}
-		}
-	}
-
-	// With all of the extra supporting edges in place, we can now safely
-	// remove the nodes we aren't going to keep without changing the
-	// relationships of the remaining nodes.
 	for _, n := range g.Vertices() {
-		if !keepNode(n) {
-			g.Remove(n)
+		if keepNode(n) {
+			continue
 		}
+
+		// If we're not going to keep this node then we need to connect
+		// all of its dependents to all of its dependencies so that the
+		// ordering is still preserved for those nodes that remain.
+		// However, this will often generate more edges than are strictly
+		// required and so it could be productive to run a transitive
+		// reduction afterwards.
+		dependents := g.UpEdges(n)
+		dependencies := g.DownEdges(n)
+		for dependent := range dependents {
+			for dependency := range dependencies {
+				edge := dag.BasicEdge(dependent, dependency)
+				g.Connect(edge)
+			}
+		}
+		g.Remove(n)
 	}
 }
