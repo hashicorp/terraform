@@ -60,7 +60,7 @@ func (caches *VariableCaches) GetCache(name string, config *configs.Config) *Var
 }
 
 // GetGlobalVariable returns a value for the named global variable evaluated
-// against the named run.
+// against the run.
 //
 // This function caches the result of evaluating the variable so that it is
 // only evaluated once per run.
