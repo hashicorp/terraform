@@ -11,7 +11,7 @@ import (
 // Test represents the command-line arguments for the test command.
 type Test struct {
 	// CloudRunSource specifies the remote private module that this test run
-	// should execute against in a remote Terraform Cloud run.
+	// should execute against in a remote HCP Terraform run.
 	CloudRunSource string
 
 	// Filter contains a list of test files to execute. If empty, all test files

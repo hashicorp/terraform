@@ -182,7 +182,7 @@ func NewCloudPluginClient(ctx context.Context, serviceURL *url.URL) (*CloudPlugi
 	}, nil
 }
 
-// FetchManifest retrieves the cloudplugin manifest from Terraform Cloud,
+// FetchManifest retrieves the cloudplugin manifest from HCP Terraform,
 // but returns a nil manifest if a 304 response is received, depending
 // on the lastModified time.
 func (c CloudPluginClient) FetchManifest(lastModified time.Time) (*Release, error) {

@@ -200,7 +200,7 @@ go test ./internal/addrs
 
 Terraform's unit test suite is self-contained, using mocks and local files to help ensure that it can run offline and is unlikely to be broken by changes to outside systems.
 
-However, several Terraform components interact with external services, such as the automatic provider installation mechanism, the Terraform Registry, HCP Terraform, etc.
+However, several Terraform components interact with external services, such as the automatic provider installation mechanism, the Terraform Registry, HCP Terraform, Terraform Enterprise, etc.
 
 There are some optional tests in the Terraform CLI codebase that *do* interact with external services, which we collectively refer to as "acceptance tests". You can enable these by setting the environment variable `TF_ACC=1` when running the tests. We recommend focusing only on the specific package you are working on when enabling acceptance tests, both because it can help the test run to complete faster and because you are less likely to encounter failures due to drift in systems unrelated to your current goal:
 

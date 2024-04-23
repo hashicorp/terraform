@@ -11,14 +11,14 @@ import (
 const (
 	goodToken      = "good-token"
 	accountDetails = `{"data":{"id":"user-abc123","type":"users","attributes":{"username":"testuser","email":"testuser@example.com"}}}`
-	MOTD           = `{"msg":"Welcome to Terraform Cloud!"}`
+	MOTD           = `{"msg":"Welcome to HCP Terraform!"}`
 )
 
 // Handler is an implementation of net/http.Handler that provides a stub
 // TFE API server implementation with the following endpoints:
 //
-//     /ping            - API existence endpoint
-//     /account/details - current user endpoint
+//	/ping            - API existence endpoint
+//	/account/details - current user endpoint
 var Handler http.Handler
 
 type handler struct{}

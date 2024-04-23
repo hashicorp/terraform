@@ -50,7 +50,7 @@ const (
 	// cannot be downloaded.
 	ExitPluginError = 98
 
-	// The regular TFC API service that the go-tfe client relies on.
+	// The regular HCP Terraform API service that the go-tfe client relies on.
 	tfeServiceID = "tfe.v2"
 	// The cloud plugin release download service that the BinaryManager relies
 	// on to fetch the plugin.
@@ -165,7 +165,7 @@ func (c *CloudCommand) discoverAndConfigure() tfdiags.Diagnostics {
 	if err != nil {
 		return diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Terraform Cloud API service not found",
+			"HCP Terraform API service not found",
 			err.Error(),
 		))
 	}
@@ -279,11 +279,11 @@ func (c *CloudCommand) Help() string {
 
 // Synopsis returns a short summary of the cloud command.
 func (c *CloudCommand) Synopsis() string {
-	return "Manage Terraform Cloud settings and metadata"
+	return "Manage HCP Terraform settings and metadata"
 }
 
 // CloudPluginConfig is everything the cloud plugin needs to know to configure a
-// client and talk to TFC.
+// client and talk to HCP Terraform.
 type CloudPluginConfig struct {
 	// Maybe someday we can use struct tags to automate grabbing these out of
 	// the metadata headers! And verify client-side that we're sending the right
