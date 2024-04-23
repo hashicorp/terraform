@@ -1074,6 +1074,7 @@ Error: Invalid command-line option
 
 The -reconfigure option is unsupported when migrating to HCP Terraform,
 because activating HCP Terraform involves some additional steps.
+
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
 			t.Errorf("wrong error output\n%s", diff)

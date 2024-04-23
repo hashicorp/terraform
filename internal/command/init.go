@@ -403,7 +403,7 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
 	defer span.End()
 
-	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing Terraform Cloud..."))
+	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing HCP Terraform..."))
 
 	if len(extraConfig.AllItems()) != 0 {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -1215,7 +1215,7 @@ const outputInitSuccess = `
 `
 
 const outputInitSuccessCloud = `
-[reset][bold][green]Terraform Cloud has been successfully initialized![reset][green]
+[reset][bold][green]HCP Terraform has been successfully initialized![reset][green]
 `
 
 const outputInitSuccessCLI = `[reset][green]
@@ -1229,7 +1229,7 @@ commands will detect it and remind you to do so if necessary.
 `
 
 const outputInitSuccessCLICloud = `[reset][green]
-You may now begin working with Terraform Cloud. Try running "terraform plan" to
+You may now begin working with HCP Terraform. Try running "terraform plan" to
 see any changes that are required for your infrastructure.
 
 If you ever set or change modules or Terraform Settings, run "terraform init"
