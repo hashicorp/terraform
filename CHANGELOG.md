@@ -1,5 +1,10 @@
 ## 1.8.2 (Unreleased)
 
+BUG FIXES:
+
+* `terraform apply`: Prevent panic when a provider erroneously provides unknown values. ([#35048](https://github.com/hashicorp/terraform/pull/35048))
+* `terraform plan`: Replace panic with error message when self-referencing resources and data sources from the `count` and `for_each` meta attributes. ([#35047](https://github.com/hashicorp/terraform/pull/35047))
+
 ## 1.8.1 (April 17, 2024)
 
 BUG FIXES:
