@@ -17,6 +17,7 @@ project "terraform" {
       "main",
       "release/**",
       "v**.**",
+      "xiehan-patch-1",
     ]
   }
 }
