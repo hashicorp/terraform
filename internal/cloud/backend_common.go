@@ -61,7 +61,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 		// Retrieve the run to get its current status.
 		r, err := b.client.Runs.Read(stopCtx, r.ID)
 		if err != nil {
-			return r, generalError("Failed to retrieve run", err)
+			return r, b.generalError("Failed to retrieve run", err)
 		}
 
 		// Return if the run is no longer pending.
@@ -92,7 +92,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 			// Retrieve the workspace used to run this operation in.
 			w, err = b.client.Workspaces.Read(stopCtx, b.Organization, w.Name)
 			if err != nil {
-				return nil, generalError("Failed to retrieve workspace", err)
+				return nil, b.generalError("Failed to retrieve workspace", err)
 			}
 
 			// If the workspace is locked the run will not be queued and we can
@@ -100,7 +100,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 			if w.Locked && w.CurrentRun != nil {
 				cr, err := b.client.Runs.Read(stopCtx, w.CurrentRun.ID)
 				if err != nil {
-					return r, generalError("Failed to retrieve current run", err)
+					return r, b.generalError("Failed to retrieve current run", err)
 				}
 				if cr.Status == tfe.RunPending {
 					b.CLI.Output(b.Colorize().Color(
@@ -117,7 +117,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 				for {
 					rl, err := b.client.Runs.List(stopCtx, w.ID, options)
 					if err != nil {
-						return r, generalError("Failed to retrieve run list", err)
+						return r, b.generalError("Failed to retrieve run list", err)
 					}
 
 					// Loop through all runs to calculate the workspace queue position.
@@ -172,7 +172,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 			for {
 				rq, err := b.client.Organizations.ReadRunQueue(stopCtx, b.Organization, options)
 				if err != nil {
-					return r, generalError("Failed to retrieve queue", err)
+					return r, b.generalError("Failed to retrieve queue", err)
 				}
 
 				// Search through all queued items to find our run.
@@ -195,7 +195,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 			if position > 0 {
 				c, err := b.client.Organizations.ReadCapacity(stopCtx, b.Organization)
 				if err != nil {
-					return r, generalError("Failed to retrieve capacity", err)
+					return r, b.generalError("Failed to retrieve capacity", err)
 				}
 				b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
 					"Waiting for %d queued run(s) to finish before starting...%s",
@@ -242,7 +242,7 @@ func (b *Cloud) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Ope
 		// Retrieve the cost estimate to get its current status.
 		ce, err := b.client.CostEstimates.Read(stopCtx, r.CostEstimate.ID)
 		if err != nil {
-			return generalError("Failed to retrieve cost estimate", err)
+			return b.generalError("Failed to retrieve cost estimate", err)
 		}
 
 		// If the run is canceled or errored, but the cost-estimate still has
@@ -263,7 +263,7 @@ func (b *Cloud) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Ope
 		case tfe.CostEstimateFinished:
 			delta, err := strconv.ParseFloat(ce.DeltaMonthlyCost, 64)
 			if err != nil {
-				return generalError("Unexpected error", err)
+				return b.generalError("Unexpected error", err)
 			}
 
 			sign := "+"
@@ -326,14 +326,14 @@ func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Oper
 		// return once the policy check is complete.
 		logs, err := b.client.PolicyChecks.Logs(stopCtx, pc.ID)
 		if err != nil {
-			return generalError("Failed to retrieve policy check logs", err)
+			return b.generalError("Failed to retrieve policy check logs", err)
 		}
 		reader := bufio.NewReaderSize(logs, 64*1024)
 
 		// Retrieve the policy check to get its current status.
 		pc, err := b.client.PolicyChecks.Read(stopCtx, pc.ID)
 		if err != nil {
-			return generalError("Failed to retrieve policy check", err)
+			return b.generalError("Failed to retrieve policy check", err)
 		}
 
 		// If the run is canceled or errored, but the policy check still has
@@ -367,7 +367,7 @@ func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Oper
 					l, isPrefix, err = reader.ReadLine()
 					if err != nil {
 						if err != io.EOF {
-							return generalError("Failed to read logs", err)
+							return b.generalError("Failed to read logs", err)
 						}
 						next = false
 					}
@@ -400,7 +400,7 @@ func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Oper
 
 			if op.AutoApprove {
 				if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
-					return generalError(fmt.Sprintf("Failed to override policy check.\n%s", runURL), err)
+					return b.generalError(fmt.Sprintf("Failed to override policy check.\n%s", runURL), err)
 				}
 			} else if !b.input {
 				return errPolicyOverrideNeedsUIConfirmation
@@ -419,7 +419,7 @@ func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Oper
 
 				if err != errRunOverridden {
 					if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
-						return generalError(fmt.Sprintf("Failed to override policy check.\n%s", runURL), err)
+						return b.generalError(fmt.Sprintf("Failed to override policy check.\n%s", runURL), err)
 					}
 				} else {
 					runURL := fmt.Sprintf(runHeader, b.Hostname, b.Organization, op.Workspace, r.ID)
@@ -457,7 +457,7 @@ func (b *Cloud) confirm(stopCtx context.Context, op *backend.Operation, opts *te
 				// Retrieve the run again to get its current status.
 				r, err := b.client.Runs.Read(stopCtx, r.ID)
 				if err != nil {
-					result <- generalError("Failed to retrieve run", err)
+					result <- b.generalError("Failed to retrieve run", err)
 					return
 				}
 
@@ -524,7 +524,7 @@ func (b *Cloud) confirm(stopCtx context.Context, op *backend.Operation, opts *te
 			// Retrieve the run again to get its current status.
 			r, err = b.client.Runs.Read(stopCtx, r.ID)
 			if err != nil {
-				return generalError("Failed to retrieve run", err)
+				return b.generalError("Failed to retrieve run", err)
 			}
 
 			// Make sure we discard the run if possible.
@@ -532,9 +532,9 @@ func (b *Cloud) confirm(stopCtx context.Context, op *backend.Operation, opts *te
 				err = b.client.Runs.Discard(stopCtx, r.ID, tfe.RunDiscardOptions{})
 				if err != nil {
 					if op.PlanMode == plans.DestroyMode {
-						return generalError("Failed to discard destroy", err)
+						return b.generalError("Failed to discard destroy", err)
 					}
-					return generalError("Failed to discard apply", err)
+					return b.generalError("Failed to discard apply", err)
 				}
 			}
 

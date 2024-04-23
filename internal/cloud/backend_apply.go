@@ -143,7 +143,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		// Retrieve the run to get its current status.
 		r, err = b.client.Runs.Read(stopCtx, r.ID)
 		if err != nil {
-			return r, generalError("Failed to retrieve run", err)
+			return r, b.generalError("Failed to retrieve run", err)
 		}
 
 		// Return if the run cannot be confirmed.
@@ -184,7 +184,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 	// Do the apply!
 	if !op.AutoApprove && err != errRunApproved {
 		if err = b.client.Runs.Apply(stopCtx, r.ID, tfe.RunApplyOptions{}); err != nil {
-			return r, generalError("Failed to approve the apply command", err)
+			return r, b.generalError("Failed to approve the apply command", err)
 		}
 	}
 
@@ -232,7 +232,7 @@ func (b *Cloud) renderApplyLogs(ctx context.Context, run *tfe.Run) error {
 				l, isPrefix, err = reader.ReadLine()
 				if err != nil {
 					if err != io.EOF {
-						return generalError("Failed to read logs", err)
+						return b.generalError("Failed to read logs", err)
 					}
 					next = false
 				}

@@ -139,7 +139,7 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, 
 
 	cv, err := b.client.ConfigurationVersions.Create(stopCtx, w.ID, configOptions)
 	if err != nil {
-		return nil, generalError("Failed to create configuration version", err)
+		return nil, b.generalError("Failed to create configuration version", err)
 	}
 
 	var configDir string
@@ -147,7 +147,7 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, 
 		// De-normalize the configuration directory path.
 		configDir, err = filepath.Abs(op.ConfigDir)
 		if err != nil {
-			return nil, generalError(
+			return nil, b.generalError(
 				"Failed to get absolute path of the configuration directory: %v", err)
 		}
 
@@ -185,21 +185,21 @@ in order to capture the filesystem context the remote workspace expects:
 		// be executed when we are destroying and doesn't need the config.
 		configDir, err = ioutil.TempDir("", "tf")
 		if err != nil {
-			return nil, generalError("Failed to create temporary directory", err)
+			return nil, b.generalError("Failed to create temporary directory", err)
 		}
 		defer os.RemoveAll(configDir)
 
 		// Make sure the configured working directory exists.
 		err = os.MkdirAll(filepath.Join(configDir, w.WorkingDirectory), 0700)
 		if err != nil {
-			return nil, generalError(
+			return nil, b.generalError(
 				"Failed to create temporary working directory", err)
 		}
 	}
 
 	err = b.client.ConfigurationVersions.Upload(stopCtx, cv.UploadURL, configDir)
 	if err != nil {
-		return nil, generalError("Failed to upload configuration files", err)
+		return nil, b.generalError("Failed to upload configuration files", err)
 	}
 
 	uploaded := false
@@ -212,7 +212,7 @@ in order to capture the filesystem context the remote workspace expects:
 		case <-time.After(planConfigurationVersionsPollInterval):
 			cv, err = b.client.ConfigurationVersions.Read(stopCtx, cv.ID)
 			if err != nil {
-				return nil, generalError("Failed to retrieve configuration version", err)
+				return nil, b.generalError("Failed to retrieve configuration version", err)
 			}
 
 			if cv.Status == tfe.ConfigurationUploaded {
@@ -222,7 +222,7 @@ in order to capture the filesystem context the remote workspace expects:
 	}
 
 	if !uploaded {
-		return nil, generalError(
+		return nil, b.generalError(
 			"Failed to upload configuration files", errors.New("operation timed out"))
 	}
 
@@ -245,7 +245,7 @@ in order to capture the filesystem context the remote workspace expects:
 		// Shouldn't get here because we should update this for each new
 		// plan mode we add, mapping it to the corresponding RunCreateOptions
 		// field.
-		return nil, generalError(
+		return nil, b.generalError(
 			"Invalid plan mode",
 			fmt.Errorf("%s doesn't support %s", b.appName, op.PlanMode),
 		)
@@ -291,7 +291,7 @@ in order to capture the filesystem context the remote workspace expects:
 
 	r, err := b.client.Runs.Create(stopCtx, runOptions)
 	if err != nil {
-		return r, generalError("Failed to create run", err)
+		return r, b.generalError("Failed to create run", err)
 	}
 
 	// When the lock timeout is set, if the run is still pending and
@@ -367,7 +367,7 @@ in order to capture the filesystem context the remote workspace expects:
 	// Retrieve the run to get its current status.
 	r, err = b.client.Runs.Read(stopCtx, r.ID)
 	if err != nil {
-		return r, generalError("Failed to retrieve run", err)
+		return r, b.generalError("Failed to retrieve run", err)
 	}
 
 	// If the run is canceled or errored, we still continue to the
@@ -453,7 +453,7 @@ func (b *Cloud) renderPlanLogs(ctx context.Context, op *backend.Operation, run *
 				l, isPrefix, err = reader.ReadLine()
 				if err != nil {
 					if err != io.EOF {
-						return generalError("Failed to read logs", err)
+						return b.generalError("Failed to read logs", err)
 					}
 					next = false
 				}
@@ -523,11 +523,11 @@ func (b *Cloud) renderPlanLogs(ctx context.Context, op *backend.Operation, run *
 	if renderSRO || shouldGenerateConfig {
 		jsonBytes, err := readRedactedPlan(ctx, b.client.BaseURL(), b.Token, run.Plan.ID)
 		if err != nil {
-			return generalError("Failed to read JSON plan", err)
+			return b.generalError("Failed to read JSON plan", err)
 		}
 		redactedPlan, err = decodeRedactedPlan(jsonBytes)
 		if err != nil {
-			return generalError("Failed to decode JSON plan", err)
+			return b.generalError("Failed to decode JSON plan", err)
 		}
 	}
 
