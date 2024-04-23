@@ -60,10 +60,15 @@ func (caches *VariableCaches) GetCache(name string, config *configs.Config) *Var
 }
 
 // GetGlobalVariable returns a value for the named global variable evaluated
-// against the run.
+// against the current run.
 //
 // This function caches the result of evaluating the variable so that it is
 // only evaluated once per run.
+//
+// This function will return a valid input value if parsing fails for any reason
+// so the caller can continue processing the configuration. The diagnostics
+// returned will contain the error message that occurred during parsing and as
+// such should be shown to the user.
 func (cache *VariableCache) GetGlobalVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
 	val, exists := cache.globals[name]
 	if exists {
@@ -99,10 +104,15 @@ func (cache *VariableCache) GetGlobalVariable(name string) (*terraform.InputValu
 }
 
 // GetFileVariable returns a value for the named file-level variable evaluated
-// against the named run.
+// against the current run.
 //
 // This function caches the result of evaluating the variable so that it is
 // only evaluated once per run.
+//
+// This function will return a valid input value if parsing fails for any reason
+// so the caller can continue processing the configuration. The diagnostics
+// returned will contain the error message that occurred during parsing and as
+// such should be shown to the user.
 func (cache *VariableCache) GetFileVariable(name string) (*terraform.InputValue, tfdiags.Diagnostics) {
 	val, exists := cache.files[name]
 	if exists {
