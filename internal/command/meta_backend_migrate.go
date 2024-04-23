@@ -463,10 +463,14 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 func (m *Meta) backendMigrateEmptyConfirm(source, destination statemgr.Full, opts *backendMigrateOpts) (bool, error) {
 	var inputOpts *terraform.InputOpts
 	if opts.DestinationType == "cloud" {
+		appName := "HCP Terraform"
+		if cloudBackend, ok := opts.Destination.(*cloud.Cloud); ok {
+			appName = cloudBackend.AppName()
+		}
 		inputOpts = &terraform.InputOpts{
 			Id:          "backend-migrate-copy-to-empty-cloud",
 			Query:       "Do you want to copy existing state to HCP Terraform?",
-			Description: fmt.Sprintf(strings.TrimSpace(inputBackendMigrateEmptyCloud), opts.SourceType),
+			Description: fmt.Sprintf(strings.TrimSpace(inputBackendMigrateEmptyCloud), opts.SourceType, appName),
 		}
 	} else {
 		inputOpts = &terraform.InputOpts{
@@ -513,12 +517,16 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 	// Ask for confirmation
 	var inputOpts *terraform.InputOpts
 	if opts.DestinationType == "cloud" {
+		appName := "HCP Terraform"
+		if cloudBackend, ok := opts.Destination.(*cloud.Cloud); ok {
+			appName = cloudBackend.AppName()
+		}
 		inputOpts = &terraform.InputOpts{
 			Id:    "backend-migrate-to-tfc",
 			Query: "Do you want to copy existing state to HCP Terraform?",
 			Description: fmt.Sprintf(
 				strings.TrimSpace(inputBackendMigrateNonEmptyCloud),
-				opts.SourceType, sourcePath, destinationPath),
+				opts.SourceType, sourcePath, destinationPath, appName),
 		}
 	} else {
 		inputOpts = &terraform.InputOpts{
@@ -721,7 +729,14 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 	}
 
 	if pattern == "" {
-		pattern, err = m.promptMultiStateMigrationPattern(opts.SourceType)
+		var appName string
+		if cloudBackend, ok := opts.Destination.(*cloud.Cloud); ok {
+			appName = cloudBackend.AppName()
+		} else {
+			appName = "HCP Terraform"
+		}
+
+		pattern, err = m.promptMultiStateMigrationPattern(opts.SourceType, appName)
 		if err != nil {
 			return err
 		}
@@ -807,10 +822,15 @@ func (m *Meta) promptSingleToCloudSingleStateMigration(opts *backendMigrateOpts)
 	migrate := opts.force
 	if !migrate {
 		var err error
+		appName := "HCP Terraform"
+		if cloudBackend, ok := opts.Destination.(*cloud.Cloud); ok {
+			appName = cloudBackend.AppName()
+		}
+
 		migrate, err = m.confirm(&terraform.InputOpts{
 			Id:          "backend-migrate-state-single-to-cloud-single",
 			Query:       "Do you wish to proceed?",
-			Description: strings.TrimSpace(tfcInputBackendMigrateStateSingleToCloudSingle),
+			Description: fmt.Sprintf(strings.TrimSpace(tfcInputBackendMigrateStateSingleToCloudSingle), appName),
 		})
 		if err != nil {
 			return false, fmt.Errorf("Error asking for state migration action: %s", err)
@@ -828,10 +848,14 @@ func (m *Meta) promptRemotePrefixToCloudTagsMigration(opts *backendMigrateOpts) 
 	migrate := opts.force
 	if !migrate {
 		var err error
+		appName := "HCP Terraform"
+		if cloudBackend, ok := opts.Destination.(*cloud.Cloud); ok {
+			appName = cloudBackend.AppName()
+		}
 		migrate, err = m.confirm(&terraform.InputOpts{
 			Id:          "backend-migrate-remote-multistate-to-cloud",
 			Query:       "Do you wish to proceed?",
-			Description: strings.TrimSpace(tfcInputBackendMigrateRemoteMultiToCloud),
+			Description: fmt.Sprintf(strings.TrimSpace(tfcInputBackendMigrateRemoteMultiToCloud), appName),
 		})
 		if err != nil {
 			return fmt.Errorf("Error asking for state migration action: %s", err)
@@ -854,13 +878,17 @@ func (m *Meta) promptMultiToSingleCloudMigration(opts *backendMigrateOpts) error
 	migrate := opts.force
 	if !migrate {
 		var err error
+		appName := "HCP Terraform"
+		if cloudBackend, ok := opts.Destination.(*cloud.Cloud); ok {
+			appName = cloudBackend.AppName()
+		}
 		// Ask the user if they want to migrate their existing remote state
 		migrate, err = m.confirm(&terraform.InputOpts{
 			Id:    "backend-migrate-multistate-to-single",
 			Query: "Do you want to copy only your current workspace?",
 			Description: fmt.Sprintf(
 				strings.TrimSpace(tfcInputBackendMigrateMultiToSingle),
-				opts.SourceType, opts.destinationWorkspace),
+				opts.SourceType, opts.destinationWorkspace, appName),
 		})
 		if err != nil {
 			return fmt.Errorf("Error asking for state migration action: %s", err)
@@ -896,13 +924,13 @@ func (m *Meta) promptNewWorkspaceName(destinationType string) (string, error) {
 	return name, nil
 }
 
-func (m *Meta) promptMultiStateMigrationPattern(sourceType string) (string, error) {
+func (m *Meta) promptMultiStateMigrationPattern(sourceType string, appName string) (string, error) {
 	// This is not the first prompt a user would be presented with in the migration to TFC, so no
 	// guard on m.input is needed here.
 	renameWorkspaces, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 		Id:          "backend-migrate-multistate-to-tfc",
 		Query:       fmt.Sprintf("[reset][bold][yellow]%s[reset]", "Would you like to rename your workspaces?"),
-		Description: fmt.Sprintf(strings.TrimSpace(tfcInputBackendMigrateMultiToMulti), sourceType),
+		Description: fmt.Sprintf(strings.TrimSpace(tfcInputBackendMigrateMultiToMulti), sourceType, appName),
 	})
 	if err != nil {
 		return "", fmt.Errorf("Error asking for state migration action: %s", err)
@@ -1001,6 +1029,7 @@ For example, if a workspace is currently named 'prod', the pattern 'app-*' would
 'app-prod' for a new workspace name; 'app-*-region1' would  yield 'app-prod-region1'.
 `
 
+// Done
 const tfcInputBackendMigrateMultiToMulti = `
 Unlike typical Terraform workspaces representing an environment associated with a particular
 configuration (e.g. production, staging, development), HCP Terraform and Terraform Enterprise 
@@ -1010,15 +1039,16 @@ networking-staging-us-east).
 
 For more information on workspace naming, see https://www.terraform.io/docs/cloud/workspaces/naming.html
 
-When migrating existing workspaces from the backend %[1]q to HCP Terraform or Terraform Enterprise, 
+When migrating existing workspaces from the backend %[1]q to %[2]s, 
 would you like to rename your workspaces? Enter 1 or 2.
 
 1. Yes, I'd like to rename all workspaces according to a pattern I will provide.
 2. No, I would not like to rename my workspaces. Migrate them as currently named.
 `
 
+// Done
 const tfcInputBackendMigrateMultiToSingle = `
-The previous backend %[1]q has multiple workspaces, but HCP Terraform has
+The previous backend %[1]q has multiple workspaces, but %[3]s has
 been configured to use a single workspace (%[2]q). By continuing, you will
 only migrate your current workspace. If you wish to migrate all workspaces
 from the previous backend, you may cancel this operation and use the 'tags'
@@ -1027,29 +1057,31 @@ strategy in your workspace configuration block instead.
 Enter "yes" to proceed or "no" to cancel.
 `
 
+// Done
 const tfcInputBackendMigrateStateSingleToCloudSingle = `
-As part of migrating to HCP Terraform or Terraform Enterprise, Terraform can 
-optionally copy your current workspace state to the configured HCP workspace.
+As part of migrating to %[1]s, Terraform can optionally copy
+your current workspace state to the configured %[1]s workspace.
 
 Answer "yes" to copy the latest state snapshot to the configured
-HCP Terraform or Terraform Enterprise workspace.
+%[1]s workspace.
 
 Answer "no" to ignore the existing state and just activate the configured
-HCP Terraform or Terraform Enterprise workspace with its existing state, if any.
+%[1]s workspace with its existing state, if any.
 
 Should Terraform migrate your existing state?
 `
 
+// Done
 const tfcInputBackendMigrateRemoteMultiToCloud = `
 When migrating from the 'remote' backend to Terraform's native integration
-with HCP Terraform and Terraform Enterprise, Terraform will automatically 
+with %[1]s, Terraform will automatically 
 create or use existing workspaces based on the previous backend configuration's 
 'prefix' value.
 
 When the migration is complete, workspace names in Terraform will match the
-fully qualified HCP Terraform or Terraform Enterprise workspace name. If necessary, 
-the workspace tags configured in the 'cloud' option block will be added to the 
-associated HCP Terraform or Terraform Enterprise workspaces.
+fully qualified %[1]s workspace name. If necessary, the workspace 
+tags configured in the 'cloud' option block will be added to the associated 
+%[1]s workspaces.
 
 Enter "yes" to proceed or "no" to cancel.
 `
@@ -1061,9 +1093,10 @@ configured %[2]q backend. Do you want to copy this state to the new %[2]q
 backend? Enter "yes" to copy and "no" to start with an empty state.
 `
 
+// Done
 const inputBackendMigrateEmptyCloud = `
-Pre-existing state was found while migrating the previous %q backend to HCP Terraform.
-No existing state was found in HCP Terraform. Do you want to copy this state to HCP Terraform?
+Pre-existing state was found while migrating the previous %[1]q backend to %[2]s.
+No existing state was found in %[2]s. Do you want to copy this state to %[2]s?
 Enter "yes" to copy and "no" to start with an empty state.
 `
 
@@ -1081,17 +1114,18 @@ Enter "yes" to copy and "no" to start with the existing state in the newly
 configured %[2]q backend.
 `
 
+// Done
 const inputBackendMigrateNonEmptyCloud = `
 Pre-existing state was found while migrating the previous %q backend to
-HCP Terraform. An existing non-empty state already exists in HCP Terraform.
+%[4]s. An existing non-empty state already exists in %[4]s.
 The two states have been saved to temporary files that will be removed after
 responding to this query.
 
 Previous (type %[1]q): %[2]s
-New      (HCP Terraform): %[3]s
+New      (%[4]s): %[3]s
 
-Do you want to overwrite the state in HCP Terraform with the previous state?
-Enter "yes" to copy and "no" to start with the existing state in HCP Terraform.
+Do you want to overwrite the state in %[4]s with the previous state?
+Enter "yes" to copy and "no" to start with the existing state in %.
 `
 
 const inputBackendMigrateMultiToSingle = `
