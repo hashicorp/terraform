@@ -904,7 +904,7 @@ func (b *Cloud) Operation(ctx context.Context, op *backendrun.Operation) (*backe
 			r, err := b.client.Runs.Read(cancelCtx, r.ID)
 			if err != nil {
 				var diags tfdiags.Diagnostics
-				diags = diags.Append(generalError("Failed to retrieve run", err))
+				diags = diags.Append(b.generalError("Failed to retrieve run", err))
 				op.ReportResult(runningOp, diags)
 				return
 			}
@@ -915,7 +915,7 @@ func (b *Cloud) Operation(ctx context.Context, op *backendrun.Operation) (*backe
 			if opErr == context.Canceled {
 				if err := b.cancel(cancelCtx, op, r); err != nil {
 					var diags tfdiags.Diagnostics
-					diags = diags.Append(generalError("Failed to retrieve run", err))
+					diags = diags.Append(b.generalError("Failed to retrieve run", err))
 					op.ReportResult(runningOp, diags)
 					return
 				}
@@ -942,7 +942,7 @@ func (b *Cloud) cancel(cancelCtx context.Context, op *backendrun.Operation, r *t
 				Description: "Only 'yes' will be accepted to cancel.",
 			})
 			if err != nil {
-				return generalError("Failed asking to cancel", err)
+				return b.generalError("Failed asking to cancel", err)
 			}
 			if v != "yes" {
 				if b.CLI != nil {
@@ -960,7 +960,7 @@ func (b *Cloud) cancel(cancelCtx context.Context, op *backendrun.Operation, r *t
 		// Try to cancel the remote operation.
 		err := b.client.Runs.Cancel(cancelCtx, r.ID, tfe.RunCancelOptions{})
 		if err != nil {
-			return generalError("Failed to cancel run", err)
+			return b.generalError("Failed to cancel run", err)
 		}
 		if b.CLI != nil {
 			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(operationCanceled)))
@@ -1280,7 +1280,7 @@ func (wm WorkspaceMapping) tfeTags() []*tfe.Tag {
 	return tags
 }
 
-func generalError(msg string, err error) error {
+func (b *Cloud) generalError(msg string, err error) error {
 	var diags tfdiags.Diagnostics
 
 	if urlErr, ok := err.(*url.Error); ok {
@@ -1294,7 +1294,7 @@ func generalError(msg string, err error) error {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			fmt.Sprintf("%s: %v", msg, err),
-			"For security, HCP Terraform and Terraform Enterprise return '404 Not Found' responses for resources\n"+
+			fmt.Sprintf("For security, %s returns '404 Not Found' responses for resources\n", b.appName)+
 				"for resources that a user doesn't have access to, in addition to resources that\n"+
 				"do not exist. If the resource does exist, please check the permissions of the provided token.",
 		))
@@ -1303,7 +1303,7 @@ func generalError(msg string, err error) error {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			fmt.Sprintf("%s: %v", msg, err),
-			`HCP Terraform or Terraform Enterprise returned an unexpected error. Sometimes `+
+			fmt.Sprintf(`%s returned an unexpected error. Sometimes `, b.appName)+
 				`this is caused by network connection problems, in which case you could retry `+
 				`the command. If the issue persists please open a support ticket to get help `+
 				`resolving the problem.`,
