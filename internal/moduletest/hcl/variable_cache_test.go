@@ -10,7 +10,7 @@ import (
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -76,8 +76,8 @@ func TestFileVariables(t *testing.T) {
 					}
 					return vars
 				}(),
-				GlobalVariables: func() map[string]backendrun.UnparsedVariableValue {
-					vars := make(map[string]backendrun.UnparsedVariableValue)
+				GlobalVariables: func() map[string]backend.UnparsedVariableValue {
+					vars := make(map[string]backend.UnparsedVariableValue)
 					for name, value := range tc.GlobalValues {
 						vars[name] = &variable{name, value}
 					}
@@ -172,8 +172,8 @@ func TestGlobalVariables(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 
 			caches := &VariableCaches{
-				GlobalVariables: func() map[string]backendrun.UnparsedVariableValue {
-					vars := make(map[string]backendrun.UnparsedVariableValue)
+				GlobalVariables: func() map[string]backend.UnparsedVariableValue {
+					vars := make(map[string]backend.UnparsedVariableValue)
 					for name, value := range tc.Values {
 						vars[name] = &variable{name, value}
 					}
@@ -217,7 +217,7 @@ func makeConfigWithVariables(modes map[string]configs.VariableParsingMode) *conf
 	}
 }
 
-var _ backendrun.UnparsedVariableValue = (*variable)(nil)
+var _ backend.UnparsedVariableValue = (*variable)(nil)
 
 type variable struct {
 	name  string

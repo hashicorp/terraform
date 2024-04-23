@@ -8,9 +8,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -22,7 +22,7 @@ import (
 // Each run block has its own configuration and therefore its own set of
 // evaluated variables.
 type VariableCaches struct {
-	GlobalVariables map[string]backendrun.UnparsedVariableValue
+	GlobalVariables map[string]backend.UnparsedVariableValue
 	FileVariables   map[string]hcl.Expression
 
 	caches map[string]*VariableCache
@@ -127,7 +127,7 @@ func (cache *VariableCache) GetFileVariable(name string) (*terraform.InputValue,
 	var diags tfdiags.Diagnostics
 
 	availableVariables := make(map[string]cty.Value)
-	refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
+	refs, refDiags := lang.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
 	for _, ref := range refs {
 		if input, ok := ref.Subject.(addrs.InputVariable); ok {
 			variable, variableDiags := cache.GetGlobalVariable(input.Name)

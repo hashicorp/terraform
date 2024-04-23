@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
 
-	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
@@ -247,7 +247,7 @@ func TestTransformForTest(t *testing.T) {
 			}
 
 			variableCaches := &hcltest.VariableCaches{
-				GlobalVariables: make(map[string]backendrun.UnparsedVariableValue),
+				GlobalVariables: make(map[string]backend.UnparsedVariableValue),
 				FileVariables:   make(map[string]hcl.Expression),
 			}
 
