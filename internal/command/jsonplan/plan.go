@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -45,6 +46,13 @@ const (
 	ResourceInstanceReadBecauseConfigUnknown      = "read_because_config_unknown"
 	ResourceInstanceReadBecauseDependencyPending  = "read_because_dependency_pending"
 	ResourceInstanceReadBecauseCheckNested        = "read_because_check_nested"
+
+	DeferredReasonUnknown               = "unknown"
+	DeferredReasonInstanceCountUnknown  = "instance_count_unknown"
+	DeferredReasonResourceConfigUnknown = "resource_config_unknown"
+	DeferredReasonProviderConfigUnknown = "provider_config_unknown"
+	DeferredReasonDeferredPrereq        = "deferred_prereq"
+	DeferredReasonAbsentPrereq          = "absent_prereq"
 )
 
 // plan is the top-level representation of the json format of a plan. It includes
@@ -393,7 +401,7 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 			continue
 		}
 
-		r, err := MarshalResourceChange(rc, schemas)
+		r, err := marshalResourceChange(rc, schemas)
 		if err != nil {
 			return nil, err
 		}
@@ -403,7 +411,7 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 	return ret, nil
 }
 
-func MarshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas) (ResourceChange, error) {
+func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas) (ResourceChange, error) {
 	var r ResourceChange
 	addr := rc.Addr
 	r.Address = addr.String()
@@ -577,15 +585,35 @@ func marshalDeferredResourceChanges(resources []*plans.DeferredResourceInstanceC
 	})
 
 	for _, rc := range sortedResources {
-		change, err := MarshalResourceChange(rc.ChangeSrc, schemas)
+		change, err := marshalResourceChange(rc.ChangeSrc, schemas)
 		if err != nil {
 			return nil, err
 		}
 
-		ret = append(ret, DeferredResourceChange{
+		deferredChange := DeferredResourceChange{
 			ResourceChange: change,
-			Reason:         string(rc.DeferredReason),
-		})
+		}
+
+		switch rc.DeferredReason {
+		case providers.DeferredReasonInstanceCountUnknown:
+			deferredChange.Reason = DeferredReasonInstanceCountUnknown
+		case providers.DeferredReasonResourceConfigUnknown:
+			deferredChange.Reason = DeferredReasonResourceConfigUnknown
+		case providers.DeferredReasonProviderConfigUnknown:
+			deferredChange.Reason = DeferredReasonProviderConfigUnknown
+		case providers.DeferredReasonAbsentPrereq:
+			deferredChange.Reason = DeferredReasonAbsentPrereq
+		case providers.DeferredReasonDeferredPrereq:
+			deferredChange.Reason = DeferredReasonDeferredPrereq
+		default:
+			// If we find a reason we don't know about, we'll just mark it as
+			// unknown. This is a bit of a safety net to ensure that we don't
+			// break if new reasons are introduced in future versions of the
+			// provider protocol.
+			deferredChange.Reason = DeferredReasonUnknown
+		}
+
+		ret = append(ret, deferredChange)
 	}
 
 	return ret, nil
