@@ -8,11 +8,12 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // evaluateForEachExpr deals with all of the for_each evaluation concerns
@@ -145,7 +146,7 @@ func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPha
 // If maybeForEach value is non-nil but not a valid value produced by
 // [evaluateForEachExpr] then the behavior is unpredictable, including the
 // possibility of a panic.
-func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.InstanceKey, instances.RepetitionData) T) map[addrs.InstanceKey]T {
+func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.InstanceKey, lang.RepetitionData) T) map[addrs.InstanceKey]T {
 	switch {
 
 	case maybeForEachVal == cty.NilVal:
@@ -187,7 +188,7 @@ func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.Instance
 //
 // This function is only designed to deal with valid (non-error) results from
 // [evaluateForEachExpr] and so might panic if given other values.
-func forEachInstancesMap[T any](forEachVal cty.Value, makeInst func(addrs.InstanceKey, instances.RepetitionData) T) map[addrs.InstanceKey]T {
+func forEachInstancesMap[T any](forEachVal cty.Value, makeInst func(addrs.InstanceKey, lang.RepetitionData) T) map[addrs.InstanceKey]T {
 	ty := forEachVal.Type()
 	switch {
 	case ty.IsObjectType() || ty.IsMapType():
@@ -195,7 +196,7 @@ func forEachInstancesMap[T any](forEachVal cty.Value, makeInst func(addrs.Instan
 		ret := make(map[addrs.InstanceKey]T, len(elems))
 		for k, v := range elems {
 			ik := addrs.StringKey(k)
-			ret[ik] = makeInst(ik, instances.RepetitionData{
+			ret[ik] = makeInst(ik, lang.RepetitionData{
 				EachKey:   cty.StringVal(k),
 				EachValue: v,
 			})
@@ -219,7 +220,7 @@ func forEachInstancesMap[T any](forEachVal cty.Value, makeInst func(addrs.Instan
 		ret := make(map[addrs.InstanceKey]T, len(elems))
 		for _, sv := range elems {
 			k := addrs.StringKey(sv.AsString())
-			ret[k] = makeInst(k, instances.RepetitionData{
+			ret[k] = makeInst(k, lang.RepetitionData{
 				EachKey:   sv,
 				EachValue: sv,
 			})
@@ -231,9 +232,9 @@ func forEachInstancesMap[T any](forEachVal cty.Value, makeInst func(addrs.Instan
 	}
 }
 
-func noForEachInstancesMap[T any](makeInst func(addrs.InstanceKey, instances.RepetitionData) T) map[addrs.InstanceKey]T {
+func noForEachInstancesMap[T any](makeInst func(addrs.InstanceKey, lang.RepetitionData) T) map[addrs.InstanceKey]T {
 	return map[addrs.InstanceKey]T{
-		addrs.NoKey: makeInst(addrs.NoKey, instances.RepetitionData{
+		addrs.NoKey: makeInst(addrs.NoKey, lang.RepetitionData{
 			// no repetition symbols available in this case
 		}),
 	}

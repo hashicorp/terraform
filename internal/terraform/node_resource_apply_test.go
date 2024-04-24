@@ -17,7 +17,7 @@ func TestNodeExpandApplyableResourceExecute(t *testing.T) {
 	t.Run("no config", func(t *testing.T) {
 		ctx := &MockEvalContext{
 			StateState:               state.SyncWrapper(),
-			InstanceExpanderExpander: instances.NewExpander(),
+			InstanceExpanderExpander: instances.NewExpander(nil),
 		}
 
 		node := &nodeExpandApplyableResource{
@@ -40,7 +40,7 @@ func TestNodeExpandApplyableResourceExecute(t *testing.T) {
 	t.Run("simple", func(t *testing.T) {
 		ctx := &MockEvalContext{
 			StateState:               state.SyncWrapper(),
-			InstanceExpanderExpander: instances.NewExpander(),
+			InstanceExpanderExpander: instances.NewExpander(nil),
 		}
 
 		node := &nodeExpandApplyableResource{

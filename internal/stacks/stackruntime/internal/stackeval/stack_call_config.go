@@ -11,7 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
-	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -313,7 +313,7 @@ func (s *StackCallConfig) ValidateResultValue(ctx context.Context, phase EvalPha
 // instance of a stack call. This is not the right scope to use during the
 // plan and apply phases.
 func (s *StackCallConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	repetition := instances.RepetitionData{}
+	repetition := lang.RepetitionData{}
 	if s.config.ForEach != nil {
 		// We're producing an approximation across all eventual instances
 		// of this call, so we'll set each.key and each.value to unknown

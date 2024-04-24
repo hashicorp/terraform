@@ -322,7 +322,7 @@ func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Ty
 	return scope.EvalExpr(expr, wantType)
 }
 
-func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, repData instances.RepetitionData) (*addrs.Reference, bool, tfdiags.Diagnostics) {
+func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, repData lang.RepetitionData) (*addrs.Reference, bool, tfdiags.Diagnostics) {
 
 	// get the reference to lookup changes in the plan
 	ref, diags := evalReplaceTriggeredByExpr(expr, repData)

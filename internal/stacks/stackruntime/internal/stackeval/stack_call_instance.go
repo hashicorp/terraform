@@ -13,7 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
-	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
@@ -33,13 +33,13 @@ type StackCallInstance struct {
 
 	main *Main
 
-	repetition instances.RepetitionData
+	repetition lang.RepetitionData
 }
 
 var _ ExpressionScope = (*StackCallInstance)(nil)
 var _ Plannable = (*StackCallInstance)(nil)
 
-func newStackCallInstance(call *StackCall, key addrs.InstanceKey, repetition instances.RepetitionData) *StackCallInstance {
+func newStackCallInstance(call *StackCall, key addrs.InstanceKey, repetition lang.RepetitionData) *StackCallInstance {
 	return &StackCallInstance{
 		call:       call,
 		key:        key,
@@ -48,7 +48,7 @@ func newStackCallInstance(call *StackCall, key addrs.InstanceKey, repetition ins
 	}
 }
 
-func (c *StackCallInstance) RepetitionData() instances.RepetitionData {
+func (c *StackCallInstance) RepetitionData() lang.RepetitionData {
 	return c.repetition
 }
 

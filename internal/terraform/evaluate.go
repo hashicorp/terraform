@@ -118,7 +118,7 @@ type evaluationStateData struct {
 
 // InstanceKeyEvalData is the old name for instances.RepetitionData, aliased
 // here for compatibility. In new code, use instances.RepetitionData instead.
-type InstanceKeyEvalData = instances.RepetitionData
+type InstanceKeyEvalData = lang.RepetitionData
 
 // EvalDataForInstanceKey constructs a suitable InstanceKeyEvalData for
 // evaluating in a context that has the given instance key.
