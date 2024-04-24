@@ -13,7 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
-	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -390,14 +390,14 @@ func (s *Stack) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
 // global scope for evaluation within an already-instanciated stack during the
 // plan and apply phases.
 func (s *Stack) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	return s.resolveExpressionReference(ctx, ref, nil, instances.RepetitionData{})
+	return s.resolveExpressionReference(ctx, ref, nil, lang.RepetitionData{})
 }
 
 // resolveExpressionReference is a shared implementation of [ExpressionScope]
 // used for this stack's scope and all of the nested scopes of declarations
 // in the same stack, since they tend to differ only in what "self" means
 // and what each.key, each.value, or count.index are set to (if anything).
-func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.Reference, selfAddr stackaddrs.Referenceable, repetition instances.RepetitionData) (Referenceable, tfdiags.Diagnostics) {
+func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.Reference, selfAddr stackaddrs.Referenceable, repetition lang.RepetitionData) (Referenceable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// "Test-only globals" is a special affordance we have only when running

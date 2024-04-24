@@ -130,7 +130,7 @@ type EvalContext interface {
 	// EvaluateReplaceTriggeredBy takes the raw reference expression from the
 	// config, and returns the evaluated *addrs.Reference along with a boolean
 	// indicating if that reference forces replacement.
-	EvaluateReplaceTriggeredBy(expr hcl.Expression, repData instances.RepetitionData) (*addrs.Reference, bool, tfdiags.Diagnostics)
+	EvaluateReplaceTriggeredBy(expr hcl.Expression, repData lang.RepetitionData) (*addrs.Reference, bool, tfdiags.Diagnostics)
 
 	// EvaluationScope returns a scope that can be used to evaluate reference
 	// addresses in this context.

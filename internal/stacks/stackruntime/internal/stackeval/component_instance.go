@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -34,7 +34,7 @@ type ComponentInstance struct {
 
 	main *Main
 
-	repetition instances.RepetitionData
+	repetition lang.RepetitionData
 
 	moduleTreePlan promising.Once[withDiagnostics[*plans.Plan]]
 }
@@ -42,7 +42,7 @@ type ComponentInstance struct {
 var _ Plannable = (*ComponentInstance)(nil)
 var _ ExpressionScope = (*ComponentInstance)(nil)
 
-func newComponentInstance(call *Component, key addrs.InstanceKey, repetition instances.RepetitionData) *ComponentInstance {
+func newComponentInstance(call *Component, key addrs.InstanceKey, repetition lang.RepetitionData) *ComponentInstance {
 	return &ComponentInstance{
 		call:       call,
 		key:        key,
@@ -63,7 +63,7 @@ func (c *ComponentInstance) Addr() stackaddrs.AbsComponentInstance {
 	}
 }
 
-func (c *ComponentInstance) RepetitionData() instances.RepetitionData {
+func (c *ComponentInstance) RepetitionData() lang.RepetitionData {
 	return c.repetition
 }
 

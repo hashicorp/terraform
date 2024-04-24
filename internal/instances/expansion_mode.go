@@ -10,6 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang"
 )
 
 // expansion is an internal interface used to represent the different
@@ -29,7 +30,7 @@ type expansion interface {
 	// if we don't even have enough information to predict what type of
 	// keys we will be using for this object.
 	instanceKeys() (keyType addrs.InstanceKeyType, keys []addrs.InstanceKey, keysUnknown bool)
-	repetitionData(addrs.InstanceKey) RepetitionData
+	repetitionData(addrs.InstanceKey) lang.RepetitionData
 }
 
 // expansionSingle is the expansion corresponding to no repetition arguments
@@ -45,11 +46,11 @@ func (e expansionSingle) instanceKeys() (addrs.InstanceKeyType, []addrs.Instance
 	return addrs.NoKeyType, singleKeys, false
 }
 
-func (e expansionSingle) repetitionData(key addrs.InstanceKey) RepetitionData {
+func (e expansionSingle) repetitionData(key addrs.InstanceKey) lang.RepetitionData {
 	if key != addrs.NoKey {
 		panic("cannot use instance key with non-repeating object")
 	}
-	return RepetitionData{}
+	return lang.RepetitionData{}
 }
 
 // expansionCount is the expansion corresponding to the "count" argument.
@@ -63,12 +64,12 @@ func (e expansionCount) instanceKeys() (addrs.InstanceKeyType, []addrs.InstanceK
 	return addrs.IntKeyType, ret, false
 }
 
-func (e expansionCount) repetitionData(key addrs.InstanceKey) RepetitionData {
+func (e expansionCount) repetitionData(key addrs.InstanceKey) lang.RepetitionData {
 	i := int(key.(addrs.IntKey))
 	if i < 0 || i >= int(e) {
 		panic(fmt.Sprintf("instance key %d out of range for count %d", i, e))
 	}
-	return RepetitionData{
+	return lang.RepetitionData{
 		CountIndex: cty.NumberIntVal(int64(i)),
 	}
 }
@@ -87,13 +88,13 @@ func (e expansionForEach) instanceKeys() (addrs.InstanceKeyType, []addrs.Instanc
 	return addrs.StringKeyType, ret, false
 }
 
-func (e expansionForEach) repetitionData(key addrs.InstanceKey) RepetitionData {
+func (e expansionForEach) repetitionData(key addrs.InstanceKey) lang.RepetitionData {
 	k := string(key.(addrs.StringKey))
 	v, ok := e[k]
 	if !ok {
 		panic(fmt.Sprintf("instance key %q does not match any instance", k))
 	}
-	return RepetitionData{
+	return lang.RepetitionData{
 		EachKey:   cty.StringVal(k),
 		EachValue: v,
 	}
@@ -114,7 +115,7 @@ func (e expansionDeferred) instanceKeys() (addrs.InstanceKeyType, []addrs.Instan
 	return addrs.InstanceKeyType(e), nil, true
 }
 
-func (e expansionDeferred) repetitionData(key addrs.InstanceKey) RepetitionData {
+func (e expansionDeferred) repetitionData(key addrs.InstanceKey) lang.RepetitionData {
 	panic("no known instances for object with deferred expansion")
 }
 

@@ -197,7 +197,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		NamedValues:             namedvals.NewState(),
 		Deferrals:               deferred,
 		Checks:                  checkState,
-		InstanceExpander:        instances.NewExpander(),
+		InstanceExpander:        instances.NewExpander(opts.Overrides),
 		ExternalProviderConfigs: opts.ExternalProviderConfigs,
 		MoveResults:             opts.MoveResults,
 		Operation:               operation,

@@ -13,7 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
-	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -32,7 +32,7 @@ import (
 type ProviderInstance struct {
 	provider   *Provider
 	key        addrs.InstanceKey
-	repetition instances.RepetitionData
+	repetition lang.RepetitionData
 
 	main *Main
 
@@ -40,7 +40,7 @@ type ProviderInstance struct {
 	client       perEvalPhase[promising.Once[withDiagnostics[providers.Interface]]]
 }
 
-func newProviderInstance(provider *Provider, key addrs.InstanceKey, repetition instances.RepetitionData) *ProviderInstance {
+func newProviderInstance(provider *Provider, key addrs.InstanceKey, repetition lang.RepetitionData) *ProviderInstance {
 	return &ProviderInstance{
 		provider:   provider,
 		key:        key,
@@ -60,7 +60,7 @@ func (p *ProviderInstance) Addr() stackaddrs.AbsProviderConfigInstance {
 	}
 }
 
-func (p *ProviderInstance) RepetitionData() instances.RepetitionData {
+func (p *ProviderInstance) RepetitionData() lang.RepetitionData {
 	return p.repetition
 }
 

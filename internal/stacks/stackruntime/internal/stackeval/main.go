@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	fileProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/file"
 	remoteExecProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
-	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -413,7 +413,7 @@ func (m *Main) ProviderInstance(ctx context.Context, addr stackaddrs.AbsProvider
 		// so we must optimistically return an instance referring to the
 		// given address which will then presumably yield unknown values
 		// of some kind when used.
-		return newProviderInstance(provider, addr.Item.Key, instances.RepetitionData{
+		return newProviderInstance(provider, addr.Item.Key, lang.RepetitionData{
 			EachKey:   cty.UnknownVal(cty.String),
 			EachValue: cty.DynamicVal,
 		})

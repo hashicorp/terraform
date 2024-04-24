@@ -566,6 +566,89 @@ output "id" {
 				}),
 			}),
 		},
+		"expansion inside overridden module": {
+			configs: map[string]string{
+				"main.tf": `
+module "test" {
+  source = "./mod"
+}
+`,
+				"mod/main.tf": `
+locals {
+  instances = 2
+  value = "Hello, world!"
+}
+
+resource "test_instance" "resource" {
+  count = local.instances
+  string = local.value
+}
+
+output "id" {
+  value = test_instance.resource[0].id
+}
+`,
+			},
+			overrides: mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
+				overrides.Put(mustModuleInstance("module.test"), &configs.Override{
+					Values: cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("h3ll0"),
+					}),
+				})
+			}),
+			outputs: cty.EmptyObjectVal,
+		},
+		"expansion inside deeply nested overridden module": {
+			configs: map[string]string{
+				"main.tf": `
+module "test" {
+  source = "./child"
+}
+`,
+				"child/main.tf": `
+module "grandchild" {
+  source = "../grandchild"
+}
+
+locals {
+  instances = 2
+  value = "Hello, world!"
+}
+
+resource "test_instance" "resource" {
+  count = local.instances
+  string = local.value
+}
+
+output "id" {
+  value = test_instance.resource[0].id
+}
+`,
+				"grandchild/main.tf": `
+locals {
+  instances = 2
+  value = "Hello, world!"
+}
+
+resource "test_instance" "resource" {
+  count = local.instances
+  string = local.value
+}
+
+output "id" {
+  value = test_instance.resource[0].id
+}
+`,
+			},
+			overrides: mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
+				overrides.Put(mustModuleInstance("module.test"), &configs.Override{
+					Values: cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("h3ll0"),
+					}),
+				})
+			}),
+			outputs: cty.EmptyObjectVal,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

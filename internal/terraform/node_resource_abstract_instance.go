@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
@@ -739,9 +739,9 @@ func (n *NodeAbstractResourceInstance) plan(
 	currentState *states.ResourceInstanceObject,
 	createBeforeDestroy bool,
 	forceReplace []addrs.AbsResourceInstance,
-) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
+) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, lang.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	var keyData instances.RepetitionData
+	var keyData lang.RepetitionData
 
 	resource := n.Addr.Resource.Resource
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
@@ -1694,9 +1694,9 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 // value, but it still matches the previous state, then we can record a NoNop
 // change. If the states don't match then we record a Read change so that the
 // new value is applied to the state.
-func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRuleSeverity tfdiags.Severity, skipPlanChanges bool) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRuleSeverity tfdiags.Severity, skipPlanChanges bool) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, lang.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	var keyData instances.RepetitionData
+	var keyData lang.RepetitionData
 	var configVal cty.Value
 
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
@@ -1984,9 +1984,9 @@ func (n *NodeAbstractResourceInstance) dependenciesHavePendingChanges(ctx EvalCo
 
 // apply deals with the main part of the data resource lifecycle: either
 // actually reading from the data source or generating a plan to do so.
-func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned *plans.ResourceInstanceChange) (*states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned *plans.ResourceInstanceChange) (*states.ResourceInstanceObject, lang.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	var keyData instances.RepetitionData
+	var keyData lang.RepetitionData
 
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
@@ -2350,7 +2350,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	state *states.ResourceInstanceObject,
 	change *plans.ResourceInstanceChange,
 	applyConfig *configs.Resource,
-	keyData instances.RepetitionData,
+	keyData lang.RepetitionData,
 	createBeforeDestroy bool) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
 
 	var diags tfdiags.Diagnostics

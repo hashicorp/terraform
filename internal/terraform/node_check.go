@@ -40,7 +40,7 @@ func (n *nodeReportCheck) ModulePath() addrs.Module {
 
 func (n *nodeReportCheck) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
 	exp := ctx.InstanceExpander()
-	modInsts := exp.ExpandModule(n.ModulePath())
+	modInsts := exp.ExpandModule(n.ModulePath(), false)
 
 	instAddrs := addrs.MakeSet[addrs.Checkable]()
 	for _, modAddr := range modInsts {
@@ -86,19 +86,15 @@ func (n *nodeExpandCheck) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagno
 	exp := ctx.InstanceExpander()
 
 	var g Graph
-	forEachModuleInstance(
-		exp, n.ModulePath(),
-		func(modAddr addrs.ModuleInstance) {
-			testAddr := n.addr.Check.Absolute(modAddr)
-			log.Printf("[TRACE] nodeExpandCheck: Node for %s", testAddr)
-			g.Add(n.makeInstance(testAddr, n.config))
-		},
-		func(pem addrs.PartialExpandedModule) {
-			// TODO: Graph node to check the placeholder values for all possible module instances in this prefix.
-			testAddr := addrs.ObjectInPartialExpandedModule(pem, n.addr)
-			log.Printf("[WARN] nodeExpandCheck: not yet doing placeholder-check for all %s", testAddr)
-		},
-	)
+	forEachModuleInstance(exp, n.ModulePath(), false, func(modAddr addrs.ModuleInstance) {
+		testAddr := n.addr.Check.Absolute(modAddr)
+		log.Printf("[TRACE] nodeExpandCheck: Node for %s", testAddr)
+		g.Add(n.makeInstance(testAddr, n.config))
+	}, func(pem addrs.PartialExpandedModule) {
+		// TODO: Graph node to check the placeholder values for all possible module instances in this prefix.
+		testAddr := addrs.ObjectInPartialExpandedModule(pem, n.addr)
+		log.Printf("[WARN] nodeExpandCheck: not yet doing placeholder-check for all %s", testAddr)
+	})
 	addRootNodeToGraph(&g)
 
 	return &g, nil

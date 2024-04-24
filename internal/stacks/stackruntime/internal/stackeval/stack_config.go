@@ -12,7 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -378,13 +378,13 @@ func (s *StackConfig) Components(ctx context.Context) map[stackaddrs.Component]*
 // global scope for evaluation within an unexpanded stack during the validate
 // phase.
 func (s *StackConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
-	return s.resolveExpressionReference(ctx, ref, nil, instances.RepetitionData{})
+	return s.resolveExpressionReference(ctx, ref, nil, lang.RepetitionData{})
 }
 
 // resolveExpressionReference is the shared implementation of various
 // validation-time ResolveExpressionReference methods, factoring out all
 // of the common parts into one place.
-func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stackaddrs.Reference, selfAddr stackaddrs.Referenceable, repetition instances.RepetitionData) (Referenceable, tfdiags.Diagnostics) {
+func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stackaddrs.Reference, selfAddr stackaddrs.Referenceable, repetition lang.RepetitionData) (Referenceable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// "Test-only globals" is a special affordance we have only when running
