@@ -89,7 +89,7 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	}
 
 	// Try to acquire locks for the existing row `id` and the creation lock.
-  creation_lock := c.SchemaName + "_create"
+	creation_lock := fmt.Sprintf("%s_create", c.SchemaName)
 	query := `SELECT %s.id, pg_try_advisory_lock(%s.id), pg_try_advisory_lock(%s) FROM %s.%s WHERE %s.name = $1`
 	row := c.Client.QueryRow(fmt.Sprintf(query, statesTableName, statesTableName, creation_lock, c.SchemaName, statesTableName, statesTableName), c.Name)
 	var pgLockId, didLock, didLockForCreate []byte
