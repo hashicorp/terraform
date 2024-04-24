@@ -28,13 +28,13 @@ func (c *TestCommand) Help() string {
 	helpText := `
 Usage: terraform [global options] test [options]
 
-  Executes automated integration tests against the current Terraform 
+  Executes automated integration tests against the current Terraform
   configuration.
 
-  Terraform will search for .tftest.hcl files within the current configuration 
-  and testing directories. Terraform will then execute the testing run blocks 
-  within any testing files in order, and verify conditional checks and 
-  assertions against the created infrastructure. 
+  Terraform will search for .tftest.hcl files within the current configuration
+  and testing directories. Terraform will then execute the testing run blocks
+  within any testing files in order, and verify conditional checks and
+  assertions against the created infrastructure.
 
   This command creates real infrastructure and will attempt to clean up the
   testing infrastructure on completion. Monitor the output carefully to ensure
@@ -42,12 +42,13 @@ Usage: terraform [global options] test [options]
 
 Options:
 
-  -cloud-run=source     If specified, Terraform will execute this test run 
-                        remotely using Terraform Cloud. You must specify the 
-                        source of a module registered in a private module
-                        registry as the argument to this flag. This allows 
-                        Terraform to associate the cloud run with the correct 
-                        Terraform Cloud module and organization.
+  -cloud-run=source     If specified, Terraform will execute this test run
+                        remotely using HCP Terraform or Terraform Enterpise.
+						You must specify the source of a module registered in
+						a private module registry as the argument to this flag.
+						This allows Terraform to associate the cloud run with
+						the correct HCP Terraform or Terraform Enterprise module
+						and organization.
 
   -filter=testfile      If specified, Terraform will only execute the test files
                         specified by this flag. You can use this option multiple
@@ -58,7 +59,7 @@ Options:
 
   -no-color             If specified, output won't contain any color.
 
-  -test-directory=path	Set the Terraform test directory, defaults to "tests".    
+  -test-directory=path	Set the Terraform test directory, defaults to "tests".
 
   -var 'foo=bar'        Set a value for one of the input variables in the root
                         module of the configuration. Use this option more than

@@ -286,7 +286,7 @@ func (v *remoteStoredVariableValue) ParseVariableValue(mode configs.VariablePars
 		Value: val,
 
 		// We mark these as "from input" with the rationale that entering
-		// variable values into the Terraform Cloud or Enterprise UI is,
+		// variable values into the HCP Terraform or Enterprise UI is,
 		// roughly speaking, a similar idea to entering variable values at
 		// the interactive CLI prompts. It's not a perfect correspondance,
 		// but it's closer than the other options.

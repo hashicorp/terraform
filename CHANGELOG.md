@@ -6,6 +6,10 @@ BUG FIXES:
 * `terraform plan`: Replace panic with error message when self-referencing resources and data sources from the `count` and `for_each` meta attributes. ([#35047](https://github.com/hashicorp/terraform/pull/35047))
 * `terraform test`: Restore TF_ENV_* variables being made available to testing modules. ([#35014](https://github.com/hashicorp/terraform/pull/35014))
 
+OTHER CHANGES:
+
+* Update all references to Terraform Cloud to refer to HCP Terraform, the service's new name. This only affects display text; the `cloud` block and environment variables like `TF_CLOUD_ORGANIZATION` remain unchanged. ([#35050](https://github.com/hashicorp/terraform/pull/35050))
+
 NOTE:
 
 Starting with this release, we are including a copy of our license file in all packaged versions of our releases, such as the release .zip files. If you are consuming these files directly and would prefer to extract the one terraform file instead of extracting everything, you need to add an extra argument specifying the file to extract, like this:

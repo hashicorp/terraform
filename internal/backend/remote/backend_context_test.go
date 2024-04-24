@@ -91,7 +91,7 @@ func TestRemoteStoredVariableValue(t *testing.T) {
 		"HCL computation": {
 			// This (stored expressions containing computation) is not a case
 			// we intentionally supported, but it became possible for remote
-			// operations in Terraform 0.12 (due to Terraform Cloud/Enterprise
+			// operations in Terraform 0.12 (due to HCP Terraform and Terraform Enterprise
 			// just writing the HCL verbatim into generated `.tfvars` files).
 			// We support it here for consistency, and we continue to support
 			// it in both places for backward-compatibility. In practice,

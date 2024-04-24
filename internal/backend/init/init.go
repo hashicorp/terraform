@@ -67,7 +67,7 @@ func Init(services *disco.Disco) {
 		"pg":         func() backend.Backend { return backendPg.New() },
 		"s3":         func() backend.Backend { return backendS3.New() },
 
-		// Terraform Cloud 'backend'
+		// HCP Terraform 'backend'
 		// This is an implementation detail only, used for the cloud package
 		"cloud": func() backend.Backend { return backendCloud.New(services) },
 	}

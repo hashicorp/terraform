@@ -239,7 +239,7 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 			if name == "" {
 				return fmt.Errorf("Couldn't create initial workspace: no name provided")
 			}
-			log.Printf("[TRACE] Meta.selectWorkspace: selecting the new TFC workspace requested by the user (%s)", name)
+			log.Printf("[TRACE] Meta.selectWorkspace: selecting the new HCP Terraform workspace requested by the user (%s)", name)
 			return m.SetWorkspace(name)
 		} else {
 			return fmt.Errorf(strings.TrimSpace(errBackendNoExistingWorkspaces))
@@ -630,10 +630,10 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		log.Printf("[TRACE] Meta.Backend: moving from default local state only to %q backend", c.Type)
 		if !opts.Init {
 			if c.Type == "cloud" {
-				initReason := "Initial configuration of Terraform Cloud"
+				initReason := "Initial configuration of HCP Terraform or Terraform Enterprise"
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					"Terraform Cloud initialization required: please run \"terraform init\"",
+					"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
 					fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
 				))
 			} else {
@@ -731,11 +731,11 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 	initReason := ""
 	switch cloudMode {
 	case cloud.ConfigMigrationIn:
-		initReason = fmt.Sprintf("Changed from backend %q to Terraform Cloud", previousBackendType)
+		initReason = fmt.Sprintf("Changed from backend %q to HCP Terraform", previousBackendType)
 	case cloud.ConfigMigrationOut:
-		initReason = fmt.Sprintf("Changed from Terraform Cloud to backend %q", previousBackendType)
+		initReason = fmt.Sprintf("Changed from HCP Terraform to backend %q", previousBackendType)
 	case cloud.ConfigChangeInPlace:
-		initReason = "Terraform Cloud configuration block has changed"
+		initReason = "HCP Terraform configuration block has changed"
 	default:
 		switch {
 		case previousBackendType != currentBackendType:
@@ -750,13 +750,13 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 	case cloud.ConfigChangeInPlace:
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Terraform Cloud initialization required: please run \"terraform init\"",
+			"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
 			fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
 		))
 	case cloud.ConfigMigrationIn:
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Terraform Cloud initialization required: please run \"terraform init\"",
+			"HCP Terraform or Terraform Enterprise initialization required: please run \"terraform init\"",
 			fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
 		))
 	default:
@@ -892,7 +892,7 @@ func (m *Meta) backend_c_r_S(
 	backendType := s.Backend.Type
 
 	if cloudMode == cloud.ConfigMigrationOut {
-		m.Ui.Output("Migrating from Terraform Cloud to local state.")
+		m.Ui.Output("Migrating from HCP Terraform or Terraform Enterprise to local state.")
 	} else {
 		m.Ui.Output(fmt.Sprintf(strings.TrimSpace(outputBackendMigrateLocal), s.Backend.Type))
 	}
@@ -1104,7 +1104,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 		return nil, diags
 	}
 
-	// By now the backend is successfully configured.  If using Terraform Cloud, the success
+	// By now the backend is successfully configured.  If using HCP Terraform, the success
 	// message is handled as part of the final init message
 	if _, ok := b.(*cloud.Cloud); !ok {
 		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
@@ -1138,11 +1138,11 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		// Notify the user
 		switch cloudMode {
 		case cloud.ConfigChangeInPlace:
-			m.Ui.Output("Terraform Cloud configuration has changed.")
+			m.Ui.Output("HCP Terraform configuration has changed.")
 		case cloud.ConfigMigrationIn:
-			m.Ui.Output(fmt.Sprintf("Migrating from backend %q to Terraform Cloud.", s.Backend.Type))
+			m.Ui.Output(fmt.Sprintf("Migrating from backend %q to HCP Terraform.", s.Backend.Type))
 		case cloud.ConfigMigrationOut:
-			m.Ui.Output(fmt.Sprintf("Migrating from Terraform Cloud to backend %q.", c.Type))
+			m.Ui.Output(fmt.Sprintf("Migrating from HCP Terraform to backend %q.", c.Type))
 		default:
 			if s.Backend.Type != c.Type {
 				output := fmt.Sprintf(outputBackendMigrateChange, s.Backend.Type, c.Type)
@@ -1164,9 +1164,9 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		return nil, diags
 	}
 
-	// If this is a migration into, out of, or irrelevant to Terraform Cloud
+	// If this is a migration into, out of, or irrelevant to HCP Terraform
 	// mode then we will do state migration here. Otherwise, we just update
-	// the working directory initialization directly, because Terraform Cloud
+	// the working directory initialization directly, because HCP Terraform
 	// doesn't have configurable state storage anyway -- we're only changing
 	// which workspaces are relevant to this configuration, not where their
 	// state lives.
@@ -1237,7 +1237,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	}
 
 	if output {
-		// By now the backend is successfully configured.  If using Terraform Cloud, the success
+		// By now the backend is successfully configured.  If using HCP Terraform, the success
 		// message is handled as part of the final init message
 		if _, ok := b.(*cloud.Cloud); !ok {
 			m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
@@ -1500,19 +1500,19 @@ func (m *Meta) remoteVersionCheck(b backend.Backend, workspace string) tfdiags.D
 func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	if mode.InvolvesCloud() {
-		log.Printf("[TRACE] Meta.Backend: Terraform Cloud mode initialization type: %s", mode)
+		log.Printf("[TRACE] Meta.Backend: HCP Terraform or Terraform Enterprise mode initialization type: %s", mode)
 		if m.reconfigure {
 			if mode.IsCloudMigration() {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid command-line option",
-					"The -reconfigure option is unsupported when migrating to Terraform Cloud, because activating Terraform Cloud involves some additional steps.",
+					"The -reconfigure option is unsupported when migrating to HCP Terraform, because activating HCP Terraform involves some additional steps.",
 				))
 			} else {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid command-line option",
-					"The -reconfigure option is for in-place reconfiguration of state backends only, and is not needed when changing Terraform Cloud settings.\n\nWhen using Terraform Cloud, initialization automatically activates any new Cloud configuration settings.",
+					"The -reconfigure option is for in-place reconfiguration of state backends only, and is not needed when changing HCP Terraform settings.\n\nWhen using HCP Terraform, initialization automatically activates any new Cloud configuration settings.",
 				))
 			}
 		}
@@ -1529,13 +1529,13 @@ func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdi
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid command-line option",
-					fmt.Sprintf("The %s option is for migration between state backends only, and is not applicable when using Terraform Cloud.\n\nTerraform Cloud migration has additional steps, configured by interactive prompts.", name),
+					fmt.Sprintf("The %s option is for migration between state backends only, and is not applicable when using HCP Terraform.\n\nHCP Terraform migrations have additional steps, configured by interactive prompts.", name),
 				))
 			} else {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid command-line option",
-					fmt.Sprintf("The %s option is for migration between state backends only, and is not applicable when using Terraform Cloud.\n\nState storage is handled automatically by Terraform Cloud and so the state storage location is not configurable.", name),
+					fmt.Sprintf("The %s option is for migration between state backends only, and is not applicable when using HCP Terraform.\n\nState storage is handled automatically by HCP Terraform and so the state storage location is not configurable.", name),
 				))
 			}
 		}
@@ -1629,7 +1629,7 @@ configuration or state have been made.
 const errBackendInitCloud = `
 Reason: %s.
 
-Changes to the Terraform Cloud configuration block require reinitialization, to discover any changes to the available workspaces.
+Changes to the HCP Terraform configuration block require reinitialization, to discover any changes to the available workspaces.
 
 To re-initialize, run:
   terraform init
@@ -1663,11 +1663,11 @@ has changed. Terraform will now check for existing state in the backends.
 
 const inputCloudInitCreateWorkspace = `
 There are no workspaces with the configured tags (%s)
-in your Terraform Cloud organization. To finish initializing, Terraform needs at
+in your HCP Terraform organization. To finish initializing, Terraform needs at
 least one workspace available.
 
 Terraform can create a properly tagged workspace for you now. Please enter a
-name to create a new Terraform Cloud workspace.
+name to create a new HCP Terraform workspace.
 `
 
 const successBackendUnset = `

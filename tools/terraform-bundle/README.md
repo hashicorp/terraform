@@ -18,7 +18,7 @@ to this need:
   current Terraform configuration, serving a similar (though not identical)
   purpose than `terraform-bundle` had served.
 
-For those using Terraform CLI alone, without HCP Terraform, we recommend
+For those using Terraform CLI alone, without HCP Terraform or Terraform Enterprise, we recommend
 planning to transition to the above features instead of using
 `terraform-bundle`.
 
