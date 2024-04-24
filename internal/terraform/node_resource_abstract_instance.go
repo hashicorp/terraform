@@ -653,7 +653,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			Private:      state.Private,
 			ProviderMeta: metaConfigVal,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+				DeferralAllowed: deferralAllowed,
 			},
 		})
 
