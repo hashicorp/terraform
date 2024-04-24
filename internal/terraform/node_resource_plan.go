@@ -111,7 +111,7 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 
 	// Expand the current module.
 	expander := ctx.InstanceExpander()
-	moduleInstances := expander.ExpandModule(n.Addr.Module)
+	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
 
 	// Expand the imports for this resource.
 	// TODO: Add support for unknown instances in import blocks.
@@ -125,7 +125,7 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	// duplicating some of the logic for behavior this method would normally
 	// handle.
 	if ctx.Deferrals().DeferralAllowed() {
-		pem := expander.UnknownModuleInstances(n.Addr.Module)
+		pem := expander.UnknownModuleInstances(n.Addr.Module, false)
 		g, expandDiags := n.dynamicExpandPartial(ctx, moduleInstances, pem, imports)
 		diags = diags.Append(expandDiags)
 		return g, diags
