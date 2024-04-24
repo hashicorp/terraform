@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 
 	"github.com/zclconf/go-cty/cty"
@@ -351,10 +352,10 @@ func (e *Expander) UnknownResourceInstances(resourceAddr addrs.ConfigResource) a
 // GetModuleInstanceRepetitionData returns an object describing the values
 // that should be available for each.key, each.value, and count.index within
 // the call block for the given module instance.
-func (e *Expander) GetModuleInstanceRepetitionData(addr addrs.ModuleInstance) RepetitionData {
+func (e *Expander) GetModuleInstanceRepetitionData(addr addrs.ModuleInstance) lang.RepetitionData {
 	if len(addr) == 0 {
 		// The root module is always a singleton, so it has no repetition data.
-		return RepetitionData{}
+		return lang.RepetitionData{}
 	}
 
 	e.mu.RLock()
@@ -364,7 +365,7 @@ func (e *Expander) GetModuleInstanceRepetitionData(addr addrs.ModuleInstance) Re
 	if !known {
 		// If we're nested inside something unexpanded then we don't even
 		// know what type of expansion we're doing.
-		return TotallyUnknownRepetitionData
+		return lang.TotallyUnknownRepetitionData
 	}
 	lastStep := addr[len(addr)-1]
 	exp, ok := parentMod.moduleCalls[addrs.ModuleCall{Name: lastStep.Name}]
@@ -405,7 +406,7 @@ func (e *Expander) GetModuleCallInstanceKeys(addr addrs.AbsModuleCall) (keyType 
 // GetResourceInstanceRepetitionData returns an object describing the values
 // that should be available for each.key, each.value, and count.index within
 // the definition block for the given resource instance.
-func (e *Expander) GetResourceInstanceRepetitionData(addr addrs.AbsResourceInstance) RepetitionData {
+func (e *Expander) GetResourceInstanceRepetitionData(addr addrs.AbsResourceInstance) lang.RepetitionData {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
@@ -413,7 +414,7 @@ func (e *Expander) GetResourceInstanceRepetitionData(addr addrs.AbsResourceInsta
 	if !known {
 		// If we're nested inside something unexpanded then we don't even
 		// know what type of expansion we're doing.
-		return TotallyUnknownRepetitionData
+		return lang.TotallyUnknownRepetitionData
 	}
 	exp, ok := parentMod.resources[addr.Resource.Resource]
 	if !ok {

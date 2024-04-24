@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -250,7 +249,7 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 	var givenVal cty.Value
 	var errSourceRange tfdiags.SourceRange
 	if expr := n.Expr; expr != nil {
-		var moduleInstanceRepetitionData instances.RepetitionData
+		var moduleInstanceRepetitionData lang.RepetitionData
 
 		switch {
 		case validateOnly:
@@ -259,7 +258,7 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 			// TODO: Ideally we should vary the placeholder we use here based
 			// on how the module call repetition was configured, but we don't
 			// have enough information here to decide that.
-			moduleInstanceRepetitionData = instances.TotallyUnknownRepetitionData
+			moduleInstanceRepetitionData = lang.TotallyUnknownRepetitionData
 
 		default:
 			// Get the repetition data for this module instance,
@@ -337,7 +336,7 @@ func (n *nodeModuleVariableInPartialModule) Execute(ctx EvalContext, op walkOper
 	// TODO: Ideally we should vary the placeholder we use here based
 	// on how the module call repetition was configured, but we don't
 	// have enough information here to decide that.
-	moduleInstanceRepetitionData := instances.TotallyUnknownRepetitionData
+	moduleInstanceRepetitionData := lang.TotallyUnknownRepetitionData
 
 	// NOTE WELL: Input variables are a little strange in that they announce
 	// themselves as belonging to the caller of the module they are declared

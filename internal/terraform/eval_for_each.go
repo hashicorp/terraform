@@ -10,7 +10,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -101,8 +100,8 @@ func (ev *forEachEvaluator) ResourceValue() (map[string]cty.Value, bool, tfdiags
 
 // ImportValue returns the for_each map for use within an import block,
 // enumerated as individual instances.RepetitionData values.
-func (ev *forEachEvaluator) ImportValues() ([]instances.RepetitionData, tfdiags.Diagnostics) {
-	var res []instances.RepetitionData
+func (ev *forEachEvaluator) ImportValues() ([]lang.RepetitionData, tfdiags.Diagnostics) {
+	var res []lang.RepetitionData
 	if ev.expr == nil {
 		return res, nil
 	}
@@ -127,7 +126,7 @@ func (ev *forEachEvaluator) ImportValues() ([]instances.RepetitionData, tfdiags.
 	it := val.ElementIterator()
 	for it.Next() {
 		k, v := it.Element()
-		res = append(res, instances.RepetitionData{
+		res = append(res, lang.RepetitionData{
 			EachKey:   k,
 			EachValue: v.WithMarks(marks),
 		})

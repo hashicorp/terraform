@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
-	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -179,7 +179,7 @@ func (p *Provider) CheckInstances(ctx context.Context, phase EvalPhase) (map[add
 		func(ctx context.Context) (map[addrs.InstanceKey]*ProviderInstance, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 			forEachVal := p.ForEachValue(ctx, phase)
-			return instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ProviderInstance {
+			return instancesMap(forEachVal, func(ik addrs.InstanceKey, rd lang.RepetitionData) *ProviderInstance {
 				return newProviderInstance(p, ik, rd)
 			}), diags
 		},
