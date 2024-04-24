@@ -4818,6 +4818,12 @@ func TestContext2Apply_externalDependencyDeferred(t *testing.T) {
 
 	cfg := testModuleInline(t, map[string]string{
 		"main.tf": `
+			// TEMP: unknown for_each currently requires an experiment opt-in.
+			// We should remove this block if the experiment gets stabilized.
+			terraform {
+				experiments = [unknown_instances]
+			}
+
 			resource "test" "a" {
 				name = "a"
 			}
