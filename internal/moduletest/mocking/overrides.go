@@ -103,12 +103,10 @@ func (overrides *Overrides) IsOverridden(module addrs.ModuleInstance) bool {
 }
 
 // GetResourceOverride checks the overrides for the given resource instance.
-// This function automatically checks if the containing resource has been
-// overridden if the instance is instanced.
-//
-// Users can mark a resource instance as overridden by overriding the instance
-// directly (eg. resource.foo[0]) or by overriding the containing resource
-// (eg. resource.foo).
+// If the provided address is instanced, then we will check the containing
+// resource as well. This is because users can mark a resource instance as
+// overridden by overriding the instance directly (eg. resource.foo[0]) or by
+// overriding the containing resource (eg. resource.foo).
 //
 // If the resource is being supplied by a mock provider, then we need to check
 // the overrides for that provider as well, as such the provider config is
