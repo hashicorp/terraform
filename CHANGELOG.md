@@ -4,7 +4,12 @@ BUG FIXES:
 
 * `terraform apply`: Prevent panic when a provider erroneously provides unknown values. ([#35048](https://github.com/hashicorp/terraform/pull/35048))
 * `terraform plan`: Replace panic with error message when self-referencing resources and data sources from the `count` and `for_each` meta attributes. ([#35047](https://github.com/hashicorp/terraform/pull/35047))
-* `terraform test`: Restore TF_ENV_* variables being made available to testing modules. ([#35014](https://github.com/hashicorp/terraform/pull/35014))
+* `terraform test`: Restore `TF_ENV_*` variables being made available to testing modules. ([#35014](https://github.com/hashicorp/terraform/pull/35014))
+* `terraform test`: Prevent crash when referencing local variables within overridden modules. ([#35030](https://github.com/hashicorp/terraform/pull/35030))
+
+ENHANCEMENTS:
+
+* Improved performance by removing unneeded additional computation for a disabled experimental feature. ([#35066](https://github.com/hashicorp/terraform/pull/35066))
 
 OTHER CHANGES:
 
