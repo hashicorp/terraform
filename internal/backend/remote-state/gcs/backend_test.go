@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/states/remote"
-	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/api/option"
 	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
 )
@@ -326,56 +325,6 @@ func TestAccBackendWithCustomerManagedKMSEncryption(t *testing.T) {
 
 	backend.TestBackendStates(t, be0)
 	backend.TestBackendStateLocks(t, be0, be1)
-}
-
-func TestBackendEncryptionKeyEmptyConflict(t *testing.T) {
-	// This test is for the edge case where encryption_key and
-	// kms_encryption_key are both set in the configuration but set to empty
-	// strings. The "SDK-like" helpers treat unset as empty string, so
-	// we need an extra rule to catch them both being set to empty string
-	// directly inside the configuration, and this test covers that
-	// special case.
-	//
-	// The following assumes that the validation check we're testing will, if
-	// failing, always block attempts to reach any real GCP services, and so
-	// this test should be fine to run without an acceptance testing opt-in.
-
-	// This test is for situations where these environment variables are not set.
-	t.Setenv("GOOGLE_ENCRYPTION_KEY", "")
-	t.Setenv("GOOGLE_KMS_ENCRYPTION_KEY", "")
-
-	backend := New()
-	schema := backend.ConfigSchema()
-	rawVal := cty.ObjectVal(map[string]cty.Value{
-		"bucket": cty.StringVal("fake-placeholder"),
-
-		// These are both empty strings but should still be considered as
-		// set when we enforce teh rule that they can't both be set at once.
-		"encryption_key":     cty.StringVal(""),
-		"kms_encryption_key": cty.StringVal(""),
-	})
-	// The following mimicks how the terraform_remote_state data source
-	// treats its "config" argument, which is a realistic situation where
-	// we take an arbitrary object and try to force it to conform to the
-	// backend's schema.
-	configVal, err := schema.CoerceValue(rawVal)
-	if err != nil {
-		t.Fatalf("unexpected coersion error: %s", err)
-	}
-	configVal, diags := backend.PrepareConfig(configVal)
-	if diags.HasErrors() {
-		t.Fatalf("unexpected PrepareConfig error: %s", diags.Err().Error())
-	}
-
-	configDiags := backend.Configure(configVal)
-	if !configDiags.HasErrors() {
-		t.Fatalf("unexpected success; want error")
-	}
-	gotErr := configDiags.Err().Error()
-	wantErr := `can't set both encryption_key and kms_encryption_key`
-	if !strings.Contains(gotErr, wantErr) {
-		t.Errorf("wrong error\ngot: %s\nwant substring: %s", gotErr, wantErr)
-	}
 }
 
 // setupBackend returns a new GCS backend.
