@@ -50,16 +50,40 @@ func preCheckTestAcc(t *testing.T) {
 	}
 }
 
+func preCheckEnvironmentVariables(t *testing.T) {
+
+	// TODO - implement a separate function specific to credentials which will iterate through a list of ENV names and return first value found.
+
+	credentials := []string{
+		"GOOGLE_BACKEND_CREDENTIALS",
+		"GOOGLE_CREDENTIALS",
+	}
+	credsFound := false
+	for _, name := range credentials {
+		v := os.Getenv(name)
+		if v != "" {
+			credsFound = true
+			break
+		}
+	}
+	if !credsFound {
+		// Skipping tests because hashicorp/terraform repo doesn't have credentials set up.
+		// In future we should enable tests to run automatically, and make this code fail when no creds are set.
+		t.Skip("credentials need to be provided via GOOGLE_BACKEND_CREDENTIALS or GOOGLE_CREDENTIALS environment variable but neither is set")
+	}
+}
+
 func TestAccBackendConfig_credentials(t *testing.T) {
-	preCheckTestAcc(t)
 	// Cannot use t.Parallel() due to t.Setenv
+	preCheckTestAcc(t)
+	preCheckEnvironmentVariables(t)
 
 	credentials := os.Getenv("GOOGLE_BACKEND_CREDENTIALS")
 	if credentials == "" {
 		credentials = os.Getenv("GOOGLE_CREDENTIALS")
 	}
 	if credentials == "" {
-		t.Fatalf("test requires credentials to be set as either GOOGLE_BACKEND_CREDENTIALS or GOOGLE_CREDENTIALS but neither is set")
+		t.Fatalf("unable to access credentials from the test environment")
 	}
 
 	t.Setenv("GOOGLE_BACKEND_CREDENTIALS", "") // unset value
@@ -120,8 +144,9 @@ func TestAccBackendConfig_credentials(t *testing.T) {
 }
 
 func TestAccRemoteClient(t *testing.T) {
-	preCheckTestAcc(t)
 	t.Parallel()
+	preCheckTestAcc(t)
+	preCheckEnvironmentVariables(t)
 
 	bucket := bucketName(t)
 	config := map[string]interface{}{
@@ -144,8 +169,9 @@ func TestAccRemoteClient(t *testing.T) {
 }
 
 func TestAccRemoteClientWithEncryption(t *testing.T) {
-	preCheckTestAcc(t)
 	t.Parallel()
+	preCheckTestAcc(t)
+	preCheckEnvironmentVariables(t)
 
 	bucket := bucketName(t)
 	config := map[string]interface{}{
@@ -169,8 +195,9 @@ func TestAccRemoteClientWithEncryption(t *testing.T) {
 }
 
 func TestAccRemoteLocks(t *testing.T) {
-	preCheckTestAcc(t)
 	t.Parallel()
+	preCheckTestAcc(t)
+	preCheckEnvironmentVariables(t)
 
 	bucket := bucketName(t)
 	config := map[string]interface{}{
@@ -206,8 +233,9 @@ func TestAccRemoteLocks(t *testing.T) {
 }
 
 func TestAccBackend(t *testing.T) {
-	preCheckTestAcc(t)
 	t.Parallel()
+	preCheckTestAcc(t)
+	preCheckEnvironmentVariables(t)
 
 	bucket := bucketName(t)
 
@@ -225,8 +253,9 @@ func TestAccBackend(t *testing.T) {
 }
 
 func TestAccBackendWithPrefix(t *testing.T) {
-	preCheckTestAcc(t)
 	t.Parallel()
+	preCheckTestAcc(t)
+	preCheckEnvironmentVariables(t)
 
 	prefix := "test/prefix"
 	bucket := bucketName(t)
@@ -247,8 +276,9 @@ func TestAccBackendWithPrefix(t *testing.T) {
 }
 
 func TestAccBackendWithCustomerSuppliedEncryption(t *testing.T) {
-	preCheckTestAcc(t)
 	t.Parallel()
+	preCheckTestAcc(t)
+	preCheckEnvironmentVariables(t)
 
 	bucket := bucketName(t)
 
@@ -266,8 +296,9 @@ func TestAccBackendWithCustomerSuppliedEncryption(t *testing.T) {
 }
 
 func TestAccBackendWithCustomerManagedKMSEncryption(t *testing.T) {
-	preCheckTestAcc(t)
 	t.Parallel()
+	preCheckTestAcc(t)
+	preCheckEnvironmentVariables(t)
 
 	projectID := os.Getenv("GOOGLE_PROJECT")
 	bucket := bucketName(t)
