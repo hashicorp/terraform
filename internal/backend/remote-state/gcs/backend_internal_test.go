@@ -15,6 +15,9 @@ func TestBackendConfig_encryptionKey(t *testing.T) {
 	t.Parallel()
 	// TODO - add pre check that asserts ENVs for credentials are set when the test runs
 
+	// getWantValue is required because the key input is changed internally in the backend's code
+	// This function is a quick way to help us get a want value, but ideally in future the test and
+	// the code under test will use a reusable function to avoid logic duplication.
 	getWantValue := func(key string) []byte {
 		var want []byte
 		if key == "" {
