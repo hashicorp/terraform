@@ -46,7 +46,7 @@ var keyRingLocation = os.Getenv("GOOGLE_REGION")
 
 func preCheckTestAcc(t *testing.T) {
 	if v := os.Getenv("TF_ACC"); v == "" {
-		t.Fatalf("TF_ACC must be set to run acceptance tests, as they provision real resources")
+		t.Skip("TF_ACC must be set to run acceptance tests, as they provision real resources")
 	}
 }
 
