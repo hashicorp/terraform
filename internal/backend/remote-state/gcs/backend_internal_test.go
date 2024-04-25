@@ -12,7 +12,8 @@ import (
 )
 
 func TestBackendConfig_encryptionKey(t *testing.T) {
-	t.Parallel()
+	// Cannot use t.Parallel as t.SetEnv used
+
 	// TODO - add pre check that asserts ENVs for credentials are set when the test runs
 
 	// getWantValue is required because the key input is changed internally in the backend's code
