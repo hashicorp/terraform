@@ -149,7 +149,6 @@ func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPha
 // possibility of a panic.
 func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.InstanceKey, instances.RepetitionData) T, allowsUnknown bool) map[addrs.InstanceKey]T {
 	switch {
-
 	case maybeForEachVal == cty.NilVal:
 		// No for_each expression at all, then. We have exactly one instance
 		// without an instance key and with no repetition data.

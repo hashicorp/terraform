@@ -198,12 +198,6 @@ func (c *Component) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 			return cty.DynamicVal
 		}
 
-		if insts[addrs.WildcardKey] != nil {
-			// If the wildcard key is used the instance originates from an unknown
-			// for_each value, which means the result is unknown.
-			return cty.DynamicVal
-		}
-
 		// We expect that the instances all have string keys, which will
 		// become the keys of a map that we're returning.
 		elems := make(map[string]cty.Value, len(insts))
