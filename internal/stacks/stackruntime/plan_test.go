@@ -650,11 +650,13 @@ func TestPlanSensitiveOutput(t *testing.T) {
 			TerraformVersion: version.SemVer,
 		},
 		&stackplan.PlannedChangeOutputValue{
-			Addr:          stackaddrs.OutputValue{Name: "result"},
-			Action:        plans.Create,
-			OldValue:      plans.DynamicValue{0xc0}, // MessagePack nil
-			NewValue:      mustPlanDynamicValue(cty.StringVal("secret")),
-			NewValueMarks: []cty.PathValueMarks{{Marks: cty.NewValueMarks(marks.Sensitive)}},
+			Addr:     stackaddrs.OutputValue{Name: "result"},
+			Action:   plans.Create,
+			OldValue: plans.DynamicValue{0xc0}, // MessagePack nil
+			NewValue: mustPlanDynamicValue(cty.StringVal("secret")),
+			NewValueSensitivePaths: []cty.Path{
+				nil, // the whole value is sensitive
+			},
 		},
 	}
 	sort.SliceStable(gotChanges, func(i, j int) bool {
@@ -701,11 +703,13 @@ func TestPlanSensitiveOutputNested(t *testing.T) {
 			TerraformVersion: version.SemVer,
 		},
 		&stackplan.PlannedChangeOutputValue{
-			Addr:          stackaddrs.OutputValue{Name: "result"},
-			Action:        plans.Create,
-			OldValue:      plans.DynamicValue{0xc0}, // MessagePack nil
-			NewValue:      mustPlanDynamicValue(cty.StringVal("secret")),
-			NewValueMarks: []cty.PathValueMarks{{Marks: cty.NewValueMarks(marks.Sensitive)}},
+			Addr:     stackaddrs.OutputValue{Name: "result"},
+			Action:   plans.Create,
+			OldValue: plans.DynamicValue{0xc0}, // MessagePack nil
+			NewValue: mustPlanDynamicValue(cty.StringVal("secret")),
+			NewValueSensitivePaths: []cty.Path{
+				nil, // the whole value is sensitive
+			},
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(
@@ -795,11 +799,13 @@ func TestPlanSensitiveOutputAsInput(t *testing.T) {
 			TerraformVersion: version.SemVer,
 		},
 		&stackplan.PlannedChangeOutputValue{
-			Addr:          stackaddrs.OutputValue{Name: "result"},
-			Action:        plans.Create,
-			OldValue:      plans.DynamicValue{0xc0}, // MessagePack nil
-			NewValue:      mustPlanDynamicValue(cty.StringVal("SECRET")),
-			NewValueMarks: []cty.PathValueMarks{{Marks: cty.NewValueMarks(marks.Sensitive)}},
+			Addr:     stackaddrs.OutputValue{Name: "result"},
+			Action:   plans.Create,
+			OldValue: plans.DynamicValue{0xc0}, // MessagePack nil
+			NewValue: mustPlanDynamicValue(cty.StringVal("SECRET")),
+			NewValueSensitivePaths: []cty.Path{
+				nil, // the whole value is sensitive
+			},
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(
@@ -1128,11 +1134,8 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 						"id":    cty.UnknownVal(cty.String),
 						"value": cty.StringVal("secret"),
 					}), stacks_testing_provider.TestingResourceSchema),
-					AfterValMarks: []cty.PathValueMarks{
-						{
-							Path:  cty.GetAttrPath("value"),
-							Marks: cty.NewValueMarks(marks.Sensitive),
-						},
+					AfterSensitivePaths: []cty.Path{
+						cty.GetAttrPath("value"),
 					},
 				},
 			},
@@ -1278,11 +1281,8 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 						"id":    cty.UnknownVal(cty.String),
 						"value": cty.StringVal("secret"),
 					}), stacks_testing_provider.TestingResourceSchema),
-					AfterValMarks: []cty.PathValueMarks{
-						{
-							Path:  cty.GetAttrPath("value"),
-							Marks: cty.NewValueMarks(marks.Sensitive),
-						},
+					AfterSensitivePaths: []cty.Path{
+						cty.GetAttrPath("value"),
 					},
 				},
 			},

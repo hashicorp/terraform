@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -564,6 +565,20 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 		// produce accurate change actions.
 
 		v, markses := v.UnmarkDeepWithPaths()
+		sensitivePaths, otherMarkses := marks.PathsWithMark(markses, marks.Sensitive)
+		if len(otherMarkses) != 0 {
+			// Any other marks should've been dealt with by our caller before
+			// getting here, since we only know how to preserve the sensitive
+			// marking.
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(fmt.Errorf(
+				"%s%s: unhandled value marks %#v (this is a bug in Terraform)",
+				outputAddr,
+				tfdiags.FormatCtyPath(otherMarkses[0].Path),
+				otherMarkses[0].Marks,
+			))
+			return nil, diags
+		}
 		dv, err := plans.NewDynamicValue(v, v.Type())
 		if err != nil {
 			// Should not be possible since we generated the value internally;
@@ -581,11 +596,11 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 			Addr:   outputAddr,
 			Action: plans.Create,
 
-			OldValue:      oldDV,
-			OldValueMarks: nil,
+			OldValue:               oldDV,
+			OldValueSensitivePaths: nil,
 
-			NewValue:      dv,
-			NewValueMarks: markses,
+			NewValue:               dv,
+			NewValueSensitivePaths: sensitivePaths,
 		})
 	}
 	return changes, nil

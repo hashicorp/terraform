@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	// ErrCloudPluginNotSupported is the error returned when the upstream Terraform Cloud does not
+	// ErrCloudPluginNotSupported is the error returned when the upstream HCP Terraform does not
 	// have a manifest.
 	ErrCloudPluginNotSupported = errors.New("cloud plugin is not supported by the remote version of Terraform Enterprise")
 
@@ -37,7 +37,7 @@ type ErrCloudPluginNotVerified struct {
 
 // Error returns a string representation of ErrQueryFailed
 func (e ErrQueryFailed) Error() string {
-	return fmt.Sprintf("failed to fetch cloud plugin from Terraform Cloud: %s", e.inner)
+	return fmt.Sprintf("failed to fetch cloud plugin from HCP Terraform: %s", e.inner)
 }
 
 // Unwrap returns the inner error of ErrQueryFailed

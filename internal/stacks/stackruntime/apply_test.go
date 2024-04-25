@@ -317,11 +317,8 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 					"id":    "bb5cf32312ec",
 					"value": "secret",
 				}),
-				AttrSensitivePaths: []cty.PathValueMarks{
-					{
-						Path:  cty.GetAttrPath("value"),
-						Marks: cty.NewValueMarks(marks.Sensitive),
-					},
+				AttrSensitivePaths: []cty.Path{
+					cty.GetAttrPath("value"),
 				},
 				Status:       states.ObjectReady,
 				Dependencies: make([]addrs.ConfigResource, 0),

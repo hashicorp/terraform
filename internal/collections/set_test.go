@@ -37,3 +37,17 @@ func TestSet(t *testing.T) {
 		t.Errorf("set doesn't have \"b\" after adding it")
 	}
 }
+
+func TestSetUninit(t *testing.T) {
+	// An zero-value set should behave like it's empty for read-only operations.
+	var zeroSet Set[string]
+	if got, want := zeroSet.Len(), 0; got != want {
+		t.Errorf("wrong number of elements\ngot:  %d\nwant: %d", got, want)
+	}
+	if zeroSet.Has("anything") {
+		// (this is really just testing that we can call Has without panicking;
+		// it's unlikely that this would ever fail by successfully lying about
+		// a particular member being present.)
+		t.Error("Has reported that \"anything\" is present")
+	}
+}

@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -68,6 +69,10 @@ type ApplyGraphBuilder struct {
 	// nodes that should not be pruned even if they are not referenced within
 	// the actual graph.
 	ExternalReferences []*addrs.Reference
+
+	// Overrides provides the set of overrides supplied by the testing
+	// framework.
+	Overrides *mocking.Overrides
 }
 
 // See GraphBuilder
@@ -127,6 +132,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&OutputTransformer{
 			Config:     b.Config,
 			Destroying: b.Operation == walkDestroy,
+			Overrides:  b.Overrides,
 		},
 
 		// Creates all the resource instances represented in the diff, along

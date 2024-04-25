@@ -236,31 +236,13 @@ func TestEvaluatorGetResource(t *testing.T) {
 			&states.ResourceInstanceObjectSrc{
 				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"id":"foo", "nesting_list": [{"sensitive_value":"abc"}], "nesting_map": {"foo":{"foo":"x"}}, "nesting_set": [{"baz":"abc"}], "nesting_single": {"boop":"abc"}, "nesting_nesting": {"nesting_list":[{"sensitive_value":"abc"}]}, "value":"hello"}`),
-				AttrSensitivePaths: []cty.PathValueMarks{
-					{
-						Path:  cty.GetAttrPath("nesting_list").IndexInt(0).GetAttr("sensitive_value"),
-						Marks: cty.NewValueMarks(marks.Sensitive),
-					},
-					{
-						Path:  cty.GetAttrPath("nesting_map").IndexString("foo").GetAttr("foo"),
-						Marks: cty.NewValueMarks(marks.Sensitive),
-					},
-					{
-						Path:  cty.GetAttrPath("nesting_nesting").GetAttr("nesting_list").IndexInt(0).GetAttr("sensitive_value"),
-						Marks: cty.NewValueMarks(marks.Sensitive),
-					},
-					{
-						Path:  cty.GetAttrPath("nesting_set"),
-						Marks: cty.NewValueMarks(marks.Sensitive),
-					},
-					{
-						Path:  cty.GetAttrPath("nesting_single").GetAttr("boop"),
-						Marks: cty.NewValueMarks(marks.Sensitive),
-					},
-					{
-						Path:  cty.GetAttrPath("value"),
-						Marks: cty.NewValueMarks(marks.Sensitive),
-					},
+				AttrSensitivePaths: []cty.Path{
+					cty.GetAttrPath("nesting_list").IndexInt(0).GetAttr("sensitive_value"),
+					cty.GetAttrPath("nesting_map").IndexString("foo").GetAttr("foo"),
+					cty.GetAttrPath("nesting_nesting").GetAttr("nesting_list").IndexInt(0).GetAttr("sensitive_value"),
+					cty.GetAttrPath("nesting_set"),
+					cty.GetAttrPath("nesting_single").GetAttr("boop"),
+					cty.GetAttrPath("value"),
 				},
 			},
 			addrs.AbsProviderConfig{
@@ -617,7 +599,7 @@ func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesS
 		},
 		State:       stateSync,
 		Changes:     changesSync,
-		Instances:   instances.NewExpander(),
+		Instances:   instances.NewExpander(nil),
 		NamedValues: namedvals.NewState(),
 	}
 }

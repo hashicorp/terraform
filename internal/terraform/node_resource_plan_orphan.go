@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -164,13 +165,19 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	}
 	var change *plans.ResourceInstanceChange
 	var pDiags tfdiags.Diagnostics
+	var deferred *providers.Deferred
 	if forget {
 		change, pDiags = n.planForget(ctx, oldState, "")
 		diags = diags.Append(pDiags)
 	} else {
-		change, pDiags = n.planDestroy(ctx, oldState, "")
+		change, deferred, pDiags = n.planDestroy(ctx, oldState, "")
 		diags = diags.Append(pDiags)
-		if diags.HasErrors() {
+
+		if deferred != nil {
+			ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, &plans.ResourceInstanceChange{
+				Addr:   n.Addr,
+				Change: change.Change,
+			})
 			return diags
 		}
 	}
@@ -294,7 +301,7 @@ func (n *NodePlannableResourceInstanceOrphan) deleteActionReason(ctx EvalContext
 		// First we'll check whether our containing module instance still
 		// exists, so we can talk about that differently in the reason.
 		declared := false
-		for _, inst := range expander.ExpandModule(n.Addr.Module.Module()) {
+		for _, inst := range expander.ExpandModule(n.Addr.Module.Module(), false) {
 			if n.Addr.Module.Equal(inst) {
 				declared = true
 				break

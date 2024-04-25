@@ -14,6 +14,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -421,11 +422,8 @@ resource "test_resource" "b" {
 			mustResourceInstanceAddr(`test_resource.a`),
 			&states.ResourceInstanceObjectSrc{
 				AttrsJSON: []byte(`{"id":"a","sensitive_attr":["secret"]}`),
-				AttrSensitivePaths: []cty.PathValueMarks{
-					{
-						Path:  cty.GetAttrPath("sensitive_attr"),
-						Marks: cty.NewValueMarks(marks.Sensitive),
-					},
+				AttrSensitivePaths: []cty.Path{
+					cty.GetAttrPath("sensitive_attr"),
 				},
 				Status: states.ObjectReady,
 			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
@@ -555,8 +553,8 @@ resource "test_object" "y" {
 	// make sure the same marks are compared in the next plan as well
 	for _, c := range plan.Changes.Resources {
 		if c.Action != plans.NoOp {
-			t.Logf("marks before: %#v", c.BeforeValMarks)
-			t.Logf("marks after:  %#v", c.AfterValMarks)
+			t.Logf("sensitive paths before: %#v", c.BeforeSensitivePaths)
+			t.Logf("sensitive paths after:  %#v", c.AfterSensitivePaths)
 			t.Errorf("Unexpcetd %s change for %s", c.Action, c.Addr)
 		}
 	}
@@ -2770,11 +2768,8 @@ resource "test_resource" "a" {
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"value":"secret"}]}`),
-			AttrSensitivePaths: []cty.PathValueMarks{
-				{
-					Path:  cty.GetAttrPath("value"),
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AttrSensitivePaths: []cty.Path{
+				cty.GetAttrPath("value"),
 			},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
@@ -2810,13 +2805,10 @@ resource "test_resource" "a" {
 	if diff := cmp.Diff(string(instance.Current.AttrsJSON), expected); len(diff) > 0 {
 		t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expected, string(instance.Current.AttrsJSON), diff)
 	}
-	expectedMarkses := []cty.PathValueMarks{
-		{
-			Path:  cty.GetAttrPath("value"),
-			Marks: cty.NewValueMarks(marks.Sensitive),
-		},
+	expectedSensitivePaths := []cty.Path{
+		cty.GetAttrPath("value"),
 	}
-	if diff := cmp.Diff(instance.Current.AttrSensitivePaths, expectedMarkses); len(diff) > 0 {
+	if diff := cmp.Diff(expectedSensitivePaths, instance.Current.AttrSensitivePaths, ctydebug.CmpOptions); len(diff) > 0 {
 		t.Errorf("unexpected sensitive paths\ndiff:\n%s", diff)
 	}
 }
@@ -2891,5 +2883,99 @@ resource "test_object" "a" {
 
 	if c := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.a")); c.Action != plans.NoOp {
 		t.Errorf("Unexpected %s change for %s", c.Action, c.Addr)
+	}
+}
+
+// This test explicitly reproduces the issue described in #34976.
+func TestContext2Apply_34976(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "a" {
+  source = "./mod"
+  count = 1
+}
+
+resource "test_object" "obj" {
+  test_number = length(module.a)
+}
+`,
+		"mod/main.tf": ``, // just an empty module
+	})
+
+	p := simpleMockProvider()
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	// Just don't crash.
+	_, diags = ctx.Apply(plan, m, nil)
+	assertNoErrors(t, diags)
+}
+
+func TestContext2Apply_35039(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "obj" {
+  list = ["a", "b", "c"]
+}
+`,
+	})
+
+	p := testing_provider.MockProvider{}
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"output": {
+							Type:     cty.String,
+							Computed: true,
+						},
+						"list": {
+							Type:      cty.List(cty.String),
+							Required:  true,
+							Sensitive: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: cty.ObjectVal(map[string]cty.Value{
+				"output": cty.UnknownVal(cty.String),
+				"list":   req.ProposedNewState.GetAttr("list"),
+			}),
+		}
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		return providers.ApplyResourceChangeResponse{
+			// This is a bug, the provider shouldn't return unknown values from
+			// ApplyResourceChange. But, Terraform shouldn't crash in response
+			// to this. It should return a nice error message.
+			NewState: req.PlannedState,
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(&p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	// Just don't crash, should report an error about the provider.
+	_, diags = ctx.Apply(plan, m, nil)
+	if len(diags) != 1 {
+		t.Fatalf("expected exactly one diagnostic, but got %d: %s", len(diags), diags)
 	}
 }

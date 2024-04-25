@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -90,11 +89,8 @@ func TestTFPlanRoundTrip(t *testing.T) {
 								cty.StringVal("honk"),
 							}),
 						}), objTy),
-						AfterValMarks: []cty.PathValueMarks{
-							{
-								Path:  cty.GetAttrPath("boop").IndexInt(1),
-								Marks: cty.NewValueMarks(marks.Sensitive),
-							},
+						AfterSensitivePaths: []cty.Path{
+							cty.GetAttrPath("boop").IndexInt(1),
 						},
 					},
 					RequiredReplace: cty.NewPathSet(
@@ -185,11 +181,8 @@ func TestTFPlanRoundTrip(t *testing.T) {
 							cty.StringVal("bonk"),
 						}),
 					}), objTy),
-					AfterValMarks: []cty.PathValueMarks{
-						{
-							Path:  cty.GetAttrPath("boop").IndexInt(1),
-							Marks: cty.NewValueMarks(marks.Sensitive),
-						},
+					AfterSensitivePaths: []cty.Path{
+						cty.GetAttrPath("boop").IndexInt(1),
 					},
 				},
 			},

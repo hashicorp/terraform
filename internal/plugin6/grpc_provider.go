@@ -339,6 +339,9 @@ func (p *GRPCProvider) ConfigureProvider(r providers.ConfigureProviderRequest) (
 		Config: &proto6.DynamicValue{
 			Msgpack: mp,
 		},
+		ClientCapabilities: &proto6.ClientCapabilities{
+			DeferralAllowed: r.ClientCapabilities.DeferralAllowed,
+		},
 	}
 
 	protoResp, err := p.client.ConfigureProvider(p.ctx, protoReq)
@@ -388,10 +391,12 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	}
 
 	protoReq := &proto6.ReadResource_Request{
-		TypeName:        r.TypeName,
-		CurrentState:    &proto6.DynamicValue{Msgpack: mp},
-		Private:         r.Private,
-		DeferralAllowed: r.DeferralAllowed,
+		TypeName:     r.TypeName,
+		CurrentState: &proto6.DynamicValue{Msgpack: mp},
+		Private:      r.Private,
+		ClientCapabilities: &proto6.ClientCapabilities{
+			DeferralAllowed: r.ClientCapabilities.DeferralAllowed,
+		},
 	}
 
 	if metaSchema.Block != nil {
@@ -472,6 +477,9 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		Config:           &proto6.DynamicValue{Msgpack: configMP},
 		ProposedNewState: &proto6.DynamicValue{Msgpack: propMP},
 		PriorPrivate:     r.PriorPrivate,
+		ClientCapabilities: &proto6.ClientCapabilities{
+			DeferralAllowed: r.ClientCapabilities.DeferralAllowed,
+		},
 	}
 
 	if metaSchema.Block != nil {
@@ -509,6 +517,8 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	resp.PlannedPrivate = protoResp.PlannedPrivate
 
 	resp.LegacyTypeSystem = protoResp.LegacyTypeSystem
+
+	resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
 
 	return resp
 }
@@ -710,6 +720,9 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 		Config: &proto6.DynamicValue{
 			Msgpack: config,
 		},
+		ClientCapabilities: &proto6.ClientCapabilities{
+			DeferralAllowed: r.ClientCapabilities.DeferralAllowed,
+		},
 	}
 
 	if metaSchema.Block != nil {
@@ -734,6 +747,7 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 		return resp
 	}
 	resp.State = state
+	resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
 
 	return resp
 }

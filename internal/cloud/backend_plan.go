@@ -62,8 +62,8 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Custom parallelism values are currently not supported",
-			`Terraform Cloud does not support setting a custom parallelism `+
-				`value at this time.`,
+			fmt.Sprintf("%s does not support setting a custom parallelism ", b.appName)+
+				"value at this time.",
 		))
 	}
 
@@ -71,8 +71,8 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Displaying a saved plan is currently not supported",
-			`Terraform Cloud currently requires configuration to be present and `+
-				`does not accept an existing saved plan as an argument at this time.`,
+			fmt.Sprintf("%s currently requires configuration to be present and ", b.appName)+
+				"does not accept an existing saved plan as an argument at this time.",
 		))
 	}
 
@@ -120,9 +120,9 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 
 func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	if b.CLI != nil {
-		header := planDefaultHeader
+		header := fmt.Sprintf(planDefaultHeader, b.appName)
 		if op.Type == backendrun.OperationTypeApply || op.Type == backendrun.OperationTypeRefresh {
-			header = applyDefaultHeader
+			header = fmt.Sprintf(applyDefaultHeader, b.appName)
 		}
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(header) + "\n"))
 	}
@@ -139,7 +139,7 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operatio
 
 	cv, err := b.client.ConfigurationVersions.Create(stopCtx, w.ID, configOptions)
 	if err != nil {
-		return nil, generalError("Failed to create configuration version", err)
+		return nil, b.generalError("Failed to create configuration version", err)
 	}
 
 	var configDir string
@@ -147,7 +147,7 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operatio
 		// De-normalize the configuration directory path.
 		configDir, err = filepath.Abs(op.ConfigDir)
 		if err != nil {
-			return nil, generalError(
+			return nil, b.generalError(
 				"Failed to get absolute path of the configuration directory: %v", err)
 		}
 
@@ -185,21 +185,21 @@ in order to capture the filesystem context the remote workspace expects:
 		// be executed when we are destroying and doesn't need the config.
 		configDir, err = ioutil.TempDir("", "tf")
 		if err != nil {
-			return nil, generalError("Failed to create temporary directory", err)
+			return nil, b.generalError("Failed to create temporary directory", err)
 		}
 		defer os.RemoveAll(configDir)
 
 		// Make sure the configured working directory exists.
 		err = os.MkdirAll(filepath.Join(configDir, w.WorkingDirectory), 0700)
 		if err != nil {
-			return nil, generalError(
+			return nil, b.generalError(
 				"Failed to create temporary working directory", err)
 		}
 	}
 
 	err = b.client.ConfigurationVersions.Upload(stopCtx, cv.UploadURL, configDir)
 	if err != nil {
-		return nil, generalError("Failed to upload configuration files", err)
+		return nil, b.generalError("Failed to upload configuration files", err)
 	}
 
 	uploaded := false
@@ -212,7 +212,7 @@ in order to capture the filesystem context the remote workspace expects:
 		case <-time.After(planConfigurationVersionsPollInterval):
 			cv, err = b.client.ConfigurationVersions.Read(stopCtx, cv.ID)
 			if err != nil {
-				return nil, generalError("Failed to retrieve configuration version", err)
+				return nil, b.generalError("Failed to retrieve configuration version", err)
 			}
 
 			if cv.Status == tfe.ConfigurationUploaded {
@@ -222,7 +222,7 @@ in order to capture the filesystem context the remote workspace expects:
 	}
 
 	if !uploaded {
-		return nil, generalError(
+		return nil, b.generalError(
 			"Failed to upload configuration files", errors.New("operation timed out"))
 	}
 
@@ -245,9 +245,9 @@ in order to capture the filesystem context the remote workspace expects:
 		// Shouldn't get here because we should update this for each new
 		// plan mode we add, mapping it to the corresponding RunCreateOptions
 		// field.
-		return nil, generalError(
+		return nil, b.generalError(
 			"Invalid plan mode",
-			fmt.Errorf("Terraform Cloud doesn't support %s", op.PlanMode),
+			fmt.Errorf("%s doesn't support %s", b.appName, op.PlanMode),
 		)
 	}
 
@@ -291,7 +291,7 @@ in order to capture the filesystem context the remote workspace expects:
 
 	r, err := b.client.Runs.Create(stopCtx, runOptions)
 	if err != nil {
-		return r, generalError("Failed to create run", err)
+		return r, b.generalError("Failed to create run", err)
 	}
 
 	// When the lock timeout is set, if the run is still pending and
@@ -367,7 +367,7 @@ in order to capture the filesystem context the remote workspace expects:
 	// Retrieve the run to get its current status.
 	r, err = b.client.Runs.Read(stopCtx, r.ID)
 	if err != nil {
-		return r, generalError("Failed to retrieve run", err)
+		return r, b.generalError("Failed to retrieve run", err)
 	}
 
 	// If the run is canceled or errored, we still continue to the
@@ -420,15 +420,15 @@ func (b *Cloud) AssertImportCompatible(config *configs.Config) error {
 		// Second, check the agent version is high enough.
 		agentEnv, isSet := os.LookupEnv("TFC_AGENT_VERSION")
 		if !isSet {
-			return fmt.Errorf("Error reading TFC agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: TFC_AGENT_VERSION not present.")
+			return fmt.Errorf("Error reading Terraform Cloud agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: TFC_AGENT_VERSION not present.")
 		}
 		currentAgentVersion, err := version.NewVersion(agentEnv)
 		if err != nil {
-			return fmt.Errorf("Error parsing TFC agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: %s", err)
+			return fmt.Errorf("Error parsing Terraform Cloud agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: %s", err)
 		}
 		desiredAgentVersion, _ := version.NewVersion("1.10")
 		if currentAgentVersion.LessThan(desiredAgentVersion) {
-			return fmt.Errorf("Import blocks are not supported in this version of the Terraform Cloud Agent. You are using agent version %s, but this feature requires version %s. Please remove any import blocks from your config or upgrade your agent.", currentAgentVersion, desiredAgentVersion)
+			return fmt.Errorf("Import blocks are not supported in this version of the HCP Terraform Agent. You are using agent version %s, but this feature requires version %s. Please remove any import blocks from your config or upgrade your agent.", currentAgentVersion, desiredAgentVersion)
 		}
 	}
 	return nil
@@ -453,7 +453,7 @@ func (b *Cloud) renderPlanLogs(ctx context.Context, op *backendrun.Operation, ru
 				l, isPrefix, err = reader.ReadLine()
 				if err != nil {
 					if err != io.EOF {
-						return generalError("Failed to read logs", err)
+						return b.generalError("Failed to read logs", err)
 					}
 					next = false
 				}
@@ -523,11 +523,11 @@ func (b *Cloud) renderPlanLogs(ctx context.Context, op *backendrun.Operation, ru
 	if renderSRO || shouldGenerateConfig {
 		jsonBytes, err := readRedactedPlan(ctx, b.client.BaseURL(), b.Token, run.Plan.ID)
 		if err != nil {
-			return generalError("Failed to read JSON plan", err)
+			return b.generalError("Failed to read JSON plan", err)
 		}
 		redactedPlan, err = decodeRedactedPlan(jsonBytes)
 		if err != nil {
-			return generalError("Failed to decode JSON plan", err)
+			return b.generalError("Failed to decode JSON plan", err)
 		}
 	}
 
@@ -631,7 +631,7 @@ func shouldGenerateConfig(out string, run *tfe.Run) bool {
 }
 
 const planDefaultHeader = `
-[reset][yellow]Running plan in Terraform Cloud. Output will stream here. Pressing Ctrl-C
+[reset][yellow]Running plan in %s. Output will stream here. Pressing Ctrl-C
 will stop streaming the logs, but will not stop the plan running remotely.[reset]
 
 Preparing the remote plan...

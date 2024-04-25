@@ -93,3 +93,13 @@ type ResourceChange struct {
 	// and treat them as an unspecified reason.
 	ActionReason string `json:"action_reason,omitempty"`
 }
+
+// DeferredResourceChange is a description of a resource change that has been
+// deferred for some reason.
+type DeferredResourceChange struct {
+	// Reason is the reason why this resource change was deferred.
+	Reason string `json:"reason"`
+
+	// Change contains any information we have about the deferred change.
+	ResourceChange ResourceChange `json:"resource_change"`
+}

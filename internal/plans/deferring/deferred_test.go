@@ -109,6 +109,66 @@ func TestDeferred_absResourceInstanceDeferred(t *testing.T) {
 	})
 }
 
+func TestDeferred_absDataSourceInstanceDeferred(t *testing.T) {
+	instAAddr := addrs.AbsResourceInstance{
+		Module: addrs.RootModuleInstance.Child("foo", addrs.NoKey),
+		Resource: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.DataResourceMode,
+				Type: "test",
+				Name: "a",
+			},
+		},
+	}
+	instBAddr := addrs.AbsResourceInstance{
+		Module: addrs.RootModuleInstance,
+		Resource: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.DataResourceMode,
+				Type: "test",
+				Name: "b",
+			},
+		},
+	}
+	instCAddr := addrs.AbsResourceInstance{
+		Module: addrs.RootModuleInstance,
+		Resource: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test",
+				Name: "c",
+			},
+		},
+	}
+
+	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
+	resourceGraph.AddDependency(instCAddr.ConfigResource(), instBAddr.ConfigResource())
+	resourceGraph.AddDependency(instCAddr.ConfigResource(), instAAddr.ConfigResource())
+	deferred := NewDeferred(resourceGraph, true)
+
+	// Before we report anything, all three addresses should indicate that
+	// they don't need to have their actions deferred.
+	t.Run("without any deferrals yet", func(t *testing.T) {
+		for _, instAddr := range []addrs.AbsResourceInstance{instAAddr, instBAddr, instCAddr} {
+			if deferred.ShouldDeferResourceInstanceChanges(instAddr) {
+				t.Errorf("%s reported as needing deferred; should not be, yet", instAddr)
+			}
+		}
+	})
+
+	// Instance A has its Read action deferred for some reason.
+	deferred.ReportDataSourceInstanceDeferred(instAAddr)
+
+	t.Run("with one resource instance deferred", func(t *testing.T) {
+		if !deferred.ShouldDeferResourceInstanceChanges(instCAddr) {
+			t.Errorf("%s was not reported as needing deferred; should be deferred", instCAddr)
+		}
+		if deferred.ShouldDeferResourceInstanceChanges(instBAddr) {
+			t.Errorf("%s reported as needing deferred; should not be", instCAddr)
+		}
+	})
+}
+
 func TestDeferred_partialExpandedDatasource(t *testing.T) {
 	instAAddr := addrs.AbsResourceInstance{
 		Module: addrs.RootModuleInstance.Child("foo", addrs.NoKey),

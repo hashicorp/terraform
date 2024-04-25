@@ -45,11 +45,11 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Migrating from backend "local" to Terraform Cloud.`,
+							expectedCmdOutput: `Migrating from backend "local" to HCP Terraform.`,
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
 								`Should Terraform migrate your existing state?`,
-								`Terraform Cloud has been successfully initialized!`},
+								`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "list"},
@@ -96,12 +96,12 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Migrating from backend "local" to Terraform Cloud.`,
+							expectedCmdOutput: `Migrating from backend "local" to HCP Terraform.`,
 							userInput:         []string{"yes", "new-workspace", "yes"},
 							postInputOutput: []string{
 								`Should Terraform migrate your existing state?`,
-								`Terraform Cloud requires all workspaces to be given an explicit name.`,
-								`Terraform Cloud has been successfully initialized!`},
+								`HCP Terraform requires all workspaces to be given an explicit name.`,
+								`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "list"},

@@ -18,10 +18,10 @@ import (
 // An embedded stack exists only as a child of another stack and doesn't have
 // its own independent identity outside of that calling stack.
 //
-// Terraform Cloud offers a related concept of "linked stacks" where the
+// HCP Terraform offers a related concept of "linked stacks" where the
 // deployment configuration for one stack can refer to the outputs of another,
 // while the other stack retains its own independent identity and lifecycle,
-// but that concept only makes sense in an environment like Terraform Cloud
+// but that concept only makes sense in an environment like HCP Terraform
 // where the stack outputs can be published for external consumption.
 type EmbeddedStack struct {
 	Name string

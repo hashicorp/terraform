@@ -65,35 +65,31 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, tfdia
 	}
 
 	expander := ctx.InstanceExpander()
-	forEachModuleInstance(
-		expander, n.Module,
-		func(module addrs.ModuleInstance) {
-			addr := n.Addr.Absolute(module)
-			if checkableAddrs != nil {
-				checkableAddrs.Add(addr)
-			}
+	forEachModuleInstance(expander, n.Module, false, func(module addrs.ModuleInstance) {
+		addr := n.Addr.Absolute(module)
+		if checkableAddrs != nil {
+			checkableAddrs.Add(addr)
+		}
 
-			o := &nodeModuleVariable{
-				Addr:           addr,
-				Config:         n.Config,
-				Expr:           n.Expr,
-				ModuleInstance: module,
-				DestroyApply:   n.DestroyApply,
-			}
-			g.Add(o)
-		},
-		func(pem addrs.PartialExpandedModule) {
-			addr := addrs.ObjectInPartialExpandedModule(pem, n.Addr)
-			o := &nodeModuleVariableInPartialModule{
-				Addr:           addr,
-				Config:         n.Config,
-				Expr:           n.Expr,
-				ModuleInstance: pem,
-				DestroyApply:   n.DestroyApply,
-			}
-			g.Add(o)
-		},
-	)
+		o := &nodeModuleVariable{
+			Addr:           addr,
+			Config:         n.Config,
+			Expr:           n.Expr,
+			ModuleInstance: module,
+			DestroyApply:   n.DestroyApply,
+		}
+		g.Add(o)
+	}, func(pem addrs.PartialExpandedModule) {
+		addr := addrs.ObjectInPartialExpandedModule(pem, n.Addr)
+		o := &nodeModuleVariableInPartialModule{
+			Addr:           addr,
+			Config:         n.Config,
+			Expr:           n.Expr,
+			ModuleInstance: pem,
+			DestroyApply:   n.DestroyApply,
+		}
+		g.Add(o)
+	})
 	addRootNodeToGraph(&g)
 
 	if checkableAddrs != nil {
