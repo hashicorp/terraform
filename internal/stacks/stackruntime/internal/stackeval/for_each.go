@@ -107,6 +107,12 @@ func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPha
 			}
 		}
 
+	case !result.Value.IsWhollyKnown() && ty.HasDynamicTypes():
+		// If the value is unknown and has dynamic types, we can't
+		// determine if it's a valid for_each value, so we'll just
+		// return the unknown value.
+		return result, diags
+
 	default:
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity:    hcl.DiagError,

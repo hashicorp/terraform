@@ -41,10 +41,6 @@ func TestEvaluateForEachExpr(t *testing.T) {
 				"b": cty.StringVal("beep"),
 			}),
 		},
-		"unknown object": {
-			Expr: hcltest.MockExprLiteral(cty.UnknownVal(cty.EmptyObject)),
-			Want: cty.UnknownVal(cty.EmptyObject),
-		},
 
 		// Maps
 		"map of string": {
@@ -136,6 +132,24 @@ func TestEvaluateForEachExpr(t *testing.T) {
 		"null string": {
 			Expr:    hcltest.MockExprLiteral(cty.NullVal(cty.String)),
 			WantErr: `Invalid for_each value`,
+		},
+
+		// Unknown sets, maps, objects, and dynamic types are allowed
+		"unknown set": {
+			Expr: hcltest.MockExprLiteral(cty.UnknownVal(cty.Set(cty.String))),
+			Want: cty.UnknownVal(cty.Set(cty.String)),
+		},
+		"unknown map": {
+			Expr: hcltest.MockExprLiteral(cty.UnknownVal(cty.Map(cty.String))),
+			Want: cty.UnknownVal(cty.Map(cty.String)),
+		},
+		"unknown object": {
+			Expr: hcltest.MockExprLiteral(cty.UnknownVal(cty.EmptyObject)),
+			Want: cty.UnknownVal(cty.EmptyObject),
+		},
+		"unknown dynamic type": {
+			Expr: hcltest.MockExprLiteral(cty.DynamicVal),
+			Want: cty.DynamicVal,
 		},
 	}
 
