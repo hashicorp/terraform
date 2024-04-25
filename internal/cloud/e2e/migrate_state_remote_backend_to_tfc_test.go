@@ -17,7 +17,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 
 	ctx := context.Background()
 	cases := testCases{
-		"migrate remote backend name to tfc name": {
+		"migrate remote backend name to HCP Terraform name": {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
@@ -45,11 +45,11 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-ignore-remote-version"},
-							expectedCmdOutput: `Migrating from backend "remote" to Terraform Cloud.`,
+							expectedCmdOutput: `Migrating from backend "remote" to HCP Terraform.`,
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
 								`Should Terraform migrate your existing state?`,
-								`Terraform Cloud has been successfully initialized!`},
+								`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -69,7 +69,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				}
 			},
 		},
-		"migrate remote backend name to tfc same name": {
+		"migrate remote backend name to HCP Terraform same name": {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
@@ -97,11 +97,11 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-ignore-remote-version"},
-							expectedCmdOutput: `Migrating from backend "remote" to Terraform Cloud.`,
+							expectedCmdOutput: `Migrating from backend "remote" to HCP Terraform.`,
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
 								`Should Terraform migrate your existing state?`,
-								`Terraform Cloud has been successfully initialized!`},
+								`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -121,7 +121,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				}
 			},
 		},
-		"migrate remote backend name to tfc tags": {
+		"migrate remote backend name to HCP Terraform tags": {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
@@ -153,12 +153,12 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-ignore-remote-version"},
-							expectedCmdOutput: `Migrating from backend "remote" to Terraform Cloud.`,
+							expectedCmdOutput: `Migrating from backend "remote" to HCP Terraform.`,
 							userInput:         []string{"yes", "cloud-workspace", "yes"},
 							postInputOutput: []string{
 								`Should Terraform migrate your existing state?`,
-								`Terraform Cloud requires all workspaces to be given an explicit name.`,
-								`Terraform Cloud has been successfully initialized!`},
+								`HCP Terraform requires all workspaces to be given an explicit name.`,
+								`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -183,7 +183,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				}
 			},
 		},
-		"migrate remote backend prefix to tfc name strategy single workspace": {
+		"migrate remote backend prefix to HCP Terraform name strategy single workspace": {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
@@ -212,11 +212,11 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-ignore-remote-version"},
-							expectedCmdOutput: `Migrating from backend "remote" to Terraform Cloud.`,
+							expectedCmdOutput: `Migrating from backend "remote" to HCP Terraform.`,
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
 								`Should Terraform migrate your existing state?`,
-								`Terraform Cloud has been successfully initialized!`},
+								`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -236,7 +236,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				}
 			},
 		},
-		"migrate remote backend prefix to tfc name strategy multi workspace": {
+		"migrate remote backend prefix to HCP Terraform name strategy multi workspace": {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
@@ -279,7 +279,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
 							userInput:         []string{"yes"},
 							postInputOutput: []string{
-								`Terraform Cloud has been successfully initialized!`},
+								`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -318,7 +318,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				}
 			},
 		},
-		"migrate remote backend prefix to tfc tags strategy single workspace": {
+		"migrate remote backend prefix to HCP Terraform tags strategy single workspace": {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
@@ -347,12 +347,12 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-ignore-remote-version"},
-							expectedCmdOutput: `Migrating from backend "remote" to Terraform Cloud.`,
+							expectedCmdOutput: `Migrating from backend "remote" to HCP Terraform.`,
 							userInput:         []string{"yes", "cloud-workspace", "yes"},
 							postInputOutput: []string{
 								`Should Terraform migrate your existing state?`,
-								`Terraform Cloud requires all workspaces to be given an explicit name.`,
-								`Terraform Cloud has been successfully initialized!`},
+								`HCP Terraform requires all workspaces to be given an explicit name.`,
+								`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "list"},
@@ -372,7 +372,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				}
 			},
 		},
-		"migrate remote backend prefix to tfc tags strategy multi workspace": {
+		"migrate remote backend prefix to HCP Terraform tags strategy multi workspace": {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
@@ -417,7 +417,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 							command:           []string{"init", "-ignore-remote-version"},
 							expectedCmdOutput: `Do you wish to proceed?`,
 							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
+							postInputOutput:   []string{`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -468,7 +468,7 @@ func Test_migrate_remote_backend_multi_org(t *testing.T) {
 
 	ctx := context.Background()
 	cases := testCases{
-		"migrate remote backend name to tfc name": {
+		"migrate remote backend name to HCP Terraform name": {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
@@ -496,11 +496,11 @@ func Test_migrate_remote_backend_multi_org(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-ignore-remote-version"},
-							expectedCmdOutput: `Migrating from backend "remote" to Terraform Cloud.`,
+							expectedCmdOutput: `Migrating from backend "remote" to HCP Terraform.`,
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
 								`Should Terraform migrate your existing state?`,
-								`Terraform Cloud has been successfully initialized!`},
+								`HCP Terraform has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},

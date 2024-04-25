@@ -66,7 +66,7 @@ func (n *nodeExpandApplyableResource) Execute(globalCtx EvalContext, op walkOper
 
 	var diags tfdiags.Diagnostics
 	expander := globalCtx.InstanceExpander()
-	moduleInstances := expander.ExpandModule(n.Addr.Module)
+	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
 Insts:
 	for _, module := range moduleInstances {
 

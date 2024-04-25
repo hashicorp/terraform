@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -164,15 +163,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 				if pathsDiags.HasErrors() {
 					continue
 				}
-
-				var pvm []cty.PathValueMarks
-				for _, path := range paths {
-					pvm = append(pvm, cty.PathValueMarks{
-						Path:  path,
-						Marks: cty.NewValueMarks(marks.Sensitive),
-					})
-				}
-				obj.AttrSensitivePaths = pvm
+				obj.AttrSensitivePaths = paths
 			}
 
 			{
@@ -488,14 +479,8 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		}
 	}
 
-	// Extract paths from path value marks
-	var paths []cty.Path
-	for _, vm := range obj.AttrSensitivePaths {
-		paths = append(paths, vm.Path)
-	}
-
 	// Marshal paths to JSON
-	attributeSensitivePaths, pathsDiags := marshalPaths(paths)
+	attributeSensitivePaths, pathsDiags := marshalPaths(obj.AttrSensitivePaths)
 	diags = diags.Append(pathsDiags)
 
 	return append(isV4s, instanceObjectStateV4{
@@ -825,6 +810,9 @@ func unmarshalPaths(buf []byte) ([]cty.Path, tfdiags.Diagnostics) {
 		))
 	}
 
+	if len(jsonPaths) == 0 {
+		return nil, diags
+	}
 	paths := make([]cty.Path, 0, len(jsonPaths))
 
 unmarshalOuter:

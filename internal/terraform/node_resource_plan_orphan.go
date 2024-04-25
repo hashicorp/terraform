@@ -301,7 +301,7 @@ func (n *NodePlannableResourceInstanceOrphan) deleteActionReason(ctx EvalContext
 		// First we'll check whether our containing module instance still
 		// exists, so we can talk about that differently in the reason.
 		declared := false
-		for _, inst := range expander.ExpandModule(n.Addr.Module.Module()) {
+		for _, inst := range expander.ExpandModule(n.Addr.Module.Module(), false) {
 			if n.Addr.Module.Equal(inst) {
 				declared = true
 				break

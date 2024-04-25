@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -291,9 +292,9 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 
 	// We need to combine the dynamic marks with the static marks implied by
 	// the provider's schema.
-	unmarkedPaths = append(unmarkedPaths, schema.ValueMarks(plannedNewVal, nil)...)
-	if len(unmarkedPaths) > 0 {
-		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
+	plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
+	if sensitivePaths := schema.SensitivePaths(plannedNewVal, nil); len(sensitivePaths) != 0 {
+		plannedNewVal = marks.MarkPaths(plannedNewVal, marks.Sensitive, sensitivePaths)
 	}
 
 	change.After = plannedNewVal

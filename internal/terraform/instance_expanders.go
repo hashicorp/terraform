@@ -31,16 +31,11 @@ type graphNodeExpandsInstances interface {
 // partially-expanded prefixes conceptually represent an infinite set of
 // possible module instance addresses and therefore need quite different
 // treatment than a single concrete module instance address.
-func forEachModuleInstance(
-	insts *instances.Expander,
-	modAddr addrs.Module,
-	knownCb func(addrs.ModuleInstance),
-	unknownCb func(addrs.PartialExpandedModule),
-) {
-	for _, instAddr := range insts.ExpandModule(modAddr) {
+func forEachModuleInstance(insts *instances.Expander, modAddr addrs.Module, includeOverrides bool, knownCb func(addrs.ModuleInstance), unknownCb func(addrs.PartialExpandedModule)) {
+	for _, instAddr := range insts.ExpandModule(modAddr, includeOverrides) {
 		knownCb(instAddr)
 	}
-	for _, instsAddr := range insts.UnknownModuleInstances(modAddr) {
+	for _, instsAddr := range insts.UnknownModuleInstances(modAddr, includeOverrides) {
 		unknownCb(instsAddr)
 	}
 }

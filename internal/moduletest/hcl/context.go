@@ -18,8 +18,9 @@ import (
 type EvalContextTarget string
 
 const (
-	TargetRunBlock EvalContextTarget = "run"
-	TargetProvider EvalContextTarget = "provider"
+	TargetRunBlock     EvalContextTarget = "run"
+	TargetProvider     EvalContextTarget = "provider"
+	TargetFileVariable EvalContextTarget = "file"
 )
 
 // EvalContext builds hcl.EvalContext objects for use directly within the
@@ -49,7 +50,7 @@ const (
 // will be used to evaluate. This is just so we can provide some better error
 // messages and diagnostics. The expressions argument could be empty without
 // affecting the returned context.
-func EvalContext(target EvalContextTarget, expressions []hcl.Expression, availableVariables map[string]cty.Value, availableRunOutputs map[addrs.Run]cty.Value) (*hcl.EvalContext, tfdiags.Diagnostics) {
+func EvalContext(target EvalContextTarget, expressions map[string]hcl.Expression, availableVariables map[string]cty.Value, availableRunOutputs map[addrs.Run]cty.Value) (*hcl.EvalContext, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	runs := make(map[string]cty.Value, len(availableRunOutputs))
@@ -63,6 +64,18 @@ func EvalContext(target EvalContextTarget, expressions []hcl.Expression, availab
 
 		for _, ref := range refs {
 			if addr, ok := ref.Subject.(addrs.Run); ok {
+				if target == TargetFileVariable {
+					// You can't reference run blocks from within the file
+					// variables block.
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid reference",
+						Detail:   "You can not reference run blocks from within the file variables block.",
+						Subject:  ref.SourceRange.ToHCL().Ptr(),
+					})
+					continue
+				}
+
 				objVal, exists := availableRunOutputs[addr]
 
 				var diagPrefix string
@@ -133,9 +146,14 @@ func EvalContext(target EvalContextTarget, expressions []hcl.Expression, availab
 				if _, exists := availableVariables[addr.Name]; !exists {
 					// This variable reference doesn't exist.
 
-					detail := fmt.Sprintf("The input variable %q is not available to the current context. Within the variables block of a run block you can only reference variables defined at the file or global levels; within the variables block of a suite you can only reference variables defined at the global levels.", addr.Name)
-					if availableRunOutputs == nil {
-						detail = fmt.Sprintf("The input variable %q is not available to the current provider configuration. You can only reference variables defined at the file or global levels within provider configurations.", addr.Name)
+					var detail string
+					switch target {
+					case TargetRunBlock:
+						detail = fmt.Sprintf("The input variable %q is not available to the current run block. You can only reference variables defined at the file or global levels.", addr.Name)
+					case TargetProvider:
+						detail = fmt.Sprintf("The input variable %q is not available to the current provider configuration. You can only reference variables defined at the file or global levels.", addr.Name)
+					case TargetFileVariable:
+						detail = fmt.Sprintf("The input variable %q is not available to the current context. You can only reference global variables.", addr.Name)
 					}
 
 					diags = diags.Append(&hcl.Diagnostic{
@@ -152,9 +170,14 @@ func EvalContext(target EvalContextTarget, expressions []hcl.Expression, availab
 				continue
 			}
 
-			detail := "You can only reference earlier run blocks, file level, and global variables while defining variables from inside a run block."
-			if availableRunOutputs == nil {
-				detail = "You can only reference file level and global variables from inside provider configurations within test files."
+			var detail string
+			switch target {
+			case TargetRunBlock:
+				detail = "You can only reference earlier run blocks, file level, and global variables while defining variables from inside a run block."
+			case TargetProvider:
+				detail = "You can only reference run blocks, file level, and global variables while defining variables from inside provider configurations."
+			case TargetFileVariable:
+				detail = "You can only reference global variables within the test file variables block."
 			}
 
 			// You can only reference run blocks and variables from the run

@@ -6,7 +6,6 @@ package configschema
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -19,27 +18,22 @@ func copyAndExtendPath(path cty.Path, nextSteps ...cty.PathStep) cty.Path {
 	return newPath
 }
 
-// ValueMarks returns a set of path value marks for a given value and path,
-// based on the sensitive flag for each attribute within the schema. Nested
-// blocks are descended (if present in the given value).
-func (b *Block) ValueMarks(val cty.Value, path cty.Path) []cty.PathValueMarks {
-	var pvm []cty.PathValueMarks
+// SensitivePaths returns a set of paths into the given value that should
+// be marked as sensitive based on the static declarations in the schema.
+func (b *Block) SensitivePaths(val cty.Value, basePath cty.Path) []cty.Path {
+	var ret []cty.Path
 
 	// We can mark attributes as sensitive even if the value is null
 	for name, attrS := range b.Attributes {
 		if attrS.Sensitive {
-			// Create a copy of the path, with this step added, to add to our PathValueMarks slice
-			attrPath := copyAndExtendPath(path, cty.GetAttrStep{Name: name})
-			pvm = append(pvm, cty.PathValueMarks{
-				Path:  attrPath,
-				Marks: cty.NewValueMarks(marks.Sensitive),
-			})
+			attrPath := copyAndExtendPath(basePath, cty.GetAttrStep{Name: name})
+			ret = append(ret, attrPath)
 		}
 	}
 
 	// If the value is null, no other marks are possible
 	if val.IsNull() {
-		return pvm
+		return ret
 	}
 
 	// Extract marks for nested attribute type values
@@ -51,9 +45,8 @@ func (b *Block) ValueMarks(val cty.Value, path cty.Path) []cty.PathValueMarks {
 		}
 
 		// Create a copy of the path, with this step added, to add to our PathValueMarks slice
-		attrPath := copyAndExtendPath(path, cty.GetAttrStep{Name: name})
-
-		pvm = append(pvm, attrS.NestedType.ValueMarks(val.GetAttr(name), attrPath)...)
+		attrPath := copyAndExtendPath(basePath, cty.GetAttrStep{Name: name})
+		ret = append(ret, attrS.NestedType.SensitivePaths(val.GetAttr(name), attrPath)...)
 	}
 
 	// Extract marks for nested blocks
@@ -69,35 +62,35 @@ func (b *Block) ValueMarks(val cty.Value, path cty.Path) []cty.PathValueMarks {
 		}
 
 		// Create a copy of the path, with this step added, to add to our PathValueMarks slice
-		blockPath := copyAndExtendPath(path, cty.GetAttrStep{Name: name})
+		blockPath := copyAndExtendPath(basePath, cty.GetAttrStep{Name: name})
 
 		switch blockS.Nesting {
 		case NestingSingle, NestingGroup:
-			pvm = append(pvm, blockS.Block.ValueMarks(blockV, blockPath)...)
+			ret = append(ret, blockS.Block.SensitivePaths(blockV, blockPath)...)
 		case NestingList, NestingMap, NestingSet:
+			blockV, _ = blockV.Unmark() // peel off one level of marking so we can iterate
 			for it := blockV.ElementIterator(); it.Next(); {
 				idx, blockEV := it.Element()
 				// Create a copy of the path, with this block instance's index
 				// step added, to add to our PathValueMarks slice
 				blockInstancePath := copyAndExtendPath(blockPath, cty.IndexStep{Key: idx})
-				morePaths := blockS.Block.ValueMarks(blockEV, blockInstancePath)
-				pvm = append(pvm, morePaths...)
+				morePaths := blockS.Block.SensitivePaths(blockEV, blockInstancePath)
+				ret = append(ret, morePaths...)
 			}
 		default:
 			panic(fmt.Sprintf("unsupported nesting mode %s", blockS.Nesting))
 		}
 	}
-	return pvm
+	return ret
 }
 
-// ValueMarks returns a set of path value marks for a given value and path,
-// based on the sensitive flag for each attribute within the nested attribute.
-// Attributes with nested types are descended (if present in the given value).
-func (o *Object) ValueMarks(val cty.Value, path cty.Path) []cty.PathValueMarks {
-	var pvm []cty.PathValueMarks
+// SensitivePaths returns a set of paths into the given value that should be
+// marked as sensitive based on the static declarations in the schema.
+func (o *Object) SensitivePaths(val cty.Value, basePath cty.Path) []cty.Path {
+	var ret []cty.Path
 
 	if val.IsNull() || !val.IsKnown() {
-		return pvm
+		return ret
 	}
 
 	for name, attrS := range o.Attributes {
@@ -109,22 +102,20 @@ func (o *Object) ValueMarks(val cty.Value, path cty.Path) []cty.PathValueMarks {
 		switch o.Nesting {
 		case NestingSingle, NestingGroup:
 			// Create a path to this attribute
-			attrPath := copyAndExtendPath(path, cty.GetAttrStep{Name: name})
+			attrPath := copyAndExtendPath(basePath, cty.GetAttrStep{Name: name})
 
 			if attrS.Sensitive {
 				// If the entire attribute is sensitive, mark it so
-				pvm = append(pvm, cty.PathValueMarks{
-					Path:  attrPath,
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				})
+				ret = append(ret, attrPath)
 			} else {
 				// The attribute has a nested type which contains sensitive
 				// attributes, so recurse
-				pvm = append(pvm, attrS.NestedType.ValueMarks(val.GetAttr(name), attrPath)...)
+				ret = append(ret, attrS.NestedType.SensitivePaths(val.GetAttr(name), attrPath)...)
 			}
 		case NestingList, NestingMap, NestingSet:
 			// For nested attribute types which have a non-single nesting mode,
 			// we add path value marks for each element of the collection
+			val, _ = val.Unmark() // peel off one level of marking so we can iterate
 			for it := val.ElementIterator(); it.Next(); {
 				idx, attrEV := it.Element()
 				attrV := attrEV.GetAttr(name)
@@ -134,23 +125,18 @@ func (o *Object) ValueMarks(val cty.Value, path cty.Path) []cty.PathValueMarks {
 				// of the loops: index into the collection, then the contained
 				// attribute name. This is because we have one type
 				// representing multiple collection elements.
-				attrPath := copyAndExtendPath(path, cty.IndexStep{Key: idx}, cty.GetAttrStep{Name: name})
+				attrPath := copyAndExtendPath(basePath, cty.IndexStep{Key: idx}, cty.GetAttrStep{Name: name})
 
 				if attrS.Sensitive {
 					// If the entire attribute is sensitive, mark it so
-					pvm = append(pvm, cty.PathValueMarks{
-						Path:  attrPath,
-						Marks: cty.NewValueMarks(marks.Sensitive),
-					})
+					ret = append(ret, attrPath)
 				} else {
-					// The attribute has a nested type which contains sensitive
-					// attributes, so recurse
-					pvm = append(pvm, attrS.NestedType.ValueMarks(attrV, attrPath)...)
+					ret = append(ret, attrS.NestedType.SensitivePaths(attrV, attrPath)...)
 				}
 			}
 		default:
 			panic(fmt.Sprintf("unsupported nesting mode %s", attrS.NestedType.Nesting))
 		}
 	}
-	return pvm
+	return ret
 }

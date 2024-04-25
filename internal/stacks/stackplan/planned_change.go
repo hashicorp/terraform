@@ -340,8 +340,14 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 
 						Actions: protoChangeTypes,
 						Values: &terraform1.DynamicValueChange{
-							Old: terraform1.NewDynamicValue(pc.ChangeSrc.Before, pc.ChangeSrc.BeforeValMarks),
-							New: terraform1.NewDynamicValue(pc.ChangeSrc.After, pc.ChangeSrc.AfterValMarks),
+							Old: terraform1.NewDynamicValue(
+								pc.ChangeSrc.Before,
+								pc.ChangeSrc.BeforeSensitivePaths,
+							),
+							New: terraform1.NewDynamicValue(
+								pc.ChangeSrc.After,
+								pc.ChangeSrc.AfterSensitivePaths,
+							),
 						},
 						ReplacePaths: replacePaths,
 						// TODO: Moved, Imported
@@ -380,8 +386,8 @@ type PlannedChangeOutputValue struct {
 	Addr   stackaddrs.OutputValue // Covers only root stack output values
 	Action plans.Action
 
-	OldValue, NewValue           plans.DynamicValue
-	OldValueMarks, NewValueMarks []cty.PathValueMarks
+	OldValue, NewValue                             plans.DynamicValue
+	OldValueSensitivePaths, NewValueSensitivePaths []cty.Path
 }
 
 var _ PlannedChange = (*PlannedChangeOutputValue)(nil)
@@ -405,8 +411,8 @@ func (pc *PlannedChangeOutputValue) PlannedChangeProto() (*terraform1.PlannedCha
 						Actions: protoChangeTypes,
 
 						Values: &terraform1.DynamicValueChange{
-							Old: terraform1.NewDynamicValue(pc.OldValue, pc.OldValueMarks),
-							New: terraform1.NewDynamicValue(pc.NewValue, pc.NewValueMarks),
+							Old: terraform1.NewDynamicValue(pc.OldValue, pc.OldValueSensitivePaths),
+							New: terraform1.NewDynamicValue(pc.NewValue, pc.NewValueSensitivePaths),
 						},
 					},
 				},

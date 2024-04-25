@@ -251,10 +251,10 @@ func writeMainTF(t *testing.T, block string, dir string) {
 	f.Close()
 }
 
-// The e2e tests rely on the fact that the terraform version in TFC/E is able to
-// run the `cloud` configuration block, which is available in 1.1 and will
-// continue to be available in later versions. So this function checks that
-// there is a version that is >= 1.1.
+// The e2e tests rely on the fact that the terraform version in HCP Terraform
+// is able to run the `cloud` configuration block, which is available in 1.1
+// and will continue to be available in later versions. So this function checks
+// that there is a version that is >= 1.1.
 func skipWithoutRemoteTerraformVersion(t *testing.T) {
 	version := tfversion.Version
 	baseVersion, err := goversion.NewVersion(version)

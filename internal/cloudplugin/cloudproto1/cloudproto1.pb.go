@@ -28,7 +28,7 @@ const (
 )
 
 // CommandRequest is used to request the execution of a specific command with
-// provided flags. It is the raw args from the terraform cloud command.
+// provided flags. It is the raw args from the HCP Terraform command.
 type CommandRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

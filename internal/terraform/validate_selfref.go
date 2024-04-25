@@ -58,6 +58,37 @@ func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema p
 	return diags
 }
 
+// validateSelfRefInExpr checks to ensure that a specific expression does not
+// reference the same block that it is contained within.
+func validateSelfRefInExpr(addr addrs.Referenceable, expr hcl.Expression) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	addrStrs := make([]string, 0, 1)
+	addrStrs = append(addrStrs, addr.String())
+	switch tAddr := addr.(type) {
+	case addrs.ResourceInstance:
+		// A resource instance may not refer to its containing resource either.
+		addrStrs = append(addrStrs, tAddr.ContainingResource().String())
+	}
+
+	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, expr)
+	for _, ref := range refs {
+
+		for _, addrStr := range addrStrs {
+			if ref.Subject.String() == addrStr {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Self-referential block",
+					Detail:   fmt.Sprintf("Configuration for %s may not refer to itself.", addrStr),
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+			}
+		}
+	}
+
+	return diags
+}
+
 // Legacy provisioner configurations may refer to single instances using the
 // resource address. We need to filter these out from the reported references
 // to prevent cycles.
