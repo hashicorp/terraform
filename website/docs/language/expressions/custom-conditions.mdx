@@ -234,9 +234,9 @@ check "health_check" {
 
 If the condition evaluates to `false`, Terraform produces an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple assertions, Terraform returns error messages for all failed conditions.
 
-### Continuous Validation in Terraform Cloud
+### Continuous Validation in HCP Terraform
 
-Terraform Cloud can automatically check whether the checks in a workspace’s configuration continue to pass after Terraform provisions the infrastructure. For example, you can write a `check` to continuously monitor the validity of an API gateway certificate. Continuous validation alerts you when the condition fails, so you can update the certificate and avoid errors the next time you want to update your infrastructure. Refer to [Continuous Validation](/terraform/cloud-docs/workspaces/health#continuous-validation) in the Terraform Cloud documentation for details.
+HCP Terraform can automatically check whether the checks in a workspace’s configuration continue to pass after Terraform provisions the infrastructure. For example, you can write a `check` to continuously monitor the validity of an API gateway certificate. Continuous validation alerts you when the condition fails, so you can update the certificate and avoid errors the next time you want to update your infrastructure. Refer to [Continuous Validation](/terraform/cloud-docs/workspaces/health#continuous-validation) in the HCP Terraform documentation for details.
 
 ## Condition Expressions
 

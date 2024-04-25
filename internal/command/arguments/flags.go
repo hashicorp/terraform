@@ -8,72 +8,68 @@ import (
 	"fmt"
 )
 
-// flagStringSlice is a flag.Value implementation which allows collecting
+// FlagStringSlice is a flag.Value implementation which allows collecting
 // multiple instances of a single flag into a slice. This is used for flags
 // such as -target=aws_instance.foo and -var x=y.
-type flagStringSlice []string
+type FlagStringSlice []string
 
-var _ flag.Value = (*flagStringSlice)(nil)
+var _ flag.Value = (*FlagStringSlice)(nil)
 
-func (v *flagStringSlice) String() string {
+func (v *FlagStringSlice) String() string {
 	return ""
 }
-func (v *flagStringSlice) Set(raw string) error {
+func (v *FlagStringSlice) Set(raw string) error {
 	*v = append(*v, raw)
 
 	return nil
 }
 
-// flagNameValueSlice is a flag.Value implementation that appends raw flag
+// FlagNameValueSlice is a flag.Value implementation that appends raw flag
 // names and values to a slice. This is used to collect a sequence of flags
 // with possibly different names, preserving the overall order.
-//
-// FIXME: this is a copy of rawFlags from command/meta_config.go, with the
-// eventual aim of replacing it altogether by gathering variables in the
-// arguments package.
-type flagNameValueSlice struct {
-	flagName string
-	items    *[]FlagNameValue
+type FlagNameValueSlice struct {
+	FlagName string
+	Items    *[]FlagNameValue
 }
 
-var _ flag.Value = flagNameValueSlice{}
+var _ flag.Value = FlagNameValueSlice{}
 
-func newFlagNameValueSlice(flagName string) flagNameValueSlice {
+func NewFlagNameValueSlice(flagName string) FlagNameValueSlice {
 	var items []FlagNameValue
-	return flagNameValueSlice{
-		flagName: flagName,
-		items:    &items,
+	return FlagNameValueSlice{
+		FlagName: flagName,
+		Items:    &items,
 	}
 }
 
-func (f flagNameValueSlice) Empty() bool {
-	if f.items == nil {
+func (f FlagNameValueSlice) Empty() bool {
+	if f.Items == nil {
 		return true
 	}
-	return len(*f.items) == 0
+	return len(*f.Items) == 0
 }
 
-func (f flagNameValueSlice) AllItems() []FlagNameValue {
-	if f.items == nil {
+func (f FlagNameValueSlice) AllItems() []FlagNameValue {
+	if f.Items == nil {
 		return nil
 	}
-	return *f.items
+	return *f.Items
 }
 
-func (f flagNameValueSlice) Alias(flagName string) flagNameValueSlice {
-	return flagNameValueSlice{
-		flagName: flagName,
-		items:    f.items,
+func (f FlagNameValueSlice) Alias(flagName string) FlagNameValueSlice {
+	return FlagNameValueSlice{
+		FlagName: flagName,
+		Items:    f.Items,
 	}
 }
 
-func (f flagNameValueSlice) String() string {
+func (f FlagNameValueSlice) String() string {
 	return ""
 }
 
-func (f flagNameValueSlice) Set(str string) error {
-	*f.items = append(*f.items, FlagNameValue{
-		Name:  f.flagName,
+func (f FlagNameValueSlice) Set(str string) error {
+	*f.Items = append(*f.Items, FlagNameValue{
+		Name:  f.FlagName,
 		Value: str,
 	})
 	return nil

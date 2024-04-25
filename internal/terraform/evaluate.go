@@ -730,7 +730,10 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 			// Unlike decoding state, decoding a change does not automatically
 			// mark values.
-			instances[key] = val.MarkWithPaths(change.AfterValMarks)
+			// FIXME: Correct that inconsistency by moving this logic into
+			// the decoder function in the plans package, so that we can
+			// test that behavior being implemented in only one place.
+			instances[key] = marks.MarkPaths(val, marks.Sensitive, change.AfterSensitivePaths)
 			continue
 		}
 

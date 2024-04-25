@@ -9,7 +9,6 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
@@ -44,11 +43,10 @@ func ChangeTypesForPlanAction(action plans.Action) ([]ChangeType, error) {
 // [plans.DynamicValue], which is Terraform Core's typical in-memory
 // representation of an already-serialized dynamic value.
 //
-// The plans package represents value marks (including "sensitive") as a
-// separate field in [plans.ChangeSrc] rather than as part of the value
-// itself, so callers must also provide that separate [cty.PathValueMarks]
-// value if encoding a value that might have sensitive elements.
-func NewDynamicValue(from plans.DynamicValue, markses []cty.PathValueMarks) *DynamicValue {
+// The plans package represents the sensitive value mark as a separate field
+// in [plans.ChangeSrc] rather than as part of the value itself, so callers must
+// also provide a separate set of paths that are marked as sensitive.
+func NewDynamicValue(from plans.DynamicValue, sensitivePaths []cty.Path) *DynamicValue {
 	// plans.DynamicValue is always MessagePack-serialized today, so we'll
 	// just write its bytes into the field for msgpack serialization
 	// unconditionally. If plans.DynamicValue grows to support different
@@ -57,12 +55,10 @@ func NewDynamicValue(from plans.DynamicValue, markses []cty.PathValueMarks) *Dyn
 		Msgpack: []byte(from),
 	}
 
-	if len(markses) != 0 {
-		ret.Sensitive = make([]*AttributePath, 0, len(markses))
-		for _, pathMarks := range markses {
-			if _, exists := pathMarks.Marks[marks.Sensitive]; exists {
-				ret.Sensitive = append(ret.Sensitive, NewAttributePath(pathMarks.Path))
-			}
+	if len(sensitivePaths) != 0 {
+		ret.Sensitive = make([]*AttributePath, 0, len(sensitivePaths))
+		for _, path := range sensitivePaths {
+			ret.Sensitive = append(ret.Sensitive, NewAttributePath(path))
 		}
 	}
 

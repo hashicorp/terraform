@@ -208,7 +208,7 @@ func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upg
 
 	if ctx.Err() == context.Canceled {
 		m.showDiagnostics(diags)
-		m.Ui.Error("Module installation was canceled by an interrupt signal.")
+		diags = diags.Append(fmt.Errorf("Module installation was canceled by an interrupt signal."))
 		return true, diags
 	}
 
@@ -241,7 +241,7 @@ func (m *Meta) initDirFromModule(ctx context.Context, targetDir string, addr str
 	diags = diags.Append(moreDiags)
 	if ctx.Err() == context.Canceled {
 		m.showDiagnostics(diags)
-		m.Ui.Error("Module initialization was canceled by an interrupt signal.")
+		diags = diags.Append(fmt.Errorf("Module initialization was canceled by an interrupt signal."))
 		return true, diags
 	}
 	return false, diags
@@ -410,61 +410,4 @@ func configValueFromCLI(synthFilename, rawValue string, wantType cty.Type) (cty.
 		}
 		return val, diags
 	}
-}
-
-// rawFlags is a flag.Value implementation that just appends raw flag
-// names and values to a slice.
-type rawFlags struct {
-	flagName string
-	items    *[]rawFlag
-}
-
-func newRawFlags(flagName string) rawFlags {
-	var items []rawFlag
-	return rawFlags{
-		flagName: flagName,
-		items:    &items,
-	}
-}
-
-func (f rawFlags) Empty() bool {
-	if f.items == nil {
-		return true
-	}
-	return len(*f.items) == 0
-}
-
-func (f rawFlags) AllItems() []rawFlag {
-	if f.items == nil {
-		return nil
-	}
-	return *f.items
-}
-
-func (f rawFlags) Alias(flagName string) rawFlags {
-	return rawFlags{
-		flagName: flagName,
-		items:    f.items,
-	}
-}
-
-func (f rawFlags) String() string {
-	return ""
-}
-
-func (f rawFlags) Set(str string) error {
-	*f.items = append(*f.items, rawFlag{
-		Name:  f.flagName,
-		Value: str,
-	})
-	return nil
-}
-
-type rawFlag struct {
-	Name  string
-	Value string
-}
-
-func (f rawFlag) String() string {
-	return fmt.Sprintf("%s=%q", f.Name, f.Value)
 }

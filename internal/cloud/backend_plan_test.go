@@ -90,8 +90,8 @@ func TestCloud_planBasic(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running plan in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running plan in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
@@ -204,8 +204,8 @@ func TestCloud_planLongLine(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running plan in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running plan in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
@@ -388,8 +388,8 @@ func TestCloud_planWithPath(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running plan in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running plan in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
@@ -673,8 +673,8 @@ func TestCloud_planWithRequiredVariables(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running plan in Terraform Cloud") {
-		t.Fatalf("unexpected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running plan in HCP Terraform") {
+		t.Fatalf("unexpected HCP Terraform header in output: %s", output)
 	}
 }
 
@@ -774,8 +774,8 @@ func TestCloud_planForceLocal(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if strings.Contains(output, "Running plan in Terraform Cloud") {
-		t.Fatalf("unexpected TFC header in output: %s", output)
+	if strings.Contains(output, "Running plan in HCP Terraform") {
+		t.Fatalf("unexpected HCP Terraform header in output: %s", output)
 	}
 	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
@@ -810,8 +810,8 @@ func TestCloud_planWithoutOperationsEntitlement(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if strings.Contains(output, "Running plan in Terraform Cloud") {
-		t.Fatalf("unexpected TFC header in output: %s", output)
+	if strings.Contains(output, "Running plan in HCP Terraform") {
+		t.Fatalf("unexpected HCP Terraform header in output: %s", output)
 	}
 	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
@@ -860,8 +860,8 @@ func TestCloud_planWorkspaceWithoutOperations(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if strings.Contains(output, "Running plan in Terraform Cloud") {
-		t.Fatalf("unexpected TFC header in output: %s", output)
+	if strings.Contains(output, "Running plan in HCP Terraform") {
+		t.Fatalf("unexpected HCP Terraform header in output: %s", output)
 	}
 	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
@@ -928,8 +928,8 @@ func TestCloud_planLockTimeout(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running plan in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running plan in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "Lock timeout exceeded") {
 		t.Fatalf("expected lock timout error in output: %s", output)
@@ -1026,8 +1026,8 @@ func TestCloud_planWithWorkingDirectory(t *testing.T) {
 	if !strings.Contains(output, "The remote workspace is configured to work with configuration") {
 		t.Fatalf("expected working directory warning: %s", output)
 	}
-	if !strings.Contains(output, "Running plan in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running plan in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
@@ -1082,8 +1082,8 @@ func TestCloud_planWithWorkingDirectoryFromCurrentPath(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running plan in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running plan in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
@@ -1114,8 +1114,8 @@ func TestCloud_planCostEstimation(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running plan in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running plan in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "Resources: 1 of 1 estimated") {
 		t.Fatalf("expected cost estimate result in output: %s", output)
@@ -1149,8 +1149,8 @@ func TestCloud_planPolicyPass(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running plan in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running plan in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "Sentinel Result: true") {
 		t.Fatalf("expected policy check result in output: %s", output)
@@ -1189,8 +1189,8 @@ func TestCloud_planPolicyHardFail(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running plan in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running plan in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "Sentinel Result: false") {
 		t.Fatalf("expected policy check result in output: %s", output)
@@ -1229,8 +1229,8 @@ func TestCloud_planPolicySoftFail(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running plan in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running plan in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "Sentinel Result: false") {
 		t.Fatalf("expected policy check result in output: %s", output)
@@ -1264,8 +1264,8 @@ func TestCloud_planWithRemoteError(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running plan in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running plan in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "null_resource.foo: 1 error") {
 		t.Fatalf("expected plan error in output: %s", output)
@@ -1329,7 +1329,7 @@ func TestCloud_planOtherError(t *testing.T) {
 	}
 
 	if !strings.Contains(err.Error(),
-		"Terraform Cloud returned an unexpected error:\n\nI'm a little teacup") {
+		"HCP Terraform returned an unexpected error:\n\nI'm a little teacup") {
 		t.Fatalf("expected error message, got: %s", err.Error())
 	}
 }
@@ -1461,12 +1461,12 @@ func TestCloud_planInvalidGenConfigOutPath(t *testing.T) {
 }
 
 func TestCloud_planShouldRenderSRO(t *testing.T) {
-	t.Run("when instance is TFC", func(t *testing.T) {
+	t.Run("when instance is HCP Terraform", func(t *testing.T) {
 		handlers := map[string]func(http.ResponseWriter, *http.Request){
 			"/api/v2/ping": func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				w.Header().Set("TFP-API-Version", "2.5")
-				w.Header().Set("TFP-AppName", "Terraform Cloud")
+				w.Header().Set("TFP-AppName", "HCP Terraform")
 			},
 		}
 		b, bCleanup := testBackendWithHandlers(t, handlers)
@@ -1550,6 +1550,7 @@ func TestCloud_planShouldRenderSRO(t *testing.T) {
 		handlers := map[string]func(http.ResponseWriter, *http.Request){
 			"/api/v2/ping": func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("TFP-AppName", "Terraform Enterprise")
 				w.Header().Set("TFP-API-Version", "2.5")
 			},
 		}

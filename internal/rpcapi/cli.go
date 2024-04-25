@@ -41,7 +41,7 @@ Usage: terraform [global options] rpcapi
   Starts a gRPC server for programmatic access to Terraform Core from
   wrapping automation.
 
-  This interface is currently intended only for Terraform Cloud and is
+  This interface is currently intended only for HCP Terraform and is
   subject to breaking changes even in patch releases. Do not use this.
 `
 	return strings.TrimSpace(helpText)
@@ -77,11 +77,11 @@ func (c cliCommand) Run(args []string) int {
 		if err == ErrNotPluginClient {
 			// TODO:
 			//
-			// The following message says that this interface is for Terraform
-			// Cloud only because we're using Terraform Cloud's integration
+			// The following message says that this interface is for HCP
+			// Terraform only because we're using HCP Terraform's integration
 			// with it to try to prove out the API/protocol design. By focusing
-			// only on Terraform Cloud as a client first, we can accommodate
-			// any necessary breaking changes by ensuring that Terraform Cloud's
+			// only on HCP Terraform as a client first, we can accommodate
+			// any necessary breaking changes by ensuring that HCP Terraform's
 			// client is updated before releasing an updated RPC API server
 			// implementation.
 			//
@@ -96,7 +96,7 @@ func (c cliCommand) Run(args []string) int {
 			fmt.Fprintf(
 				os.Stderr,
 				`
-This subcommand is for use by Terraform Cloud and is not intended for direct use.
+This subcommand is for use by HCP Terraform and is not intended for direct use.
 Its behavior is not subject to Terraform compatibility promises. To interact
 with Terraform using the CLI workflow, refer to the main set of subcommands by
 running the following command:

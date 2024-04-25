@@ -15,7 +15,7 @@ body:
         For general usage questions, please see: https://www.terraform.io/community.html.
 
         ## If your feature request relates to:
-        * **Terraform Cloud/Enterprise**: please email tf-cloud@hashicorp.support or [open a new request](https://support.hashicorp.com/hc/en-us/requests/new).
+        * **HCP Terraform or Terraform Enterprise**: please email tf-cloud@hashicorp.support or [open a new request](https://support.hashicorp.com/hc/en-us/requests/new).
         * **AWS Terraform Provider**: Open an issue at [hashicorp/terraform-provider-aws](https://github.com/hashicorp/terraform-provider-aws/issues/new/choose).
         * **Azure Terraform Provider**: Open an issue at [hashicorp/terraform-provider-azurerm](https://github.com/hashicorp/terraform-provider-azurerm/issues/new/choose).
         * **Other Terraform Providers**: Please open an issue in the provider's own repository, which can be found by searching the [Terraform Registry](https://registry.terraform.io/browse/providers).

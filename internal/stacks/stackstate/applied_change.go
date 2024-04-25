@@ -6,9 +6,14 @@ package stackstate
 import (
 	"fmt"
 
+	"github.com/zclconf/go-cty/cty"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -16,9 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackutils"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // AppliedChange represents a single isolated change, emitted as
@@ -125,7 +128,17 @@ func (ac *AppliedChangeResourceInstanceObject) protosForObject() ([]*terraform1.
 
 	// Separate out sensitive marks from the decoded value so we can re-serialize it
 	// with MessagePack. Sensitive paths get encoded separately in the final message.
-	unmarkedValue, sensitivePaths := obj.Value.UnmarkDeepWithPaths()
+	unmarkedValue, markses := obj.Value.UnmarkDeepWithPaths()
+	sensitivePaths, otherMarkses := marks.PathsWithMark(markses, marks.Sensitive)
+	if len(otherMarkses) != 0 {
+		// Any other marks should've been dealt with by our caller before
+		// getting here, since we only know how to preserve the sensitive
+		// marking.
+		return nil, nil, fmt.Errorf(
+			"%s: unhandled value marks %#v (this is a bug in Terraform)",
+			tfdiags.FormatCtyPath(otherMarkses[0].Path), otherMarkses[0].Marks,
+		)
+	}
 	encValue, err := plans.NewDynamicValue(unmarkedValue, ty)
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot encode new state for %s in preparation for saving it: %w", addr, err)
@@ -205,7 +218,17 @@ func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*terraform1.Appl
 
 	outputDescs := make(map[string]*terraform1.DynamicValue, len(ac.OutputValues))
 	for addr, val := range ac.OutputValues {
-		unmarkedValue, sensitivePaths := val.UnmarkDeepWithPaths()
+		unmarkedValue, markses := val.UnmarkDeepWithPaths()
+		sensitivePaths, otherMarkses := marks.PathsWithMark(markses, marks.Sensitive)
+		if len(otherMarkses) != 0 {
+			// Any other marks should've been dealt with by our caller before
+			// getting here, since we only know how to preserve the sensitive
+			// marking.
+			return nil, fmt.Errorf(
+				"%s: unhandled value marks %#v (this is a bug in Terraform)",
+				tfdiags.FormatCtyPath(otherMarkses[0].Path), otherMarkses[0].Marks,
+			)
+		}
 		encValue, err := plans.NewDynamicValue(unmarkedValue, cty.DynamicPseudoType)
 		if err != nil {
 			return nil, fmt.Errorf("encoding new state for %s in %s in preparation for saving it: %w", addr, ac.ComponentInstanceAddr, err)

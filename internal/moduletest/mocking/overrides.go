@@ -79,6 +79,12 @@ func PackageOverrides(run *configs.TestRun, file *configs.TestFile, config *conf
 // cannot target modules directly. Therefore, we only need to check the local
 // overrides within this function.
 func (overrides *Overrides) IsOverridden(module addrs.ModuleInstance) bool {
+	if module.Equal(addrs.RootModuleInstance) {
+		// The root module is never overridden, so let's just short circuit
+		// this.
+		return false
+	}
+
 	if overrides.localOverrides.Has(module) {
 		// Short circuit things, if we have an exact match just return now.
 		return true
@@ -96,52 +102,34 @@ func (overrides *Overrides) IsOverridden(module addrs.ModuleInstance) bool {
 	return false
 }
 
-// IsDeeplyOverridden returns true if an ancestor of this module is overridden
-// but not if the module is overridden directly.
+// GetResourceOverride checks the overrides for the given resource instance.
+// If the provided address is instanced, then we will check the containing
+// resource as well. This is because users can mark a resource instance as
+// overridden by overriding the instance directly (eg. resource.foo[0]) or by
+// overriding the containing resource (eg. resource.foo).
 //
-// This function doesn't consider an instanced module to be deeply overridden
-// by the uninstanced reference to the same module. So,
-// IsDeeplyOverridden("mod.child[0]") would return false if "mod.child" has been
-// overridden.
-//
-// For this function, we know that overrides defined within mock providers
-// cannot target modules directly. Therefore, we only need to check the local
-// overrides within this function.
-func (overrides *Overrides) IsDeeplyOverridden(module addrs.ModuleInstance) bool {
-	for _, elem := range overrides.localOverrides.Elems {
-		target := elem.Key
-
-		if target.TargetContains(module) {
-			// So we do think it contains it, but it could be matching here
-			// because of equality or because we have an instanced module.
-			if instance, ok := target.(addrs.ModuleInstance); ok {
-				if instance.Equal(module) {
-					// Then we're exactly equal, so not deeply nested.
-					continue
-				}
-
-				if instance.Module().Equal(module.Module()) {
-					// Then we're an instanced version of they other one, so
-					// also not deeply nested by our definition of deeply.
-					continue
-				}
-
-			}
-
-			// Otherwise, it's deeply nested.
-			return true
-		}
+// If the resource is being supplied by a mock provider, then we need to check
+// the overrides for that provider as well, as such the provider config is
+// required so we know which mock provider to check.
+func (overrides *Overrides) GetResourceOverride(inst addrs.AbsResourceInstance, provider addrs.AbsProviderConfig) (*configs.Override, bool) {
+	if overrides.Empty() {
+		// Short circuit any lookups if we have no overrides.
+		return nil, false
 	}
-	return false
+
+	// First check this specific resource.
+	if override, ok := overrides.getResourceOverride(inst, provider); ok {
+		return override, true
+	}
+
+	// Otherwise check the containing resource in case the user has set for all
+	// the instances of a resource to be overridden.
+	return overrides.getResourceOverride(inst.ContainingResource(), provider)
 }
 
-// GetOverrideInclProviders retrieves the override for target if it exists.
-//
-// This function also checks the provider specific overrides using the provider
-// argument.
-func (overrides *Overrides) GetOverrideInclProviders(target addrs.Targetable, provider addrs.AbsProviderConfig) (*configs.Override, bool) {
+func (overrides *Overrides) getResourceOverride(target addrs.Targetable, provider addrs.AbsProviderConfig) (*configs.Override, bool) {
 	// If we have a local override, then apply that first.
-	if override, ok := overrides.GetOverride(target); ok {
+	if override, ok := overrides.localOverrides.GetOk(target); ok {
 		return override, true
 	}
 
@@ -157,10 +145,43 @@ func (overrides *Overrides) GetOverrideInclProviders(target addrs.Targetable, pr
 	return nil, false
 }
 
-// GetOverride retrieves the override for target from the local overrides if
-// it exists.
-func (overrides *Overrides) GetOverride(target addrs.Targetable) (*configs.Override, bool) {
-	return overrides.localOverrides.GetOk(target)
+// GetModuleOverride checks the overrides for the given module instance. This
+// function automatically checks if the containing module has been overridden
+// if the instance is instanced.
+//
+// Users can mark a module instance as overridden by overriding the instance
+// directly (eg. module.foo[0]) or by overriding the containing module
+// (eg. module.foo).
+//
+// Modules cannot be overridden by mock providers directly, so we don't need
+// to know anything about providers for this function (in contrast to
+// GetResourceOverride).
+func (overrides *Overrides) GetModuleOverride(inst addrs.ModuleInstance) (*configs.Override, bool) {
+	if len(inst) == 0 || overrides.Empty() {
+		// The root module is never overridden, so let's just short circuit
+		// this.
+		return nil, false
+	}
+
+	// Otherwise check if this specific instance has been overridden.
+	if override, ok := overrides.localOverrides.GetOk(inst); ok {
+		// It has, so just return that.
+		return override, true
+	}
+
+	// If this is an instanced address (eg. module.foo[0]), then we need to
+	// check if the containing module has been overridden as we let users
+	// override all instances of a module by overriding the containing module
+	// (eg. module.foo).
+
+	// Check if the last step is actually instanced, so we don't do extra work
+	// needlessly.
+	if inst[len(inst)-1].InstanceKey == addrs.NoKey {
+		// Then we already checked the instance itself and it wasn't overridden.
+		return nil, false
+	}
+
+	return overrides.localOverrides.GetOk(inst.ContainingModule())
 }
 
 // ProviderMatch returns true if we have overrides for the given provider.

@@ -4,10 +4,14 @@
 package plans
 
 import (
+	"fmt"
+
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Changes describes various actions that Terraform will attempt to take if
@@ -555,22 +559,34 @@ type Change struct {
 // to call the corresponding Encode method of that struct rather than working
 // directly with its embedded Change.
 func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
-	// Storing unmarked values so that we can encode unmarked values
-	// and save the PathValueMarks for re-marking the values later
-	var beforeVM, afterVM []cty.PathValueMarks
-	unmarkedBefore := c.Before
-	unmarkedAfter := c.After
-
-	if c.Before.ContainsMarked() {
-		unmarkedBefore, beforeVM = c.Before.UnmarkDeepWithPaths()
+	// We can't serialize value marks directly so we'll need to extract the
+	// sensitive marks and store them in a separate field.
+	//
+	// We don't accept any other marks here. The caller should have dealt
+	// with those somehow and replaced them with unmarked placeholders before
+	// writing the value into the state.
+	unmarkedBefore, marksesBefore := c.Before.UnmarkDeepWithPaths()
+	unmarkedAfter, marksesAfter := c.After.UnmarkDeepWithPaths()
+	sensitiveAttrsBefore, unsupportedMarksesBefore := marks.PathsWithMark(marksesBefore, marks.Sensitive)
+	sensitiveAttrsAfter, unsupportedMarksesAfter := marks.PathsWithMark(marksesAfter, marks.Sensitive)
+	if len(unsupportedMarksesBefore) != 0 {
+		return nil, fmt.Errorf(
+			"prior value %s: can't serialize value marked with %#v (this is a bug in Terraform)",
+			tfdiags.FormatCtyPath(unsupportedMarksesBefore[0].Path),
+			unsupportedMarksesBefore[0].Marks,
+		)
 	}
+	if len(unsupportedMarksesAfter) != 0 {
+		return nil, fmt.Errorf(
+			"new value %s: can't serialize value marked with %#v (this is a bug in Terraform)",
+			tfdiags.FormatCtyPath(unsupportedMarksesAfter[0].Path),
+			unsupportedMarksesAfter[0].Marks,
+		)
+	}
+
 	beforeDV, err := NewDynamicValue(unmarkedBefore, ty)
 	if err != nil {
 		return nil, err
-	}
-
-	if c.After.ContainsMarked() {
-		unmarkedAfter, afterVM = c.After.UnmarkDeepWithPaths()
 	}
 	afterDV, err := NewDynamicValue(unmarkedAfter, ty)
 	if err != nil {
@@ -583,12 +599,12 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 	}
 
 	return &ChangeSrc{
-		Action:          c.Action,
-		Before:          beforeDV,
-		After:           afterDV,
-		BeforeValMarks:  beforeVM,
-		AfterValMarks:   afterVM,
-		Importing:       importing,
-		GeneratedConfig: c.GeneratedConfig,
+		Action:               c.Action,
+		Before:               beforeDV,
+		After:                afterDV,
+		BeforeSensitivePaths: sensitiveAttrsBefore,
+		AfterSensitivePaths:  sensitiveAttrsAfter,
+		Importing:            importing,
+		GeneratedConfig:      c.GeneratedConfig,
 	}, nil
 }

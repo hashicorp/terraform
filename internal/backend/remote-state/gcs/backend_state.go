@@ -4,6 +4,7 @@
 package gcs
 
 import (
+	"context"
 	"fmt"
 	"path"
 	"sort"
@@ -26,10 +27,12 @@ const (
 // Workspaces returns a list of names for the workspaces found on GCS. The default
 // state is always returned as the first element in the slice.
 func (b *Backend) Workspaces() ([]string, error) {
+	ctx := context.TODO()
+
 	states := []string{backend.DefaultStateName}
 
 	bucket := b.storageClient.Bucket(b.bucketName)
-	objs := bucket.Objects(b.storageContext, &storage.Query{
+	objs := bucket.Objects(ctx, &storage.Query{
 		Delimiter: "/",
 		Prefix:    b.prefix,
 	})
@@ -78,13 +81,12 @@ func (b *Backend) client(name string) (*remoteClient, error) {
 	}
 
 	return &remoteClient{
-		storageContext: b.storageContext,
-		storageClient:  b.storageClient,
-		bucketName:     b.bucketName,
-		stateFilePath:  b.stateFile(name),
-		lockFilePath:   b.lockFile(name),
-		encryptionKey:  b.encryptionKey,
-		kmsKeyName:     b.kmsKeyName,
+		storageClient: b.storageClient,
+		bucketName:    b.bucketName,
+		stateFilePath: b.stateFile(name),
+		lockFilePath:  b.lockFile(name),
+		encryptionKey: b.encryptionKey,
+		kmsKeyName:    b.kmsKeyName,
 	}, nil
 }
 

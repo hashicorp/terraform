@@ -14,8 +14,10 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
 
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	hcltest "github.com/hashicorp/terraform/internal/moduletest/hcl"
 )
 
 func TestTransformForTest(t *testing.T) {
@@ -244,7 +246,12 @@ func TestTransformForTest(t *testing.T) {
 				availableProviders[provider] = true
 			}
 
-			reset, diags := TransformConfigForTest(config, run, file, nil, nil, availableProviders)
+			variableCaches := &hcltest.VariableCaches{
+				GlobalVariables: make(map[string]backendrun.UnparsedVariableValue),
+				FileVariables:   make(map[string]hcl.Expression),
+			}
+
+			reset, diags := TransformConfigForTest(config, run, file, variableCaches, nil, availableProviders)
 
 			var actualErrs []string
 			for _, err := range diags.Errs() {

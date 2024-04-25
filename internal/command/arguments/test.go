@@ -11,7 +11,7 @@ import (
 // Test represents the command-line arguments for the test command.
 type Test struct {
 	// CloudRunSource specifies the remote private module that this test run
-	// should execute against in a remote Terraform Cloud run.
+	// should execute against in a remote HCP Terraform run.
 	CloudRunSource string
 
 	// Filter contains a list of test files to execute. If empty, all test files
@@ -50,7 +50,7 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 
 	var jsonOutput bool
 	cmdFlags := extendedFlagSet("test", nil, nil, test.Vars)
-	cmdFlags.Var((*flagStringSlice)(&test.Filter), "filter", "filter")
+	cmdFlags.Var((*FlagStringSlice)(&test.Filter), "filter", "filter")
 	cmdFlags.StringVar(&test.TestDirectory, "test-directory", configs.DefaultTestDirectory, "test-directory")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 	cmdFlags.StringVar(&test.JUnitXMLFile, "junit-xml", "", "junit-xml")

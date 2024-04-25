@@ -14,9 +14,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestProviderConfig(t *testing.T) {
@@ -71,7 +68,7 @@ func TestProviderConfig(t *testing.T) {
 				"input": cty.StringVal("string"),
 			},
 			expectedErrors: []string{
-				"The input variable \"missing\" is not available to the current context. Within the variables block of a run block you can only reference variables defined at the file or global levels; within the variables block of a suite you can only reference variables defined at the global levels.",
+				"The input variable \"missing\" is not available to the current provider configuration. You can only reference variables defined at the file or global levels.",
 			},
 			validate: func(t *testing.T, content *hcl.BodyContent) {
 				if len(content.Attributes) > 0 {
@@ -154,7 +151,7 @@ func TestProviderConfig(t *testing.T) {
 				"setup": nil,
 			},
 			expectedErrors: []string{
-				"You can only reference earlier run blocks, file level, and global variables while defining variables from inside a run block.",
+				"You can only reference run blocks, file level, and global variables while defining variables from inside provider configurations.",
 			},
 			validate: func(t *testing.T, content *hcl.BodyContent) {
 				if len(content.Attributes) > 0 {
@@ -172,35 +169,37 @@ func TestProviderConfig(t *testing.T) {
 				t.Fatalf("failed to parse hcl: %s", diags.Error())
 			}
 
-			config := ProviderConfig{
-				Original: file.Body,
-				AvailableVariables: func() terraform.InputValues {
-					variables := make(terraform.InputValues)
+			outputs := make(map[addrs.Run]cty.Value)
+			for name, values := range tc.runBlockOutputs {
+				addr := addrs.Run{Name: name}
+				if values == nil {
+					outputs[addr] = cty.NilVal
+					continue
+				}
+
+				attrs := make(map[string]cty.Value)
+				for name, value := range values {
+					attrs[name] = value
+				}
+
+				outputs[addr] = cty.ObjectVal(attrs)
+			}
+
+			variableCaches := &VariableCaches{
+				GlobalVariables: make(map[string]backendrun.UnparsedVariableValue),
+				FileVariables: func() map[string]hcl.Expression {
+					variables := make(map[string]hcl.Expression)
 					for name, value := range tc.variables {
-						variables[name] = &terraform.InputValue{
-							Value: value,
-						}
+						variables[name] = hcl.StaticExpr(value, hcl.Range{})
 					}
 					return variables
 				}(),
-				AvailableRunOutputs: func() map[addrs.Run]cty.Value {
-					outputs := make(map[addrs.Run]cty.Value)
-					for name, values := range tc.runBlockOutputs {
-						addr := addrs.Run{Name: name}
-						if values == nil {
-							outputs[addr] = cty.NilVal
-							continue
-						}
+			}
 
-						attrs := make(map[string]cty.Value)
-						for name, value := range values {
-							attrs[name] = value
-						}
-
-						outputs[addr] = cty.ObjectVal(attrs)
-					}
-					return outputs
-				}(),
+			config := ProviderConfig{
+				Original:            file.Body,
+				VariableCache:       variableCaches.GetCache("test", nil),
+				AvailableRunOutputs: outputs,
 			}
 
 			content, diags := config.Content(tc.schema)
@@ -226,17 +225,4 @@ func equals(t *testing.T, content *hcl.BodyContent, attribute string, expected c
 	if !value.RawEquals(expected) {
 		t.Errorf("expected:\n%s\nbut got:\n%s", expected.GoString(), value.GoString())
 	}
-}
-
-var _ backendrun.UnparsedVariableValue = (*variable)(nil)
-
-type variable struct {
-	value cty.Value
-}
-
-func (v *variable) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
-	return &terraform.InputValue{
-		Value:      v.value,
-		SourceType: terraform.ValueFromUnknown,
-	}, nil
 }

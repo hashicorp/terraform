@@ -130,8 +130,8 @@ special constraints due to how Terraform uses them:
     prevent adoption of changes made to pre-existing functionality that
     Terraform already exposes.
 
-* `github.com/hashicorp/go-tfe` -- the client library for the Terraform Cloud
-  API -- includes various types corresponding to Terraform Cloud API
+* `github.com/hashicorp/go-tfe` -- the client library for the HCP Terraform
+  API -- includes various types corresponding to HCP Terraform API
   requests and responses. The internal package `internal/cloud` contains mock
   implementations of some of those types, which may need to be updated when
   the client library is upgraded.

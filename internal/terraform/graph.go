@@ -8,10 +8,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -67,11 +64,20 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			}
 		}()
 
-		if g.checkAndApplyOverrides(ctx.Overrides(), v) {
-			// We can skip whole vertices if they are in a module that has been
-			// overridden.
-			log.Printf("[TRACE] vertex %q: overridden by a test double, so skipping", dag.VertexName(v))
-			return
+		// If the graph node is overridable, we'll check our overrides to see
+		// if we need to apply any overrides to the node.
+		if overridable, ok := v.(GraphNodeOverridable); ok && !ctx.Overrides().Empty() {
+			// It'd be nice if we could just pass the overrides directly into
+			// the nodes, but the way the AbstractNodeResource is created is
+			// complicated and it's not easy to make sure that every
+			// implementation sets the overrides correctly. Instead, we just
+			// do it from this single location to keep things simple.
+			//
+			// See the output node for an example of providing the overrides
+			// directly to the node.
+			if override, ok := ctx.Overrides().GetResourceOverride(overridable.ResourceInstanceAddr(), overridable.ConfigProvider()); ok {
+				overridable.SetOverride(override)
+			}
 		}
 
 		// vertexCtx is the context that we use when evaluating. This
@@ -171,106 +177,6 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 	return g.AcyclicGraph.Walk(walkFn)
 }
 
-// checkAndApplyOverrides checks if target has any data that needs to be overridden.
-//
-// If this function returns true, then the whole vertex should be skipped and
-// not executed.
-//
-// The logic for a vertex is that if it is within an overridden module then we
-// don't want to execute it. Instead, we want to just set the values on the
-// output nodes for that module directly. So if a node is a
-// GraphNodeModuleInstance we want to skip it if there is an entry in our
-// overrides data structure that either matches the module for the vertex or
-// is a parent of the module for the vertex.
-//
-// We also want to actually set the new values for any outputs, resources or
-// data sources we encounter that should be overridden.
-func (g *Graph) checkAndApplyOverrides(overrides *mocking.Overrides, target dag.Vertex) bool {
-	if overrides.Empty() {
-		return false
-	}
-
-	switch v := target.(type) {
-	case GraphNodeOverridable:
-		// For resource and data sources, we want to skip them completely if
-		// they are within an overridden module.
-		resourceInstance := v.ResourceInstanceAddr()
-		if overrides.IsOverridden(resourceInstance.Module) {
-			return true
-		}
-
-		if override, ok := overrides.GetOverrideInclProviders(resourceInstance, v.ConfigProvider()); ok {
-			v.SetOverride(override)
-			return false
-		}
-
-		if override, ok := overrides.GetOverrideInclProviders(resourceInstance.ContainingResource(), v.ConfigProvider()); ok {
-			v.SetOverride(override)
-			return false
-		}
-
-	case *NodeApplyableOutput:
-		// For outputs, we want to skip them completely if they are deeply
-		// nested within an overridden module.
-		module := v.Path()
-		if overrides.IsDeeplyOverridden(module) {
-			// If the output is deeply nested under an overridden module we want
-			// to skip
-			return true
-		}
-
-		setOverride := func(values cty.Value) {
-			key := v.Addr.OutputValue.Name
-
-			// The values.Type() should be an object type, but it might have
-			// been set to nil by a test or something. We can handle it in the
-			// same way as the attribute just not being specified. It's
-			// functionally the same for us and not something we need to raise
-			// alarms about.
-			if values.Type().IsObjectType() && values.Type().HasAttribute(key) {
-				v.override = values.GetAttr(key)
-			} else {
-				// If we don't have a value provided for an output, then we'll
-				// just set it to be null.
-				//
-				// TODO(liamcervante): Can we generate a value here? Probably
-				//   not as we don't know the type.
-				v.override = cty.NullVal(cty.DynamicPseudoType)
-			}
-		}
-
-		// Otherwise, if we are in a directly overridden module then we want to
-		// apply the overridden output values.
-		if override, ok := overrides.GetOverride(module); ok {
-			setOverride(override.Values)
-			return false
-		}
-
-		lastStepInstanced := len(module) > 0 && module[len(module)-1].InstanceKey != addrs.NoKey
-		if lastStepInstanced {
-			// Then we could have overridden all the instances of this module.
-			if override, ok := overrides.GetOverride(module.ContainingModule()); ok {
-				setOverride(override.Values)
-				return false
-			}
-		}
-
-	case GraphNodeModuleInstance:
-		// Then this node is simply in a module. It might be that this entire
-		// module has been overridden, in which case this node shouldn't
-		// execute.
-		//
-		// We checked for resources and outputs earlier, so we know this isn't
-		// anything special.
-		module := v.Path()
-		if overrides.IsOverridden(module) {
-			return true
-		}
-	}
-
-	return false
-}
-
 // ResourceGraph derives a graph containing addresses of only the nodes in the
 // receiver which implement [GraphNodeConfigResource], describing the
 // relationships between all of their [addrs.ConfigResource] addresses.
@@ -285,14 +191,23 @@ func (g *Graph) ResourceGraph() addrs.DirectedGraph[addrs.ConfigResource] {
 	// and then using that temporary graph to construct the final graph to
 	// return.
 
+	log.Printf("[TRACE] ResourceGraph: copying source graph\n")
 	tmpG := Graph{}
 	tmpG.Subsume(&g.Graph)
+	log.Printf("[TRACE] ResourceGraph: reducing graph\n")
 	tmpG.reducePreservingRelationships(func(n dag.Vertex) bool {
 		_, ret := n.(GraphNodeConfigResource)
 		return ret
 	})
+	log.Printf("[TRACE] ResourceGraph: TransitiveReduction\n")
+
+	// The resulting graph could have many more edges now, but alternate paths
+	// are not a problem for the deferral system, so we may choose not to run
+	// this as it may be very time consuming. The reducePreservingRelationships
+	// method also doesn't add many (if any) redundant new edges to most graphs.
 	tmpG.TransitiveReduction()
 
+	log.Printf("[TRACE] ResourceGraph: creating address graph\n")
 	ret := addrs.NewDirectedGraph[addrs.ConfigResource]()
 	for _, n := range tmpG.Vertices() {
 		sourceR := n.(GraphNodeConfigResource)
@@ -300,9 +215,11 @@ func (g *Graph) ResourceGraph() addrs.DirectedGraph[addrs.ConfigResource] {
 		ret.Add(sourceAddr)
 		for _, dn := range tmpG.DownEdges(n) {
 			targetR := dn.(GraphNodeConfigResource)
+
 			ret.AddDependency(sourceAddr, targetR.ResourceAddr())
 		}
 	}
+	log.Printf("[TRACE] ResourceGraph: completed with %d nodes\n", len(ret.AllNodes()))
 	return ret
 }
 
@@ -311,46 +228,25 @@ func (g *Graph) ResourceGraph() addrs.DirectedGraph[addrs.ConfigResource] {
 // edges to preserve the dependency relationships for all of the nodes
 // that still remain.
 func (g *Graph) reducePreservingRelationships(keepNode func(dag.Vertex) bool) {
-	// This is a naive algorithm for now. Maybe we'll improve it later.
-
-	// We'll keep iterating as long as we find new edges to add because we
-	// might need to bridge across multiple nodes that we're going to remove
-	// in order to retain the relationships, and one iteration can only
-	// bridge a single node at a time.
-	changed := true
-	for changed {
-		changed = false
-		for _, n := range g.Vertices() {
-			if keepNode(n) {
-				continue
-			}
-
-			// If we're not going to keep this node then we need to connect
-			// all of its dependents to all of its dependencies so that the
-			// ordering is still preserved for those nodes that remain.
-			// However, this will often generate more edges than are strictly
-			// required and so it could be productive to run a transitive
-			// reduction afterwards.
-			dependents := g.UpEdges(n)
-			dependencies := g.DownEdges(n)
-			for dependent := range dependents {
-				for dependency := range dependencies {
-					edge := dag.BasicEdge(dependent, dependency)
-					if !g.HasEdge(edge) {
-						g.Connect(edge)
-						changed = true
-					}
-				}
-			}
-		}
-	}
-
-	// With all of the extra supporting edges in place, we can now safely
-	// remove the nodes we aren't going to keep without changing the
-	// relationships of the remaining nodes.
 	for _, n := range g.Vertices() {
-		if !keepNode(n) {
-			g.Remove(n)
+		if keepNode(n) {
+			continue
 		}
+
+		// If we're not going to keep this node then we need to connect
+		// all of its dependents to all of its dependencies so that the
+		// ordering is still preserved for those nodes that remain.
+		// However, this will often generate more edges than are strictly
+		// required and so it could be productive to run a transitive
+		// reduction afterwards.
+		dependents := g.UpEdges(n)
+		dependencies := g.DownEdges(n)
+		for dependent := range dependents {
+			for dependency := range dependencies {
+				edge := dag.BasicEdge(dependent, dependency)
+				g.Connect(edge)
+			}
+		}
+		g.Remove(n)
 	}
 }
