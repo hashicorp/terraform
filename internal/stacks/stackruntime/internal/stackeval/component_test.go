@@ -192,10 +192,10 @@ func TestComponentCheckInstances(t *testing.T) {
 			// When the for_each expression is invalid, CheckInstances should
 			// return a single instance with dynamic values in the repetition data.
 			// We don't distinguish between invalid and unknown for_each values.
-			gotInsts, diags := component.CheckInstances(ctx, InspectPhase)
-			assertNoDiags(t, diags)
-			if got, want := len(gotInsts), 1; got != want {
-				t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, gotInsts)
+			gotInsts, _ := component.CheckInstances(ctx, InspectPhase)
+
+			if gotInsts != nil {
+				t.Fatalf("unexpected instances\ngot:  %#v\nwant: nil", gotInsts)
 			}
 		})
 		subtestInPromisingTask(t, "unknown", func(ctx context.Context, t *testing.T) {
@@ -389,16 +389,13 @@ func TestComponentResultValue(t *testing.T) {
 			component := getComponent(ctx, t, main)
 			got := component.ResultValue(ctx, InspectPhase)
 			// When the for_each expression is unknown, the result value
-			// is unknown too so we can use it as a placeholder for partial
-			// downstream checking.
-			want := cty.DynamicVal
-			// FIXME: the cmp transformer ctydebug.CmpOptions seems to find
-			// this particular pair of values troubling, causing it to get
-			// into an infinite recursion. For now we'll just use RawEquals,
-			// at the expense of a less helpful failure message. This seems
-			// to be a bug in upstream ctydebug.
-			if !want.RawEquals(got) {
-				t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+			// is an instance map with the wildcard key and an empty object
+			want := cty.ObjectVal(map[string]cty.Value{
+				"*": cty.EmptyObjectVal,
+			})
+
+			if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
+				t.Fatalf("wrong result\n%s", diff)
 			}
 		})
 	})

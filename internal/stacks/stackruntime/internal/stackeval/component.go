@@ -159,7 +159,14 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 		ctx, c.instances.For(phase), c.main,
 		func(ctx context.Context) (map[addrs.InstanceKey]*ComponentInstance, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
-			forEachVal := c.ForEachValue(ctx, phase)
+			forEachVal, forEachValueDiags := c.CheckForEachValue(ctx, phase)
+
+			// We can not create an instance map if the for each vaulu is not valid.
+			// We don't want to report on forEachValueDiags here because we
+			// already do this in checkValid.
+			if forEachValueDiags.HasErrors() {
+				return nil, diags
+			}
 
 			ret := instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ComponentInstance {
 				return newComponentInstance(c, ik, rd)
