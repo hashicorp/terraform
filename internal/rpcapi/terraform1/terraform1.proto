@@ -28,6 +28,7 @@ message Handshake {
 // handshake.
 message ClientCapabilities {
     // There are not yet any negotiatable capabilities.
+    CLIConfig config = 1;
 }
 
 // The capabilities that the server wishes to advertise to the client during
@@ -110,6 +111,14 @@ service Dependencies {
     // has the potential to run in a context that probably has access to
     // private source code and other sensitive information.
     rpc GetProviderSchema(GetProviderSchema.Request) returns (GetProviderSchema.Response);
+}
+
+message CLIConfig {
+    map<string, HostCredential> credentials = 1;
+}
+
+message HostCredential {
+    string token = 1;
 }
 
 message OpenSourceBundle {

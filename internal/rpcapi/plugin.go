@@ -8,6 +8,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-plugin"
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"google.golang.org/grpc"
 
@@ -66,7 +68,10 @@ func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *t
 		// this isn't strictly a "capability") so that the RPC caller has
 		// full control without needing to also tinker with the current user's
 		// CLI configuration.
-		services := disco.New()
+		services, err := newServiceDisco(clientCaps.GetConfig())
+		if err != nil {
+			return &terraform1.ServerCapabilities{}, err
+		}
 
 		// If handshaking is successful (which it currently always is, because
 		// we don't have any special capabilities to negotiate yet) then we
@@ -90,4 +95,20 @@ func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *t
 // structure, if needed.
 type serviceOpts struct {
 	experimentsAllowed bool
+}
+
+func newServiceDisco(cliConfig *terraform1.CLIConfig) (*disco.Disco, error) {
+	services := disco.New()
+	credSrc := newCredentialsSource()
+
+	if cliConfig != nil {
+		for host, cred := range cliConfig.GetCredentials() {
+			if err := credSrc.StoreForHost(svchost.Hostname(host), auth.HostCredentialsToken(cred.Token)); err != nil {
+				return nil, fmt.Errorf("problem storing credential for host %s with: %w", host, err)
+			}
+		}
+		services.SetCredentialsSource(credSrc)
+	}
+
+	return services, nil
 }
