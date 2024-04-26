@@ -256,12 +256,31 @@ func assertPlannedAttrsValid(schema map[string]*configschema.Attribute, priorSta
 }
 
 func assertPlannedAttrValid(name string, attrS *configschema.Attribute, priorState, config, plannedState cty.Value, path cty.Path) []error {
-	plannedV := plannedState.GetAttr(name)
-	configV := config.GetAttr(name)
-	priorV := cty.NullVal(attrS.Type)
+	// any of the config, prior or planned values may be null at this point if
+	// we are in nested structural attributes.
+	var plannedV, configV, priorV cty.Value
+	if attrS.NestedType != nil {
+		configV = cty.NullVal(attrS.NestedType.ImpliedType())
+		priorV = cty.NullVal(attrS.NestedType.ImpliedType())
+		plannedV = cty.NullVal(attrS.NestedType.ImpliedType())
+	} else {
+		configV = cty.NullVal(attrS.Type)
+		priorV = cty.NullVal(attrS.Type)
+		plannedV = cty.NullVal(attrS.Type)
+	}
+
+	if !config.IsNull() {
+		configV = config.GetAttr(name)
+	}
+
 	if !priorState.IsNull() {
 		priorV = priorState.GetAttr(name)
 	}
+
+	if !plannedState.IsNull() {
+		plannedV = plannedState.GetAttr(name)
+	}
+
 	path = append(path, cty.GetAttrStep{Name: name})
 
 	return assertPlannedValueValid(attrS, priorV, configV, plannedV, path)
