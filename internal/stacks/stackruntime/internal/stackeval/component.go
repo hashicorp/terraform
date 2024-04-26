@@ -161,7 +161,7 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 			var diags tfdiags.Diagnostics
 			forEachVal, forEachValueDiags := c.CheckForEachValue(ctx, phase)
 
-			// We can not create an instance map if the for each vaulu is not valid.
+			// We can not create an instance map if the for each value is not valid.
 			// We don't want to report on forEachValueDiags here because we
 			// already do this in checkValid.
 			if forEachValueDiags.HasErrors() {
