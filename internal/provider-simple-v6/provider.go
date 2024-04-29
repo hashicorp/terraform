@@ -171,6 +171,24 @@ func (s simple) ReadDataSource(req providers.ReadDataSourceRequest) (resp provid
 	return resp
 }
 
+func (s simple) OpenEphemeral(providers.OpenEphemeralRequest) providers.OpenEphemeralResponse {
+	// Our schema doesn't include any ephemeral resource types, so it should be
+	// impossible to get in here.
+	panic("OpenEphemeral on provider that didn't declare any ephemeral resource types")
+}
+
+func (s simple) RenewEphemeral(providers.RenewEphemeralRequest) providers.RenewEphemeralResponse {
+	// Our schema doesn't include any ephemeral resource types, so it should be
+	// impossible to get in here.
+	panic("RenewEphemeral on provider that didn't declare any ephemeral resource types")
+}
+
+func (s simple) CloseEphemeral(providers.CloseEphemeralRequest) providers.CloseEphemeralResponse {
+	// Our schema doesn't include any ephemeral resource types, so it should be
+	// impossible to get in here.
+	panic("CloseEphemeral on provider that didn't declare any ephemeral resource types")
+}
+
 func (s simple) CallFunction(req providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
 	if req.FunctionName != "noop" {
 		resp.Err = fmt.Errorf("CallFunction for undefined function %q", req.FunctionName)

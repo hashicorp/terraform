@@ -74,6 +74,15 @@ type Interface interface {
 	// ReadDataSource returns the data source's current state.
 	ReadDataSource(ReadDataSourceRequest) ReadDataSourceResponse
 
+	// OpenEphemeral opens an ephemeral resource instance.
+	OpenEphemeral(OpenEphemeralRequest) OpenEphemeralResponse
+	// RenewEphemeral extends the validity of a previously-opened ephemeral
+	// resource instance.
+	RenewEphemeral(RenewEphemeralRequest) RenewEphemeralResponse
+	// CloseEphemeral closes an ephemeral resource instance, with the intent
+	// of rendering it invalid as soon as possible.
+	CloseEphemeral(CloseEphemeralRequest) CloseEphemeralResponse
+
 	// CallFunction calls a provider-contributed function.
 	CallFunction(CallFunctionRequest) CallFunctionResponse
 
@@ -98,6 +107,10 @@ type GetProviderSchemaResponse struct {
 
 	// DataSources maps the data source name to that data source's schema.
 	DataSources map[string]Schema
+
+	// EphemeralResourceTypes maps the name of an ephemeral resource type
+	// to its schema.
+	EphemeralResourceTypes map[string]Schema
 
 	// Functions maps from local function name (not including an namespace
 	// prefix) to the declaration of a function.

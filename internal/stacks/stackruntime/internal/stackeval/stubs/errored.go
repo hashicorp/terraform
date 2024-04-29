@@ -124,6 +124,34 @@ func (p *ErroredProvider) ReadResource(req providers.ReadResourceRequest) provid
 	}
 }
 
+// OpenEphemeral implements providers.Interface.
+func (p *ErroredProvider) OpenEphemeral(providers.OpenEphemeralRequest) providers.OpenEphemeralResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is invalid",
+		"Cannot open this ephemeral resource instance because its associated provider configuration is invalid.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.OpenEphemeralResponse{
+		Diagnostics: diags,
+	}
+}
+
+// RenewEphemeral implements providers.Interface.
+func (p *ErroredProvider) RenewEphemeral(providers.RenewEphemeralRequest) providers.RenewEphemeralResponse {
+	// We don't have anything to do here because OpenEphemeral didn't really
+	// actually "open" anything.
+	return providers.RenewEphemeralResponse{}
+}
+
+// CloseEphemeral implements providers.Interface.
+func (p *ErroredProvider) CloseEphemeral(providers.CloseEphemeralRequest) providers.CloseEphemeralResponse {
+	// We don't have anything to do here because OpenEphemeral didn't really
+	// actually "open" anything.
+	return providers.CloseEphemeralResponse{}
+}
+
 // Stop implements providers.Interface.
 func (p *ErroredProvider) Stop() error {
 	// This stub provider never actually does any real work, so there's nothing

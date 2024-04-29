@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plugin/convert"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 )
 
@@ -764,6 +765,54 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 	resp.State = state
 	resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
 
+	return resp
+}
+
+func (p *GRPCProvider) OpenEphemeral(r providers.OpenEphemeralRequest) (resp providers.OpenEphemeralResponse) {
+	logger.Trace("GRPCProvider: OpenEphemeral")
+
+	// There is not yet any support for plugin-based providers to offer
+	// ephemeral resource types. We should not be able to get here because
+	// a GRPCProvider should never advertise in its schema that it supports
+	// ephemeral resource types.
+	resp.Diagnostics = resp.Diagnostics.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Ephemeral resources not supported",
+		"This provider does not offer any ephemeral resource types.",
+		nil,
+	))
+	return resp
+}
+
+func (p *GRPCProvider) RenewEphemeral(r providers.RenewEphemeralRequest) (resp providers.RenewEphemeralResponse) {
+	logger.Trace("GRPCProvider: RenewEphemeral")
+
+	// There is not yet any support for plugin-based providers to offer
+	// ephemeral resource types. We should not be able to get here because
+	// a GRPCProvider should never advertise in its schema that it supports
+	// ephemeral resource types.
+	resp.Diagnostics = resp.Diagnostics.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Ephemeral resources not supported",
+		"This provider does not offer any ephemeral resource types.",
+		nil,
+	))
+	return resp
+}
+
+func (p *GRPCProvider) CloseEphemeral(r providers.CloseEphemeralRequest) (resp providers.CloseEphemeralResponse) {
+	logger.Trace("GRPCProvider: CloseEphemeral")
+
+	// There is not yet any support for plugin-based providers to offer
+	// ephemeral resource types. We should not be able to get here because
+	// a GRPCProvider should never advertise in its schema that it supports
+	// ephemeral resource types.
+	resp.Diagnostics = resp.Diagnostics.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Ephemeral resources not supported",
+		"This provider does not offer any ephemeral resource types.",
+		nil,
+	))
 	return resp
 }
 
