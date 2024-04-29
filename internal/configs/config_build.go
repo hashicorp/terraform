@@ -215,8 +215,6 @@ func loadModule(root *Config, req *ModuleRequest, walker ModuleWalker) (*Config,
 
 	cfg.Children, modDiags, childModDeprecations = buildChildModules(cfg, walker)
 	diags = append(diags, modDiags...)
-	// mdTODO: better error handling here, think of some more ways this can break
-	// Child deprecations can surely be nil, but theorectically modDeprecation can never be.
 	if modDeprecation != nil && childModDeprecations != nil {
 		modDeprecation.ExternalDependencies = childModDeprecations
 	}

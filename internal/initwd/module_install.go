@@ -61,9 +61,6 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 
 // mdTODO: remove this later, only for iteration while the api hasn't been updated.
 func injectMockDeprecations(modules *response.ModuleVersions) {
-	//jsonBytes, _ := json.MarshalIndent(modules, "", "  ")
-	//log.Printf("[DEBUG] submodule!!!: %s ", string(jsonBytes))
-	//log.Printf("[DEBUG] __________________________________________________")
 	if modules == nil || modules.Modules == nil {
 		log.Println("modules or modules.Modules is nil")
 		return // Exit the function to avoid the panic
@@ -72,7 +69,7 @@ func injectMockDeprecations(modules *response.ModuleVersions) {
 		for _, version := range module.Versions {
 			// Inject a mock deprecation into each version
 			version.Deprecation = &response.Deprecation{
-				Reason: "Mock deprecation message for: ",
+				Reason: "Mock deprecation message: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
 				Link:   "https://example.com/mock-deprecation",
 			}
 		}
@@ -167,7 +164,7 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 			deprecationString := workspaceDeprecations.BuildDeprecationWarningString()
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Warning,
-				"Deprecated module versions found, consider installing updated versions",
+				"Deprecated modules found, consider installing updated versions. The following are affected:",
 				deprecationString,
 			))
 		}
@@ -306,7 +303,6 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 							log.Printf("[DEBUG] Deprecation for %s could not be checked: call to registry failed", addr.Package.Namespace)
 
 						} else {
-							// mdTODO: we need to figure out path forward here, use exisiting endpoint or get new one for a single module version.
 							found := false
 							for _, modProviderVersions := range resp.Modules {
 								for _, modVersions := range modProviderVersions.Versions {
@@ -384,7 +380,6 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, mani
 	var instDiags hcl.Diagnostics
 	walker := installWalker
 	if installErrsOnly {
-		// mdTODO: don't think mod deprecations are relevant here, see about return value here and any implications it has
 		walker = configs.ModuleWalkerFunc(func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleDeprecationInfo) {
 			mod, version, diags, _ := installWalker.LoadModule(req)
 			instDiags = instDiags.Extend(diags)
@@ -1011,10 +1006,10 @@ func maybeImproveLocalInstallError(req *configs.ModuleRequest, diags hcl.Diagnos
 func collectModuleDeprecationWarnings(moduleVersion *response.ModuleVersion, sourceName string, version *version.Version) *configs.ModuleDeprecationInfo {
 	var registryModDeprecation *configs.RegistryModuleDeprecation
 
-	// mdTODO: don't like this nil check, maybe handle a nil moduleVersion before this function call instead?
 	if moduleVersion != nil && moduleVersion.Deprecation != nil {
 		registryModDeprecation = &configs.RegistryModuleDeprecation{
 			Link:    moduleVersion.Deprecation.Link,
+			Message: moduleVersion.Deprecation.Reason,
 			Version: version.Original(),
 		}
 	}

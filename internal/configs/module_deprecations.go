@@ -15,6 +15,7 @@ type ModuleDeprecationInfo struct {
 type RegistryModuleDeprecation struct {
 	Version string
 	Link    string
+	Message string
 }
 
 func (i *WorkspaceDeprecationInfo) HasDeprecations() bool {
@@ -42,18 +43,22 @@ func (i *WorkspaceDeprecationInfo) BuildDeprecationWarningString() string {
 	modDeprecationStrings := []string{}
 	for _, modDeprecationInfo := range i.ModuleDeprecationInfos {
 		if modDeprecationInfo != nil && modDeprecationInfo.RegistryDeprecation != nil {
-			// Link is an optional field, if unset it is an empty string by default
-			if modDeprecationInfo.RegistryDeprecation.Link != "" {
-				modDeprecationStrings = append(modDeprecationStrings, fmt.Sprintf("Version %s of \"%s\" \nTo learn more visit: %s\n", modDeprecationInfo.RegistryDeprecation.Version, modDeprecationInfo.SourceName, modDeprecationInfo.RegistryDeprecation.Link))
-			} else {
-				modDeprecationStrings = append(modDeprecationStrings, fmt.Sprintf("Version %s of \"%s\" \n", modDeprecationInfo.RegistryDeprecation.Version, modDeprecationInfo.SourceName))
+			// mdTODO: Add highlighting here, look up other examples where it's present
+			modDeprecation := fmt.Sprintf("\x1b[1mVersion %s of %s\x1b[0m", modDeprecationInfo.RegistryDeprecation.Version, modDeprecationInfo.SourceName)
+			// Link and Message are optional fields, if unset they are an empty string by default
+			if modDeprecationInfo.RegistryDeprecation.Message != "" {
+				modDeprecation = modDeprecation + fmt.Sprintf("\n\n%s", modDeprecationInfo.RegistryDeprecation.Message)
 			}
+			if modDeprecationInfo.RegistryDeprecation.Link != "" {
+				modDeprecation = modDeprecation + fmt.Sprintf("\n\nLink for more information: %s", modDeprecationInfo.RegistryDeprecation.Link)
+			}
+			modDeprecationStrings = append(modDeprecationStrings, modDeprecation)
 		}
 		modDeprecationStrings = append(modDeprecationStrings, buildChildDeprecationWarnings(modDeprecationInfo.ExternalDependencies, []string{modDeprecationInfo.SourceName})...)
 	}
 	deprecationsMessage := ""
 	for _, deprecationString := range modDeprecationStrings {
-		deprecationsMessage += deprecationString + "\n"
+		deprecationsMessage += deprecationString + "\n\n"
 	}
 
 	return deprecationsMessage
@@ -63,7 +68,16 @@ func buildChildDeprecationWarnings(modDeprecations []*ModuleDeprecationInfo, par
 	modDeprecationStrings := []string{}
 	for _, deprecation := range modDeprecations {
 		if deprecation.RegistryDeprecation != nil {
-			modDeprecationStrings = append(modDeprecationStrings, fmt.Sprintf("Version %s of \"%s\" %s \nTo learn more visit: %s\n", deprecation.RegistryDeprecation.Version, deprecation.SourceName, buildModHierarchy(parentMods, deprecation.SourceName), deprecation.RegistryDeprecation.Link))
+			// mdTODO: Add highlighting here, look up other examples where it's present
+			modDeprecation := fmt.Sprintf("\x1b[1mVersion %s of %s %s\x1b[0m", deprecation.RegistryDeprecation.Version, deprecation.SourceName, buildModHierarchy(parentMods, deprecation.SourceName))
+			// Link and Message are optional fields, if unset they are an empty string by default
+			if deprecation.RegistryDeprecation.Message != "" {
+				modDeprecation = modDeprecation + fmt.Sprintf("\n\n%s", deprecation.RegistryDeprecation.Message)
+			}
+			if deprecation.RegistryDeprecation.Link != "" {
+				modDeprecation = modDeprecation + fmt.Sprintf("\n\nLink for more information: %s", deprecation.RegistryDeprecation.Link)
+			}
+			modDeprecationStrings = append(modDeprecationStrings, modDeprecation)
 		}
 		newParentMods := append(parentMods, deprecation.SourceName)
 		modDeprecationStrings = append(modDeprecationStrings, buildChildDeprecationWarnings(deprecation.ExternalDependencies, newParentMods)...)
