@@ -8,6 +8,7 @@ ENHANCEMENTS:
 * `cli`: Updates the Terraform CLI output to show logical separation between OPA and Sentinel policy evaluations
 * `terraform init` now accepts a `-json` option. If specified, enables the machine readable JSON output. ([#34886](https://github.com/hashicorp/terraform/pull/34886))
 * `terraform test:` The test framework will now maintain sensitive metadata between run blocks. ([#35021](https://github.com/hashicorp/terraform/pull/35021))
+* Core: improved performance of `AttachResourceConfigTransformer` (an implementation detail of plans and applies) when the number of resources is extremely large. ([#35088](https://github.com/hashicorp/terraform/pull/35088))
 
 BUG FIXES:
 
