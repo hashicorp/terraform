@@ -161,10 +161,8 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 			var diags tfdiags.Diagnostics
 			forEachVal, forEachValueDiags := c.CheckForEachValue(ctx, phase)
 
-			// We can not create an instance map if the for each value is not valid.
-			// We don't want to report on forEachValueDiags here because we
-			// already do this in checkValid.
-			if forEachValueDiags.HasErrors() {
+			diags = diags.Append(forEachValueDiags)
+			if diags.HasErrors() {
 				return nil, diags
 			}
 
@@ -286,9 +284,7 @@ func (c *Component) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty
 func (c *Component) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	_, moreDiags := c.CheckForEachValue(ctx, phase)
-	diags = diags.Append(moreDiags)
-	_, moreDiags = c.CheckInstances(ctx, phase)
+	_, moreDiags := c.CheckInstances(ctx, phase)
 	diags = diags.Append(moreDiags)
 
 	return diags
