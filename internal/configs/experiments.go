@@ -229,6 +229,14 @@ func checkModuleExperiments(m *Module) hcl.Diagnostics {
 				})
 			}
 		}
+		for _, rc := range m.EphemeralResources {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Ephemeral resources are experimental",
+				Detail:   "This feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding ephemeral_values to the list of active experiments.",
+				Subject:  rc.DeclRange.Ptr(),
+			})
+		}
 	}
 
 	return diags
