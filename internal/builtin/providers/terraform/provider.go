@@ -32,6 +32,9 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		ResourceTypes: map[string]providers.Schema{
 			"terraform_data": dataStoreResourceSchema(),
 		},
+		EphemeralResourceTypes: map[string]providers.Schema{
+			"terraform_random_number": ephemeralRandomNumberSchema(),
+		},
 		Functions: map[string]providers.FunctionDecl{
 			"encode_tfvars": {
 				Summary:     "Produce a string representation of an object using the same syntax as for `.tfvars` files",
@@ -191,19 +194,37 @@ func (p *Provider) ValidateResourceConfig(req providers.ValidateResourceConfigRe
 	return validateDataStoreResourceConfig(req)
 }
 
-// CloseEphemeral implements providers.Interface.
-func (p *Provider) CloseEphemeral(providers.CloseEphemeralRequest) providers.CloseEphemeralResponse {
-	panic("unimplemented - terraform.io/builtin/terraform has no ephemeral resource types")
-}
-
 // OpenEphemeral implements providers.Interface.
-func (p *Provider) OpenEphemeral(providers.OpenEphemeralRequest) providers.OpenEphemeralResponse {
-	panic("unimplemented - terraform.io/builtin/terraform has no ephemeral resource types")
+func (p *Provider) OpenEphemeral(req providers.OpenEphemeralRequest) providers.OpenEphemeralResponse {
+	if req.TypeName != "terraform_random_number" {
+		// This should not happen
+		var resp providers.OpenEphemeralResponse
+		resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
+		return resp
+	}
+	return openEphemeralRandomNumber(req)
 }
 
 // RenewEphemeral implements providers.Interface.
-func (p *Provider) RenewEphemeral(providers.RenewEphemeralRequest) providers.RenewEphemeralResponse {
-	panic("unimplemented - terraform.io/builtin/terraform has no ephemeral resource types")
+func (p *Provider) RenewEphemeral(req providers.RenewEphemeralRequest) providers.RenewEphemeralResponse {
+	if req.TypeName != "terraform_random_number" {
+		// This should not happen
+		var resp providers.RenewEphemeralResponse
+		resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
+		return resp
+	}
+	return renewEphemeralRandomNumber(req)
+}
+
+// CloseEphemeral implements providers.Interface.
+func (p *Provider) CloseEphemeral(req providers.CloseEphemeralRequest) providers.CloseEphemeralResponse {
+	if req.TypeName != "terraform_random_number" {
+		// This should not happen
+		var resp providers.CloseEphemeralResponse
+		resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
+		return resp
+	}
+	return closeEphemeralRandomNumber(req)
 }
 
 // CallFunction would call a function contributed by this provider, but this
