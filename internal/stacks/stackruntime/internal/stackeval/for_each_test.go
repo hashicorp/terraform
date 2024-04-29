@@ -5,7 +5,6 @@ package stackeval
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -211,6 +210,7 @@ func TestInstancesMap(t *testing.T) {
 	}
 
 	tests := []struct {
+		Name  string
 		Input cty.Value
 		Want  Expectation
 
@@ -220,6 +220,7 @@ func TestInstancesMap(t *testing.T) {
 	}{
 		// No for_each at all
 		{
+			"nil",
 			cty.NilVal,
 			Expectation{
 				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
@@ -243,13 +244,14 @@ func TestInstancesMap(t *testing.T) {
 
 		// Unknowns
 		{
+			"unknown empty object",
 			cty.UnknownVal(cty.EmptyObject),
 			Expectation{
 				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
 					addrs.WildcardKey: {
 						Key: addrs.WildcardKey,
 						Rep: instances.RepetitionData{
-							EachKey:   cty.DynamicVal,
+							EachKey:   cty.UnknownVal(cty.String),
 							EachValue: cty.DynamicVal,
 						},
 					},
@@ -258,14 +260,15 @@ func TestInstancesMap(t *testing.T) {
 			},
 		},
 		{
+			"unknown bool map",
 			cty.UnknownVal(cty.Map(cty.Bool)),
 			Expectation{
 				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
 					addrs.WildcardKey: {
 						Key: addrs.WildcardKey,
 						Rep: instances.RepetitionData{
-							EachKey:   cty.DynamicVal,
-							EachValue: cty.DynamicVal,
+							EachKey:   cty.UnknownVal(cty.String),
+							EachValue: cty.UnknownVal(cty.Bool),
 						},
 					},
 				},
@@ -273,14 +276,15 @@ func TestInstancesMap(t *testing.T) {
 			},
 		},
 		{
+			"unknown set of strings",
 			cty.UnknownVal(cty.Set(cty.String)),
 			Expectation{
 				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
 					addrs.WildcardKey: {
 						Key: addrs.WildcardKey,
 						Rep: instances.RepetitionData{
-							EachKey:   cty.DynamicVal,
-							EachValue: cty.DynamicVal,
+							EachKey:   cty.UnknownVal(cty.String),
+							EachValue: cty.UnknownVal(cty.String),
 						},
 					},
 				},
@@ -290,6 +294,7 @@ func TestInstancesMap(t *testing.T) {
 
 		// Empties
 		{
+			"empty object",
 			cty.EmptyObjectVal,
 			Expectation{
 				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
@@ -305,6 +310,7 @@ func TestInstancesMap(t *testing.T) {
 			},
 		},
 		{
+			"empty string map",
 			cty.MapValEmpty(cty.String),
 			Expectation{
 				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
@@ -320,6 +326,7 @@ func TestInstancesMap(t *testing.T) {
 			},
 		},
 		{
+			"empty string set",
 			cty.SetValEmpty(cty.String),
 			Expectation{
 				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
@@ -337,6 +344,7 @@ func TestInstancesMap(t *testing.T) {
 
 		// Known and not empty
 		{
+			"object",
 			cty.ObjectVal(map[string]cty.Value{
 				"a": cty.StringVal("beep"),
 				"b": cty.StringVal("boop"),
@@ -377,6 +385,7 @@ func TestInstancesMap(t *testing.T) {
 			},
 		},
 		{
+			"map",
 			cty.MapVal(map[string]cty.Value{
 				"a": cty.StringVal("beep"),
 				"b": cty.StringVal("boop"),
@@ -417,6 +426,7 @@ func TestInstancesMap(t *testing.T) {
 			},
 		},
 		{
+			"set",
 			cty.SetVal([]cty.Value{
 				cty.StringVal("beep"),
 				cty.StringVal("boop"),
@@ -459,15 +469,15 @@ func TestInstancesMap(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("%s", test.Input), func(t *testing.T) {
-			t.Run("unknown for_each supported", func(t *testing.T) {
+		t.Run(test.Name, func(t *testing.T) {
+			t.Run("unknown for_each supported", func(t *testing.T) {
 				got := instancesMap(test.Input, makeObj, true)
 
 				if diff := cmp.Diff(test.Want.UnknownForEachSupported, got, ctydebug.CmpOptions); diff != "" {
 					t.Errorf("wrong result\ninput: %#v\n%s", test.Input, diff)
 				}
 			})
-			t.Run("unknown for_each unsupported", func(t *testing.T) {
+			t.Run("unknown for_each unsupported", func(t *testing.T) {
 				got := instancesMap(test.Input, makeObj, false)
 
 				if diff := cmp.Diff(test.Want.UnknownForEachUnsupported, got, ctydebug.CmpOptions); diff != "" {

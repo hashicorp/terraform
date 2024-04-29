@@ -157,7 +157,7 @@ func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.Instance
 	case !maybeForEachVal.IsKnown():
 		// This is temporary to gradually rollout support for unknown for_each values
 		if allowsUnknown {
-			return unknownForEachInstancesMap(makeInst)
+			return unknownForEachInstancesMap(maybeForEachVal.Type(), makeInst)
 		} else {
 			return nil
 		}
@@ -242,14 +242,9 @@ func noForEachInstancesMap[T any](makeInst func(addrs.InstanceKey, instances.Rep
 	}
 }
 
-func unknownForEachInstancesMap[T any](makeInst func(addrs.InstanceKey, instances.RepetitionData) T) map[addrs.InstanceKey]T {
+func unknownForEachInstancesMap[T any](ty cty.Type, makeInst func(addrs.InstanceKey, instances.RepetitionData) T) map[addrs.InstanceKey]T {
 	return map[addrs.InstanceKey]T{
-		addrs.WildcardKey: makeInst(addrs.WildcardKey, instances.RepetitionData{
-			// As we don't know the for_each value, we can only provide dynamic values
-			// for the repetition symbols.
-			EachKey:   cty.DynamicVal,
-			EachValue: cty.DynamicVal,
-		}),
+		addrs.WildcardKey: makeInst(addrs.WildcardKey, instances.UnknownForEachRepetitionData(ty)),
 	}
 }
 
