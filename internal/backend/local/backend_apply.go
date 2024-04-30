@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -24,6 +26,22 @@ import (
 
 // test hook called between plan+apply during opApply
 var testHookStopPlanApply func()
+
+var (
+	defaultPersistInterval                 = 20 // arbitrary interval that's hopefully a sweet spot
+	persistIntervalEnvironmentVariableName = "TF_BACKEND_PERSIST_INTERVAL_SECONDS"
+)
+
+func getEnvAsInt(envName string, defaultValue int) int {
+	if val, exists := os.LookupEnv(envName); exists {
+		parsedVal, err := strconv.Atoi(val)
+		if err == nil {
+			return parsedVal
+		}
+		log.Printf("[ERROR] Can't parse value '%s' of environment variable '%s'", val, envName)
+	}
+	return defaultValue
+}
 
 func (b *Local) opApply(
 	stopCtx context.Context,
@@ -82,7 +100,8 @@ func (b *Local) opApply(
 	// stateHook uses schemas for when it periodically persists state to the
 	// persistent storage backend.
 	stateHook.Schemas = schemas
-	stateHook.PersistInterval = 20 * time.Second // arbitrary interval that's hopefully a sweet spot
+	persistInterval := getEnvAsInt(persistIntervalEnvironmentVariableName, defaultPersistInterval)
+	stateHook.PersistInterval = time.Duration(persistInterval) * time.Second
 
 	var plan *plans.Plan
 	// If we weren't given a plan, then we refresh/plan
