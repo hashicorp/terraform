@@ -96,11 +96,14 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 	module := config.Module
 	log.Printf("[TRACE] ConfigTransformer: Starting for path: %v", path)
 
-	allResources := make([]*configs.Resource, 0, len(module.ManagedResources)+len(module.DataResources))
+	allResources := make([]*configs.Resource, 0, len(module.ManagedResources)+len(module.DataResources)+len(module.EphemeralResources))
 	for _, r := range module.ManagedResources {
 		allResources = append(allResources, r)
 	}
 	for _, r := range module.DataResources {
+		allResources = append(allResources, r)
+	}
+	for _, r := range module.EphemeralResources {
 		allResources = append(allResources, r)
 	}
 

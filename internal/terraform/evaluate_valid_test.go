@@ -75,6 +75,14 @@ For example, to correlate with indices of a referring resource, use:
 			WantErr: `Reference to scoped resource: The referenced data resource "boop_data" "boop_nested" is not available from this context.`,
 		},
 		{
+			Ref:     "ephemeral.beep.boop",
+			WantErr: ``,
+		},
+		{
+			Ref:     "ephemeral.beep.nonexistant",
+			WantErr: `Reference to undeclared resource: An ephemeral resource "beep" "nonexistant" has not been declared in the root module.`,
+		},
+		{
 			Ref:     "data.boop_data.boop_nested",
 			WantErr: ``,
 			Src:     addrs.Check{Name: "foo"},
@@ -117,6 +125,11 @@ For example, to correlate with indices of a referring resource, use:
 								},
 							},
 						},
+					},
+				},
+				EphemeralResourceTypes: map[string]providers.Schema{
+					"beep": {
+						Block: &configschema.Block{},
 					},
 				},
 			},
