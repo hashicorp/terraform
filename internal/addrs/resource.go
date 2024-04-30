@@ -27,6 +27,8 @@ func (r Resource) String() string {
 		return fmt.Sprintf("%s.%s", r.Type, r.Name)
 	case DataResourceMode:
 		return fmt.Sprintf("data.%s.%s", r.Type, r.Name)
+	case EphemeralResourceMode:
+		return fmt.Sprintf("ephemeral.%s.%s", r.Type, r.Name)
 	default:
 		// Should never happen, but we'll return a string here rather than
 		// crashing just in case it does.
