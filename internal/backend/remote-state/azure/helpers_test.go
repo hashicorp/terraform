@@ -52,7 +52,7 @@ func testAccAzureBackendRunningInGitHubActions(t *testing.T) {
 	}
 }
 
-func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
+func buildTestClient(t *testing.T, res resourceNames) *Client {
 	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
 	tenantID := os.Getenv("ARM_TENANT_ID")
 	clientID := os.Getenv("ARM_CLIENT_ID")
@@ -86,7 +86,7 @@ func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
 	// Endpoint is optional (only for Stack)
 	endpoint := os.Getenv("ARM_ENDPOINT")
 
-	armClient, err := buildArmClient(context.TODO(), BackendConfig{
+	armClient, err := buildClient(context.TODO(), BackendConfig{
 		SubscriptionID:                subscriptionID,
 		TenantID:                      tenantID,
 		ClientID:                      clientID,
@@ -99,7 +99,7 @@ func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
 		UseAzureADAuthentication:      res.useAzureADAuth,
 	})
 	if err != nil {
-		t.Fatalf("Failed to build ArmClient: %+v", err)
+		t.Fatalf("Failed to build Client: %+v", err)
 	}
 
 	return armClient
@@ -153,9 +153,9 @@ func testResourceNames(rString string, keyName string) resourceNames {
 	}
 }
 
-func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames) error {
+func (c *Client) buildTestResources(ctx context.Context, names *resourceNames) error {
 	log.Printf("Creating Resource Group %q", names.resourceGroup)
-	_, err := c.groupsClient.CreateOrUpdate(ctx, names.resourceGroup, resources.Group{Location: &names.location})
+	_, err := c.resourceGroupsClient.CreateOrUpdate(ctx, names.resourceGroup, resources.Group{Location: &names.location})
 	if err != nil {
 		return fmt.Errorf("failed to create test resource group: %s", err)
 	}
@@ -215,15 +215,15 @@ func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames
 	return nil
 }
 
-func (c ArmClient) destroyTestResources(ctx context.Context, resources resourceNames) error {
+func (c *Client) destroyTestResources(ctx context.Context, resources resourceNames) error {
 	log.Printf("[DEBUG] Deleting Resource Group %q..", resources.resourceGroup)
-	future, err := c.groupsClient.Delete(ctx, resources.resourceGroup)
+	future, err := c.resourceGroupsClient.Delete(ctx, resources.resourceGroup)
 	if err != nil {
 		return fmt.Errorf("Error deleting Resource Group: %+v", err)
 	}
 
 	log.Printf("[DEBUG] Waiting for deletion of Resource Group %q..", resources.resourceGroup)
-	err = future.WaitForCompletionRef(ctx, c.groupsClient.Client)
+	err = future.WaitForCompletionRef(ctx, c.resourceGroupsClient.Client)
 	if err != nil {
 		return fmt.Errorf("Error waiting for the deletion of Resource Group: %+v", err)
 	}

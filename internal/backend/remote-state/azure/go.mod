@@ -4,18 +4,18 @@ go 1.22.0
 
 require (
 	github.com/Azure/azure-sdk-for-go v59.2.0+incompatible
-	github.com/Azure/go-autorest/autorest v0.11.27
-	github.com/hashicorp/go-azure-helpers v0.43.0
+	github.com/Azure/go-autorest/autorest v0.11.29
+	github.com/hashicorp/go-azure-helpers v0.67.0
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/terraform/internal/legacy v0.0.0-00010101000000-000000000000
 	github.com/manicminer/hamilton v0.44.0
-	github.com/tombuildsstuff/giovanni v0.15.1
+	github.com/tombuildsstuff/giovanni v0.27.0
 )
 
 require (
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
-	github.com/Azure/go-autorest/autorest/adal v0.9.20 // indirect
+	github.com/Azure/go-autorest/autorest/adal v0.9.23 // indirect
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.4 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
@@ -28,10 +28,12 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/fatih/color v1.16.0 // indirect
-	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-azure-sdk/resource-manager v0.20240425.1225320 // indirect
+	github.com/hashicorp/go-azure-sdk/sdk v0.20240425.1225320 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.5.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -55,7 +57,7 @@ require (
 	github.com/zclconf/go-cty v1.14.4 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/mod v0.16.0 // indirect
-	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/oauth2 v0.18.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
