@@ -6,7 +6,6 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 )
@@ -49,16 +48,8 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 			log.Printf("[TRACE] AttachResourceConfigTransformer: %q (%T) has no configuration available", dag.VertexName(v), v)
 			continue
 		}
-		var m map[string]*configs.Resource
-		if addr.Resource.Mode == addrs.ManagedResourceMode {
-			m = config.Module.ManagedResources
-		} else if addr.Resource.Mode == addrs.DataResourceMode {
-			m = config.Module.DataResources
-		} else {
-			panic("unknown resource mode: " + addr.Resource.Mode.String())
-		}
-		coord := addr.Resource.String()
-		if r, ok := m[coord]; ok && r.Addr() == addr.Resource {
+
+		if r := config.Module.ResourceByAddr(addr.Resource); r != nil {
 			log.Printf("[TRACE] AttachResourceConfigTransformer: attaching to %q (%T) config from %#v", dag.VertexName(v), v, r.DeclRange)
 			arn.AttachResourceConfig(r)
 			if gnapmc, ok := v.(GraphNodeAttachProviderMetaConfigs); ok {
