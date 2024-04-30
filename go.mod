@@ -81,7 +81,7 @@ require (
 	golang.org/x/tools/cmd/cover v0.1.0-deprecated
 	google.golang.org/grpc v1.59.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
-	google.golang.org/protobuf v1.33.0
+	google.golang.org/protobuf v1.34.0
 	honnef.co/go/tools v0.5.0-0.dev.0.20230826160118-ad5ca31ff221
 )
 
