@@ -86,6 +86,36 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 			// configuration we already attached above.
 			arn.AttachResourceConfig(nil, r)
 		}
+
+		for _, r := range config.Module.EphemeralResources {
+			rAddr := r.Addr()
+
+			if rAddr != addr.Resource {
+				// Not the same resource
+				continue
+			}
+
+			log.Printf("[TRACE] AttachResourceConfigTransformer: attaching to %q (%T) config from %#v", dag.VertexName(v), v, r.DeclRange)
+			arn.AttachResourceConfig(r, nil)
+
+			// attach the provider_meta info
+			if gnapmc, ok := v.(GraphNodeAttachProviderMetaConfigs); ok {
+				log.Printf("[TRACE] AttachResourceConfigTransformer: attaching provider meta configs to %s", dag.VertexName(v))
+				if config == nil {
+					log.Printf("[TRACE] AttachResourceConfigTransformer: no config set on the transformer for %s", dag.VertexName(v))
+					continue
+				}
+				if config.Module == nil {
+					log.Printf("[TRACE] AttachResourceConfigTransformer: no module in config for %s", dag.VertexName(v))
+					continue
+				}
+				if config.Module.ProviderMetas == nil {
+					log.Printf("[TRACE] AttachResourceConfigTransformer: no provider metas defined for %s", dag.VertexName(v))
+					continue
+				}
+				gnapmc.AttachProviderMetaConfigs(config.Module.ProviderMetas)
+			}
+		}
 	}
 
 	return nil

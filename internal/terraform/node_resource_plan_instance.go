@@ -76,6 +76,8 @@ func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 		return n.managedResourceExecute(ctx)
 	case addrs.DataResourceMode:
 		return n.dataResourceExecute(ctx)
+	case addrs.EphemeralResourceMode:
+		return n.ephemeralResourceExecute(ctx)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
@@ -502,6 +504,23 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
+	return diags
+}
+
+func (n *NodePlannableResourceInstance) ephemeralResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+	config := n.Config
+	addr := n.ResourceInstanceAddr()
+	var diagRng *hcl.Range
+	if config != nil {
+		diagRng = config.DeclRange.Ptr()
+	}
+
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Ephemeral resources not yet supported",
+		Detail:   fmt.Sprintf("There is not yet any implementation of planning for %s.", addr),
+		Subject:  diagRng,
+	})
 	return diags
 }
 
