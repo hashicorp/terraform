@@ -219,6 +219,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 
+		// Close any ephemeral resource instances and prune nodes for
+		// ephemeral resources that aren't being consumed by anything.
+		&ephemeralResourceCloseTransformer{op: walkApply},
+
 		// close the root module
 		&CloseRootModuleTransformer{},
 

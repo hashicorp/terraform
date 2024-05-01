@@ -119,15 +119,23 @@ func (b *PlanGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Dia
 
 // See GraphBuilder
 func (b *PlanGraphBuilder) Steps() []GraphTransformer {
+	// simplerOperation chooses from a reduced set of possibilities
+	// for situations that don't need to distinguish the phases as
+	// filely as a raw walkOperation value does.
+	var simplerOperation walkOperation
 	switch b.Operation {
 	case walkPlan:
 		b.initPlan()
+		simplerOperation = walkPlan
 	case walkPlanDestroy:
 		b.initDestroy()
+		simplerOperation = walkPlan
 	case walkValidate:
 		b.initValidate()
+		simplerOperation = walkValidate
 	case walkImport:
 		b.initImport()
+		simplerOperation = walkPlan
 	default:
 		panic("invalid plan operation: " + b.Operation.String())
 	}
@@ -261,6 +269,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
+
+		// Close any ephemeral resource instances and prune nodes for
+		// ephemeral resources that aren't being consumed by anything.
+		&ephemeralResourceCloseTransformer{op: simplerOperation},
 
 		// Close the root module
 		&CloseRootModuleTransformer{},
