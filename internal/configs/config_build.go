@@ -24,7 +24,7 @@ import (
 // file-level invariants validated. If the returned diagnostics contains errors,
 // the returned module tree may be incomplete but can still be used carefully
 // for static analysis.
-func BuildConfig(root *Module, walker ModuleWalker, loader MockDataLoader) (*Config, hcl.Diagnostics, []*ModuleDeprecationInfo) {
+func BuildConfig(root *Module, walker ModuleWalker, loader MockDataLoader) (*Config, hcl.Diagnostics, *WorkspaceDeprecationInfo) {
 	var diags hcl.Diagnostics
 	var modDeprecations []*ModuleDeprecationInfo
 	cfg := &Config{
@@ -32,6 +32,9 @@ func BuildConfig(root *Module, walker ModuleWalker, loader MockDataLoader) (*Con
 	}
 	cfg.Root = cfg // Root module is self-referential.
 	cfg.Children, diags, modDeprecations = buildChildModules(cfg, walker)
+	workspaceDeprecations := &WorkspaceDeprecationInfo{
+		ModuleDeprecationInfos: modDeprecations,
+	}
 	diags = append(diags, buildTestModules(cfg, walker)...)
 
 	// Skip provider resolution if there are any errors, since the provider
@@ -49,7 +52,7 @@ func BuildConfig(root *Module, walker ModuleWalker, loader MockDataLoader) (*Con
 	// Final step, let's side load any external mock data into our test files.
 	diags = append(diags, installMockDataFiles(cfg, loader)...)
 
-	return cfg, diags, modDeprecations
+	return cfg, diags, workspaceDeprecations
 }
 
 func installMockDataFiles(root *Config, loader MockDataLoader) hcl.Diagnostics {

@@ -3,7 +3,9 @@
 
 package configs
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type WorkspaceDeprecationInfo struct {
 	ModuleDeprecationInfos []*ModuleDeprecationInfo
@@ -19,6 +21,10 @@ type RegistryModuleDeprecation struct {
 	Version string
 	Link    string
 	Message string
+}
+
+type ModuleDeprecationDiagnosticExtra struct {
+	MessageCode string `json:"message_code"`
 }
 
 func (i *WorkspaceDeprecationInfo) HasDeprecations() bool {

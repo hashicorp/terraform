@@ -137,20 +137,19 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 	}
 	walker := i.moduleInstallWalker(ctx, manifest, upgrade, hooks, fetcher)
 
-	cfg, instDiags, moduleDeprecations := i.installDescendentModules(rootMod, manifest, walker, installErrsOnly)
+	cfg, instDiags, workspaceDeprecations := i.installDescendentModules(rootMod, manifest, walker, installErrsOnly)
 	diags = append(diags, instDiags...)
-	if moduleDeprecations != nil {
-		workspaceDeprecations := &configs.WorkspaceDeprecationInfo{
-			ModuleDeprecationInfos: moduleDeprecations,
-		}
-		if workspaceDeprecations.HasDeprecations() {
-			deprecationString := workspaceDeprecations.BuildDeprecationWarningString()
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Warning,
-				"Deprecated modules found, consider installing updated versions. The following are affected:",
-				deprecationString,
-			))
-		}
+	if workspaceDeprecations.HasDeprecations() {
+		deprecationString := workspaceDeprecations.BuildDeprecationWarningString()
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated modules found, consider installing updated versions. The following are affected:",
+			Detail:   deprecationString,
+			Extra: &configs.ModuleDeprecationDiagnosticExtra{
+				MessageCode: "module_deprecation_warning",
+			},
+		})
+
 	}
 
 	return cfg, diags
@@ -347,8 +346,9 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 	)
 }
 
-func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, manifest modsdir.Manifest, installWalker configs.ModuleWalker, installErrsOnly bool) (*configs.Config, tfdiags.Diagnostics, []*configs.ModuleDeprecationInfo) {
+func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, manifest modsdir.Manifest, installWalker configs.ModuleWalker, installErrsOnly bool) (*configs.Config, tfdiags.Diagnostics, *configs.WorkspaceDeprecationInfo) {
 	var diags tfdiags.Diagnostics
+	var workspaceDeprecations *configs.WorkspaceDeprecationInfo
 
 	// When attempting to initialize the current directory with a module
 	// source, some use cases may want to ignore configuration errors from the
@@ -367,7 +367,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, mani
 		})
 	}
 
-	cfg, cDiags, moduleDeprecations := configs.BuildConfig(rootMod, walker, configs.MockDataLoaderFunc(i.loader.LoadExternalMockData))
+	cfg, cDiags, workspaceDeprecations := configs.BuildConfig(rootMod, walker, configs.MockDataLoaderFunc(i.loader.LoadExternalMockData))
 	diags = diags.Append(cDiags)
 	if installErrsOnly {
 		// We can't continue if there was an error during installation, but
@@ -396,7 +396,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, mani
 		))
 	}
 
-	return cfg, diags, moduleDeprecations
+	return cfg, diags, workspaceDeprecations
 }
 
 func (i *ModuleInstaller) installLocalModule(req *configs.ModuleRequest, key string, manifest modsdir.Manifest, hooks ModuleInstallHooks) (*configs.Module, hcl.Diagnostics) {
