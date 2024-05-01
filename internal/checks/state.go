@@ -88,7 +88,7 @@ func NewState(config *configs.Config) *State {
 }
 
 // ConfigHasChecks returns true if and only if the given address refers to
-// a configuration object that this State object is expecting to recieve
+// a configuration object that this State object is expecting to receive
 // statuses for.
 //
 // Other methods of Checks will typically panic if given a config address

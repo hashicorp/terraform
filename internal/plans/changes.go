@@ -253,7 +253,7 @@ type ResourceInstanceChange struct {
 	Private []byte
 }
 
-// Encode produces a variant of the reciever that has its change values
+// Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
 func (rc *ResourceInstanceChange) Encode(ty cty.Type) (*ResourceInstanceChangeSrc, error) {
@@ -490,7 +490,7 @@ type OutputChange struct {
 	Sensitive bool
 }
 
-// Encode produces a variant of the reciever that has its change values
+// Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file.
 func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
 	cs, err := oc.Change.Encode(cty.DynamicPseudoType)
@@ -550,7 +550,7 @@ type Change struct {
 	GeneratedConfig string
 }
 
-// Encode produces a variant of the reciever that has its change values
+// Encode produces a variant of the receiver that has its change values
 // serialized so it can be written to a plan file. Pass the type constraint
 // that the values are expected to conform to; to properly decode the values
 // later an identical type constraint must be provided at that time.

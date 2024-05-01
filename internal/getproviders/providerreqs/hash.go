@@ -60,7 +60,7 @@ func MustParseHash(s string) Hash {
 	return hash
 }
 
-// Scheme returns the scheme of the recieving hash. If the receiver is not
+// Scheme returns the scheme of the receiving hash. If the receiver is not
 // using valid syntax then this method will panic.
 func (h Hash) Scheme() HashScheme {
 	colon := strings.Index(string(h), ":")
@@ -78,7 +78,7 @@ func (h Hash) HasScheme(want HashScheme) bool {
 	return h.Scheme() == want
 }
 
-// Value returns the scheme-specific value from the recieving hash. The
+// Value returns the scheme-specific value from the receiving hash. The
 // meaning of this value depends on the scheme.
 //
 // If the receiver is not using valid syntax then this method will panic.

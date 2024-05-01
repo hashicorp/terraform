@@ -960,7 +960,7 @@ resource "test_object" "a" {
 		// In the destroy-with-refresh codepath we end up calling
 		// UpgradeResourceState twice, because we do so once during refreshing
 		// (as part making a normal plan) and then again during the plan-destroy
-		// walk. The second call recieves the result of the earlier refresh,
+		// walk. The second call receives the result of the earlier refresh,
 		// so we need to tolerate both "before" and "current" as possible
 		// inputs here.
 		if !bytes.Contains(req.RawStateJSON, []byte("before")) {

@@ -15,7 +15,7 @@ type ValidateOpts struct {
 
 // Validateable is implemented by objects that can participate in validation.
 type Validatable interface {
-	// Validate returns diagnostics for any part of the reciever which
+	// Validate returns diagnostics for any part of the receiver which
 	// has an invalid configuration.
 	//
 	// Validate implementations should be shallow, which is to say that

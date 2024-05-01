@@ -79,7 +79,7 @@ type Component struct {
 //
 // Conversion with this method should always succeed if the given previous
 // run state is truly the one that the plan was created from. If this method
-// returns an error then that suggests that the recieving plan is inconsistent
+// returns an error then that suggests that the receiving plan is inconsistent
 // with the given previous run state, which should not happen if the caller
 // is using Terraform Core correctly.
 func (c *Component) ForModulesRuntime() (*plans.Plan, error) {

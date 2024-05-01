@@ -337,7 +337,7 @@ func (c *Context) watchStop(walker *ContextGraphWalker) (chan struct{}, <-chan s
 	return stop, wait
 }
 
-// checkConfigDependencies checks whether the recieving context is able to
+// checkConfigDependencies checks whether the receiving context is able to
 // support the given configuration, returning error diagnostics if not.
 //
 // Currently this function checks whether the current Terraform CLI version

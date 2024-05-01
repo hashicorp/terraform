@@ -74,7 +74,7 @@ func (pem PartialExpandedModule) LevelsKnown() int {
 }
 
 // MatchesInstance returns true if and only if the given module instance
-// belongs to the recieving partially-expanded module address pattern.
+// belongs to the receiving partially-expanded module address pattern.
 func (pem PartialExpandedModule) MatchesInstance(inst ModuleInstance) bool {
 	// Total length must always match.
 	if len(inst) != (len(pem.expandedPrefix) + len(pem.unexpandedSuffix)) {
@@ -308,7 +308,7 @@ func (per PartialExpandedResource) UnknownResourceInstance() AbsResourceInstance
 }
 
 // MatchesInstance returns true if and only if the given resource instance
-// belongs to the recieving partially-expanded resource address pattern.
+// belongs to the receiving partially-expanded resource address pattern.
 func (per PartialExpandedResource) MatchesInstance(inst AbsResourceInstance) bool {
 	if !per.module.MatchesInstance(inst.Module) {
 		return false
@@ -317,7 +317,7 @@ func (per PartialExpandedResource) MatchesInstance(inst AbsResourceInstance) boo
 }
 
 // MatchesResource returns true if and only if the given resource belongs to
-// the recieving partially-expanded resource address pattern.
+// the receiving partially-expanded resource address pattern.
 func (per PartialExpandedResource) MatchesResource(inst AbsResource) bool {
 	if !per.module.MatchesInstance(inst.Module) {
 		return false

@@ -363,7 +363,7 @@ type namedPromiseReporter interface {
 	// reportNamedPromises should also delegate to the same method on any
 	// directly-nested objects that might themselves have promises, so that
 	// collectPromiseNames can walk the whole tree. This should be done only
-	// in situations where the original reciever's implementation is itself
+	// in situations where the original receiver's implementation is itself
 	// acting as the physical container for the child objects, and not just
 	// when an object is _logically_ nested within another object.
 	reportNamedPromises(func(id promising.PromiseID, name string))

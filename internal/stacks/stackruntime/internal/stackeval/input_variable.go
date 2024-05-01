@@ -58,7 +58,7 @@ func (v *InputVariable) Declaration(ctx context.Context) *stackconfig.InputVaria
 //
 // Returns nil if this input variable belongs to the main stack, because
 // the main stack's input variables come from the planning options instead.
-// Also returns nil if the reciever belongs to a stack config instance
+// Also returns nil if the receiver belongs to a stack config instance
 // that isn't actually declared in the configuration, which typically suggests
 // that we don't yet know the number of instances of one of the stack calls
 // along the chain.

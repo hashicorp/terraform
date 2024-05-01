@@ -119,7 +119,7 @@ func (m Map[K, V]) Delete(k K) {
 // and so callers MUST NOT modify it. If a caller is using locks to ensure
 // safe concurrent access then any reads of the resulting map must be
 // guarded by the same lock as would be used for other methods that read
-// data from the reciever.
+// data from the receiver.
 //
 // The only correct use of this function is as part of a "for ... range"
 // statement using only the values of the resulting map:

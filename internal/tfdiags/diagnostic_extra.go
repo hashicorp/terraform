@@ -85,7 +85,7 @@ func ExtraInfoNext[T any](previous interface{}) T {
 //
 // Diagnostic recipients which want to examine "Extra" values to sniff for
 // particular types of extra data can either type-assert this interface
-// directly and repeatedly unwrap until they recieve nil, or can use the
+// directly and repeatedly unwrap until they receive nil, or can use the
 // helper function DiagnosticExtra.
 //
 // This interface intentionally matches hcl.DiagnosticExtraUnwrapper, so that
@@ -93,7 +93,7 @@ func ExtraInfoNext[T any](previous interface{}) T {
 // tfdiags API, but that non-HCL uses of this will not need to implement HCL
 // just to get this interface.
 type DiagnosticExtraUnwrapper interface {
-	// If the reciever is wrapping another "diagnostic extra" value, returns
+	// If the receiver is wrapping another "diagnostic extra" value, returns
 	// that value. Otherwise returns nil to indicate dynamically that nothing
 	// is wrapped.
 	//

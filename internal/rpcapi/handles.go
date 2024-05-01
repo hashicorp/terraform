@@ -29,7 +29,7 @@ func (hnd handle[T]) ForProtobuf() int64 {
 	return int64(hnd)
 }
 
-// IsNil returns true if the reciever is the "nil handle", which is also the
+// IsNil returns true if the receiver is the "nil handle", which is also the
 // zero value of any handle type and represents the absense of a handle.
 func (hnd handle[T]) IsNil() bool {
 	return int64(hnd) == 0

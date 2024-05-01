@@ -32,7 +32,7 @@ type BeginFunc[Msg any] func(context.Context, Msg) any
 // context was passed to the top-level [stackruntime.Plan] or
 // [stackruntime.Apply] call.
 //
-// The hook callback recieves an additional argument which is guaranteed to be
+// The hook callback receives an additional argument which is guaranteed to be
 // the same value returned from the corresponding [BeginFunc]. See
 // [BeginFunc]'s documentation for more information.
 //

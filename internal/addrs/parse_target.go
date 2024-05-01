@@ -430,7 +430,7 @@ func ParseAbsResourceInstanceStr(str string) (AbsResourceInstance, tfdiags.Diagn
 }
 
 // ModuleAddr returns the module address portion of the subject of
-// the recieving target.
+// the receiving target.
 //
 // Regardless of specific address type, all targets always include
 // a module address. They might also include something in that

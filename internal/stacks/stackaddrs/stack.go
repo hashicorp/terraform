@@ -28,7 +28,7 @@ func (s Stack) IsRoot() bool {
 	return len(s) == 0
 }
 
-// Parent returns the parent of the reciever, or panics if the receiver is
+// Parent returns the parent of the receiver, or panics if the receiver is
 // representing the root stack.
 func (s Stack) Parent() Stack {
 	newLen := len(s) - 1
@@ -95,7 +95,7 @@ func (s StackInstance) IsRoot() bool {
 	return len(s) == 0
 }
 
-// Parent returns the parent of the reciever, or panics if the receiver is
+// Parent returns the parent of the receiver, or panics if the receiver is
 // representing the root stack.
 func (s StackInstance) Parent() StackInstance {
 	newLen := len(s) - 1

@@ -235,13 +235,13 @@ func (g *Graph) Connect(edge Edge) {
 }
 
 // Subsume imports all of the nodes and edges from the given graph into the
-// reciever, leaving the given graph unchanged.
+// receiver, leaving the given graph unchanged.
 //
-// If any of the nodes in the given graph are already present in the reciever
+// If any of the nodes in the given graph are already present in the receiver
 // then the existing node will be retained and any new edges from the given
 // graph will be connected with it.
 //
-// If the given graph has edges in common with the reciever then they will be
+// If the given graph has edges in common with the receiver then they will be
 // ignored, because each pair of nodes can only be connected once.
 func (g *Graph) Subsume(other *Graph) {
 	// We're using Set.Filter just as a "visit each element" here, so we're

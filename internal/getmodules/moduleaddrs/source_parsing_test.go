@@ -364,7 +364,7 @@ func TestModuleSourceRemoteFromRegistry(t *testing.T) {
 		}
 		gotAddr := remote.FromRegistry(registry)
 		if remote.Subdir != "foo" {
-			t.Errorf("FromRegistry modified the reciever; should be pure function")
+			t.Errorf("FromRegistry modified the receiver; should be pure function")
 		}
 		if registry.Subdir != "bar" {
 			t.Errorf("FromRegistry modified the given address; should be pure function")
@@ -383,7 +383,7 @@ func TestModuleSourceRemoteFromRegistry(t *testing.T) {
 		}
 		gotAddr := remote.FromRegistry(registry)
 		if remote.Subdir != "foo" {
-			t.Errorf("FromRegistry modified the reciever; should be pure function")
+			t.Errorf("FromRegistry modified the receiver; should be pure function")
 		}
 		if registry.Subdir != "" {
 			t.Errorf("FromRegistry modified the given address; should be pure function")
@@ -402,7 +402,7 @@ func TestModuleSourceRemoteFromRegistry(t *testing.T) {
 		}
 		gotAddr := remote.FromRegistry(registry)
 		if remote.Subdir != "" {
-			t.Errorf("FromRegistry modified the reciever; should be pure function")
+			t.Errorf("FromRegistry modified the receiver; should be pure function")
 		}
 		if registry.Subdir != "bar" {
 			t.Errorf("FromRegistry modified the given address; should be pure function")

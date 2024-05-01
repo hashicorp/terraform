@@ -419,7 +419,7 @@ type testEvaluatorOpts struct {
 // main evaluator.
 //
 // This may be used only from unit tests in this package and must be called
-// before performing any other operations against the reciever. It's invalid
+// before performing any other operations against the receiver. It's invalid
 // to change the test-only globals after some evaluation has already been
 // performed, because the evaluator expects its input to be immutable and
 // caches values derived from that input, and there's no mechanism to

@@ -50,7 +50,7 @@ func (s Set[T]) Remove(addr T) {
 }
 
 // Union returns a new set which contains the union of all of the elements
-// of both the reciever and the given other set.
+// of both the receiver and the given other set.
 func (s Set[T]) Union(other Set[T]) Set[T] {
 	ret := make(Set[T])
 	for k, addr := range s {
@@ -63,7 +63,7 @@ func (s Set[T]) Union(other Set[T]) Set[T] {
 }
 
 // Intersection returns a new set which contains the intersection of all of the
-// elements of both the reciever and the given other set.
+// elements of both the receiver and the given other set.
 func (s Set[T]) Intersection(other Set[T]) Set[T] {
 	ret := make(Set[T])
 	for k, addr := range s {

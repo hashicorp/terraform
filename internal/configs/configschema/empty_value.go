@@ -7,12 +7,12 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// EmptyValue returns the "empty value" for the recieving block, which for
+// EmptyValue returns the "empty value" for the receiving block, which for
 // a block type is a non-null object where all of the attribute values are
 // the empty values of the block's attributes and nested block types.
 //
 // In other words, it returns the value that would be returned if an empty
-// block were decoded against the recieving schema, assuming that no required
+// block were decoded against the receiving schema, assuming that no required
 // attribute or block constraints were honored.
 func (b *Block) EmptyValue() cty.Value {
 	vals := make(map[string]cty.Value)

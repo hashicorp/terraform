@@ -330,7 +330,7 @@ func indexStrForErrors(v cty.Value) string {
 // with sets that may contain unknown values as long as the unknown case is
 // addressed in some reasonable way in the callback function.
 //
-// The callback always recieves values from set a as its first argument and
+// The callback always receives values from set a as its first argument and
 // values from set b in its second argument, so it is safe to use with
 // non-commutative functions.
 //

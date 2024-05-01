@@ -61,7 +61,7 @@ type BuiltinEvalContext struct {
 	// ExternalProviderConfigs are pre-configured provider instances passed
 	// in by the caller, for situations like Stack components where the
 	// root module isn't designed to be planned and applied in isolation and
-	// instead expects to recieve certain provider configurations from the
+	// instead expects to receive certain provider configurations from the
 	// stack configuration.
 	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
 

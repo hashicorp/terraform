@@ -61,7 +61,7 @@ type MockLauncher struct {
 	// would naturally complete.
 	Context context.Context
 
-	// Responses is a log of all of the responses recieved from the launcher's
+	// Responses is a log of all of the responses received from the launcher's
 	// requests, in the order requested.
 	Responses []*http.Response
 

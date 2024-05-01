@@ -84,7 +84,7 @@ func (n *nodeVariableValidation) References() []*addrs.Reference {
 
 // appendRefsFilterSelf is a specialized version of builtin [append] that
 // ignores any new references to the input variable represented by the
-// reciever.
+// receiver.
 func (n *nodeVariableValidation) appendRefsFilterSelf(to []*addrs.Reference, new ...*addrs.Reference) []*addrs.Reference {
 	// We need to filter out any self-references, because those would
 	// make the resulting graph invalid and we don't need them because
