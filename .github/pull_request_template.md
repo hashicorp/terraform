@@ -2,6 +2,8 @@
 
 Describe in detail the changes you are proposing, and the rationale.
 
+Also, if it's practical, please provide an example config and commands for manually testing this change with Terraform CLI. (This isn't always possible, but it can enable better and faster reviews for your PR.)
+
 See the contributing guide:
 
 https://github.com/hashicorp/terraform/blob/main/.github/CONTRIBUTING.md
@@ -51,6 +53,6 @@ Write a short description of the user-facing change. Examples:
 - When rendering a diff, Terraform now quotes the name of any object attribute whose string representation is not a valid identifier.
 - The local token configuration in the cloud and remote backend now has higher priority than a token specified in a credentials block in the CLI configuration.
 
---> 
+-->
 
--  
+-
