@@ -28,6 +28,9 @@ type ModuleDeprecationDiagnosticExtra struct {
 }
 
 func (i *WorkspaceDeprecationInfo) HasDeprecations() bool {
+	if i == nil || i.ModuleDeprecationInfos == nil {
+		return false
+	}
 	for _, deprecationInfo := range i.ModuleDeprecationInfos {
 		if deprecationInfo != nil && deprecationInfo.hasDeprecations() {
 			return true

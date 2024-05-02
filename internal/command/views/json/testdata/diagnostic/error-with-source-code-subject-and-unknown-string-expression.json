@@ -27,5 +27,6 @@
         "statement": "is a string, known only after apply"
       }
     ]
-  }
+  },
+  "extra": true
 }

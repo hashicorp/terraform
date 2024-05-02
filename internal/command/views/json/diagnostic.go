@@ -38,7 +38,7 @@ type Diagnostic struct {
 	Address  string             `json:"address,omitempty"`
 	Range    *DiagnosticRange   `json:"range,omitempty"`
 	Snippet  *DiagnosticSnippet `json:"snippet,omitempty"`
-	Extra    interface{}        `json:"extra"`
+	Extra    interface{}        `json:"extra,omitempty"`
 }
 
 // Pos represents a position in the source code.
