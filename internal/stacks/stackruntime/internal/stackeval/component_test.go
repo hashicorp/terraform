@@ -190,13 +190,17 @@ func TestComponentCheckInstances(t *testing.T) {
 			}
 
 			// When the for_each expression is invalid, CheckInstances should
-			// return a single instance with dynamic values in the repetition data.
-			// We don't distinguish between invalid and unknown for_each values.
-			gotInsts, _ := component.CheckInstances(ctx, InspectPhase)
+			// return nil and diagnostics.
+			gotInsts, diags := component.CheckInstances(ctx, InspectPhase)
 
 			if gotInsts != nil {
 				t.Fatalf("unexpected instances\ngot:  %#v\nwant: nil", gotInsts)
 			}
+
+			assertMatchingDiag(t, diags, func(diag tfdiags.Diagnostic) bool {
+				return (diag.Severity() == tfdiags.Error &&
+					diag.Description().Detail == "The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this component.")
+			})
 		})
 		subtestInPromisingTask(t, "unknown", func(ctx context.Context, t *testing.T) {
 			main := testEvaluator(t, testEvaluatorOpts{
