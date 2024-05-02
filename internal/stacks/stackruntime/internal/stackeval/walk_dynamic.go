@@ -70,10 +70,8 @@ func walkDynamicObjectsInStack[Output any](
 
 	// We also need to visit and check all of the other declarations in
 	// the current stack.
-
 	for _, component := range stack.Components(ctx) {
 		component := component // separate symbol per loop iteration
-
 		visit(ctx, walk, component)
 
 		// We need to perform the instance expansion in an overall async task
