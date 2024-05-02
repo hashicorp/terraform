@@ -124,16 +124,16 @@ func (p *Provider) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.
 					return cty.DynamicVal, diags
 				}
 
-				if !result.Value.IsKnown() {
-					// FIXME: We should somehow allow this and emit a
-					// "deferred change" representing all of the as-yet-unknown
-					// instances of this call and everything beneath it.
-					diags = diags.Append(result.Diagnostic(
-						tfdiags.Error,
-						"Invalid for_each value",
-						"The for_each value must not be derived from values that will be determined only during the apply phase.",
-					))
-				}
+				// if !result.Value.IsKnown() {
+				// 	// FIXME: We should somehow allow this and emit a
+				// 	// "deferred change" representing all of the as-yet-unknown
+				// 	// instances of this call and everything beneath it.
+				// 	diags = diags.Append(result.Diagnostic(
+				// 		tfdiags.Error,
+				// 		"Invalid for_each value",
+				// 		"The for_each value must not be derived from values that will be determined only during the apply phase.",
+				// 	))
+				// }
 
 				return result.Value, diags
 

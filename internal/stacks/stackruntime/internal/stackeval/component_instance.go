@@ -347,16 +347,17 @@ func (c *ComponentInstance) checkProvider(ctx context.Context, sourceAddr addrs.
 		// TODO: Once we support deferred changes we should return
 		// something that lets the caller know the configuration is
 		// incomplete so it can defer planning the entire component.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  errSummary,
-			Detail: fmt.Sprintf(
-				"This expression depends on values that won't be known until the apply phase, so Terraform cannot determine which provider configuration to use while planning changes for %s.",
-				c.Addr().String(),
-			),
-			Subject: result.Expression.Range().Ptr(),
-		})
-		return ret, diags, false
+		// diags = diags.Append(&hcl.Diagnostic{
+		// 	Severity: hcl.DiagError,
+		// 	Summary:  errSummary,
+		// 	Detail: fmt.Sprintf(
+		// 		"This expression depends on values that won't be known until the apply phase, so Terraform cannot determine which provider configuration to use while planning changes for %s.",
+		// 		c.Addr().String(),
+		// 	),
+		// 	Subject: result.Expression.Range().Ptr(),
+		// })
+		// return ret, diags, false
+		return ret, diags, true
 	}
 
 	// If it's of the correct type, known, and not null then we should
