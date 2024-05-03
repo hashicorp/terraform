@@ -103,7 +103,10 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 		walker = c.graphWalker(graph, walkEval, walkOpts)
 	}
 
-	return evalScopeFromGraphWalk(walker, moduleAddr), diags
+	scope := evalScopeFromGraphWalk(walker, moduleAddr)
+
+	diags = diags.Append(walker.Close())
+	return scope, diags
 }
 
 // evalScopeFromGraphWalk takes a [ContextGraphWalker] that was already used

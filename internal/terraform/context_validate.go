@@ -116,9 +116,6 @@ func (c *Context) Validate(config *configs.Config, opts *ValidateOpts) tfdiags.D
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
-	if walkDiags.HasErrors() {
-		return diags
-	}
-
+	diags = diags.Append(walker.Close())
 	return diags
 }

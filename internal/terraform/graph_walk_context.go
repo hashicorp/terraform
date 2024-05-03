@@ -155,3 +155,15 @@ func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfd
 
 	return n.Execute(ctx, w.Operation)
 }
+
+func (w *ContextGraphWalker) Close() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	if er := w.EphemeralResources; er != nil {
+		// FIXME: The graph walk bits all long predate Go's context.Context
+		// and so we don't have a general ambient context.Context for the
+		// overall operation. Hopefully one day we do, and then it could
+		// be passed in here.
+		diags = diags.Append(er.Close(context.TODO()))
+	}
+	return diags
+}

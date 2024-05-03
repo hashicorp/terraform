@@ -825,6 +825,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	// expressions, like in "terraform console" or the test harness.
 	evalScope := evalScopeFromGraphWalk(walker, addrs.RootModuleInstance)
 
+	diags = diags.Append(walker.Close())
 	return plan, evalScope, diags
 }
 
