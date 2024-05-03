@@ -338,10 +338,6 @@ func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (
 				})
 				continue
 			}
-		} else if actualTy.Equals(cty.DynamicPseudoType) {
-			// This is a dynamic type, which means we don't know what it is. This can happen if the for_each
-			// contains unknown values, for example.
-			// We can't do any more validation here, so we'll just skip it.
 		} else {
 			// We got something that isn't a provider reference at all.
 			diags = diags.Append(&hcl.Diagnostic{

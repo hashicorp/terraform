@@ -61,9 +61,22 @@ var (
 				"input": cty.StringVal("input"),
 			},
 		},
-		filepath.Join("with-single-input", "provider-for-each"): {
+		filepath.Join("with-single-input", "provider-for-each1"): {
 			planInputVars: map[string]cty.Value{
 				"input": cty.StringVal("input"),
+				"provider_set": cty.SetVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+				}),
+			},
+		},
+		filepath.Join("with-single-input", "provider-for-each2"): {
+			planInputVars: map[string]cty.Value{
+				"input": cty.StringVal("input"),
+				"provider_set": cty.SetVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+				}),
 			},
 		},
 	}

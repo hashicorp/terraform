@@ -10,14 +10,15 @@ variable "provider_set" {
   default = ["a", "b"]
 }
 
-provider "testing" "configurations" {
-  for_each = var.provider_set
-}
 
 variable "input" {
   type = string
 }
 
+
+provider "testing" "configurations" {
+  for_each = var.provider_set
+}
 component "self" {
   source = "../"
   for_each = var.provider_set
