@@ -217,6 +217,10 @@
       }
     ]
   },
+  {
+    "title": "moved block",
+    "path": "moved"
+  },
   { "title": "Checks", "path": "checks" },
   {
       "title": "Import",
