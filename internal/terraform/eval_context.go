@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -168,6 +169,10 @@ type EvalContext interface {
 	// updated only so that object data conforms to current schemas for
 	// meaningful comparison with RefreshState.
 	PrevRunState() *states.SyncState
+
+	// EphemeralResources returns a helper object for tracking active
+	// instances of ephemeral resources declared in the configuration.
+	EphemeralResources() *ephemeral.Resources
 
 	// InstanceExpander returns a helper object for tracking the expansion of
 	// graph nodes during the plan phase in response to "count" and "for_each"
