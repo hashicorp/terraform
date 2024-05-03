@@ -508,20 +508,11 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 }
 
 func (n *NodePlannableResourceInstance) ephemeralResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
-	config := n.Config
-	addr := n.ResourceInstanceAddr()
-	var diagRng *hcl.Range
-	if config != nil {
-		diagRng = config.DeclRange.Ptr()
-	}
-
-	diags = diags.Append(&hcl.Diagnostic{
-		Severity: hcl.DiagError,
-		Summary:  "Ephemeral resources not yet supported",
-		Detail:   fmt.Sprintf("There is not yet any implementation of planning for %s.", addr),
-		Subject:  diagRng,
+	return ephemeralResourceOpen(ctx, ephemeralResourceInput{
+		addr:           n.Addr,
+		config:         n.Config,
+		providerConfig: n.ResolvedProvider,
 	})
-	return diags
 }
 
 // replaceTriggered checks if this instance needs to be replace due to a change
