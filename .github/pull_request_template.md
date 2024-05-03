@@ -1,14 +1,24 @@
 <!--
 
-Describe in detail the changes you are proposing, and the rationale.
-
-Also, if it's practical, please provide an example config and commands for manually testing this change with Terraform CLI. (This isn't always possible, but it can enable better and faster reviews for your PR.)
+Describe in detail the changes you are proposing, and the rationale. If practical, describe how to manually test the change; this isn't always possible, but it makes PRs easier and faster to review.
 
 See the contributing guide:
 
 https://github.com/hashicorp/terraform/blob/main/.github/CONTRIBUTING.md
 
 -->
+
+## Reason for change
+
+## Old behavior
+
+## New behavior
+
+## How to verify
+
+### Example config
+
+### Commands
 
 <!--
 
