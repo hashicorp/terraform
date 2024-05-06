@@ -613,6 +613,9 @@ func validateResourceForbiddenEphemeralValues(ctx EvalContext, value cty.Value, 
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
 			"Invalid use of ephemeral value",
+			// FIXME: This message should differ if the referrer is a data
+			// resource. In that case the reason is "because data resource
+			// instances must persist from plan to apply".
 			"Ephemeral values are not valid in resource arguments, because resource instances must persist between Terraform phases.",
 			path,
 		))

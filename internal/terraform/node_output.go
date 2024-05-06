@@ -46,13 +46,12 @@ type nodeExpandOutput struct {
 }
 
 var (
-	_ GraphNodeReferenceable             = (*nodeExpandOutput)(nil)
-	_ GraphNodeReferencer                = (*nodeExpandOutput)(nil)
-	_ GraphNodeReferenceOutside          = (*nodeExpandOutput)(nil)
-	_ GraphNodeDynamicExpandable         = (*nodeExpandOutput)(nil)
-	_ graphNodeTemporaryValue            = (*nodeExpandOutput)(nil)
-	_ graphNodeExpandsInstances          = (*nodeExpandOutput)(nil)
-	_ graphNodeEphemeralResourceConsumer = (*nodeExpandOutput)(nil)
+	_ GraphNodeReferenceable     = (*nodeExpandOutput)(nil)
+	_ GraphNodeReferencer        = (*nodeExpandOutput)(nil)
+	_ GraphNodeReferenceOutside  = (*nodeExpandOutput)(nil)
+	_ GraphNodeDynamicExpandable = (*nodeExpandOutput)(nil)
+	_ graphNodeTemporaryValue    = (*nodeExpandOutput)(nil)
+	_ graphNodeExpandsInstances  = (*nodeExpandOutput)(nil)
 )
 
 func (n *nodeExpandOutput) expandsInstances() {}
@@ -212,13 +211,6 @@ func (n *nodeExpandOutput) References() []*addrs.Reference {
 	}
 
 	return referencesForOutput(n.Config)
-}
-
-// requiredEphemeralResources implements graphNodeEphemeralResourceConsumer.
-func (n *nodeExpandOutput) requiredEphemeralResources(op walkOperation) addrs.Set[addrs.ConfigResource] {
-	// The consumed ephemeral resources are defined entirely by expression
-	// references.
-	return requiredEphemeralResourcesForReferencer(n)
 }
 
 func (n *nodeExpandOutput) getOverrideValue(inst addrs.ModuleInstance) cty.Value {

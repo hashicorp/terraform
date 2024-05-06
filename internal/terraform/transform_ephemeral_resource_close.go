@@ -12,56 +12,6 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
-// graphNodeEphemeralResourceConsumer is implemented by graph node types that
-// can validly refer to ephemeral resources, to announce which ephemeral
-// resources they each depend on.
-//
-// This is used to decide the dependencies for [nodeEphemeralResourceClose]
-// nodes.
-type graphNodeEphemeralResourceConsumer interface {
-	// requiredEphemeralResources returns a set of all of the ephemeral
-	// resources that the receiver directly depends on when performing
-	// the given walk operation.
-	//
-	// Although the addrs package types can't constrain this statically,
-	// this method should return only addresses of mode
-	// [addrs.EphemeralResourceMode]. Resources of any other mode are invalid
-	// to return.
-	//
-	// walkOperation is normalized for implementation simplicity: it can be
-	// either [walkPlan] or [walkApply], and no other type.
-	requiredEphemeralResources(op walkOperation) addrs.Set[addrs.ConfigResource]
-}
-
-// requiredEphemeralResourcesForReferencer is a helper for implementing
-// [graphNodeEphemeralResourceConsumer] for any node type which implements
-// [GraphNodeReferencer] and whose reported references can entirely describe
-// the needed ephemeral resources.
-func requiredEphemeralResourcesForReferencer[T GraphNodeReferencer](n T) addrs.Set[addrs.ConfigResource] {
-	moduleAddr := n.ModulePath()
-	refs := n.References()
-	if len(refs) == 0 {
-		return nil
-	}
-	ret := addrs.MakeSet[addrs.ConfigResource]()
-	for _, ref := range refs {
-		var resourceAddr addrs.Resource
-		switch refAddr := ref.Subject.(type) {
-		case addrs.Resource:
-			resourceAddr = refAddr
-		case addrs.ResourceInstance:
-			resourceAddr = refAddr.Resource
-		default:
-			continue
-		}
-		if resourceAddr.Mode != addrs.EphemeralResourceMode {
-			continue // we only care about ephemeral resources here
-		}
-		ret.Add(resourceAddr.InModule(moduleAddr))
-	}
-	return ret
-}
-
 // ephemeralResourceCloseTransformer is a graph transformer that inserts
 // a [nodeEphemeralResourceClose] node for each ephemeral resource whose "open"
 // is represented by at least one existing node, and arranges for the close
@@ -138,11 +88,11 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 
 	consumerCount := addrs.MakeMap[addrs.ConfigResource, int]()
 	for _, v := range verts {
-		v, ok := v.(graphNodeEphemeralResourceConsumer)
+		v, ok := v.(GraphNodeReferencer)
 		if !ok {
 			continue
 		}
-		for _, consumedAddr := range v.requiredEphemeralResources(t.op) {
+		for _, consumedAddr := range requiredEphemeralResourcesForReferencer(v) {
 			if consumedAddr.Resource.Mode != addrs.EphemeralResourceMode {
 				// Should not happen: correct implementations of
 				// [graphNodeEphemeralResourceConsumer] only return
@@ -226,4 +176,33 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 	}
 
 	return nil
+}
+
+// requiredEphemeralResourcesForReferencer is a helper for implementing
+// [graphNodeEphemeralResourceConsumer] for any node type which implements
+// [GraphNodeReferencer] and whose reported references can entirely describe
+// the needed ephemeral resources.
+func requiredEphemeralResourcesForReferencer[T GraphNodeReferencer](n T) addrs.Set[addrs.ConfigResource] {
+	moduleAddr := n.ModulePath()
+	refs := n.References()
+	if len(refs) == 0 {
+		return nil
+	}
+	ret := addrs.MakeSet[addrs.ConfigResource]()
+	for _, ref := range refs {
+		var resourceAddr addrs.Resource
+		switch refAddr := ref.Subject.(type) {
+		case addrs.Resource:
+			resourceAddr = refAddr
+		case addrs.ResourceInstance:
+			resourceAddr = refAddr.Resource
+		default:
+			continue
+		}
+		if resourceAddr.Mode != addrs.EphemeralResourceMode {
+			continue // we only care about ephemeral resources here
+		}
+		ret.Add(resourceAddr.InModule(moduleAddr))
+	}
+	return ret
 }
