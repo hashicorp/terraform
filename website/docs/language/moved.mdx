@@ -1,6 +1,6 @@
 ---
 page_title: moved block configuration reference
-description: Learn about the `moved` block that you can specify in Terraform configurations. The `moved` block programmatically changes the location of resource.
+description: Learn about the `moved` block that you can specify in Terraform configurations. The `moved` block programmatically changes the location of a resource.
 ---
 
 # Moved block configuration reference
@@ -24,7 +24,6 @@ The following list outlines field hierarchy, language-specific data types, and r
 When every field is defined, a `moved` block has the following form:
 
 ```hcl
-
 moved = {
     from = <old address for the resource>
     to = <new address for the resource>
@@ -41,14 +40,14 @@ Map that specifies addresses for the resource. The following table describes the
 
 | Field | Description | Type | Required |
 | ---   | ---         | ---  | ---      |
-| `from` | Specifies the previous address of the resource addresses using a syntax that allows Terraform to select modules, resources, and resources inside child modules. | string | required |
-| `to` | Sepcifies the current address of the resource using a syntax that allows Terraform to select modules, resources, and resources inside child modules. | string | required |
+| `from` | Specifies a resource's previous address. The syntax allows Terraform to select modules, resources, and resources inside child modules. | string | required |
+| `to` | Specifies the new address to relocate the resource to. The syntax allows Terraform to select modules, resources, and resources inside child modules. | string | required |
 
-Before creating a new plan for the resource specified in the `to` field, Terraform checks the state for an existing object at the address specified in the `from` field. Terraform renames existing objects to the string specified in the `to` field then creates a plan. The plan directs Terraform to provision the resource specified in the `from` field as the resource specified in the `to` field. As a result, Terraform does not destroy the resource during the Terraform run.
+Before creating a new plan for the resource specified in the `to` field, Terraform checks the state for an existing object at the address specified in the `from` field. Terraform renames existing objects to the string specified in the `to` field and then creates a plan. The plan directs Terraform to provision the resource specified in the `from` field as the resource specified in the `to` field. As a result, Terraform does not destroy the resource during the Terraform run.
 
 ## Example
 
-The following example moves and AWS instance from address `aws_instance.a` to `aws_instance.b`:
+The following example moves an AWS instance from address `aws_instance.a` to `aws_instance.b`:
 
 ```hcl
 moved {
