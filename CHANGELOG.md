@@ -2,6 +2,7 @@
 
 BUG FIXES:
 * `terraform test`: Providers configured within an overridden module could panic. [GH-35110]
+* `core`: Fix crash when a provider incorrectly plans a nested object when the configuration is `null` [GH-35090]
 
 ## 1.8.2 (April 24, 2024)
 
