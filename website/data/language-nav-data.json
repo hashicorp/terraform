@@ -221,6 +221,21 @@
     ]
   },
   {
+    "title": "Moved block",
+    "path": "moved"
+  },
+  { "title": "Checks", "path": "checks" },
+  {
+      "title": "Import",
+      "routes": [
+       { "title": "Overview", "path": "import" },
+       {
+         "title": "Generating Configuration",
+         "path": "import/generating-configuration"
+       }
+    ]
+  },
+  {
     "title": "Expressions",
     "routes": [
       { "title": "Overview", "path": "expressions" },
