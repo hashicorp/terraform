@@ -85,10 +85,8 @@ func (s *State) WriteState(state *states.State) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// We create a deep copy of the state here, because the caller also has
-	// a reference to the given object and can potentially go on to mutate
-	// it after we return, but we want the snapshot at this point in time.
-	s.state = state.DeepCopy()
+	// We don't create a DeepCopy because it's already created in the `update_state_hook`
+	s.state = state
 
 	return nil
 }
