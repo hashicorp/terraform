@@ -1510,6 +1510,7 @@ func TestAssertPlanValid(t *testing.T) {
 					// When an object has dynamic attrs, the map may be
 					// handled as an object.
 					"map_as_obj": {
+						Optional: true,
 						NestedType: &configschema.Object{
 							Nesting: configschema.NestingMap,
 							Attributes: map[string]*configschema.Attribute{
@@ -1522,6 +1523,7 @@ func TestAssertPlanValid(t *testing.T) {
 						},
 					},
 					"list": {
+						Optional: true,
 						NestedType: &configschema.Object{
 							Nesting: configschema.NestingList,
 							Attributes: map[string]*configschema.Attribute{
@@ -1586,11 +1588,23 @@ func TestAssertPlanValid(t *testing.T) {
 					"one": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.NullVal(cty.DynamicPseudoType),
 					}),
+					"two": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name": cty.DynamicPseudoType,
+					})),
+					"three": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name": cty.DynamicPseudoType,
+					})),
 				}),
 				"list": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"name": cty.NullVal(cty.String),
 					}),
+					cty.NullVal(cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					})),
+					cty.NullVal(cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					})),
 				}),
 				"set": cty.SetVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
@@ -1611,11 +1625,26 @@ func TestAssertPlanValid(t *testing.T) {
 					"one": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("computed"),
 					}),
+					// The config was null, but some providers may return a
+					// non-null object here, so we need to accept this for
+					// compatibility.
+					"two": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.NullVal(cty.String),
+					}),
+					"three": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name": cty.DynamicPseudoType,
+					})),
 				}),
 				"list": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("computed"),
 					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.NullVal(cty.String),
+					}),
+					cty.NullVal(cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					})),
 				}),
 				"set": cty.SetVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
