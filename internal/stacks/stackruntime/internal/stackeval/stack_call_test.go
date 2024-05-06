@@ -190,7 +190,10 @@ func TestStackCallCheckInstances(t *testing.T) {
 			// when we know there are zero instances, which would be a non-nil
 			// empty map.
 			gotInsts, diags := call.CheckInstances(ctx, InspectPhase)
-			assertNoDiags(t, diags)
+			assertMatchingDiag(t, diags, func(diag tfdiags.Diagnostic) bool {
+				return (diag.Severity() == tfdiags.Error &&
+					diag.Description().Detail == "The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this stack.")
+			})
 			if gotInsts != nil {
 				t.Errorf("wrong instances; want nil\n%#v", gotInsts)
 			}
@@ -203,30 +206,30 @@ func TestStackCallCheckInstances(t *testing.T) {
 				},
 			})
 
-			// For now it's invalid to use an unknown value in for_each.
-			// Later we're expecting to make this succeed but announce that
-			// planning everything beneath this call must be deferred to a
-			// future plan after everything else has been applied first.
 			call := getStackCall(ctx, main)
 			gotVal, diags := call.CheckForEachValue(ctx, InspectPhase)
-			assertMatchingDiag(t, diags, func(diag tfdiags.Diagnostic) bool {
-				return (diag.Severity() == tfdiags.Error &&
-					diag.Description().Detail == "The for_each value must not be derived from values that will be determined only during the apply phase.")
-			})
+			assertNoDiags(t, diags)
 			wantVal := cty.UnknownVal(cty.Map(cty.EmptyObject))
 			if !wantVal.RawEquals(gotVal) {
 				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", gotVal, wantVal)
 			}
 
-			// When the for_each expression is invalid, CheckInstances should
-			// return nil to represent that we don't know enough to predict
-			// how many instances there are. This is a different result than
-			// when we know there are zero instances, which would be a non-nil
-			// empty map.
 			gotInsts, diags := call.CheckInstances(ctx, InspectPhase)
 			assertNoDiags(t, diags)
-			if gotInsts != nil {
-				t.Errorf("wrong instances; want nil\n%#v", gotInsts)
+			if got, want := len(gotInsts), 1; got != want {
+				t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, gotInsts)
+			}
+
+			if gotInsts[addrs.WildcardKey] == nil {
+				t.Fatalf("missing expected addrs.WildcardKey instance\n%#v", gotInsts)
+			}
+
+			if gotInsts[addrs.WildcardKey].repetition.EachKey.IsKnown() {
+				t.Errorf("EachKey should be unknown, but is known")
+			}
+
+			if gotInsts[addrs.WildcardKey].repetition.EachValue.IsKnown() {
+				t.Errorf("EachValue should be unknown, but is known")
 			}
 		})
 	})
@@ -387,10 +390,15 @@ func TestStackCallResultValue(t *testing.T) {
 			// When the for_each expression is unknown, the result value
 			// is unknown too so we can use it as a placeholder for partial
 			// downstream checking.
-			want := cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{
-				"test_map":    cty.Map(cty.String),
-				"test_string": cty.String,
-			})))
+			want := cty.MapVal(
+				map[string]cty.Value{
+					"*": cty.ObjectVal(map[string]cty.Value{
+						"test_map":    cty.UnknownVal(cty.Map(cty.String)),
+						"test_string": cty.UnknownVal(cty.String),
+					}),
+				},
+			)
+
 			// FIXME: the cmp transformer ctydebug.CmpOptions seems to find
 			// this particular pair of values troubling, causing it to get
 			// into an infinite recursion. For now we'll just use RawEquals,
