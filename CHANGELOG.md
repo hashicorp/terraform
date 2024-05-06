@@ -1,5 +1,8 @@
 ## 1.8.3 (Unreleased)
 
+BUG FIXES:
+* `terraform test`: Providers configured within an overridden module could panic. [GH-35110]
+
 ## 1.8.2 (April 24, 2024)
 
 BUG FIXES:
