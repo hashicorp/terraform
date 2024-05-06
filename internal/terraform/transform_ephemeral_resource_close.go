@@ -167,6 +167,44 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 		}
 	}
 
+	// Because this graph transformer runs very late in the sequence, we'll
+	// also need to do some work to make sure the close node is associated
+	// with the same provider as the open nodes; the open nodes get that
+	// dealt with by earlier transformers, and we can't benefit directly from
+	// that here but we can at least make use of the results of that earlier
+	// work.
+	//
+	// The idea here is that each open node should have a graphNodeCloseProvider
+	// depending on it, and we're going to just connect them all up to
+	// also depend on the corresponding ephemeral value close node, assuming
+	// that the earlier provider-close wiring knew what it was doing and so we
+	// don't need to sweat the details too much in here.
+	for _, elem := range closeNodes.Elems {
+		configAddr := elem.Key
+		closeNode := elem.Value
+		for _, openNode := range openNodes.Get(configAddr).Elems() {
+			for _, dependent := range g.UpEdges(openNode).List() {
+				// FIXME: Ugh... testing for a concrete node type rather than
+				// an interface isn't great here. But as long as ephemeral
+				// values is just a prototype it's not desirable to go on
+				// a big refactoring spree, so we'll just live with it.
+				//
+				// If you're here considering how to turn this prototype into
+				// shippable code, _please_ do something about this because
+				// tight coupling with specific concrete node types has
+				// historically been a maintenence hazard.
+				if v, ok := dependent.(*graphNodeCloseProvider); ok {
+					// any "close provider" node that depends on any of our
+					// opens should also depend on our close, because if
+					// a provider needs to be running to open then it needs
+					// to be running to close too.
+					log.Printf("[TRACE] ephemeralResourceCloseTransformer: %s must run after %s", dag.VertexName(v), dag.VertexName(closeNode))
+					g.Connect(dag.BasicEdge(v, closeNode))
+				}
+			}
+		}
+	}
+
 	// Finally, if we found any ephemeral resources that don't have any
 	// consumers then we'll prune out all of their open and close nodes
 	// to avoid redundantly opening and closing something that we aren't
