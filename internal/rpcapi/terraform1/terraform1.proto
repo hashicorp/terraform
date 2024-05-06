@@ -808,6 +808,22 @@ message PlannedChange {
     }
 }
 
+// Deferred contains all the metadata about a the deferral of a resource
+// instance change.
+message Deferred {
+    // Reason describes the reason why a resource instance change was
+    // deferred.
+    enum Reason {
+        INVALID = 0;
+        INSTANCE_COUNT_UNKNOWN = 1;
+        RESOURCE_CONFIG_UNKNOWN = 2;
+        PROVIDER_CONFIG_UNKNOWN = 3;
+        ABSENT_PREREQ = 4;
+        DEFERRED_PREREQ = 5;
+    }
+    Reason reason = 1;
+}
+
 // Describes a change made during a Stacks.ApplyStackChanges call.
 //
 // All of the events of this type taken together represent a sort of "patch"
@@ -949,6 +965,7 @@ message StackChangeProgress {
         ProvisionerOutput provisioner_output = 5;
         ComponentInstanceChanges component_instance_changes = 6;
         ComponentInstances component_instances = 7;
+        DeferredResourceInstancePlannedChange deferred_resource_instance_planned_change = 8;
     }
 
     // ComponentInstanceStatus describes the current status of a component instance
@@ -1006,6 +1023,13 @@ message StackChangeProgress {
         message Imported {
             string import_id = 1;
         }
+    }
+
+    // DeferredResourceInstancePlannedChange represents a planned change for a
+    // resource instance that is deferred due to the reason provided.
+    message DeferredResourceInstancePlannedChange {
+      Deferred deferred = 1;
+      ResourceInstancePlannedChange change = 2;
     }
 
     // ProvisionerStatus represents the progress of a given provisioner during its
