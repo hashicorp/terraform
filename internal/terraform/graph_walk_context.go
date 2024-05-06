@@ -97,16 +97,17 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 	// so that we can safely run multiple evaluations at once across
 	// different modules.
 	evaluator := &Evaluator{
-		Meta:          w.Context.meta,
-		Config:        w.Config,
-		Operation:     w.Operation,
-		State:         w.State,
-		Changes:       w.Changes,
-		Plugins:       w.Context.plugins,
-		Instances:     w.InstanceExpander,
-		NamedValues:   w.NamedValues,
-		Deferrals:     w.Deferrals,
-		PlanTimestamp: w.PlanTimestamp,
+		Meta:               w.Context.meta,
+		Config:             w.Config,
+		Operation:          w.Operation,
+		State:              w.State,
+		Changes:            w.Changes,
+		Plugins:            w.Context.plugins,
+		Instances:          w.InstanceExpander,
+		EphemeralResources: w.EphemeralResources,
+		NamedValues:        w.NamedValues,
+		Deferrals:          w.Deferrals,
+		PlanTimestamp:      w.PlanTimestamp,
 	}
 
 	ctx := &BuiltinEvalContext{
