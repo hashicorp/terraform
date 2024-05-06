@@ -71,6 +71,10 @@ type deferredActionsTestStage struct {
 	// buildOpts is an optional field, that lets the test specify additional
 	// options to be used when building the plan.
 	buildOpts func(opts *PlanOpts)
+
+	// wantDiagnostic is an optional field, that lets the test specify the
+	// expected diagnostics to be returned by the plan.
+	wantDiagnostic func(diags tfdiags.Diagnostics) bool
 }
 
 type ExpectedDeferred struct {
@@ -1588,6 +1592,62 @@ output "a" {
 		},
 	}
 
+	resourceReadButForbiddenTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "a"
+}
+output "a" {
+	value = test.a
+}
+		`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "deferred_read", // this signals the mock provider to defer the read
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.RefreshOnlyMode
+					opts.DeferralAllowed = false
+				},
+				inputs:      map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{},
+
+				wantActions: map[string]plans.Action{},
+				wantOutputs: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+				},
+				wantDeferred: map[string]ExpectedDeferred{},
+				complete:     false,
+
+				wantDiagnostic: func(diags tfdiags.Diagnostics) bool {
+					for _, diag := range diags {
+						if diag.Description().Summary == "Provider deferred changes when Terraform did not allow deferrals" {
+							return true
+						}
+					}
+					return false
+				},
+			},
+		},
+	}
+
 	readDataSourceTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
@@ -1637,6 +1697,56 @@ output "b" {
 					"test.b": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
 				},
 				complete: false,
+			},
+		},
+	}
+
+	readDataSourceButForbiddenTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+data "test" "a" {
+	name       = "deferred_read"
+}
+
+resource "test" "b" {
+	name = data.test.a.name
+}
+
+output "a" {
+	value = data.test.a
+}
+
+output "b" {
+	value = test.b
+}
+	`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.DeferralAllowed = false
+				},
+				inputs:      map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{},
+				wantActions: map[string]plans.Action{},
+
+				wantOutputs: map[string]cty.Value{
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					})),
+					"b": cty.NullVal(cty.DynamicPseudoType),
+				},
+				wantDeferred: map[string]ExpectedDeferred{},
+				complete:     false,
+
+				wantDiagnostic: func(diags tfdiags.Diagnostics) bool {
+					for _, diag := range diags {
+						if diag.Description().Summary == "Provider deferred changes when Terraform did not allow deferrals" {
+							return true
+						}
+					}
+					return false
+				},
 			},
 		},
 	}
@@ -2026,6 +2136,57 @@ output "a" {
 		},
 	}
 
+	planDestroyResourceChangeButForbidden = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "deferred_resource_change"
+}
+output "a" {
+	value = test.a
+}
+		`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "deferred_resource_change",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.DestroyMode
+					opts.DeferralAllowed = false
+				},
+				inputs:      map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{},
+
+				wantActions: map[string]plans.Action{},
+
+				wantOutputs:  map[string]cty.Value{},
+				wantDeferred: map[string]ExpectedDeferred{},
+				complete:     false,
+				wantDiagnostic: func(diags tfdiags.Diagnostics) bool {
+					for _, diag := range diags {
+						if diag.Description().Summary == "Provider deferred changes when Terraform did not allow deferrals" {
+							return true
+						}
+					}
+					return false
+				},
+			},
+		},
+	}
+
 	importDeferredTest = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
@@ -2082,6 +2243,50 @@ import {
 			},
 		},
 	}
+
+	importDeferredButForbiddenTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "import_id" {
+    type = string
+}
+
+resource "test" "a" {
+    name = "a"
+}
+
+import {
+    id = var.import_id
+    to = test.a
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					// We want to test if the user gets presented with a diagnostic in case no deferrals are allowed
+					opts.DeferralAllowed = false
+				},
+				inputs: map[string]cty.Value{
+					"import_id": cty.StringVal("deferred"), // Telling the test case to defer the import
+				},
+				wantPlanned:  map[string]cty.Value{},
+				wantActions:  make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{},
+				wantOutputs:  make(map[string]cty.Value),
+				complete:     false,
+
+				wantDiagnostic: func(diags tfdiags.Diagnostics) bool {
+					for _, diag := range diags {
+						if diag.Description().Summary == "Provider deferred changes when Terraform did not allow deferrals" {
+							return true
+						}
+					}
+					return false
+				},
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
@@ -2108,6 +2313,10 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"plan_delete_resource_change":                       planDeleteResourceChange,
 		"plan_destroy_resource_change":                      planDestroyResourceChange,
 		"import_deferred":                                   importDeferredTest,
+		"import_deferred_but_forbidden":                     importDeferredButForbiddenTest,
+		"resource_read_but_forbidden":                       resourceReadButForbiddenTest,
+		"data_read_but_forbidden":                           readDataSourceButForbiddenTest,
+		"plan_destroy_resource_change_but_forbidden":        planDestroyResourceChangeButForbidden,
 	}
 
 	for name, test := range tests {
@@ -2170,11 +2379,25 @@ func TestContextApply_deferredActions(t *testing.T) {
 						var diags tfdiags.Diagnostics
 						plan, diags = ctx.Plan(cfg, state, opts)
 
-						// We expect the correct planned changes and no diagnostics.
-						if stage.allowWarnings {
-							assertNoErrors(t, diags)
+						if stage.wantDiagnostic == nil {
+							// We expect the correct planned changes and no diagnostics.
+							if stage.allowWarnings {
+								assertNoErrors(t, diags)
+							} else {
+								assertNoDiagnostics(t, diags)
+							}
 						} else {
-							assertNoDiagnostics(t, diags)
+							if !stage.wantDiagnostic(diags) {
+								t.Fatalf("missing expected diagnostics: %s", diags)
+							} else {
+								// We don't want to make any further assertions in this case.
+								// If diagnostics are expected it's valid that no plan may be returned.
+								return
+							}
+						}
+
+						if plan == nil {
+							t.Fatalf("plan is nil")
 						}
 
 						if plan.Complete != stage.complete {
