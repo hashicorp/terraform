@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -375,6 +376,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 	var plan *plans.ResourceInstanceChange
 
 	absAddr := n.Addr
+	deferralAllowed := ctx.Deferrals().DeferralAllowed()
 
 	if n.ResolvedProvider.Provider.Type == "" {
 		if deposedKey == "" {
@@ -442,10 +444,16 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			PriorPrivate:     currentState.Private,
 			ProviderMeta:     metaConfigVal,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+				DeferralAllowed: deferralAllowed,
 			},
 		})
 		deferred = resp.Deferred
+
+		// If we don't support deferrals, but the provider reports a deferral and does not
+		// emit any error level diagnostics, we should emit an error.
+		if resp.Deferred != nil && !deferralAllowed && !resp.Diagnostics.HasErrors() {
+			diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
+		}
 
 		// We may not have a config for all destroys, but we want to reference
 		// it in the diagnostics if we do.
@@ -657,6 +665,12 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			},
 		})
 
+		// If we don't support deferrals, but the provider reports a deferral and does not
+		// emit any error level diagnostics, we should emit an error.
+		if resp.Deferred != nil && !deferralAllowed && !resp.Diagnostics.HasErrors() {
+			diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
+		}
+
 		if resp.Deferred != nil {
 			deferred = resp.Deferred
 		}
@@ -762,6 +776,8 @@ func (n *NodeAbstractResourceInstance) plan(
 	var deferred *providers.Deferred
 
 	resource := n.Addr.Resource.Resource
+	deferralAllowed := ctx.Deferrals().DeferralAllowed()
+
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return nil, nil, deferred, keyData, diags.Append(err)
@@ -936,9 +952,14 @@ func (n *NodeAbstractResourceInstance) plan(
 			PriorPrivate:     priorPrivate,
 			ProviderMeta:     metaConfigVal,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+				DeferralAllowed: deferralAllowed,
 			},
 		})
+		// If we don't support deferrals, but the provider reports a deferral and does not
+		// emit any error level diagnostics, we should emit an error.
+		if resp.Deferred != nil && !deferralAllowed && !resp.Diagnostics.HasErrors() {
+			diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
+		}
 	}
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
@@ -1093,9 +1114,15 @@ func (n *NodeAbstractResourceInstance) plan(
 				PriorPrivate:     plannedPrivate,
 				ProviderMeta:     metaConfigVal,
 				ClientCapabilities: providers.ClientCapabilities{
-					DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+					DeferralAllowed: deferralAllowed,
 				},
 			})
+
+			// If we don't support deferrals, but the provider reports a deferral and does not
+			// emit any error level diagnostics, we should emit an error.
+			if resp.Deferred != nil && !deferralAllowed && !resp.Diagnostics.HasErrors() {
+				diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
+			}
 		}
 		// We need to tread carefully here, since if there are any warnings
 		// in here they probably also came out of our previous call to
@@ -1463,6 +1490,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	var deferred *providers.Deferred
 
 	config := *n.Config
+	deferralAllowed := ctx.Deferrals().DeferralAllowed()
 
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
@@ -1525,9 +1553,15 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 			Config:       configVal,
 			ProviderMeta: metaConfigVal,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+				DeferralAllowed: deferralAllowed,
 			},
 		})
+
+		// If we don't support deferrals, but the provider reports a deferral and does not
+		// emit any error level diagnostics, we should emit an error.
+		if resp.Deferred != nil && !deferralAllowed && !resp.Diagnostics.HasErrors() {
+			diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
+		}
 
 		if resp.Deferred != nil {
 			deferred = resp.Deferred

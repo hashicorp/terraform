@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Deferred keeps track of deferrals that have already happened, to help
@@ -434,4 +435,10 @@ func (d *Deferred) ReportModuleExpansionDeferred(addr addrs.PartialExpandedModul
 		panic(fmt.Sprintf("duplicate deferral report for %s", addr))
 	}
 	d.partialExpandedModulesDeferred.Add(addr)
+}
+
+// UnexpectedProviderDeferralDiagnostic is a diagnostic that indicates that a
+// provider was deferred although deferrals were not allowed.
+func UnexpectedProviderDeferralDiagnostic(addrs addrs.AbsResourceInstance) tfdiags.Diagnostic {
+	return tfdiags.Sourceless(tfdiags.Error, "Provider deferred changes when Terraform did not allow deferrals", fmt.Sprintf("The provider signaled a deferred action for %q, but in this context deferrals are disabled. This is a bug in the provider, please file an issue.", addrs.String()))
 }

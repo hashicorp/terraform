@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -477,6 +478,7 @@ func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repDat
 }
 
 func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, importId string, provider providers.Interface, providerSchema providers.ProviderSchema) (*states.ResourceInstanceObject, *providers.Deferred, tfdiags.Diagnostics) {
+	deferralAllowed := ctx.Deferrals().DeferralAllowed()
 	var diags tfdiags.Diagnostics
 	absAddr := addr.Resource.Absolute(ctx.Path())
 	hookResourceID := HookResourceIdentity{
@@ -558,9 +560,14 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			TypeName: addr.Resource.Resource.Type,
 			ID:       importId,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+				DeferralAllowed: deferralAllowed,
 			},
 		})
+	}
+	// If we don't support deferrals, but the provider reports a deferral and does not
+	// emit any error level diagnostics, we should emit an error.
+	if resp.Deferred != nil && !deferralAllowed && !resp.Diagnostics.HasErrors() {
+		diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
 	}
 	diags = diags.Append(resp.Diagnostics)
 	deferred = resp.Deferred
