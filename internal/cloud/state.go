@@ -515,8 +515,7 @@ func (s *State) Delete(force bool) error {
 }
 
 // GetRootOutputValues fetches output values from HCP Terraform
-func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
-	ctx := context.Background()
+func (s *State) GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
 
 	so, err := s.tfeClient.StateVersionOutputs.ReadCurrent(ctx, s.workspace.ID)
 
