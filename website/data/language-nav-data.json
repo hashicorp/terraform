@@ -221,6 +221,10 @@
     ]
   },
   {
+    "title": "Moved block",
+    "path": "moved"
+  },
+  {
     "title": "Expressions",
     "routes": [
       { "title": "Overview", "path": "expressions" },
