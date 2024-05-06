@@ -140,16 +140,8 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 	cfg, instDiags, workspaceDeprecations := i.installDescendentModules(rootMod, manifest, walker, installErrsOnly)
 	diags = append(diags, instDiags...)
 	if workspaceDeprecations.HasDeprecations() {
-		deprecationString := workspaceDeprecations.BuildDeprecationWarningString()
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "Deprecated modules found, consider installing updated versions. The following are affected:",
-			Detail:   deprecationString,
-			Extra: &configs.ModuleDeprecationDiagnosticExtra{
-				MessageCode: "module_deprecation_warning",
-			},
-		})
-
+		moduleDeprecationWarning := workspaceDeprecations.BuildDeprecationWarning()
+		diags = diags.Append(moduleDeprecationWarning)
 	}
 
 	return cfg, diags
@@ -277,7 +269,6 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 
 						regsrcAddr := regsrc.ModuleFromRegistryPackageAddr(addr.Package)
 						resp, err := regClient.ModuleVersions(ctx, regsrcAddr)
-
 						if err != nil {
 							log.Printf("[DEBUG] Deprecation for %s could not be checked: call to registry failed", addr.Package.Namespace)
 
