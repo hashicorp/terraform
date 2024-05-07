@@ -258,6 +258,34 @@ func (b *Local) opApply(
 		applyOpts = &terraform.ApplyOpts{
 			SetVariables: applyTimeValues,
 		}
+	} else {
+		// When the ephemeral values experiment isn't enabled, no variables
+		// may be _explicitly_ set during the apply phase at all, but it's
+		// valid for variable to show up from more implicit locations like
+		// environment variables and .auto.tfvars files.
+		if len(op.Variables) != 0 && !combinedPlanApply {
+			for _, rawV := range op.Variables {
+				// We're "parsing" only to get the resulting value's SourceType,
+				// so we'll use configs.VariableParseLiteral just because it's
+				// the most liberal interpretation and so least likely to
+				// fail with an unrelated error.
+				v, _ := rawV.ParseVariableValue(configs.VariableParseLiteral)
+				if v == nil {
+					// We'll ignore any that don't parse at all, because
+					// they'll fail elsewhere in this process anyway.
+					continue
+				}
+				if v.SourceType == terraform.ValueFromCLIArg || v.SourceType == terraform.ValueFromNamedFile {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Can't set variables when applying a saved plan",
+						"The -var and -var-file options cannot be used when applying a saved plan file, because a saved plan includes the variable values that were set when it was created.",
+					))
+					op.ReportResult(runningOp, diags)
+					return
+				}
+			}
+		}
 	}
 
 	// Start the apply in a goroutine so that we can be interrupted.
