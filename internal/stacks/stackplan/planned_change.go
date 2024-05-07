@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackutils"
@@ -388,6 +389,81 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 		Descriptions: descs,
 	}, nil
 }
+
+// PlannedChangeDeferredResourceInstancePlanned announces that an action that Terraform
+// is proposing to take if this plan is applied is being deferred.
+type PlannedChangeDeferredResourceInstancePlanned struct {
+	// ResourceInstancePlanned is the planned change that is being deferred.
+	ResourceInstancePlanned PlannedChangeResourceInstancePlanned
+
+	// DeferredReason is the reason why the change is being deferred.
+	DeferredReason providers.DeferredReason
+}
+
+var _ PlannedChange = (*PlannedChangeDeferredResourceInstancePlanned)(nil)
+
+// PlannedChangeProto implements PlannedChange.
+func (dpc *PlannedChangeDeferredResourceInstancePlanned) PlannedChangeProto() (*terraform1.PlannedChange, error) {
+	change, err := dpc.ResourceInstancePlanned.PlanResourceInstanceChangePlannedProto()
+	if err != nil {
+		return nil, err
+	}
+
+	var deferred tfstackdata1.PlanDeferredResourceInstanceChange_Deferred
+	switch dpc.DeferredReason {
+	case providers.DeferredReasonInstanceCountUnknown:
+		deferred.Reason = tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_INSTANCE_COUNT_UNKNOWN
+	case providers.DeferredReasonResourceConfigUnknown:
+		deferred.Reason = tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_RESOURCE_CONFIG_UNKNOWN
+	case providers.DeferredReasonProviderConfigUnknown:
+		deferred.Reason = tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_PROVIDER_CONFIG_UNKNOWN
+	case providers.DeferredReasonAbsentPrereq:
+		deferred.Reason = tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_ABSENT_PREREQ
+	case providers.DeferredReasonDeferredPrereq:
+		deferred.Reason = tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_DEFERRED_PREREQ
+	default:
+		deferred.Reason = tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_INVALID
+	}
+
+	var raw anypb.Any
+	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanDeferredResourceInstanceChange{
+		Change:   change,
+		Deferred: &deferred,
+	}, proto.MarshalOptions{})
+	if err != nil {
+		return nil, err
+	}
+	ricd, err := dpc.ResourceInstancePlanned.ChangeDesciption()
+	if err != nil {
+		return nil, err
+	}
+
+	var deferred2 terraform1.Deferred
+	switch dpc.DeferredReason {
+	case providers.DeferredReasonInstanceCountUnknown:
+		deferred2.Reason = terraform1.Deferred_INSTANCE_COUNT_UNKNOWN
+	case providers.DeferredReasonResourceConfigUnknown:
+		deferred2.Reason = terraform1.Deferred_RESOURCE_CONFIG_UNKNOWN
+	case providers.DeferredReasonProviderConfigUnknown:
+		deferred2.Reason = terraform1.Deferred_PROVIDER_CONFIG_UNKNOWN
+	case providers.DeferredReasonAbsentPrereq:
+		deferred2.Reason = terraform1.Deferred_ABSENT_PREREQ
+	case providers.DeferredReasonDeferredPrereq:
+		deferred2.Reason = terraform1.Deferred_DEFERRED_PREREQ
+	default:
+		deferred2.Reason = terraform1.Deferred_INVALID
+	}
+
+	var descs []*terraform1.PlannedChange_ChangeDescription
+	descs = append(descs, &terraform1.PlannedChange_ChangeDescription{
+		Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstanceDeferred{
+			ResourceInstanceDeferred: &terraform1.PlannedChange_ResourceInstanceDeferred{
+				ResourceInstance: ricd.GetResourceInstancePlanned(),
+				Deferred:         &deferred2,
+			},
+		},
+	})
+
 	return &terraform1.PlannedChange{
 		Raw:          []*anypb.Any{&raw},
 		Descriptions: descs,

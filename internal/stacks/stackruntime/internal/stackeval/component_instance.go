@@ -1344,6 +1344,52 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 				seenObjects.Add(addr)
 			}
 		}
+
+		// We need to keep track of the deferred changes as well
+		for _, dr := range corePlan.DeferredResources {
+			rsrcChange := dr.ChangeSrc
+			objAddr := addrs.AbsResourceInstanceObject{
+				ResourceInstance: rsrcChange.Addr,
+				DeposedKey:       rsrcChange.DeposedKey,
+			}
+			var priorStateSrc *states.ResourceInstanceObjectSrc
+			if corePlan.PriorState != nil {
+				priorStateSrc = corePlan.PriorState.ResourceInstanceObjectSrc(objAddr)
+			}
+
+			schema, err := c.resourceTypeSchema(
+				ctx,
+				rsrcChange.ProviderAddr.Provider,
+				rsrcChange.Addr.Resource.Resource.Mode,
+				rsrcChange.Addr.Resource.Resource.Type,
+			)
+			if err != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Can't fetch provider schema to save plan",
+					fmt.Sprintf(
+						"Failed to retrieve the schema for %s from provider %s: %s. This is a bug in Terraform.",
+						rsrcChange.Addr, rsrcChange.ProviderAddr.Provider, err,
+					),
+				))
+				continue
+			}
+
+			plannedChangeResourceInstance := stackplan.PlannedChangeResourceInstancePlanned{
+				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+					Component: c.Addr(),
+					Item:      objAddr,
+				},
+				ChangeSrc:          rsrcChange,
+				Schema:             schema,
+				PriorStateSrc:      priorStateSrc,
+				ProviderConfigAddr: rsrcChange.ProviderAddr,
+			}
+			changes = append(changes, &stackplan.PlannedChangeDeferredResourceInstancePlanned{
+				DeferredReason:          dr.DeferredReason,
+				ResourceInstancePlanned: plannedChangeResourceInstance,
+			})
+		}
 	}
 
 	return changes, diags

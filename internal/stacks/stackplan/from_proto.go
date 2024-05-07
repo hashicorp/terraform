@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
@@ -122,9 +123,10 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 					PlannedOutputValues: outputVals,
 					PlannedChecks:       checkResults,
 
-					ResourceInstancePlanned:        addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.ResourceInstanceChangeSrc](),
-					ResourceInstancePriorState:     addrs.MakeMap[addrs.AbsResourceInstanceObject, *states.ResourceInstanceObjectSrc](),
-					ResourceInstanceProviderConfig: addrs.MakeMap[addrs.AbsResourceInstanceObject, addrs.AbsProviderConfig](),
+					ResourceInstancePlanned:         addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.ResourceInstanceChangeSrc](),
+					ResourceInstancePriorState:      addrs.MakeMap[addrs.AbsResourceInstanceObject, *states.ResourceInstanceObjectSrc](),
+					ResourceInstanceProviderConfig:  addrs.MakeMap[addrs.AbsResourceInstanceObject, addrs.AbsProviderConfig](),
+					DeferredResourceInstanceChanges: addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.DeferredResourceInstanceChangeSrc](),
 				})
 			}
 			c := ret.Components.Get(addr)
@@ -203,6 +205,79 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 				// object.
 				c.ResourceInstancePriorState.Put(fullAddr, nil)
 			}
+
+		case *tfstackdata1.PlanDeferredResourceInstanceChange:
+			if msg.Deferred == nil {
+				return nil, fmt.Errorf("missing deferred from PlanDeferredResourceInstanceChange")
+			}
+
+			cAddr, diags := stackaddrs.ParseAbsComponentInstanceStr(msg.Change.ComponentInstanceAddr)
+			if diags.HasErrors() {
+				return nil, fmt.Errorf("invalid component instance address syntax in %q", msg.Change.ComponentInstanceAddr)
+			}
+			riAddr, diags := addrs.ParseAbsResourceInstanceStr(msg.Change.ResourceInstanceAddr)
+			if diags.HasErrors() {
+				return nil, fmt.Errorf("invalid resource instance address syntax in %q", msg.Change.ResourceInstanceAddr)
+			}
+			providerConfigAddr, diags := addrs.ParseAbsProviderConfigStr(msg.Change.ProviderConfigAddr)
+			if diags.HasErrors() {
+				return nil, fmt.Errorf("invalid provider configuration address syntax in %q", msg.Change.ProviderConfigAddr)
+			}
+
+			var deposedKey addrs.DeposedKey
+			if msg.Change.DeposedKey != "" {
+				deposedKey, err = addrs.ParseDeposedKey(msg.Change.DeposedKey)
+				if err != nil {
+					return nil, fmt.Errorf("invalid deposed key syntax in %q", msg.Change.DeposedKey)
+				}
+			}
+			fullAddr := addrs.AbsResourceInstanceObject{
+				ResourceInstance: riAddr,
+				DeposedKey:       deposedKey,
+			}
+
+			c, ok := ret.Components.GetOk(cAddr)
+			if !ok {
+				return nil, fmt.Errorf("deferred resource instance for unannounced component instance %s", cAddr)
+			}
+
+			riPlan, err := planfile.ResourceChangeFromProto(msg.Change.Change)
+			if err != nil {
+				return nil, fmt.Errorf("invalid resource instance change: %w", err)
+			}
+			// We currently have some redundant information in the nested
+			// "change" object due to having reused some protobuf message
+			// types from the traditional Terraform CLI planproto format.
+			// We'll make sure the redundant information is consistent
+			// here because otherwise they're likely to cause
+			// difficult-to-debug problems downstream.
+			if !riPlan.Addr.Equal(fullAddr.ResourceInstance) && riPlan.DeposedKey == fullAddr.DeposedKey {
+				return nil, fmt.Errorf("planned change has inconsistent address to its containing object")
+			}
+			if !riPlan.ProviderAddr.Equal(providerConfigAddr) {
+				return nil, fmt.Errorf("planned change has inconsistent provider configuration address to its containing object")
+			}
+
+			var deferredReason providers.DeferredReason
+			switch msg.Deferred.Reason {
+			case tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_INSTANCE_COUNT_UNKNOWN:
+				deferredReason = providers.DeferredReasonInstanceCountUnknown
+			case tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_RESOURCE_CONFIG_UNKNOWN:
+				deferredReason = providers.DeferredReasonResourceConfigUnknown
+			case tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_PROVIDER_CONFIG_UNKNOWN:
+				deferredReason = providers.DeferredReasonProviderConfigUnknown
+			case tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_ABSENT_PREREQ:
+				deferredReason = providers.DeferredReasonAbsentPrereq
+			case tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_DEFERRED_PREREQ:
+				deferredReason = providers.DeferredReasonDeferredPrereq
+			default:
+				deferredReason = providers.DeferredReasonInvalid
+			}
+
+			c.DeferredResourceInstanceChanges.Put(fullAddr, &plans.DeferredResourceInstanceChangeSrc{
+				ChangeSrc:      riPlan,
+				DeferredReason: deferredReason,
+			})
 
 		default:
 			// Should not get here, because a stack plan can only be loaded by
