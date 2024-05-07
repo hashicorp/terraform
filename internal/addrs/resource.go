@@ -513,6 +513,30 @@ const (
 	EphemeralResourceMode ResourceMode = 'E'
 )
 
+// PersistsBetweenRounds returns true only if resource instances of this mode
+// persist in the Terraform state from one plan/apply round to the next.
+func (m ResourceMode) PersistsBetweenRounds() bool {
+	switch m {
+	case EphemeralResourceMode:
+		return false
+	default:
+		return true
+	}
+}
+
+// PersistsPlanToApply returns true only if resource instances of this mode
+// can have planned actions that are decided during the plan phase and then
+// carried out during the apply phase, meaning that they must be recorded
+// as part of a saved plan.
+func (m ResourceMode) PersistsPlanToApply() bool {
+	switch m {
+	case EphemeralResourceMode:
+		return false
+	default:
+		return true
+	}
+}
+
 // AbsResourceInstanceObject represents one of the specific remote objects
 // associated with a resource instance.
 //

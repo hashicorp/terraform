@@ -63,6 +63,8 @@ func (c *Changes) Empty() bool {
 // resource instance of the given address, if any. Returns nil if no change is
 // planned.
 func (c *Changes) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInstanceChangeSrc {
+	assertPlannableResource(addr.Resource.Resource)
+
 	for _, rc := range c.Resources {
 		if rc.Addr.Equal(addr) && rc.DeposedKey == states.NotDeposed {
 			return rc
@@ -77,6 +79,8 @@ func (c *Changes) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInst
 // of the resource instances of the given address, if any. Returns nil if no
 // changes are planned.
 func (c *Changes) InstancesForAbsResource(addr addrs.AbsResource) []*ResourceInstanceChangeSrc {
+	assertPlannableResource(addr.Resource)
+
 	var changes []*ResourceInstanceChangeSrc
 	for _, rc := range c.Resources {
 		resAddr := rc.Addr.ContainingResource()
@@ -92,6 +96,8 @@ func (c *Changes) InstancesForAbsResource(addr addrs.AbsResource) []*ResourceIns
 // of the resource instances of the given address, if any. Returns nil if no
 // changes are planned.
 func (c *Changes) InstancesForConfigResource(addr addrs.ConfigResource) []*ResourceInstanceChangeSrc {
+	assertPlannableResource(addr.Resource)
+
 	var changes []*ResourceInstanceChangeSrc
 	for _, rc := range c.Resources {
 		resAddr := rc.Addr.ContainingResource().Config()
@@ -107,6 +113,8 @@ func (c *Changes) InstancesForConfigResource(addr addrs.ConfigResource) []*Resou
 // the resource instance of the given address, if any. Returns nil if no change
 // is planned.
 func (c *Changes) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key states.DeposedKey) *ResourceInstanceChangeSrc {
+	assertPlannableResource(addr.Resource.Resource)
+
 	for _, rc := range c.Resources {
 		if rc.Addr.Equal(addr) && rc.DeposedKey == key {
 			return rc
@@ -257,6 +265,13 @@ type ResourceInstanceChange struct {
 // serialized so it can be written to a plan file. Pass the implied type of the
 // corresponding resource type schema for correct operation.
 func (rc *ResourceInstanceChange) Encode(ty cty.Type) (*ResourceInstanceChangeSrc, error) {
+	// The following assertion shouldn't be able to fail if callers add
+	// their ResourceInstanceChange objects only by methods on the [Changes]
+	// type, but the relevant fields are all exported so this will belatedly
+	// catch anything that was added/modified directly, at least preventing it
+	// from being incorrectly encoded.
+	assertPlannableResource(rc.Addr.Resource.Resource)
+
 	cs, err := rc.Change.Encode(ty)
 	if err != nil {
 		return nil, err
@@ -617,4 +632,17 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 		Importing:            c.Importing.Encode(),
 		GeneratedConfig:      c.GeneratedConfig,
 	}, nil
+}
+
+// assertPlannableResource panics if the given address describes a resource
+// which cannot have planned actions.
+//
+// Currently this panics only if the resource mode is not one whose instances
+// can have planned actions that will be acted on only once a plan is applied.
+func assertPlannableResource(addr addrs.Resource) {
+	if mode := addr.Mode; !mode.PersistsBetweenRounds() {
+		// This is always a bug in the caller: they should only call this
+		// method for resources of modes that persist between rounds.
+		panic(fmt.Sprintf("resources of mode %s do not persist in Terraform state", mode))
+	}
 }

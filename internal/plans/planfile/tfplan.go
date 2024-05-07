@@ -698,6 +698,9 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 		change.PrevRunAddr = change.Addr
 	}
 
+	if mode := change.Addr.Resource.Resource.Mode; !mode.PersistsPlanToApply() {
+		panic(fmt.Sprintf("instance of resource with mode %s cannot have planned actions", mode))
+	}
 	ret.Addr = change.Addr.String()
 	ret.PrevRunAddr = change.PrevRunAddr.String()
 	if ret.PrevRunAddr == ret.Addr {
