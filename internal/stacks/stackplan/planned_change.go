@@ -267,8 +267,7 @@ type PlannedChangeResourceInstancePlanned struct {
 
 var _ PlannedChange = (*PlannedChangeResourceInstancePlanned)(nil)
 
-// PlannedChangeProto implements PlannedChange.
-func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform1.PlannedChange, error) {
+func (pc *PlannedChangeResourceInstancePlanned) PlanResourceInstanceChangePlannedProto() (*tfstackdata1.PlanResourceInstanceChangePlanned, error) {
 	rioAddr := pc.ResourceInstanceObjectAddr
 
 	if pc.ChangeSrc == nil && pc.PriorStateSrc == nil {
@@ -277,18 +276,12 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 		// if this plan later gets applied.
 		// We only emit a "raw" in this case, because this is a relatively
 		// uninteresting edge-case.
-		var raw anypb.Any
-		err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanResourceInstanceChangePlanned{
+
+		return &tfstackdata1.PlanResourceInstanceChangePlanned{
 			ComponentInstanceAddr: rioAddr.Component.String(),
 			ResourceInstanceAddr:  rioAddr.Item.ResourceInstance.String(),
 			DeposedKey:            rioAddr.Item.DeposedKey.String(),
 			ProviderConfigAddr:    pc.ProviderConfigAddr.String(),
-		}, proto.MarshalOptions{})
-		if err != nil {
-			return nil, err
-		}
-		return &terraform1.PlannedChange{
-			Raw: []*anypb.Any{&raw},
 		}, nil
 	}
 
@@ -303,60 +296,98 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 	if err != nil {
 		return nil, fmt.Errorf("converting resource instance change to proto: %w", err)
 	}
-	var raw anypb.Any
-	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanResourceInstanceChangePlanned{
+	return &tfstackdata1.PlanResourceInstanceChangePlanned{
 		ComponentInstanceAddr: rioAddr.Component.String(),
 		ResourceInstanceAddr:  rioAddr.Item.ResourceInstance.String(),
 		DeposedKey:            rioAddr.Item.DeposedKey.String(),
 		ProviderConfigAddr:    pc.ProviderConfigAddr.String(),
 		Change:                changeProto,
 		PriorState:            priorStateProto,
-	}, proto.MarshalOptions{})
+	}, nil
+}
+
+func (pc *PlannedChangeResourceInstancePlanned) ChangeDesciption() (*terraform1.PlannedChange_ChangeDescription, error) {
+	rioAddr := pc.ResourceInstanceObjectAddr
+	// We only emit an external description if there's a change to describe.
+	// Otherwise, we just emit a raw to remind us to update the state for
+	// this object during the apply step, to match the prior state.
+	if pc.ChangeSrc == nil {
+		return nil, nil
+	}
+
+	protoChangeTypes, err := terraform1.ChangeTypesForPlanAction(pc.ChangeSrc.Action)
+	if err != nil {
+		return nil, err
+	}
+	replacePaths, err := encodePathSet(pc.ChangeSrc.RequiredReplace)
 	if err != nil {
 		return nil, err
 	}
 
-	var descs []*terraform1.PlannedChange_ChangeDescription
-	// We only emit an external description if there's a change to describe.
-	// Otherwise, we just emit a raw to remind us to update the state for
-	// this object during the apply step, to match the prior state.
-	if pc.ChangeSrc != nil {
-		protoChangeTypes, err := terraform1.ChangeTypesForPlanAction(pc.ChangeSrc.Action)
-		if err != nil {
-			return nil, err
-		}
-		replacePaths, err := encodePathSet(pc.ChangeSrc.RequiredReplace)
-		if err != nil {
-			return nil, err
-		}
-		descs = []*terraform1.PlannedChange_ChangeDescription{
-			{
-				Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
-					ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
-						Addr:         terraform1.NewResourceInstanceObjectInStackAddr(rioAddr),
-						ResourceMode: stackutils.ResourceModeForProto(pc.ChangeSrc.Addr.Resource.Resource.Mode),
-						ResourceType: pc.ChangeSrc.Addr.Resource.Resource.Type,
-						ProviderAddr: pc.ChangeSrc.ProviderAddr.Provider.String(),
+	return &terraform1.PlannedChange_ChangeDescription{
+		Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
+			ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
+				Addr:         terraform1.NewResourceInstanceObjectInStackAddr(rioAddr),
+				ResourceMode: stackutils.ResourceModeForProto(pc.ChangeSrc.Addr.Resource.Resource.Mode),
+				ResourceType: pc.ChangeSrc.Addr.Resource.Resource.Type,
+				ProviderAddr: pc.ChangeSrc.ProviderAddr.Provider.String(),
 
-						Actions: protoChangeTypes,
-						Values: &terraform1.DynamicValueChange{
-							Old: terraform1.NewDynamicValue(
-								pc.ChangeSrc.Before,
-								pc.ChangeSrc.BeforeSensitivePaths,
-							),
-							New: terraform1.NewDynamicValue(
-								pc.ChangeSrc.After,
-								pc.ChangeSrc.AfterSensitivePaths,
-							),
-						},
-						ReplacePaths: replacePaths,
-						// TODO: Moved, Imported
-					},
+				Actions: protoChangeTypes,
+				Values: &terraform1.DynamicValueChange{
+					Old: terraform1.NewDynamicValue(
+						pc.ChangeSrc.Before,
+						pc.ChangeSrc.BeforeSensitivePaths,
+					),
+					New: terraform1.NewDynamicValue(
+						pc.ChangeSrc.After,
+						pc.ChangeSrc.AfterSensitivePaths,
+					),
 				},
+				ReplacePaths: replacePaths,
+				// TODO: Moved, Imported
 			},
-		}
+		},
+	}, nil
+
+}
+
+// PlannedChangeProto implements PlannedChange.
+func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform1.PlannedChange, error) {
+	pric, err := pc.PlanResourceInstanceChangePlannedProto()
+	if err != nil {
+		return nil, err
+	}
+	var raw anypb.Any
+	err = anypb.MarshalFrom(&raw, pric, proto.MarshalOptions{})
+	if err != nil {
+		return nil, err
 	}
 
+	if pc.ChangeSrc == nil && pc.PriorStateSrc == nil {
+		// This is just a stubby placeholder to remind us to drop the
+		// apparently-deleted-outside-of-Terraform object from the state
+		// if this plan later gets applied.
+		// We only emit a "raw" in this case, because this is a relatively
+		// uninteresting edge-case.
+		return &terraform1.PlannedChange{
+			Raw: []*anypb.Any{&raw},
+		}, nil
+	}
+
+	var descs []*terraform1.PlannedChange_ChangeDescription
+	desc, err := pc.ChangeDesciption()
+	if err != nil {
+		return nil, err
+	}
+	if desc != nil {
+		descs = append(descs, desc)
+	}
+
+	return &terraform1.PlannedChange{
+		Raw:          []*anypb.Any{&raw},
+		Descriptions: descs,
+	}, nil
+}
 	return &terraform1.PlannedChange{
 		Raw:          []*anypb.Any{&raw},
 		Descriptions: descs,
