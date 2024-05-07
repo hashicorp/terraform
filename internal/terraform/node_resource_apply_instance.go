@@ -121,11 +121,13 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 		// If there is no config, and there is no change, then we have nothing
 		// to do and the change was left in the plan for informational
 		// purposes only.
-		changes := ctx.Changes()
-		csrc := changes.GetResourceInstanceChange(n.ResourceInstanceAddr(), addrs.NotDeposed)
-		if csrc == nil || csrc.Action == plans.NoOp {
-			log.Printf("[DEBUG] NodeApplyableResourceInstance: No config or planned change recorded for %s", n.Addr)
-			return nil
+		if n.Addr.Resource.Resource.Mode.PersistsPlanToApply() {
+			changes := ctx.Changes()
+			csrc := changes.GetResourceInstanceChange(n.ResourceInstanceAddr(), addrs.NotDeposed)
+			if csrc == nil || csrc.Action == plans.NoOp {
+				log.Printf("[DEBUG] NodeApplyableResourceInstance: No config or planned change recorded for %s", n.Addr)
+				return nil
+			}
 		}
 
 		diags = diags.Append(tfdiags.Sourceless(
@@ -145,6 +147,8 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 		return n.managedResourceExecute(ctx)
 	case addrs.DataResourceMode:
 		return n.dataResourceExecute(ctx)
+	case addrs.EphemeralResourceMode:
+		return n.ephemeralResourceExecute(ctx)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
@@ -404,6 +408,14 @@ func (n *NodeApplyableResourceInstance) managedResourcePostconditions(ctx EvalCo
 		tfdiags.Error,
 	)
 	return diags.Append(checkDiags)
+}
+
+func (n *NodeApplyableResourceInstance) ephemeralResourceExecute(ctx EvalContext) tfdiags.Diagnostics {
+	return ephemeralResourceOpen(ctx, ephemeralResourceInput{
+		addr:           n.Addr,
+		config:         n.Config,
+		providerConfig: n.ResolvedProvider,
+	})
 }
 
 // checkPlannedChange produces errors if the _actual_ expected value is not

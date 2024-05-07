@@ -27,6 +27,12 @@ type OrphanResourceInstanceCountTransformer struct {
 }
 
 func (t *OrphanResourceInstanceCountTransformer) Transform(g *Graph) error {
+	if !t.Addr.Resource.Mode.PersistsBetweenRounds() {
+		// A resource of a mode that does not persist cannot possibly have
+		// orphan instances.
+		return nil
+	}
+
 	rs := t.State.Resource(t.Addr)
 	if rs == nil {
 		return nil // Resource doesn't exist in state, so nothing to do!

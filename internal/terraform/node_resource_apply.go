@@ -4,6 +4,8 @@
 package terraform
 
 import (
+	"log"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -24,6 +26,7 @@ var (
 	_ GraphNodeConfigResource       = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*nodeExpandApplyableResource)(nil)
 	_ graphNodeExpandsInstances     = (*nodeExpandApplyableResource)(nil)
+	_ GraphNodeDynamicExpandable    = (*nodeExpandApplyableResource)(nil)
 	_ GraphNodeTargetable           = (*nodeExpandApplyableResource)(nil)
 )
 
@@ -58,4 +61,44 @@ func (n *nodeExpandApplyableResource) Execute(globalCtx EvalContext, op walkOper
 	}
 
 	return diags
+}
+
+func (n *nodeExpandApplyableResource) DynamicExpand(globalCtx EvalContext) (*Graph, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	g := &Graph{}
+
+	if n.Addr.Resource.Mode.PersistsPlanToApply() {
+		// We don't need to do anything for resources of modes that use
+		// plannable actions, because our toplevel apply graph already
+		// includes the expanded instances of those based on the plan diff.
+		addRootNodeToGraph(g)
+		return g, diags
+	}
+
+	// For resources of modes that _don't_ persist from plan to apply, we'll
+	// generate the nodes representing instances dynamically here to mimic
+	// what we would've done during the plan walk.
+	expander := globalCtx.InstanceExpander()
+	for _, modInstAddr := range expander.ExpandModule(n.ModulePath(), false) {
+		resourceAddr := n.Addr.Resource.Absolute(modInstAddr)
+		for _, instAddr := range expander.ExpandResource(resourceAddr) {
+			// FIXME: The code we use to do the similar thing in the plan phase
+			// is not really shaped well to be reused here, so this is just a
+			// bare-minimum thing to get close enough for the sake of prototyping
+			// ephemeral resources. We should probably do this in a different
+			// way if we make a real implementation.
+			log.Printf("[TRACE] nodeExpandApplyableResource: adding node for %s", instAddr)
+			instN := &NodeApplyableResourceInstance{
+				NodeAbstractResourceInstance: NewNodeAbstractResourceInstance(instAddr),
+			}
+			instN.Config = n.Config
+			instN.ResolvedProvider = n.ResolvedProvider
+			instN.Schema = n.Schema
+			instN.SchemaVersion = n.SchemaVersion
+			g.Add(instN)
+		}
+	}
+
+	addRootNodeToGraph(g)
+	return g, diags
 }

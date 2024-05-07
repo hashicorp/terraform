@@ -295,18 +295,20 @@ func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, moduleInsta
 	state := ctx.State().Lock()
 
 	var orphans []*states.Resource
-	for _, res := range state.Resources(n.Addr) {
-		found := false
-		for _, m := range moduleInstances {
-			if m.Equal(res.Addr.Module) {
-				found = true
-				break
+	if n.Addr.Resource.Mode.PersistsBetweenRounds() { // only persisted resources can have "orphans"
+		for _, res := range state.Resources(n.Addr) {
+			found := false
+			for _, m := range moduleInstances {
+				if m.Equal(res.Addr.Module) {
+					found = true
+					break
+				}
 			}
-		}
-		// The module instance of the resource in the state doesn't exist
-		// in the current config, so this whole resource is orphaned.
-		if !found {
-			orphans = append(orphans, res)
+			// The module instance of the resource in the state doesn't exist
+			// in the current config, so this whole resource is orphaned.
+			if !found {
+				orphans = append(orphans, res)
+			}
 		}
 	}
 
