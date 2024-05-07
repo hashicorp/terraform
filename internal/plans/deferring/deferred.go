@@ -139,6 +139,11 @@ func NewDeferred(resourceGraph addrs.DirectedGraph[addrs.ConfigResource], enable
 // been reported to the receiver.
 func (d *Deferred) GetDeferredChanges() []*plans.DeferredResourceInstanceChange {
 	var changes []*plans.DeferredResourceInstanceChange
+
+	if !d.deferralAllowed {
+		return changes
+	}
+
 	for _, configMapElem := range d.resourceInstancesDeferred.Elems {
 		for _, changeElem := range configMapElem.Value.Elems {
 			changes = append(changes, changeElem.Value)
@@ -196,6 +201,10 @@ func (d *Deferred) HaveAnyDeferrals() bool {
 // why the resource instance with the given address should have its planned
 // action deferred for a future plan/apply round.
 func (d *Deferred) IsResourceInstanceDeferred(addr addrs.AbsResourceInstance) bool {
+	if !d.deferralAllowed {
+		return false
+	}
+
 	if d.externalDependencyDeferred {
 		return true
 	}
@@ -230,6 +239,10 @@ func (d *Deferred) IsResourceInstanceDeferred(addr addrs.AbsResourceInstance) bo
 // instance action should be deferred _before_ reporting that it has been by calling
 // [Deferred.IsResourceInstanceDeferred].
 func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInstance) bool {
+	if !d.deferralAllowed {
+		return false
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
