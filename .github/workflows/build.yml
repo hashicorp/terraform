@@ -43,7 +43,7 @@ jobs:
           echo "pkg-name=${pkg_name}" | tee -a "${GITHUB_OUTPUT}"
       - name: Decide version number
         id: get-product-version
-        uses: hashicorp/actions-set-product-version@v1
+        uses: hashicorp/actions-set-product-version@e2c49d61aff17b1280ddfe7bb031331d02ca0140 # v1.0.1
       - name: Determine experiments
         id: get-ldflags
         env:
@@ -78,7 +78,7 @@ jobs:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Generate package metadata
         id: generate-metadata-file
-        uses: hashicorp/actions-generate-metadata@v1
+        uses: hashicorp/actions-generate-metadata@fdbc8803a0e53bcbb912ddeee3808329033d6357 # v1.1.1
         with:
           version: ${{ needs.get-product-version.outputs.product-version }}
           product: ${{ env.PKG_NAME }}
@@ -139,7 +139,7 @@ jobs:
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Build Docker images
-        uses: hashicorp/actions-docker-build@v1
+        uses: hashicorp/actions-docker-build@f6278ea21555b4b4737e4cf366e808ba2bb59146 # v1.6.1
         with:
           pkg_name: "terraform_${{env.version}}"
           version: ${{env.version}}
