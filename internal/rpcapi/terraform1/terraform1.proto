@@ -728,6 +728,7 @@ message PlannedChange {
             ResourceInstance resource_instance_planned = 2;
             OutputValue output_value_planned = 3;
             bool plan_applyable = 4;
+            ResourceInstanceDeferred resource_instance_deferred = 5;
         }
     }
 
@@ -805,6 +806,11 @@ message PlannedChange {
         string name = 1;
         repeated ChangeType actions = 2;
         DynamicValueChange values = 3;
+    }
+
+    message ResourceInstanceDeferred {
+        ResourceInstance resource_instance = 1;
+        Deferred deferred = 2;
     }
 }
 
