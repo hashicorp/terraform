@@ -183,7 +183,7 @@ func (m *Meta) loadHCLFile(filename string) (hcl.Body, tfdiags.Diagnostics) {
 // can then be relayed to the end-user. The uiModuleInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
 // via a provided cli.Ui.
-func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
+func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics, moduleDeprecations []*configs.ModuleDeprecationInfo) {
 	ctx, span := tracer.Start(ctx, "install modules")
 	defer span.End()
 
@@ -192,27 +192,27 @@ func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upg
 	err := os.MkdirAll(m.modulesDir(), os.ModePerm)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("failed to create local modules directory: %s", err))
-		return true, diags
+		return true, diags, nil
 	}
 
 	loader, err := m.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
-		return true, diags
+		return true, diags, nil
 	}
-
+	// markdecrane: what does this installer do? looks like a higher level entry for installing ALL modules
 	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient())
 
-	_, moreDiags := inst.InstallModules(ctx, rootDir, testsDir, upgrade, installErrsOnly, hooks)
+	_, moreDiags, moduleDeprecations := inst.InstallModules(ctx, rootDir, testsDir, upgrade, installErrsOnly, hooks)
 	diags = diags.Append(moreDiags)
 
 	if ctx.Err() == context.Canceled {
 		m.showDiagnostics(diags)
 		diags = diags.Append(fmt.Errorf("Module installation was canceled by an interrupt signal."))
-		return true, diags
+		return true, diags, nil
 	}
 
-	return false, diags
+	return false, diags, moduleDeprecations
 }
 
 // initDirFromModule initializes the given directory (which should be

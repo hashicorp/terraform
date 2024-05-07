@@ -43,7 +43,7 @@ func (l *Loader) loadConfig(rootMod *configs.Module, diags hcl.Diagnostics) (*co
 		return cfg, diags
 	}
 
-	cfg, cDiags := configs.BuildConfig(rootMod, configs.ModuleWalkerFunc(l.moduleWalkerLoad), configs.MockDataLoaderFunc(l.LoadExternalMockData))
+	cfg, cDiags, _ := configs.BuildConfig(rootMod, configs.ModuleWalkerFunc(l.moduleWalkerLoad), configs.MockDataLoaderFunc(l.LoadExternalMockData))
 	diags = append(diags, cDiags...)
 
 	return cfg, diags
@@ -63,7 +63,7 @@ func (l *Loader) LoadExternalMockData(provider *configs.Provider) (*configs.Mock
 
 // moduleWalkerLoad is a configs.ModuleWalkerFunc for loading modules that
 // are presumed to have already been installed.
-func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
+func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleDeprecationInfo) {
 	// Since we're just loading here, we expect that all referenced modules
 	// will be already installed and described in our manifest. However, we
 	// do verify that the manifest and the configuration are in agreement
@@ -80,7 +80,7 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 				Detail:   "This module is not yet installed. Run \"terraform init\" to install all modules required by this configuration.",
 				Subject:  &req.CallRange,
 			},
-		}
+		}, nil
 	}
 
 	var diags hcl.Diagnostics
@@ -131,8 +131,8 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 				Detail:   fmt.Sprintf("This module's local cache directory %s could not be read. Run \"terraform init\" to install all modules required by this configuration.", record.Dir),
 				Subject:  &req.CallRange,
 			},
-		}
+		}, nil
 	}
 
-	return mod, record.Version, diags
+	return mod, record.Version, diags, nil
 }

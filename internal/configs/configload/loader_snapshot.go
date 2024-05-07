@@ -32,7 +32,7 @@ func (l *Loader) LoadConfigWithSnapshot(rootDir string) (*configs.Config, *Snaps
 		Modules: map[string]*SnapshotModule{},
 	}
 	walker := l.makeModuleWalkerSnapshot(snap)
-	cfg, cDiags := configs.BuildConfig(rootMod, walker, configs.MockDataLoaderFunc(l.LoadExternalMockData))
+	cfg, cDiags, _ := configs.BuildConfig(rootMod, walker, configs.MockDataLoaderFunc(l.LoadExternalMockData))
 	diags = append(diags, cDiags...)
 
 	addDiags := l.addModuleToSnapshot(snap, "", rootDir, "", nil)
@@ -134,10 +134,10 @@ func (s *Snapshot) moduleManifest() modsdir.Manifest {
 // source files from the referenced modules into the given snapshot.
 func (l *Loader) makeModuleWalkerSnapshot(snap *Snapshot) configs.ModuleWalker {
 	return configs.ModuleWalkerFunc(
-		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
-			mod, v, diags := l.moduleWalkerLoad(req)
+		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleDeprecationInfo) {
+			mod, v, diags, _ := l.moduleWalkerLoad(req)
 			if diags.HasErrors() {
-				return mod, v, diags
+				return mod, v, diags, nil
 			}
 
 			key := l.modules.manifest.ModuleKey(req.Path)
@@ -152,7 +152,7 @@ func (l *Loader) makeModuleWalkerSnapshot(snap *Snapshot) configs.ModuleWalker {
 			addDiags := l.addModuleToSnapshot(snap, key, record.Dir, record.SourceAddr, record.Version)
 			diags = append(diags, addDiags...)
 
-			return mod, v, diags
+			return mod, v, diags, nil
 		},
 	)
 }

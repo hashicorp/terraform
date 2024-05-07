@@ -5,6 +5,7 @@ package command
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -365,7 +366,9 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 		View:           view,
 	}
 
-	installAbort, installDiags := c.installModules(ctx, path, testsDir, upgrade, false, hooks)
+	installAbort, installDiags, moduleDeprecations := c.installModules(ctx, path, testsDir, upgrade, false, hooks)
+	jsonBytes, _ := json.MarshalIndent(moduleDeprecations, "", "  ")
+	log.Printf("[INFO] module deprecation: %s", string(jsonBytes))
 	diags = diags.Append(installDiags)
 
 	// At this point, installModules may have generated error diags or been

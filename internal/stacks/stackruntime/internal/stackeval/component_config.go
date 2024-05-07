@@ -109,7 +109,7 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 			}
 
 			walker := newSourceBundleModuleWalker(rootModuleSource, sources, parser)
-			configRoot, hclDiags := configs.BuildConfig(rootMod, walker, nil)
+			configRoot, hclDiags, _ := configs.BuildConfig(rootMod, walker, nil)
 			diags = diags.Append(hclDiags)
 			if hclDiags.HasErrors() {
 				return nil, diags
@@ -544,7 +544,7 @@ func newSourceBundleModuleWalker(rootModuleSource sourceaddrs.FinalSource, sourc
 }
 
 // LoadModule implements configs.ModuleWalker.
-func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
+func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleDeprecationInfo) {
 	var diags hcl.Diagnostics
 
 	// First we need to assemble the "final source address" for the module
@@ -564,7 +564,7 @@ func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*conf
 			Detail:   fmt.Sprintf("Invalid source address: %s.", err),
 			Subject:  req.SourceAddrRange.Ptr(),
 		})
-		return nil, nil, diags
+		return nil, nil, diags, nil
 	}
 
 	absoluteSourceAddr, err := w.absoluteSourceAddr(finalSourceAddr, req.Parent)
@@ -577,7 +577,7 @@ func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*conf
 			Detail:   fmt.Sprintf("Unable to determin absolute source address: %s.", err),
 			Subject:  req.SourceAddrRange.Ptr(),
 		})
-		return nil, nil, diags
+		return nil, nil, diags, nil
 	}
 
 	// We store the absolute source address for this module so that any in-repo
@@ -595,7 +595,7 @@ func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*conf
 			Detail:   fmt.Sprintf("Failed to load this component's module %s: %s.", req.Path.String(), tfdiags.FormatError(err)),
 			Subject:  req.SourceAddrRange.Ptr(),
 		})
-		return nil, nil, diags
+		return nil, nil, diags, nil
 	}
 
 	mod, moreDiags := w.parser.LoadConfigDir(absoluteSourceAddr)
@@ -619,7 +619,7 @@ func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*conf
 			})
 		}
 	}
-	return mod, legacyV, diags
+	return mod, legacyV, diags, nil
 }
 
 func (w *sourceBundleModuleWalker) finalSourceForModule(tfSourceAddr addrs.ModuleSource, versionConstraints *version.Constraints) (sourceaddrs.FinalSource, error) {

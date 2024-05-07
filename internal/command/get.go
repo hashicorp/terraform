@@ -6,8 +6,10 @@ package command
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -43,7 +45,8 @@ func (c *GetCommand) Run(args []string) int {
 
 	path = c.normalizePath(path)
 
-	abort, diags := getModules(ctx, &c.Meta, path, testsDirectory, update)
+	abort, diags, deprecations := getModules(ctx, &c.Meta, path, testsDirectory, update)
+	log.Printf("[INFO] : %s", deprecations)
 	c.showDiagnostics(diags)
 	if abort || diags.HasErrors() {
 		return 1
@@ -85,7 +88,7 @@ func (c *GetCommand) Synopsis() string {
 	return "Install or upgrade remote Terraform modules"
 }
 
-func getModules(ctx context.Context, m *Meta, path string, testsDir string, upgrade bool) (abort bool, diags tfdiags.Diagnostics) {
+func getModules(ctx context.Context, m *Meta, path string, testsDir string, upgrade bool) (abort bool, diags tfdiags.Diagnostics, moduleDeprecations []*configs.ModuleDeprecationInfo) {
 	hooks := uiModuleInstallHooks{
 		Ui:             m.Ui,
 		ShowLocalPaths: true,

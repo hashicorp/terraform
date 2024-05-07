@@ -59,6 +59,27 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 	}
 }
 
+// mdTODO: remove this later, only for iteration while the api hasn't been updated.
+func injectMockDeprecations(modules *response.ModuleVersions) {
+	//jsonBytes, _ := json.MarshalIndent(modules, "", "  ")
+	//log.Printf("[DEBUG] submodule!!!: %s ", string(jsonBytes))
+	//log.Printf("[DEBUG] __________________________________________________")
+	if modules == nil || modules.Modules == nil {
+		log.Println("modules or modules.Modules is nil")
+		return // Exit the function to avoid the panic
+	}
+	for _, module := range modules.Modules {
+		for _, version := range module.Versions {
+			// Inject a mock deprecation into each version
+			version.Deprecation = response.Deprecation{
+				Deprecated:   true,
+				Message:      "Mock deprecation message for: ",
+				ExternalLink: "https://example.com/mock-deprecation",
+			}
+		}
+	}
+}
+
 // InstallModules analyses the root module in the given directory and installs
 // all of its direct and transitive dependencies into the given modules
 // directory, which must already exist.
@@ -93,7 +114,7 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 // If successful (the returned diagnostics contains no errors) then the
 // first return value is the early configuration tree that was constructed by
 // the installation process.
-func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks ModuleInstallHooks) (*configs.Config, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks ModuleInstallHooks) (*configs.Config, tfdiags.Diagnostics, []*configs.ModuleDeprecationInfo) {
 	log.Printf("[TRACE] ModuleInstaller: installing child modules for %s into %s", rootDir, i.modsDir)
 	var diags tfdiags.Diagnostics
 
@@ -102,7 +123,7 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 		// We drop the diagnostics here because we only want to report module
 		// loading errors after checking the core version constraints, which we
 		// can only do if the module can be at least partially loaded.
-		return nil, diags
+		return nil, diags, nil
 	} else if vDiags := rootMod.CheckCoreVersionRequirements(nil, nil); vDiags.HasErrors() {
 		// If the core version requirements are not met, we drop any other
 		// diagnostics, as they may reflect language changes from future
@@ -119,7 +140,7 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 			"Failed to read modules manifest file",
 			fmt.Sprintf("Error reading manifest for %s: %s.", i.modsDir, err),
 		))
-		return nil, diags
+		return nil, diags, nil
 	}
 
 	fetcher := getmodules.NewPackageFetcher()
@@ -137,22 +158,22 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 	}
 	walker := i.moduleInstallWalker(ctx, manifest, upgrade, hooks, fetcher)
 
-	cfg, instDiags := i.installDescendentModules(rootMod, manifest, walker, installErrsOnly)
+	cfg, instDiags, moduleDeprecations := i.installDescendentModules(rootMod, manifest, walker, installErrsOnly)
 	diags = append(diags, instDiags...)
 
-	return cfg, diags
+	return cfg, diags, moduleDeprecations
 }
 
 func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest modsdir.Manifest, upgrade bool, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) configs.ModuleWalker {
 	return configs.ModuleWalkerFunc(
-		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
+		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleDeprecationInfo) {
 			var diags hcl.Diagnostics
 
 			if req.SourceAddr == nil {
 				// If the parent module failed to parse the module source
 				// address, we can't load it here. Return nothing as the parent
 				// module's diagnostics should explain this.
-				return nil, nil, diags
+				return nil, nil, diags, nil
 			}
 
 			if req.Name == "" {
@@ -161,14 +182,14 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 				// Because we descend into modules which have errors, we need
 				// to look out for this case, but the config loader's
 				// diagnostics will report the error later.
-				return nil, nil, diags
+				return nil, nil, diags, nil
 			}
 
 			if !hclsyntax.ValidIdentifier(req.Name) {
 				// A module with an invalid name shouldn't be installed at all. This is
 				// mostly a concern for remote modules, since we need to be able to convert
 				// the name to a valid path.
-				return nil, nil, diags
+				return nil, nil, diags, nil
 			}
 
 			key := manifest.ModuleKey(req.Path)
@@ -231,7 +252,7 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 							instPath, err,
 						),
 					})
-					return nil, nil, diags
+					return nil, nil, diags, nil
 				}
 			} else {
 				// If this module is already recorded and its root directory
@@ -254,7 +275,44 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 					}
 
 					log.Printf("[TRACE] ModuleInstaller: Module installer: %s %s already installed in %s", key, record.Version, record.Dir)
-					return mod, record.Version, diags
+
+					var modDeprecation *configs.ModuleDeprecationInfo
+
+					var moduleVersion *response.ModuleVersion
+
+					// Checking for module deprecations in the case no new module versions need installation
+					if addr, isRegistryModule := req.SourceAddr.(addrs.ModuleSourceRegistry); isRegistryModule {
+						regClient := i.reg
+
+						regsrcAddr := regsrc.ModuleFromRegistryPackageAddr(addr.Package)
+						resp, err := regClient.ModuleVersions(ctx, regsrcAddr)
+
+						// mdTODO: remove this later on
+						injectMockDeprecations(resp)
+
+						if err != nil {
+							log.Printf("[DEBUG] Deprecation for %s could not be checked: call to registry failed", addr.Package.Namespace)
+
+						} else {
+							log.Print("mdTODO: figure out the path forward here, either loop through and get a request for a single verison going")
+							found := false
+							for _, modProviderVersions := range resp.Modules {
+								for _, modVersions := range modProviderVersions.Versions {
+									vm, _ := version.NewVersion(modVersions.Version)
+									if vm.Equal(record.Version) {
+										moduleVersion = modVersions
+										found = true
+										break
+									}
+								}
+								if found {
+									break
+								}
+							}
+						}
+					}
+					modDeprecation = collectModuleDeprecationWarnings(moduleVersion, req.CallRange.Ptr(), req.Name)
+					return mod, record.Version, diags, modDeprecation
 				}
 			}
 
@@ -269,19 +327,19 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 				mod, mDiags := i.installLocalModule(req, key, manifest, hooks)
 				mDiags = maybeImproveLocalInstallError(req, mDiags)
 				diags = append(diags, mDiags...)
-				return mod, nil, diags
+				return mod, nil, diags, nil
 
 			case addrs.ModuleSourceRegistry:
 				log.Printf("[TRACE] ModuleInstaller: %s is a registry module at %s", key, addr.String())
-				mod, v, mDiags := i.installRegistryModule(ctx, req, key, instPath, addr, manifest, hooks, fetcher)
+				mod, v, mDiags, deprecation := i.installRegistryModule(ctx, req, key, instPath, addr, manifest, hooks, fetcher)
 				diags = append(diags, mDiags...)
-				return mod, v, diags
+				return mod, v, diags, deprecation
 
 			case addrs.ModuleSourceRemote:
 				log.Printf("[TRACE] ModuleInstaller: %s address %q will be handled by go-getter", key, addr.String())
 				mod, mDiags := i.installGoGetterModule(ctx, req, key, instPath, manifest, hooks, fetcher)
 				diags = append(diags, mDiags...)
-				return mod, nil, diags
+				return mod, nil, diags, nil
 
 			default:
 				// Shouldn't get here, because there are no other implementations
@@ -292,7 +350,7 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 	)
 }
 
-func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, manifest modsdir.Manifest, installWalker configs.ModuleWalker, installErrsOnly bool) (*configs.Config, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, manifest modsdir.Manifest, installWalker configs.ModuleWalker, installErrsOnly bool) (*configs.Config, tfdiags.Diagnostics, []*configs.ModuleDeprecationInfo) {
 	var diags tfdiags.Diagnostics
 
 	// When attempting to initialize the current directory with a module
@@ -305,14 +363,15 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, mani
 	var instDiags hcl.Diagnostics
 	walker := installWalker
 	if installErrsOnly {
-		walker = configs.ModuleWalkerFunc(func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
-			mod, version, diags := installWalker.LoadModule(req)
+		// mdTODO: don't think mod deprecations are relevant here, see about return value here and any implications it has
+		walker = configs.ModuleWalkerFunc(func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleDeprecationInfo) {
+			mod, version, diags, _ := installWalker.LoadModule(req)
 			instDiags = instDiags.Extend(diags)
-			return mod, version, diags
+			return mod, version, diags, nil
 		})
 	}
 
-	cfg, cDiags := configs.BuildConfig(rootMod, walker, configs.MockDataLoaderFunc(i.loader.LoadExternalMockData))
+	cfg, cDiags, moduleDeprecations := configs.BuildConfig(rootMod, walker, configs.MockDataLoaderFunc(i.loader.LoadExternalMockData))
 	diags = diags.Append(cDiags)
 	if installErrsOnly {
 		// We can't continue if there was an error during installation, but
@@ -320,7 +379,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, mani
 		// useful when debugging the problem. Any instDiags will be included in
 		// diags already.
 		if instDiags.HasErrors() {
-			return cfg, diags
+			return cfg, diags, nil
 		}
 
 		// If there are any errors here, they must be only from building the
@@ -341,7 +400,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, mani
 		))
 	}
 
-	return cfg, diags
+	return cfg, diags, moduleDeprecations
 }
 
 func (i *ModuleInstaller) installLocalModule(req *configs.ModuleRequest, key string, manifest modsdir.Manifest, hooks ModuleInstallHooks) (*configs.Module, hcl.Diagnostics) {
@@ -411,7 +470,7 @@ func (i *ModuleInstaller) installLocalModule(req *configs.ModuleRequest, key str
 	return mod, diags
 }
 
-func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, addr addrs.ModuleSourceRegistry, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*configs.Module, *version.Version, hcl.Diagnostics) {
+func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, addr addrs.ModuleSourceRegistry, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleDeprecationInfo) {
 	var diags hcl.Diagnostics
 
 	hostname := addr.Package.Host
@@ -435,6 +494,8 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 		var err error
 		log.Printf("[DEBUG] %s listing available versions of %s at %s", key, addr, hostname)
 		resp, err = reg.ModuleVersions(ctx, regsrcAddr)
+		// mdTODO: remove this
+		injectMockDeprecations(resp)
 		if err != nil {
 			if registry.IsModuleNotFound(err) {
 				diags = diags.Append(&hcl.Diagnostic{
@@ -457,7 +518,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 					Subject:  req.CallRange.Ptr(),
 				})
 			}
-			return nil, nil, diags
+			return nil, nil, diags, nil
 		}
 		i.registryPackageVersions[packageAddr] = resp
 	}
@@ -475,15 +536,17 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 			Detail:   fmt.Sprintf("The registry at %s returned an invalid response when Terraform requested available versions for module %q (%s:%d).", hostname, req.Name, req.CallRange.Filename, req.CallRange.Start.Line),
 			Subject:  req.CallRange.Ptr(),
 		})
-		return nil, nil, diags
+		return nil, nil, diags, nil
 	}
 
 	modMeta := resp.Modules[0]
 
 	var latestMatch *version.Version
 	var latestVersion *version.Version
+	moduleVersionsMap := make(map[string]*response.ModuleVersion)
 	for _, mv := range modMeta.Versions {
 		v, err := version.NewVersion(mv.Version)
+		moduleVersionsMap[mv.Version] = mv
 		if err != nil {
 			// Should never happen if the registry server is compliant with
 			// the protocol, but we'll warn if not to assist someone who
@@ -558,7 +621,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 			Detail:   fmt.Sprintf("Module %q (%s:%d) has no versions available on %s.", addr, req.CallRange.Filename, req.CallRange.Start.Line, hostname),
 			Subject:  req.CallRange.Ptr(),
 		})
-		return nil, nil, diags
+		return nil, nil, diags, nil
 	}
 
 	if latestMatch == nil {
@@ -568,8 +631,10 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 			Detail:   fmt.Sprintf("There is no available version of module %q (%s:%d) which matches the given version constraint. The newest available version is %s.", addr, req.CallRange.Filename, req.CallRange.Start.Line, latestVersion),
 			Subject:  req.CallRange.Ptr(),
 		})
-		return nil, nil, diags
+		return nil, nil, diags, nil
 	}
+
+	modDeprecation := collectModuleDeprecationWarnings(moduleVersionsMap[latestMatch.Original()], req.CallRange.Ptr(), req.Name)
 
 	// Report up to the caller that we're about to start downloading.
 	hooks.Download(key, packageAddr.String(), latestMatch)
@@ -589,7 +654,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 				Summary:  "Error accessing remote module registry",
 				Detail:   fmt.Sprintf("Failed to retrieve a download URL for %s %s from %s: %s", addr, latestMatch, hostname, err),
 			})
-			return nil, nil, diags
+			return nil, nil, diags, nil
 		}
 		realAddr, err := moduleaddrs.ParseModuleSource(realAddrRaw)
 		if err != nil {
@@ -598,7 +663,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 				Summary:  "Invalid package location from module registry",
 				Detail:   fmt.Sprintf("Module registry %s returned invalid source location %q for %s %s: %s.", hostname, realAddrRaw, addr, latestMatch, err),
 			})
-			return nil, nil, diags
+			return nil, nil, diags, nil
 		}
 		switch realAddr := realAddr.(type) {
 		// Only a remote source address is allowed here: a registry isn't
@@ -613,7 +678,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 				Summary:  "Invalid package location from module registry",
 				Detail:   fmt.Sprintf("Module registry %s returned invalid source location %q for %s %s: must be a direct remote package address.", hostname, realAddrRaw, addr, latestMatch),
 			})
-			return nil, nil, diags
+			return nil, nil, diags, nil
 		}
 	}
 
@@ -628,7 +693,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 			Summary:  "Module download was interrupted",
 			Detail:   fmt.Sprintf("Interrupt signal received when downloading module %s.", addr),
 		})
-		return nil, nil, diags
+		return nil, nil, diags, nil
 	}
 	if err != nil {
 		// Errors returned by go-getter have very inconsistent quality as
@@ -642,7 +707,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 			Detail:   fmt.Sprintf("Could not download module %q (%s:%d) source code from %q: %s.", req.Name, req.CallRange.Filename, req.CallRange.Start.Line, dlAddr, err),
 			Subject:  req.CallRange.Ptr(),
 		})
-		return nil, nil, diags
+		return nil, nil, diags, nil
 	}
 
 	log.Printf("[TRACE] ModuleInstaller: %s %q was downloaded to %s", key, dlAddr.Package, instPath)
@@ -688,7 +753,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 	log.Printf("[DEBUG] Module installer: %s installed at %s", key, modDir)
 	hooks.Install(key, latestMatch, modDir)
 
-	return mod, latestMatch, diags
+	return mod, latestMatch, diags, modDeprecation
 }
 
 func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*configs.Module, hcl.Diagnostics) {
@@ -920,6 +985,24 @@ func maybeImproveLocalInstallError(req *configs.ModuleRequest, diags hcl.Diagnos
 	// If we get down here then we have nothing useful to do, so we'll just
 	// echo back what we were given.
 	return diags
+}
+
+func collectModuleDeprecationWarnings(moduleVersion *response.ModuleVersion, subject *hcl.Range, sourceName string) *configs.ModuleDeprecationInfo {
+	var registryModDeprecation *configs.RegistryModuleDeprecation
+
+	// mdTODO: don't like this nil check, maybe a better way to do it?
+	if moduleVersion != nil && moduleVersion.Deprecation.Deprecated {
+		registryModDeprecation = &configs.RegistryModuleDeprecation{
+			Subject:      subject,
+			ExternalLink: moduleVersion.Deprecation.ExternalLink,
+			Message:      moduleVersion.Deprecation.Message,
+		}
+	}
+	return &configs.ModuleDeprecationInfo{
+		SourceName:           sourceName,
+		RegistryDeprecation:  registryModDeprecation,
+		ExternalDependencies: []*configs.ModuleDeprecationInfo{},
+	}
 }
 
 func splitAddrSubdir(addr addrs.ModuleSource) (string, string) {
