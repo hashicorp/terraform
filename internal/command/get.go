@@ -6,10 +6,8 @@ package command
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -44,9 +42,7 @@ func (c *GetCommand) Run(args []string) int {
 	}
 
 	path = c.normalizePath(path)
-	// mdTODO: do I need to come back here and handle the deprecations? Could be useful even if not directly in scope.
-	abort, diags, deprecations := getModules(ctx, &c.Meta, path, testsDirectory, update)
-	log.Printf("[INFO] : %s", deprecations)
+	abort, diags := getModules(ctx, &c.Meta, path, testsDirectory, update)
 	c.showDiagnostics(diags)
 	if abort || diags.HasErrors() {
 		return 1
@@ -88,7 +84,7 @@ func (c *GetCommand) Synopsis() string {
 	return "Install or upgrade remote Terraform modules"
 }
 
-func getModules(ctx context.Context, m *Meta, path string, testsDir string, upgrade bool) (abort bool, diags tfdiags.Diagnostics, moduleDeprecations []*configs.ModuleDeprecationInfo) {
+func getModules(ctx context.Context, m *Meta, path string, testsDir string, upgrade bool) (abort bool, diags tfdiags.Diagnostics) {
 	hooks := uiModuleInstallHooks{
 		Ui:             m.Ui,
 		ShowLocalPaths: true,

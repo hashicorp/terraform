@@ -2,7 +2,7 @@ package configs
 
 import "fmt"
 
-type WorkspaceDeprecations struct {
+type WorkspaceDeprecationInfo struct {
 	ModuleDeprecationInfos []*ModuleDeprecationInfo
 }
 
@@ -13,15 +13,41 @@ type ModuleDeprecationInfo struct {
 }
 
 type RegistryModuleDeprecation struct {
-	Version      string
-	ExternalLink string
+	Version string
+	Link    string
 }
 
-func (i *WorkspaceDeprecations) BuildDeprecationWarningString() string {
+func (i *WorkspaceDeprecationInfo) HasDeprecations() bool {
+	for _, deprecationInfo := range i.ModuleDeprecationInfos {
+		if deprecationInfo.hasDeprecations() {
+			return true
+		}
+	}
+	return false
+}
+
+func (i *ModuleDeprecationInfo) hasDeprecations() bool {
+	if i.RegistryDeprecation != nil {
+		return true
+	}
+	for _, dependencyDeprecationInfo := range i.ExternalDependencies {
+		if dependencyDeprecationInfo.hasDeprecations() {
+			return true
+		}
+	}
+	return false
+}
+
+func (i *WorkspaceDeprecationInfo) BuildDeprecationWarningString() string {
 	modDeprecationStrings := []string{}
 	for _, modDeprecationInfo := range i.ModuleDeprecationInfos {
-		if modDeprecationInfo.RegistryDeprecation != nil {
-			modDeprecationStrings = append(modDeprecationStrings, fmt.Sprintf("Version %s of \"%s\" \nTo learn more visit: %s\n", modDeprecationInfo.RegistryDeprecation.Version, modDeprecationInfo.SourceName, modDeprecationInfo.RegistryDeprecation.ExternalLink))
+		if modDeprecationInfo != nil && modDeprecationInfo.RegistryDeprecation != nil {
+			// Link is an optional field, if unset it is an empty string by default
+			if modDeprecationInfo.RegistryDeprecation.Link != "" {
+				modDeprecationStrings = append(modDeprecationStrings, fmt.Sprintf("Version %s of \"%s\" \nTo learn more visit: %s\n", modDeprecationInfo.RegistryDeprecation.Version, modDeprecationInfo.SourceName, modDeprecationInfo.RegistryDeprecation.Link))
+			} else {
+				modDeprecationStrings = append(modDeprecationStrings, fmt.Sprintf("Version %s of \"%s\" \n", modDeprecationInfo.RegistryDeprecation.Version, modDeprecationInfo.SourceName))
+			}
 		}
 		modDeprecationStrings = append(modDeprecationStrings, buildChildDeprecationWarnings(modDeprecationInfo.ExternalDependencies, []string{modDeprecationInfo.SourceName})...)
 	}
@@ -37,7 +63,7 @@ func buildChildDeprecationWarnings(modDeprecations []*ModuleDeprecationInfo, par
 	modDeprecationStrings := []string{}
 	for _, deprecation := range modDeprecations {
 		if deprecation.RegistryDeprecation != nil {
-			modDeprecationStrings = append(modDeprecationStrings, fmt.Sprintf("Version %s of \"%s\" %s \nTo learn more visit: %s\n", deprecation.RegistryDeprecation.Version, deprecation.SourceName, buildModHierarchy(parentMods, deprecation.SourceName), deprecation.RegistryDeprecation.ExternalLink))
+			modDeprecationStrings = append(modDeprecationStrings, fmt.Sprintf("Version %s of \"%s\" %s \nTo learn more visit: %s\n", deprecation.RegistryDeprecation.Version, deprecation.SourceName, buildModHierarchy(parentMods, deprecation.SourceName), deprecation.RegistryDeprecation.Link))
 		}
 		newParentMods := append(parentMods, deprecation.SourceName)
 		modDeprecationStrings = append(modDeprecationStrings, buildChildDeprecationWarnings(deprecation.ExternalDependencies, newParentMods)...)

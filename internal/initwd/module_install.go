@@ -71,10 +71,9 @@ func injectMockDeprecations(modules *response.ModuleVersions) {
 	for _, module := range modules.Modules {
 		for _, version := range module.Versions {
 			// Inject a mock deprecation into each version
-			version.Deprecation = response.Deprecation{
-				Deprecated:   true,
-				Message:      "Mock deprecation message for: ",
-				ExternalLink: "https://example.com/mock-deprecation",
+			version.Deprecation = &response.Deprecation{
+				Reason: "Mock deprecation message for: ",
+				Link:   "https://example.com/mock-deprecation",
 			}
 		}
 	}
@@ -114,7 +113,7 @@ func injectMockDeprecations(modules *response.ModuleVersions) {
 // If successful (the returned diagnostics contains no errors) then the
 // first return value is the early configuration tree that was constructed by
 // the installation process.
-func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks ModuleInstallHooks) (*configs.Config, tfdiags.Diagnostics, []*configs.ModuleDeprecationInfo) {
+func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks ModuleInstallHooks) (*configs.Config, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] ModuleInstaller: installing child modules for %s into %s", rootDir, i.modsDir)
 	var diags tfdiags.Diagnostics
 
@@ -123,7 +122,7 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 		// We drop the diagnostics here because we only want to report module
 		// loading errors after checking the core version constraints, which we
 		// can only do if the module can be at least partially loaded.
-		return nil, diags, nil
+		return nil, diags
 	} else if vDiags := rootMod.CheckCoreVersionRequirements(nil, nil); vDiags.HasErrors() {
 		// If the core version requirements are not met, we drop any other
 		// diagnostics, as they may reflect language changes from future
@@ -140,7 +139,7 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 			"Failed to read modules manifest file",
 			fmt.Sprintf("Error reading manifest for %s: %s.", i.modsDir, err),
 		))
-		return nil, diags, nil
+		return nil, diags
 	}
 
 	fetcher := getmodules.NewPackageFetcher()
@@ -160,8 +159,21 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 
 	cfg, instDiags, moduleDeprecations := i.installDescendentModules(rootMod, manifest, walker, installErrsOnly)
 	diags = append(diags, instDiags...)
+	if moduleDeprecations != nil {
+		workspaceDeprecations := &configs.WorkspaceDeprecationInfo{
+			ModuleDeprecationInfos: moduleDeprecations,
+		}
+		if workspaceDeprecations.HasDeprecations() {
+			deprecationString := workspaceDeprecations.BuildDeprecationWarningString()
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Deprecated module versions found, consider installing updated versions",
+				deprecationString,
+			))
+		}
+	}
 
-	return cfg, diags, moduleDeprecations
+	return cfg, diags
 }
 
 func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest modsdir.Manifest, upgrade bool, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) configs.ModuleWalker {
@@ -1000,10 +1012,10 @@ func collectModuleDeprecationWarnings(moduleVersion *response.ModuleVersion, sou
 	var registryModDeprecation *configs.RegistryModuleDeprecation
 
 	// mdTODO: don't like this nil check, maybe handle a nil moduleVersion before this function call instead?
-	if moduleVersion != nil && moduleVersion.Deprecation.Deprecated {
+	if moduleVersion != nil && moduleVersion.Deprecation != nil {
 		registryModDeprecation = &configs.RegistryModuleDeprecation{
-			ExternalLink: moduleVersion.Deprecation.ExternalLink,
-			Version:      version.Original(),
+			Link:    moduleVersion.Deprecation.Link,
+			Version: version.Original(),
 		}
 	}
 	return &configs.ModuleDeprecationInfo{

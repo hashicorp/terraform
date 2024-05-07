@@ -23,13 +23,12 @@ type ModuleVersion struct {
 	Version     string              `json:"version"`
 	Root        VersionSubmodule    `json:"root"`
 	Submodules  []*VersionSubmodule `json:"submodules"`
-	Deprecation Deprecation         `json:"deprecation"` // mdTODO: no idea if this is correct HA placeholder for now
+	Deprecation *Deprecation        `json:"deprecation"`
 }
 
 type Deprecation struct {
-	Deprecated   bool   `json:"deprecated"`
-	Message      string `json:"message"`
-	ExternalLink string `json:"externalLink"`
+	Reason string `json:"reason"`
+	Link   string `json:"link"`
 }
 
 // VersionSubmodule is the output metadata for a submodule within a given
