@@ -14,10 +14,10 @@ updates:
     allow:
       - dependency-name: hashicorp/*
     groups:
-    	github-actions-breaking:
+      github-actions-breaking:
         update-types:
           - major
-    	github-actions-backward-compatible:
+      github-actions-backward-compatible:
         update-types:
           - minor
           - patch
