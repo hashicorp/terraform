@@ -169,7 +169,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 	}
 
 	var resourceGraph addrs.DirectedGraph[addrs.ConfigResource]
-	if opts.DeferralAllowed {
+	if opts.DeferralAllowed && (operation == walkPlan || operation == walkPlanDestroy) {
 		// We'll produce a derived graph that only includes the static resource
 		// blocks, since we need that for deferral tracking.
 		resourceGraph = graph.ResourceGraph()
