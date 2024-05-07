@@ -13,7 +13,6 @@ updates:
     # only update HashiCorp actions, external actions managed by TSCCR
     allow:
       - dependency-name: hashicorp/*
-      - dependency-name: hashicorp-dev/*
     groups:
     	github-actions-breaking:
         update-types:
