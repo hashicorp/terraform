@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configs
 
 import "fmt"
@@ -20,7 +23,7 @@ type RegistryModuleDeprecation struct {
 
 func (i *WorkspaceDeprecationInfo) HasDeprecations() bool {
 	for _, deprecationInfo := range i.ModuleDeprecationInfos {
-		if deprecationInfo.hasDeprecations() {
+		if deprecationInfo != nil && deprecationInfo.hasDeprecations() {
 			return true
 		}
 	}
@@ -32,7 +35,7 @@ func (i *ModuleDeprecationInfo) hasDeprecations() bool {
 		return true
 	}
 	for _, dependencyDeprecationInfo := range i.ExternalDependencies {
-		if dependencyDeprecationInfo.hasDeprecations() {
+		if dependencyDeprecationInfo != nil && dependencyDeprecationInfo.hasDeprecations() {
 			return true
 		}
 	}

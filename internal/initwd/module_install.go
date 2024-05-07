@@ -59,23 +59,6 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 	}
 }
 
-// mdTODO: remove this later, only for iteration while the api hasn't been updated.
-func injectMockDeprecations(modules *response.ModuleVersions) {
-	if modules == nil || modules.Modules == nil {
-		log.Println("modules or modules.Modules is nil")
-		return // Exit the function to avoid the panic
-	}
-	for _, module := range modules.Modules {
-		for _, version := range module.Versions {
-			// Inject a mock deprecation into each version
-			version.Deprecation = &response.Deprecation{
-				Reason: "Mock deprecation message: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
-				Link:   "https://example.com/mock-deprecation",
-			}
-		}
-	}
-}
-
 // InstallModules analyses the root module in the given directory and installs
 // all of its direct and transitive dependencies into the given modules
 // directory, which must already exist.
@@ -296,9 +279,6 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 						regsrcAddr := regsrc.ModuleFromRegistryPackageAddr(addr.Package)
 						resp, err := regClient.ModuleVersions(ctx, regsrcAddr)
 
-						// mdTODO: remove this later on
-						injectMockDeprecations(resp)
-
 						if err != nil {
 							log.Printf("[DEBUG] Deprecation for %s could not be checked: call to registry failed", addr.Package.Namespace)
 
@@ -510,8 +490,6 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 		var err error
 		log.Printf("[DEBUG] %s listing available versions of %s at %s", key, addr, hostname)
 		resp, err = reg.ModuleVersions(ctx, regsrcAddr)
-		// mdTODO: remove this
-		injectMockDeprecations(resp)
 		if err != nil {
 			if registry.IsModuleNotFound(err) {
 				diags = diags.Append(&hcl.Diagnostic{
