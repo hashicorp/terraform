@@ -1705,6 +1705,9 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 	}
 }
 
+// This test verifies that if an embedded stack is configured with a for_each value that is unknown / deferred
+// that the plan will use the wildcard key for the embedded stack and that the components within are planned with
+// unknown values.
 func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, path.Join("with-single-input", "deferred-embedded-stack-for-each"))
@@ -1834,6 +1837,9 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 	}
 }
 
+// This test checks that a stack with an embedded stack with unknown for-each value
+// and within the embedded stack a component with a for-each value that is deferred
+// will plan successfully.
 func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, path.Join("with-single-input", "deferred-embedded-stack-and-component-for-each"))
