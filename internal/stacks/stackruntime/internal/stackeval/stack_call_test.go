@@ -214,6 +214,8 @@ func TestStackCallCheckInstances(t *testing.T) {
 				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", gotVal, wantVal)
 			}
 
+			// When for_each is unknown, CheckInstances returns a single instance
+			// whose key is `*` to represent the unknown number of instances.
 			gotInsts, diags := call.CheckInstances(ctx, InspectPhase)
 			assertNoDiags(t, diags)
 			if got, want := len(gotInsts), 1; got != want {
