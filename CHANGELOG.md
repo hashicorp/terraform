@@ -1,8 +1,8 @@
-## 1.8.3 (Unreleased)
+## 1.8.3 (May 8, 2024)
 
 BUG FIXES:
-* `terraform test`: Providers configured within an overridden module could panic. [GH-35110]
-* `core`: Fix crash when a provider incorrectly plans a nested object when the configuration is `null` [GH-35090]
+* `terraform test`: Providers configured within an overridden module could panic. ([#35110](https://github.com/hashicorp/terraform/issues/35110))
+* `core`: Fix crash when a provider incorrectly plans a nested object when the configuration is `null` ([#35090](https://github.com/hashicorp/terraform/issues/35090))
 
 ## 1.8.2 (April 24, 2024)
 
