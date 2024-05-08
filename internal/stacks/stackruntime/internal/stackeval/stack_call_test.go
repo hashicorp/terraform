@@ -390,8 +390,8 @@ func TestStackCallResultValue(t *testing.T) {
 			call := getStackCall(ctx, main)
 			got := call.ResultValue(ctx, InspectPhase)
 			// When the for_each expression is unknown, the result value
-			// is unknown too so we can use it as a placeholder for partial
-			// downstream checking.
+			// is a placeholder instance, with a wildcard key and potentially
+			// unknown attributes.
 			want := cty.MapVal(
 				map[string]cty.Value{
 					"*": cty.ObjectVal(map[string]cty.Value{
