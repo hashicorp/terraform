@@ -37,7 +37,7 @@ jobs:
       pkg-name: ${{ steps.get-pkg-name.outputs.pkg-name }}
 
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Get Package Name
         id: get-pkg-name
         run: |
@@ -64,7 +64,7 @@ jobs:
       go-version: ${{ steps.get-go-version.outputs.version }}
 
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Determine Go version
         id: get-go-version
         uses: ./.github/actions/go-version
@@ -77,7 +77,7 @@ jobs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
 
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Generate package metadata
         id: generate-metadata-file
         uses: hashicorp/actions-generate-metadata@fdbc8803a0e53bcbb912ddeee3808329033d6357 # v1.1.1
@@ -85,7 +85,7 @@ jobs:
           version: ${{ needs.get-product-version.outputs.product-version }}
           product: ${{ env.PKG_NAME }}
 
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
           name: metadata.json
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
@@ -139,7 +139,7 @@ jobs:
       repo: "terraform"
       version: ${{needs.get-product-version.outputs.product-version}}
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: Build Docker images
         uses: hashicorp/actions-docker-build@f6278ea21555b4b4737e4cf366e808ba2bb59146 # v1.6.1
         with:
@@ -187,10 +187,10 @@ jobs:
           cache_path=internal/command/e2etest/build
           echo "e2e-cache-key=${cache_key}" | tee -a "${GITHUB_OUTPUT}"
           echo "e2e-cache-path=${cache_path}" | tee -a "${GITHUB_OUTPUT}"
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
       - name: Install Go toolchain
-        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
 
@@ -207,7 +207,7 @@ jobs:
           bash ./internal/command/e2etest/make-archive.sh
 
       - name: Save test harness to cache
-        uses: actions/cache/save@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: ${{ steps.set-cache-values.outputs.e2e-cache-path }}
           key: ${{ steps.set-cache-values.outputs.e2e-cache-key }}_${{ matrix.goos }}_${{ matrix.goarch }}
@@ -245,9 +245,9 @@ jobs:
       # fresh build from source.)
       - name: Checkout repo
         if: ${{ (matrix.goos == 'linux') || (matrix.goos == 'darwin') }}
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       - name: "Restore cache"
-        uses: actions/cache/restore@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
+        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         id: e2etestpkg
         with:
           path: ${{ needs.e2etest-build.outputs.e2e-cache-path }}
@@ -255,7 +255,7 @@ jobs:
           fail-on-cache-miss: true
           enableCrossOsArchive: true
       - name: "Download Terraform CLI package"
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         id: clipkg
         with:
           name: terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip
@@ -266,7 +266,7 @@ jobs:
           unzip "${{ needs.e2etest-build.outputs.e2e-cache-path }}/terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
           unzip "./terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7 # v2.2.0
+        uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3 # v3.0.0
         if: ${{ contains(matrix.goarch, 'arm') }}
         with:
           platforms: all
@@ -300,17 +300,17 @@ jobs:
 
     steps:
       - name: Install Go toolchain
-        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
       - name: Download Terraform CLI package
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
         id: clipkg
         with:
           name: terraform_${{ env.version }}_linux_amd64.zip
           path: .
       - name: Checkout terraform-exec repo
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
         with:
           repository: hashicorp/terraform-exec
           path: terraform-exec
