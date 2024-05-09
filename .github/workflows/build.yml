@@ -119,8 +119,8 @@ jobs:
           - {goos: "solaris", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "windows", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "windows", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "darwin", goarch: "amd64", runson: "macos-latest", cgo-enabled: "1"}
-          - {goos: "darwin", goarch: "arm64", runson: "macos-latest", cgo-enabled: "1"}
+          - {goos: "darwin", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "darwin", goarch: "arm64", runson: "ubuntu-latest", cgo-enabled: "0"}
       fail-fast: false
 
   package-docker:
@@ -170,8 +170,8 @@ jobs:
           - {goos: "windows", goarch: "386"}
           - {goos: "linux", goarch: "386"}
           - {goos: "linux", goarch: "amd64"}
-          - {goos: linux, goarch: "arm"}
-          - {goos: linux, goarch: "arm64"}
+          - {goos: "linux", goarch: "arm"}
+          - {goos: "linux", goarch: "arm64"}
       fail-fast: false
 
     env:
