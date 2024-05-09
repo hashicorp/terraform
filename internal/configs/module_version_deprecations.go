@@ -131,13 +131,13 @@ func buildChildModuleDeprecations(modDeprecations []*ModuleVersionDeprecationInf
 				modDeprecation = modDeprecation + fmt.Sprintf("\n\nLink for more information: %s", deprecation.RegistryDeprecation.Link)
 			}
 			modDeprecationStrings = append(modDeprecationStrings, modDeprecation)
+			deprecationList = append(deprecationList, &ModuleVersionDeprecationDiagnosticExtraDeprecationItem{
+				Version:            deprecation.RegistryDeprecation.Version,
+				SourceName:         deprecation.SourceName,
+				DeprecationMessage: deprecation.RegistryDeprecation.Message,
+				Link:               deprecation.RegistryDeprecation.Link,
+			})
 		}
-		deprecationList = append(deprecationList, &ModuleVersionDeprecationDiagnosticExtraDeprecationItem{
-			Version:            deprecation.RegistryDeprecation.Version,
-			SourceName:         deprecation.SourceName,
-			DeprecationMessage: deprecation.RegistryDeprecation.Message,
-			Link:               deprecation.RegistryDeprecation.Link,
-		})
 		newParentMods := append(parentMods, deprecation.SourceName)
 		deprecationStrings, deprecationStructs := buildChildModuleDeprecations(deprecation.ExternalDependencies, newParentMods)
 		modDeprecationStrings = append(modDeprecationStrings, deprecationStrings...)
