@@ -106,7 +106,7 @@ func testNestedModuleConfigFromDir(t *testing.T, path string) (*Config, hcl.Diag
 func buildNestedModuleConfig(mod *Module, path string, parser *Parser) (*Config, hcl.Diagnostics) {
 	versionI := 0
 	cfg, diags, _ := BuildConfig(mod, ModuleWalkerFunc(
-		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics, *ModuleDeprecationInfo) {
+		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics, *ModuleVersionDeprecationInfo) {
 			// For the sake of this test we're going to just treat our
 			// SourceAddr as a path relative to the calling module.
 			// A "real" implementation of ModuleWalker should accept the

@@ -134,7 +134,7 @@ func (s *Snapshot) moduleManifest() modsdir.Manifest {
 // source files from the referenced modules into the given snapshot.
 func (l *Loader) makeModuleWalkerSnapshot(snap *Snapshot) configs.ModuleWalker {
 	return configs.ModuleWalkerFunc(
-		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleDeprecationInfo) {
+		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleVersionDeprecationInfo) {
 			mod, v, diags, _ := l.moduleWalkerLoad(req)
 			if diags.HasErrors() {
 				return mod, v, diags, nil

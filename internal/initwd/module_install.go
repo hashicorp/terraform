@@ -149,7 +149,7 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 
 func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest modsdir.Manifest, upgrade bool, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) configs.ModuleWalker {
 	return configs.ModuleWalkerFunc(
-		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleDeprecationInfo) {
+		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleVersionDeprecationInfo) {
 			var diags hcl.Diagnostics
 
 			if req.SourceAddr == nil {
@@ -259,7 +259,7 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 
 					log.Printf("[TRACE] ModuleInstaller: Module installer: %s %s already installed in %s", key, record.Version, record.Dir)
 
-					var modDeprecation *configs.ModuleDeprecationInfo
+					var modDeprecation *configs.ModuleVersionDeprecationInfo
 
 					var moduleVersion *response.ModuleVersion
 
@@ -302,10 +302,10 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 				mod, mDiags := i.installLocalModule(req, key, manifest, hooks)
 				mDiags = maybeImproveLocalInstallError(req, mDiags)
 				diags = append(diags, mDiags...)
-				return mod, nil, diags, &configs.ModuleDeprecationInfo{
+				return mod, nil, diags, &configs.ModuleVersionDeprecationInfo{
 					SourceName:           req.Name,
 					RegistryDeprecation:  nil,
-					ExternalDependencies: []*configs.ModuleDeprecationInfo{},
+					ExternalDependencies: []*configs.ModuleVersionDeprecationInfo{},
 				}
 
 			case addrs.ModuleSourceRegistry:
@@ -318,10 +318,10 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 				log.Printf("[TRACE] ModuleInstaller: %s address %q will be handled by go-getter", key, addr.String())
 				mod, mDiags := i.installGoGetterModule(ctx, req, key, instPath, manifest, hooks, fetcher)
 				diags = append(diags, mDiags...)
-				return mod, nil, diags, &configs.ModuleDeprecationInfo{
+				return mod, nil, diags, &configs.ModuleVersionDeprecationInfo{
 					SourceName:           req.Name,
 					RegistryDeprecation:  nil,
-					ExternalDependencies: []*configs.ModuleDeprecationInfo{},
+					ExternalDependencies: []*configs.ModuleVersionDeprecationInfo{},
 				}
 
 			default:
@@ -333,9 +333,9 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 	)
 }
 
-func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, manifest modsdir.Manifest, installWalker configs.ModuleWalker, installErrsOnly bool) (*configs.Config, tfdiags.Diagnostics, *configs.WorkspaceDeprecationInfo) {
+func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, manifest modsdir.Manifest, installWalker configs.ModuleWalker, installErrsOnly bool) (*configs.Config, tfdiags.Diagnostics, *configs.DirectoryDeprecationInfo) {
 	var diags tfdiags.Diagnostics
-	var workspaceDeprecations *configs.WorkspaceDeprecationInfo
+	var workspaceDeprecations *configs.DirectoryDeprecationInfo
 
 	// When attempting to initialize the current directory with a module
 	// source, some use cases may want to ignore configuration errors from the
@@ -347,7 +347,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, mani
 	var instDiags hcl.Diagnostics
 	walker := installWalker
 	if installErrsOnly {
-		walker = configs.ModuleWalkerFunc(func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleDeprecationInfo) {
+		walker = configs.ModuleWalkerFunc(func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleVersionDeprecationInfo) {
 			mod, version, diags, _ := installWalker.LoadModule(req)
 			instDiags = instDiags.Extend(diags)
 			return mod, version, diags, nil
@@ -453,7 +453,7 @@ func (i *ModuleInstaller) installLocalModule(req *configs.ModuleRequest, key str
 	return mod, diags
 }
 
-func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, addr addrs.ModuleSourceRegistry, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleDeprecationInfo) {
+func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, addr addrs.ModuleSourceRegistry, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleVersionDeprecationInfo) {
 	var diags hcl.Diagnostics
 
 	hostname := addr.Package.Host
@@ -968,20 +968,20 @@ func maybeImproveLocalInstallError(req *configs.ModuleRequest, diags hcl.Diagnos
 	return diags
 }
 
-func collectModuleDeprecationWarnings(moduleVersion *response.ModuleVersion, sourceName string, version *version.Version) *configs.ModuleDeprecationInfo {
-	var registryModDeprecation *configs.RegistryModuleDeprecation
+func collectModuleDeprecationWarnings(moduleVersion *response.ModuleVersion, sourceName string, version *version.Version) *configs.ModuleVersionDeprecationInfo {
+	var registryModDeprecation *configs.RegistryModuleVersionDeprecation
 
 	if moduleVersion != nil && moduleVersion.Deprecation != nil {
-		registryModDeprecation = &configs.RegistryModuleDeprecation{
+		registryModDeprecation = &configs.RegistryModuleVersionDeprecation{
 			Link:    moduleVersion.Deprecation.Link,
 			Message: moduleVersion.Deprecation.Reason,
 			Version: version.Original(),
 		}
 	}
-	return &configs.ModuleDeprecationInfo{
+	return &configs.ModuleVersionDeprecationInfo{
 		SourceName:           sourceName,
 		RegistryDeprecation:  registryModDeprecation,
-		ExternalDependencies: []*configs.ModuleDeprecationInfo{},
+		ExternalDependencies: []*configs.ModuleVersionDeprecationInfo{},
 	}
 }
 

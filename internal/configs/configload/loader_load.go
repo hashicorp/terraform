@@ -63,7 +63,7 @@ func (l *Loader) LoadExternalMockData(provider *configs.Provider) (*configs.Mock
 
 // moduleWalkerLoad is a configs.ModuleWalkerFunc for loading modules that
 // are presumed to have already been installed.
-func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleDeprecationInfo) {
+func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleVersionDeprecationInfo) {
 	// Since we're just loading here, we expect that all referenced modules
 	// will be already installed and described in our manifest. However, we
 	// do verify that the manifest and the configuration are in agreement

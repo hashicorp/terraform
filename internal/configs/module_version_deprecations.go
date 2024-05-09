@@ -11,41 +11,41 @@ import (
 	"github.com/mitchellh/colorstring"
 )
 
-type WorkspaceDeprecationInfo struct {
-	ModuleDeprecationInfos []*ModuleDeprecationInfo
+type DirectoryDeprecationInfo struct {
+	ModuleVersionDeprecationInfos []*ModuleVersionDeprecationInfo
 }
 
-type ModuleDeprecationInfo struct {
+type ModuleVersionDeprecationInfo struct {
 	SourceName           string
-	RegistryDeprecation  *RegistryModuleDeprecation
-	ExternalDependencies []*ModuleDeprecationInfo
+	RegistryDeprecation  *RegistryModuleVersionDeprecation
+	ExternalDependencies []*ModuleVersionDeprecationInfo
 }
 
-type RegistryModuleDeprecation struct {
+type RegistryModuleVersionDeprecation struct {
 	Version string
 	Link    string
 	Message string
 }
 
-type ModuleDeprecationDiagnosticExtra struct {
-	MessageCode  string                                             `json:"message_code"`
-	Deprecations []*ModuleDeprecationDiagnosticExtraDeprecationItem `json:"deprecations"`
+type ModuleVersionDeprecationDiagnosticExtra struct {
+	MessageCode  string                                                    `json:"message_code"`
+	Deprecations []*ModuleVersionDeprecationDiagnosticExtraDeprecationItem `json:"deprecations"`
 }
 
-func (m *ModuleDeprecationDiagnosticExtra) IsPublic() {}
+func (m *ModuleVersionDeprecationDiagnosticExtra) IsPublic() {}
 
-type ModuleDeprecationDiagnosticExtraDeprecationItem struct {
+type ModuleVersionDeprecationDiagnosticExtraDeprecationItem struct {
 	Version            string `json:"version"`
 	SourceName         string `json:"source_name"`
 	DeprecationMessage string `json:"deprecation_message"`
 	Link               string `json:"link"`
 }
 
-func (i *WorkspaceDeprecationInfo) HasDeprecations() bool {
-	if i == nil || i.ModuleDeprecationInfos == nil {
+func (i *DirectoryDeprecationInfo) HasDeprecations() bool {
+	if i == nil || i.ModuleVersionDeprecationInfos == nil {
 		return false
 	}
-	for _, deprecationInfo := range i.ModuleDeprecationInfos {
+	for _, deprecationInfo := range i.ModuleVersionDeprecationInfos {
 		if deprecationInfo != nil && deprecationInfo.hasDeprecations() {
 			return true
 		}
@@ -53,7 +53,7 @@ func (i *WorkspaceDeprecationInfo) HasDeprecations() bool {
 	return false
 }
 
-func (i *ModuleDeprecationInfo) hasDeprecations() bool {
+func (i *ModuleVersionDeprecationInfo) hasDeprecations() bool {
 	if i.RegistryDeprecation != nil {
 		return true
 	}
@@ -67,15 +67,15 @@ func (i *ModuleDeprecationInfo) hasDeprecations() bool {
 
 // Deprecation info is placed as an string in the Diagnostic Detail for console view,
 // as well as placed in the Diagnostic Extra for parsing for the SRO view in HCP Terraform
-func (i *WorkspaceDeprecationInfo) BuildDeprecationWarning() *hcl.Diagnostic {
-	modDeprecationStrings := []string{}
+func (i *DirectoryDeprecationInfo) BuildDeprecationWarning() *hcl.Diagnostic {
+	modDeprecations := []string{}
 	color := colorstring.Colorize{
 		Colors:  colorstring.DefaultColors,
 		Disable: false,
 		Reset:   true,
 	}
-	deprecationList := make([]*ModuleDeprecationDiagnosticExtraDeprecationItem, 0, len(i.ModuleDeprecationInfos))
-	for _, modDeprecationInfo := range i.ModuleDeprecationInfos {
+	deprecationList := make([]*ModuleVersionDeprecationDiagnosticExtraDeprecationItem, 0, len(i.ModuleVersionDeprecationInfos))
+	for _, modDeprecationInfo := range i.ModuleVersionDeprecationInfos {
 		if modDeprecationInfo != nil && modDeprecationInfo.RegistryDeprecation != nil {
 			msg := color.Color("[reset][bold]Version %s of %s[reset]")
 			modDeprecation := fmt.Sprintf(msg, modDeprecationInfo.RegistryDeprecation.Version, modDeprecationInfo.SourceName)
@@ -86,39 +86,39 @@ func (i *WorkspaceDeprecationInfo) BuildDeprecationWarning() *hcl.Diagnostic {
 			if modDeprecationInfo.RegistryDeprecation.Link != "" {
 				modDeprecation = modDeprecation + fmt.Sprintf("\n\nLink for more information: %s", modDeprecationInfo.RegistryDeprecation.Link)
 			}
-			deprecationList = append(deprecationList, &ModuleDeprecationDiagnosticExtraDeprecationItem{
+			deprecationList = append(deprecationList, &ModuleVersionDeprecationDiagnosticExtraDeprecationItem{
 				Version:            modDeprecationInfo.RegistryDeprecation.Version,
 				SourceName:         modDeprecationInfo.SourceName,
 				DeprecationMessage: modDeprecationInfo.RegistryDeprecation.Message,
 				Link:               modDeprecationInfo.RegistryDeprecation.Link,
 			})
-			modDeprecationStrings = append(modDeprecationStrings, modDeprecation)
+			modDeprecations = append(modDeprecations, modDeprecation)
 		}
 		deprecationStrings, deprecationStructs := buildChildModuleDeprecations(modDeprecationInfo.ExternalDependencies, []string{modDeprecationInfo.SourceName})
 		deprecationList = append(deprecationList, deprecationStructs...)
-		modDeprecationStrings = append(modDeprecationStrings, deprecationStrings...)
+		modDeprecations = append(modDeprecations, deprecationStrings...)
 	}
-	deprecationsMessage := strings.Join(modDeprecationStrings, "\n\n")
+	deprecationsMessage := strings.Join(modDeprecations, "\n\n")
 
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagWarning,
-		Summary:  "Deprecated modules found, consider installing updated versions. The following are affected:",
+		Summary:  "Deprecated module versions found, consider installing updated versions. The following are affected:",
 		Detail:   deprecationsMessage,
-		Extra: &ModuleDeprecationDiagnosticExtra{
+		Extra: &ModuleVersionDeprecationDiagnosticExtra{
 			MessageCode:  "module_deprecation_warning",
 			Deprecations: deprecationList,
 		},
 	}
 }
 
-func buildChildModuleDeprecations(modDeprecations []*ModuleDeprecationInfo, parentMods []string) ([]string, []*ModuleDeprecationDiagnosticExtraDeprecationItem) {
+func buildChildModuleDeprecations(modDeprecations []*ModuleVersionDeprecationInfo, parentMods []string) ([]string, []*ModuleVersionDeprecationDiagnosticExtraDeprecationItem) {
 	color := colorstring.Colorize{
 		Colors:  colorstring.DefaultColors,
 		Disable: false,
 		Reset:   true,
 	}
 	modDeprecationStrings := []string{}
-	var deprecationList []*ModuleDeprecationDiagnosticExtraDeprecationItem
+	var deprecationList []*ModuleVersionDeprecationDiagnosticExtraDeprecationItem
 	for _, deprecation := range modDeprecations {
 		if deprecation.RegistryDeprecation != nil {
 			msg := color.Color("[reset][bold]Version %s of %s %s[reset]")
@@ -132,7 +132,7 @@ func buildChildModuleDeprecations(modDeprecations []*ModuleDeprecationInfo, pare
 			}
 			modDeprecationStrings = append(modDeprecationStrings, modDeprecation)
 		}
-		deprecationList = append(deprecationList, &ModuleDeprecationDiagnosticExtraDeprecationItem{
+		deprecationList = append(deprecationList, &ModuleVersionDeprecationDiagnosticExtraDeprecationItem{
 			Version:            deprecation.RegistryDeprecation.Version,
 			SourceName:         deprecation.SourceName,
 			DeprecationMessage: deprecation.RegistryDeprecation.Message,

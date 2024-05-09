@@ -12,19 +12,19 @@ import (
 )
 
 func TestBuildDeprecationWarning(t *testing.T) {
-	workspaceDeprecations := &WorkspaceDeprecationInfo{
-		ModuleDeprecationInfos: []*ModuleDeprecationInfo{
+	workspaceDeprecations := &DirectoryDeprecationInfo{
+		ModuleVersionDeprecationInfos: []*ModuleVersionDeprecationInfo{
 			{
 				SourceName: "test1",
-				RegistryDeprecation: &RegistryModuleDeprecation{
+				RegistryDeprecation: &RegistryModuleVersionDeprecation{
 					Version: "1.0.0",
 					Link:    "https://test1.com",
 					Message: "Deprecation message for module test1",
 				},
-				ExternalDependencies: []*ModuleDeprecationInfo{
+				ExternalDependencies: []*ModuleVersionDeprecationInfo{
 					{
 						SourceName: "test1-external-dependency",
-						RegistryDeprecation: &RegistryModuleDeprecation{
+						RegistryDeprecation: &RegistryModuleVersionDeprecation{
 							Version: "1.0.0",
 							Link:    "https://test1-external-dependency.com",
 							Message: "Deprecation message for module test1-external-dependency",
@@ -34,15 +34,15 @@ func TestBuildDeprecationWarning(t *testing.T) {
 			},
 			{
 				SourceName: "test2",
-				RegistryDeprecation: &RegistryModuleDeprecation{
+				RegistryDeprecation: &RegistryModuleVersionDeprecation{
 					Version: "1.0.0",
 					Link:    "https://test2.com",
 					Message: "Deprecation message for module test2",
 				},
-				ExternalDependencies: []*ModuleDeprecationInfo{
+				ExternalDependencies: []*ModuleVersionDeprecationInfo{
 					{
 						SourceName: "test2-external-dependency",
-						RegistryDeprecation: &RegistryModuleDeprecation{
+						RegistryDeprecation: &RegistryModuleVersionDeprecation{
 							Version: "1.0.0",
 							Link:    "https://test2-external-dependency.com",
 							Message: "Deprecation message for module test2-external-dependency",
@@ -50,7 +50,7 @@ func TestBuildDeprecationWarning(t *testing.T) {
 					},
 					{
 						SourceName: "test2b-external-dependency",
-						RegistryDeprecation: &RegistryModuleDeprecation{
+						RegistryDeprecation: &RegistryModuleVersionDeprecation{
 							Version: "1.0.0",
 							Link:    "https://test2b-external-dependency.com",
 							Message: "Deprecation message for module test2b-external-dependency",
@@ -60,12 +60,12 @@ func TestBuildDeprecationWarning(t *testing.T) {
 			},
 			{
 				SourceName: "test3",
-				RegistryDeprecation: &RegistryModuleDeprecation{
+				RegistryDeprecation: &RegistryModuleVersionDeprecation{
 					Version: "1.0.0",
 					Link:    "https://test3.com",
 					Message: "Deprecation message for module test3",
 				},
-				ExternalDependencies: []*ModuleDeprecationInfo{},
+				ExternalDependencies: []*ModuleVersionDeprecationInfo{},
 			},
 		},
 	}
@@ -81,11 +81,11 @@ func TestBuildDeprecationWarning(t *testing.T) {
 	}
 	diagWant := &hcl.Diagnostic{
 		Severity: hcl.DiagWarning,
-		Summary:  "Deprecated modules found, consider installing updated versions. The following are affected:",
+		Summary:  "Deprecated module versions found, consider installing updated versions. The following are affected:",
 		Detail:   strings.Join(detailStringArray, "\n\n"),
-		Extra: &ModuleDeprecationDiagnosticExtra{
+		Extra: &ModuleVersionDeprecationDiagnosticExtra{
 			MessageCode: "module_deprecation_warning",
-			Deprecations: []*ModuleDeprecationDiagnosticExtraDeprecationItem{
+			Deprecations: []*ModuleVersionDeprecationDiagnosticExtraDeprecationItem{
 				{
 					Version:            "1.0.0",
 					SourceName:         "test1",
@@ -132,16 +132,16 @@ func TestBuildDeprecationWarning(t *testing.T) {
 }
 
 func TestHasDeprecations_root_module(t *testing.T) {
-	workspaceDeprecationsAtRoot := &WorkspaceDeprecationInfo{
-		ModuleDeprecationInfos: []*ModuleDeprecationInfo{
+	workspaceDeprecationsAtRoot := &DirectoryDeprecationInfo{
+		ModuleVersionDeprecationInfos: []*ModuleVersionDeprecationInfo{
 			{
 				SourceName: "test1",
-				RegistryDeprecation: &RegistryModuleDeprecation{
+				RegistryDeprecation: &RegistryModuleVersionDeprecation{
 					Version: "1.0.0",
 					Link:    "https://test1.com",
 					Message: "Deprecation message for module test1",
 				},
-				ExternalDependencies: []*ModuleDeprecationInfo{},
+				ExternalDependencies: []*ModuleVersionDeprecationInfo{},
 			},
 		},
 	}
@@ -150,12 +150,12 @@ func TestHasDeprecations_root_module(t *testing.T) {
 		t.Error("Expected deprecations to be present, but none were found")
 	}
 
-	workspaceDeprecationsNoneAtRoot := &WorkspaceDeprecationInfo{
-		ModuleDeprecationInfos: []*ModuleDeprecationInfo{
+	workspaceDeprecationsNoneAtRoot := &DirectoryDeprecationInfo{
+		ModuleVersionDeprecationInfos: []*ModuleVersionDeprecationInfo{
 			{
 				SourceName:           "test1",
 				RegistryDeprecation:  nil,
-				ExternalDependencies: []*ModuleDeprecationInfo{},
+				ExternalDependencies: []*ModuleVersionDeprecationInfo{},
 			},
 		},
 	}
@@ -167,19 +167,19 @@ func TestHasDeprecations_root_module(t *testing.T) {
 }
 
 func TestHasDeprecations_external_dependencies(t *testing.T) {
-	workspaceDeprecationsInExternalDependency := &WorkspaceDeprecationInfo{
-		ModuleDeprecationInfos: []*ModuleDeprecationInfo{
+	workspaceDeprecationsInExternalDependency := &DirectoryDeprecationInfo{
+		ModuleVersionDeprecationInfos: []*ModuleVersionDeprecationInfo{
 			{
 				SourceName:          "test2",
 				RegistryDeprecation: nil,
-				ExternalDependencies: []*ModuleDeprecationInfo{
+				ExternalDependencies: []*ModuleVersionDeprecationInfo{
 					{
 						SourceName:          "test2-external-dependency",
 						RegistryDeprecation: nil,
 					},
 					{
 						SourceName: "test2b-external-dependency",
-						RegistryDeprecation: &RegistryModuleDeprecation{
+						RegistryDeprecation: &RegistryModuleVersionDeprecation{
 							Version: "1.0.0",
 							Link:    "https://test2b-external-dependency.com",
 							Message: "Deprecation message for module test2b-external-dependency",
@@ -196,8 +196,8 @@ func TestHasDeprecations_external_dependencies(t *testing.T) {
 }
 
 func TestHasDeprecations_with_none_present(t *testing.T) {
-	workspaceDeprecationsNoModules := &WorkspaceDeprecationInfo{
-		ModuleDeprecationInfos: []*ModuleDeprecationInfo{},
+	workspaceDeprecationsNoModules := &DirectoryDeprecationInfo{
+		ModuleVersionDeprecationInfos: []*ModuleVersionDeprecationInfo{},
 	}
 
 	if workspaceDeprecationsNoModules.HasDeprecations() {

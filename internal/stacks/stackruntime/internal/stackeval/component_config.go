@@ -544,7 +544,7 @@ func newSourceBundleModuleWalker(rootModuleSource sourceaddrs.FinalSource, sourc
 }
 
 // LoadModule implements configs.ModuleWalker.
-func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleDeprecationInfo) {
+func (w *sourceBundleModuleWalker) LoadModule(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics, *configs.ModuleVersionDeprecationInfo) {
 	var diags hcl.Diagnostics
 
 	// First we need to assemble the "final source address" for the module

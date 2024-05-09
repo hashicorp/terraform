@@ -30,7 +30,7 @@ func TestBuildConfig(t *testing.T) {
 
 	versionI := 0
 	cfg, diags, _ := BuildConfig(mod, ModuleWalkerFunc(
-		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics, *ModuleDeprecationInfo) {
+		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics, *ModuleVersionDeprecationInfo) {
 			// For the sake of this test we're going to just treat our
 			// SourceAddr as a path relative to our fixture directory.
 			// A "real" implementation of ModuleWalker should accept the
@@ -89,7 +89,7 @@ func TestBuildConfigDiags(t *testing.T) {
 
 	versionI := 0
 	cfg, diags, _ := BuildConfig(mod, ModuleWalkerFunc(
-		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics, *ModuleDeprecationInfo) {
+		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics, *ModuleVersionDeprecationInfo) {
 			// For the sake of this test we're going to just treat our
 			// SourceAddr as a path relative to our fixture directory.
 			// A "real" implementation of ModuleWalker should accept the
@@ -136,7 +136,7 @@ func TestBuildConfigChildModuleBackend(t *testing.T) {
 	}
 
 	cfg, diags, _ := BuildConfig(mod, ModuleWalkerFunc(
-		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics, *ModuleDeprecationInfo) {
+		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics, *ModuleVersionDeprecationInfo) {
 			// For the sake of this test we're going to just treat our
 			// SourceAddr as a path relative to our fixture directory.
 			// A "real" implementation of ModuleWalker should accept the
@@ -217,7 +217,7 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 			expectedWarnings := readDiags(ioutil.ReadFile(filepath.Join(testDir, name, "warnings")))
 
 			_, buildDiags, _ := BuildConfig(mod, ModuleWalkerFunc(
-				func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics, *ModuleDeprecationInfo) {
+				func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics, *ModuleVersionDeprecationInfo) {
 					// for simplicity, these tests will treat all source
 					// addresses as relative to the root module
 					sourcePath := filepath.Join(path, req.SourceAddr.String())
@@ -369,7 +369,7 @@ func TestBuildConfig_WithNestedTestModules(t *testing.T) {
 	}
 
 	cfg, diags, _ := BuildConfig(mod, ModuleWalkerFunc(
-		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics, *ModuleDeprecationInfo) {
+		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics, *ModuleVersionDeprecationInfo) {
 
 			// Bit of a hack to get the test working, but we know all the source
 			// addresses in this test are locals, so we can just treat them as
@@ -452,7 +452,7 @@ func TestBuildConfig_WithTestModule(t *testing.T) {
 	}
 
 	cfg, diags, _ := BuildConfig(mod, ModuleWalkerFunc(
-		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics, *ModuleDeprecationInfo) {
+		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics, *ModuleVersionDeprecationInfo) {
 			// For the sake of this test we're going to just treat our
 			// SourceAddr as a path relative to our fixture directory.
 			// A "real" implementation of ModuleWalker should accept the
