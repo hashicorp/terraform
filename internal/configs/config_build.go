@@ -263,8 +263,6 @@ func rebaseChildModule(cfg *Config, root *Config) {
 	cfg.Root = root
 }
 
-// refactor this into it's own file, doesn't make sense to place this here
-
 // A ModuleWalker knows how to find and load a child module given details about
 // the module to be loaded and a reference to its partially-loaded parent
 // Config.
