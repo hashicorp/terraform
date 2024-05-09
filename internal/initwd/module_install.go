@@ -273,18 +273,14 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 							log.Printf("[DEBUG] Deprecation for %s could not be checked: call to registry failed", addr.Package.Namespace)
 
 						} else {
-							found := false
+						found:
 							for _, modProviderVersions := range resp.Modules {
 								for _, modVersions := range modProviderVersions.Versions {
 									vm, _ := version.NewVersion(modVersions.Version)
 									if vm.Equal(record.Version) {
 										moduleVersion = modVersions
-										found = true
-										break
+										break found
 									}
-								}
-								if found {
-									break
 								}
 							}
 						}
