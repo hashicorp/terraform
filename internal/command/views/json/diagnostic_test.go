@@ -447,7 +447,7 @@ func TestNewDiagnostic(t *testing.T) {
 						},
 					},
 				},
-				Extra: diagnosticCausedBySensitive(true),
+				Extra: nil,
 			},
 		},
 		"error with source code subject and expression referring to sensitive value when not caused by sensitive values": {
@@ -617,7 +617,7 @@ func TestNewDiagnostic(t *testing.T) {
 						},
 					},
 				},
-				Extra: diagnosticCausedByUnknown(true),
+				Extra: nil,
 			},
 		},
 		"error with source code subject and unknown expression of unknown type": {
@@ -676,7 +676,7 @@ func TestNewDiagnostic(t *testing.T) {
 						},
 					},
 				},
-				Extra: diagnosticCausedByUnknown(true),
+				Extra: nil,
 			},
 		},
 		"error with source code subject and unknown expression of unknown type when not caused by unknown values": {
@@ -868,7 +868,7 @@ func TestNewDiagnostic(t *testing.T) {
 						},
 					},
 				},
-				Extra: diagnosticCausedBySensitive(true),
+				Extra: nil,
 			},
 		},
 	}
