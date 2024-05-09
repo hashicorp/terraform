@@ -5,6 +5,7 @@ package configs
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/mitchellh/colorstring"
@@ -95,10 +96,7 @@ func (i *WorkspaceDeprecationInfo) BuildDeprecationWarning() *hcl.Diagnostic {
 		deprecationList = append(deprecationList, deprecationStructs...)
 		modDeprecationStrings = append(modDeprecationStrings, deprecationStrings...)
 	}
-	deprecationsMessage := ""
-	for _, deprecationString := range modDeprecationStrings {
-		deprecationsMessage += deprecationString + "\n\n"
-	}
+	deprecationsMessage := strings.Join(modDeprecationStrings, "\n\n")
 
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagWarning,
