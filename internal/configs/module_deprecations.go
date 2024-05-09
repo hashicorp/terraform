@@ -32,6 +32,8 @@ type ModuleDeprecationDiagnosticExtra struct {
 	Deprecations []*ModuleDeprecationDiagnosticExtraDeprecationItem `json:"deprecations"`
 }
 
+func (m *ModuleDeprecationDiagnosticExtra) IsPublic() {}
+
 type ModuleDeprecationDiagnosticExtraDeprecationItem struct {
 	Version            string `json:"version"`
 	SourceName         string `json:"source_name"`

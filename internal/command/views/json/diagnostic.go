@@ -144,13 +144,18 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 	}
 
 	desc := diag.Description()
+	extra := diag.ExtraInfo()
+	var publicExtra tfdiags.PublicExtraInfo
+	if e, ok := extra.(tfdiags.PublicExtraInfo); ok {
+		publicExtra = e
+	}
 
 	diagnostic := &Diagnostic{
 		Severity: sev,
 		Summary:  desc.Summary,
 		Detail:   desc.Detail,
 		Address:  desc.Address,
-		Extra:    diag.ExtraInfo(),
+		Extra:    publicExtra,
 	}
 
 	sourceRefs := diag.Source()
