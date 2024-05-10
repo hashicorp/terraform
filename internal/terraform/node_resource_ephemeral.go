@@ -93,8 +93,16 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) tfdiags.
 
 	errs := objchange.AssertPlanValid(schema, cty.NullVal(schema.ImpliedType()), configVal, resultVal)
 	for _, err := range errs {
-		// FIXME: Should turn these errors into suitable diagnostics.
-		diags = diags.Append(err)
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Provider produced invalid ephemeral resource instance",
+			fmt.Sprintf(
+				"The provider for %s produced an inconsistent result: %s.",
+				inp.addr.Resource.Resource.Type,
+				tfdiags.FormatError(err),
+			),
+			nil,
+		)).InConfigBody(config.Config, inp.addr.String())
 	}
 	if diags.HasErrors() {
 		return diags
