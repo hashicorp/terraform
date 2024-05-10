@@ -34,6 +34,7 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		},
 		EphemeralResourceTypes: map[string]providers.Schema{
 			"terraform_random_number": ephemeralRandomNumberSchema(),
+			"terraform_ssh_tunnels":   ephemeralSSHTunnelsSchema(),
 		},
 		Functions: map[string]providers.FunctionDecl{
 			"encode_tfvars": {
@@ -199,6 +200,8 @@ func (p *Provider) OpenEphemeral(req providers.OpenEphemeralRequest) providers.O
 	switch req.TypeName {
 	case "terraform_random_number":
 		return openEphemeralRandomNumber(req)
+	case "terraform_ssh_tunnels":
+		return openEphemeralSSHTunnels(req)
 	default:
 		// This should not happen
 		var resp providers.OpenEphemeralResponse
@@ -212,6 +215,8 @@ func (p *Provider) RenewEphemeral(req providers.RenewEphemeralRequest) providers
 	switch req.TypeName {
 	case "terraform_random_number":
 		return renewEphemeralRandomNumber(req)
+	case "terraform_ssh_tunnels":
+		return renewEphemeralSSHTunnels(req)
 	default:
 		// This should not happen
 		var resp providers.RenewEphemeralResponse
@@ -225,6 +230,8 @@ func (p *Provider) CloseEphemeral(req providers.CloseEphemeralRequest) providers
 	switch req.TypeName {
 	case "terraform_random_number":
 		return closeEphemeralRandomNumber(req)
+	case "terraform_ssh_tunnels":
+		return closeEphemeralSSHTunnels(req)
 	default:
 		// This should not happen
 		var resp providers.CloseEphemeralResponse
