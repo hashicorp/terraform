@@ -196,35 +196,41 @@ func (p *Provider) ValidateResourceConfig(req providers.ValidateResourceConfigRe
 
 // OpenEphemeral implements providers.Interface.
 func (p *Provider) OpenEphemeral(req providers.OpenEphemeralRequest) providers.OpenEphemeralResponse {
-	if req.TypeName != "terraform_random_number" {
+	switch req.TypeName {
+	case "terraform_random_number":
+		return openEphemeralRandomNumber(req)
+	default:
 		// This should not happen
 		var resp providers.OpenEphemeralResponse
 		resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
 		return resp
 	}
-	return openEphemeralRandomNumber(req)
 }
 
 // RenewEphemeral implements providers.Interface.
 func (p *Provider) RenewEphemeral(req providers.RenewEphemeralRequest) providers.RenewEphemeralResponse {
-	if req.TypeName != "terraform_random_number" {
+	switch req.TypeName {
+	case "terraform_random_number":
+		return renewEphemeralRandomNumber(req)
+	default:
 		// This should not happen
 		var resp providers.RenewEphemeralResponse
 		resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
 		return resp
 	}
-	return renewEphemeralRandomNumber(req)
 }
 
 // CloseEphemeral implements providers.Interface.
 func (p *Provider) CloseEphemeral(req providers.CloseEphemeralRequest) providers.CloseEphemeralResponse {
-	if req.TypeName != "terraform_random_number" {
+	switch req.TypeName {
+	case "terraform_random_number":
+		return closeEphemeralRandomNumber(req)
+	default:
 		// This should not happen
 		var resp providers.CloseEphemeralResponse
 		resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
 		return resp
 	}
-	return closeEphemeralRandomNumber(req)
 }
 
 // CallFunction would call a function contributed by this provider, but this
