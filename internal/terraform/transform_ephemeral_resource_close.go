@@ -92,6 +92,23 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 		if !ok {
 			continue
 		}
+		// If "v" is representing a provider configuration then we also need
+		// our close node to depend on its close node, so that an ephemeral
+		// resource instance that a provider instance is depending on will
+		// remain alive for the provider instance's entire lifetime, rather
+		// than just while it's configuring itself.
+		var vClose dag.Vertex
+		if vP, ok := v.(GraphNodeProvider); ok {
+			providerAddr := vP.ProviderAddr()
+			for _, maybeVClose := range verts {
+				if maybeVClose, ok := maybeVClose.(GraphNodeCloseProvider); ok {
+					if maybeVClose.CloseProviderAddr().Equal(providerAddr) {
+						vClose = maybeVClose
+						break
+					}
+				}
+			}
+		}
 		for _, consumedAddr := range requiredEphemeralResourcesForReferencer(v) {
 			if consumedAddr.Resource.Mode != addrs.EphemeralResourceMode {
 				// Should not happen: correct implementations of
@@ -113,7 +130,12 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 			// The close node depends on anything that consumes instances of
 			// the ephemeral resource, because we mustn't close it while
 			// other components are still using it.
+			log.Printf("[TRACE] ephemeralResourceCloseTransformer: %s must wait for %s", dag.VertexName(closeNode), v)
 			g.Connect(dag.BasicEdge(closeNode, v))
+			if vClose != nil {
+				log.Printf("[TRACE] ephemeralResourceCloseTransformer: %s must wait for %s", dag.VertexName(closeNode), vClose)
+				g.Connect(dag.BasicEdge(closeNode, vClose))
+			}
 		}
 	}
 
