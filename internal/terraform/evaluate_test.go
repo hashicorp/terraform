@@ -30,9 +30,7 @@ func TestEvaluatorGetTerraformAttr(t *testing.T) {
 		NamedValues: namedvals.NewState(),
 	}
 	data := &evaluationStateData{
-		evaluationData: &evaluationData{
-			Evaluator: evaluator,
-		},
+		Evaluator: evaluator,
 	}
 	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
@@ -63,9 +61,7 @@ func TestEvaluatorGetPathAttr(t *testing.T) {
 		NamedValues: namedvals.NewState(),
 	}
 	data := &evaluationStateData{
-		evaluationData: &evaluationData{
-			Evaluator: evaluator,
-		},
+		Evaluator: evaluator,
 	}
 	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
@@ -131,9 +127,7 @@ func TestEvaluatorGetOutputValue(t *testing.T) {
 	}
 
 	data := &evaluationStateData{
-		evaluationData: &evaluationData{
-			Evaluator: evaluator,
-		},
+		Evaluator: evaluator,
 	}
 	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
@@ -202,9 +196,7 @@ func TestEvaluatorGetInputVariable(t *testing.T) {
 	}
 
 	data := &evaluationStateData{
-		evaluationData: &evaluationData{
-			Evaluator: evaluator,
-		},
+		Evaluator: evaluator,
 	}
 	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
@@ -363,9 +355,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 	}
 
 	data := &evaluationStateData{
-		evaluationData: &evaluationData{
-			Evaluator: evaluator,
-		},
+		Evaluator: evaluator,
 	}
 	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
@@ -532,9 +522,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 	}
 
 	data := &evaluationStateData{
-		evaluationData: &evaluationData{
-			Evaluator: evaluator,
-		},
+		Evaluator: evaluator,
 	}
 	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 
@@ -566,9 +554,7 @@ func TestEvaluatorGetModule(t *testing.T) {
 		cty.StringVal("bar").Mark(marks.Sensitive),
 	)
 	data := &evaluationStateData{
-		evaluationData: &evaluationData{
-			Evaluator: evaluator,
-		},
+		Evaluator: evaluator,
 	}
 	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
 	want := cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("bar").Mark(marks.Sensitive)})

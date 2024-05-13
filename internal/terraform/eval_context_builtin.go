@@ -443,10 +443,7 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source 
 	switch scope := ctx.scope.(type) {
 	case evalContextModuleInstance:
 		data := &evaluationStateData{
-			evaluationData: &evaluationData{
-				Evaluator: ctx.Evaluator,
-				Module:    scope.Addr.Module(),
-			},
+			Evaluator:       ctx.Evaluator,
 			ModulePath:      scope.Addr,
 			InstanceKeyData: keyData,
 			Operation:       ctx.Evaluator.Operation,
@@ -466,10 +463,7 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source 
 		return evalScope
 	case evalContextPartialExpandedModule:
 		data := &evaluationPlaceholderData{
-			evaluationData: &evaluationData{
-				Evaluator: ctx.Evaluator,
-				Module:    scope.Addr.Module(),
-			},
+			Evaluator:      ctx.Evaluator,
 			ModulePath:     scope.Addr,
 			CountAvailable: keyData.CountIndex != cty.NilVal,
 			EachAvailable:  keyData.EachKey != cty.NilVal,
