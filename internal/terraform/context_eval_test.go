@@ -195,13 +195,6 @@ func TestContextPlanAndEval(t *testing.T) {
 	} else {
 		t.Fatalf("plan has no Changes")
 	}
-	if plan.PlannedState != nil {
-		if rs := plan.PlannedState.ResourceInstance(riAddr); rs == nil {
-			t.Errorf("planned satte does not include test_thing.a")
-		}
-	} else {
-		t.Fatalf("plan has no PlannedState")
-	}
 	if plan.PriorState == nil {
 		t.Fatalf("plan has no PriorState")
 	}
@@ -296,13 +289,6 @@ func TestContextApplyAndEval(t *testing.T) {
 		}
 	} else {
 		t.Fatalf("plan has no Changes")
-	}
-	if plan.PlannedState != nil {
-		if rs := plan.PlannedState.ResourceInstance(riAddr); rs == nil {
-			t.Errorf("planned satte does not include test_thing.a")
-		}
-	} else {
-		t.Fatalf("plan has no PlannedState")
 	}
 	if plan.PriorState == nil {
 		t.Fatalf("plan has no PriorState")

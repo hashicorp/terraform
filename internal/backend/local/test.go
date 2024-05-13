@@ -463,7 +463,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		defer resetVariables()
 
 		if runner.Suite.Verbose {
-			schemas, diags := tfCtx.Schemas(config, plan.PlannedState)
+			schemas, diags := tfCtx.Schemas(config, plan.PriorState)
 
 			// If we're going to fail to render the plan, let's not fail the overall
 			// test. It can still have succeeded. So we'll add the diagnostics, but
@@ -477,7 +477,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 			} else {
 				run.Verbose = &moduletest.Verbose{
 					Plan:         plan,
-					State:        plan.PlannedState,
+					State:        nil, // We don't have a state to show in plan mode.
 					Config:       config,
 					Providers:    schemas.Providers,
 					Provisioners: schemas.Provisioners,
@@ -551,7 +551,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	}
 
 	if runner.Suite.Verbose {
-		schemas, diags := tfCtx.Schemas(config, plan.PlannedState)
+		schemas, diags := tfCtx.Schemas(config, updated)
 
 		// If we're going to fail to render the plan, let's not fail the overall
 		// test. It can still have succeeded. So we'll add the diagnostics, but
@@ -564,7 +564,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 				fmt.Sprintf("Terraform failed to print the verbose output for %s, other diagnostics will contain more details as to why.", filepath.Join(file.Name, run.Name))))
 		} else {
 			run.Verbose = &moduletest.Verbose{
-				Plan:         plan,
+				Plan:         nil, // We don't have a plan to show in apply mode.
 				State:        updated,
 				Config:       config,
 				Providers:    schemas.Providers,
