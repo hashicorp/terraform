@@ -1488,3 +1488,8 @@ func (c *ComponentInstance) resourceTypeSchema(ctx context.Context, providerType
 func (c *ComponentInstance) tracingName() string {
 	return c.Addr().String()
 }
+
+// reportNamedPromises implements namedPromiseReporter.
+func (c *ComponentInstance) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	cb(c.moduleTreePlan.PromiseID(), c.Addr().String()+" plan")
+}
