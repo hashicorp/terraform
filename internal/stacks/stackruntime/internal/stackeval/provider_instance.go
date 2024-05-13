@@ -308,6 +308,18 @@ func (p *ProviderInstance) tracingName() string {
 	return p.Addr().String()
 }
 
+// reportNamedPromises implements namedPromiseReporter.
+func (p *ProviderInstance) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	name := p.Addr().String()
+	clientName := name + " plugin client"
+	p.providerArgs.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
+		cb(o.PromiseID(), name)
+	})
+	p.client.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[providers.Interface]]) {
+		cb(o.PromiseID(), clientName)
+	})
+}
+
 // stubConfiguredProvider is a placeholder provider used when ConfigureProvider
 // on a real provider fails, so that callers can still receieve a usable client
 // that will just produce placeholder values from its operations.
