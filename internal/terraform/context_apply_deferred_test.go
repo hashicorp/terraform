@@ -229,7 +229,7 @@ output "from_resource" {
 				wantApplied: map[string]cty.Value{},
 				// TODO: These deferred output values are wrong, but outputs are a separate ticket.
 				wantOutputs: map[string]cty.Value{
-					"from_data":     cty.EmptyTupleVal,
+					"from_data":     cty.DynamicVal,
 					"from_resource": cty.NullVal(cty.DynamicPseudoType),
 				},
 				complete:      false,
@@ -381,10 +381,10 @@ output "c" {
 					// during the apply phase, and so it incorrectly decides
 					// that there are no instances due to the lack of
 					// instances in the state.
-					"b": cty.EmptyObjectVal,
+					//"b": cty.EmptyObjectVal,
 					// We can't say anything about test.b until we know what
 					// its instance keys are.
-					// "b": cty.DynamicVal,
+					"b": cty.DynamicVal,
 
 					// Currently we produce an incorrect result for output
 					// value "c" because the expression evaluator doesn't
@@ -392,14 +392,14 @@ output "c" {
 					// during the apply phase, and so it incorrectly decides
 					// that there is instance due to the lack of instances
 					// in the state.
-					"c": cty.NullVal(cty.DynamicPseudoType),
+					//"c": cty.NullVal(cty.DynamicPseudoType),
 					// test.c evaluates to the placeholder value that shows
 					// what we're expecting this object to look like in the
 					// next round.
-					// "c": cty.ObjectVal(map[string]cty.Value{
-					// 	"name":           cty.StringVal("c"),
-					// 	"upstream_names": cty.UnknownVal(cty.Set(cty.String)).RefineNotNull(),
-					// }),
+					"c": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("c"),
+						"upstream_names": cty.UnknownVal(cty.Set(cty.String)).RefineNotNull(),
+					}),
 				},
 			},
 			{
@@ -2135,9 +2135,9 @@ output "a" {
 				},
 				wantOutputs: map[string]cty.Value{
 					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("old_value"),
+						"name":           cty.StringVal("deferred_resource_change"),
 						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.StringVal("mark_for_replacement"),
+						"output":         cty.UnknownVal(cty.String),
 					}),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
