@@ -45,6 +45,7 @@ type Stack struct {
 	stackCalls     map[stackaddrs.StackCall]*StackCall
 	outputValues   map[stackaddrs.OutputValue]*OutputValue
 	components     map[stackaddrs.Component]*Component
+	providers      map[stackaddrs.ProviderConfigRef]*Provider
 }
 
 var _ ExpressionScope = (*Stack)(nil)
@@ -286,6 +287,16 @@ func (s *Stack) Component(ctx context.Context, addr stackaddrs.Component) *Compo
 }
 
 func (s *Stack) ProviderByLocalAddr(ctx context.Context, localAddr stackaddrs.ProviderConfigRef) *Provider {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if existing, ok := s.providers[localAddr]; ok {
+		return existing
+	}
+	if s.providers == nil {
+		s.providers = make(map[stackaddrs.ProviderConfigRef]*Provider)
+	}
+
 	decls := s.ConfigDeclarations(ctx)
 
 	sourceAddr, ok := decls.RequiredProviders.ProviderForLocalName(localAddr.ProviderLocalName)
@@ -313,7 +324,9 @@ func (s *Stack) ProviderByLocalAddr(ctx context.Context, localAddr stackaddrs.Pr
 		return nil
 	}
 
-	return newProvider(s.main, configAddr, decl)
+	provider := newProvider(s.main, configAddr, decl)
+	s.providers[localAddr] = provider
+	return provider
 }
 
 func (s *Stack) Provider(ctx context.Context, addr stackaddrs.ProviderConfig) *Provider {
