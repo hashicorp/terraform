@@ -269,7 +269,7 @@ func TestSDKLikeApplyEnvDefaults(t *testing.T) {
 			"string_env_empty":       cty.StringVal("beep from environment"),
 			"string_env_unsetfirst":  cty.StringVal("beep from environment"),
 			"string_env_unsetsecond": cty.StringVal("beep from environment"),
-			"string_nothing_null":    cty.StringVal(""),
+			"string_nothing_null":    cty.NullVal(cty.String),
 			"string_nothing_empty":   cty.StringVal(""),
 			"passthru":               cty.EmptyObjectVal,
 		})

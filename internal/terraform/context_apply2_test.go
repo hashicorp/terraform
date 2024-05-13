@@ -1336,7 +1336,6 @@ output "out" {
 
 	_, diags = ctx.Plan(m, state, opts)
 	assertNoErrors(t, diags)
-	return
 
 	otherProvider.ConfigureProviderCalled = false
 	otherProvider.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
@@ -2101,7 +2100,7 @@ resource "test_resource" "a" {
 
 import {
   to = test_resource.a
-  id = "importable" 
+  id = "importable"
 }
 `,
 	})
@@ -2916,4 +2915,66 @@ resource "test_object" "obj" {
 	// Just don't crash.
 	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
+}
+
+func TestContext2Apply_35039(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "obj" {
+  list = ["a", "b", "c"]
+}
+`,
+	})
+
+	p := testing_provider.MockProvider{}
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"output": {
+							Type:     cty.String,
+							Computed: true,
+						},
+						"list": {
+							Type:      cty.List(cty.String),
+							Required:  true,
+							Sensitive: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: cty.ObjectVal(map[string]cty.Value{
+				"output": cty.UnknownVal(cty.String),
+				"list":   req.ProposedNewState.GetAttr("list"),
+			}),
+		}
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		return providers.ApplyResourceChangeResponse{
+			// This is a bug, the provider shouldn't return unknown values from
+			// ApplyResourceChange. But, Terraform shouldn't crash in response
+			// to this. It should return a nice error message.
+			NewState: req.PlannedState,
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(&p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	// Just don't crash, should report an error about the provider.
+	_, diags = ctx.Apply(plan, m, nil)
+	if len(diags) != 1 {
+		t.Fatalf("expected exactly one diagnostic, but got %d: %s", len(diags), diags)
+	}
 }

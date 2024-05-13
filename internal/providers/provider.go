@@ -141,6 +141,16 @@ type ServerCapabilities struct {
 	MoveResourceState bool
 }
 
+// ClientCapabilities allows Terraform to publish information regarding
+// supported protocol features. This is used to indicate availability of
+// certain forward-compatible changes which may be optional in a major
+// protocol version, but cannot be tested for directly.
+type ClientCapabilities struct {
+	// The deferral_allowed capability signals that the client is able to
+	// handle deferred responses from the provider.
+	DeferralAllowed bool
+}
+
 type ValidateProviderConfigRequest struct {
 	// Config is the raw configuration value for the provider.
 	Config cty.Value
@@ -214,6 +224,9 @@ type ConfigureProviderRequest struct {
 
 	// Config is the complete configuration value for the provider.
 	Config cty.Value
+
+	// ClientCapabilities contains information about the client's capabilities.
+	ClientCapabilities ClientCapabilities
 }
 
 type ConfigureProviderResponse struct {
@@ -238,9 +251,8 @@ type ReadResourceRequest struct {
 	// HashiCorp. It is considered experimental and subject to change.
 	ProviderMeta cty.Value
 
-	// DeferralAllowed signals that the provider is allowed to defer the
-	// changes. If set the caller needs to handle the deferred response.
-	DeferralAllowed bool
+	// ClientCapabilities contains information about the client's capabilities.
+	ClientCapabilities ClientCapabilities
 }
 
 // DeferredReason is a string that describes why a resource was deferred.
@@ -325,9 +337,8 @@ type PlanResourceChangeRequest struct {
 	// HashiCorp. It is considered experimental and subject to change.
 	ProviderMeta cty.Value
 
-	// DeferralAllowed signals that the provider is allowed to defer the
-	// changes. If set the caller needs to handle the deferred response.
-	DeferralAllowed bool
+	// ClientCapabilities contains information about the client's capabilities.
+	ClientCapabilities ClientCapabilities
 }
 
 type PlanResourceChangeResponse struct {
@@ -414,6 +425,9 @@ type ImportResourceStateRequest struct {
 	// ID is a string with which the provider can identify the resource to be
 	// imported.
 	ID string
+
+	// ClientCapabilities contains information about the client's capabilities.
+	ClientCapabilities ClientCapabilities
 }
 
 type ImportResourceStateResponse struct {
@@ -425,6 +439,10 @@ type ImportResourceStateResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// Deferred if present signals that the provider was not able to fully
+	// complete this operation and a susequent run is required.
+	Deferred *Deferred
 }
 
 // ImportedResource represents an object being imported into Terraform with the
@@ -517,9 +535,8 @@ type ReadDataSourceRequest struct {
 	// HashiCorp. It is considered experimental and subject to change.
 	ProviderMeta cty.Value
 
-	// DeferralAllowed signals that the provider is allowed to defer the
-	// changes. If set the caller needs to handle the deferred response.
-	DeferralAllowed bool
+	// ClientCapabilities contains information about the client's capabilities.
+	ClientCapabilities ClientCapabilities
 }
 
 type ReadDataSourceResponse struct {

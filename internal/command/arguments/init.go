@@ -25,10 +25,10 @@ type Init struct {
 	// ViewType specifies which init format to use: human or JSON.
 	ViewType ViewType
 
-	// Backend specifies whether to disable backend or Terraform Cloud initialization.
+	// Backend specifies whether to disable backend or HCP Terraform initialization.
 	Backend bool
 
-	// Cloud specifies whether to disable backend or Terraform Cloud initialization.
+	// Cloud specifies whether to disable backend or HCP Terraform initialization.
 	Cloud bool
 
 	// Get specifies whether to disable downloading modules for this configuration

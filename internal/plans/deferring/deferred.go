@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Deferred keeps track of deferrals that have already happened, to help
@@ -139,6 +140,11 @@ func NewDeferred(resourceGraph addrs.DirectedGraph[addrs.ConfigResource], enable
 // been reported to the receiver.
 func (d *Deferred) GetDeferredChanges() []*plans.DeferredResourceInstanceChange {
 	var changes []*plans.DeferredResourceInstanceChange
+
+	if !d.deferralAllowed {
+		return changes
+	}
+
 	for _, configMapElem := range d.resourceInstancesDeferred.Elems {
 		for _, changeElem := range configMapElem.Value.Elems {
 			changes = append(changes, changeElem.Value)
@@ -196,6 +202,10 @@ func (d *Deferred) HaveAnyDeferrals() bool {
 // why the resource instance with the given address should have its planned
 // action deferred for a future plan/apply round.
 func (d *Deferred) IsResourceInstanceDeferred(addr addrs.AbsResourceInstance) bool {
+	if !d.deferralAllowed {
+		return false
+	}
+
 	if d.externalDependencyDeferred {
 		return true
 	}
@@ -230,6 +240,10 @@ func (d *Deferred) IsResourceInstanceDeferred(addr addrs.AbsResourceInstance) bo
 // instance action should be deferred _before_ reporting that it has been by calling
 // [Deferred.IsResourceInstanceDeferred].
 func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInstance) bool {
+	if !d.deferralAllowed {
+		return false
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -434,4 +448,10 @@ func (d *Deferred) ReportModuleExpansionDeferred(addr addrs.PartialExpandedModul
 		panic(fmt.Sprintf("duplicate deferral report for %s", addr))
 	}
 	d.partialExpandedModulesDeferred.Add(addr)
+}
+
+// UnexpectedProviderDeferralDiagnostic is a diagnostic that indicates that a
+// provider was deferred although deferrals were not allowed.
+func UnexpectedProviderDeferralDiagnostic(addrs addrs.AbsResourceInstance) tfdiags.Diagnostic {
+	return tfdiags.Sourceless(tfdiags.Error, "Provider deferred changes when Terraform did not allow deferrals", fmt.Sprintf("The provider signaled a deferred action for %q, but in this context deferrals are disabled. This is a bug in the provider, please file an issue with the provider developers.", addrs.String()))
 }

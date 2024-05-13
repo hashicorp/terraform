@@ -864,6 +864,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			preDestroyRefresh:       opts.PreDestroyRefresh,
 			Operation:               walkPlan,
 			ExternalReferences:      opts.ExternalReferences,
+			Overrides:               opts.Overrides,
 			ImportTargets:           c.findImportTargets(config),
 			forgetResources:         forgetResources,
 			forgetModules:           forgetModules,
@@ -882,6 +883,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			skipPlanChanges:         true, // this activates "refresh only" mode.
 			Operation:               walkPlan,
 			ExternalReferences:      opts.ExternalReferences,
+			Overrides:               opts.Overrides,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
@@ -894,6 +896,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Targets:                 opts.Targets,
 			skipRefresh:             opts.SkipRefresh,
 			Operation:               walkPlanDestroy,
+			Overrides:               opts.Overrides,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags
 	default:

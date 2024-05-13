@@ -26,7 +26,7 @@ import (
 // functions.
 //
 // The Before and After fields are actually go-cty values, but we cannot convert
-// them directly because of the Terraform Cloud redacted endpoint. The redacted
+// them directly because of the HCP Terraform redacted endpoint. The redacted
 // endpoint turns sensitive values into strings regardless of their types.
 // Because of this, we cannot just do a direct conversion using the ctyjson
 // package. We would have to iterate through the schema first, find the

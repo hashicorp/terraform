@@ -39,9 +39,9 @@ const (
 )
 
 // State implements the State interfaces in the state package to handle
-// reading and writing the remote state to TFC. This State on its own does no
-// local caching so every persist will go to the remote storage and local
-// writes will go to memory.
+// reading and writing the remote state to HCP Terraform. This State on
+// its own does no local caching so every persist will go to the remote
+// storage and local writes will go to memory.
 type State struct {
 	mu sync.Mutex
 
@@ -160,7 +160,7 @@ func (s *State) WriteState(state *states.State) error {
 	return nil
 }
 
-// PersistState uploads a snapshot of the latest state as a StateVersion to Terraform Cloud
+// PersistState uploads a snapshot of the latest state as a StateVersion to HCP Terraform
 func (s *State) PersistState(schemas *schemarepo.Schemas) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -514,7 +514,7 @@ func (s *State) Delete(force bool) error {
 	return nil
 }
 
-// GetRootOutputValues fetches output values from Terraform Cloud
+// GetRootOutputValues fetches output values from HCP Terraform
 func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
 	ctx := context.Background()
 

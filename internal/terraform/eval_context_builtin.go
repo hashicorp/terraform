@@ -221,6 +221,9 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, c
 	req := providers.ConfigureProviderRequest{
 		TerraformVersion: version.String(),
 		Config:           cfg,
+		ClientCapabilities: providers.ClientCapabilities{
+			DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+		},
 	}
 
 	resp := p.ConfigureProvider(req)

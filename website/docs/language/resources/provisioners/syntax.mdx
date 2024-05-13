@@ -246,8 +246,7 @@ can leave a resource in a semi-configured state. Because Terraform cannot
 reason about what the provisioner does, the only way to ensure proper creation
 of a resource is to recreate it. This is tainting.
 
-You can change this behavior by setting the `on_failure` attribute,
-which is covered in detail below.
+You can change this behavior by setting the `on_failure` attribute to `continue`. Refer to [Failure Behavior](#failure-behavior) for additional information.
 
 ## Destroy-Time Provisioners
 
