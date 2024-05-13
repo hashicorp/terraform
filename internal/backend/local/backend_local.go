@@ -239,6 +239,7 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 		return nil, snap, diags
 	}
 	loader := configload.NewLoaderFromSnapshot(snap)
+	loader.AllowLanguageExperiments(op.ConfigLoader.AllowsLanguageExperiments())
 	config, configDiags := loader.LoadConfig(snap.Modules[""].Dir)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {

@@ -64,7 +64,7 @@ constructed, and then the backend is responsible for executing that action.
 Backends that execute operations, however, do so as an architectural implementation detail and not a
 general feature of backends. That is, the term 'backend' as a Terraform feature is used to refer to
 a plugin that determines where Terraform stores its state snapshots - only the default `local`
-backend and Terraform Cloud's backends (`remote`, `cloud`) perform operations.
+backend and HCP Terraform's backends (`remote`, `cloud`) perform operations.
 
 Thus, most backends do _not_ implement this interface, and so the `command` package wraps these
 backends in an instance of

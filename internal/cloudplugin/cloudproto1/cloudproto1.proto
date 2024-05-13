@@ -7,7 +7,7 @@ package cloudproto1;
 option go_package = "github.com/hashicorp/terraform/internal/cloudplugin/cloudproto1";
 
 // CommandRequest is used to request the execution of a specific command with
-// provided flags. It is the raw args from the terraform cloud command.
+// provided flags. It is the raw args from the HCP Terraform command.
 message CommandRequest {
   repeated string args = 1;
 }

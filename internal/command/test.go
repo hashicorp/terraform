@@ -42,12 +42,13 @@ Usage: terraform [global options] test [options]
 
 Options:
 
-  -cloud-run=source     If specified, Terraform will execute this test run
-                        remotely using Terraform Cloud. You must specify the
-                        source of a module registered in a private module
-                        registry as the argument to this flag. This allows
-                        Terraform to associate the cloud run with the correct
-                        Terraform Cloud module and organization.
+  -cloud-run=source     If specified, Terraform will execute this test run 
+                        remotely using HCP Terraform or Terraform Enterpise. 
+						You must specify the source of a module registered in 
+						a private module registry as the argument to this flag. 
+						This allows Terraform to associate the cloud run with 
+						the correct HCP Terraform or Terraform Enterprise module 
+						and organization.
 
   -filter=testfile      If specified, Terraform will only execute the test files
                         specified by this flag. You can use this option multiple

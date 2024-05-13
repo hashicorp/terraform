@@ -510,6 +510,10 @@ func (m *MockOrganizations) ReadRunQueue(ctx context.Context, name string, optio
 	return rq, nil
 }
 
+func (m *MockOrganizations) ReadDataRetentionPolicyChoice(ctx context.Context, organization string) (*tfe.DataRetentionPolicyChoice, error) {
+	panic("not implemented")
+}
+
 func (m *MockOrganizations) DeleteDataRetentionPolicy(context.Context, string) error {
 	panic("not implemented")
 }
@@ -519,6 +523,14 @@ func (m *MockOrganizations) ReadDataRetentionPolicy(context.Context, string) (*t
 }
 
 func (m *MockOrganizations) SetDataRetentionPolicy(ctx context.Context, organization string, options tfe.DataRetentionPolicySetOptions) (*tfe.DataRetentionPolicy, error) {
+	panic("not implemented")
+}
+
+func (m *MockOrganizations) SetDataRetentionPolicyDeleteOlder(ctx context.Context, organization string, options tfe.DataRetentionPolicyDeleteOlderSetOptions) (*tfe.DataRetentionPolicyDeleteOlder, error) {
+	panic("not implemented")
+}
+
+func (m *MockOrganizations) SetDataRetentionPolicyDontDelete(ctx context.Context, organization string, options tfe.DataRetentionPolicyDontDeleteSetOptions) (*tfe.DataRetentionPolicyDontDelete, error) {
 	panic("not implemented")
 }
 
@@ -1170,6 +1182,10 @@ func (m *MockRegistryModules) DeleteProvider(ctx context.Context, moduleID tfe.R
 
 func (m *MockRegistryModules) DeleteVersion(ctx context.Context, moduleID tfe.RegistryModuleID, version string) error {
 	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockRegistryModules) DeleteByName(ctx context.Context, moduleID tfe.RegistryModuleID) error {
 	panic("implement me")
 }
 
@@ -1997,7 +2013,7 @@ func (m *MockWorkspaces) List(ctx context.Context, organization string, options 
 func (m *MockWorkspaces) Create(ctx context.Context, organization string, options tfe.WorkspaceCreateOptions) (*tfe.Workspace, error) {
 	// for TestCloud_setUnavailableTerraformVersion
 	if *options.Name == "unavailable-terraform-version" && options.TerraformVersion != nil {
-		return nil, fmt.Errorf("requested Terraform version not available in this TFC instance")
+		return nil, fmt.Errorf("requested Terraform version not available in this HCP Terraform instance")
 	}
 	if strings.HasSuffix(*options.Name, "no-operations") {
 		options.Operations = tfe.Bool(false)
@@ -2119,7 +2135,7 @@ func (m *MockWorkspaces) UpdateByID(ctx context.Context, workspaceID string, opt
 func updateMockWorkspaceAttributes(w *tfe.Workspace, options tfe.WorkspaceUpdateOptions) error {
 	// for TestCloud_setUnavailableTerraformVersion
 	if w.Name == "unavailable-terraform-version" && options.TerraformVersion != nil {
-		return fmt.Errorf("requested Terraform version not available in this TFC instance")
+		return fmt.Errorf("requested Terraform version not available in this HCP Terraform instance")
 	}
 
 	if options.Operations != nil {
@@ -2299,6 +2315,18 @@ func (s *MockWorkspaces) SetDataRetentionPolicy(ctx context.Context, workspaceID
 }
 
 func (s *MockWorkspaces) DeleteDataRetentionPolicy(ctx context.Context, workspaceID string) error {
+	panic("not implemented")
+}
+
+func (s *MockWorkspaces) ReadDataRetentionPolicyChoice(ctx context.Context, workspaceID string) (*tfe.DataRetentionPolicyChoice, error) {
+	panic("not implemented")
+}
+
+func (s *MockWorkspaces) SetDataRetentionPolicyDeleteOlder(ctx context.Context, workspaceID string, options tfe.DataRetentionPolicyDeleteOlderSetOptions) (*tfe.DataRetentionPolicyDeleteOlder, error) {
+	panic("not implemented")
+}
+
+func (s *MockWorkspaces) SetDataRetentionPolicyDontDelete(ctx context.Context, workspaceID string, options tfe.DataRetentionPolicyDontDeleteSetOptions) (*tfe.DataRetentionPolicyDontDelete, error) {
 	panic("not implemented")
 }
 

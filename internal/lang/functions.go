@@ -12,6 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/function/stdlib"
 
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/lang/funcs"
 )
@@ -22,6 +23,32 @@ var impureFunctions = []string{
 	"uuid",
 }
 
+// filesystemFunctions are the functions that allow interacting with arbitrary
+// paths in the local filesystem, and which can therefore have their results
+// vary based on something other than their arguments, and might allow template
+// rendering to expose details about the system where Terraform is running.
+var filesystemFunctions = collections.NewSetCmp[string](
+	"file",
+	"fileexists",
+	"fileset",
+	"filebase64",
+	"filebase64sha256",
+	"filebase64sha512",
+	"filemd5",
+	"filesha1",
+	"filesha256",
+	"filesha512",
+	"templatefile",
+)
+
+// templateFunctions are functions that render nested templates. These are
+// callable from module code but not from within the templates they are
+// rendering.
+var templateFunctions = collections.NewSetCmp[string](
+	"templatefile",
+	"templatestring",
+)
+
 // Functions returns the set of functions that should be used to when evaluating
 // expressions in the receiving scope.
 func (s *Scope) Functions() map[string]function.Function {
@@ -29,6 +56,10 @@ func (s *Scope) Functions() map[string]function.Function {
 	if s.funcs == nil {
 		s.funcs = baseFunctions(s.BaseDir)
 
+		// If you're adding something here, please consider whether it meets
+		// the criteria for either or both of the sets [filesystemFunctions]
+		// and [templateFunctions] and add it there if so, to ensure that
+		// functions relying on those classifications will behave correctly.
 		coreFuncs := map[string]function.Function{
 			"abs":              stdlib.AbsoluteFunc,
 			"abspath":          funcs.AbsPathFunc,
@@ -148,12 +179,20 @@ func (s *Scope) Functions() map[string]function.Function {
 			"zipmap":           stdlib.ZipmapFunc,
 		}
 
-		coreFuncs["templatefile"] = funcs.MakeTemplateFileFunc(s.BaseDir, func() map[string]function.Function {
-			// The templatefile function prevents recursive calls to itself
-			// by copying this map and overwriting the "templatefile" and
-			// "core:templatefile" entries.
-			return s.funcs
-		})
+		// Our two template-rendering functions want to be able to call
+		// all of the other functions themselves, but we pass them indirectly
+		// via a callback to avoid chicken/egg problems while initializing
+		// the functions table.
+		funcsFunc := func() (funcs map[string]function.Function, fsFuncs collections.Set[string], templateFuncs collections.Set[string]) {
+			// The templatefile and templatestring functions prevent recursive
+			// calls to themselves and each other by copying this map and
+			// overwriting the relevant entries.
+			return s.funcs, filesystemFunctions, templateFunctions
+		}
+		coreFuncs["templatefile"] = funcs.MakeTemplateFileFunc(s.BaseDir, funcsFunc)
+		if s.activeExperiments.Has(experiments.TemplateStringFunc) {
+			coreFuncs["templatestring"] = funcs.MakeTemplateStringFunc(funcsFunc)
+		}
 
 		if s.ConsoleMode {
 			// The type function is only available in terraform console.
@@ -228,6 +267,11 @@ func baseFunctions(baseDir string) map[string]function.Function {
 	// in the "funcs" directory and potentially graduate to cty stdlib
 	// later if the functionality seems to be something domain-agnostic
 	// that would be useful to all applications using cty functions.
+	//
+	// If you're adding something here, please consider whether it meets
+	// the criteria for either or both of the sets [filesystemFunctions]
+	// and [templateFunctions] and add it there if so, to ensure that
+	// functions relying on those classifications will behave correctly.
 	fs := map[string]function.Function{
 		"abs":              stdlib.AbsoluteFunc,
 		"abspath":          funcs.AbsPathFunc,
@@ -347,10 +391,10 @@ func baseFunctions(baseDir string) map[string]function.Function {
 		"zipmap":           stdlib.ZipmapFunc,
 	}
 
-	fs["templatefile"] = funcs.MakeTemplateFileFunc(baseDir, func() map[string]function.Function {
+	fs["templatefile"] = funcs.MakeTemplateFileFunc(baseDir, func() (map[string]function.Function, collections.Set[string], collections.Set[string]) {
 		// The templatefile function prevents recursive calls to itself
 		// by copying this map and overwriting the "templatefile" entry.
-		return fs
+		return fs, filesystemFunctions, templateFunctions
 	})
 
 	return fs

@@ -93,7 +93,7 @@ func implicitProviderSource(services *disco.Disco) getproviders.Source {
 	// The local search directories we use for implicit configuration are:
 	// - The "terraform.d/plugins" directory in the current working directory,
 	//   which we've historically documented as a place to put plugins as a
-	//   way to include them in bundles uploaded to Terraform Cloud, where
+	//   way to include them in bundles uploaded to HCP Terraform, where
 	//   there has historically otherwise been no way to use custom providers.
 	// - The "plugins" subdirectory of the CLI config search directory.
 	//   (thats ~/.terraform.d/plugins on Unix systems, equivalents elsewhere)

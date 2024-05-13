@@ -4,6 +4,7 @@
 package gcs
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	"strconv"
 
 	"cloud.google.com/go/storage"
-	"golang.org/x/net/context"
 
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -21,17 +21,17 @@ import (
 // blobs representing state.
 // Implements "state/remote".ClientLocker
 type remoteClient struct {
-	storageContext context.Context
-	storageClient  *storage.Client
-	bucketName     string
-	stateFilePath  string
-	lockFilePath   string
-	encryptionKey  []byte
-	kmsKeyName     string
+	storageClient *storage.Client
+	bucketName    string
+	stateFilePath string
+	lockFilePath  string
+	encryptionKey []byte
+	kmsKeyName    string
 }
 
 func (c *remoteClient) Get() (payload *remote.Payload, err error) {
-	stateFileReader, err := c.stateFile().NewReader(c.storageContext)
+	ctx := context.TODO()
+	stateFileReader, err := c.stateFile().NewReader(ctx)
 	if err != nil {
 		if err == storage.ErrObjectNotExist {
 			return nil, nil
@@ -46,7 +46,7 @@ func (c *remoteClient) Get() (payload *remote.Payload, err error) {
 		return nil, fmt.Errorf("Failed to read state file from %v: %v", c.stateFileURL(), err)
 	}
 
-	stateFileAttrs, err := c.stateFile().Attrs(c.storageContext)
+	stateFileAttrs, err := c.stateFile().Attrs(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read state file attrs from %v: %v", c.stateFileURL(), err)
 	}
@@ -60,8 +60,9 @@ func (c *remoteClient) Get() (payload *remote.Payload, err error) {
 }
 
 func (c *remoteClient) Put(data []byte) error {
+	ctx := context.TODO()
 	err := func() error {
-		stateFileWriter := c.stateFile().NewWriter(c.storageContext)
+		stateFileWriter := c.stateFile().NewWriter(ctx)
 		if len(c.kmsKeyName) > 0 {
 			stateFileWriter.KMSKeyName = c.kmsKeyName
 		}
@@ -78,7 +79,8 @@ func (c *remoteClient) Put(data []byte) error {
 }
 
 func (c *remoteClient) Delete() error {
-	if err := c.stateFile().Delete(c.storageContext); err != nil {
+	ctx := context.TODO()
+	if err := c.stateFile().Delete(ctx); err != nil {
 		return fmt.Errorf("Failed to delete state file %v: %v", c.stateFileURL(), err)
 	}
 
@@ -88,6 +90,8 @@ func (c *remoteClient) Delete() error {
 // Lock writes to a lock file, ensuring file creation. Returns the generation
 // number, which must be passed to Unlock().
 func (c *remoteClient) Lock(info *statemgr.LockInfo) (string, error) {
+	ctx := context.TODO()
+
 	// update the path we're using
 	// we can't set the ID until the info is written
 	info.Path = c.lockFileURL()
@@ -98,7 +102,7 @@ func (c *remoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	}
 
 	lockFile := c.lockFile()
-	w := lockFile.If(storage.Conditions{DoesNotExist: true}).NewWriter(c.storageContext)
+	w := lockFile.If(storage.Conditions{DoesNotExist: true}).NewWriter(ctx)
 	err = func() error {
 		if _, err := w.Write(infoJson); err != nil {
 			return err
@@ -116,12 +120,14 @@ func (c *remoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 }
 
 func (c *remoteClient) Unlock(id string) error {
+	ctx := context.TODO()
+
 	gen, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
 		return fmt.Errorf("Lock ID should be numerical value, got '%s'", id)
 	}
 
-	if err := c.lockFile().If(storage.Conditions{GenerationMatch: gen}).Delete(c.storageContext); err != nil {
+	if err := c.lockFile().If(storage.Conditions{GenerationMatch: gen}).Delete(ctx); err != nil {
 		return c.lockError(err)
 	}
 
@@ -145,7 +151,9 @@ func (c *remoteClient) lockError(err error) *statemgr.LockError {
 // lockInfo reads the lock file, parses its contents and returns the parsed
 // LockInfo struct.
 func (c *remoteClient) lockInfo() (*statemgr.LockInfo, error) {
-	r, err := c.lockFile().NewReader(c.storageContext)
+	ctx := context.TODO()
+
+	r, err := c.lockFile().NewReader(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +172,7 @@ func (c *remoteClient) lockInfo() (*statemgr.LockInfo, error) {
 	// We use the Generation as the ID, so overwrite the ID in the json.
 	// This can't be written into the Info, since the generation isn't known
 	// until it's written.
-	attrs, err := c.lockFile().Attrs(c.storageContext)
+	attrs, err := c.lockFile().Attrs(ctx)
 	if err != nil {
 		return nil, err
 	}

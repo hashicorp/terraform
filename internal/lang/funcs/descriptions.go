@@ -420,6 +420,13 @@ var DescriptionList = map[string]descriptionEntry{
 		Description:      "`templatefile` reads the file at the given path and renders its content as a template using a supplied set of template variables.",
 		ParamDescription: []string{"", ""},
 	},
+	"templatestring": {
+		Description: "`templatestring` takes a string from elsewhere in the module and renders its content as a template using a supplied set of template variables.",
+		ParamDescription: []string{
+			"a simple reference to a string value containing the template source code",
+			"object of variables to expose in the template scope",
+		},
+	},
 	"textdecodebase64": {
 		Description:      "`textdecodebase64` function decodes a string that was previously Base64-encoded, and then interprets the result as characters in a specified character encoding.",
 		ParamDescription: []string{"", ""},

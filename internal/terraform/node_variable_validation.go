@@ -111,7 +111,7 @@ func (n *nodeVariableValidation) Execute(globalCtx EvalContext, op walkOperation
 	// the variable across expanded modules, because each one could potentially
 	// have a different value assigned to it and other different data in scope.
 	expander := globalCtx.InstanceExpander()
-	for _, modInst := range expander.ExpandModule(n.configAddr.Module) {
+	for _, modInst := range expander.ExpandModule(n.configAddr.Module, false) {
 		addr := n.configAddr.Variable.Absolute(modInst)
 		moduleCtx := globalCtx.withScope(evalContextModuleInstance{Addr: addr.Module})
 		if n.allowGeneralReferences {

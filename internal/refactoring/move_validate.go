@@ -56,7 +56,7 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 		// both stmt.From and stmt.To always belong to the same statement.
 		fromMod, _ := stmt.From.ModuleCallTraversals()
 
-		for _, fromModInst := range declaredInsts.InstancesForModule(fromMod) {
+		for _, fromModInst := range declaredInsts.InstancesForModule(fromMod, false) {
 			absFrom := stmt.From.InModuleInstance(fromModInst)
 
 			absTo := stmt.To.InModuleInstance(fromModInst)

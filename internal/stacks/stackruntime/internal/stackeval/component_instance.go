@@ -558,22 +558,27 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			// If any of our upstream components have incomplete plans then
 			// we need to force treating everything in this component as
 			// deferred so we can preserve the correct dependency ordering.
-			upstreamDeferred := false
+			deferred := false
 			for _, depAddr := range c.call.RequiredComponents(ctx).Elems() {
 				depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
 				if depStack == nil {
-					upstreamDeferred = true // to be conservative
+					deferred = true // to be conservative
 					break
 				}
 				depComponent := depStack.Component(ctx, depAddr.Item)
 				if depComponent == nil {
-					upstreamDeferred = true // to be conservative
+					deferred = true // to be conservative
 					break
 				}
 				if !depComponent.PlanIsComplete(ctx) {
-					upstreamDeferred = true
+					deferred = true
 					break
 				}
+			}
+
+			// The instance is also upstream deferred if the for_each value for this instance is unknown.
+			if c.key == addrs.WildcardKey {
+				deferred = true
 			}
 
 			// NOTE: This ComponentInstance type only deals with component
@@ -586,7 +591,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				SetVariables:               inputValues,
 				ExternalProviders:          providerClients,
 				DeferralAllowed:            stackPlanOpts.DeferralAllowed,
-				ExternalDependencyDeferred: upstreamDeferred,
+				ExternalDependencyDeferred: deferred,
 
 				// This is set by some tests but should not be used in main code.
 				// (nil means to use the real time when tfCtx.Plan was called.)

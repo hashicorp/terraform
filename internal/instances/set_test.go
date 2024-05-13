@@ -6,12 +6,13 @@ package instances
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 func TestSet(t *testing.T) {
-	exp := NewExpander()
+	exp := NewExpander(nil)
 
 	// The following constructs the following imaginary module/resource tree:
 	// - root module
@@ -208,7 +209,7 @@ func TestSet(t *testing.T) {
 	}
 
 	// ensure we can lookup non-existent addrs in a set without panic
-	if set.InstancesForModule(addrs.RootModule.Child("missing")) != nil {
+	if set.InstancesForModule(addrs.RootModule.Child("missing"), false) != nil {
 		t.Error("unexpected instances from missing module")
 	}
 }

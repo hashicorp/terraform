@@ -117,7 +117,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		// plan before apply, and may not handle a missing resource during
 		// Delete correctly.  If this is a simple refresh, Terraform is
 		// expected to remove the missing resource from the state entirely
-		refreshedState, deferred, refreshDiags := n.refresh(ctx, states.NotDeposed, oldState)
+		refreshedState, deferred, refreshDiags := n.refresh(ctx, states.NotDeposed, oldState, ctx.Deferrals().DeferralAllowed())
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
@@ -301,7 +301,7 @@ func (n *NodePlannableResourceInstanceOrphan) deleteActionReason(ctx EvalContext
 		// First we'll check whether our containing module instance still
 		// exists, so we can talk about that differently in the reason.
 		declared := false
-		for _, inst := range expander.ExpandModule(n.Addr.Module.Module()) {
+		for _, inst := range expander.ExpandModule(n.Addr.Module.Module(), false) {
 			if n.Addr.Module.Equal(inst) {
 				declared = true
 				break

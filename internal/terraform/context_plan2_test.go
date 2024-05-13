@@ -4579,61 +4579,6 @@ resource "test_object" "a" {
 	}
 }
 
-func TestContext2Plan_plannedState(t *testing.T) {
-	addr := mustResourceInstanceAddr("test_object.a")
-	m := testModuleInline(t, map[string]string{
-		"main.tf": `
-resource "test_object" "a" {
-	test_string = "foo"
-}
-
-locals {
-  local_value = test_object.a.test_string
-}
-
-output "from_local_value" {
-  value = local.local_value
-}
-`,
-	})
-
-	p := simpleMockProvider()
-	ctx := testContext2(t, &ContextOpts{
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
-		},
-	})
-
-	state := states.NewState()
-	plan, diags := ctx.Plan(m, state, nil)
-	if diags.HasErrors() {
-		t.Errorf("expected no errors, but got %s", diags)
-	}
-
-	module := state.RootModule()
-
-	// So, the original state shouldn't have been updated at all.
-	if len(state.RootOutputValues) > 0 {
-		t.Errorf("expected no root output values in the state but found %d", len(state.RootOutputValues))
-	}
-
-	if len(module.Resources) > 0 {
-		t.Errorf("expected no resources in the state but found %d", len(module.Resources))
-	}
-
-	// But, this makes it hard for the testing framework to valid things about
-	// the returned plan. So, the plan contains the planned state:
-	module = plan.PlannedState.RootModule()
-
-	if got, want := plan.PlannedState.RootOutputValues["from_local_value"].Value.AsString(), "foo"; got != want {
-		t.Errorf("expected local value to be %q but was %q", want, got)
-	}
-
-	if module.ResourceInstance(addr.Resource).Current.Status != states.ObjectPlanned {
-		t.Errorf("expected resource to be in planned state")
-	}
-}
-
 func TestContext2Plan_externalProviders(t *testing.T) {
 	// This test exercises the option for callers to pass in their own
 	// already-configured provider instances, instead of the modules runtime
@@ -5474,13 +5419,6 @@ resource "test_object" "obj" {
 	ch := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.obj"))
 	if len(ch.AfterSensitivePaths) == 0 {
 		t.Fatal("expected marked values in test_object.obj")
-	}
-
-	data := plan.PlannedState.RootModule().ResourceInstance(mustResourceInstanceAddr("data.test_data_source.foo").Resource)
-	if len(data.Current.AttrSensitivePaths) == 0 {
-		// we may not always store data source states in the future, but for now
-		// this is a good indication that the read value was correctly marked.
-		t.Fatal("data.test_data_source.foo schema contains a sensitive attribute, should be marked in state")
 	}
 }
 

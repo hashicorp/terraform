@@ -613,7 +613,7 @@ func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesS
 		},
 		State:       stateSync,
 		Changes:     changesSync,
-		Instances:   instances.NewExpander(),
+		Instances:   instances.NewExpander(nil),
 		NamedValues: namedvals.NewState(),
 	}
 }

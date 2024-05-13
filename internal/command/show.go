@@ -285,7 +285,8 @@ func (c *ShowCommand) getDataFromCloudPlan(plan *cloudplan.SavedPlanBookmark, re
 	// Cloud plans only work if we're cloud.
 	cl, ok := b.(*cloud.Cloud)
 	if !ok {
-		return nil, errUnusable(fmt.Errorf("can't show a saved cloud plan unless the current root module is connected to Terraform Cloud"), "cloud plan")
+		errMessage := fmt.Sprintf("can't show a saved cloud plan unless the current root module is connected to %s", cl.AppName())
+		return nil, errUnusable(fmt.Errorf(errMessage), "cloud plan")
 	}
 
 	result, err := cl.ShowPlanForRun(context.Background(), plan.RunID, plan.Hostname, redacted)

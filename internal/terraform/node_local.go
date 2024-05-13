@@ -69,25 +69,21 @@ func (n *nodeExpandLocal) References() []*addrs.Reference {
 func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 	expander := ctx.InstanceExpander()
-	forEachModuleInstance(
-		expander, n.Module,
-		func(module addrs.ModuleInstance) {
-			o := &NodeLocal{
-				Addr:   n.Addr.Absolute(module),
-				Config: n.Config,
-			}
-			log.Printf("[TRACE] Expanding local: adding %s as %T", o.Addr.String(), o)
-			g.Add(o)
-		},
-		func(pem addrs.PartialExpandedModule) {
-			o := &nodeLocalInPartialModule{
-				Addr:   addrs.ObjectInPartialExpandedModule(pem, n.Addr),
-				Config: n.Config,
-			}
-			log.Printf("[TRACE] Expanding local: adding placeholder for all %s as %T", o.Addr.String(), o)
-			g.Add(o)
-		},
-	)
+	forEachModuleInstance(expander, n.Module, false, func(module addrs.ModuleInstance) {
+		o := &NodeLocal{
+			Addr:   n.Addr.Absolute(module),
+			Config: n.Config,
+		}
+		log.Printf("[TRACE] Expanding local: adding %s as %T", o.Addr.String(), o)
+		g.Add(o)
+	}, func(pem addrs.PartialExpandedModule) {
+		o := &nodeLocalInPartialModule{
+			Addr:   addrs.ObjectInPartialExpandedModule(pem, n.Addr),
+			Config: n.Config,
+		}
+		log.Printf("[TRACE] Expanding local: adding placeholder for all %s as %T", o.Addr.String(), o)
+		g.Add(o)
+	})
 	addRootNodeToGraph(&g)
 	return &g, nil
 }

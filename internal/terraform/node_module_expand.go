@@ -125,7 +125,7 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 	// nodeExpandModule itself does not have visibility into how its ancestors
 	// were expanded, so we use the expander here to provide all possible paths
 	// to our module, and register module instances with each of them.
-	for _, module := range expander.ExpandModule(n.Addr.Parent()) {
+	for _, module := range expander.ExpandModule(n.Addr.Parent(), false) {
 		moduleCtx := evalContextForModuleInstance(globalCtx, module)
 
 		switch {
@@ -233,12 +233,7 @@ func (n *nodeCloseModule) Execute(ctx EvalContext, op walkOperation) (diags tfdi
 			// module creating resources but we still care about the outputs.
 			overridden := false
 			if overrides := ctx.Overrides(); !overrides.Empty() {
-				_, overridden = overrides.GetOverride(mod.Addr)
-
-				if !overridden && len(mod.Addr) > 0 && mod.Addr[len(mod.Addr)-1].InstanceKey != addrs.NoKey {
-					// Could be all module instances are overridden.
-					_, overridden = overrides.GetOverride(mod.Addr.ContainingModule())
-				}
+				_, overridden = overrides.GetModuleOverride(mod.Addr)
 			}
 
 			// empty child modules are always removed
@@ -270,7 +265,7 @@ func (n *nodeValidateModule) Execute(globalCtx EvalContext, op walkOperation) (d
 	// create a proper context within which to evaluate. All parent modules
 	// will be a single instance, but still get our address in the expected
 	// manner anyway to ensure they've been registered correctly.
-	for _, module := range expander.ExpandModule(n.Addr.Parent()) {
+	for _, module := range expander.ExpandModule(n.Addr.Parent(), false) {
 		moduleCtx := evalContextForModuleInstance(globalCtx, module)
 
 		// Validate our for_each and count expressions at a basic level

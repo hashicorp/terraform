@@ -6,7 +6,7 @@ package funcs
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"unicode/utf8"
@@ -17,6 +17,8 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
+
+	"github.com/hashicorp/terraform/internal/collections"
 )
 
 // MakeFileFunc constructs a function that takes a file path and returns the
@@ -69,20 +71,7 @@ func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
 // As a special exception, a referenced template file may not recursively call
 // the templatefile function, since that would risk the same file being
 // included into itself indefinitely.
-func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Function) function.Function {
-
-	params := []function.Parameter{
-		{
-			Name:        "path",
-			Type:        cty.String,
-			AllowMarked: true,
-		},
-		{
-			Name: "vars",
-			Type: cty.DynamicPseudoType,
-		},
-	}
-
+func MakeTemplateFileFunc(baseDir string, funcsCb func() (funcs map[string]function.Function, fsFuncs collections.Set[string], templateFuncs collections.Set[string])) function.Function {
 	loadTmpl := func(fn string, marks cty.ValueMarks) (hcl.Expression, error) {
 		// We re-use File here to ensure the same filename interpretation
 		// as it does, along with its other safety checks.
@@ -99,65 +88,20 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 		return expr, nil
 	}
 
-	renderTmpl := func(expr hcl.Expression, varsVal cty.Value) (cty.Value, error) {
-		if varsTy := varsVal.Type(); !(varsTy.IsMapType() || varsTy.IsObjectType()) {
-			return cty.DynamicVal, function.NewArgErrorf(1, "invalid vars value: must be a map") // or an object, but we don't strongly distinguish these most of the time
-		}
-
-		ctx := &hcl.EvalContext{
-			Variables: varsVal.AsValueMap(),
-		}
-
-		// We require all of the variables to be valid HCL identifiers, because
-		// otherwise there would be no way to refer to them in the template
-		// anyway. Rejecting this here gives better feedback to the user
-		// than a syntax error somewhere in the template itself.
-		for n := range ctx.Variables {
-			if !hclsyntax.ValidIdentifier(n) {
-				// This error message intentionally doesn't describe _all_ of
-				// the different permutations that are technically valid as an
-				// HCL identifier, but rather focuses on what we might
-				// consider to be an "idiomatic" variable name.
-				return cty.DynamicVal, function.NewArgErrorf(1, "invalid template variable name %q: must start with a letter, followed by zero or more letters, digits, and underscores", n)
-			}
-		}
-
-		// We'll pre-check references in the template here so we can give a
-		// more specialized error message than HCL would by default, so it's
-		// clearer that this problem is coming from a templatefile call.
-		for _, traversal := range expr.Variables() {
-			root := traversal.RootName()
-			if _, ok := ctx.Variables[root]; !ok {
-				return cty.DynamicVal, function.NewArgErrorf(1, "vars map does not contain key %q, referenced at %s", root, traversal[0].SourceRange())
-			}
-		}
-
-		givenFuncs := funcsCb() // this callback indirection is to avoid chicken/egg problems
-		funcs := make(map[string]function.Function, len(givenFuncs))
-		for name, fn := range givenFuncs {
-			if name == "templatefile" || name == "core::templatefile" {
-				// We stub this one out to prevent recursive calls.
-				funcs[name] = function.New(&function.Spec{
-					Params: params,
-					Type: func(args []cty.Value) (cty.Type, error) {
-						return cty.NilType, fmt.Errorf("cannot recursively call templatefile from inside templatefile call")
-					},
-				})
-				continue
-			}
-			funcs[name] = fn
-		}
-		ctx.Functions = funcs
-
-		val, diags := expr.Value(ctx)
-		if diags.HasErrors() {
-			return cty.DynamicVal, diags
-		}
-		return val, nil
-	}
+	renderTmpl := makeRenderTemplateFunc(funcsCb, true)
 
 	return function.New(&function.Spec{
-		Params: params,
+		Params: []function.Parameter{
+			{
+				Name:        "path",
+				Type:        cty.String,
+				AllowMarked: true,
+			},
+			{
+				Name: "vars",
+				Type: cty.DynamicPseudoType,
+			},
+		},
 		Type: func(args []cty.Value) (cty.Type, error) {
 			if !(args[0].IsKnown() && args[1].IsKnown()) {
 				return cty.DynamicPseudoType, nil
@@ -426,7 +370,7 @@ func readFileBytes(baseDir, path string, marks cty.ValueMarks) ([]byte, error) {
 	}
 	defer f.Close()
 
-	src, err := ioutil.ReadAll(f)
+	src, err := io.ReadAll(f)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
