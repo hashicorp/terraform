@@ -16,9 +16,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/checks"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
@@ -1570,6 +1571,150 @@ func TestPlanWithCheckableObjects(t *testing.T) {
 		},
 	}
 	if diff := cmp.Diff(wantChanges, gotChanges, cmpOptions); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+}
+
+func TestPlanWithDeferredResource(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "deferrable-component")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+		ForcePlanTimestamp: &fakePlanTimestamp,
+		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
+			{Name: "id"}: {
+				Value: cty.StringVal("62594ae3"),
+			},
+			{Name: "defer"}: {
+				Value: cty.BoolVal(true),
+			},
+		},
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+	go Plan(ctx, &req, &resp)
+	gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+
+	reportDiagnosticsForTest(t, diags)
+	if len(diags) != 0 {
+		t.FailNow() // We reported the diags above
+	}
+
+	sort.SliceStable(gotChanges, func(i, j int) bool {
+		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
+	})
+
+	wantChanges := []stackplan.PlannedChange{
+		&stackplan.PlannedChangeApplyable{
+			// It's slightly confusing that this is true, but the only component
+			// is not applyable. This is because this is based on the presence
+			// of any diagnostics, while the component is not applyable because
+			// it has no pending changes. This difference seems to be
+			// deliberate. (TODO(TF-15445): Consider revisiting this.)
+			Applyable: true,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance,
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "self"},
+				},
+			),
+			PlanComplete:  true,  // TODO(TF-15444, TF-15442): This should be false
+			PlanApplyable: false, // We don't have any resources to apply since they're deferred.
+			Action:        plans.Create,
+			PlannedInputValues: map[string]plans.DynamicValue{
+				"id":    mustPlanDynamicValueDynamicType(cty.StringVal("62594ae3")),
+				"defer": mustPlanDynamicValueDynamicType(cty.BoolVal(true)),
+			},
+			PlannedOutputValues: map[string]cty.Value{},
+			PlannedCheckResults: &states.CheckResults{},
+			PlanTimestamp:       fakePlanTimestamp,
+			PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+				"id":    nil,
+				"defer": nil,
+			},
+		},
+		&stackplan.PlannedChangeDeferredResourceInstancePlanned{
+			ResourceInstancePlanned: stackplan.PlannedChangeResourceInstancePlanned{
+				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+					Component: stackaddrs.Absolute(
+						stackaddrs.RootStackInstance,
+						stackaddrs.ComponentInstance{
+							Component: stackaddrs.Component{Name: "self"},
+						},
+					),
+					Item: addrs.AbsResourceInstanceObject{
+						ResourceInstance: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "testing_deferred_resource",
+							Name: "data",
+						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					},
+				},
+				ProviderConfigAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+				},
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_deferred_resource",
+						Name: "data",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					PrevRunAddr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_deferred_resource",
+						Name: "data",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+						Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
+							"id":       cty.StringVal("62594ae3"),
+							"value":    cty.NullVal(cty.String),
+							"deferred": cty.BoolVal(true),
+						}), stacks_testing_provider.DeferredResourceSchema),
+						AfterSensitivePaths: nil,
+					},
+				},
+				Schema: stacks_testing_provider.DeferredResourceSchema,
+			},
+			DeferredReason: providers.DeferredReasonResourceConfigUnknown,
+		},
+		&stackplan.PlannedChangeHeader{
+			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangeRootInputValue{
+			Addr:  stackaddrs.InputVariable{Name: "defer"},
+			Value: cty.BoolVal(true),
+		},
+		&stackplan.PlannedChangeRootInputValue{
+			Addr:  stackaddrs.InputVariable{Name: "id"},
+			Value: cty.StringVal("62594ae3"),
+		},
+	}
+
+	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
