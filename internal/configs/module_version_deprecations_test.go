@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/mitchellh/colorstring"
 )
 
 func TestBuildDeprecationWarning(t *testing.T) {
@@ -70,14 +69,8 @@ func TestBuildDeprecationWarning(t *testing.T) {
 		},
 	}
 
-	color := colorstring.Colorize{
-		Colors:  colorstring.DefaultColors,
-		Disable: false,
-		Reset:   true,
-	}
-
 	detailStringArray := []string{
-		color.Color("[reset][bold]Version 1.0.0 of test1[reset]"), "Deprecation message for module test1", "Link for more information: https://test1.com", color.Color("[reset][bold]Version 1.0.0 of test1-external-dependency (Root: test1 -> test1-external-dependency)[reset]"), "Deprecation message for module test1-external-dependency", "Link for more information: https://test1-external-dependency.com", color.Color("[reset][bold]Version 1.0.0 of test2[reset]"), "Deprecation message for module test2", "Link for more information: https://test2.com", color.Color("[reset][bold]Version 1.0.0 of test2-external-dependency (Root: test2 -> test2-external-dependency)[reset]"), "Deprecation message for module test2-external-dependency", "Link for more information: https://test2-external-dependency.com", color.Color("[reset][bold]Version 1.0.0 of test2b-external-dependency (Root: test2 -> test2b-external-dependency)[reset]"), "Deprecation message for module test2b-external-dependency", "Link for more information: https://test2b-external-dependency.com", color.Color("[reset][bold]Version 1.0.0 of test3[reset]"), "Deprecation message for module test3", "Link for more information: https://test3.com",
+		"[reset][bold]Version 1.0.0 of test1[reset]", "Deprecation message for module test1", "Link for more information: https://test1.com", "[reset][bold]Version 1.0.0 of test1-external-dependency (Root: test1 -> test1-external-dependency)[reset]", "Deprecation message for module test1-external-dependency", "Link for more information: https://test1-external-dependency.com", "[reset][bold]Version 1.0.0 of test2[reset]", "Deprecation message for module test2", "Link for more information: https://test2.com", "[reset][bold]Version 1.0.0 of test2-external-dependency (Root: test2 -> test2-external-dependency)[reset]", "Deprecation message for module test2-external-dependency", "Link for more information: https://test2-external-dependency.com", "[reset][bold]Version 1.0.0 of test2b-external-dependency (Root: test2 -> test2b-external-dependency)[reset]", "Deprecation message for module test2b-external-dependency", "Link for more information: https://test2b-external-dependency.com", "[reset][bold]Version 1.0.0 of test3[reset]", "Deprecation message for module test3", "Link for more information: https://test3.com",
 	}
 	diagWant := &hcl.Diagnostic{
 		Severity: hcl.DiagWarning,

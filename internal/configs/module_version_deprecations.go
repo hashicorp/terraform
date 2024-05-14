@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/mitchellh/colorstring"
 )
 
 type DirectoryDeprecationInfo struct {
@@ -69,16 +68,10 @@ func (i *ModuleVersionDeprecationInfo) hasDeprecations() bool {
 // as well as placed in the Diagnostic Extra for parsing for the SRO view in HCP Terraform
 func (i *DirectoryDeprecationInfo) BuildDeprecationWarning() *hcl.Diagnostic {
 	modDeprecations := []string{}
-	color := colorstring.Colorize{
-		Colors:  colorstring.DefaultColors,
-		Disable: false,
-		Reset:   true,
-	}
 	deprecationList := make([]*ModuleVersionDeprecationDiagnosticExtraDeprecationItem, 0, len(i.ModuleVersionDeprecationInfos))
 	for _, modDeprecationInfo := range i.ModuleVersionDeprecationInfos {
 		if modDeprecationInfo != nil && modDeprecationInfo.RegistryDeprecation != nil {
-			msg := color.Color("[reset][bold]Version %s of %s[reset]")
-			modDeprecation := fmt.Sprintf(msg, modDeprecationInfo.RegistryDeprecation.Version, modDeprecationInfo.SourceName)
+			modDeprecation := fmt.Sprintf("[reset][bold]Version %s of %s[reset]", modDeprecationInfo.RegistryDeprecation.Version, modDeprecationInfo.SourceName)
 			// Link and Message are optional fields, if unset they are an empty string by default
 			if modDeprecationInfo.RegistryDeprecation.Message != "" {
 				modDeprecation = modDeprecation + fmt.Sprintf("\n\n%s", modDeprecationInfo.RegistryDeprecation.Message)
@@ -112,17 +105,11 @@ func (i *DirectoryDeprecationInfo) BuildDeprecationWarning() *hcl.Diagnostic {
 }
 
 func buildChildModuleDeprecations(modDeprecations []*ModuleVersionDeprecationInfo, parentMods []string) ([]string, []*ModuleVersionDeprecationDiagnosticExtraDeprecationItem) {
-	color := colorstring.Colorize{
-		Colors:  colorstring.DefaultColors,
-		Disable: false,
-		Reset:   true,
-	}
 	modDeprecationStrings := []string{}
 	var deprecationList []*ModuleVersionDeprecationDiagnosticExtraDeprecationItem
 	for _, deprecation := range modDeprecations {
 		if deprecation.RegistryDeprecation != nil {
-			msg := color.Color("[reset][bold]Version %s of %s %s[reset]")
-			modDeprecation := fmt.Sprintf(msg, deprecation.RegistryDeprecation.Version, deprecation.SourceName, buildModHierarchy(parentMods, deprecation.SourceName))
+			modDeprecation := fmt.Sprintf("[reset][bold]Version %s of %s %s[reset]", deprecation.RegistryDeprecation.Version, deprecation.SourceName, buildModHierarchy(parentMods, deprecation.SourceName))
 			// Link and Message are optional fields, if unset they are an empty string by default
 			if deprecation.RegistryDeprecation.Message != "" {
 				modDeprecation = modDeprecation + fmt.Sprintf("\n\n%s", deprecation.RegistryDeprecation.Message)

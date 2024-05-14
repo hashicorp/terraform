@@ -87,10 +87,10 @@ func DiagnosticFromJSON(diag *viewsjson.Diagnostic, color *colorstring.Colorize,
 				if !strings.HasPrefix(line, " ") {
 					line = wordwrap.WrapString(line, uint(paraWidth))
 				}
-				fmt.Fprintf(&buf, "%s\n", line)
+				fmt.Fprintf(&buf, "%s\n", color.Color(line))
 			}
 		} else {
-			fmt.Fprintf(&buf, "%s\n", diag.Detail)
+			fmt.Fprintf(&buf, "%s\n", color.Color(diag.Detail))
 		}
 	}
 
@@ -160,10 +160,10 @@ func DiagnosticPlainFromJSON(diag *viewsjson.Diagnostic, width int) string {
 				if !strings.HasPrefix(line, " ") {
 					line = wordwrap.WrapString(line, uint(width-1))
 				}
-				fmt.Fprintf(&buf, "%s\n", line)
+				fmt.Fprintf(&buf, "%s\n", disabledColorize.Color(line))
 			}
 		} else {
-			fmt.Fprintf(&buf, "%s\n", diag.Detail)
+			fmt.Fprintf(&buf, "%s\n", disabledColorize.Color(diag.Detail))
 		}
 	}
 
