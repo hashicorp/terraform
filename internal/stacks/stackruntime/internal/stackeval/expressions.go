@@ -63,7 +63,7 @@ type ExpressionScope interface {
 	// ResolveExpressionReference decides what a particular expression reference
 	// means in the receiver's evaluation scope and returns the concrete object
 	// that the address is referring to.
-	ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics)
+	ResolveExpressionReference(ctx context.Context, phase EvalPhase, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics)
 }
 
 // EvalContextForExpr produces an HCL expression evaluation context for the
@@ -98,7 +98,7 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 		if moreDiags.HasErrors() {
 			continue
 		}
-		obj, moreDiags := scope.ResolveExpressionReference(ctx, ref)
+		obj, moreDiags := scope.ResolveExpressionReference(ctx, phase, ref)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
 			continue

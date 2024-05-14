@@ -1142,7 +1142,7 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 }
 
 // ResolveExpressionReference implements ExpressionScope.
-func (c *ComponentInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
+func (c *ComponentInstance) ResolveExpressionReference(ctx context.Context, phase EvalPhase, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	stack := c.call.Stack(ctx)
 	return stack.resolveExpressionReference(ctx, ref, nil, c.repetition)
 }

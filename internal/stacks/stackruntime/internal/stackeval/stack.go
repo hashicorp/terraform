@@ -390,7 +390,7 @@ func (s *Stack) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
 // ResolveExpressionReference implements ExpressionScope, providing the
 // global scope for evaluation within an already-instanciated stack during the
 // plan and apply phases.
-func (s *Stack) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
+func (s *Stack) ResolveExpressionReference(ctx context.Context, phase EvalPhase, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	return s.resolveExpressionReference(ctx, ref, nil, instances.RepetitionData{})
 }
 

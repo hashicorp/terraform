@@ -325,7 +325,7 @@ func newStaticExpressionScope() staticExpressionScope {
 }
 
 // ResolveExpressionReference implements ExpressionScope.
-func (s staticExpressionScope) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
+func (s staticExpressionScope) ResolveExpressionReference(ctx context.Context, phase EvalPhase, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret, ok := s.vs.GetOk(ref.Target)
 	if !ok {
