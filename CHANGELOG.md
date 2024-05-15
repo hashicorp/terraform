@@ -1,5 +1,7 @@
 ## 1.8.4 (Unreleased)
 
+BUG FIXES:
+* `core`: Fix exponential slowdown in some cases when modules are using `depends_on` [GH-35157]
 
 ## 1.8.3 (May 8, 2024)
 
