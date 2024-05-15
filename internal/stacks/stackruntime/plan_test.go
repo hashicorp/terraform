@@ -1602,6 +1602,12 @@ func TestPlanWithDeferredResource(t *testing.T) {
 				Value: cty.BoolVal(true),
 			},
 		},
+		// TEMP: Currently there's no way in normal operation to set this to
+		// true in the PlanOpts, because it would regress other features. So,
+		// the test has to set it manually. In the future, deferred actions will
+		// always be enabled for stacks, and we'll remove this option from the
+		// stackeval.PlanOpts struct.
+		DeferralAllowed: true,
 	}
 	resp := PlanResponse{
 		PlannedChanges: changesCh,
@@ -1635,7 +1641,7 @@ func TestPlanWithDeferredResource(t *testing.T) {
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
-			PlanComplete:  true,  // TODO(TF-15444, TF-15442): This should be false
+			PlanComplete:  false,
 			PlanApplyable: false, // We don't have any resources to apply since they're deferred.
 			Action:        plans.Create,
 			PlannedInputValues: map[string]plans.DynamicValue{
