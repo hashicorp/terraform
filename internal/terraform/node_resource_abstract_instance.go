@@ -1676,14 +1676,23 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 // value, but it still matches the previous state, then we can record a NoNop
 // change. If the states don't match then we record a Read change so that the
 // new value is applied to the state.
-func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRuleSeverity tfdiags.Severity, skipPlanChanges bool) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
+//
+// The cases where a data source will generate a planned change instead
+// of finishing during the plan are:
+//
+//   - Its config has unknown values or it depends on a resource with pending changes.
+//     (Note that every data source that is DeferredPrereq should also fit this description.)
+//   - We attempted a read request, but the provider says we're deferred.
+//   - It's nested in a check block, and should always read again during apply.
+func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRuleSeverity tfdiags.Severity, skipPlanChanges bool) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, *providers.Deferred, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var keyData instances.RepetitionData
 	var configVal cty.Value
+	var deferred *providers.Deferred
 
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		return nil, nil, keyData, diags.Append(err)
+		return nil, nil, deferred, keyData, diags.Append(err)
 	}
 
 	config := *n.Config
@@ -1691,7 +1700,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ResolvedProvider, n.Addr.ContainingResource().Resource.Type))
-		return nil, nil, keyData, diags
+		return nil, nil, deferred, keyData, diags
 	}
 
 	objTy := schema.ImpliedType()
@@ -1708,7 +1717,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	)
 	diags = diags.Append(checkDiags)
 	if diags.HasErrors() {
-		return nil, nil, keyData, diags // failed preconditions prevent further evaluation
+		return nil, nil, deferred, keyData, diags // failed preconditions prevent further evaluation
 	}
 
 	var configDiags tfdiags.Diagnostics
@@ -1718,7 +1727,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 		validateResourceForbiddenEphemeralValues(ctx, configVal, schema).InConfigBody(n.Config.Config, n.Addr.String()),
 	)
 	if diags.HasErrors() {
-		return nil, nil, keyData, diags
+		return nil, nil, deferred, keyData, diags
 	}
 	unmarkedConfigVal, unmarkedPaths := configVal.UnmarkDeepWithPaths()
 
@@ -1763,7 +1772,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 				Status: states.ObjectReady,
 			}
 
-			return nil, plannedNewState, keyData, diags
+			return nil, plannedNewState, deferred, keyData, diags
 		}
 
 		var reason plans.ResourceInstanceChangeActionReason
@@ -1812,7 +1821,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 			return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal)
 		}))
 
-		return plannedChange, plannedNewState, keyData, diags
+		return plannedChange, plannedNewState, deferred, keyData, diags
 	}
 
 	// We have a complete configuration with no dependencies to wait on, so we
@@ -1821,7 +1830,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	newVal, readDeferred, readDiags := n.readDataSource(ctx, configVal)
 
 	if readDeferred != nil {
-		ctx.Deferrals().ReportDataSourceInstanceDeferred(n.Addr, newVal)
+		deferred = readDeferred
 	}
 
 	// Now we've loaded the data, and diags tells us whether we were successful
@@ -1875,9 +1884,10 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 			}
 		})
 
-		if !skipPlanChanges && readDeferred == nil {
-			// refreshOnly plans cannot produce planned changes, so we only do
-			// this if skipPlanChanges is false.
+		// refreshOnly plans cannot produce planned changes, so we only do
+		// this if skipPlanChanges is false. Conversely, provider-deferred data
+		// sources always generate a planned change with a different ActionReason.
+		if !skipPlanChanges && deferred == nil {
 			plannedChange = &plans.ResourceInstanceChange{
 				Addr:         n.Addr,
 				PrevRunAddr:  n.prevRunAddr(ctx),
@@ -1892,8 +1902,30 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 		}
 	}
 
+	// Provider-deferred data sources always generate a planned change.
+	if deferred != nil {
+		plannedChange = &plans.ResourceInstanceChange{
+			Addr:         n.Addr,
+			PrevRunAddr:  n.prevRunAddr(ctx),
+			ProviderAddr: n.ResolvedProvider,
+			Change: plans.Change{
+				Action: plans.Read,
+				Before: priorVal,
+				After:  newVal,
+			},
+			// The caller should be more interested in the deferral reason, but this
+			// action reason is a reasonable description of what's happening.
+			ActionReason: plans.ResourceInstanceReadBecauseDependencyPending,
+		}
+
+		plannedNewState = &states.ResourceInstanceObject{
+			Value:  newVal,
+			Status: states.ObjectPlanned,
+		}
+	}
+
 	diags = diags.Append(readDiags)
-	if !diags.HasErrors() && readDeferred == nil {
+	if !diags.HasErrors() && deferred == nil {
 		// Finally, let's make our new state.
 		plannedNewState = &states.ResourceInstanceObject{
 			Value:  newVal,
@@ -1901,7 +1933,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 		}
 	}
 
-	return plannedChange, plannedNewState, keyData, diags
+	return plannedChange, plannedNewState, deferred, keyData, diags
 }
 
 // nestedInCheckBlock determines if this resource is nested in a Check config
