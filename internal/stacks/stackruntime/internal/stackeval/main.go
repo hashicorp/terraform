@@ -526,7 +526,7 @@ func (m *Main) ResolveAbsExpressionReference(ctx context.Context, ref stackaddrs
 		})
 		return nil, diags
 	}
-	return stack.ResolveExpressionReference(ctx, phase, ref.Ref)
+	return stack.ResolveExpressionReference(ctx, ref.Ref)
 }
 
 // RegisterCleanup registers an arbitrary callback function to run when a

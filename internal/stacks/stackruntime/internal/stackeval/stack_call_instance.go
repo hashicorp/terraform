@@ -163,7 +163,7 @@ func (c *StackCallInstance) CheckInputVariableValues(ctx context.Context, phase 
 // ResolveExpressionReference implements ExpressionScope for the arguments
 // inside an embedded stack call block, evaluated in the context of a
 // particular instance of that call.
-func (c *StackCallInstance) ResolveExpressionReference(ctx context.Context, phase EvalPhase, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
+func (c *StackCallInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	stack := c.CallerStack(ctx)
 	return stack.resolveExpressionReference(ctx, ref, nil, c.repetition)
 }

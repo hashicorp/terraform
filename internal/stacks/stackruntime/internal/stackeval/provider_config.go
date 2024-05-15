@@ -148,7 +148,7 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase)
 // ResolveExpressionReference implements ExpressionScope for the purposes
 // of validating the static provider configuration before it has been expanded
 // into multiple instances.
-func (p *ProviderConfig) ResolveExpressionReference(ctx context.Context, phase EvalPhase, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
+func (p *ProviderConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	repetition := instances.RepetitionData{}
 	if p.Declaration(ctx).ForEach != nil {
 		// We're producing an approximation across all eventual instances

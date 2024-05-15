@@ -377,7 +377,7 @@ func (s *StackConfig) Components(ctx context.Context) map[stackaddrs.Component]*
 // ResolveExpressionReference implements ExpressionScope, providing the
 // global scope for evaluation within an unexpanded stack during the validate
 // phase.
-func (s *StackConfig) ResolveExpressionReference(ctx context.Context, phase EvalPhase, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
+func (s *StackConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	return s.resolveExpressionReference(ctx, ref, nil, instances.RepetitionData{})
 }
 

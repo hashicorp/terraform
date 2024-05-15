@@ -36,8 +36,6 @@ type ComponentConfig struct {
 
 	validate   promising.Once[tfdiags.Diagnostics]
 	moduleTree promising.Once[withDiagnostics[*configs.Config]]
-
-	forEachValue perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
 }
 
 func newComponentConfig(main *Main, addr stackaddrs.ConfigComponent, config *stackconfig.Component) *ComponentConfig {
@@ -342,9 +340,8 @@ func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (
 			// Then we don't know the concrete type of this reference at this
 			// time, so we'll just have to accept it. This is somewhat expected
 			// during the validation phase, and even during the planning phase
-			// if we have deferred attributes. We'll get an error later about
-			// incorrect types if something somewhere else is calling this
-			// when it needs a concrete type.
+			// if we have deferred attributes. We'll get an error later (ie.
+			// during the plan phase) if the type doesn't match up then.
 		} else {
 			// We got something that isn't a provider reference at all.
 			diags = diags.Append(&hcl.Diagnostic{
@@ -431,24 +428,12 @@ func (c *ComponentConfig) ExprReferenceValue(ctx context.Context, phase EvalPhas
 	return cty.DynamicVal
 }
 
-func (c *ComponentConfig) ResolveExpressionReference(ctx context.Context, phase EvalPhase, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
+func (c *ComponentConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	repetition := instances.RepetitionData{}
 	if c.Declaration(ctx).ForEach != nil {
-
-		forEachValue := c.ForEachValue(ctx, phase)
-
 		// For validation, we'll return unknown for the instance data.
 		repetition.EachKey = cty.UnknownVal(cty.String).RefineNotNull()
-
-		if forEachValue.Type() == cty.DynamicPseudoType {
-			// Then we don't have enough information at this point to get a
-			// concrete type for the each value.
-			repetition.EachValue = cty.DynamicVal
-		} else {
-			// Otherwise, we know it is a collection type since it was validated
-			// within the ForEachValue function.
-			repetition.EachValue = cty.UnknownVal(forEachValue.Type().ElementType())
-		}
+		repetition.EachValue = cty.DynamicVal
 	}
 	return c.StackConfig(ctx).resolveExpressionReference(ctx, ref, nil, repetition)
 }
@@ -466,12 +451,8 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 
 		variableDiags := c.CheckInputVariableValues(ctx, phase)
 		diags = diags.Append(variableDiags)
-		_, forEachDiags := c.CheckForEachValue(ctx, phase)
-		diags = diags.Append(forEachDiags)
-
 		// We don't actually exit if we found errors with the input variables,
-		// or for_each attribute as we can still validate the actual module tree
-		// without them.
+		// we can still validate the actual module tree without them.
 
 		_, providerDiags := c.CheckProviders(ctx, phase)
 		diags = diags.Append(providerDiags)
@@ -534,36 +515,6 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 	}
 
 	return diags
-}
-
-func (c *ComponentConfig) ForEachValue(ctx context.Context, phase EvalPhase) cty.Value {
-	value, _ := c.CheckForEachValue(ctx, phase)
-	return value
-}
-
-func (c *ComponentConfig) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
-	val, diags := doOnceWithDiags(ctx, c.forEachValue.For(phase), c.main, func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
-		var diags tfdiags.Diagnostics
-
-		cfg := c.Declaration(ctx)
-
-		switch {
-		case cfg.ForEach != nil:
-			result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.StackConfig(ctx), "component")
-			diags = diags.Append(moreDiags)
-			if diags.HasErrors() {
-				return cty.DynamicVal, diags
-			}
-			return result.Value, diags
-
-		default:
-			return cty.NilVal, diags
-		}
-	})
-	if val == cty.NilVal && diags.HasErrors() {
-		val = cty.DynamicVal
-	}
-	return val, diags
 }
 
 // Validate implements Validatable.

@@ -268,7 +268,7 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 // ResolveExpressionReference implements ExpressionScope for expressions other
 // than the for_each argument inside a provider block, which get evaluated
 // once per provider instance.
-func (p *ProviderInstance) ResolveExpressionReference(ctx context.Context, phase EvalPhase, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
+func (p *ProviderInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	stack := p.provider.Stack(ctx)
 	return stack.resolveExpressionReference(ctx, ref, nil, p.repetition)
 }

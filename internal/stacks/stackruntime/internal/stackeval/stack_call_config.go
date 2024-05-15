@@ -312,7 +312,7 @@ func (s *StackCallConfig) ValidateResultValue(ctx context.Context, phase EvalPha
 // for all instances of the stack call, not final results for a specific
 // instance of a stack call. This is not the right scope to use during the
 // plan and apply phases.
-func (s *StackCallConfig) ResolveExpressionReference(ctx context.Context, phase EvalPhase, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
+func (s *StackCallConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	repetition := instances.RepetitionData{}
 	if s.config.ForEach != nil {
 		// We're producing an approximation across all eventual instances
