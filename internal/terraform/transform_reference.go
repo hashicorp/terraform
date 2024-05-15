@@ -437,17 +437,18 @@ func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsO
 
 		deps, fromParentModule := m.dependsOn(g, mod)
 		for _, dep := range deps {
-			// add the dependency
-			res = append(res, dep)
-
-			// and check any transitive resource dependencies for more resources
-			ans, _ := g.Ancestors(dep)
-			for _, v := range ans {
-				if isDependableResource(v) {
-					res = append(res, v)
-				}
+			if isDependableResource(dep) {
+				res = append(res, dep)
 			}
 		}
+
+		ans, _ := g.Ancestors(deps...)
+		for _, v := range ans {
+			if isDependableResource(v) {
+				res = append(res, v)
+			}
+		}
+
 		fromModule = fromModule || fromParentModule
 	}
 
