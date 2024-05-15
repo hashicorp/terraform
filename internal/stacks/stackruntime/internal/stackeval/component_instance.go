@@ -576,9 +576,17 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				}
 			}
 
-			// The instance is also upstream deferred if the for_each value for this instance is unknown.
+			// The instance is also upstream deferred if the for_each value for
+			// this instance or any parent stacks is unknown.
 			if c.key == addrs.WildcardKey {
 				deferred = true
+			} else {
+				for _, step := range c.call.addr.Stack {
+					if step.Key == addrs.WildcardKey {
+						deferred = true
+						break
+					}
+				}
 			}
 
 			// When our given context is cancelled, we want to instruct the
