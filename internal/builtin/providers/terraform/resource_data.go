@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -169,4 +170,85 @@ func importDataStore(req providers.ImportResourceStateRequest) (resp providers.I
 		},
 	}
 	return resp
+}
+
+// moveDataStoreResourceState enables moving from the official null_resource
+// managed resource to the terraform_data managed resource.
+func moveDataStoreResourceState(req providers.MoveResourceStateRequest) (resp providers.MoveResourceStateResponse) {
+	// Verify that the source provider is an official hashicorp/null provider,
+	// but ignore the hostname for mirrors.
+	if !strings.HasSuffix(req.SourceProviderAddress, "hashicorp/null") {
+		diag := tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unsupported source provider for move operation",
+			"Only moving from the official hashicorp/null provider to terraform_data is supported.",
+		)
+		resp.Diagnostics = resp.Diagnostics.Append(diag)
+
+		return resp
+	}
+
+	// Verify that the source resource type name is null_resource.
+	if req.SourceTypeName != "null_resource" {
+		diag := tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unsupported source resource type for move operation",
+			"Only moving from the null_resource managed resource to terraform_data is supported.",
+		)
+		resp.Diagnostics = resp.Diagnostics.Append(diag)
+
+		return resp
+	}
+
+	nullResourceSchemaType := nullResourceSchema().Block.ImpliedType()
+	nullResourceValue, err := ctyjson.Unmarshal(req.SourceStateJSON, nullResourceSchemaType)
+
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+
+		return resp
+	}
+
+	triggersReplace := nullResourceValue.GetAttr("triggers")
+
+	// PlanResourceChange uses RawEquals comparison, which will show a
+	// difference between cty.NullVal(cty.Map(cty.String)) and
+	// cty.NullVal(cty.DynamicPseudoType).
+	if triggersReplace.IsNull() {
+		triggersReplace = cty.NullVal(cty.DynamicPseudoType)
+	} else {
+		// PlanResourceChange uses RawEquals comparison, which will show a
+		// difference between cty.MapVal(...) and cty.ObjectVal(...). Given that
+		// triggers is typically configured using direct configuration syntax of
+		// {...}, which is a cty.ObjectVal, over a map typed variable or
+		// explicitly type converted map, this pragmatically chooses to convert
+		// the triggers value to cty.ObjectVal to prevent an immediate plan
+		// difference for the more typical case.
+		triggersReplace = cty.ObjectVal(triggersReplace.AsValueMap())
+	}
+
+	schema := dataStoreResourceSchema()
+	v := cty.ObjectVal(map[string]cty.Value{
+		"id":               nullResourceValue.GetAttr("id"),
+		"triggers_replace": triggersReplace,
+	})
+
+	state, err := schema.Block.CoerceValue(v)
+
+	// null_resource did not use private state, so it is unnecessary to move.
+	resp.Diagnostics = resp.Diagnostics.Append(err)
+	resp.TargetState = state
+
+	return resp
+}
+
+func nullResourceSchema() providers.Schema {
+	return providers.Schema{
+		Block: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"id":       {Type: cty.String, Computed: true},
+				"triggers": {Type: cty.Map(cty.String), Optional: true},
+			},
+		},
+	}
 }
