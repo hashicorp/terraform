@@ -118,14 +118,8 @@ type Plan struct {
 	PrevRunState *states.State
 	PriorState   *states.State
 
-	// PlannedState is the temporary planned state that was created during the
-	// graph walk that generated this plan.
-	//
-	// This is required by the testing framework when evaluating run blocks
-	// executing in plan mode. The graph updates the state with certain values
-	// that are difficult to retrieve later, such as local values that reference
-	// updated resources. It is easier to build the testing scope with access
-	// to same temporary state the plan used/built.
+	// ExternalReferences are references that are being made to resources within
+	// the plan from external sources.
 	//
 	// This is never recorded outside of Terraform. It is not written into the
 	// binary plan file, and it is not written into the JSON structured outputs.
@@ -133,19 +127,13 @@ type Plan struct {
 	// memory as it executes, so there is no need to add any kind of
 	// serialization for this field. This does mean that you shouldn't rely on
 	// this field existing unless you have just generated the plan.
-	PlannedState *states.State
-
-	// ExternalReferences are references that are being made to resources within
-	// the plan from external sources. As with PlannedState this is used by the
-	// terraform testing framework, and so isn't written into any external
-	// representation of the plan.
 	ExternalReferences []*addrs.Reference
 
 	// Overrides contains the set of overrides that were applied while making
 	// this plan. We need to provide the same set of overrides when applying
-	// the plan so we preserve them here. As with PlannedState and
-	// ExternalReferences, this is only used by the testing framework and so
-	// isn't written into any external representation of the plan.
+	// the plan so we preserve them here. As with  ExternalReferences, this is
+	// only used by the testing framework and so isn't written into any external
+	// representation of the plan.
 	Overrides *mocking.Overrides
 
 	// Timestamp is the record of truth for when the plan happened.

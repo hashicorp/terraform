@@ -64,9 +64,11 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			}
 		}()
 
+		haveOverrides := !ctx.Overrides().Empty()
+
 		// If the graph node is overridable, we'll check our overrides to see
 		// if we need to apply any overrides to the node.
-		if overridable, ok := v.(GraphNodeOverridable); ok && !ctx.Overrides().Empty() {
+		if overridable, ok := v.(GraphNodeOverridable); ok && haveOverrides {
 			// It'd be nice if we could just pass the overrides directly into
 			// the nodes, but the way the AbstractNodeResource is created is
 			// complicated and it's not easy to make sure that every
@@ -77,6 +79,21 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			// directly to the node.
 			if override, ok := ctx.Overrides().GetResourceOverride(overridable.ResourceInstanceAddr(), overridable.ConfigProvider()); ok {
 				overridable.SetOverride(override)
+			}
+		}
+
+		if provider, ok := v.(GraphNodeProvider); ok && haveOverrides {
+			// If we find a legacy provider within an overridden module, we
+			// can't evaluate the config so we have to skip it. We do this here
+			// for the similar reasons as the resource overrides above, and to
+			// keep all the override logic together.
+			addr := provider.ProviderAddr()
+			// UnkeyedInstanceShim is used by legacy provider configs within a
+			// module to return an instance of that module, since they can never
+			// exist within an expanded instance.
+			if ctx.Overrides().IsOverridden(addr.Module.UnkeyedInstanceShim()) {
+				log.Printf("[DEBUG] skipping provider %s found within overridden module", addr)
+				return
 			}
 		}
 

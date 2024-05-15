@@ -4,6 +4,7 @@
 package statemgr
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -69,7 +70,7 @@ func (m *fakeFull) PersistState(schemas *schemarepo.Schemas) error {
 	return m.fakeP.WriteState(m.t.State())
 }
 
-func (m *fakeFull) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+func (m *fakeFull) GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
 	return m.State().RootOutputValues, nil
 }
 
@@ -119,7 +120,7 @@ func (m *fakeErrorFull) State() *states.State {
 	return nil
 }
 
-func (m *fakeErrorFull) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+func (m *fakeErrorFull) GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
 	return nil, errors.New("fake state manager error")
 }
 
