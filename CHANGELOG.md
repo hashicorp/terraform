@@ -14,6 +14,11 @@ BUG FIXES:
 
 * `remote-exec`: Each remote connection will now be closed immediately after use. ([#34137](https://github.com/hashicorp/terraform/issues/34137))
 * `backend/s3`: Fixed the digest value displayed for DynamoDB/S3 state checksum mismatches. ([#34387](https://github.com/hashicorp/terraform/issues/34387))
+* `terraform test`: Fix bug in which non-Hashicorp providers required by testing modules and initialised within the test files were assigned incorrect registry addresses. ([#35161](https://github.com/hashicorp/terraform/issues/35161))
+
+UPGRADE NOTES:
+
+* `terraform test`: It is no longer valid to specify version constraints within provider blocks within .tftest.hcl files. Instead, version constraints must be supplied within the main configuration where the provider is in use.
 
 EXPERIMENTS:
 
