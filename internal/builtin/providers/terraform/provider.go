@@ -23,6 +23,9 @@ func NewProvider() providers.Interface {
 // GetSchema returns the complete schema for the provider.
 func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return providers.GetProviderSchemaResponse{
+		ServerCapabilities: providers.ServerCapabilities{
+			MoveResourceState: true,
+		},
 		DataSources: map[string]providers.Schema{
 			"terraform_remote_state": dataSourceRemoteStateGetSchema(),
 		},
@@ -169,10 +172,18 @@ func (p *Provider) ImportResourceState(req providers.ImportResourceStateRequest)
 	panic("unimplemented - terraform_remote_state has no resources")
 }
 
-func (p *Provider) MoveResourceState(providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
-	// We don't expose the move_resource_state capability, so this should never
-	// be called.
-	panic("unimplemented - terraform.io/builtin/terraform does not support cross-resource moves")
+// MoveResourceState requests that the given resource be moved.
+func (p *Provider) MoveResourceState(req providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
+	switch req.TargetTypeName {
+	case "terraform_data":
+		return moveDataStoreResourceState(req)
+	default:
+		var resp providers.MoveResourceStateResponse
+
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Error: unsupported resource %s", req.TargetTypeName))
+
+		return resp
+	}
 }
 
 // ValidateResourceConfig is used to to validate the resource configuration values.
