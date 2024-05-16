@@ -336,6 +336,12 @@ func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (
 				})
 				continue
 			}
+		} else if result.Value == cty.DynamicVal {
+			// Then we don't know the concrete type of this reference at this
+			// time, so we'll just have to accept it. This is somewhat expected
+			// during the validation phase, and even during the planning phase
+			// if we have deferred attributes. We'll get an error later (ie.
+			// during the plan phase) if the type doesn't match up then.
 		} else {
 			// We got something that isn't a provider reference at all.
 			diags = diags.Append(&hcl.Diagnostic{

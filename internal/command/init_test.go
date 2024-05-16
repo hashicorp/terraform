@@ -25,6 +25,8 @@ import (
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
+	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -2828,6 +2830,44 @@ func TestInit_invalidSyntaxBackendAttribute(t *testing.T) {
 	}
 	if subStr := "Error: Invalid expression"; !strings.Contains(errStr, subStr) {
 		t.Errorf("Error output should mention the invalid expression\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+}
+
+func TestInit_testsWithExternalProviders(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-with-tests-external-providers"), td)
+	defer testChdir(t, td)()
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/testing": {"1.0.0"},
+		"testing/configure": {"1.0.0"},
+	})
+	defer close()
+
+	hashicorpTestingProviderAddress := addrs.NewDefaultProvider("testing")
+	hashicorpTestingProvider := new(testing_provider.MockProvider)
+	testingConfigureProviderAddress := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "testing", "configure")
+	testingConfigureProvider := new(testing_provider.MockProvider)
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					hashicorpTestingProviderAddress: providers.FactoryFixed(hashicorpTestingProvider),
+					testingConfigureProviderAddress: providers.FactoryFixed(testingConfigureProvider),
+				},
+			},
+			Ui:             ui,
+			View:           view,
+			ProviderSource: providerSource,
+		},
+	}
+
+	var args []string
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", done(t).All())
 	}
 }
 
