@@ -9,6 +9,7 @@ ENHANCEMENTS:
 * `terraform test`: Test runs can now pass sensitive values to input variables while preserving their dynamic sensitivity. Previously sensitivity would be preserved only for variables statically declared as being sensitive, using `sensitive = true`. ([#35021](https://github.com/hashicorp/terraform/pull/35021))
 * Performance improvement during graph building for configurations with an extremely large number of `resource` blocks. ([#35088](https://github.com/hashicorp/terraform/pull/35088))
 * Reduced copying of state to improve performance with larges numbers of resources. [GH-35164]
+* `terraform_data`: Enabled `moved` configuration refactoring from the `hashicorp/null` provider `null_resource` managed resource ([#35163](https://github.com/hashicorp/terraform/pull/35163))
 
 BUG FIXES:
 
