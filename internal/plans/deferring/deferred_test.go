@@ -231,7 +231,13 @@ func TestDeferred_partialExpandedDatasource(t *testing.T) {
 	})
 
 	// Resource A hasn't been expanded fully, so is deferred.
-	deferred.ReportDataSourceExpansionDeferred(instAPartial, cty.DynamicVal)
+	deferred.ReportDataSourceExpansionDeferred(instAPartial, &plans.ResourceInstanceChange{
+		Addr: instAAddr,
+		Change: plans.Change{
+			Action: plans.Read,
+			After:  cty.DynamicVal,
+		},
+	})
 
 	t.Run("with one resource instance deferred", func(t *testing.T) {
 		if !deferred.ShouldDeferResourceInstanceChanges(instCAddr, dependencies.Get(instCAddr.ConfigResource())) {
