@@ -1295,6 +1295,15 @@ func TestTest_BadReferences(t *testing.T) {
 	expectedOut := `main.tftest.hcl... in progress
   run "setup"... pass
   run "test"... fail
+
+Warning: Value for undeclared variable
+
+  on main.tftest.hcl line 17, in run "test":
+  17:     input_three = run.madeup.response
+
+The module under test does not declare a variable named "input_three", but it
+is declared in run block "test".
+
   run "finalise"... skip
 main.tftest.hcl... tearing down
 main.tftest.hcl... fail

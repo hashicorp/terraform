@@ -1081,7 +1081,6 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 					Subject:  expr.Range().Ptr(),
 				})
 			}
-
 			continue // Don't add it to our final set of variables.
 		}
 
