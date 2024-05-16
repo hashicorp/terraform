@@ -431,7 +431,7 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 		return state, false
 	}
 
-	variables, variableDiags := runner.GetVariables(config, run, references)
+	variables, variableDiags := runner.GetVariables(config, run, references, "Run")
 	run.Diagnostics = run.Diagnostics.Append(variableDiags)
 	if variableDiags.HasErrors() {
 		run.Status = moduletest.Error
@@ -637,7 +637,7 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 
 	var diags tfdiags.Diagnostics
 
-	variables, variableDiags := runner.GetVariables(config, run, nil)
+	variables, variableDiags := runner.GetVariables(config, run, nil, "Destroy")
 	diags = diags.Append(variableDiags)
 
 	if diags.HasErrors() {
@@ -1005,7 +1005,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 // should be called before trying to use these variables within a Terraform
 // plan, apply, or destroy operation.
 // nil references mean no warnings will be added for irrelevant variables
-func (runner *TestFileRunner) GetVariables(config *configs.Config, run *moduletest.Run, references []*addrs.Reference) (terraform.InputValues, tfdiags.Diagnostics) {
+func (runner *TestFileRunner) GetVariables(config *configs.Config, run *moduletest.Run, references []*addrs.Reference, action string) (terraform.InputValues, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// relevantVariables contains the variables that are of interest to this
@@ -1073,7 +1073,7 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 		// it if it's not actually relevant.
 		if _, exists := relevantVariables[name]; !exists {
 			// Do not display warnings during cleanup phase
-			if references != nil {
+			if action != "Destroy" {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  "Value for undeclared variable",
