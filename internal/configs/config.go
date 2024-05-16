@@ -384,10 +384,6 @@ func (c *Config) ProviderRequirementsByModule() (*ModuleRequirements, hcl.Diagno
 			Runs:         make(map[string]*ModuleRequirements),
 		}
 
-		for _, provider := range test.Providers {
-			diags = append(diags, c.addProviderRequirementsFromProviderBlock(testReqs.Requirements, provider)...)
-		}
-
 		for _, run := range test.Runs {
 			if run.ConfigUnderTest == nil {
 				continue
@@ -556,20 +552,13 @@ func (c *Config) addProviderRequirements(reqs providerreqs.Requirements, recurse
 
 	// We may have provider blocks and required_providers set in some testing
 	// files.
-	if tests {
+	if tests && recurse {
 		for _, file := range c.Module.Tests {
-			for _, provider := range file.Providers {
-				moreDiags := c.addProviderRequirementsFromProviderBlock(reqs, provider)
-				diags = append(diags, moreDiags...)
-			}
-
-			if recurse {
-				// Then we'll also look for requirements in testing modules.
-				for _, run := range file.Runs {
-					if run.ConfigUnderTest != nil {
-						moreDiags := run.ConfigUnderTest.addProviderRequirements(reqs, true, false)
-						diags = append(diags, moreDiags...)
-					}
+			// Then we'll also look for requirements in testing modules.
+			for _, run := range file.Runs {
+				if run.ConfigUnderTest != nil {
+					moreDiags := run.ConfigUnderTest.addProviderRequirements(reqs, true, false)
+					diags = append(diags, moreDiags...)
 				}
 			}
 		}
