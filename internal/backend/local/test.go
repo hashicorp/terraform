@@ -1004,6 +1004,7 @@ func (runner *TestFileRunner) cleanup(file *moduletest.File) {
 // more variables than are required by the config. FilterVariablesToConfig
 // should be called before trying to use these variables within a Terraform
 // plan, apply, or destroy operation.
+// nil references mean no warnings will be added for irrelevant variables
 func (runner *TestFileRunner) GetVariables(config *configs.Config, run *moduletest.Run, references []*addrs.Reference) (terraform.InputValues, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -1071,12 +1072,15 @@ func (runner *TestFileRunner) GetVariables(config *configs.Config, run *modulete
 		// wrote in the variable expression. But, we don't want to actually use
 		// it if it's not actually relevant.
 		if _, exists := relevantVariables[name]; !exists {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagWarning,
-				Summary:  "Value for undeclared variable",
-				Detail:   fmt.Sprintf("The module under test does not declare a variable named %q, but it is declared in run block %q.", name, run.Name),
-				Subject:  expr.Range().Ptr(),
-			})
+			// Do not display warnings during cleanup phase
+			if references != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Value for undeclared variable",
+					Detail:   fmt.Sprintf("The module under test does not declare a variable named %q, but it is declared in run block %q.", name, run.Name),
+					Subject:  expr.Range().Ptr(),
+				})
+			}
 
 			continue // Don't add it to our final set of variables.
 		}
