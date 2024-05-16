@@ -3,12 +3,12 @@
 ENHANCEMENTS:
 
 * `terraform console`: Now has basic support for multi-line input in interactive mode. ([#34822](https://github.com/hashicorp/terraform/pull/34822))
-
     If an entered line contains opening parentheses/etc that are not closed, Terraform will await another line of input to complete the expression. This initial implementation is primarily intended to support pasting in multi-line expressions from elsewhere, rather than for manual multi-line editing, so the interactive editing support is currently limited.
 * `terraform plan`: Improved presentation of OPA and Sentinel policy evaluations in HCP Terraform remote runs, for logical separation.
 * `terraform init` now accepts a `-json` option. If specified, enables the machine readable JSON output. ([#34886](https://github.com/hashicorp/terraform/pull/34886))
 * `terraform test`: Test runs can now pass sensitive values to input variables while preserving their dynamic sensitivity. Previously sensitivity would be preserved only for variables statically declared as being sensitive, using `sensitive = true`. ([#35021](https://github.com/hashicorp/terraform/pull/35021))
 * Performance improvement during graph building for configurations with an extremely large number of `resource` blocks. ([#35088](https://github.com/hashicorp/terraform/pull/35088))
+* Reduced copying of state to improve performance with larges numbers of resources. [GH-35164]
 
 BUG FIXES:
 
