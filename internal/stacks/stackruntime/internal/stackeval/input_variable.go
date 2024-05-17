@@ -259,6 +259,14 @@ func (v *InputVariable) tracingName() string {
 	return v.Addr().String()
 }
 
+// reportNamedPromises implements namedPromiseReporter.
+func (v *InputVariable) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	name := v.Addr().String()
+	v.value.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
+		cb(o.PromiseID(), name)
+	})
+}
+
 // ExternalInputValue represents the value of an input variable provided
 // from outside the stack configuration.
 type ExternalInputValue struct {

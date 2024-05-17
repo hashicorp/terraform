@@ -531,6 +531,12 @@ func (c *ComponentConfig) tracingName() string {
 	return c.Addr().String()
 }
 
+// reportNamedPromises implements namedPromiseReporter.
+func (c *ComponentConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	cb(c.validate.PromiseID(), c.Addr().String())
+	cb(c.moduleTree.PromiseID(), c.Addr().String()+" modules")
+}
+
 // sourceBundleModuleWalker is an implementation of [configs.ModuleWalker]
 // that loads all modules from a single source bundle.
 type sourceBundleModuleWalker struct {
