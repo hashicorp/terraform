@@ -187,6 +187,18 @@ func TestTemplateFile(t *testing.T) {
 			cty.True, // since this template contains only an interpolation, its true value shines through
 			``,
 		},
+		{
+			// If the template filename is sensitive then we also treat the
+			// rendered result as sensitive, because the rendered result
+			// is likely to imply which filename was used.
+			// (Sensitive filenames seem pretty unlikely, but if they do
+			// crop up then we should handle them consistently with our
+			// usual sensitivity rules.)
+			cty.StringVal("testdata/hello.txt").Mark(marks.Sensitive),
+			cty.EmptyObjectVal,
+			cty.StringVal("Hello World").Mark(marks.Sensitive),
+			``,
+		},
 	}
 
 	funcs := map[string]function.Function{

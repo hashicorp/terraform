@@ -72,20 +72,21 @@ func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
 // the templatefile function, since that would risk the same file being
 // included into itself indefinitely.
 func MakeTemplateFileFunc(baseDir string, funcsCb func() (funcs map[string]function.Function, fsFuncs collections.Set[string], templateFuncs collections.Set[string])) function.Function {
-	loadTmpl := func(fn string, marks cty.ValueMarks) (hcl.Expression, error) {
+	loadTmpl := func(fn string, marks cty.ValueMarks) (hcl.Expression, cty.ValueMarks, error) {
 		// We re-use File here to ensure the same filename interpretation
 		// as it does, along with its other safety checks.
 		tmplVal, err := File(baseDir, cty.StringVal(fn).WithMarks(marks))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
+		tmplVal, marks = tmplVal.Unmark()
 		expr, diags := hclsyntax.ParseTemplate([]byte(tmplVal.AsString()), fn, hcl.Pos{Line: 1, Column: 1})
 		if diags.HasErrors() {
-			return nil, diags
+			return nil, nil, diags
 		}
 
-		return expr, nil
+		return expr, marks, nil
 	}
 
 	renderTmpl := makeRenderTemplateFunc(funcsCb, true)
@@ -112,7 +113,7 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() (funcs map[string]funct
 			// return any type.
 
 			pathArg, pathMarks := args[0].Unmark()
-			expr, err := loadTmpl(pathArg.AsString(), pathMarks)
+			expr, _, err := loadTmpl(pathArg.AsString(), pathMarks)
 			if err != nil {
 				return cty.DynamicPseudoType, err
 			}
@@ -124,12 +125,12 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() (funcs map[string]funct
 		},
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			pathArg, pathMarks := args[0].Unmark()
-			expr, err := loadTmpl(pathArg.AsString(), pathMarks)
+			expr, tmplMarks, err := loadTmpl(pathArg.AsString(), pathMarks)
 			if err != nil {
 				return cty.DynamicVal, err
 			}
 			result, err := renderTmpl(expr, args[1])
-			return result.WithMarks(pathMarks), err
+			return result.WithMarks(tmplMarks), err
 		},
 	})
 
