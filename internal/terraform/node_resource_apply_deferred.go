@@ -26,14 +26,14 @@ type nodeApplyableDeferredInstance struct {
 }
 
 func (n *nodeApplyableDeferredInstance) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	change, err := n.ChangeSrc.Decode(n.Schema.ImpliedType())
 	if err != nil {
-		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode ", fmt.Sprintf("Terraform failed to decode a deferred change: %v\n\nThis is a bug in Terraform; please report it!", err)))
 	}
 
 	ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, n.Reason, change)
-	return nil
+	return diags
 }
 
 // nodeApplyableDeferredPartialInstance is a node that represents a deferred
@@ -47,12 +47,12 @@ type nodeApplyableDeferredPartialInstance struct {
 }
 
 func (n *nodeApplyableDeferredPartialInstance) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	change, err := n.ChangeSrc.Decode(n.Schema.ImpliedType())
 	if err != nil {
-		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode ", fmt.Sprintf("Terraform failed to decode a deferred change: %v\n\nThis is a bug in Terraform; please report it!", err)))
 	}
 
 	ctx.Deferrals().ReportResourceExpansionDeferred(n.PartialAddr, change)
-	return nil
+	return diags
 }
