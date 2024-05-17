@@ -18,6 +18,7 @@ service Setup {
 message Handshake {
     message Request {
         ClientCapabilities capabilities = 1;
+        Config config = 2;
     }
     message Response {
         ServerCapabilities capabilities = 2;
@@ -28,7 +29,6 @@ message Handshake {
 // handshake.
 message ClientCapabilities {
     // There are not yet any negotiatable capabilities.
-    CLIConfig config = 1;
 }
 
 // The capabilities that the server wishes to advertise to the client during
@@ -113,7 +113,7 @@ service Dependencies {
     rpc GetProviderSchema(GetProviderSchema.Request) returns (GetProviderSchema.Response);
 }
 
-message CLIConfig {
+message Config {
     map<string, HostCredential> credentials = 1;
 }
 
