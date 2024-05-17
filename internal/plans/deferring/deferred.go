@@ -142,6 +142,11 @@ func (d *Deferred) GetDeferredChanges() []*plans.DeferredResourceInstanceChange 
 			changes = append(changes, changeElem.Value)
 		}
 	}
+	for _, configMapElem := range d.partialExpandedDataSourcesDeferred.Elems {
+		for _, changeElem := range configMapElem.Value.Elems {
+			changes = append(changes, changeElem.Value)
+		}
+	}
 	return changes
 }
 
