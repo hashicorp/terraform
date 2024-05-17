@@ -25,11 +25,11 @@ type setupServer struct {
 	// initOthers is the callback used to perform the capability negotiation
 	// step and initialize all of the other API services based on what was
 	// negotiated.
-	initOthers func(context.Context, *terraform1.ClientCapabilities) (*terraform1.ServerCapabilities, error)
+	initOthers func(context.Context, *terraform1.Handshake_Request) (*terraform1.ServerCapabilities, error)
 	mu         sync.Mutex
 }
 
-func newSetupServer(initOthers func(context.Context, *terraform1.ClientCapabilities) (*terraform1.ServerCapabilities, error)) terraform1.SetupServer {
+func newSetupServer(initOthers func(context.Context, *terraform1.Handshake_Request) (*terraform1.ServerCapabilities, error)) terraform1.SetupServer {
 	return &setupServer{
 		initOthers: initOthers,
 	}
@@ -47,7 +47,7 @@ func (s *setupServer) Handshake(ctx context.Context, req *terraform1.Handshake_R
 	var err error
 	{
 		ctx, span := tracer.Start(ctx, "initialize RPC services")
-		serverCaps, err = s.initOthers(ctx, req.Capabilities)
+		serverCaps, err = s.initOthers(ctx, req)
 		span.End()
 	}
 	s.initOthers = nil // cannot handshake again
