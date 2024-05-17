@@ -8,6 +8,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-plugin"
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"google.golang.org/grpc"
 
@@ -43,7 +45,7 @@ func registerGRPCServices(s *grpc.Server, opts *serviceOpts) {
 	terraform1.RegisterSetupServer(s, setup)
 }
 
-func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *terraform1.ClientCapabilities) (*terraform1.ServerCapabilities, error) {
+func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *terraform1.Handshake_Request) (*terraform1.ServerCapabilities, error) {
 	dependencies := dynrpcserver.NewDependenciesStub()
 	terraform1.RegisterDependenciesServer(s, dependencies)
 	stacks := dynrpcserver.NewStacksStub()
@@ -51,7 +53,7 @@ func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *t
 	packages := dynrpcserver.NewPackagesStub()
 	terraform1.RegisterPackagesServer(s, packages)
 
-	return func(ctx context.Context, clientCaps *terraform1.ClientCapabilities) (*terraform1.ServerCapabilities, error) {
+	return func(ctx context.Context, request *terraform1.Handshake_Request) (*terraform1.ServerCapabilities, error) {
 		// All of our servers will share a common handles table so that objects
 		// can be passed from one service to another.
 		handles := newHandleTable()
@@ -66,7 +68,10 @@ func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *t
 		// this isn't strictly a "capability") so that the RPC caller has
 		// full control without needing to also tinker with the current user's
 		// CLI configuration.
-		services := disco.New()
+		services, err := newServiceDisco(request.GetConfig())
+		if err != nil {
+			return &terraform1.ServerCapabilities{}, err
+		}
 
 		// If handshaking is successful (which it currently always is, because
 		// we don't have any special capabilities to negotiate yet) then we
@@ -90,4 +95,20 @@ func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *t
 // structure, if needed.
 type serviceOpts struct {
 	experimentsAllowed bool
+}
+
+func newServiceDisco(config *terraform1.Config) (*disco.Disco, error) {
+	services := disco.New()
+	credSrc := newCredentialsSource()
+
+	if config != nil {
+		for host, cred := range config.GetCredentials() {
+			if err := credSrc.StoreForHost(svchost.Hostname(host), auth.HostCredentialsToken(cred.Token)); err != nil {
+				return nil, fmt.Errorf("problem storing credential for host %s with: %w", host, err)
+			}
+		}
+		services.SetCredentialsSource(credSrc)
+	}
+
+	return services, nil
 }
