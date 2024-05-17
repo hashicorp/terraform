@@ -97,12 +97,12 @@ type serviceOpts struct {
 	experimentsAllowed bool
 }
 
-func newServiceDisco(cliConfig *terraform1.Config) (*disco.Disco, error) {
+func newServiceDisco(config *terraform1.Config) (*disco.Disco, error) {
 	services := disco.New()
 	credSrc := newCredentialsSource()
 
-	if cliConfig != nil {
-		for host, cred := range cliConfig.GetCredentials() {
+	if config != nil {
+		for host, cred := range config.GetCredentials() {
 			if err := credSrc.StoreForHost(svchost.Hostname(host), auth.HostCredentialsToken(cred.Token)); err != nil {
 				return nil, fmt.Errorf("problem storing credential for host %s with: %w", host, err)
 			}
