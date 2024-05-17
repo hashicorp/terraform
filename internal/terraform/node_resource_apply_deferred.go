@@ -16,8 +16,10 @@ import (
 // in the apply graph. This node is targetable and helps maintain the correct
 // ordering of the apply graph.
 //
-// Note, that it does not implement Execute, as deferred instances are not
-// executed during the apply phase.
+// When executed during the apply phase, this transfers the planned change we
+// got from the plan's deferrals *back* into the EvalContext's Deferred struct,
+// so downstream references to deferred objects can get partial values (of
+// varying quality).
 type nodeApplyableDeferredInstance struct {
 	*NodeAbstractResourceInstance
 
@@ -32,7 +34,12 @@ func (n *nodeApplyableDeferredInstance) Execute(ctx EvalContext, _ walkOperation
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode ", fmt.Sprintf("Terraform failed to decode a deferred change: %v\n\nThis is a bug in Terraform; please report it!", err)))
 	}
 
-	ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, n.Reason, change)
+	switch n.Addr.Resource.Resource.Mode {
+	case addrs.ManagedResourceMode:
+		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, n.Reason, change)
+	case addrs.DataResourceMode:
+		ctx.Deferrals().ReportDataSourceInstanceDeferred(n.Addr, n.Reason, change)
+	}
 	return diags
 }
 
@@ -53,6 +60,11 @@ func (n *nodeApplyableDeferredPartialInstance) Execute(ctx EvalContext, _ walkOp
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode ", fmt.Sprintf("Terraform failed to decode a deferred change: %v\n\nThis is a bug in Terraform; please report it!", err)))
 	}
 
-	ctx.Deferrals().ReportResourceExpansionDeferred(n.PartialAddr, change)
+	switch n.Addr.Resource.Resource.Mode {
+	case addrs.ManagedResourceMode:
+		ctx.Deferrals().ReportResourceExpansionDeferred(n.PartialAddr, change)
+	case addrs.DataResourceMode:
+		ctx.Deferrals().ReportDataSourceExpansionDeferred(n.PartialAddr, change)
+	}
 	return diags
 }
