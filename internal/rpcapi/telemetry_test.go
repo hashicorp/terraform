@@ -225,7 +225,7 @@ func TestTelemetryInTestsGRPC(t *testing.T) {
 
 	client, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
 		setup := &setupServer{
-			initOthers: func(ctx context.Context, cc *terraform1.ClientCapabilities) (*terraform1.ServerCapabilities, error) {
+			initOthers: func(ctx context.Context, cc *terraform1.Handshake_Request) (*terraform1.ServerCapabilities, error) {
 				return &terraform1.ServerCapabilities{}, nil
 			},
 		}

@@ -18,6 +18,7 @@ service Setup {
 message Handshake {
     message Request {
         ClientCapabilities capabilities = 1;
+        Config config = 2;
     }
     message Response {
         ServerCapabilities capabilities = 2;
@@ -110,6 +111,14 @@ service Dependencies {
     // has the potential to run in a context that probably has access to
     // private source code and other sensitive information.
     rpc GetProviderSchema(GetProviderSchema.Request) returns (GetProviderSchema.Response);
+}
+
+message Config {
+    map<string, HostCredential> credentials = 1;
+}
+
+message HostCredential {
+    string token = 1;
 }
 
 message OpenSourceBundle {
