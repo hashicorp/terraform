@@ -190,28 +190,6 @@ func (d *Deferred) HaveAnyDeferrals() bool {
 			len(d.partialExpandedModulesDeferred) != 0)
 }
 
-// IsResourceInstanceDeferred returns true if the receiver knows some reason
-// why the resource instance with the given address should have its planned
-// action deferred for a future plan/apply round.
-// TODO NF: This is dead code, and we always ignore the instructions below
-// to use it before ShouldDeferResourceInstanceChanges.
-func (d *Deferred) IsResourceInstanceDeferred(addr addrs.AbsResourceInstance) bool {
-	if !d.deferralAllowed {
-		return false
-	}
-
-	if d.externalDependencyDeferred {
-		return true
-	}
-
-	// Our resource graph describes relationships between the static resource
-	// configuration blocks, not their dynamic instances, so we need to start
-	// with the config address that the given instance belongs to.
-	configAddr := addr.ConfigResource()
-
-	return d.resourceInstancesDeferred.Get(configAddr).Has(addr)
-}
-
 // GetDeferredResourceInstanceValue returns the deferred value for the given
 // resource instance, if any.
 func (d *Deferred) GetDeferredResourceInstanceValue(addr addrs.AbsResourceInstance) (cty.Value, bool) {
@@ -257,14 +235,7 @@ func (d *Deferred) GetDeferredResourceInstanceValue(addr addrs.AbsResourceInstan
 //
 // It's invalid to call this method for an address that was already reported
 // as deferred using [Deferred.ReportResourceInstanceDeferred], and so this
-// method will panic in that case. Callers should always test whether a resource
-// instance action should be deferred _before_ reporting that it has been by
-// calling [Deferred.IsResourceInstanceDeferred].
-//
-// The deps argument should be the set of configuration blocks that the given
-// resource instance depends on. This is then compared against the set of
-// deferred resources to determine if the given resource instance should be
-// deferred.
+// method will panic in that case.
 func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInstance, deps []addrs.ConfigResource) bool {
 	if !d.deferralAllowed {
 		return false
