@@ -1,7 +1,8 @@
 ## 1.8.4 (Unreleased)
 
 BUG FIXES:
-* `core`: Fix exponential slowdown in some cases when modules are using `depends_on` [GH-35157]
+* `core`: Fix exponential slowdown in some cases when modules are using `depends_on`. [GH-35157]
+* `import` blocks: Fix bug where resources with nested, computed, and optional `id` attributes would fail to generate configuration. [GH-35220]
 
 ## 1.8.3 (May 8, 2024)
 
