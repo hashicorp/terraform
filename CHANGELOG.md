@@ -10,6 +10,7 @@ ENHANCEMENTS:
 * Performance improvement during graph building for configurations with an extremely large number of `resource` blocks. ([#35088](https://github.com/hashicorp/terraform/pull/35088))
 * Reduced copying of state to improve performance with larges numbers of resources. [GH-35164]
 * `terraform_data`: Enabled `moved` configuration refactoring from the `hashicorp/null` provider `null_resource` managed resource ([#35163](https://github.com/hashicorp/terraform/pull/35163))
+* `terraform output` with `cloud` block: terraform no longer suggests that data loss could occur when outputs are not available [GH-35143]
 
 BUG FIXES:
 
