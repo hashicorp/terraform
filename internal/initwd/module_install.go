@@ -49,6 +49,20 @@ type moduleVersion struct {
 	version string
 }
 
+type TypeDiagnosticExtra string
+
+const TypeModuleVersionDeprecation = "module_version_deprecation"
+
+type ModuleVersionDeprecationDiagnosticExtra struct {
+	Type    TypeDiagnosticExtra `json:"type"`
+	Version string              `json:"version"`
+	Addr    string              `json:"addr"`
+}
+
+func (m ModuleVersionDeprecationDiagnosticExtra) IsPublic() {
+	// NOP
+}
+
 func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry.Client) *ModuleInstaller {
 	return &ModuleInstaller{
 		modsDir:                 modsDir,
@@ -254,6 +268,7 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 					}
 
 					log.Printf("[TRACE] ModuleInstaller: Module installer: %s %s already installed in %s", key, record.Version, record.Dir)
+
 					return mod, record.Version, diags
 				}
 			}
@@ -480,7 +495,8 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 
 	modMeta := resp.Modules[0]
 
-	var latestMatch *version.Version
+	var latestMatch *response.ModuleVersion
+	var latestMatchVersion *version.Version
 	var latestVersion *version.Version
 	for _, mv := range modMeta.Versions {
 		v, err := version.NewVersion(mv.Version)
@@ -545,8 +561,9 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 		}
 
 		if req.VersionConstraint.Required.Check(v) {
-			if latestMatch == nil || v.GreaterThan(latestMatch) {
-				latestMatch = v
+			if latestMatch == nil || v.GreaterThan(latestMatchVersion) {
+				latestMatch = mv
+				latestMatchVersion = v
 			}
 		}
 	}
@@ -571,23 +588,41 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 		return nil, nil, diags
 	}
 
+	if latestMatch.Deprecation != nil {
+		additionalInfo := ""
+		if latestMatch.Deprecation.Link != "" {
+			additionalInfo = fmt.Sprintf("\n\nMore information: %s", latestMatch.Deprecation.Link)
+		}
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  fmt.Sprintf("Module version %s of %s is deprecated", latestMatch.Version, addr),
+			Detail:   fmt.Sprintf("%s%s", latestMatch.Deprecation.Reason, additionalInfo),
+			Subject:  req.CallRange.Ptr(),
+			Extra: &ModuleVersionDeprecationDiagnosticExtra{
+				Type:    TypeModuleVersionDeprecation,
+				Version: latestMatch.Version,
+				Addr:    addr.ForDisplay(),
+			},
+		})
+	}
+
 	// Report up to the caller that we're about to start downloading.
-	hooks.Download(key, packageAddr.String(), latestMatch)
+	hooks.Download(key, packageAddr.String(), latestMatchVersion)
 
 	// If we manage to get down here then we've found a suitable version to
 	// install, so we need to ask the registry where we should download it from.
 	// The response to this is a go-getter-style address string.
 
 	// first check the cache for the download URL
-	moduleAddr := moduleVersion{module: packageAddr, version: latestMatch.String()}
+	moduleAddr := moduleVersion{module: packageAddr, version: latestMatchVersion.String()}
 	if _, exists := i.registryPackageSources[moduleAddr]; !exists {
-		realAddrRaw, err := reg.ModuleLocation(ctx, regsrcAddr, latestMatch.String())
+		realAddrRaw, err := reg.ModuleLocation(ctx, regsrcAddr, latestMatchVersion.String())
 		if err != nil {
-			log.Printf("[ERROR] %s from %s %s: %s", key, addr, latestMatch, err)
+			log.Printf("[ERROR] %s from %s %s: %s", key, addr, latestMatchVersion, err)
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Error accessing remote module registry",
-				Detail:   fmt.Sprintf("Failed to retrieve a download URL for %s %s from %s: %s", addr, latestMatch, hostname, err),
+				Detail:   fmt.Sprintf("Failed to retrieve a download URL for %s %s from %s: %s", addr, latestMatchVersion, hostname, err),
 			})
 			return nil, nil, diags
 		}
@@ -596,7 +631,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid package location from module registry",
-				Detail:   fmt.Sprintf("Module registry %s returned invalid source location %q for %s %s: %s.", hostname, realAddrRaw, addr, latestMatch, err),
+				Detail:   fmt.Sprintf("Module registry %s returned invalid source location %q for %s %s: %s.", hostname, realAddrRaw, addr, latestMatchVersion, err),
 			})
 			return nil, nil, diags
 		}
@@ -611,7 +646,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid package location from module registry",
-				Detail:   fmt.Sprintf("Module registry %s returned invalid source location %q for %s %s: must be a direct remote package address.", hostname, realAddrRaw, addr, latestMatch),
+				Detail:   fmt.Sprintf("Module registry %s returned invalid source location %q for %s %s: must be a direct remote package address.", hostname, realAddrRaw, addr, latestMatchVersion),
 			})
 			return nil, nil, diags
 		}
@@ -619,7 +654,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 
 	dlAddr := i.registryPackageSources[moduleAddr]
 
-	log.Printf("[TRACE] ModuleInstaller: %s %s %s is available at %q", key, packageAddr, latestMatch, dlAddr.Package)
+	log.Printf("[TRACE] ModuleInstaller: %s %s %s is available at %q", key, packageAddr, latestMatchVersion, dlAddr.Package)
 
 	err := fetcher.FetchPackage(ctx, instPath, dlAddr.Package.String())
 	if errors.Is(err, context.Canceled) {
@@ -681,14 +716,14 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 	// Note the local location in our manifest.
 	manifest[key] = modsdir.Record{
 		Key:        key,
-		Version:    latestMatch,
+		Version:    latestMatchVersion,
 		Dir:        modDir,
 		SourceAddr: req.SourceAddr.String(),
 	}
 	log.Printf("[DEBUG] Module installer: %s installed at %s", key, modDir)
-	hooks.Install(key, latestMatch, modDir)
+	hooks.Install(key, latestMatchVersion, modDir)
 
-	return mod, latestMatch, diags
+	return mod, latestMatchVersion, diags
 }
 
 func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*configs.Module, hcl.Diagnostics) {
