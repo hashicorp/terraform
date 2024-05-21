@@ -671,6 +671,80 @@ func TestContext2Plan_importIdInvalidUnknown(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_generateConfigWithNestedId(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to = test_object.a
+  id = "foo"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+
+	p.GetProviderSchemaResponse.ResourceTypes = map[string]providers.Schema{
+		"test_object": {
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"test_id": {
+						Type:     cty.String,
+						Required: true,
+					},
+					"list_val": {
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"id": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_id": cty.StringVal("foo"),
+			"list_val": cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("list_id"),
+				}),
+			}),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_id": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	// Actual plan doesn't matter, just want to make sure there are no errors.
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+}
+
 func TestContext2Plan_importIntoModuleWithGeneratedConfig(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -706,17 +780,6 @@ resource "test_object" "a" {
 			"test_string": cty.StringVal("foo"),
 		}),
 	}
-	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
-		ImportedResources: []providers.ImportedResource{
-			{
-				TypeName: "test_object",
-				State: cty.ObjectVal(map[string]cty.Value{
-					"test_string": cty.StringVal("foo"),
-				}),
-			},
-		},
-	}
-
 	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
