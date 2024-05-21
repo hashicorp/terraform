@@ -10,12 +10,14 @@ ENHANCEMENTS:
 * Performance improvement during graph building for configurations with an extremely large number of `resource` blocks. ([#35088](https://github.com/hashicorp/terraform/pull/35088))
 * Reduced copying of state to improve performance with larges numbers of resources. [GH-35164]
 * `terraform_data`: Enabled `moved` configuration refactoring from the `hashicorp/null` provider `null_resource` managed resource ([#35163](https://github.com/hashicorp/terraform/pull/35163))
+* `terraform output` with `cloud` block: terraform no longer suggests that data loss could occur when outputs are not available [GH-35143]
 
 BUG FIXES:
 
-* `remote-exec`: Each remote connection will now be closed immediately after use. ([#34137](https://github.com/hashicorp/terraform/issues/34137))
-* `backend/s3`: Fixed the digest value displayed for DynamoDB/S3 state checksum mismatches. ([#34387](https://github.com/hashicorp/terraform/issues/34387))
+* remote-exec: Each remote connection will now be closed immediately after use. ([#34137](https://github.com/hashicorp/terraform/issues/34137))
+* backend/s3: Fixed the digest value displayed for DynamoDB/S3 state checksum mismatches. ([#34387](https://github.com/hashicorp/terraform/issues/34387))
 * `terraform test`: Fix bug in which non-Hashicorp providers required by testing modules and initialised within the test files were assigned incorrect registry addresses. ([#35161](https://github.com/hashicorp/terraform/issues/35161))
+* config: The `templatefile` function no longer returns a "panic" error if the template file path is marked as sensitive. Instead, the template rendering result is also marked as sensitive. ([#35180](https://github.com/hashicorp/terraform/issues/35180))
 
 UPGRADE NOTES:
 
