@@ -6,7 +6,7 @@ run "test" {
     validation = "Hello, world!"
   }
   assert {
-    condition = test_resource.resource.value == var.validation
+    condition = test_resource.resource.value == "Hello, world!"
     error_message = "bad!"
   }
 }

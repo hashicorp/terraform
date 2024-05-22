@@ -1322,6 +1322,17 @@ func TestTest_InvalidWarningsInCleanup(t *testing.T) {
 
 	expected := `main.tftest.hcl... in progress
   run "test"... pass
+
+Warning: Value for undeclared variable
+
+  on main.tftest.hcl line 6, in run "test":
+   6:     validation = "Hello, world!"
+
+The module under test does not declare a variable named "validation", but it
+is declared in run block "test".
+
+(and one more similar warning elsewhere)
+
 main.tftest.hcl... tearing down
 main.tftest.hcl... pass
 
