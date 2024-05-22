@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/registry"
+	"github.com/hashicorp/terraform/internal/registry/response"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	_ "github.com/hashicorp/terraform/internal/logging"
@@ -595,6 +596,70 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 
 }
 
+func TestLoaderInstallModules_registry_deprecated(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/registry-module-from-test")
+	tmpDir, done := tempChdir(t, fixtureDir)
+	// the module installer runs filepath.EvalSymlinks() on the destination
+	// directory before copying files, and the resultant directory is what is
+	// returned by the install hooks. Without this, tests could fail on machines
+	// where the default temp dir was a symlink.
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
+
+	defer done()
+
+	hooks := &testInstallHooks{}
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+
+	loader, close := configload.NewLoaderForTests(t)
+	defer close()
+
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
+
+	// Avoid actual registry lookup by populating registry cache
+	packageAddr := addrs.ModuleRegistryPackage{
+		Host:         svchost.Hostname("registry.terraform.io"),
+		Namespace:    "hashicorp",
+		Name:         "module-installer-acctest",
+		TargetSystem: "aws",
+	}
+
+	inst.registryPackageVersions[packageAddr] = &response.ModuleVersions{
+		Modules: []*response.ModuleProviderVersions{
+			{
+				Source: "",
+				Versions: []*response.ModuleVersion{
+					{
+						Version:    "0.0.1",
+						Root:       response.VersionSubmodule{},
+						Submodules: []*response.VersionSubmodule{},
+						Deprecation: &response.Deprecation{
+							Reason: "This module is deprecated",
+							Link:   "https://example.com/deprecation",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
+
+	if !diags.HasWarnings() {
+		t.Fatal("expected warning")
+	} else {
+		assertDiagnosticCount(t, diags, 1)
+		assertDiagnosticSummary(t, diags, "Module version 0.0.1 of setup is deprecated")
+
+		wantDetail := "This module is deprecated\n\nMore information: https://example.com/deprecation"
+		if diags[0].Description().Detail != wantDetail {
+			t.Errorf("wrong deprecation detail\nwant: %s\ngot: %s", wantDetail, diags[0].Description().Detail)
+		}
+	}
+}
+
 func TestLoaderInstallModules_goGetter(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
 		t.Skip("this test accesses github.com; set TF_ACC=1 to run it")
@@ -968,7 +1033,7 @@ func assertDiagnosticCount(t *testing.T, diags tfdiags.Diagnostics, want int) bo
 	if len(diags) != want {
 		t.Errorf("wrong number of diagnostics %d; want %d", len(diags), want)
 		for _, diag := range diags {
-			t.Logf("- %#v", diag)
+			t.Logf("- %#v", diag.Description().Summary)
 		}
 		return true
 	}
