@@ -49,6 +49,22 @@ type moduleVersion struct {
 	version string
 }
 
+type TypeDiagnosticExtra string
+
+const TypeModuleVersionDeprecation = "module_version_deprecation"
+
+type ModuleVersionDeprecationDiagnosticExtra struct {
+	Type               TypeDiagnosticExtra `json:"type"`
+	Version            string              `json:"version"`
+	SourceName         string              `json:"source_name"`
+	DeprecationMessage string              `json:"deprecation_message"`
+	Link               string              `json:"link"`
+}
+
+func (m ModuleVersionDeprecationDiagnosticExtra) IsPublic() {
+	// NOP
+}
+
 func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry.Client) *ModuleInstaller {
 	return &ModuleInstaller{
 		modsDir:                 modsDir,
@@ -289,6 +305,13 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 												Summary:  fmt.Sprintf("Module version %s of %s is deprecated", modVersion.Version, req.Name),
 												Detail:   detail,
 												Subject:  req.CallRange.Ptr(),
+												Extra: &ModuleVersionDeprecationDiagnosticExtra{
+													Type:               TypeModuleVersionDeprecation,
+													Version:            modVersion.Version,
+													SourceName:         req.Name,
+													DeprecationMessage: modVersion.Deprecation.Reason,
+													Link:               modVersion.Deprecation.Link,
+												},
 											})
 										}
 										break found
@@ -636,6 +659,13 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 			Summary:  fmt.Sprintf("Module version %s of %s is deprecated", latestMatch.Version, req.Name),
 			Detail:   detail,
 			Subject:  req.CallRange.Ptr(),
+			Extra: &ModuleVersionDeprecationDiagnosticExtra{
+				Type:               TypeModuleVersionDeprecation,
+				Version:            latestMatch.Version,
+				SourceName:         req.Name,
+				DeprecationMessage: latestMatch.Deprecation.Reason,
+				Link:               latestMatch.Deprecation.Link,
+			},
 		})
 	}
 
