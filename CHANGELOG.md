@@ -3,6 +3,7 @@
 BUG FIXES:
 * `core`: Fix exponential slowdown in some cases when modules are using `depends_on`. ([#35157](https://github.com/hashicorp/terraform/issues/35157))
 * `import` blocks: Fix bug where resources with nested, computed, and optional `id` attributes would fail to generate configuration. ([#35220](https://github.com/hashicorp/terraform/issues/35220))
+* Updated to new `golang.org/x/net` release, which addressed CVE-2023-45288 ([#35165](https://github.com/hashicorp/terraform/issues/35165))
 
 ## 1.8.3 (May 8, 2024)
 
