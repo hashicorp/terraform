@@ -1,8 +1,8 @@
-## 1.8.4 (Unreleased)
+## 1.8.4 (May 22, 2024)
 
 BUG FIXES:
-* `core`: Fix exponential slowdown in some cases when modules are using `depends_on`. [GH-35157]
-* `import` blocks: Fix bug where resources with nested, computed, and optional `id` attributes would fail to generate configuration. [GH-35220]
+* `core`: Fix exponential slowdown in some cases when modules are using `depends_on`. ([#35157](https://github.com/hashicorp/terraform/issues/35157))
+* `import` blocks: Fix bug where resources with nested, computed, and optional `id` attributes would fail to generate configuration. ([#35220](https://github.com/hashicorp/terraform/issues/35220))
 
 ## 1.8.3 (May 8, 2024)
 
