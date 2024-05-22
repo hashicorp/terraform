@@ -1331,8 +1331,6 @@ Warning: Value for undeclared variable
 The module under test does not declare a variable named "validation", but it
 is declared in run block "test".
 
-(and one more similar warning elsewhere)
-
 main.tftest.hcl... tearing down
 main.tftest.hcl... pass
 

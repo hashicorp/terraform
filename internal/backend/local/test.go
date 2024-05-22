@@ -544,12 +544,6 @@ func (runner *TestFileRunner) run(run *moduletest.Run, file *moduletest.File, st
 	resetVariables := runner.AddVariablesToConfig(config, variables)
 	defer resetVariables()
 
-	run.Diagnostics = run.Diagnostics.Append(variableDiags)
-	if variableDiags.HasErrors() {
-		run.Status = moduletest.Error
-		return updated, true
-	}
-
 	if runner.Suite.Verbose {
 		schemas, diags := tfCtx.Schemas(config, updated)
 
