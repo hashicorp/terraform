@@ -49,10 +49,15 @@ type moduleVersion struct {
 	version string
 }
 
+// TypeModuleVersionDeprecation is a constant of TypeDiagnosticExtra indicating
+// that a Warning is related to a deprecated module version is in use.
 type TypeDiagnosticExtra string
 
 const TypeModuleVersionDeprecation = "module_version_deprecation"
 
+// ModuleVersionDeprecationDiagnosticExtra holds the diagnostic information
+// about the deprecation of a module version. This ends up being serialized as extra data within a
+// diagnostic and should be considered public API.
 type ModuleVersionDeprecationDiagnosticExtra struct {
 	Type               TypeDiagnosticExtra `json:"type"`
 	Version            string              `json:"version"`
@@ -61,6 +66,7 @@ type ModuleVersionDeprecationDiagnosticExtra struct {
 	Link               string              `json:"link"`
 }
 
+// IsPublic confirms the visibility of the extra field in the public API.
 func (m ModuleVersionDeprecationDiagnosticExtra) IsPublic() {
 	// NOP
 }
