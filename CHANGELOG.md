@@ -16,6 +16,7 @@ ENHANCEMENTS:
 * `terraform console`: Now has basic support for multi-line input in interactive mode. ([#34822](https://github.com/hashicorp/terraform/pull/34822))
     If an entered line contains opening parentheses/etc that are not closed, Terraform will await another line of input to complete the expression. This initial implementation is primarily intended to support pasting in multi-line expressions from elsewhere, rather than for manual multi-line editing, so the interactive editing support is currently limited.
 * cli: Reduced copying of state to improve performance with larges numbers of resources. [GH-35164]
+* `removed` blocks can now declare destroy-time provisioners which will be executed when the associated resource instances are destroyed. [GH-35230]
 
 BUG FIXES:
 
