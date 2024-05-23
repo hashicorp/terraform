@@ -636,7 +636,7 @@ func TestLoaderInstallModules_registry_deprecated(t *testing.T) {
 						Root:       response.VersionSubmodule{},
 						Submodules: []*response.VersionSubmodule{},
 						Deprecation: &response.Deprecation{
-							Reason: "This module is deprecated",
+							Reason: "This module version is deprecated",
 							Link:   "https://example.com/deprecation",
 						},
 					},
@@ -653,7 +653,7 @@ func TestLoaderInstallModules_registry_deprecated(t *testing.T) {
 		assertDiagnosticCount(t, diags, 1)
 		assertDiagnosticSummary(t, diags, "Module version 0.0.1 of setup is deprecated")
 
-		wantDetail := "This module is deprecated\n\nMore information: https://example.com/deprecation"
+		wantDetail := "This module version is deprecated\n\nMore information: https://example.com/deprecation"
 		if diags[0].Description().Detail != wantDetail {
 			t.Errorf("wrong deprecation detail\nwant: %s\ngot: %s", wantDetail, diags[0].Description().Detail)
 		}
