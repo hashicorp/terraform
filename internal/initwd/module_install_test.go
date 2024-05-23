@@ -651,7 +651,7 @@ func TestLoaderInstallModules_registry_deprecated(t *testing.T) {
 		t.Fatal("expected warning")
 	} else {
 		assertDiagnosticCount(t, diags, 1)
-		assertDiagnosticSummary(t, diags, "Module version 0.0.1 of setup is deprecated")
+		assertDiagnosticSummary(t, diags, "Module version 0.0.1 of registry.terraform.io/hashicorp/module-installer-acctest/aws is deprecated")
 
 		wantDetail := "This module version is deprecated\n\nMore information: https://example.com/deprecation"
 		if diags[0].Description().Detail != wantDetail {

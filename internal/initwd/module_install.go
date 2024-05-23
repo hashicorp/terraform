@@ -61,7 +61,7 @@ const TypeModuleVersionDeprecation = "module_version_deprecation"
 type ModuleVersionDeprecationDiagnosticExtra struct {
 	Type               TypeDiagnosticExtra `json:"type"`
 	Version            string              `json:"version"`
-	SourceName         string              `json:"source_name"`
+	SourceAddr         string              `json:"source_name"`
 	DeprecationMessage string              `json:"deprecation_message"`
 	Link               string              `json:"link"`
 }
@@ -284,7 +284,7 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 						regsrcAddr := regsrc.ModuleFromRegistryPackageAddr(addr.Package)
 						resp, err := regClient.ModuleVersions(ctx, regsrcAddr)
 						if err != nil {
-							log.Printf("[DEBUG] Deprecation for %s could not be checked: call to registry failed: %v", addr.Package.Namespace, err)
+							log.Printf("[WARN] Deprecation for %s could not be checked: call to registry failed: %v", addr.Package.String(), err)
 
 						} else {
 						found:
@@ -293,7 +293,7 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 									vm, _ := version.NewVersion(modVersion.Version)
 									if vm.Equal(record.Version) {
 										if modVersion.Deprecation != nil {
-											diags = append(diags, buildModuleVersionDeprecationWarning(modVersion, req))
+											diags = append(diags, buildModuleVersionDeprecationWarning(modVersion, req, addr.Package.String()))
 										}
 										break found
 									}
@@ -622,7 +622,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 	}
 
 	if latestMatch.Deprecation != nil {
-		diags = diags.Append(buildModuleVersionDeprecationWarning(latestMatch, req))
+		diags = diags.Append(buildModuleVersionDeprecationWarning(latestMatch, req, addr.Package.String()))
 	}
 
 	// Report up to the caller that we're about to start downloading.
@@ -991,7 +991,7 @@ func splitAddrSubdir(addr addrs.ModuleSource) (string, string) {
 	}
 }
 
-func buildModuleVersionDeprecationWarning(modVersion *response.ModuleVersion, req *configs.ModuleRequest) *hcl.Diagnostic {
+func buildModuleVersionDeprecationWarning(modVersion *response.ModuleVersion, req *configs.ModuleRequest, packageAddr string) *hcl.Diagnostic {
 	var additionalInfo []string
 	if modVersion.Deprecation.Reason != "" {
 		additionalInfo = append(additionalInfo, modVersion.Deprecation.Reason)
@@ -1007,13 +1007,13 @@ func buildModuleVersionDeprecationWarning(modVersion *response.ModuleVersion, re
 	}
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagWarning,
-		Summary:  fmt.Sprintf("Module version %s of %s is deprecated", modVersion.Version, req.Name),
+		Summary:  fmt.Sprintf("Module version %s of %s is deprecated", modVersion.Version, packageAddr),
 		Detail:   detail,
 		Subject:  req.CallRange.Ptr(),
 		Extra: &ModuleVersionDeprecationDiagnosticExtra{
 			Type:               TypeModuleVersionDeprecation,
 			Version:            modVersion.Version,
-			SourceName:         req.Name,
+			SourceAddr:         packageAddr,
 			DeprecationMessage: modVersion.Deprecation.Reason,
 			Link:               modVersion.Deprecation.Link,
 		},
