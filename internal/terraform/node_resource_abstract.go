@@ -55,7 +55,11 @@ type NodeAbstractResource struct {
 
 	Schema        *configschema.Block // Schema for processing the configuration body
 	SchemaVersion uint64              // Schema version of "Schema", as decided by the provider
-	Config        *configs.Resource   // Config is the resource in the config
+
+	// Config and RemovedConfig are mutally-exclusive, because a
+	// resource can't be both declared and removed at the same time.
+	Config        *configs.Resource // Config is the resource in the config, if any
+	RemovedConfig *configs.Removed  // RemovedConfig is the "removed" block for this resource, if any
 
 	// ProviderMetas is the provider_meta configs for the module this resource belongs to
 	ProviderMetas map[addrs.Provider]*configs.ProviderMeta
@@ -359,8 +363,9 @@ func (n *NodeAbstractResource) AttachDataResourceDependsOn(deps []addrs.ConfigRe
 }
 
 // GraphNodeAttachResourceConfig
-func (n *NodeAbstractResource) AttachResourceConfig(c *configs.Resource) {
+func (n *NodeAbstractResource) AttachResourceConfig(c *configs.Resource, rc *configs.Removed) {
 	n.Config = c
+	n.RemovedConfig = rc
 }
 
 // GraphNodeAttachResourceSchema impl
