@@ -1,5 +1,9 @@
 ## 1.8.5 (Unreleased)
 
+BUG FIXES:
+
+* `terraform test`: Remove duplicate warning diagnostic when providing values for unknown variables in run blocks. ([#35172](https://github.com/hashicorp/terraform/issues/35172))
+
 ## 1.8.4 (May 22, 2024)
 
 BUG FIXES:
