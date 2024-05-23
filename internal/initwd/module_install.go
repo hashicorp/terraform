@@ -53,7 +53,7 @@ type moduleVersion struct {
 // that a Warning is related to a deprecated module version is in use.
 type TypeDiagnosticExtra string
 
-const TypeModuleVersionDeprecation = "module_version_deprecation"
+const TypeModuleVersionDeprecation TypeDiagnosticExtra = "module_version_deprecation"
 
 // ModuleVersionDeprecationDiagnosticExtra holds the diagnostic information
 // about the deprecation of a module version. This ends up being serialized as extra data within a
@@ -999,12 +999,7 @@ func buildModuleVersionDeprecationWarning(modVersion *response.ModuleVersion, re
 	if modVersion.Deprecation.Link != "" {
 		additionalInfo = append(additionalInfo, fmt.Sprintf("More information: %s", modVersion.Deprecation.Link))
 	}
-	var detail string
-	if len(additionalInfo) == 1 {
-		detail = additionalInfo[0]
-	} else {
-		detail = strings.Join(additionalInfo, "\n\n")
-	}
+	detail := strings.Join(additionalInfo, "\n\n")
 	return &hcl.Diagnostic{
 		Severity: hcl.DiagWarning,
 		Summary:  fmt.Sprintf("Module version %s of %s is deprecated", modVersion.Version, packageAddr),
