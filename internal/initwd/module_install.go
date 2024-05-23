@@ -287,32 +287,7 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 									vm, _ := version.NewVersion(modVersion.Version)
 									if vm.Equal(record.Version) {
 										if modVersion.Deprecation != nil {
-											var additionalInfo []string
-											if modVersion.Deprecation.Reason != "" {
-												additionalInfo = append(additionalInfo, modVersion.Deprecation.Reason)
-											}
-											if modVersion.Deprecation.Link != "" {
-												additionalInfo = append(additionalInfo, fmt.Sprintf("More information: %s", modVersion.Deprecation.Link))
-											}
-											var detail string
-											if len(additionalInfo) == 1 {
-												detail = additionalInfo[0]
-											} else {
-												detail = strings.Join(additionalInfo, "\n\n")
-											}
-											diags = append(diags, &hcl.Diagnostic{
-												Severity: hcl.DiagWarning,
-												Summary:  fmt.Sprintf("Module version %s of %s is deprecated", modVersion.Version, req.Name),
-												Detail:   detail,
-												Subject:  req.CallRange.Ptr(),
-												Extra: &ModuleVersionDeprecationDiagnosticExtra{
-													Type:               TypeModuleVersionDeprecation,
-													Version:            modVersion.Version,
-													SourceName:         req.Name,
-													DeprecationMessage: modVersion.Deprecation.Reason,
-													Link:               modVersion.Deprecation.Link,
-												},
-											})
+											diags = append(diags, buildModuleVersionDeprecationWarning(modVersion, req))
 										}
 										break found
 									}
@@ -641,32 +616,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 	}
 
 	if latestMatch.Deprecation != nil {
-		var additionalInfo []string
-		if latestMatch.Deprecation.Reason != "" {
-			additionalInfo = append(additionalInfo, latestMatch.Deprecation.Reason)
-		}
-		if latestMatch.Deprecation.Link != "" {
-			additionalInfo = append(additionalInfo, fmt.Sprintf("More information: %s", latestMatch.Deprecation.Link))
-		}
-		var detail string
-		if len(additionalInfo) == 1 {
-			detail = additionalInfo[0]
-		} else {
-			detail = strings.Join(additionalInfo, "\n\n")
-		}
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  fmt.Sprintf("Module version %s of %s is deprecated", latestMatch.Version, req.Name),
-			Detail:   detail,
-			Subject:  req.CallRange.Ptr(),
-			Extra: &ModuleVersionDeprecationDiagnosticExtra{
-				Type:               TypeModuleVersionDeprecation,
-				Version:            latestMatch.Version,
-				SourceName:         req.Name,
-				DeprecationMessage: latestMatch.Deprecation.Reason,
-				Link:               latestMatch.Deprecation.Link,
-			},
-		})
+		diags = diags.Append(buildModuleVersionDeprecationWarning(latestMatch, req))
 	}
 
 	// Report up to the caller that we're about to start downloading.
@@ -1032,5 +982,34 @@ func splitAddrSubdir(addr addrs.ModuleSource) (string, string) {
 		panic("splitAddrSubdir on nil addrs.ModuleSource")
 	default:
 		return addr.String(), ""
+	}
+}
+
+func buildModuleVersionDeprecationWarning(modVersion *response.ModuleVersion, req *configs.ModuleRequest) *hcl.Diagnostic {
+	var additionalInfo []string
+	if modVersion.Deprecation.Reason != "" {
+		additionalInfo = append(additionalInfo, modVersion.Deprecation.Reason)
+	}
+	if modVersion.Deprecation.Link != "" {
+		additionalInfo = append(additionalInfo, fmt.Sprintf("More information: %s", modVersion.Deprecation.Link))
+	}
+	var detail string
+	if len(additionalInfo) == 1 {
+		detail = additionalInfo[0]
+	} else {
+		detail = strings.Join(additionalInfo, "\n\n")
+	}
+	return &hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  fmt.Sprintf("Module version %s of %s is deprecated", modVersion.Version, req.Name),
+		Detail:   detail,
+		Subject:  req.CallRange.Ptr(),
+		Extra: &ModuleVersionDeprecationDiagnosticExtra{
+			Type:               TypeModuleVersionDeprecation,
+			Version:            modVersion.Version,
+			SourceName:         req.Name,
+			DeprecationMessage: modVersion.Deprecation.Reason,
+			Link:               modVersion.Deprecation.Link,
+		},
 	}
 }
