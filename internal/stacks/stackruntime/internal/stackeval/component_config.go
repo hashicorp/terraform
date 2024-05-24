@@ -503,6 +503,19 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			}
 		}()
 
+		// When our given context is cancelled, we want to instruct the
+		// modules runtime to stop the running operation. We use this
+		// nested context to ensure that we don't leak a goroutine when the
+		// parent context isn't cancelled.
+		operationCtx, operationCancel := context.WithCancel(ctx)
+		defer operationCancel()
+		go func() {
+			<-operationCtx.Done()
+			if ctx.Err() == context.Canceled {
+				tfCtx.Stop()
+			}
+		}()
+
 		diags = diags.Append(tfCtx.Validate(moduleTree, &terraform.ValidateOpts{
 			ExternalProviders: providerClients,
 		}))
