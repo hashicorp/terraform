@@ -65,3 +65,8 @@ type FromExpr struct {
 	Expression  hcl.Expression
 	EvalContext *hcl.EvalContext
 }
+
+// PublicExtraInfo is an interface for marking Extra field that contain public extra information
+type PublicExtraInfo interface {
+	IsPublic()
+}
