@@ -16,7 +16,7 @@ import (
 // setupServer is an implementation of the "Setup" service defined in our
 // terraform1 package.
 //
-// This service is here only to offer the "Handshake" function, which clients
+// This service is here mainly to offer the "Handshake" function, which clients
 // must call to negotiate access to any other services. This is really just
 // an adapter around a handshake function implemented on [corePlugin].
 type setupServer struct {
@@ -25,13 +25,19 @@ type setupServer struct {
 	// initOthers is the callback used to perform the capability negotiation
 	// step and initialize all of the other API services based on what was
 	// negotiated.
-	initOthers func(context.Context, *terraform1.Handshake_Request) (*terraform1.ServerCapabilities, error)
-	mu         sync.Mutex
+	initOthers func(context.Context, *terraform1.Handshake_Request, *stopper) (*terraform1.ServerCapabilities, error)
+
+	// stopper is used to track and stop long-running operations when the Stop
+	// RPC is called.
+	stopper *stopper
+
+	mu sync.Mutex
 }
 
-func newSetupServer(initOthers func(context.Context, *terraform1.Handshake_Request) (*terraform1.ServerCapabilities, error)) terraform1.SetupServer {
+func newSetupServer(initOthers func(context.Context, *terraform1.Handshake_Request, *stopper) (*terraform1.ServerCapabilities, error)) terraform1.SetupServer {
 	return &setupServer{
 		initOthers: initOthers,
+		stopper:    newStopper(),
 	}
 }
 
@@ -47,7 +53,7 @@ func (s *setupServer) Handshake(ctx context.Context, req *terraform1.Handshake_R
 	var err error
 	{
 		ctx, span := tracer.Start(ctx, "initialize RPC services")
-		serverCaps, err = s.initOthers(ctx, req)
+		serverCaps, err = s.initOthers(ctx, req, s.stopper)
 		span.End()
 	}
 	s.initOthers = nil // cannot handshake again
@@ -57,4 +63,13 @@ func (s *setupServer) Handshake(ctx context.Context, req *terraform1.Handshake_R
 	return &terraform1.Handshake_Response{
 		Capabilities: serverCaps,
 	}, nil
+}
+
+func (s *setupServer) Stop(ctx context.Context, req *terraform1.Stop_Request) (*terraform1.Stop_Response, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.stopper.stop()
+
+	return &terraform1.Stop_Response{}, nil
 }
