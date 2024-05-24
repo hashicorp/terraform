@@ -15,15 +15,7 @@ import (
 
 // Deferred keeps track of deferrals that have already happened, to help
 // guide decisions about whether downstream operations might also need to be
-// deferred, and to provide some placeholder data for performing downstream
-// checks against the subset of data we know despite the deferrals.
-//
-// This type only tracks information about object types that can _cause_
-// deferred changes. Everything in the language can be _affected_ by deferred
-// changes, such as by referring to an object whose changes were deferred or
-// being declared in a module that was only partially-expanded, but we track
-// the information about the other object types in other locations that are
-// thematically closer to the type of object in question.
+// deferred.
 type Deferred struct {
 
 	// deferralAllowed marks whether deferred actions are supported by the
@@ -110,12 +102,9 @@ type Deferred struct {
 	partialExpandedModulesDeferred addrs.Set[addrs.PartialExpandedModule]
 }
 
-// NewDeferred constructs a new [Deferred] that assumes that the given resource
-// graph accurately describes all of the dependencies between static resource
-// blocks in the configuration.
-//
-// Callers must not modify anything reachable through resourceGraph after
-// calling this function.
+// NewDeferred constructs a new empty [Deferred] object. The enabled argument
+// controls whether the receiver will actually track any deferrals. If false,
+// all methods will return false and no deferrals will be recorded.
 func NewDeferred(enabled bool) *Deferred {
 	return &Deferred{
 		deferralAllowed:                    enabled,
@@ -228,8 +217,13 @@ func (d *Deferred) IsResourceInstanceDeferred(addr addrs.AbsResourceInstance) bo
 // It's invalid to call this method for an address that was already reported
 // as deferred using [Deferred.ReportResourceInstanceDeferred], and so this
 // method will panic in that case. Callers should always test whether a resource
-// instance action should be deferred _before_ reporting that it has been by calling
-// [Deferred.IsResourceInstanceDeferred].
+// instance action should be deferred _before_ reporting that it has been by
+// calling [Deferred.IsResourceInstanceDeferred].
+//
+// The deps argument should be the set of configuration blocks that the given
+// resource instance depends on. This is then compared against the set of
+// deferred resources to determine if the given resource instance should be
+// deferred.
 func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInstance, deps []addrs.ConfigResource) bool {
 	if !d.deferralAllowed {
 		return false
@@ -256,7 +250,7 @@ func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInst
 		return false
 	}
 
-	// Our resource graph describes relationships between the static resource
+	// For now, we simply track relationships between static resource
 	// configuration blocks, not their dynamic instances, so we need to start
 	// with the config address that the given instance belongs to.
 	configAddr := addr.ConfigResource()
