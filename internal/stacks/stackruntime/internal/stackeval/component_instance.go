@@ -995,6 +995,12 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 		if plan.UIMode != plans.DestroyMode {
 			outputChanges := plan.Changes.Outputs
 			for _, changeSrc := range outputChanges {
+				if len(changeSrc.Addr.Module) > 0 {
+					// Only include output values of the root module as part
+					// of the component.
+					continue
+				}
+
 				name := changeSrc.Addr.OutputValue.Name
 				change, err := changeSrc.Decode()
 				if err != nil {
