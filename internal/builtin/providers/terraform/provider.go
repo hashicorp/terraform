@@ -191,6 +191,16 @@ func (p *Provider) ValidateResourceConfig(req providers.ValidateResourceConfigRe
 	return validateDataStoreResourceConfig(req)
 }
 
+func (p *Provider) PlanAction(req providers.PlanActionRequest) providers.PlanActionResponse {
+	// This provider doesn't declare any actions, so we should not get here.
+	panic("unimplemented - terraform provider has no actions")
+}
+
+func (p *Provider) ApplyAction(req providers.ApplyActionRequest) providers.ApplyActionResponse {
+	// This provider doesn't declare any actions, so we should not get here.
+	panic("unimplemented - terraform provider has no actions")
+}
+
 // CallFunction would call a function contributed by this provider, but this
 // provider has no functions and so this function just panics.
 func (p *Provider) CallFunction(req providers.CallFunctionRequest) providers.CallFunctionResponse {

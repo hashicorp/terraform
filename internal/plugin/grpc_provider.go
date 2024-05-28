@@ -75,6 +75,8 @@ type GRPCProvider struct {
 	schema providers.GetProviderSchemaResponse
 }
 
+var _ providers.Interface = (*GRPCProvider)(nil)
+
 func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	logger.Trace("GRPCProvider: GetProviderSchema")
 	p.mu.Lock()
@@ -764,6 +766,20 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 	resp.State = state
 	resp.Deferred = convert.ProtoToDeferred(protoResp.Deferred)
 
+	return resp
+}
+
+func (p *GRPCProvider) PlanAction(providers.PlanActionRequest) providers.PlanActionResponse {
+	// TODO: Implement this
+	var resp providers.PlanActionResponse
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("actions are not yet supported for plugin-based providers"))
+	return resp
+}
+
+func (p *GRPCProvider) ApplyAction(providers.ApplyActionRequest) providers.ApplyActionResponse {
+	// TODO: Implement this
+	var resp providers.ApplyActionResponse
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("actions are not yet supported for plugin-based providers"))
 	return resp
 }
 

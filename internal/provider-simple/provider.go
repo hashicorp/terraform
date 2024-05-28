@@ -46,6 +46,26 @@ func Provider() providers.Interface {
 			DataSources: map[string]providers.Schema{
 				"simple_resource": simpleResource,
 			},
+			ActionTypes: map[string]providers.RequestResponseSchema{
+				"simple_action": {
+					RequestBlock: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Optional: true,
+								Type:     cty.String,
+							},
+						},
+					},
+					ResponseBlock: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Computed: true,
+								Type:     cty.String,
+							},
+						},
+					},
+				},
+			},
 			ServerCapabilities: providers.ServerCapabilities{
 				PlanDestroy: true,
 			},
@@ -141,6 +161,22 @@ func (s simple) ReadDataSource(req providers.ReadDataSourceRequest) (resp provid
 	m := req.Config.AsValueMap()
 	m["id"] = cty.StringVal("static_id")
 	resp.State = cty.ObjectVal(m)
+	return resp
+}
+
+func (s simple) PlanAction(req providers.PlanActionRequest) (resp providers.PlanActionResponse) {
+	// The simple action type has an identical schema for request and response,
+	// so it's valid to assign like this even though that wouldn't be true for
+	// a realistic action type.
+	resp.PlannedResult = req.Arguments
+	return resp
+}
+
+func (s simple) ApplyAction(req providers.ApplyActionRequest) (resp providers.ApplyActionResponse) {
+	// The simple action type has an identical schema for request and response,
+	// so it's valid to assign like this even though that wouldn't be true for
+	// a realistic action type.
+	resp.Result = req.Arguments
 	return resp
 }
 

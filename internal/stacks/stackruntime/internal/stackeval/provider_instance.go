@@ -486,6 +486,40 @@ func (stubConfiguredProvider) ReadResource(req providers.ReadResourceRequest) pr
 	}
 }
 
+// PlanAction implements providers.Interface.
+func (p stubConfiguredProvider) PlanAction(providers.PlanActionRequest) providers.PlanActionResponse {
+	if p.unknown {
+		return providers.PlanActionResponse{
+			PlannedResult: cty.DynamicVal,
+		}
+	}
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is invalid",
+		"Cannot plan this action because its associated provider configuration is invalid.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.PlanActionResponse{
+		Diagnostics: diags,
+	}
+}
+
+// ApplyAction implements providers.Interface.
+func (p stubConfiguredProvider) ApplyAction(providers.ApplyActionRequest) providers.ApplyActionResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is invalid",
+		"Cannot execute this action because its associated provider configuration is invalid.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ApplyActionResponse{
+		Diagnostics: diags,
+	}
+
+}
+
 // Stop implements providers.Interface.
 func (stubConfiguredProvider) Stop() error {
 	// This stub provider never actually does any real work, so there's nothing

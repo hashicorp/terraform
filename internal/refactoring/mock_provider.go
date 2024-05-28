@@ -85,6 +85,14 @@ func (provider *mockProvider) ReadDataSource(providers.ReadDataSourceRequest) pr
 	panic("not implemented in mock")
 }
 
+func (provider *mockProvider) ApplyAction(providers.ApplyActionRequest) providers.ApplyActionResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) PlanAction(providers.PlanActionRequest) providers.PlanActionResponse {
+	panic("not implemented in mock")
+}
+
 func (provider *mockProvider) CallFunction(providers.CallFunctionRequest) providers.CallFunctionResponse {
 	panic("not implemented in mock")
 }

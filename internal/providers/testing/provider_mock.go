@@ -94,6 +94,16 @@ type MockProvider struct {
 	ReadDataSourceRequest  providers.ReadDataSourceRequest
 	ReadDataSourceFn       func(providers.ReadDataSourceRequest) providers.ReadDataSourceResponse
 
+	PlanActionCalled   bool
+	PlanActionRequest  providers.PlanActionRequest
+	PlanActionResponse *providers.PlanActionResponse
+	PlanActionFn       func(providers.PlanActionRequest) providers.PlanActionResponse
+
+	ApplyActionCalled   bool
+	ApplyActionRequest  providers.ApplyActionRequest
+	ApplyActionResponse *providers.ApplyActionResponse
+	ApplyActionFn       func(providers.ApplyActionRequest) providers.ApplyActionResponse
+
 	CallFunctionCalled   bool
 	CallFunctionResponse providers.CallFunctionResponse
 	CallFunctionRequest  providers.CallFunctionRequest
@@ -548,6 +558,52 @@ func (p *MockProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 
 	if p.ReadDataSourceResponse != nil {
 		resp = *p.ReadDataSourceResponse
+	}
+
+	return resp
+}
+
+func (p *MockProvider) PlanAction(r providers.PlanActionRequest) (resp providers.PlanActionResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before PlanAction %q", r.TypeName))
+		return resp
+	}
+
+	p.PlanActionCalled = true
+	p.PlanActionRequest = r
+
+	if p.PlanActionFn != nil {
+		return p.PlanActionFn(r)
+	}
+
+	if p.PlanActionResponse != nil {
+		resp = *p.PlanActionResponse
+	}
+
+	return resp
+}
+
+func (p *MockProvider) ApplyAction(r providers.ApplyActionRequest) (resp providers.ApplyActionResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before ApplyAction %q", r.TypeName))
+		return resp
+	}
+
+	p.ApplyActionCalled = true
+	p.ApplyActionRequest = r
+
+	if p.ApplyActionFn != nil {
+		return p.ApplyActionFn(r)
+	}
+
+	if p.ApplyActionResponse != nil {
+		resp = *p.ApplyActionResponse
 	}
 
 	return resp

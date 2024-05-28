@@ -289,6 +289,20 @@ func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceRespo
 	return response
 }
 
+func (m *Mock) PlanAction(request PlanActionRequest) PlanActionResponse {
+	// TODO: Implement this
+	var response PlanActionResponse
+	response.Diagnostics = response.Diagnostics.Append(fmt.Errorf("mock providers don't support actions yet"))
+	return response
+}
+
+func (m *Mock) ApplyAction(request ApplyActionRequest) ApplyActionResponse {
+	// TODO: Implement this
+	var response ApplyActionResponse
+	response.Diagnostics = response.Diagnostics.Append(fmt.Errorf("mock providers don't support actions yet"))
+	return response
+}
+
 func (m *Mock) CallFunction(request CallFunctionRequest) CallFunctionResponse {
 	return m.Provider.CallFunction(request)
 }

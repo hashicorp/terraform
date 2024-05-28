@@ -74,6 +74,12 @@ type Interface interface {
 	// ReadDataSource returns the data source's current state.
 	ReadDataSource(ReadDataSourceRequest) ReadDataSourceResponse
 
+	// PlanAction prepares for a later call to ApplyAction.
+	PlanAction(PlanActionRequest) PlanActionResponse
+
+	// ApplyAction performs an action previously prepared by a PlanAction call.
+	ApplyAction(ApplyActionRequest) ApplyActionResponse
+
 	// CallFunction calls a provider-contributed function.
 	CallFunction(CallFunctionRequest) CallFunctionResponse
 
@@ -99,6 +105,9 @@ type GetProviderSchemaResponse struct {
 	// DataSources maps the data source name to that data source's schema.
 	DataSources map[string]Schema
 
+	// ActionTypes maps from action type names to the schema for each action type.
+	ActionTypes map[string]RequestResponseSchema
+
 	// Functions maps from local function name (not including an namespace
 	// prefix) to the declaration of a function.
 	Functions map[string]FunctionDecl
@@ -119,6 +128,14 @@ type GetProviderSchemaResponse struct {
 type Schema struct {
 	Version int64
 	Block   *configschema.Block
+}
+
+// RequestResponseSchema is a variant of Schema that allows a separate schema
+// for request vs. response.
+type RequestResponseSchema struct {
+	Version       int64
+	RequestBlock  *configschema.Block
+	ResponseBlock *configschema.Block
 }
 
 // ServerCapabilities allows providers to communicate extra information
@@ -564,6 +581,54 @@ type CallFunctionRequest struct {
 	// same arguments must always return an identical value, without performing
 	// any externally-visible side-effects.
 	Arguments []cty.Value
+}
+
+type PlanActionRequest struct {
+	// TypeName is the name of the type of action we're preparing to execute.
+	TypeName string
+
+	// Arguments is an object conforming to the action type's request schema
+	// that describes the configured action arguments.
+	//
+	// This may contain unknown values, because actions can be planned in
+	// response to resource instance changes that haven't been applied yet.
+	Arguments cty.Value
+}
+
+type PlanActionResponse struct {
+	// PlannedResult is the provider's best approximation of the object that
+	// will result after executing the requested action. This must be an
+	// object conforming to the action type's response schema.
+	//
+	// Providers must use unknown values as placeholders for any values that
+	// cannot be predicted precisely during the planning phase. Any known
+	// value in the response MUST exactly match any subsequent plan produced
+	// from a future call with the same (possibly-more-known) request object,
+	// and exactly match the values in the final ApplyActionResponse, or
+	// Terraform will report a bug in the provider.
+	PlannedResult cty.Value
+
+	Diagnostics tfdiags.Diagnostics
+}
+
+type ApplyActionRequest struct {
+	// TypeName is the name of the type of action to execute.
+	TypeName string
+
+	// Arguments is the same object most recently passed in
+	// [PlanActionRequest.Arguments] when planning this action.
+	Arguments cty.Value
+}
+
+type ApplyActionResponse struct {
+	// Result is the final result value from performing the requested action.
+	//
+	// This result MUST exactly match any known values in the earlier response
+	// from planning this action, or Terraform will report a bug in the
+	// provider.
+	Result cty.Value
+
+	Diagnostics tfdiags.Diagnostics
 }
 
 type CallFunctionResponse struct {
