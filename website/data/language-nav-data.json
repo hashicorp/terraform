@@ -366,6 +366,10 @@
             "href": "/language/functions/substr"
           },
           {
+            "title": "<code>templatestring</code>",
+            "href": "/language/functions/templatestring"
+          },
+          {
             "title": "<code>title</code>",
             "href": "/language/functions/title"
           },
@@ -891,6 +895,11 @@
       {
         "title": "templatefile",
         "path": "functions/templatefile",
+        "hidden": true
+      },
+      {
+        "title": "templatestring",
+        "path": "functions/templatestring",
         "hidden": true
       },
       { "title": "terraform-encode_tfvars", "path": "functions/terraform-encode_tfvars", "hidden": true },
