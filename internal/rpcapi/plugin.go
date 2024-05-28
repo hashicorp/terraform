@@ -45,7 +45,7 @@ func registerGRPCServices(s *grpc.Server, opts *serviceOpts) {
 	terraform1.RegisterSetupServer(s, setup)
 }
 
-func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *terraform1.Handshake_Request) (*terraform1.ServerCapabilities, error) {
+func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *terraform1.Handshake_Request, *stopper) (*terraform1.ServerCapabilities, error) {
 	dependencies := dynrpcserver.NewDependenciesStub()
 	terraform1.RegisterDependenciesServer(s, dependencies)
 	stacks := dynrpcserver.NewStacksStub()
@@ -53,7 +53,7 @@ func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *t
 	packages := dynrpcserver.NewPackagesStub()
 	terraform1.RegisterPackagesServer(s, packages)
 
-	return func(ctx context.Context, request *terraform1.Handshake_Request) (*terraform1.ServerCapabilities, error) {
+	return func(ctx context.Context, request *terraform1.Handshake_Request, stopper *stopper) (*terraform1.ServerCapabilities, error) {
 		// All of our servers will share a common handles table so that objects
 		// can be passed from one service to another.
 		handles := newHandleTable()
@@ -79,7 +79,7 @@ func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *t
 		// doing real work. In future the details of what we register here
 		// might vary based on the negotiated capabilities.
 		dependencies.ActivateRPCServer(newDependenciesServer(handles, services))
-		stacks.ActivateRPCServer(newStacksServer(handles, opts))
+		stacks.ActivateRPCServer(newStacksServer(stopper, handles, opts))
 		packages.ActivateRPCServer(newPackagesServer(services))
 
 		// If the client requested any extra capabililties that we're going

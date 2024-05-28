@@ -31,14 +31,16 @@ import (
 type stacksServer struct {
 	terraform1.UnimplementedStacksServer
 
+	stopper            *stopper
 	handles            *handleTable
 	experimentsAllowed bool
 }
 
 var _ terraform1.StacksServer = (*stacksServer)(nil)
 
-func newStacksServer(handles *handleTable, opts *serviceOpts) *stacksServer {
+func newStacksServer(stopper *stopper, handles *handleTable, opts *serviceOpts) *stacksServer {
 	return &stacksServer{
+		stopper:            stopper,
 		handles:            handles,
 		experimentsAllowed: opts.experimentsAllowed,
 	}
@@ -271,10 +273,21 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 		Diagnostics:    diagsCh,
 	}
 
+	// As a long-running operation, the plan RPC must be able to be stopped. We
+	// do this by requesting a stop channel from the stopper, and using it to
+	// cancel the planning process.
+	stopCh := s.stopper.add()
+	defer s.stopper.remove(stopCh)
+
+	// We create a new cancellable context for the stack plan operation to
+	// allow us to respond to stop requests.
+	planCtx, cancelPlan := context.WithCancel(ctx)
+	defer cancelPlan()
+
 	// The actual plan operation runs in the background, and emits events
 	// to us via the channels in rtResp before finally closing changesCh
 	// to signal that the process is complete.
-	go stackruntime.Plan(ctx, &rtReq, &rtResp)
+	go stackruntime.Plan(planCtx, &rtReq, &rtResp)
 
 	emitDiag := func(diag tfdiags.Diagnostic) {
 		diags := tfdiags.Diagnostics{diag}
@@ -345,6 +358,12 @@ Events:
 			}
 			emitDiag(diag)
 
+		case <-stopCh:
+			// If our stop channel is signalled, we need to cancel the plan.
+			// This may result in remaining changes or diagnostics being
+			// emitted, so we continue to monitor those channels if they're
+			// still active.
+			cancelPlan()
 		}
 	}
 
@@ -408,10 +427,21 @@ func (s *stacksServer) ApplyStackChanges(req *terraform1.ApplyStackChanges_Reque
 		Diagnostics:    diagsCh,
 	}
 
+	// As a long-running operation, the apply RPC must be able to be stopped.
+	// We do this by requesting a stop channel from the stopper, and using it
+	// to cancel the planning process.
+	stopCh := s.stopper.add()
+	defer s.stopper.remove(stopCh)
+
+	// We create a new cancellable context for the stack plan operation to
+	// allow us to respond to stop requests.
+	applyCtx, cancelApply := context.WithCancel(ctx)
+	defer cancelApply()
+
 	// The actual apply operation runs in the background, and emits events
 	// to us via the channels in rtResp before finally closing changesCh
 	// to signal that the process is complete.
-	go stackruntime.Apply(ctx, &rtReq, &rtResp)
+	go stackruntime.Apply(applyCtx, &rtReq, &rtResp)
 
 	emitDiag := func(diag tfdiags.Diagnostic) {
 		diags := tfdiags.Diagnostics{diag}
@@ -484,6 +514,13 @@ Events:
 				continue
 			}
 			emitDiag(diag)
+
+		case <-stopCh:
+			// If our stop channel is signalled, we need to cancel the apply.
+			// This may result in remaining changes or diagnostics being
+			// emitted, so we continue to monitor those channels if they're
+			// still active.
+			cancelApply()
 
 		}
 	}

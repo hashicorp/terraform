@@ -13,6 +13,10 @@ service Setup {
     //
     // This function can be called only once per RPC server.
     rpc Handshake(Handshake.Request) returns (Handshake.Response);
+
+    // At any time after handshaking, clients may call Stop to initiate a
+    // graceful shutdown of the server.
+    rpc Stop(Stop.Request) returns (Stop.Response);
 }
 
 message Handshake {
@@ -22,6 +26,13 @@ message Handshake {
     }
     message Response {
         ServerCapabilities capabilities = 2;
+    }
+}
+
+message Stop {
+    message Request {
+    }
+    message Response {
     }
 }
 
