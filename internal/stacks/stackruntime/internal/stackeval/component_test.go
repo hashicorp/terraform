@@ -10,12 +10,13 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty-debug/ctydebug"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty-debug/ctydebug"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // TestComponentInstances is a test of the [Component.CheckInstances] function.
@@ -393,10 +394,8 @@ func TestComponentResultValue(t *testing.T) {
 			component := getComponent(ctx, t, main)
 			got := component.ResultValue(ctx, InspectPhase)
 			// When the for_each expression is unknown, the result value
-			// is an instance map with the wildcard key and an empty object
-			want := cty.ObjectVal(map[string]cty.Value{
-				"*": cty.EmptyObjectVal,
-			})
+			// is aa dynamic instance.
+			want := cty.DynamicVal
 
 			if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
 				t.Fatalf("wrong result\n%s", diff)

@@ -205,7 +205,7 @@ func (c *Component) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 		// exact type constraints for its output values and so each instance of
 		// a component can potentially produce a different object type.
 
-		if insts == nil {
+		if _, exists := insts[addrs.WildcardKey]; exists || insts == nil {
 			// If we don't even know what instances we have then we can't
 			// predict anything about our result.
 			return cty.DynamicVal
@@ -220,6 +220,9 @@ func (c *Component) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 				panic(fmt.Sprintf("stack call with for_each has invalid instance key of type %T", instKey))
 			}
 			elems[string(k)] = inst.ResultValue(ctx, phase)
+		}
+		if len(elems) == 0 {
+			return cty.EmptyObjectVal
 		}
 		return cty.ObjectVal(elems)
 
