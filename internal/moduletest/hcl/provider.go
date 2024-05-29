@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 var _ hcl.Body = (*ProviderConfig)(nil)
@@ -22,10 +21,13 @@ var _ hcl.Body = (*ProviderConfig)(nil)
 // framework, so they should only use variables available to the test framework
 // but are instead initialised within the Terraform graph so we have to delay
 // evaluation of their attributes until the schemas are retrieved.
+//
+// We don't parse the attributes until they are requested, so we can only use
+// unparsed values and hcl.Expressions within the struct itself.
 type ProviderConfig struct {
 	Original hcl.Body
 
-	AvailableVariables  terraform.InputValues
+	VariableCache       *VariableCache
 	AvailableRunOutputs map[addrs.Run]cty.Value
 }
 
@@ -50,7 +52,7 @@ func (p *ProviderConfig) PartialContent(schema *hcl.BodySchema) (*hcl.BodyConten
 		Attributes:       attrs,
 		Blocks:           p.transformBlocks(content.Blocks),
 		MissingItemRange: content.MissingItemRange,
-	}, &ProviderConfig{rest, p.AvailableVariables, p.AvailableRunOutputs}, diags
+	}, &ProviderConfig{rest, p.VariableCache, p.AvailableRunOutputs}, diags
 }
 
 func (p *ProviderConfig) JustAttributes() (hcl.Attributes, hcl.Diagnostics) {
@@ -67,10 +69,10 @@ func (p *ProviderConfig) transformAttributes(originals hcl.Attributes) (hcl.Attr
 	var diags hcl.Diagnostics
 
 	availableVariables := make(map[string]cty.Value)
-	var exprs []hcl.Expression
 
+	exprs := make(map[string]hcl.Expression, len(originals))
 	for _, original := range originals {
-		exprs = append(exprs, original.Expr)
+		exprs[original.Name] = original.Expr
 
 		// We also need to parse the variables we're going to use, so we extract
 		// the references from this expression now and see if they reference any
@@ -79,17 +81,19 @@ func (p *ProviderConfig) transformAttributes(originals hcl.Attributes) (hcl.Attr
 		refs, _ := lang.ReferencesInExpr(addrs.ParseRefFromTestingScope, original.Expr)
 		for _, ref := range refs {
 			if addr, ok := ref.Subject.(addrs.InputVariable); ok {
-				if _, exists := availableVariables[addr.Name]; exists {
-					// Then we've processed this variable before. This just
-					// means it's referenced twice in this provider config -
-					// which is fine, we just don't need to do it again.
+				value, valueDiags := p.VariableCache.GetFileVariable(addr.Name)
+				diags = append(diags, valueDiags.ToHCL()...)
+				if value != nil {
+					availableVariables[addr.Name] = value.Value
 					continue
 				}
 
-				if value, exists := p.AvailableVariables[addr.Name]; exists {
-					if value != nil {
-						availableVariables[addr.Name] = value.Value
-					}
+				// If the variable wasn't a file variable, it might be a global.
+				value, valueDiags = p.VariableCache.GetGlobalVariable(addr.Name)
+				diags = append(diags, valueDiags.ToHCL()...)
+				if value != nil {
+					availableVariables[addr.Name] = value.Value
+					continue
 				}
 			}
 		}
@@ -125,7 +129,7 @@ func (p *ProviderConfig) transformBlocks(originals hcl.Blocks) hcl.Blocks {
 		blocks[name] = &hcl.Block{
 			Type:        block.Type,
 			Labels:      block.Labels,
-			Body:        &ProviderConfig{block.Body, p.AvailableVariables, p.AvailableRunOutputs},
+			Body:        &ProviderConfig{block.Body, p.VariableCache, p.AvailableRunOutputs},
 			DefRange:    block.DefRange,
 			TypeRange:   block.TypeRange,
 			LabelRanges: block.LabelRanges,

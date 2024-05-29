@@ -8,8 +8,10 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
+
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -23,7 +25,7 @@ func TestEvalReplaceTriggeredBy(t *testing.T) {
 		// If the expression contains count or each, then we need to add
 		// repetition data, and the static string to parse into the desired
 		// *addrs.Reference
-		repData   instances.RepetitionData
+		repData   lang.RepetitionData
 		reference string
 	}{
 		"single resource": {
@@ -40,21 +42,21 @@ func TestEvalReplaceTriggeredBy(t *testing.T) {
 
 		"resource instance count": {
 			expr: "test_resource.a[count.index]",
-			repData: instances.RepetitionData{
+			repData: lang.RepetitionData{
 				CountIndex: cty.NumberIntVal(0),
 			},
 			reference: "test_resource.a[0]",
 		},
 		"resource instance for_each": {
 			expr: "test_resource.a[each.key].attr",
-			repData: instances.RepetitionData{
+			repData: lang.RepetitionData{
 				EachKey: cty.StringVal("k"),
 			},
 			reference: `test_resource.a["k"].attr`,
 		},
 		"resource instance for_each map attr": {
 			expr: "test_resource.a[each.key].attr[each.key]",
-			repData: instances.RepetitionData{
+			repData: lang.RepetitionData{
 				EachKey: cty.StringVal("k"),
 			},
 			reference: `test_resource.a["k"].attr["k"]`,

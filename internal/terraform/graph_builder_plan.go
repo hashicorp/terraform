@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -85,6 +86,10 @@ type PlanGraphBuilder struct {
 	// the actual graph.
 	ExternalReferences []*addrs.Reference
 
+	// Overrides provides the set of overrides supplied by the testing
+	// framework.
+	Overrides *mocking.Overrides
+
 	// ImportTargets are the list of resources to import.
 	ImportTargets []*ImportTarget
 
@@ -159,6 +164,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Config:      b.Config,
 			RefreshOnly: b.skipPlanChanges || b.preDestroyRefresh,
 			Destroying:  b.Operation == walkPlanDestroy,
+			Overrides:   b.Overrides,
 
 			// NOTE: We currently treat anything built with the plan graph
 			// builder as "planning" for our purposes here, because we share

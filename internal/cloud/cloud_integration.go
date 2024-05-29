@@ -15,7 +15,7 @@ import (
 )
 
 // IntegrationOutputWriter is an interface used to to write output tailored for
-// Terraform Cloud integrations
+// HCP Terraform integrations
 type IntegrationOutputWriter interface {
 	End()
 	OutputElapsed(message string, maxMessage int)
@@ -23,7 +23,7 @@ type IntegrationOutputWriter interface {
 	SubOutput(str string)
 }
 
-// IntegrationContext is a set of data that is useful when performing Terraform Cloud integration operations
+// IntegrationContext is a set of data that is useful when performing HCP Terraform integration operations
 type IntegrationContext struct {
 	B             *Cloud
 	StopContext   context.Context

@@ -52,3 +52,8 @@ resource "foo" "ambiguous" {
 module "child" {
   source = "./child"
 }
+
+moved {
+  from = foo.already_moved
+  to = module.no_longer_exists.foo.already_moved
+}

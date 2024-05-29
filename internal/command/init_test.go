@@ -922,7 +922,7 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 
 func TestInit_backendCloudInvalidOptions(t *testing.T) {
 	// There are various "terraform init" options that are only for
-	// traditional backends and not applicable to Terraform Cloud mode.
+	// traditional backends and not applicable to HCP Terraform mode.
 	// For those, we want to return an explicit error rather than
 	// just silently ignoring them, so that users will be aware that
 	// Cloud mode has more of an expected "happy path" than the
@@ -972,7 +972,7 @@ func TestInit_backendCloudInvalidOptions(t *testing.T) {
 		// certain settings of backends that tend to vary depending on
 		// where Terraform is running, such as AWS authentication profiles
 		// that are naturally local only to the machine where Terraform is
-		// running. Those needs don't apply to Terraform Cloud, because
+		// running. Those needs don't apply to HCP Terraform, because
 		// the remote workspace encapsulates all of the details of how
 		// operations and state work in that case, and so the Cloud
 		// configuration is only about which workspaces we'll be working
@@ -995,7 +995,7 @@ func TestInit_backendCloudInvalidOptions(t *testing.T) {
 Error: Invalid command-line option
 
 The -backend-config=... command line option is only for state backends, and
-is not applicable to Terraform Cloud-based configurations.
+is not applicable to HCP Terraform-based configurations.
 
 To change the set of workspaces associated with this configuration, edit the
 Cloud configuration block in the root module.
@@ -1012,7 +1012,7 @@ Cloud configuration block in the root module.
 		// skipping state migration when migrating between backends, but it
 		// has a historical flaw that it doesn't work properly when the
 		// initial situation is the implicit local backend with a state file
-		// present. The Terraform Cloud migration path has some additional
+		// present. The HCP Terraform migration path has some additional
 		// steps to take care of more details automatically, and so
 		// -reconfigure doesn't really make sense in that context, particularly
 		// with its design bug with the handling of the implicit local backend.
@@ -1034,9 +1034,9 @@ Cloud configuration block in the root module.
 Error: Invalid command-line option
 
 The -reconfigure option is for in-place reconfiguration of state backends
-only, and is not needed when changing Terraform Cloud settings.
+only, and is not needed when changing HCP Terraform settings.
 
-When using Terraform Cloud, initialization automatically activates any new
+When using HCP Terraform, initialization automatically activates any new
 Cloud configuration settings.
 
 `
@@ -1048,7 +1048,7 @@ Cloud configuration settings.
 		defer setupTempDir(t)()
 
 		// We have a slightly different error message for the case where we
-		// seem to be trying to migrate to Terraform Cloud with existing
+		// seem to be trying to migrate to HCP Terraform with existing
 		// state or explicit backend already present.
 
 		if err := os.WriteFile("terraform.tfstate", fakeStateBytes, 0644); err != nil {
@@ -1072,8 +1072,8 @@ Cloud configuration settings.
 		wantStderr := `
 Error: Invalid command-line option
 
-The -reconfigure option is unsupported when migrating to Terraform Cloud,
-because activating Terraform Cloud involves some additional steps.
+The -reconfigure option is unsupported when migrating to HCP Terraform,
+because activating HCP Terraform involves some additional steps.
 
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
@@ -1104,9 +1104,9 @@ because activating Terraform Cloud involves some additional steps.
 Error: Invalid command-line option
 
 The -migrate-state option is for migration between state backends only, and
-is not applicable when using Terraform Cloud.
+is not applicable when using HCP Terraform.
 
-State storage is handled automatically by Terraform Cloud and so the state
+State storage is handled automatically by HCP Terraform and so the state
 storage location is not configurable.
 
 `
@@ -1118,7 +1118,7 @@ storage location is not configurable.
 		defer setupTempDir(t)()
 
 		// We have a slightly different error message for the case where we
-		// seem to be trying to migrate to Terraform Cloud with existing
+		// seem to be trying to migrate to HCP Terraform with existing
 		// state or explicit backend already present.
 
 		if err := os.WriteFile("terraform.tfstate", fakeStateBytes, 0644); err != nil {
@@ -1143,9 +1143,9 @@ storage location is not configurable.
 Error: Invalid command-line option
 
 The -migrate-state option is for migration between state backends only, and
-is not applicable when using Terraform Cloud.
+is not applicable when using HCP Terraform.
 
-Terraform Cloud migration has additional steps, configured by interactive
+HCP Terraform migrations have additional steps, configured by interactive
 prompts.
 
 `
@@ -1177,9 +1177,9 @@ prompts.
 Error: Invalid command-line option
 
 The -force-copy option is for migration between state backends only, and is
-not applicable when using Terraform Cloud.
+not applicable when using HCP Terraform.
 
-State storage is handled automatically by Terraform Cloud and so the state
+State storage is handled automatically by HCP Terraform and so the state
 storage location is not configurable.
 
 `
@@ -1191,7 +1191,7 @@ storage location is not configurable.
 		defer setupTempDir(t)()
 
 		// We have a slightly different error message for the case where we
-		// seem to be trying to migrate to Terraform Cloud with existing
+		// seem to be trying to migrate to HCP Terraform with existing
 		// state or explicit backend already present.
 
 		if err := os.WriteFile("terraform.tfstate", fakeStateBytes, 0644); err != nil {
@@ -1216,9 +1216,9 @@ storage location is not configurable.
 Error: Invalid command-line option
 
 The -force-copy option is for migration between state backends only, and is
-not applicable when using Terraform Cloud.
+not applicable when using HCP Terraform.
 
-Terraform Cloud migration has additional steps, configured by interactive
+HCP Terraform migrations have additional steps, configured by interactive
 prompts.
 
 `

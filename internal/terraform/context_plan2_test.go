@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
@@ -1303,6 +1304,71 @@ func TestContext2Plan_movedResourceBasic(t *testing.T) {
 			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
 		}
 		if got, want := instPlan.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+}
+
+func TestContext2Plan_movedResourceMissingModule(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+	addrB := mustResourceInstanceAddr("module.gone.test_object.b")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			moved {
+				from = test_object.a
+				to   = module.gone.test_object.b
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		// The prior state tracks test_object.a, which we should treat as
+		// test_object.b because of the "moved" block in the config.
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		ForceReplace: []addrs.AbsResourceInstance{
+			addrA,
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	t.Run(addrA.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addrA)
+		if instPlan != nil {
+			t.Fatalf("unexpected plan for %s; should've moved to %s", addrA, addrB)
+		}
+	})
+	t.Run(addrB.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addrB)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addrB)
+		}
+
+		if got, want := instPlan.Addr, addrB; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.PrevRunAddr, addrA; !got.Equal(want) {
+			t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.Action, plans.Delete; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.ActionReason, plans.ResourceInstanceDeleteBecauseNoMoveTarget; got != want {
 			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
 		}
 	})
@@ -4752,6 +4818,12 @@ func TestContext2Apply_externalDependencyDeferred(t *testing.T) {
 
 	cfg := testModuleInline(t, map[string]string{
 		"main.tf": `
+			// TEMP: unknown for_each currently requires an experiment opt-in.
+			// We should remove this block if the experiment gets stabilized.
+			terraform {
+				experiments = [unknown_instances]
+			}
+
 			resource "test" "a" {
 				name = "a"
 			}
@@ -5427,4 +5499,115 @@ resource "test_object" "obj" {
 		// this is a good indication that the read value was correctly marked.
 		t.Fatal("data.test_data_source.foo schema contains a sensitive attribute, should be marked in state")
 	}
+}
+
+// When a schema declares that attributes nested within sets are sensitive, the
+// resulting cty values will transfer those marks to the containing set. Verify
+// that this does not present a change in the plan.
+func TestContext2Plan_nestedSensitiveMarks(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "obj" {
+  set_block {
+    foo = "bar"
+  }
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_object": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"set_block": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"foo": {
+									Type:      cty.String,
+									Sensitive: true,
+									Optional:  true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.obj"), &states.ResourceInstanceObjectSrc{
+			AttrsJSON:          []byte(`{"id":"z","set_block":[{"foo":"bar"}]}`),
+			AttrSensitivePaths: []cty.PathValueMarks{{Path: cty.Path{cty.GetAttrStep{Name: "set_block"}}, Marks: cty.NewValueMarks(marks.Sensitive)}},
+			Status:             states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	ch := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.obj"))
+	if ch.Action != plans.NoOp {
+		t.Fatal("expected no change in plan")
+	}
+}
+
+// This test explicitly reproduces the issue described in #34976.
+func TestContext2Plan_34976(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "test_object" "obj" {}
+
+module "a" {
+  depends_on = [data.test_object.obj]
+  source = "./mod"
+}
+
+output "value" {
+  value = try(module.a.notreal, null)
+}
+`,
+		"mod/main.tf": ``,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		DataSources: map[string]*configschema.Block{
+			"test_object": {},
+		},
+	})
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+
+		// Just very small delay that means the output will be processed before
+		// the module.
+		time.Sleep(50 * time.Millisecond)
+
+		return providers.ReadDataSourceResponse{
+			State: req.Config,
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	// Just shouldn't crash.
+	_, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
 }

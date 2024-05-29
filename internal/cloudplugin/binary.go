@@ -51,7 +51,7 @@ const (
 
 // BinaryManager initializes a new BinaryManager to broker data between the
 // specified directory location containing cloudplugin package data and a
-// Terraform Cloud backend URL.
+// HCP Terraform backend URL.
 func NewBinaryManager(ctx context.Context, cloudPluginDataDir, overridePath string, serviceURL *url.URL, goos, arch string) (*BinaryManager, error) {
 	client, err := NewCloudPluginClient(ctx, serviceURL)
 	if err != nil {

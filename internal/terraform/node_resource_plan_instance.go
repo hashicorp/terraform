@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/genconfig"
-	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -233,7 +233,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 		// add this instance to n.forceReplace if replacement is triggered by
 		// another change
-		repData := instances.RepetitionData{}
+		repData := lang.RepetitionData{}
 		switch k := addr.Resource.Key.(type) {
 		case addrs.IntKey:
 			repData.CountIndex = k.Value()
@@ -410,7 +410,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 // replaceTriggered checks if this instance needs to be replace due to a change
 // in a replace_triggered_by reference. If replacement is required, the
 // instance address is added to forceReplace
-func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repData instances.RepetitionData) tfdiags.Diagnostics {
+func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repData lang.RepetitionData) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	if n.Config == nil {
 		return diags

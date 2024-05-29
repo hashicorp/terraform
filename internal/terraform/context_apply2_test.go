@@ -3304,3 +3304,170 @@ resource "test_resource" "a" {
 		t.Errorf("unexpected sensitive paths\ndiff:\n%s", diff)
 	}
 }
+
+func TestContext2Apply_sensitiveNestedComputedAttributes(t *testing.T) {
+	// Ensure we're not trying to double-mark values decoded from state
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_object": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"list": {
+						Computed: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"secret": {
+									Type:      cty.String,
+									Computed:  true,
+									Sensitive: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		obj := req.PlannedState.AsValueMap()
+		obj["list"] = cty.ListVal([]cty.Value{
+			cty.ObjectVal(map[string]cty.Value{
+				"secret": cty.StringVal("secret"),
+			}),
+		})
+		obj["id"] = cty.StringVal("id")
+		resp.NewState = cty.ObjectVal(obj)
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	if len(state.ResourceInstance(mustResourceInstanceAddr("test_object.a")).Current.AttrSensitivePaths) < 1 {
+		t.Fatal("no attributes marked as sensitive in state")
+	}
+
+	plan, diags = ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	if c := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.a")); c.Action != plans.NoOp {
+		t.Errorf("Unexpected %s change for %s", c.Action, c.Addr)
+	}
+}
+
+// This test explicitly reproduces the issue described in #34976.
+func TestContext2Apply_34976(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "a" {
+  source = "./mod"
+  count = 1
+}
+
+resource "test_object" "obj" {
+  test_number = length(module.a)
+}
+`,
+		"mod/main.tf": ``, // just an empty module
+	})
+
+	p := simpleMockProvider()
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	// Just don't crash.
+	_, diags = ctx.Apply(plan, m, nil)
+	assertNoErrors(t, diags)
+}
+
+func TestContext2Apply_35039(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "obj" {
+  list = ["a", "b", "c"]
+}
+`,
+	})
+
+	p := testing_provider.MockProvider{}
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"output": {
+							Type:     cty.String,
+							Computed: true,
+						},
+						"list": {
+							Type:      cty.List(cty.String),
+							Required:  true,
+							Sensitive: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: cty.ObjectVal(map[string]cty.Value{
+				"output": cty.UnknownVal(cty.String),
+				"list":   req.ProposedNewState.GetAttr("list"),
+			}),
+		}
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		return providers.ApplyResourceChangeResponse{
+			// This is a bug, the provider shouldn't return unknown values from
+			// ApplyResourceChange. But, Terraform shouldn't crash in response
+			// to this. It should return a nice error message.
+			NewState: req.PlannedState,
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(&p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	// Just don't crash, should report an error about the provider.
+	_, diags = ctx.Apply(plan, m, nil)
+	if len(diags) != 1 {
+		t.Fatalf("expected exactly one diagnostic, but got %d: %s", len(diags), diags)
+	}
+}

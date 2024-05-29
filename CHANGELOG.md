@@ -1,4 +1,57 @@
-## 1.8.0 (Unreleased)
+## 1.8.5 (Unreleased)
+
+BUG FIXES:
+
+* `terraform test`: Remove duplicate warning diagnostic when providing values for unknown variables in run blocks. ([#35172](https://github.com/hashicorp/terraform/issues/35172))
+
+## 1.8.4 (May 22, 2024)
+
+BUG FIXES:
+* `core`: Fix exponential slowdown in some cases when modules are using `depends_on`. ([#35157](https://github.com/hashicorp/terraform/issues/35157))
+* `import` blocks: Fix bug where resources with nested, computed, and optional `id` attributes would fail to generate configuration. ([#35220](https://github.com/hashicorp/terraform/issues/35220))
+* Updated to new `golang.org/x/net` release, which addressed CVE-2023-45288 ([#35165](https://github.com/hashicorp/terraform/issues/35165))
+
+## 1.8.3 (May 8, 2024)
+
+BUG FIXES:
+* `terraform test`: Providers configured within an overridden module could panic. ([#35110](https://github.com/hashicorp/terraform/issues/35110))
+* `core`: Fix crash when a provider incorrectly plans a nested object when the configuration is `null` ([#35090](https://github.com/hashicorp/terraform/issues/35090))
+
+## 1.8.2 (April 24, 2024)
+
+BUG FIXES:
+
+* `terraform apply`: Prevent panic when a provider erroneously provides unknown values. ([#35048](https://github.com/hashicorp/terraform/pull/35048))
+* `terraform plan`: Replace panic with error message when self-referencing resources and data sources from the `count` and `for_each` meta attributes. ([#35047](https://github.com/hashicorp/terraform/pull/35047))
+* `terraform test`: Restore `TF_ENV_*` variables being made available to testing modules. ([#35014](https://github.com/hashicorp/terraform/pull/35014))
+* `terraform test`: Prevent crash when referencing local variables within overridden modules. ([#35030](https://github.com/hashicorp/terraform/pull/35030))
+
+ENHANCEMENTS:
+
+* Improved performance by removing unneeded additional computation for a disabled experimental feature. ([#35066](https://github.com/hashicorp/terraform/pull/35066))
+
+OTHER CHANGES:
+
+* Update all references to Terraform Cloud to refer to HCP Terraform, the service's new name. This only affects display text; the `cloud` block and environment variables like `TF_CLOUD_ORGANIZATION` remain unchanged. ([#35050](https://github.com/hashicorp/terraform/pull/35050))
+
+NOTE:
+
+Starting with this release, we are including a copy of our license file in all packaged versions of our releases, such as the release .zip files. If you are consuming these files directly and would prefer to extract the one terraform file instead of extracting everything, you need to add an extra argument specifying the file to extract, like this:
+```
+unzip terraform_1.8.2_linux_amd64.zip terraform
+```
+
+## 1.8.1 (April 17, 2024)
+
+BUG FIXES:
+
+* Fix crash in terraform plan when referencing a module output that does not exist within the try(...) function. ([#34985](https://github.com/hashicorp/terraform/pull/34985))
+* Fix crash in terraform apply when referencing a module with no planned changes. ([#34985](https://github.com/hashicorp/terraform/pull/34985))
+* `moved` block: Fix crash when move targets a module which no longer exists. ([#34986](https://github.com/hashicorp/terraform/pull/34986))
+* `import` block: Fix crash when generating configuration for resources with complex sensitive attributes. ([#34996](https://github.com/hashicorp/terraform/pull/34996))
+* Plan renderer: Correctly render strings that begin with JSON compatible text but don't end with it. ([#34959](https://github.com/hashicorp/terraform/pull/34959))
+
+## 1.8.0 (April 10, 2024)
 
 If you are upgrading from Terraform v1.7 or earlier, please refer to
 [the Terraform v1.8 Upgrade Guide](https://developer.hashicorp.com/terraform/language/v1.8.x/upgrade-guides).

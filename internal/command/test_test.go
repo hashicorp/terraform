@@ -6,6 +6,7 @@ package command
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path"
 	"strings"
 	"testing"
@@ -25,6 +26,7 @@ func TestTest_Runs(t *testing.T) {
 	tcs := map[string]struct {
 		override              string
 		args                  []string
+		envVars               map[string]string
 		expectedOut           string
 		expectedErr           []string
 		expectedResourceCount int
@@ -237,7 +239,7 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"global_var_refs": {
-			expectedOut: "2 failed, 1 skipped.",
+			expectedOut: "1 passed, 2 failed.",
 			expectedErr: []string{"The input variable \"env_var_input\" is not available to the current context", "The input variable \"setup\" is not available to the current context"},
 			code:        1,
 		},
@@ -245,12 +247,35 @@ func TestTest_Runs(t *testing.T) {
 			expectedOut: "1 passed, 0 failed.",
 			code:        0,
 		},
+		"env-vars": {
+			expectedOut: "1 passed, 0 failed.",
+			envVars: map[string]string{
+				"TF_VAR_input": "foo",
+			},
+			code: 0,
+		},
+		"env-vars-in-module": {
+			expectedOut: "2 passed, 0 failed.",
+			envVars: map[string]string{
+				"TF_VAR_input": "foo",
+			},
+			code: 0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
 			if tc.skip {
 				t.Skip()
 			}
+
+			for k, v := range tc.envVars {
+				os.Setenv(k, v)
+			}
+			defer func() {
+				for k := range tc.envVars {
+					os.Unsetenv(k)
+				}
+			}()
 
 			file := name
 			if len(tc.override) > 0 {
@@ -1201,6 +1226,84 @@ Success! 2 passed, 0 failed.
 	}
 }
 
+// There should not be warnings in clean-up
+func TestTest_InvalidWarningsInCleanup(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "invalid-cleanup-warnings")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	output := done(t)
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output = done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	expected := `main.tftest.hcl... in progress
+  run "test"... pass
+
+Warning: Value for undeclared variable
+
+  on main.tftest.hcl line 6, in run "test":
+   6:     validation = "Hello, world!"
+
+The module under test does not declare a variable named "validation", but it
+is declared in run block "test".
+
+main.tftest.hcl... tearing down
+main.tftest.hcl... pass
+
+Success! 1 passed, 0 failed.
+`
+
+	actual := output.All()
+
+	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
 func TestTest_BadReferences(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "bad-references")), td)
@@ -1256,10 +1359,8 @@ Error: Reference to unavailable variable
   on main.tftest.hcl line 15, in run "test":
   15:     input_one = var.notreal
 
-The input variable "notreal" is not available to the current context. Within
-the variables block of a run block you can only reference variables defined
-at the file or global levels; within the variables block of a suite you can
-only reference variables defined at the global levels.
+The input variable "notreal" is not available to the current run block. You
+can only reference variables defined at the file or global levels.
 
 Error: Reference to unavailable run block
 
@@ -1284,10 +1385,9 @@ Error: Reference to unavailable variable
   on providers.tftest.hcl line 3, in provider "test":
    3:   resource_prefix = var.default
 
-The input variable "default" is not available to the current context. Within
-the variables block of a run block you can only reference variables defined
-at the file or global levels; within the variables block of a suite you can
-only reference variables defined at the global levels.
+The input variable "default" is not available to the current provider
+configuration. You can only reference variables defined at the file or global
+levels.
 `
 	actualErr := output.Stderr()
 	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {

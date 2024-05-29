@@ -328,7 +328,7 @@ the module where it was declared.
 When variables are declared in the root module of your configuration, they
 can be set in a number of ways:
 
-* [In a Terraform Cloud workspace](/terraform/cloud-docs/workspaces/variables).
+* [In an HCP Terraform workspace](/terraform/cloud-docs/workspaces/variables).
 * Individually, with the `-var` command line option.
 * In variable definitions (`.tfvars`) files, either specified on the command line
   or automatically loaded.
@@ -385,7 +385,7 @@ Windows `cmd.exe`:
 terraform apply -var-file="testing.tfvars"
 ```
 
--> **Note:** This is how Terraform Cloud passes
+-> **Note:** This is how HCP Terraform passes
 [workspace variables](/terraform/cloud-docs/workspaces/variables) to Terraform.
 
 A variable definitions file uses the same basic syntax as Terraform language
@@ -522,7 +522,7 @@ precedence over earlier ones:
 * Any `*.auto.tfvars` or `*.auto.tfvars.json` files, processed in lexical order
   of their filenames.
 * Any `-var` and `-var-file` options on the command line, in the order they
-  are provided. (This includes variables set by a Terraform Cloud
+  are provided. (This includes variables set by an HCP Terraform
   workspace.)
 
 ~> **Important:** In Terraform 0.12 and later, variables with map and object

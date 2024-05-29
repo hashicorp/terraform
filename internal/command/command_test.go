@@ -1091,8 +1091,8 @@ func testView(t *testing.T) (*views.View, func(*testing.T) *terminal.TestOutput)
 // checkGoldenReference compares the given test output with a known "golden" output log
 // located under the specified fixture path.
 //
-// If any of these tests fail, please communicate with Terraform Cloud folks before resolving,
-// as changes to UI output may also affect the behavior of Terraform Cloud's structured run output.
+// If any of these tests fail, please communicate with HCP Terraform folks before resolving,
+// as changes to UI output may also affect the behavior of HCP Terraform's structured run output.
 func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePathName string) {
 	t.Helper()
 
@@ -1120,8 +1120,8 @@ func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePath
 
 	if len(gotLines) != len(wantLines) {
 		t.Errorf("unexpected number of log lines: got %d, want %d\n"+
-			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on TFC.\n"+
-			"Please communicate with Terraform Cloud team before resolving", len(gotLines), len(wantLines))
+			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on HCP Terraform.\n"+
+			"Please communicate with HCP Terraform team before resolving", len(gotLines), len(wantLines))
 	}
 
 	// Verify that the log starts with a version message
@@ -1173,6 +1173,6 @@ func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePath
 	if diff := cmp.Diff(wantLineMaps, gotLineMaps); diff != "" {
 		t.Errorf("wrong output lines\n%s\n"+
 			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on TFC.\n"+
-			"Please communicate with Terraform Cloud team before resolving", diff)
+			"Please communicate with HCP Terraform team before resolving", diff)
 	}
 }
