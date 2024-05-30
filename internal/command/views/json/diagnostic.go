@@ -38,7 +38,6 @@ type Diagnostic struct {
 	Address  string             `json:"address,omitempty"`
 	Range    *DiagnosticRange   `json:"range,omitempty"`
 	Snippet  *DiagnosticSnippet `json:"snippet,omitempty"`
-	Extra    any                `json:"extra,omitempty"`
 }
 
 // Pos represents a position in the source code.
@@ -145,18 +144,11 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 
 	desc := diag.Description()
 
-	extra := diag.ExtraInfo()
-	var publicExtra tfdiags.PublicExtraInfo
-	if e, ok := extra.(tfdiags.PublicExtraInfo); ok {
-		publicExtra = e
-	}
-
 	diagnostic := &Diagnostic{
 		Severity: sev,
 		Summary:  desc.Summary,
 		Detail:   desc.Detail,
 		Address:  desc.Address,
-		Extra:    publicExtra,
 	}
 
 	sourceRefs := diag.Source()
