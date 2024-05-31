@@ -2246,7 +2246,7 @@ resource "test_object" "a" {
 	}
 }
 
-func TestContext2Apply_noExternalReferences(t *testing.T) {
+func TestContext2Apply_pruneNoExternalReferences(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "a" {
@@ -2265,8 +2265,17 @@ locals {
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
+	addrA := mustResourceInstanceAddr("test_object.a")
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"test_string":"foo"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), nil)
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+	})
 	if diags.HasErrors() {
 		t.Errorf("expected no errors, but got %s", diags)
 	}
@@ -2275,16 +2284,14 @@ locals {
 	assertNoDiagnostics(t, diags)
 
 	// The local value should've been pruned from the graph because nothing
-	// refers to it.
+	// refers to it and this was a destroy run.
 	gotGraph := g.String()
 	wantGraph := `provider["registry.terraform.io/hashicorp/test"]
 provider["registry.terraform.io/hashicorp/test"] (close)
-  test_object.a
+  test_object.a (destroy)
 root
   provider["registry.terraform.io/hashicorp/test"] (close)
-test_object.a
-  test_object.a (expand)
-test_object.a (expand)
+test_object.a (destroy)
   provider["registry.terraform.io/hashicorp/test"]
 `
 	if diff := cmp.Diff(wantGraph, gotGraph); diff != "" {
@@ -2297,7 +2304,78 @@ test_object.a (expand)
 	}
 }
 
-func TestContext2Apply_withExternalReferences(t *testing.T) {
+func TestContext2Apply_pruneWithExternalReferences(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+	test_string = "foo"
+}
+
+locals {
+  local_value = test_object.a.test_string
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	addrA := mustResourceInstanceAddr("test_object.a")
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"test_string":"foo"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+		ExternalReferences: []*addrs.Reference{
+			mustReference("local.local_value"),
+		},
+	})
+	if diags.HasErrors() {
+		t.Errorf("expected no errors, but got %s", diags)
+	}
+
+	g, _, diags := ctx.applyGraph(plan, m, &ApplyOpts{}, true)
+	if diags.HasErrors() {
+		t.Errorf("expected no errors, but got %s", diags)
+	}
+
+	// The local value should remain in the graph because the external
+	// reference uses it.
+	gotGraph := g.String()
+	wantGraph := `<external ref to local.local_value>
+  local.local_value (expand)
+local.local_value (expand)
+  test_object.a (expand)
+provider["registry.terraform.io/hashicorp/test"]
+provider["registry.terraform.io/hashicorp/test"] (close)
+  test_object.a (destroy)
+  test_object.a (expand)
+root
+  <external ref to local.local_value>
+  provider["registry.terraform.io/hashicorp/test"] (close)
+test_object.a (destroy)
+  provider["registry.terraform.io/hashicorp/test"]
+test_object.a (expand)
+  provider["registry.terraform.io/hashicorp/test"]
+`
+	if diff := cmp.Diff(wantGraph, gotGraph); diff != "" {
+		t.Errorf("wrong graph\n%s", diff)
+	}
+
+	_, diags = ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Errorf("expected no errors, but got %s", diags)
+	}
+}
+
+func TestContext2Apply_pruneNonDestroy(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "a" {
@@ -2319,31 +2397,24 @@ locals {
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
-		ExternalReferences: []*addrs.Reference{
-			mustReference("local.local_value"),
-		},
 	})
 	if diags.HasErrors() {
 		t.Errorf("expected no errors, but got %s", diags)
 	}
 
 	g, _, diags := ctx.applyGraph(plan, m, &ApplyOpts{}, true)
-	if diags.HasErrors() {
-		t.Errorf("expected no errors, but got %s", diags)
-	}
+	assertNoDiagnostics(t, diags)
 
-	// The local value should remain in the graph because the external
-	// reference uses it.
+	// Although nothing refers to the local value, it should remain in the graph
+	// because this was NOT a destroy run and the prune transform exits early.
 	gotGraph := g.String()
-	wantGraph := `<external ref to local.local_value>
-  local.local_value (expand)
-local.local_value (expand)
+	wantGraph := `local.local_value (expand)
   test_object.a
 provider["registry.terraform.io/hashicorp/test"]
 provider["registry.terraform.io/hashicorp/test"] (close)
   test_object.a
 root
-  <external ref to local.local_value>
+  local.local_value (expand)
   provider["registry.terraform.io/hashicorp/test"] (close)
 test_object.a
   test_object.a (expand)
@@ -2351,7 +2422,7 @@ test_object.a (expand)
   provider["registry.terraform.io/hashicorp/test"]
 `
 	if diff := cmp.Diff(wantGraph, gotGraph); diff != "" {
-		t.Errorf("wrong graph\n%s", diff)
+		t.Errorf("wrong apply graph\n%s", diff)
 	}
 
 	_, diags = ctx.Apply(plan, m, nil)

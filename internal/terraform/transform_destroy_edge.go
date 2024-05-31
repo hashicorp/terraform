@@ -273,16 +273,36 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-// Remove any nodes that aren't needed when destroying modules.
-// Variables, outputs, locals, and expanders may not be able to evaluate
-// correctly, so we can remove these if nothing depends on them. The module
-// closers also need to disable their use of expansion if the module itself is
-// no longer present.
+// Remove nodes that aren't needed, when planning or applying a full destroy.
+// Specifically, we want to remove any temporary values (variables, outputs,
+// locals) that aren't ultimately referenced by a provider, as well as any
+// expanders whose instances are never relevant. This is necessary because of
+// some interacting behaviors:
+//
+// - In a destroy, we create nodes from the full config, but then try to *act*
+// like we're using a config with all the resources removed. So we have many
+// nodes for temporary values that *would not exist* in the stipulated
+// "resources gone" config. (This is why we *can* prune some nodes.)
+//
+// - We still need provider configurations to destroy anything. Provider configs
+// must be re-evaluated during apply (they aren't cached in the state or plan),
+// and they might refer to temporary values like locals or variables. (This is
+// why we can't just prune *all* the temporary value nodes.)
+//
+// - Any node referenced by an in-use provider should end up properly anchored
+// in the destroy graph ordering. But other temporary values are more randomly
+// ordered (because we don't bother fixing edges to guarantee they happen before
+// relevant destructions), so they might be impossible to evaluate properly
+// during a destroy, especially if we already performed a partial destroy and
+// got interrupted. (This is why we *must* prune some nodes.)
+//
+// - The first and third points above aren't relevant in a normal run that
+// happens to perform some destructions, because any temporary value that
+// references a destroyed resource will get ordered after the creation of the
+// resource's replacement. (This is why we only prune for destroys.)
 type pruneUnusedNodesTransformer struct {
-	// The plan graph builder will skip this transformer except during a full
-	// destroy. Planing normally involves all nodes, but during a destroy plan
-	// we may need to prune things which are in the configuration but do not
-	// exist in state to evaluate.
+	// Both the plan and apply graph builders will skip this transformer except
+	// during a full destroy.
 	skip bool
 }
 
@@ -307,12 +327,6 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 			func() {
 				n := nodes[i]
 				switch n := n.(type) {
-
-				case *nodeExpandCheck:
-					// We always execute check blocks, and they never have
-					// anything referencing them. We have to explicitly list
-					// them here otherwise they'll be deleted.
-					return
 
 				case graphNodeTemporaryValue:
 					// root module outputs indicate they are not temporary by
