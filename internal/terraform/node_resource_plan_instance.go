@@ -161,7 +161,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	importing := n.importTarget.IDString != ""
+	importing := n.importTarget.IDString != "" && !n.preDestroyRefresh
 	importId := n.importTarget.IDString
 
 	var deferred *providers.Deferred
