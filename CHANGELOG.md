@@ -1,4 +1,4 @@
-## 1.9.0-beta1 (May 31, 2024)
+## 1.9.0 (Unreleased)
 
 NEW FEATURES:
 
