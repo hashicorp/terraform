@@ -49,28 +49,6 @@ type moduleVersion struct {
 	version string
 }
 
-// TypeModuleVersionDeprecation is a constant of TypeDiagnosticExtra indicating
-// that a Warning is related to a deprecated module version is in use.
-type TypeDiagnosticExtra string
-
-const TypeModuleVersionDeprecation TypeDiagnosticExtra = "module_version_deprecation"
-
-// ModuleVersionDeprecationDiagnosticExtra holds the diagnostic information
-// about the deprecation of a module version. This ends up being serialized as extra data within a
-// diagnostic and should be considered public API.
-type ModuleVersionDeprecationDiagnosticExtra struct {
-	Type               TypeDiagnosticExtra `json:"type"`
-	Version            string              `json:"version"`
-	SourceAddr         string              `json:"source_name"`
-	DeprecationMessage string              `json:"deprecation_message"`
-	Link               string              `json:"link"`
-}
-
-// IsPublic confirms the visibility of the extra field in the public API.
-func (m ModuleVersionDeprecationDiagnosticExtra) IsPublic() {
-	// NOP
-}
-
 func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry.Client) *ModuleInstaller {
 	return &ModuleInstaller{
 		modsDir:                 modsDir,
@@ -276,32 +254,6 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 					}
 
 					log.Printf("[TRACE] ModuleInstaller: Module installer: %s %s already installed in %s", key, record.Version, record.Dir)
-
-					// Checking for module deprecations in the case no new module versions need installation
-					if addr, isRegistryModule := req.SourceAddr.(addrs.ModuleSourceRegistry); isRegistryModule {
-						regClient := i.reg
-
-						regsrcAddr := regsrc.ModuleFromRegistryPackageAddr(addr.Package)
-						resp, err := regClient.ModuleVersions(ctx, regsrcAddr)
-						if err != nil {
-							log.Printf("[WARN] Deprecation for %s could not be checked: call to registry failed: %v", addr.Package.String(), err)
-
-						} else {
-						found:
-							for _, modProviderVersions := range resp.Modules {
-								for _, modVersion := range modProviderVersions.Versions {
-									vm, _ := version.NewVersion(modVersion.Version)
-									if vm.Equal(record.Version) {
-										if modVersion.Deprecation != nil {
-											diags = append(diags, buildModuleVersionDeprecationWarning(modVersion, req, addr.Package.String()))
-										}
-										break found
-									}
-								}
-							}
-						}
-					}
-
 					return mod, record.Version, diags
 				}
 			}
@@ -528,8 +480,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 
 	modMeta := resp.Modules[0]
 
-	var latestMatch *response.ModuleVersion
-	var latestMatchVersion *version.Version
+	var latestMatch *version.Version
 	var latestVersion *version.Version
 	for _, mv := range modMeta.Versions {
 		v, err := version.NewVersion(mv.Version)
@@ -594,9 +545,8 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 		}
 
 		if req.VersionConstraint.Required.Check(v) {
-			if latestMatch == nil || v.GreaterThan(latestMatchVersion) {
-				latestMatch = mv
-				latestMatchVersion = v
+			if latestMatch == nil || v.GreaterThan(latestMatch) {
+				latestMatch = v
 			}
 		}
 	}
@@ -621,27 +571,23 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 		return nil, nil, diags
 	}
 
-	if latestMatch.Deprecation != nil {
-		diags = diags.Append(buildModuleVersionDeprecationWarning(latestMatch, req, addr.Package.String()))
-	}
-
 	// Report up to the caller that we're about to start downloading.
-	hooks.Download(key, packageAddr.String(), latestMatchVersion)
+	hooks.Download(key, packageAddr.String(), latestMatch)
 
 	// If we manage to get down here then we've found a suitable version to
 	// install, so we need to ask the registry where we should download it from.
 	// The response to this is a go-getter-style address string.
 
 	// first check the cache for the download URL
-	moduleAddr := moduleVersion{module: packageAddr, version: latestMatchVersion.String()}
+	moduleAddr := moduleVersion{module: packageAddr, version: latestMatch.String()}
 	if _, exists := i.registryPackageSources[moduleAddr]; !exists {
-		realAddrRaw, err := reg.ModuleLocation(ctx, regsrcAddr, latestMatchVersion.String())
+		realAddrRaw, err := reg.ModuleLocation(ctx, regsrcAddr, latestMatch.String())
 		if err != nil {
-			log.Printf("[ERROR] %s from %s %s: %s", key, addr, latestMatchVersion, err)
+			log.Printf("[ERROR] %s from %s %s: %s", key, addr, latestMatch, err)
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Error accessing remote module registry",
-				Detail:   fmt.Sprintf("Failed to retrieve a download URL for %s %s from %s: %s", addr, latestMatchVersion, hostname, err),
+				Detail:   fmt.Sprintf("Failed to retrieve a download URL for %s %s from %s: %s", addr, latestMatch, hostname, err),
 			})
 			return nil, nil, diags
 		}
@@ -650,7 +596,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid package location from module registry",
-				Detail:   fmt.Sprintf("Module registry %s returned invalid source location %q for %s %s: %s.", hostname, realAddrRaw, addr, latestMatchVersion, err),
+				Detail:   fmt.Sprintf("Module registry %s returned invalid source location %q for %s %s: %s.", hostname, realAddrRaw, addr, latestMatch, err),
 			})
 			return nil, nil, diags
 		}
@@ -665,7 +611,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid package location from module registry",
-				Detail:   fmt.Sprintf("Module registry %s returned invalid source location %q for %s %s: must be a direct remote package address.", hostname, realAddrRaw, addr, latestMatchVersion),
+				Detail:   fmt.Sprintf("Module registry %s returned invalid source location %q for %s %s: must be a direct remote package address.", hostname, realAddrRaw, addr, latestMatch),
 			})
 			return nil, nil, diags
 		}
@@ -673,7 +619,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 
 	dlAddr := i.registryPackageSources[moduleAddr]
 
-	log.Printf("[TRACE] ModuleInstaller: %s %s %s is available at %q", key, packageAddr, latestMatchVersion, dlAddr.Package)
+	log.Printf("[TRACE] ModuleInstaller: %s %s %s is available at %q", key, packageAddr, latestMatch, dlAddr.Package)
 
 	err := fetcher.FetchPackage(ctx, instPath, dlAddr.Package.String())
 	if errors.Is(err, context.Canceled) {
@@ -735,14 +681,14 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 	// Note the local location in our manifest.
 	manifest[key] = modsdir.Record{
 		Key:        key,
-		Version:    latestMatchVersion,
+		Version:    latestMatch,
 		Dir:        modDir,
 		SourceAddr: req.SourceAddr.String(),
 	}
 	log.Printf("[DEBUG] Module installer: %s installed at %s", key, modDir)
-	hooks.Install(key, latestMatchVersion, modDir)
+	hooks.Install(key, latestMatch, modDir)
 
-	return mod, latestMatchVersion, diags
+	return mod, latestMatch, diags
 }
 
 func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *configs.ModuleRequest, key string, instPath string, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*configs.Module, hcl.Diagnostics) {
@@ -988,29 +934,5 @@ func splitAddrSubdir(addr addrs.ModuleSource) (string, string) {
 		panic("splitAddrSubdir on nil addrs.ModuleSource")
 	default:
 		return addr.String(), ""
-	}
-}
-
-func buildModuleVersionDeprecationWarning(modVersion *response.ModuleVersion, req *configs.ModuleRequest, packageAddr string) *hcl.Diagnostic {
-	var additionalInfo []string
-	if modVersion.Deprecation.Reason != "" {
-		additionalInfo = append(additionalInfo, modVersion.Deprecation.Reason)
-	}
-	if modVersion.Deprecation.Link != "" {
-		additionalInfo = append(additionalInfo, fmt.Sprintf("More information: %s", modVersion.Deprecation.Link))
-	}
-	detail := strings.Join(additionalInfo, "\n\n")
-	return &hcl.Diagnostic{
-		Severity: hcl.DiagWarning,
-		Summary:  fmt.Sprintf("Module version %s of %s is deprecated", modVersion.Version, packageAddr),
-		Detail:   detail,
-		Subject:  req.CallRange.Ptr(),
-		Extra: &ModuleVersionDeprecationDiagnosticExtra{
-			Type:               TypeModuleVersionDeprecation,
-			Version:            modVersion.Version,
-			SourceAddr:         packageAddr,
-			DeprecationMessage: modVersion.Deprecation.Reason,
-			Link:               modVersion.Deprecation.Link,
-		},
 	}
 }
