@@ -2918,6 +2918,99 @@ resource "test_object" "obj" {
 	assertNoErrors(t, diags)
 }
 
+func TestContext2Apply_applyingFlag(t *testing.T) {
+	// This test is for references to the symbol "terraform.applying", which
+	// is an ephemeral value that's true during an apply phase but false in
+	// all other phases.
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "terraform.io/builtin/test"
+					}
+				}
+
+				# If this experimental feature becomes stablized and this test
+				# is still relevant, consider just removing this opt-in while
+				# retaining the rest.
+				experiments = [ephemeral_values]
+			}
+
+			provider "test" {
+				applying = terraform.applying
+			}
+
+			resource "test_thing" "placeholder" {
+				# This is here just to give Terraform a reason to configure
+				# the provider.
+			}
+		`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"applying": {
+						Type:     cty.Bool,
+						Required: true,
+					},
+				},
+			},
+		},
+		ResourceTypes: map[string]providers.Schema{
+			"test_thing": {
+				Block: &configschema.Block{},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewBuiltInProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	assertNoErrors(t, diags)
+
+	if !p.ConfigureProviderCalled {
+		t.Fatalf("ConfigureProvider was not called during planning")
+	}
+	{
+		got := p.ConfigureProviderRequest.Config
+		want := cty.ObjectVal(map[string]cty.Value{
+			"applying": cty.False, // false during the planning phase
+		})
+		if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
+			t.Errorf("wrong provider configuration during planning\n%s", diff)
+		}
+	}
+
+	// reset the mock provider so we can check it again after apply
+	p.ConfigureProviderCalled = false
+	p.ConfigureProviderRequest = providers.ConfigureProviderRequest{}
+
+	_, diags = ctx.Apply(plan, m, &ApplyOpts{})
+	assertNoErrors(t, diags)
+
+	if !p.ConfigureProviderCalled {
+		t.Fatalf("ConfigureProvider was not called while applying")
+	}
+	{
+		got := p.ConfigureProviderRequest.Config
+		want := cty.ObjectVal(map[string]cty.Value{
+			"applying": cty.True, // now true during the apply phase
+		})
+		if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
+			t.Errorf("wrong provider configuration while applying\n%s", diff)
+		}
+	}
+}
+
 func TestContext2Apply_applyTimeVariables(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
