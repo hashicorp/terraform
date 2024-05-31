@@ -74,6 +74,13 @@ func ComputeDiffForBlock(change structured.Change, block *jsonprovider.Block) co
 		afterSensitive := childValue.IsAfterSensitive()
 		forcesReplacement := childValue.ReplacePaths.Matches()
 
+		if unknown, ok := checkForUnknownBlock(childValue, block); ok {
+			// An unknown block doesn't render any type information, so we can
+			// render it as a single block rather than switching on all types.
+			blocks.AddSingleBlock(key, unknown, forcesReplacement, beforeSensitive, afterSensitive)
+			continue
+		}
+
 		switch NestingMode(blockType.NestingMode) {
 		case nestingModeSet:
 			diffs, action := computeBlockDiffsAsSet(childValue, blockType.Block)
