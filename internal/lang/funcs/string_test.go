@@ -336,6 +336,55 @@ func TestTemplateString(t *testing.T) {
 			``,
 		},
 		{
+			`data.whatever.whatever[each.key].result`,
+			map[string]cty.Value{
+				"data": cty.ObjectVal(map[string]cty.Value{
+					"whatever": cty.ObjectVal(map[string]cty.Value{
+						"whatever": cty.MapVal(map[string]cty.Value{
+							"foo": cty.ObjectVal(map[string]cty.Value{
+								"result": cty.StringVal("it's ${a}"),
+							}),
+						}),
+					}),
+				}),
+				"each": cty.ObjectVal(map[string]cty.Value{
+					"key": cty.StringVal("foo"),
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("a value"),
+			}),
+			cty.StringVal(`it's a value`),
+			``,
+		},
+		{
+			`data.whatever.whatever[*].result`,
+			map[string]cty.Value{
+				"data": cty.ObjectVal(map[string]cty.Value{
+					"whatever": cty.ObjectVal(map[string]cty.Value{
+						"whatever": cty.TupleVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"result": cty.StringVal("it's ${a}"),
+							}),
+						}),
+					}),
+				}),
+				"each": cty.ObjectVal(map[string]cty.Value{
+					"key": cty.StringVal("foo"),
+				}),
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("a value"),
+			}),
+			cty.NilVal,
+			// We have an intentional hole in our heuristic for whether the
+			// first argument is a suitable expression which permits splat
+			// expressions just so that we can return the type mismatch error
+			// from the result not being a string, instead of the more general
+			// error about it not being a supported expression type.
+			`invalid template value: a string is required`,
+		},
+		{
 			`"can't write $${not_allowed}"`,
 			map[string]cty.Value{},
 			cty.ObjectVal(map[string]cty.Value{
