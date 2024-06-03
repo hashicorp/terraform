@@ -8,12 +8,18 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
+
+type instancesResult[T any] struct {
+	insts   map[addrs.InstanceKey]T
+	unknown bool
+}
 
 // evaluateForEachExpr deals with all of the for_each evaluation concerns
 // that are common across all uses of for_each in all evaluation phases.
@@ -147,20 +153,16 @@ func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPha
 // If maybeForEach value is non-nil but not a valid value produced by
 // [evaluateForEachExpr] then the behavior is unpredictable, including the
 // possibility of a panic.
-func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.InstanceKey, instances.RepetitionData) T, allowsUnknown bool) map[addrs.InstanceKey]T {
+func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.InstanceKey, instances.RepetitionData) T, allowsUnknown bool) instancesResult[T] {
 	switch {
 	case maybeForEachVal == cty.NilVal:
 		// No for_each expression at all, then. We have exactly one instance
 		// without an instance key and with no repetition data.
-		return noForEachInstancesMap(makeInst)
+		return instancesResult[T]{noForEachInstancesMap(makeInst), false}
 
 	case !maybeForEachVal.IsKnown():
 		// This is temporary to gradually rollout support for unknown for_each values
-		if allowsUnknown {
-			return unknownForEachInstancesMap(maybeForEachVal.Type(), makeInst)
-		} else {
-			return nil
-		}
+		return instancesResult[T]{nil, allowsUnknown}
 
 	default:
 		// Otherwise we should be able to assume the value is valid per the
@@ -173,7 +175,7 @@ func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.Instance
 		// this case, even if there are zero elements in it, because a nil map
 		// represents an _invalid_ for_each expression (handled above).
 		// forEachInstancesMap guarantees to never return a nil map.
-		return forEachInstancesMap(maybeForEachVal, makeInst)
+		return instancesResult[T]{forEachInstancesMap(maybeForEachVal, makeInst), false}
 
 	}
 }
@@ -239,12 +241,6 @@ func noForEachInstancesMap[T any](makeInst func(addrs.InstanceKey, instances.Rep
 		addrs.NoKey: makeInst(addrs.NoKey, instances.RepetitionData{
 			// no repetition symbols available in this case
 		}),
-	}
-}
-
-func unknownForEachInstancesMap[T any](ty cty.Type, makeInst func(addrs.InstanceKey, instances.RepetitionData) T) map[addrs.InstanceKey]T {
-	return map[addrs.InstanceKey]T{
-		addrs.WildcardKey: makeInst(addrs.WildcardKey, instances.UnknownForEachRepetitionData(ty)),
 	}
 }
 

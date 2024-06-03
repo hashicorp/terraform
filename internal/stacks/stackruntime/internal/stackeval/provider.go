@@ -28,7 +28,7 @@ type Provider struct {
 	main *Main
 
 	forEachValue perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
-	instances    perEvalPhase[promising.Once[withDiagnostics[map[addrs.InstanceKey]*ProviderInstance]]]
+	instances    perEvalPhase[promising.Once[withDiagnostics[instancesResult[*ProviderInstance]]]]
 }
 
 func newProvider(main *Main, addr stackaddrs.AbsProviderConfig, config *stackconfig.ProviderConfig) *Provider {
@@ -156,25 +156,18 @@ func (p *Provider) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.
 // for_each expression is invalid because we assume that the main plan walk
 // will visit the stack call directly and ask it to check itself, and that
 // call will be the one responsible for returning any diagnostics.
-func (p *Provider) Instances(ctx context.Context, phase EvalPhase) map[addrs.InstanceKey]*ProviderInstance {
-	ret, _ := p.CheckInstances(ctx, phase)
-	return ret
+func (p *Provider) Instances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ProviderInstance, bool) {
+	ret, unknown, _ := p.CheckInstances(ctx, phase)
+	return ret, unknown
 }
 
-func (p *Provider) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ProviderInstance, tfdiags.Diagnostics) {
-	return doOnceWithDiags(
+func (p *Provider) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ProviderInstance, bool, tfdiags.Diagnostics) {
+	result, diags := doOnceWithDiags(
 		ctx, p.instances.For(phase), p.main,
-		func(ctx context.Context) (map[addrs.InstanceKey]*ProviderInstance, tfdiags.Diagnostics) {
-
-			// Since we can't differentiate between a truly unknown foreach and
-			// an invalid foreach, we must check the diagnostics from the for
-			// each value.
-
+		func(ctx context.Context) (instancesResult[*ProviderInstance], tfdiags.Diagnostics) {
 			forEachVal, diags := p.CheckForEachValue(ctx, phase)
 			if diags.HasErrors() {
-				// We expect the caller to have already checked the for_each
-				// diagnostics and we don't want to return duplicates.
-				return nil, nil
+				return instancesResult[*ProviderInstance]{}, diags
 			}
 
 			allowUnknowns := true
@@ -190,19 +183,26 @@ func (p *Provider) CheckInstances(ctx context.Context, phase EvalPhase) (map[add
 			}, allowUnknowns), diags
 		},
 	)
+	return result.insts, result.unknown, diags
 }
 
 // ExprReferenceValue implements Referenceable, returning a value containing
 // one or more values that act as references to instances of the provider.
 func (p *Provider) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
 	decl := p.Declaration(ctx)
-	insts := p.Instances(ctx, phase)
+	insts, unknown := p.Instances(ctx, phase)
 	refType := p.InstRefValueType(ctx)
 
 	switch {
 	case decl.ForEach != nil:
-		if _, ok := insts[addrs.WildcardKey]; ok || insts == nil {
+		if unknown {
 			return cty.UnknownVal(cty.Map(refType))
+		}
+
+		if insts == nil {
+			// Then we errored during instance calculation, this should have
+			// been caught before we got here.
+			return cty.NilVal
 		}
 		elems := make(map[string]cty.Value, len(insts))
 		for instKey := range insts {
@@ -241,7 +241,7 @@ func (p *Provider) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diag
 
 	_, moreDiags := p.CheckForEachValue(ctx, phase)
 	diags = diags.Append(moreDiags)
-	_, moreDiags = p.CheckInstances(ctx, phase)
+	_, _, moreDiags = p.CheckInstances(ctx, phase)
 	diags = diags.Append(moreDiags)
 	// Everything else is instance-specific and so the plan walk driver must
 	// call p.Instances and ask each instance to plan itself.

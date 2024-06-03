@@ -58,7 +58,19 @@ func walkDynamicObjectsInStack[Output any](
 		// because it involves evaluating for_each expressions, and one
 		// stack call's for_each might depend on the results of another.
 		walk.AsyncTask(ctx, func(ctx context.Context) {
-			insts := call.Instances(ctx, phase)
+			insts, unknown := call.Instances(ctx, phase)
+
+			// If unknown, then process the unknown instance and skip the rest.
+			if unknown {
+				inst := call.UnknownInstance(ctx, phase)
+				visit(ctx, walk, inst)
+
+				childStack := inst.CalledStack(ctx)
+				walkDynamicObjectsInStack(ctx, walk, childStack, phase, visit)
+				return
+			}
+
+			// Otherwise, process the instances and their child stacks.
 			for _, inst := range insts {
 				visit(ctx, walk, inst)
 
@@ -78,7 +90,14 @@ func walkDynamicObjectsInStack[Output any](
 		// because it involves potentially evaluating a for_each expression.
 		// and that might depend on data from elsewhere in the same stack.
 		walk.AsyncTask(ctx, func(ctx context.Context) {
-			insts := component.Instances(ctx, phase)
+			insts, unknown := component.Instances(ctx, phase)
+
+			if unknown {
+				inst := component.UnknownInstance(ctx, phase)
+				visit(ctx, walk, inst)
+				return
+			}
+
 			for _, inst := range insts {
 				visit(ctx, walk, inst)
 			}
@@ -93,7 +112,13 @@ func walkDynamicObjectsInStack[Output any](
 		// task because it involves potentially evaluating a for_each expression,
 		// and that might depend on data from elsewhere in the same stack.
 		walk.AsyncTask(ctx, func(ctx context.Context) {
-			insts := provider.Instances(ctx, phase)
+			insts, unknown := provider.Instances(ctx, phase)
+			if unknown {
+				// We use the unconfigured client for unknown instances of a
+				// provider so there is nothing for us to do here.
+				return
+			}
+
 			for _, inst := range insts {
 				visit(ctx, walk, inst)
 			}

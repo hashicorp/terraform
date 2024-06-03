@@ -11,12 +11,13 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
+	"github.com/zclconf/go-cty-debug/ctydebug"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty-debug/ctydebug"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestEvaluateForEachExpr(t *testing.T) {
@@ -199,6 +200,7 @@ func TestInstancesMap(t *testing.T) {
 	// This is a temporary nusiance while we gradually rollout support for
 	// unknown for_each values.
 	type Expectation struct {
+		UnknownValue              bool
 		UnknownForEachSupported   map[addrs.InstanceKey]InstanceObj
 		UnknownForEachUnsupported map[addrs.InstanceKey]InstanceObj
 	}
@@ -247,48 +249,27 @@ func TestInstancesMap(t *testing.T) {
 			"unknown empty object",
 			cty.UnknownVal(cty.EmptyObject),
 			Expectation{
-				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
-					addrs.WildcardKey: {
-						Key: addrs.WildcardKey,
-						Rep: instances.RepetitionData{
-							EachKey:   cty.UnknownVal(cty.String),
-							EachValue: cty.DynamicVal,
-						},
-					},
-				},
-				UnknownForEachUnsupported: nil, // a nil map means "unknown" for this function
+				UnknownValue:              true,
+				UnknownForEachSupported:   nil,
+				UnknownForEachUnsupported: nil,
 			},
 		},
 		{
 			"unknown bool map",
 			cty.UnknownVal(cty.Map(cty.Bool)),
 			Expectation{
-				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
-					addrs.WildcardKey: {
-						Key: addrs.WildcardKey,
-						Rep: instances.RepetitionData{
-							EachKey:   cty.UnknownVal(cty.String),
-							EachValue: cty.UnknownVal(cty.Bool),
-						},
-					},
-				},
-				UnknownForEachUnsupported: nil, // a nil map means "unknown" for this function
+				UnknownValue:              true,
+				UnknownForEachSupported:   nil,
+				UnknownForEachUnsupported: nil,
 			},
 		},
 		{
 			"unknown set of strings",
 			cty.UnknownVal(cty.Set(cty.String)),
 			Expectation{
-				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
-					addrs.WildcardKey: {
-						Key: addrs.WildcardKey,
-						Rep: instances.RepetitionData{
-							EachKey:   cty.UnknownVal(cty.String),
-							EachValue: cty.UnknownVal(cty.String),
-						},
-					},
-				},
-				UnknownForEachUnsupported: nil, // a nil map means "unknown" for this function
+				UnknownValue:              true,
+				UnknownForEachSupported:   nil,
+				UnknownForEachUnsupported: nil,
 			},
 		},
 
@@ -472,15 +453,17 @@ func TestInstancesMap(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			t.Run("unknown for_each supported", func(t *testing.T) {
 				got := instancesMap(test.Input, makeObj, true)
-
-				if diff := cmp.Diff(test.Want.UnknownForEachSupported, got, ctydebug.CmpOptions); diff != "" {
+				if got.unknown != test.Want.UnknownValue {
+					t.Errorf("wrong unknown value\ngot:  %#v\nwant: %#v", got.unknown, test.Want.UnknownValue)
+				}
+				if diff := cmp.Diff(test.Want.UnknownForEachSupported, got.insts, ctydebug.CmpOptions); diff != "" {
 					t.Errorf("wrong result\ninput: %#v\n%s", test.Input, diff)
 				}
 			})
 			t.Run("unknown for_each unsupported", func(t *testing.T) {
 				got := instancesMap(test.Input, makeObj, false)
-
-				if diff := cmp.Diff(test.Want.UnknownForEachUnsupported, got, ctydebug.CmpOptions); diff != "" {
+				assertFalse(t, got.unknown)
+				if diff := cmp.Diff(test.Want.UnknownForEachUnsupported, got.insts, ctydebug.CmpOptions); diff != "" {
 					t.Errorf("wrong result\ninput: %#v\n%s", test.Input, diff)
 				}
 			})

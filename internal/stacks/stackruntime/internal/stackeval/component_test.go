@@ -50,8 +50,9 @@ func TestComponentCheckInstances(t *testing.T) {
 			t.Fatalf("unexpected for_each value\ngot:  %#v\nwant: cty.NilVal", forEachVal)
 		}
 
-		insts, diags := component.CheckInstances(ctx, InspectPhase)
+		insts, unknown, diags := component.CheckInstances(ctx, InspectPhase)
 		assertNoDiags(t, diags)
+		assertFalse(t, unknown)
 		if got, want := len(insts), 1; got != want {
 			t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, insts)
 		}
@@ -80,8 +81,9 @@ func TestComponentCheckInstances(t *testing.T) {
 			if got, want := forEachVal, cty.MapValEmpty(cty.EmptyObject); !want.RawEquals(got) {
 				t.Fatalf("unexpected for_each value\ngot:  %#v\nwant: %#v", got, want)
 			}
-			insts, diags := component.CheckInstances(ctx, InspectPhase)
+			insts, unknown, diags := component.CheckInstances(ctx, InspectPhase)
 			assertNoDiags(t, diags)
+			assertFalse(t, unknown)
 			if got, want := len(insts), 0; got != want {
 				t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, insts)
 			}
@@ -117,8 +119,9 @@ func TestComponentCheckInstances(t *testing.T) {
 			if !wantForEachVal.RawEquals(gotForEachVal) {
 				t.Fatalf("unexpected for_each value\ngot:  %#v\nwant: %#v", gotForEachVal, wantForEachVal)
 			}
-			insts, diags := component.CheckInstances(ctx, InspectPhase)
+			insts, unknown, diags := component.CheckInstances(ctx, InspectPhase)
 			assertNoDiags(t, diags)
+			assertFalse(t, unknown)
 			if got, want := len(insts), 2; got != want {
 				t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, insts)
 			}
@@ -192,8 +195,8 @@ func TestComponentCheckInstances(t *testing.T) {
 
 			// When the for_each expression is invalid, CheckInstances should
 			// return nil and diagnostics.
-			gotInsts, diags := component.CheckInstances(ctx, InspectPhase)
-
+			gotInsts, unknown, diags := component.CheckInstances(ctx, InspectPhase)
+			assertFalse(t, unknown)
 			if gotInsts != nil {
 				t.Fatalf("unexpected instances\ngot:  %#v\nwant: nil", gotInsts)
 			}
@@ -222,22 +225,11 @@ func TestComponentCheckInstances(t *testing.T) {
 
 			// When the for_each expression is unknown, CheckInstances should
 			// return a single instance with dynamic values in the repetition data.
-			gotInsts, diags := component.CheckInstances(ctx, InspectPhase)
+			gotInsts, unknown, diags := component.CheckInstances(ctx, InspectPhase)
 			assertNoDiags(t, diags)
-			if got, want := len(gotInsts), 1; got != want {
+			assertTrue(t, unknown)
+			if got, want := len(gotInsts), 0; got != want {
 				t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, gotInsts)
-			}
-
-			if gotInsts[addrs.WildcardKey] == nil {
-				t.Fatalf("missing expected addrs.WildcardKey instance\n%#v", gotInsts)
-			}
-
-			if gotInsts[addrs.WildcardKey].repetition.EachKey.IsKnown() {
-				t.Errorf("EachKey should be unknown, but is known")
-			}
-
-			if gotInsts[addrs.WildcardKey].repetition.EachValue.IsKnown() {
-				t.Errorf("EachValue should be unknown, but is known")
 			}
 		})
 	})
@@ -347,10 +339,9 @@ func TestComponentResultValue(t *testing.T) {
 
 			component := getComponent(ctx, t, main)
 			got := component.ResultValue(ctx, InspectPhase)
-			// When the for_each expression is invalid, the result value
-			// is unknown so we can use it as a placeholder for partial
-			// downstream checking.
-			want := cty.DynamicVal
+			// When the for_each expression is null, the result value should
+			// be a cty.NilVal.
+			want := cty.NilVal
 			// FIXME: the cmp transformer ctydebug.CmpOptions seems to find
 			// this particular pair of values troubling, causing it to get
 			// into an infinite recursion. For now we'll just use RawEquals,
@@ -370,10 +361,9 @@ func TestComponentResultValue(t *testing.T) {
 
 			component := getComponent(ctx, t, main)
 			got := component.ResultValue(ctx, InspectPhase)
-			// When the for_each expression is invalid, the result value
-			// is unknown so we can use it as a placeholder for partial
-			// downstream checking.
-			want := cty.DynamicVal
+			// When the for_each expression is null, the result value should
+			// be a cty.NilVal.
+			want := cty.NilVal
 			// FIXME: the cmp transformer ctydebug.CmpOptions seems to find
 			// this particular pair of values troubling, causing it to get
 			// into an infinite recursion. For now we'll just use RawEquals,
@@ -394,7 +384,7 @@ func TestComponentResultValue(t *testing.T) {
 			component := getComponent(ctx, t, main)
 			got := component.ResultValue(ctx, InspectPhase)
 			// When the for_each expression is unknown, the result value
-			// is aa dynamic instance.
+			// is a dynamic instance.
 			want := cty.DynamicVal
 
 			if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {

@@ -422,7 +422,13 @@ func (c *ComponentInstance) neededProviderClients(ctx context.Context, phase Eva
 		if provider == nil {
 			continue
 		}
-		insts := provider.Instances(ctx, phase)
+		insts, unknown := provider.Instances(ctx, phase)
+		if unknown {
+			// an unknown provider should have been added to the unknown
+			// providers and not the known providers, so this is a bug if we get
+			// here.
+			panic(fmt.Errorf("provider %s returned unknown instances", callerAddr))
+		}
 		if insts == nil {
 			continue
 		}

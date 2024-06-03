@@ -79,7 +79,7 @@ func (s *Stack) ParentStack(ctx context.Context) *Stack {
 	return s.main.StackUnchecked(ctx, parentAddr)
 }
 
-// ChildStackUnckecked returns an object representing a child of this stack, or
+// ChildStackUnchecked returns an object representing a child of this stack, or
 // nil if the "name" part of the step doesn't correspond to a declared
 // embedded stack call.
 //
@@ -139,14 +139,13 @@ func (s *Stack) ChildStackChecked(ctx context.Context, addr stackaddrs.StackInst
 	callAddr := stackaddrs.StackCall{Name: addr.Name}
 	call := calls[callAddr]
 
-	instances := call.Instances(ctx, phase)
-	if instances == nil {
-		// Totally-nil instances (as opposed to a non-nil zero-length map)
-		// means that we don't actually know what the instances for this
-		// stack call are, and so we optimistically assume that the given
-		// key was intended to exist and assume that later work with the
-		// resulting object will also return unknown/indeterminate values.
+	instances, unknown := call.Instances(ctx, phase)
+	if unknown {
 		return candidate
+	}
+
+	if instances == nil {
+		return nil
 	}
 	if _, exists := instances[addr.Key]; !exists {
 		return nil

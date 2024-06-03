@@ -84,10 +84,13 @@ func (v *InputVariable) DefinedByStackCallInstance(ctx context.Context, phase Ev
 		// actually exist, which is odd but we'll tolerate it.
 		return nil
 	}
-	callInsts := call.Instances(ctx, phase)
+	callInsts, unknown := call.Instances(ctx, phase)
+	if unknown {
+		// Return our static unknown instance for this variable.
+		return call.UnknownInstance(ctx, phase)
+	}
 	if callInsts == nil {
-		// Could get here if the call's for_each is unknown or invalid,
-		// in which case we'll assume unknown.
+		// Could get here if the call's for_each is invalid.
 		return nil
 	}
 

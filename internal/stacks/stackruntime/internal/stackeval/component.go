@@ -26,8 +26,9 @@ type Component struct {
 
 	main *Main
 
-	forEachValue perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
-	instances    perEvalPhase[promising.Once[withDiagnostics[map[addrs.InstanceKey]*ComponentInstance]]]
+	forEachValue    perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
+	instances       perEvalPhase[promising.Once[withDiagnostics[instancesResult[*ComponentInstance]]]]
+	unknownInstance perEvalPhase[promising.Once[*ComponentInstance]]
 }
 
 var _ Plannable = (*Component)(nil)
@@ -149,21 +150,21 @@ func (c *Component) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty
 // for_each expression is invalid because we assume that the main plan walk
 // will visit the stack call directly and ask it to check itself, and that
 // call will be the one responsible for returning any diagnostics.
-func (c *Component) Instances(ctx context.Context, phase EvalPhase) map[addrs.InstanceKey]*ComponentInstance {
-	ret, _ := c.CheckInstances(ctx, phase)
-	return ret
+func (c *Component) Instances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ComponentInstance, bool) {
+	ret, unknown, _ := c.CheckInstances(ctx, phase)
+	return ret, unknown
 }
 
-func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ComponentInstance, tfdiags.Diagnostics) {
-	return doOnceWithDiags(
+func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ComponentInstance, bool, tfdiags.Diagnostics) {
+	result, diags := doOnceWithDiags(
 		ctx, c.instances.For(phase), c.main,
-		func(ctx context.Context) (map[addrs.InstanceKey]*ComponentInstance, tfdiags.Diagnostics) {
+		func(ctx context.Context) (instancesResult[*ComponentInstance], tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 			forEachVal, forEachValueDiags := c.CheckForEachValue(ctx, phase)
 
 			diags = diags.Append(forEachValueDiags)
 			if diags.HasErrors() {
-				return nil, diags
+				return instancesResult[*ComponentInstance]{}, diags
 			}
 
 			allowUnknowns := true
@@ -174,12 +175,12 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 				allowUnknowns = c.main.PlanningOpts().DeferralAllowed
 			}
 
-			ret := instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ComponentInstance {
+			result := instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ComponentInstance {
 				return newComponentInstance(c, ik, rd)
 			}, allowUnknowns)
 
-			addrs := make([]stackaddrs.AbsComponentInstance, 0, len(ret))
-			for _, ci := range ret {
+			addrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))
+			for _, ci := range result.insts {
 				addrs = append(addrs, ci.Addr())
 			}
 
@@ -189,14 +190,27 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 				InstanceAddrs: addrs,
 			})
 
-			return ret, diags
+			return result, diags
 		},
 	)
+	return result.insts, result.unknown, diags
+}
+
+func (c *Component) UnknownInstance(ctx context.Context, phase EvalPhase) *ComponentInstance {
+	inst, err := c.unknownInstance.For(PlanPhase).Do(ctx, func(ctx context.Context) (*ComponentInstance, error) {
+		return newComponentInstance(c, addrs.WildcardKey, instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type())), nil
+	})
+	if err != nil {
+		// Since we never return an error from the function we pass to Do,
+		// this should never happen.
+		panic(err)
+	}
+	return inst
 }
 
 func (c *Component) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
 	decl := c.Declaration(ctx)
-	insts := c.Instances(ctx, phase)
+	insts, unknown := c.Instances(ctx, phase)
 
 	switch {
 	case decl.ForEach != nil:
@@ -205,10 +219,16 @@ func (c *Component) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 		// exact type constraints for its output values and so each instance of
 		// a component can potentially produce a different object type.
 
-		if _, exists := insts[addrs.WildcardKey]; exists || insts == nil {
-			// If we don't even know what instances we have then we can't
-			// predict anything about our result.
+		if unknown {
+			// We can't predict the result if we don't know what the instances
+			// are, so we'll return dynamic.
 			return cty.DynamicVal
+		}
+
+		if insts == nil {
+			// Then we errored during instance calculation, this should have
+			// been caught before we got here.
+			return cty.NilVal
 		}
 
 		// We expect that the instances all have string keys, which will
@@ -254,7 +274,7 @@ func (c *Component) PlanIsComplete(ctx context.Context) bool {
 	if !c.main.Planning() {
 		panic("PlanIsComplete used when not in the planning phase")
 	}
-	insts := c.Instances(ctx, PlanPhase)
+	insts, unknown := c.Instances(ctx, PlanPhase)
 	if insts == nil {
 		// Suggests that the configuration was not even valid enough to
 		// decide what the instances are, so we'll return false to be
@@ -262,7 +282,7 @@ func (c *Component) PlanIsComplete(ctx context.Context) bool {
 		return false
 	}
 
-	if insts[addrs.WildcardKey] != nil {
+	if unknown {
 		// If the wildcard key is used the instance originates from an unknown
 		// for_each value, which means the result is unknown.
 		return false
@@ -295,7 +315,7 @@ func (c *Component) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty
 func (c *Component) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	_, moreDiags := c.CheckInstances(ctx, phase)
+	_, _, moreDiags := c.CheckInstances(ctx, phase)
 	diags = diags.Append(moreDiags)
 
 	return diags
@@ -343,7 +363,9 @@ func (c *Component) ApplySuccessful(ctx context.Context) bool {
 
 	// Apply is successful if all of our instances fully completed their
 	// apply phases.
-	for _, inst := range c.Instances(ctx, ApplyPhase) {
+	insts, _ := c.Instances(ctx, ApplyPhase)
+
+	for _, inst := range insts {
 		result := inst.ApplyResult(ctx)
 		if result == nil || !result.Complete {
 			return false
