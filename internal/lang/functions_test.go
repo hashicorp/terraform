@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	homedir "github.com/mitchellh/go-homedir"
@@ -976,6 +977,21 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"templatestring": {
+			{
+				`templatestring(local.greeting_template, {
+  name = "Arthur"
+})`,
+				cty.StringVal("Hello, Arthur!"),
+			},
+			{
+				`core::templatestring(local.greeting_template, {
+  name = "Namespaced Arthur"
+})`,
+				cty.StringVal("Hello, Namespaced Arthur!"),
+			},
+		},
+
 		"timeadd": {
 			{
 				`timeadd("2017-11-22T00:00:00Z", "1s")`,
@@ -1311,9 +1327,14 @@ func TestFunctions(t *testing.T) {
 
 			for _, test := range funcTests {
 				t.Run(test.src, func(t *testing.T) {
-					data := &dataForTests{} // no variables available; we only need literals here
+					data := &dataForTests{
+						LocalValues: map[string]cty.Value{
+							"greeting_template": cty.StringVal("Hello, ${name}!"),
+						},
+					}
 					scope := &Scope{
 						Data:          data,
+						ParseRef:      addrs.ParseRef,
 						BaseDir:       "./testdata/functions-test", // for the functions that read from the filesystem
 						PlanTimestamp: time.Date(2004, 04, 25, 15, 00, 00, 000, time.UTC),
 						ExternalFuncs: externalFuncs,

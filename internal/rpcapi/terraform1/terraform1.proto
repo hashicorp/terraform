@@ -13,14 +13,26 @@ service Setup {
     //
     // This function can be called only once per RPC server.
     rpc Handshake(Handshake.Request) returns (Handshake.Response);
+
+    // At any time after handshaking, clients may call Stop to initiate a
+    // graceful shutdown of the server.
+    rpc Stop(Stop.Request) returns (Stop.Response);
 }
 
 message Handshake {
     message Request {
         ClientCapabilities capabilities = 1;
+        Config config = 2;
     }
     message Response {
         ServerCapabilities capabilities = 2;
+    }
+}
+
+message Stop {
+    message Request {
+    }
+    message Response {
     }
 }
 
@@ -110,6 +122,14 @@ service Dependencies {
     // has the potential to run in a context that probably has access to
     // private source code and other sensitive information.
     rpc GetProviderSchema(GetProviderSchema.Request) returns (GetProviderSchema.Response);
+}
+
+message Config {
+    map<string, HostCredential> credentials = 1;
+}
+
+message HostCredential {
+    string token = 1;
 }
 
 message OpenSourceBundle {

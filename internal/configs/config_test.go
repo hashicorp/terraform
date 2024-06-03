@@ -165,12 +165,7 @@ func TestConfigProviderRequirements(t *testing.T) {
 
 func TestConfigProviderRequirementsInclTests(t *testing.T) {
 	cfg, diags := testNestedModuleConfigFromDirWithTests(t, "testdata/provider-reqs-with-tests")
-	// TODO: Version Constraint Deprecation.
-	// Once we've removed the version argument from provider configuration
-	// blocks, this can go back to expected 0 diagnostics.
-	// assertNoDiagnostics(t, diags)
-	assertDiagnosticCount(t, diags, 1)
-	assertDiagnosticSummary(t, diags, "Version constraints inside provider configuration blocks are deprecated")
+	assertDiagnosticCount(t, diags, 0)
 
 	tlsProvider := addrs.NewProvider(
 		addrs.DefaultProviderRegistryHost,
@@ -189,7 +184,7 @@ func TestConfigProviderRequirementsInclTests(t *testing.T) {
 		nullProvider:       providerreqs.MustParseVersionConstraints("~> 2.0.0"),
 		randomProvider:     providerreqs.MustParseVersionConstraints("~> 1.2.0"),
 		tlsProvider:        providerreqs.MustParseVersionConstraints("~> 3.0"),
-		configuredProvider: providerreqs.MustParseVersionConstraints("~> 1.4"),
+		configuredProvider: nil,
 		impliedProvider:    nil,
 		terraformProvider:  nil,
 	}
@@ -243,12 +238,7 @@ func TestConfigProviderRequirementsShallow(t *testing.T) {
 
 func TestConfigProviderRequirementsShallowInclTests(t *testing.T) {
 	cfg, diags := testNestedModuleConfigFromDirWithTests(t, "testdata/provider-reqs-with-tests")
-	// TODO: Version Constraint Deprecation.
-	// Once we've removed the version argument from provider configuration
-	// blocks, this can go back to expected 0 diagnostics.
-	// assertNoDiagnostics(t, diags)
-	assertDiagnosticCount(t, diags, 1)
-	assertDiagnosticSummary(t, diags, "Version constraints inside provider configuration blocks are deprecated")
+	assertDiagnosticCount(t, diags, 0)
 
 	tlsProvider := addrs.NewProvider(
 		addrs.DefaultProviderRegistryHost,
@@ -256,15 +246,13 @@ func TestConfigProviderRequirementsShallowInclTests(t *testing.T) {
 	)
 	impliedProvider := addrs.NewDefaultProvider("implied")
 	terraformProvider := addrs.NewBuiltInProvider("terraform")
-	configuredProvider := addrs.NewDefaultProvider("configured")
 
 	got, diags := cfg.ProviderRequirementsShallow()
 	assertNoDiagnostics(t, diags)
 	want := providerreqs.Requirements{
-		tlsProvider:        providerreqs.MustParseVersionConstraints("~> 3.0"),
-		configuredProvider: providerreqs.MustParseVersionConstraints("~> 1.4"),
-		impliedProvider:    nil,
-		terraformProvider:  nil,
+		tlsProvider:       providerreqs.MustParseVersionConstraints("~> 3.0"),
+		impliedProvider:   nil,
+		terraformProvider: nil,
 	}
 
 	if diff := cmp.Diff(want, got); diff != "" {
@@ -346,12 +334,7 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 
 func TestConfigProviderRequirementsByModuleInclTests(t *testing.T) {
 	cfg, diags := testNestedModuleConfigFromDirWithTests(t, "testdata/provider-reqs-with-tests")
-	// TODO: Version Constraint Deprecation.
-	// Once we've removed the version argument from provider configuration
-	// blocks, this can go back to expected 0 diagnostics.
-	// assertNoDiagnostics(t, diags)
-	assertDiagnosticCount(t, diags, 1)
-	assertDiagnosticSummary(t, diags, "Version constraints inside provider configuration blocks are deprecated")
+	assertDiagnosticCount(t, diags, 0)
 
 	tlsProvider := addrs.NewProvider(
 		addrs.DefaultProviderRegistryHost,
@@ -378,17 +361,16 @@ func TestConfigProviderRequirementsByModuleInclTests(t *testing.T) {
 		Children: make(map[string]*ModuleRequirements),
 		Tests: map[string]*TestFileModuleRequirements{
 			"provider-reqs-root.tftest.hcl": {
-				Requirements: providerreqs.Requirements{
-					configuredProvider: providerreqs.MustParseVersionConstraints("~> 1.4"),
-				},
+				Requirements: providerreqs.Requirements{},
 				Runs: map[string]*ModuleRequirements{
 					"setup": {
 						Name:       "setup",
 						SourceAddr: addrs.ModuleSourceLocal("./setup"),
 						SourceDir:  "testdata/provider-reqs-with-tests/setup",
 						Requirements: providerreqs.Requirements{
-							nullProvider:   providerreqs.MustParseVersionConstraints("~> 2.0.0"),
-							randomProvider: providerreqs.MustParseVersionConstraints("~> 1.2.0"),
+							nullProvider:       providerreqs.MustParseVersionConstraints("~> 2.0.0"),
+							randomProvider:     providerreqs.MustParseVersionConstraints("~> 1.2.0"),
+							configuredProvider: nil,
 						},
 						Children: make(map[string]*ModuleRequirements),
 						Tests:    make(map[string]*TestFileModuleRequirements),

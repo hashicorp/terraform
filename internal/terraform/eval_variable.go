@@ -215,67 +215,6 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContex
 		return diags
 	}
 
-	// Validation expressions are statically validated (during configuration
-	// loading) to refer only to the variable being validated, so we can
-	// bypass our usual evaluation machinery here and just produce a minimal
-	// evaluation context containing just the required value.
-	val := ctx.NamedValues().GetInputVariableValue(addr)
-	if val == cty.NilVal {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "No final value for variable",
-			Detail:   fmt.Sprintf("Terraform doesn't have a final value for %s during validation. This is a bug in Terraform; please report it!", addr),
-		})
-		return diags
-	}
-	hclCtx := &hcl.EvalContext{
-		Variables: map[string]cty.Value{
-			"var": cty.ObjectVal(map[string]cty.Value{
-				addr.Variable.Name: val,
-			}),
-		},
-		Functions: ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey).Functions(),
-	}
-
-	for ix, validation := range rules {
-		result, ruleDiags := evalVariableValidation(validation, hclCtx, valueRng, addr, ix)
-		diags = diags.Append(ruleDiags)
-
-		log.Printf("[TRACE] evalVariableValidations: %s status is now %s", addr, result.Status)
-		if result.Status == checks.StatusFail {
-			checkState.ReportCheckFailure(addr, addrs.InputValidation, ix, result.FailureMessage)
-		} else {
-			checkState.ReportCheckResult(addr, addrs.InputValidation, ix, result.Status)
-		}
-	}
-
-	return diags
-}
-
-// evalVariableValidationsCrossRef is an experimental variant of
-// [evalVariableValidations] that allows arbitrary references to any object
-// declared in the same module as the variable.
-//
-// If the experiment is successful, this function should replace
-// [evalVariableValidations], but it's currently written separately to minimize
-// the risk of the experiment impacting non-opted modules.
-func evalVariableValidationsCrossRef(addr addrs.AbsInputVariableInstance, ctx EvalContext, rules []*configs.CheckRule, valueRng hcl.Range) (diags tfdiags.Diagnostics) {
-	if len(rules) == 0 {
-		log.Printf("[TRACE] evalVariableValidations: no validation rules declared for %s, so skipping", addr)
-		return nil
-	}
-	log.Printf("[TRACE] evalVariableValidations: validating %s", addr)
-
-	checkState := ctx.Checks()
-	if !checkState.ConfigHasChecks(addr.ConfigCheckable()) {
-		// We have nothing to do if this object doesn't have any checks,
-		// but the "rules" slice should agree that we don't.
-		if ct := len(rules); ct != 0 {
-			panic(fmt.Sprintf("check state says that %s should have no rules, but it has %d", addr, ct))
-		}
-		return diags
-	}
-
 	// We'll build just one evaluation context covering the data needed by
 	// all of the rules together, since that'll minimize lock contention
 	// on the state, plan, etc.
@@ -298,6 +237,46 @@ func evalVariableValidationsCrossRef(addr addrs.AbsInputVariableInstance, ctx Ev
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return diags
+	}
+
+	// HACK: Historically we manually built a very constrained hcl.EvalContext
+	// here, which only included the value of the one specific input variable
+	// we're validating, since we didn't yet support referring to anything
+	// else. That accidentally bypassed our rule that input variables are
+	// always unknown during the validate walk, and thus accidentally created
+	// a useful behavior of actually checking constant-only values against
+	// their validation rules just during "terraform validate", rather than
+	// having to run "terraform plan".
+	//
+	// Although that behavior was accidental, it makes simple validation rules
+	// more useful and is protected by compatibility promises, and so we'll
+	// fake it here by overwriting the unknown value that scope.EvalContext
+	// will have inserted with a possibly-more-known value using the same
+	// strategy our special code used to use.
+	ourVal := ctx.NamedValues().GetInputVariableValue(addr)
+	if ourVal != cty.NilVal {
+		// (it would be weird for ourVal to be nil here, but we'll tolerate it
+		// because it was scope.EvalContext's responsibility to check for the
+		// absent final value, and even if it didn't we'll just get an
+		// evaluation error when evaluating the expressions below anyway.)
+
+		// Our goal here is to make sure that a reference to the variable
+		// we're checking will evaluate to ourVal, regardless of what else
+		// scope.EvalContext might have put in the variables table.
+		if hclCtx.Variables == nil {
+			hclCtx.Variables = make(map[string]cty.Value)
+		}
+		if varsVal, ok := hclCtx.Variables["var"]; ok {
+			// Unfortunately we need to unpack and repack the object here,
+			// because cty values are immutable.
+			attrs := varsVal.AsValueMap()
+			attrs[addr.Variable.Name] = ourVal
+			hclCtx.Variables["var"] = cty.ObjectVal(attrs)
+		} else {
+			hclCtx.Variables["var"] = cty.ObjectVal(map[string]cty.Value{
+				addr.Variable.Name: ourVal,
+			})
+		}
 	}
 
 	for ix, validation := range rules {

@@ -596,6 +596,12 @@ func (m *Main) reportNamedPromises(cb func(id promising.PromiseID, name string))
 	if m.mainStackConfig != nil {
 		m.mainStackConfig.reportNamedPromises(cb)
 	}
+	if m.mainStack != nil {
+		m.mainStack.reportNamedPromises(cb)
+	}
+	for _, pty := range m.providerTypes {
+		pty.reportNamedPromises(cb)
+	}
 }
 
 // availableProvisioners returns the table of provisioner factories that should

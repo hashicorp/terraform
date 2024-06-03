@@ -528,4 +528,10 @@ func (s *StackConfig) reportNamedPromises(cb func(id promising.PromiseID, name s
 	for _, child := range s.stackCalls {
 		child.reportNamedPromises(cb)
 	}
+	for _, child := range s.components {
+		child.reportNamedPromises(cb)
+	}
+	for _, child := range s.providers {
+		child.reportNamedPromises(cb)
+	}
 }

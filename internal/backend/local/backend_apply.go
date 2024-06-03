@@ -82,7 +82,7 @@ func (b *Local) opApply(
 	// stateHook uses schemas for when it periodically persists state to the
 	// persistent storage backend.
 	stateHook.Schemas = schemas
-	stateHook.PersistInterval = 20 * time.Second // arbitrary interval that's hopefully a sweet spot
+	stateHook.PersistInterval = time.Duration(op.StatePersistInterval) * time.Second
 
 	var plan *plans.Plan
 	// If we weren't given a plan, then we refresh/plan

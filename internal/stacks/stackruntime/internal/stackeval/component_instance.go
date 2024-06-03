@@ -581,6 +581,19 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				deferred = true
 			}
 
+			// When our given context is cancelled, we want to instruct the
+			// modules runtime to stop the running operation. We use this
+			// nested context to ensure that we don't leak a goroutine when the
+			// parent context isn't cancelled.
+			operationCtx, operationCancel := context.WithCancel(ctx)
+			defer operationCancel()
+			go func() {
+				<-operationCtx.Done()
+				if ctx.Err() == context.Canceled {
+					tfCtx.Stop()
+				}
+			}()
+
 			// NOTE: This ComponentInstance type only deals with component
 			// instances currently declared in the configuration. See
 			// [ComponentInstanceRemoved] for the model of a component instance
@@ -804,6 +817,19 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 
 	var newState *states.State
 	if modifiedPlan.Applyable {
+		// When our given context is cancelled, we want to instruct the
+		// modules runtime to stop the running operation. We use this
+		// nested context to ensure that we don't leak a goroutine when the
+		// parent context isn't cancelled.
+		operationCtx, operationCancel := context.WithCancel(ctx)
+		defer operationCancel()
+		go func() {
+			<-operationCtx.Done()
+			if ctx.Err() == context.Canceled {
+				tfCtx.Stop()
+			}
+		}()
+
 		// NOTE: tfCtx.Apply tends to make changes to the given plan while it
 		// works, and so code after this point should not make any further use
 		// of either "modifiedPlan" or "plan" (since they share lots of the same
@@ -995,6 +1021,12 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 		if plan.UIMode != plans.DestroyMode {
 			outputChanges := plan.Changes.Outputs
 			for _, changeSrc := range outputChanges {
+				if len(changeSrc.Addr.Module) > 0 {
+					// Only include output values of the root module as part
+					// of the component.
+					continue
+				}
+
 				name := changeSrc.Addr.OutputValue.Name
 				change, err := changeSrc.Decode()
 				if err != nil {
@@ -1533,4 +1565,9 @@ func (c *ComponentInstance) resourceTypeSchema(ctx context.Context, providerType
 
 func (c *ComponentInstance) tracingName() string {
 	return c.Addr().String()
+}
+
+// reportNamedPromises implements namedPromiseReporter.
+func (c *ComponentInstance) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	cb(c.moduleTreePlan.PromiseID(), c.Addr().String()+" plan")
 }

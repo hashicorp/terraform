@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -616,4 +617,103 @@ func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesS
 		Instances:   instances.NewExpander(nil),
 		NamedValues: namedvals.NewState(),
 	}
+}
+
+// fakeEvaluationData is an implementation of [lang.Data] that answers most
+// questions just by returning data directly from the maps stored inside it.
+type fakeEvaluationData struct {
+	checkBlocks    map[addrs.Check]cty.Value
+	countAttrs     map[addrs.CountAttr]cty.Value
+	forEachAttrs   map[addrs.ForEachAttr]cty.Value
+	inputVariables map[addrs.InputVariable]cty.Value
+	localValues    map[addrs.LocalValue]cty.Value
+	modules        map[addrs.ModuleCall]cty.Value
+	outputValues   map[addrs.OutputValue]cty.Value
+	pathAttrs      map[addrs.PathAttr]cty.Value
+	resources      map[addrs.Resource]cty.Value
+	runBlocks      map[addrs.Run]cty.Value
+	terraformAttrs map[addrs.TerraformAttr]cty.Value
+
+	// staticValidateRefs optionally implements [lang.Data.StaticValidateReferences],
+	// but can be left as nil to just skip static validation altogether.
+	staticValidateRefs func(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics
+}
+
+var _ lang.Data = (*fakeEvaluationData)(nil)
+
+func fakeEvaluationDataLookup[Addr interface {
+	comparable
+	addrs.Referenceable
+}](addr Addr, _ tfdiags.SourceRange, table map[Addr]cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	ret, ok := table[addr]
+	if !ok {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(fmt.Errorf("fakeEvaluationData does not know about %s", addr))
+		return cty.DynamicVal, diags
+	}
+	return ret, nil
+}
+
+// GetCheckBlock implements lang.Data.
+func (d *fakeEvaluationData) GetCheckBlock(addr addrs.Check, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.checkBlocks)
+}
+
+// GetCountAttr implements lang.Data.
+func (d *fakeEvaluationData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.countAttrs)
+}
+
+// GetForEachAttr implements lang.Data.
+func (d *fakeEvaluationData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.forEachAttrs)
+}
+
+// GetInputVariable implements lang.Data.
+func (d *fakeEvaluationData) GetInputVariable(addr addrs.InputVariable, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.inputVariables)
+}
+
+// GetLocalValue implements lang.Data.
+func (d *fakeEvaluationData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.localValues)
+}
+
+// GetModule implements lang.Data.
+func (d *fakeEvaluationData) GetModule(addr addrs.ModuleCall, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.modules)
+}
+
+// GetOutput implements lang.Data.
+func (d *fakeEvaluationData) GetOutput(addr addrs.OutputValue, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.outputValues)
+}
+
+// GetPathAttr implements lang.Data.
+func (d *fakeEvaluationData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.pathAttrs)
+}
+
+// GetResource implements lang.Data.
+func (d *fakeEvaluationData) GetResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.resources)
+}
+
+// GetRunBlock implements lang.Data.
+func (d *fakeEvaluationData) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.runBlocks)
+}
+
+// GetTerraformAttr implements lang.Data.
+func (d *fakeEvaluationData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return fakeEvaluationDataLookup(addr, rng, d.terraformAttrs)
+}
+
+// StaticValidateReferences implements lang.Data.
+func (d *fakeEvaluationData) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
+	if d.staticValidateRefs == nil {
+		// By default we just skip static validation
+		return nil
+	}
+	return d.staticValidateRefs(refs, self, source)
 }
