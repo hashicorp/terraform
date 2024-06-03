@@ -1,5 +1,7 @@
 ## 1.9.0 (Unreleased)
 
+If you are upgrading from an earlier minor release, please refer to [the Terraform v1.9 Upgrade Guide](https://developer.hashicorp.com/terraform/language/v1.9.x/upgrade-guides).
+
 NEW FEATURES:
 
 * **Input variable validation rules can refer to other objects**: Previously input variable validation rules could refer only to the variable being validated. Now they are general expressions, similar to those elsewhere in a module, which can refer to other input variables and to other objects such as data resources.
@@ -11,6 +13,7 @@ ENHANCEMENTS:
 * `terraform init` now accepts a `-json` option. If specified, enables the machine readable JSON output. ([#34886](https://github.com/hashicorp/terraform/pull/34886))
 * `terraform test`: Test runs can now pass sensitive values to input variables while preserving their dynamic sensitivity. Previously sensitivity would be preserved only for variables statically declared as being sensitive, using `sensitive = true`. ([#35021](https://github.com/hashicorp/terraform/pull/35021))
 * config: Input variable validation rules can now refer to other objects in the same module. ([#34955](https://github.com/hashicorp/terraform/pull/34955))
+* config: `templatestring` function allows rendering a template provided as a string. ([#34968](https://github.com/hashicorp/terraform/pull/34968), [#35224](https://github.com/hashicorp/terraform/pull/35224), [#35285](https://github.com/hashicorp/terraform/pull/35285))
 * core: Performance improvement during graph building for configurations with an extremely large number of `resource` blocks. ([#35088](https://github.com/hashicorp/terraform/pull/35088))
 * built-in `terraform` provider: Allows `moved` block refactoring from the `hashicorp/null` provider `null_resource` resource type to the `terraform_data` resource type. ([#35163](https://github.com/hashicorp/terraform/pull/35163))
 * `terraform output` with `cloud` block: Terraform no longer suggests that data loss could occur when outputs are not available. ([#35143](https://github.com/hashicorp/terraform/issues/35143))
