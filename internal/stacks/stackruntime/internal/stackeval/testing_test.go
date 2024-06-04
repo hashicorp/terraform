@@ -435,6 +435,20 @@ func (m *Main) SetTestOnlyGlobals(t *testing.T, vals map[string]cty.Value) {
 	m.testOnlyGlobals = vals
 }
 
+func assertFalse(t *testing.T, value bool) {
+	t.Helper()
+	if value {
+		t.Fatalf("expected false but got true")
+	}
+}
+
+func assertTrue(t *testing.T, value bool) {
+	t.Helper()
+	if !value {
+		t.Fatalf("expected true but got false")
+	}
+}
+
 func assertNoDiags(t *testing.T, diags tfdiags.Diagnostics) {
 	t.Helper()
 	if len(diags) != 0 {

@@ -47,8 +47,9 @@ func TestProviderCheckInstances(t *testing.T) {
 			t.Fatalf("unexpected for_each value\ngot:  %#v\nwant: cty.NilVal", forEachVal)
 		}
 
-		insts, diags := provider.CheckInstances(ctx, InspectPhase)
+		insts, unknown, diags := provider.CheckInstances(ctx, InspectPhase)
 		assertNoDiags(t, diags)
+		assertFalse(t, unknown)
 		if got, want := len(insts), 1; got != want {
 			t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, insts)
 		}
@@ -77,8 +78,9 @@ func TestProviderCheckInstances(t *testing.T) {
 			if got, want := forEachVal, cty.MapValEmpty(cty.EmptyObject); !want.RawEquals(got) {
 				t.Fatalf("unexpected for_each value\ngot:  %#v\nwant: %#v", got, want)
 			}
-			insts, diags := provider.CheckInstances(ctx, InspectPhase)
+			insts, unknown, diags := provider.CheckInstances(ctx, InspectPhase)
 			assertNoDiags(t, diags)
+			assertFalse(t, unknown)
 			if got, want := len(insts), 0; got != want {
 				t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, insts)
 			}
@@ -110,8 +112,9 @@ func TestProviderCheckInstances(t *testing.T) {
 			if !wantForEachVal.RawEquals(gotForEachVal) {
 				t.Fatalf("unexpected for_each value\ngot:  %#v\nwant: %#v", gotForEachVal, wantForEachVal)
 			}
-			insts, diags := provider.CheckInstances(ctx, InspectPhase)
+			insts, unknown, diags := provider.CheckInstances(ctx, InspectPhase)
 			assertNoDiags(t, diags)
+			assertFalse(t, unknown)
 			if got, want := len(insts), 2; got != want {
 				t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, insts)
 			}
@@ -184,8 +187,12 @@ func TestProviderCheckInstances(t *testing.T) {
 			// how many instances there are. This is a different result than
 			// when we know there are zero instances, which would be a non-nil
 			// empty map.
-			gotInsts, diags := provider.CheckInstances(ctx, InspectPhase)
-			assertNoDiags(t, diags)
+			gotInsts, unknown, diags := provider.CheckInstances(ctx, InspectPhase)
+			assertFalse(t, unknown)
+			assertMatchingDiag(t, diags, func(diag tfdiags.Diagnostic) bool {
+				return (diag.Severity() == tfdiags.Error &&
+					diag.Description().Detail == "The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this provider.")
+			})
 			if gotInsts != nil {
 				t.Errorf("wrong instances; want nil\n%#v", gotInsts)
 			}
@@ -210,11 +217,10 @@ func TestProviderCheckInstances(t *testing.T) {
 				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", gotVal, wantVal)
 			}
 
-			// An unknown for-each expression should return a placeholder set
-			// of instances.
-			insts, diags := provider.CheckInstances(ctx, InspectPhase)
+			insts, unknown, diags := provider.CheckInstances(ctx, InspectPhase)
 			assertNoDiags(t, diags)
-			if got, want := len(insts), 1; got != want {
+			assertTrue(t, unknown)
+			if got, want := len(insts), 0; got != want {
 				t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, insts)
 			}
 		})
@@ -360,7 +366,7 @@ func TestProviderExprReferenceValue(t *testing.T) {
 			// When the for_each expression is invalid, the result value
 			// is unknown so we can use it as a placeholder for partial
 			// downstream checking.
-			want := cty.UnknownVal(cty.Map(providerRefType))
+			want := cty.NilVal
 			// FIXME: the cmp transformer ctydebug.CmpOptions seems to find
 			// this particular pair of values troubling, causing it to get
 			// into an infinite recursion. For now we'll just use RawEquals,
@@ -383,7 +389,7 @@ func TestProviderExprReferenceValue(t *testing.T) {
 			// When the for_each expression is invalid, the result value
 			// is unknown so we can use it as a placeholder for partial
 			// downstream checking.
-			want := cty.UnknownVal(cty.Map(providerRefType))
+			want := cty.NilVal
 			// FIXME: the cmp transformer ctydebug.CmpOptions seems to find
 			// this particular pair of values troubling, causing it to get
 			// into an infinite recursion. For now we'll just use RawEquals,

@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	fileProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/file"
 	remoteExecProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
-	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -385,40 +384,6 @@ func (m *Main) ProviderType(ctx context.Context, addr addrs.Provider) *ProviderT
 
 func (m *Main) ProviderRefTypes() map[addrs.Provider]cty.Type {
 	return m.config.ProviderRefTypes
-}
-
-// ProviderInstance returns the provider instance with the given address,
-// or nil if there is no such provider instance.
-//
-// This function needs to evaluate the for_each expression of each stack along
-// the path and of a final multi-instance provider configuration, and so will
-// block on whatever those expressions depend on.
-//
-// If any of the objects along the path have an as-yet-unknown set of
-// instances, this function will optimistically return a non-nil provider
-// configuration but further operations with that configuration are likely
-// to return unknown values themselves.
-func (m *Main) ProviderInstance(ctx context.Context, addr stackaddrs.AbsProviderConfigInstance, phase EvalPhase) *ProviderInstance {
-	stack := m.Stack(ctx, addr.Stack, phase)
-	if stack == nil {
-		return nil
-	}
-	provider := stack.Provider(ctx, addr.Item.ProviderConfig)
-	if provider == nil {
-		return nil
-	}
-	insts := provider.Instances(ctx, phase)
-	if insts == nil {
-		// A nil result means that the for_each expression is unknown, and
-		// so we must optimistically return an instance referring to the
-		// given address which will then presumably yield unknown values
-		// of some kind when used.
-		return newProviderInstance(provider, addr.Item.Key, instances.RepetitionData{
-			EachKey:   cty.UnknownVal(cty.String),
-			EachValue: cty.DynamicVal,
-		})
-	}
-	return insts[addr.Item.Key]
 }
 
 // PreviousProviderInstances fetches the set of providers that are required

@@ -68,7 +68,8 @@ func TestProviderInstanceCheckProviderArgs(t *testing.T) {
 		if provider == nil {
 			t.Fatal("no provider.foo.bar is available")
 		}
-		insts := provider.Instances(ctx, InspectPhase)
+		insts, unknown := provider.Instances(ctx, InspectPhase)
+		assertFalse(t, unknown)
 		inst, ok := insts[addrs.NoKey]
 		if !ok {
 			t.Fatal("missing NoKey instance of provider.foo.bar")
@@ -341,7 +342,8 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 		if provider == nil {
 			t.Fatal("no provider.foo.bar is available")
 		}
-		insts := provider.Instances(ctx, InspectPhase)
+		insts, unknown := provider.Instances(ctx, InspectPhase)
+		assertFalse(t, unknown)
 		inst, ok := insts[addrs.NoKey]
 		if !ok {
 			t.Fatal("missing NoKey instance of provider.foo.bar")
