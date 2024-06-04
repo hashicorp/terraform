@@ -23,6 +23,14 @@ var (
 		},
 	}
 
+	DeferredResourceSchema = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id":       {Type: cty.String, Optional: true, Computed: true},
+			"value":    {Type: cty.String, Optional: true},
+			"deferred": {Type: cty.Bool, Required: true},
+		},
+	}
+
 	TestingDataSourceSchema = &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
 			"id":    {Type: cty.String, Required: true},
@@ -53,6 +61,9 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 					"testing_resource": {
 						Block: TestingResourceSchema,
 					},
+					"testing_deferred_resource": {
+						Block: DeferredResourceSchema,
+					},
 				},
 				DataSources: map[string]providers.Schema{
 					"testing_data_source": {
@@ -76,6 +87,17 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 					vals := value.AsValueMap()
 					vals["id"] = cty.UnknownVal(cty.String)
 					value = cty.ObjectVal(vals)
+				}
+
+				if request.TypeName == "testing_deferred_resource" {
+					if value.GetAttr("deferred").True() {
+						return providers.PlanResourceChangeResponse{
+							PlannedState: value,
+							Deferred: &providers.Deferred{
+								Reason: providers.DeferredReasonResourceConfigUnknown,
+							},
+						}
+					}
 				}
 
 				return providers.PlanResourceChangeResponse{

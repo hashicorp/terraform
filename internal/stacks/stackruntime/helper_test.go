@@ -141,6 +141,8 @@ func plannedChangeSortKey(change stackplan.PlannedChange) string {
 		return change.Addr.String()
 	case *stackplan.PlannedChangeResourceInstancePlanned:
 		return change.ResourceInstanceObjectAddr.String()
+	case *stackplan.PlannedChangeDeferredResourceInstancePlanned:
+		return change.ResourceInstancePlanned.ResourceInstanceObjectAddr.String()
 	case *stackplan.PlannedChangeOutputValue:
 		return change.Addr.String()
 	case *stackplan.PlannedChangeHeader:

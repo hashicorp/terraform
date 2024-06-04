@@ -46,8 +46,9 @@ type Component struct {
 	// will handle any apply-time actions for that object.
 	ResourceInstanceProviderConfig addrs.Map[addrs.AbsResourceInstanceObject, addrs.AbsProviderConfig]
 
-	// TODO: Something for deferred resource instance changes, once we have
-	// such a concept.
+	// DeferredResourceInstanceChanges is a set of resource instance objects
+	// that have changes that are deferred to a later plan and apply cycle.
+	DeferredResourceInstanceChanges addrs.Map[addrs.AbsResourceInstanceObject, *plans.DeferredResourceInstanceChangeSrc]
 
 	// PlanTimestamp is the time Terraform Core recorded as the single "plan
 	// timestamp", which is used only for the result of the "plantimestamp"
