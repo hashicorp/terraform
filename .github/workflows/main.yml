@@ -10,12 +10,17 @@ jobs:
   backport:
     if: github.event.pull_request.merged
     runs-on: ubuntu-latest
-    container: hashicorpdev/backport-assistant:0.4.0@sha256:0c0c7e452673de42675d7966bfa1268103ca60c9de30ae4a72b2136d448a54dc
+    container: hashicorpdev/backport-assistant:0.4.3@sha256:2381806dd059c14515463b87e8a923d57734bd484beea6a561e411e25628e010
     steps:
       - name: Run Backport Assistant
         run: |
+          curl -L \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/installation/repositories
           backport-assistant backport
         env:
           BACKPORT_LABEL_REGEXP: "(?P<target>\\d+\\.\\d+)-backport"
           BACKPORT_TARGET_TEMPLATE: "v{{.target}}"
-          GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
