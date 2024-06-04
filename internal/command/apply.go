@@ -283,6 +283,7 @@ func (c *ApplyCommand) OperationRequest(
 	opReq.ForceReplace = args.ForceReplace
 	opReq.Type = backendrun.OperationTypeApply
 	opReq.View = view.Operation()
+	opReq.StatePersistInterval = c.Meta.StatePersistInterval()
 
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {

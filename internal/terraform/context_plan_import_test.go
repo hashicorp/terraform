@@ -671,6 +671,80 @@ func TestContext2Plan_importIdInvalidUnknown(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_generateConfigWithNestedId(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to = test_object.a
+  id = "foo"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+
+	p.GetProviderSchemaResponse.ResourceTypes = map[string]providers.Schema{
+		"test_object": {
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"test_id": {
+						Type:     cty.String,
+						Required: true,
+					},
+					"list_val": {
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"id": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_id": cty.StringVal("foo"),
+			"list_val": cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("list_id"),
+				}),
+			}),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_id": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	// Actual plan doesn't matter, just want to make sure there are no errors.
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+}
+
 func TestContext2Plan_importIntoModuleWithGeneratedConfig(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -706,17 +780,6 @@ resource "test_object" "a" {
 			"test_string": cty.StringVal("foo"),
 		}),
 	}
-	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
-		ImportedResources: []providers.ImportedResource{
-			{
-				TypeName: "test_object",
-				State: cty.ObjectVal(map[string]cty.Value{
-					"test_string": cty.StringVal("foo"),
-				}),
-			},
-		},
-	}
-
 	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
@@ -1496,6 +1559,70 @@ import {
 	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode:               plans.NormalMode,
 		GenerateConfigPath: "generated.tf",
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+}
+func TestContext2Plan_importDuringDestroy(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+	resource "test_object" "a" {
+	  test_string = "foo"
+	}
+
+	import {
+	  to   = test_object.a
+	  id   = "missing"
+	}
+
+	resource "test_object" "b" {
+		test_string = "foo"
+	  }
+	`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		// this resource has already been deleted, so return nothing during refresh
+		if req.PriorState.GetAttr("test_string").AsString() == "missing" {
+			resp.NewState = cty.NullVal(req.PriorState.Type())
+			return resp
+		}
+
+		resp.NewState = req.PriorState
+		return resp
+	}
+
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("missing"),
+				}),
+			},
+		},
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.b").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())

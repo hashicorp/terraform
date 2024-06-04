@@ -62,39 +62,56 @@ func TestNodeRootVariableExecute(t *testing.T) {
 
 		ctx.NamedValuesState = namedvals.NewState()
 
-		// The variable validation function gets called with Terraform's
-		// built-in functions available, so we need a minimal scope just for
-		// it to get the functions from.
-		ctx.EvaluationScopeScope = &lang.Scope{}
+		// We need a minimal scope that knows just enough to complete evaluation
+		// of this input variable.
+		varAddr := addrs.InputVariable{Name: "foo"}
+		varValue := cty.StringVal("5")
+		ctx.EvaluationScopeScope = &lang.Scope{
+			Data: &fakeEvaluationData{
+				inputVariables: map[addrs.InputVariable]cty.Value{
+					// Nothing here to start, since in realistic use it
+					// would be NodeRootVariable that decides the final
+					// value to populate in here.
+				},
+			},
+		}
 
 		n := &NodeRootVariable{
-			Addr: addrs.InputVariable{Name: "foo"},
+			Addr: varAddr,
 			Config: &configs.Variable{
-				Name:           "foo",
+				Name:           varAddr.Name,
 				Type:           cty.Number,
 				ConstraintType: cty.Number,
 				Validations: []*configs.CheckRule{
 					{
-						Condition: fakeHCLExpressionFunc(func(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
-							// This returns true only if the given variable value
-							// is exactly cty.Number, which allows us to verify
-							// that we were given the value _after_ type
-							// conversion.
-							// This had previously not been handled correctly,
-							// as reported in:
-							//     https://github.com/hashicorp/terraform/issues/29899
-							vars := ctx.Variables["var"]
-							if vars == cty.NilVal || !vars.Type().IsObjectType() || !vars.Type().HasAttribute("foo") {
-								t.Logf("var.foo isn't available")
-								return cty.False, nil
-							}
-							val := vars.GetAttr("foo")
-							if val == cty.NilVal || val.Type() != cty.Number {
-								t.Logf("var.foo is %#v; want a number", val)
-								return cty.False, nil
-							}
-							return cty.True, nil
-						}),
+						Condition: fakeHCLExpression(
+							[]hcl.Traversal{
+								{
+									hcl.TraverseRoot{Name: "var"},
+									hcl.TraverseAttr{Name: varAddr.Name},
+								},
+							},
+							func(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
+								// This returns true only if the given variable value
+								// is exactly cty.Number, which allows us to verify
+								// that we were given the value _after_ type
+								// conversion.
+								// This had previously not been handled correctly,
+								// as reported in:
+								//     https://github.com/hashicorp/terraform/issues/29899
+								vars := ctx.Variables["var"]
+								if vars == cty.NilVal || !vars.Type().IsObjectType() || !vars.Type().HasAttribute(varAddr.Name) {
+									t.Logf("%s isn't available", varAddr)
+									return cty.False, nil
+								}
+								val := vars.GetAttr(varAddr.Name)
+								if val == cty.NilVal || val.Type() != cty.Number {
+									t.Logf("%s is %#v; want a number", varAddr, val)
+									return cty.False, nil
+								}
+								return cty.True, nil
+							},
+						),
 						ErrorMessage: hcltest.MockExprLiteral(cty.StringVal("Must be a number.")),
 					},
 				},
@@ -102,7 +119,7 @@ func TestNodeRootVariableExecute(t *testing.T) {
 			RawValue: &InputValue{
 				// Note: This is a string, but the variable's type constraint
 				// is number so it should be converted before use.
-				Value:      cty.StringVal("5"),
+				Value:      varValue,
 				SourceType: ValueFromUnknown,
 			},
 			Planning: true,
@@ -117,7 +134,7 @@ func TestNodeRootVariableExecute(t *testing.T) {
 		ctx.ChecksState = checks.NewState(&configs.Config{
 			Module: &configs.Module{
 				Variables: map[string]*configs.Variable{
-					"foo": n.Config,
+					varAddr.Name: n.Config,
 				},
 			},
 		})
@@ -126,12 +143,9 @@ func TestNodeRootVariableExecute(t *testing.T) {
 		if diags.HasErrors() {
 			t.Fatalf("unexpected error from NodeRootVariable: %s", diags.Err())
 		}
-		diags = validateN.Execute(ctx, walkApply)
-		if diags.HasErrors() {
-			t.Fatalf("unexpected error from nodeVariableValidation: %s", diags.Err())
-		}
 
-		absAddr := addrs.RootModuleInstance.InputVariable(n.Addr.Name)
+		// We should now have a final value for the variable, pending validation.
+		absAddr := varAddr.Absolute(addrs.RootModuleInstance)
 		if !ctx.NamedValues().HasInputVariableValue(absAddr) {
 			t.Fatalf("no result value for input variable")
 		}
@@ -139,8 +153,23 @@ func TestNodeRootVariableExecute(t *testing.T) {
 			// NOTE: The given value was cty.Bool but the type constraint was
 			// cty.String, so it was NodeRootVariable's responsibility to convert
 			// as part of preparing the "final value".
-			t.Errorf("wrong value for ctx.SetRootModuleArgument\ngot:  %#v\nwant: %#v", got, want)
+			t.Fatalf("wrong value for ctx.SetRootModuleArgument\ngot:  %#v\nwant: %#v", got, want)
+		} else {
+			// Our evaluation scope would now, if using the _real_
+			// evaluationStateData implementation, include that final value.
+			//
+			// There are also integration tests covering the fully-integrated
+			// form of this test, using the real evaluation data implementation:
+			//     TestContext2Plan_variableCustomValidationsSimple
+			//     TestContext2Plan_variableCustomValidationsCrossRef
+			ctx.EvaluationScopeScope.Data.(*fakeEvaluationData).inputVariables[varAddr] = got
 		}
+
+		diags = validateN.Execute(ctx, walkApply)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected error from nodeVariableValidation: %s", diags.Err())
+		}
+
 		if status := ctx.Checks().ObjectCheckStatus(n.Addr.Absolute(addrs.RootModuleInstance)); status != checks.StatusPass {
 			t.Errorf("expected checks to pass but go %s instead", status)
 		}
@@ -177,4 +206,33 @@ func (f fakeHCLExpressionFunc) Range() hcl.Range {
 
 func (f fakeHCLExpressionFunc) StartRange() hcl.Range {
 	return f.Range()
+}
+
+// fakeHCLExpressionFuncWithTraversals extends [fakeHCLExpressionFunc] with
+// a set of traversals that it reports from the [hcl.Expression.Variables]
+// method, thereby allowing the expression to also ask Terraform to include
+// specific data in the evaluation context that'll eventually be passed
+// to the callback function.
+type fakeHCLExpressionFuncWithTraversals struct {
+	fakeHCLExpressionFunc
+	traversals []hcl.Traversal
+}
+
+// fakeHCLExpression returns a [fakeHCLExpressionFuncWithTraversals] that
+// announces that it requires the traversals given in required, and then
+// calls the eval callback when asked to evaluate itself.
+//
+// If the evaluation callback expects to find any variables in the given
+// HCL evaluation context then the corresponding traversals MUST be given
+// in "required", because Terraform typically populates the context only
+// with the minimum required data for a given expression.
+func fakeHCLExpression(required []hcl.Traversal, eval fakeHCLExpressionFunc) fakeHCLExpressionFuncWithTraversals {
+	return fakeHCLExpressionFuncWithTraversals{
+		fakeHCLExpressionFunc: eval,
+		traversals:            required,
+	}
+}
+
+func (f fakeHCLExpressionFuncWithTraversals) Variables() []hcl.Traversal {
+	return f.traversals
 }

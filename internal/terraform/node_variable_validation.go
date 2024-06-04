@@ -34,13 +34,6 @@ type nodeVariableValidation struct {
 	// set from a non-configuration location like an environment variable --
 	// it's acceptable to use the declaration location instead.
 	defnRange hcl.Range
-
-	// allowGeneralReference is set for nodes that are associated with input
-	// variables that belong to modules participating in the
-	// "variable_validation_crossref" language experiment, which allows
-	// validation rules to refer to other objects declared in the same
-	// module as the variable.
-	allowGeneralReferences bool
 }
 
 var _ GraphNodeModulePath = (*nodeVariableValidation)(nil)
@@ -114,25 +107,12 @@ func (n *nodeVariableValidation) Execute(globalCtx EvalContext, op walkOperation
 	for _, modInst := range expander.ExpandModule(n.configAddr.Module, false) {
 		addr := n.configAddr.Variable.Absolute(modInst)
 		moduleCtx := globalCtx.withScope(evalContextModuleInstance{Addr: addr.Module})
-		if n.allowGeneralReferences {
-			// This is a more general form that's currently available only
-			// as an opt-in language experiment. Hopefully eventually this
-			// evalVariableValidationsCrossRef function replaces the
-			// old evalVariableValidations and we remove the experiment.
-			diags = diags.Append(evalVariableValidationsCrossRef(
-				addr,
-				moduleCtx,
-				n.rules,
-				n.defnRange,
-			))
-		} else {
-			diags = diags.Append(evalVariableValidations(
-				addr,
-				moduleCtx,
-				n.rules,
-				n.defnRange,
-			))
-		}
+		diags = diags.Append(evalVariableValidations(
+			addr,
+			moduleCtx,
+			n.rules,
+			n.defnRange,
+		))
 	}
 
 	return diags

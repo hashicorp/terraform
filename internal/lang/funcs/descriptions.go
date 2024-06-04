@@ -423,8 +423,8 @@ var DescriptionList = map[string]descriptionEntry{
 	"templatestring": {
 		Description: "`templatestring` takes a string from elsewhere in the module and renders its content as a template using a supplied set of template variables.",
 		ParamDescription: []string{
-			"a simple reference to a string value containing the template source code",
-			"object of variables to expose in the template scope",
+			"A simple reference to a string value containing the template source code.",
+			"Object of variables to expose in the template scope.",
 		},
 	},
 	"textdecodebase64": {

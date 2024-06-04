@@ -6921,8 +6921,6 @@ resource "test_resource" "foo" {
 }
 
 func TestContext2Plan_variableCustomValidationsSimple(t *testing.T) {
-	// This test is dealing with validation rules that refer to other objects
-	// in the same module.
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 			variable "a" {
@@ -6978,11 +6976,6 @@ func TestContext2Plan_variableCustomValidationsCrossRef(t *testing.T) {
 	// in the same module.
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-			# Validation cross-references are currently experimental
-			terraform {
-				experiments = [variable_validation_crossref]
-			}
-
 			variable "a" {
 				type = string
 			}

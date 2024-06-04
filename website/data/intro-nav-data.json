@@ -8,6 +8,16 @@
   },
   { "title": "Terraform Editions", "path": "terraform-editions" },
   { "title": "The Core Terraform Workflow", "path": "core-workflow" },
+  { 
+    "title": "Phases of Terraform Adoption", 
+    "routes": [
+      {"title": "Overview", "path": "phases"},
+      {"title": "Adopt", "path": "phases/adopt"},
+      {"title": "Collaborate", "path": "phases/collaborate"},
+      {"title": "Scale", "path": "phases/scale"},
+      {"title": "Govern", "path": "phases/govern"}
+    ]
+  },
   {
     "title": "Terraform vs. Alternatives",
     "routes": [
