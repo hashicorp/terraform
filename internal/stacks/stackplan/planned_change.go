@@ -275,8 +275,6 @@ func (pc *PlannedChangeResourceInstancePlanned) PlanResourceInstanceChangePlanne
 		// This is just a stubby placeholder to remind us to drop the
 		// apparently-deleted-outside-of-Terraform object from the state
 		// if this plan later gets applied.
-		// We only emit a "raw" in this case, because this is a relatively
-		// uninteresting edge-case.
 
 		return &tfstackdata1.PlanResourceInstanceChangePlanned{
 			ComponentInstanceAddr: rioAddr.Component.String(),
@@ -307,7 +305,7 @@ func (pc *PlannedChangeResourceInstancePlanned) PlanResourceInstanceChangePlanne
 	}, nil
 }
 
-func (pc *PlannedChangeResourceInstancePlanned) ChangeDesciption() (*terraform1.PlannedChange_ChangeDescription, error) {
+func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*terraform1.PlannedChange_ChangeDescription, error) {
 	rioAddr := pc.ResourceInstanceObjectAddr
 	// We only emit an external description if there's a change to describe.
 	// Otherwise, we just emit a raw to remind us to update the state for
@@ -365,18 +363,17 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 	}
 
 	if pc.ChangeSrc == nil && pc.PriorStateSrc == nil {
-		// This is just a stubby placeholder to remind us to drop the
-		// apparently-deleted-outside-of-Terraform object from the state
-		// if this plan later gets applied.
 		// We only emit a "raw" in this case, because this is a relatively
-		// uninteresting edge-case.
+		// uninteresting edge-case. The PlanResourceInstanceChangePlannedProto
+		// function should have returned a placeholder value for this use case.
+
 		return &terraform1.PlannedChange{
 			Raw: []*anypb.Any{&raw},
 		}, nil
 	}
 
 	var descs []*terraform1.PlannedChange_ChangeDescription
-	desc, err := pc.ChangeDesciption()
+	desc, err := pc.ChangeDescription()
 	if err != nil {
 		return nil, err
 	}
@@ -433,7 +430,7 @@ func (dpc *PlannedChangeDeferredResourceInstancePlanned) PlannedChangeProto() (*
 	if err != nil {
 		return nil, err
 	}
-	ricd, err := dpc.ResourceInstancePlanned.ChangeDesciption()
+	ricd, err := dpc.ResourceInstancePlanned.ChangeDescription()
 	if err != nil {
 		return nil, err
 	}
