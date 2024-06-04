@@ -2524,6 +2524,209 @@ func TestPlanWithDeferredComponentForEachOfInvalidType(t *testing.T) {
 	}
 }
 
+func TestPlanWithDeferredProviderForEach(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, path.Join("with-single-input", "deferred-provider-for-each"))
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+		ForcePlanTimestamp: &fakePlanTimestamp,
+		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
+			{Name: "providers"}: {
+				Value:    cty.UnknownVal(cty.Set(cty.String)),
+				DefRange: tfdiags.SourceRange{},
+			},
+		},
+		DeferralAllowed: true,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+	go Plan(ctx, &req, &resp)
+	gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+
+	reportDiagnosticsForTest(t, diags)
+	if len(diags) != 0 {
+		t.FailNow() // We reported the diags above
+	}
+
+	sort.SliceStable(gotChanges, func(i, j int) bool {
+		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
+	})
+
+	wantChanges := []stackplan.PlannedChange{
+		&stackplan.PlannedChangeApplyable{
+			Applyable: true,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance,
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "known"},
+				}),
+			PlanComplete:  false,
+			PlanApplyable: false,
+			Action:        plans.Create,
+			PlannedInputValues: map[string]plans.DynamicValue{
+				"id":    mustPlanDynamicValueDynamicType(cty.NullVal(cty.String)),
+				"input": mustPlanDynamicValueDynamicType(cty.StringVal("primary")),
+			},
+			PlannedOutputValues: map[string]cty.Value{},
+			PlannedCheckResults: &states.CheckResults{},
+			PlanTimestamp:       fakePlanTimestamp,
+			PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+				"id":    nil,
+				"input": nil,
+			},
+		},
+		&stackplan.PlannedChangeDeferredResourceInstancePlanned{
+			ResourceInstancePlanned: stackplan.PlannedChangeResourceInstancePlanned{
+				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+					Component: stackaddrs.Absolute(
+						stackaddrs.RootStackInstance,
+						stackaddrs.ComponentInstance{
+							Component: stackaddrs.Component{Name: "known"},
+						},
+					),
+					Item: addrs.AbsResourceInstanceObject{
+						ResourceInstance: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "testing_resource",
+							Name: "data",
+						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					},
+				},
+				ProviderConfigAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+				},
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "data",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					PrevRunAddr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "data",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+						Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
+							"id":    cty.UnknownVal(cty.String),
+							"value": cty.StringVal("primary"),
+						}), stacks_testing_provider.TestingResourceSchema),
+					},
+				},
+				Schema: stacks_testing_provider.TestingResourceSchema,
+			},
+			DeferredReason: providers.DeferredReasonProviderConfigUnknown,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance,
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "unknown"},
+					Key:       addrs.WildcardKey,
+				}),
+			PlanComplete:  false,
+			PlanApplyable: false,
+			Action:        plans.Create,
+			PlannedInputValues: map[string]plans.DynamicValue{
+				"id":    mustPlanDynamicValueDynamicType(cty.NullVal(cty.String)),
+				"input": mustPlanDynamicValueDynamicType(cty.StringVal("secondary")),
+			},
+			PlannedOutputValues: map[string]cty.Value{},
+			PlannedCheckResults: &states.CheckResults{},
+			PlanTimestamp:       fakePlanTimestamp,
+			PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+				"id":    nil,
+				"input": nil,
+			},
+		},
+		&stackplan.PlannedChangeDeferredResourceInstancePlanned{
+			ResourceInstancePlanned: stackplan.PlannedChangeResourceInstancePlanned{
+				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+					Component: stackaddrs.Absolute(
+						stackaddrs.RootStackInstance,
+						stackaddrs.ComponentInstance{
+							Component: stackaddrs.Component{Name: "unknown"},
+							Key:       addrs.WildcardKey,
+						},
+					),
+					Item: addrs.AbsResourceInstanceObject{
+						ResourceInstance: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "testing_resource",
+							Name: "data",
+						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					},
+				},
+				ProviderConfigAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+				},
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "data",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					PrevRunAddr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "data",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+						Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
+							"id":    cty.UnknownVal(cty.String),
+							"value": cty.StringVal("secondary"),
+						}), stacks_testing_provider.TestingResourceSchema),
+					},
+				},
+				Schema: stacks_testing_provider.TestingResourceSchema,
+			},
+			DeferredReason: providers.DeferredReasonProviderConfigUnknown,
+		},
+		&stackplan.PlannedChangeHeader{
+			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangeRootInputValue{
+			Addr:  stackaddrs.InputVariable{Name: "providers"},
+			Value: cty.UnknownVal(cty.Set(cty.String)),
+		},
+	}
+
+	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+}
+
 // collectPlanOutput consumes the two output channels emitting results from
 // a call to [Plan], and collects all of the data written to them before
 // returning once changesCh has been closed by the sender to indicate that

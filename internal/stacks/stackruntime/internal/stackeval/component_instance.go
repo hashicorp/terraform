@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval/stubs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -137,9 +138,9 @@ func (c *ComponentInstance) inputValuesForModulesRuntime(ctx context.Context, ph
 // then there are some problems with the providers argument and so the
 // map might be incomplete, and so callers should use it only with a great
 // deal of care.
-func (c *ComponentInstance) Providers(ctx context.Context, phase EvalPhase) (map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance, bool) {
-	ret, diags := c.CheckProviders(ctx, phase)
-	return ret, !diags.HasErrors()
+func (c *ComponentInstance) Providers(ctx context.Context, phase EvalPhase) (map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance, map[addrs.RootProviderConfig]addrs.Provider, bool) {
+	known, unknown, diags := c.CheckProviders(ctx, phase)
+	return known, unknown, !diags.HasErrors()
 }
 
 // CheckProviders evaluates the "providers" argument from the component
@@ -150,9 +151,10 @@ func (c *ComponentInstance) Providers(ctx context.Context, phase EvalPhase) (map
 //
 // If the "providers" argument is invalid then this will return error
 // diagnostics along with a partial result.
-func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase) (map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance, tfdiags.Diagnostics) {
+func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase) (map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance, map[addrs.RootProviderConfig]addrs.Provider, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret := make(map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance)
+	knownProviders := make(map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance)
+	unknownProviders := make(map[addrs.RootProviderConfig]addrs.Provider)
 
 	declConfigs := c.call.Declaration(ctx).ProviderConfigs
 	configProviders := c.call.Config(ctx).RequiredProviderInstances(ctx)
@@ -174,11 +176,18 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 		// know this expression exists and resolves to the correct type.
 		expr := declConfigs[componentAddr]
 
-		inst, instDiags, ok := c.checkProvider(ctx, sourceAddr, componentAddr, expr, phase)
+		inst, unknown, instDiags := c.checkProvider(ctx, sourceAddr, componentAddr, expr, phase)
 		diags = diags.Append(instDiags)
-		if ok {
-			ret[sourceAddr] = inst
+		if instDiags.HasErrors() {
+			continue
 		}
+
+		if unknown {
+			unknownProviders[sourceAddr] = sourceAddr.Provider
+			continue
+		}
+
+		knownProviders[sourceAddr] = inst
 	}
 
 	// Second, we want to iterate through the providers that are required by
@@ -210,7 +219,7 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 			Alias:    localProviderAddr.Alias,
 		}
 
-		if _, exists := ret[sourceAddr]; exists || !previousProviders.Has(sourceAddr) {
+		if _, exists := knownProviders[sourceAddr]; exists || !previousProviders.Has(sourceAddr) {
 			// Then this declConfig either matches a configProvider and we've
 			// already processed it, or it matches a provider that isn't
 			// required by the config or the state. In the first case, this is
@@ -224,10 +233,16 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 		// configProviders and is in the previousProviders. So, we should
 		// process it.
 
-		inst, instDiags, ok := c.checkProvider(ctx, sourceAddr, localProviderAddr, expr, phase)
+		inst, unknown, instDiags := c.checkProvider(ctx, sourceAddr, localProviderAddr, expr, phase)
 		diags = diags.Append(instDiags)
-		if ok {
-			ret[sourceAddr] = inst
+		if instDiags.HasErrors() {
+			continue
+		}
+
+		if unknown {
+			unknownProviders[sourceAddr] = provider
+		} else {
+			knownProviders[sourceAddr] = inst
 		}
 
 		if _, ok := stackConfig.ProviderLocalName(ctx, provider); !ok {
@@ -242,7 +257,6 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 				),
 				Subject: c.call.Declaration(ctx).DeclRange.ToHCL().Ptr(),
 			})
-			continue
 		}
 	}
 
@@ -250,7 +264,7 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 	// provider needed by the state.
 
 	for _, previousProvider := range previousProviders {
-		if _, ok := ret[previousProvider]; ok {
+		if _, ok := knownProviders[previousProvider]; ok {
 			// Then we have a provider for this, so great!
 			continue
 		}
@@ -276,17 +290,17 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 		})
 	}
 
-	return ret, diags
+	return knownProviders, unknownProviders, diags
 }
 
-func (c *ComponentInstance) checkProvider(ctx context.Context, sourceAddr addrs.RootProviderConfig, componentAddr addrs.LocalProviderConfig, expr hcl.Expression, phase EvalPhase) (stackaddrs.AbsProviderConfigInstance, tfdiags.Diagnostics, bool) {
+func (c *ComponentInstance) checkProvider(ctx context.Context, sourceAddr addrs.RootProviderConfig, componentAddr addrs.LocalProviderConfig, expr hcl.Expression, phase EvalPhase) (stackaddrs.AbsProviderConfigInstance, bool, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var ret stackaddrs.AbsProviderConfigInstance
 
 	result, hclDiags := EvalExprAndEvalContext(ctx, expr, phase, c)
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
-		return ret, diags, false
+		return ret, false, diags
 	}
 	v := result.Value
 
@@ -312,7 +326,7 @@ func (c *ComponentInstance) checkProvider(ctx context.Context, sourceAddr addrs.
 				),
 				Subject: result.Expression.Range().Ptr(),
 			})
-			return ret, diags, false
+			return ret, false, diags
 		}
 	} else {
 		// We got something that isn't a provider reference at all.
@@ -325,7 +339,7 @@ func (c *ComponentInstance) checkProvider(ctx context.Context, sourceAddr addrs.
 			),
 			Subject: result.Expression.Range().Ptr(),
 		})
-		return ret, diags, false
+		return ret, false, diags
 	}
 
 	// Now, we differ from the static analysis in that we should have
@@ -341,59 +355,16 @@ func (c *ComponentInstance) checkProvider(ctx context.Context, sourceAddr addrs.
 			),
 			Subject: result.Expression.Range().Ptr(),
 		})
-		return ret, diags, false
+		return ret, false, diags
 	}
 	if !v.IsKnown() {
-		// TODO: Once we support deferred changes we should return
-		// something that lets the caller know the configuration is
-		// incomplete so it can defer planning the entire component.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  errSummary,
-			Detail: fmt.Sprintf(
-				"This expression depends on values that won't be known until the apply phase, so Terraform cannot determine which provider configuration to use while planning changes for %s.",
-				c.Addr().String(),
-			),
-			Subject: result.Expression.Range().Ptr(),
-		})
-		return ret, diags, false
+		return ret, true, diags
 	}
 
 	// If it's of the correct type, known, and not null then we should
 	// be able to retrieve a specific provider instance address that
 	// this value refers to.
-	ret = stackconfigtypes.ProviderInstanceForValue(v)
-
-	// The reference must be to a provider instance that's actually
-	// configured.
-	providerInstStack := c.main.Stack(ctx, ret.Stack, phase)
-	if providerInstStack != nil {
-		provider := providerInstStack.Provider(ctx, ret.Item.ProviderConfig)
-		if provider != nil {
-			insts := provider.Instances(ctx, phase)
-			if insts == nil {
-				// If we get here then we don't yet know which instances
-				// this provider has, so we'll be optimistic that it'll
-				// show up in a later phase.
-				return ret, diags, true
-			}
-			if _, exists := insts[ret.Item.Key]; exists {
-				return ret, diags, true
-			}
-		}
-	}
-	// If we fall here then something on the path to the provider instance
-	// doesn't exist, and so effectively the provider instance doesn't exist.
-	diags = diags.Append(&hcl.Diagnostic{
-		Severity: hcl.DiagError,
-		Summary:  errSummary,
-		Detail: fmt.Sprintf(
-			"Expression result refers to undefined provider instance %s.",
-			ret,
-		),
-		Subject: result.Expression.Range().Ptr(),
-	})
-	return ret, diags, true
+	return stackconfigtypes.ProviderInstanceForValue(v), false, diags
 }
 
 func (c *ComponentInstance) neededProviderSchemas(ctx context.Context) (map[addrs.Provider]providers.ProviderSchema, tfdiags.Diagnostics) {
@@ -435,12 +406,13 @@ func (c *ComponentInstance) neededProviderSchemas(ctx context.Context) (map[addr
 	return providerSchemas, diags
 }
 
-func (c *ComponentInstance) neededProviderClients(ctx context.Context, phase EvalPhase) (clients map[addrs.RootProviderConfig]providers.Interface, valid bool) {
-	providerInstAddrs, valid := c.Providers(ctx, phase)
+func (c *ComponentInstance) neededProviderClients(ctx context.Context, phase EvalPhase) (map[addrs.RootProviderConfig]providers.Interface, func(), bool) {
+	providerInstAddrs, unknownProviders, valid := c.Providers(ctx, phase)
 	if !valid {
-		return nil, false
+		return nil, nil, false
 	}
 	providerInsts := make(map[addrs.RootProviderConfig]providers.Interface)
+	var closeableInsts []providers.Interface
 	for calleeAddr, callerAddr := range providerInstAddrs {
 		providerInstStack := c.main.Stack(ctx, callerAddr.Stack, phase)
 		if providerInstStack == nil {
@@ -452,9 +424,6 @@ func (c *ComponentInstance) neededProviderClients(ctx context.Context, phase Eva
 		}
 		insts := provider.Instances(ctx, phase)
 		if insts == nil {
-			// If we get here then we don't yet know which instances
-			// this provider has, so we'll be optimistic that it'll
-			// show up in a later phase.
 			continue
 		}
 		inst, exists := insts[callerAddr.Item.Key]
@@ -463,7 +432,24 @@ func (c *ComponentInstance) neededProviderClients(ctx context.Context, phase Eva
 		}
 		providerInsts[calleeAddr] = inst.Client(ctx, phase)
 	}
-	return providerInsts, true
+	for calleeAddr, provider := range unknownProviders {
+		pTy := c.main.ProviderType(ctx, provider)
+		client, err := pTy.UnconfiguredClient(ctx)
+		if err != nil {
+			continue
+		}
+		closeableInsts = append(closeableInsts, client)
+		providerInsts[calleeAddr] = stubs.UnknownProvider(client)
+	}
+	return providerInsts, func() {
+		// We need to close the unconfigured clients we took for the unknown
+		// providers.
+		for _, inst := range closeableInsts {
+			// Nothing we can really do if the close fails, so just ignore
+			// the errors.
+			inst.Close()
+		}
+	}, true
 }
 
 func (c *ComponentInstance) ModuleTreePlan(ctx context.Context) *plans.Plan {
@@ -544,7 +530,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				return nil, diags
 			}
 
-			providerClients, valid := c.neededProviderClients(ctx, PlanPhase)
+			providerClients, closer, valid := c.neededProviderClients(ctx, PlanPhase)
 			if !valid {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -554,6 +540,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				})
 				return nil, diags
 			}
+			defer closer()
 
 			// If any of our upstream components have incomplete plans then
 			// we need to force treating everything in this component as
@@ -812,7 +799,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		return noOpResult, diags
 	}
 
-	providerClients, valid := c.neededProviderClients(ctx, ApplyPhase)
+	providerClients, closer, valid := c.neededProviderClients(ctx, ApplyPhase)
 	if !valid {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -822,6 +809,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		})
 		return noOpResult, diags
 	}
+	defer closer()
 
 	var newState *states.State
 	if modifiedPlan.Applyable {
@@ -1197,7 +1185,7 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 	_, moreDiags := c.CheckInputVariableValues(ctx, PlanPhase)
 	diags = diags.Append(moreDiags)
 
-	_, moreDiags = c.CheckProviders(ctx, PlanPhase)
+	_, _, moreDiags = c.CheckProviders(ctx, PlanPhase)
 	diags = diags.Append(moreDiags)
 
 	corePlan, moreDiags := c.CheckModuleTreePlan(ctx)
@@ -1454,7 +1442,7 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 	_, moreDiags := c.CheckInputVariableValues(ctx, ApplyPhase)
 	diags = diags.Append(moreDiags)
 
-	_, moreDiags = c.CheckProviders(ctx, ApplyPhase)
+	_, _, moreDiags = c.CheckProviders(ctx, ApplyPhase)
 	diags = diags.Append(moreDiags)
 
 	applyResult, moreDiags := c.CheckApplyResult(ctx)

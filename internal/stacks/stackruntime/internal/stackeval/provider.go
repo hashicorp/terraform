@@ -123,18 +123,6 @@ func (p *Provider) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.
 				if diags.HasErrors() {
 					return cty.DynamicVal, diags
 				}
-
-				if !result.Value.IsKnown() {
-					// FIXME: We should somehow allow this and emit a
-					// "deferred change" representing all of the as-yet-unknown
-					// instances of this call and everything beneath it.
-					diags = diags.Append(result.Diagnostic(
-						tfdiags.Error,
-						"Invalid for_each value",
-						"The for_each value must not be derived from values that will be determined only during the apply phase.",
-					))
-				}
-
 				return result.Value, diags
 
 			default:
@@ -177,11 +165,29 @@ func (p *Provider) CheckInstances(ctx context.Context, phase EvalPhase) (map[add
 	return doOnceWithDiags(
 		ctx, p.instances.For(phase), p.main,
 		func(ctx context.Context) (map[addrs.InstanceKey]*ProviderInstance, tfdiags.Diagnostics) {
-			var diags tfdiags.Diagnostics
-			forEachVal := p.ForEachValue(ctx, phase)
+
+			// Since we can't differentiate between a truly unknown foreach and
+			// an invalid foreach, we must check the diagnostics from the for
+			// each value.
+
+			forEachVal, diags := p.CheckForEachValue(ctx, phase)
+			if diags.HasErrors() {
+				// We expect the caller to have already checked the for_each
+				// diagnostics and we don't want to return duplicates.
+				return nil, nil
+			}
+
+			allowUnknowns := true
+			if p.main.Planning() {
+				// We'll set this to false during planning if deferrals are not
+				// allowed. It's fine to always be true during apply, as this
+				// would have failed during planning if it was not allowed.
+				allowUnknowns = p.main.PlanningOpts().DeferralAllowed
+			}
+
 			return instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ProviderInstance {
 				return newProviderInstance(p, ik, rd)
-			}, false), diags
+			}, allowUnknowns), diags
 		},
 	)
 }
@@ -195,7 +201,7 @@ func (p *Provider) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.
 
 	switch {
 	case decl.ForEach != nil:
-		if insts == nil {
+		if _, ok := insts[addrs.WildcardKey]; ok || insts == nil {
 			return cty.UnknownVal(cty.Map(refType))
 		}
 		elems := make(map[string]cty.Value, len(insts))
