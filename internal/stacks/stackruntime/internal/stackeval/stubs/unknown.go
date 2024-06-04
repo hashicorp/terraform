@@ -6,6 +6,7 @@ package stubs
 import (
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -18,8 +19,6 @@ var _ providers.Interface = (*unknownProvider)(nil)
 //
 // This provider wraps an unconfigured provider client, which is used to handle
 // offline functionality.
-//
-// TODO: We can return more specific values than cty.DynamicVal.
 type unknownProvider struct {
 	unconfiguredClient providers.Interface
 }
@@ -73,8 +72,10 @@ func (u *unknownProvider) Stop() error {
 
 func (u *unknownProvider) ReadResource(request providers.ReadResourceRequest) providers.ReadResourceResponse {
 	if request.ClientCapabilities.DeferralAllowed {
+		// For ReadResource, we'll just return the existing state and defer
+		// the operation.
 		return providers.ReadResourceResponse{
-			NewState: cty.DynamicVal,
+			NewState: request.PriorState,
 			Deferred: &providers.Deferred{
 				Reason: providers.DeferredReasonProviderConfigUnknown,
 			},
@@ -94,8 +95,25 @@ func (u *unknownProvider) ReadResource(request providers.ReadResourceRequest) pr
 
 func (u *unknownProvider) PlanResourceChange(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 	if request.ClientCapabilities.DeferralAllowed {
+		// For PlanResourceChange, we'll kind of abuse the mocking library to
+		// populate the computed values with unknown values so that future
+		// operations can still be used.
+		//
+		// PlanComputedValuesForResource populates the computed values with
+		// unknown values. This isn't the original use case for the mocking
+		// library, but it is doing exactly what we need it to do.
+
+		schema := u.GetProviderSchema().ResourceTypes[request.TypeName]
+		val, diags := mocking.PlanComputedValuesForResource(request.ProposedNewState, schema.Block)
+		if diags.HasErrors() {
+			// All the potential errors we get back from this function are
+			// related to the user badly defining mocks. We should never hit
+			// this as we are just using the default behaviour.
+			panic(diags.Err())
+		}
+
 		return providers.PlanResourceChangeResponse{
-			PlannedState: cty.DynamicVal,
+			PlannedState: val,
 			Deferred: &providers.Deferred{
 				Reason: providers.DeferredReasonProviderConfigUnknown,
 			},
@@ -113,7 +131,7 @@ func (u *unknownProvider) PlanResourceChange(request providers.PlanResourceChang
 	}
 }
 
-func (u *unknownProvider) ApplyResourceChange(request providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+func (u *unknownProvider) ApplyResourceChange(_ providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 	return providers.ApplyResourceChangeResponse{
 		Diagnostics: []tfdiags.Diagnostic{
 			tfdiags.AttributeValue(
@@ -128,11 +146,19 @@ func (u *unknownProvider) ApplyResourceChange(request providers.ApplyResourceCha
 
 func (u *unknownProvider) ImportResourceState(request providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
 	if request.ClientCapabilities.DeferralAllowed {
+		// For ImportResourceState, we don't have any config to work with and
+		// we don't know enough to work out which value the ID corresponds to.
+		//
+		// We'll just return an unknown value that corresponds to the correct
+		// type. Terraform should know how to handle this when it arrives
+		// alongside the deferred metadata.
+
+		schema := u.GetProviderSchema().ResourceTypes[request.TypeName]
 		return providers.ImportResourceStateResponse{
 			ImportedResources: []providers.ImportedResource{
 				{
 					TypeName: request.TypeName,
-					State:    cty.DynamicVal,
+					State:    cty.UnknownVal(schema.Block.ImpliedType()),
 				},
 			},
 			Deferred: &providers.Deferred{
@@ -160,8 +186,25 @@ func (u *unknownProvider) MoveResourceState(request providers.MoveResourceStateR
 
 func (u *unknownProvider) ReadDataSource(request providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 	if request.ClientCapabilities.DeferralAllowed {
+		// For ReadDataSource, we'll kind of abuse the mocking library to
+		// populate the computed values with unknown values so that future
+		// operations can still be used.
+		//
+		// PlanComputedValuesForResource populates the computed values with
+		// unknown values. This isn't the original use case for the mocking
+		// library, but it is doing exactly what we need it to do.
+
+		schema := u.GetProviderSchema().ResourceTypes[request.TypeName]
+		val, diags := mocking.PlanComputedValuesForResource(request.Config, schema.Block)
+		if diags.HasErrors() {
+			// All the potential errors we get back from this function are
+			// related to the user badly defining mocks. We should never hit
+			// this as we are just using the default behaviour.
+			panic(diags.Err())
+		}
+
 		return providers.ReadDataSourceResponse{
-			State: cty.DynamicVal,
+			State: val,
 			Deferred: &providers.Deferred{
 				Reason: providers.DeferredReasonProviderConfigUnknown,
 			},

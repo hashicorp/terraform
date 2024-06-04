@@ -2631,7 +2631,10 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Create,
 						Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
-						After:  mustPlanDynamicValueSchema(cty.DynamicVal, stacks_testing_provider.TestingResourceSchema),
+						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
+							"id":    cty.UnknownVal(cty.String),
+							"value": cty.StringVal("primary"),
+						}), stacks_testing_provider.TestingResourceSchema),
 					},
 				},
 				Schema: stacks_testing_provider.TestingResourceSchema,
@@ -2700,7 +2703,10 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Create,
 						Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
-						After:  mustPlanDynamicValueSchema(cty.DynamicVal, stacks_testing_provider.TestingResourceSchema),
+						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
+							"id":    cty.UnknownVal(cty.String),
+							"value": cty.StringVal("secondary"),
+						}), stacks_testing_provider.TestingResourceSchema),
 					},
 				},
 				Schema: stacks_testing_provider.TestingResourceSchema,
