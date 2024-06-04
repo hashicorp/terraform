@@ -1750,6 +1750,7 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 				DefRange: tfdiags.SourceRange{},
 			},
 		},
+		DeferralAllowed: true,
 	}
 	resp := PlanResponse{
 		PlannedChanges: changesCh,
@@ -1779,8 +1780,8 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 					Key:       addrs.WildcardKey,
 				},
 			),
-			PlanApplyable: true,
-			PlanComplete:  true,
+			PlanApplyable: false, // Everything is deferred, so nothing to apply.
+			PlanComplete:  false,
 			Action:        plans.Create,
 			PlannedInputValues: map[string]plans.DynamicValue{
 				"id":    mustPlanDynamicValueDynamicType(cty.NullVal(cty.String)),
@@ -1794,53 +1795,56 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 				"input": nil,
 			},
 		},
-		&stackplan.PlannedChangeResourceInstancePlanned{
-			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
-				Component: stackaddrs.Absolute(
-					stackaddrs.RootStackInstance,
-					stackaddrs.ComponentInstance{
-						Component: stackaddrs.Component{Name: "self"},
-						Key:       addrs.WildcardKey,
+		&stackplan.PlannedChangeDeferredResourceInstancePlanned{
+			DeferredReason: providers.DeferredReasonDeferredPrereq,
+			ResourceInstancePlanned: stackplan.PlannedChangeResourceInstancePlanned{
+				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+					Component: stackaddrs.Absolute(
+						stackaddrs.RootStackInstance,
+						stackaddrs.ComponentInstance{
+							Component: stackaddrs.Component{Name: "self"},
+							Key:       addrs.WildcardKey,
+						},
+					),
+					Item: addrs.AbsResourceInstanceObject{
+						ResourceInstance: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "testing_resource",
+							Name: "data",
+						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					},
-				),
-				Item: addrs.AbsResourceInstanceObject{
-					ResourceInstance: addrs.Resource{
+				},
+				ProviderConfigAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+				},
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "testing_resource",
 						Name: "data",
 					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					PrevRunAddr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "data",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+						Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
+							"id":    cty.UnknownVal(cty.String),
+							"value": cty.UnknownVal(cty.String),
+						}), stacks_testing_provider.TestingResourceSchema),
+						AfterSensitivePaths: nil,
+					},
 				},
+				Schema: stacks_testing_provider.TestingResourceSchema,
 			},
-			ProviderConfigAddr: addrs.AbsProviderConfig{
-				Module:   addrs.RootModule,
-				Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
-			},
-			ChangeSrc: &plans.ResourceInstanceChangeSrc{
-				Addr: addrs.Resource{
-					Mode: addrs.ManagedResourceMode,
-					Type: "testing_resource",
-					Name: "data",
-				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-				PrevRunAddr: addrs.Resource{
-					Mode: addrs.ManagedResourceMode,
-					Type: "testing_resource",
-					Name: "data",
-				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-				ProviderAddr: addrs.AbsProviderConfig{
-					Module:   addrs.RootModule,
-					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
-				},
-				ChangeSrc: plans.ChangeSrc{
-					Action: plans.Create,
-					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
-					After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
-						"id":    cty.UnknownVal(cty.String),
-						"value": cty.UnknownVal(cty.String),
-					}), stacks_testing_provider.TestingResourceSchema),
-					AfterSensitivePaths: nil,
-				},
-			},
-			Schema: stacks_testing_provider.TestingResourceSchema,
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
@@ -1884,6 +1888,7 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 				DefRange: tfdiags.SourceRange{},
 			},
 		},
+		DeferralAllowed: true,
 	}
 	resp := PlanResponse{
 		PlannedChanges: changesCh,
@@ -1915,8 +1920,8 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 					Component: stackaddrs.Component{Name: "self"},
 				},
 			),
-			PlanApplyable: true,
-			PlanComplete:  true,
+			PlanApplyable: false, // Everything is deferred, so nothing to apply.
+			PlanComplete:  false,
 			Action:        plans.Create,
 			PlannedInputValues: map[string]plans.DynamicValue{
 				"id":    mustPlanDynamicValueDynamicType(cty.NullVal(cty.String)),
@@ -1930,52 +1935,55 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 				"input": nil,
 			},
 		},
-		&stackplan.PlannedChangeResourceInstancePlanned{
-			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
-				Component: stackaddrs.Absolute(
-					stackaddrs.RootStackInstance.Child("a", addrs.WildcardKey),
-					stackaddrs.ComponentInstance{
-						Component: stackaddrs.Component{Name: "self"},
+		&stackplan.PlannedChangeDeferredResourceInstancePlanned{
+			DeferredReason: providers.DeferredReasonDeferredPrereq,
+			ResourceInstancePlanned: stackplan.PlannedChangeResourceInstancePlanned{
+				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+					Component: stackaddrs.Absolute(
+						stackaddrs.RootStackInstance.Child("a", addrs.WildcardKey),
+						stackaddrs.ComponentInstance{
+							Component: stackaddrs.Component{Name: "self"},
+						},
+					),
+					Item: addrs.AbsResourceInstanceObject{
+						ResourceInstance: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "testing_resource",
+							Name: "data",
+						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					},
-				),
-				Item: addrs.AbsResourceInstanceObject{
-					ResourceInstance: addrs.Resource{
+				},
+				ProviderConfigAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+				},
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "testing_resource",
 						Name: "data",
 					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					PrevRunAddr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "data",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+						Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
+							"id":    cty.UnknownVal(cty.String),
+							"value": cty.UnknownVal(cty.String),
+						}), stacks_testing_provider.TestingResourceSchema),
+						AfterSensitivePaths: nil,
+					},
 				},
+				Schema: stacks_testing_provider.TestingResourceSchema,
 			},
-			ProviderConfigAddr: addrs.AbsProviderConfig{
-				Module:   addrs.RootModule,
-				Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
-			},
-			ChangeSrc: &plans.ResourceInstanceChangeSrc{
-				Addr: addrs.Resource{
-					Mode: addrs.ManagedResourceMode,
-					Type: "testing_resource",
-					Name: "data",
-				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-				PrevRunAddr: addrs.Resource{
-					Mode: addrs.ManagedResourceMode,
-					Type: "testing_resource",
-					Name: "data",
-				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-				ProviderAddr: addrs.AbsProviderConfig{
-					Module:   addrs.RootModule,
-					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
-				},
-				ChangeSrc: plans.ChangeSrc{
-					Action: plans.Create,
-					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
-					After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
-						"id":    cty.UnknownVal(cty.String),
-						"value": cty.UnknownVal(cty.String),
-					}), stacks_testing_provider.TestingResourceSchema),
-					AfterSensitivePaths: nil,
-				},
-			},
-			Schema: stacks_testing_provider.TestingResourceSchema,
 		},
 		&stackplan.PlannedChangeRootInputValue{
 			Addr:  stackaddrs.InputVariable{Name: "stacks"},
@@ -2016,6 +2024,7 @@ func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 				DefRange: tfdiags.SourceRange{},
 			},
 		},
+		DeferralAllowed: true,
 	}
 	resp := PlanResponse{
 		PlannedChanges: changesCh,
@@ -2048,8 +2057,8 @@ func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 					Key:       addrs.WildcardKey,
 				},
 			),
-			PlanApplyable: true,
-			PlanComplete:  true,
+			PlanApplyable: false, // Everything is deferred, so nothing to apply.
+			PlanComplete:  false,
 			Action:        plans.Create,
 			PlannedInputValues: map[string]plans.DynamicValue{
 				"id":    mustPlanDynamicValueDynamicType(cty.NullVal(cty.String)),
@@ -2063,53 +2072,56 @@ func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 				"input": nil,
 			},
 		},
-		&stackplan.PlannedChangeResourceInstancePlanned{
-			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
-				Component: stackaddrs.Absolute(
-					stackaddrs.RootStackInstance.Child("a", addrs.WildcardKey),
-					stackaddrs.ComponentInstance{
-						Component: stackaddrs.Component{Name: "self"},
-						Key:       addrs.WildcardKey,
+		&stackplan.PlannedChangeDeferredResourceInstancePlanned{
+			DeferredReason: providers.DeferredReasonDeferredPrereq,
+			ResourceInstancePlanned: stackplan.PlannedChangeResourceInstancePlanned{
+				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+					Component: stackaddrs.Absolute(
+						stackaddrs.RootStackInstance.Child("a", addrs.WildcardKey),
+						stackaddrs.ComponentInstance{
+							Component: stackaddrs.Component{Name: "self"},
+							Key:       addrs.WildcardKey,
+						},
+					),
+					Item: addrs.AbsResourceInstanceObject{
+						ResourceInstance: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "testing_resource",
+							Name: "data",
+						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					},
-				),
-				Item: addrs.AbsResourceInstanceObject{
-					ResourceInstance: addrs.Resource{
+				},
+				ProviderConfigAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+				},
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "testing_resource",
 						Name: "data",
 					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					PrevRunAddr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_resource",
+						Name: "data",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+						Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+						After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
+							"id":    cty.UnknownVal(cty.String),
+							"value": cty.UnknownVal(cty.String),
+						}), stacks_testing_provider.TestingResourceSchema),
+						AfterSensitivePaths: nil,
+					},
 				},
+				Schema: stacks_testing_provider.TestingResourceSchema,
 			},
-			ProviderConfigAddr: addrs.AbsProviderConfig{
-				Module:   addrs.RootModule,
-				Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
-			},
-			ChangeSrc: &plans.ResourceInstanceChangeSrc{
-				Addr: addrs.Resource{
-					Mode: addrs.ManagedResourceMode,
-					Type: "testing_resource",
-					Name: "data",
-				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-				PrevRunAddr: addrs.Resource{
-					Mode: addrs.ManagedResourceMode,
-					Type: "testing_resource",
-					Name: "data",
-				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-				ProviderAddr: addrs.AbsProviderConfig{
-					Module:   addrs.RootModule,
-					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
-				},
-				ChangeSrc: plans.ChangeSrc{
-					Action: plans.Create,
-					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
-					After: mustPlanDynamicValueSchema(cty.ObjectVal(map[string]cty.Value{
-						"id":    cty.UnknownVal(cty.String),
-						"value": cty.UnknownVal(cty.String),
-					}), stacks_testing_provider.TestingResourceSchema),
-					AfterSensitivePaths: nil,
-				},
-			},
-			Schema: stacks_testing_provider.TestingResourceSchema,
 		},
 		&stackplan.PlannedChangeRootInputValue{
 			Addr:  stackaddrs.InputVariable{Name: "stacks"},

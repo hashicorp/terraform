@@ -4838,9 +4838,16 @@ func TestContext2Apply_externalDependencyDeferred(t *testing.T) {
 	if diff := cmp.Diff(wantActions, gotActions, cmpOpts); diff != "" {
 		t.Fatalf("wrong actions in plan\n%s", diff)
 	}
-	// TODO: Once we are including information about the individual
-	// deferred actions in the plan, this would be a good place to
-	// assert that they are correct!
+
+	if len(plan.DeferredResources) != 3 {
+		t.Fatalf("expected exactly 3 deferred resources, got %d", len(plan.DeferredResources))
+	}
+
+	for _, res := range plan.DeferredResources {
+		if res.DeferredReason != providers.DeferredReasonDeferredPrereq {
+			t.Fatalf("expected all resources to be deferred due to deferred prerequisites, but %s was not", res.ChangeSrc.Addr)
+		}
+	}
 }
 
 func TestContext2Plan_removedResourceForgetBasic(t *testing.T) {
