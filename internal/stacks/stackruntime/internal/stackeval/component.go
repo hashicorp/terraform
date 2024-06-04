@@ -386,7 +386,7 @@ func (c *Component) reportNamedPromises(cb func(id promising.PromiseID, name str
 	name := c.Addr().String()
 	instsName := name + " instances"
 	forEachName := name + " for_each"
-	c.instances.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[map[addrs.InstanceKey]*ComponentInstance]]) {
+	c.instances.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[instancesResult[*ComponentInstance]]]) {
 		cb(o.PromiseID(), instsName)
 	})
 	// FIXME: We should call reportNamedPromises on the individual

@@ -288,7 +288,7 @@ func (p *Provider) reportNamedPromises(cb func(id promising.PromiseID, name stri
 	p.forEachValue.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
 		cb(o.PromiseID(), forEachName)
 	})
-	p.instances.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[map[addrs.InstanceKey]*ProviderInstance]]) {
+	p.instances.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[instancesResult[*ProviderInstance]]]) {
 		cb(o.PromiseID(), instsName)
 	})
 	// FIXME: We should call reportNamedPromises on the individual
