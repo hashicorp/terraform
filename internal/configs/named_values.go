@@ -180,8 +180,9 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 		case "validation":
 			vv, moreDiags := decodeCheckRuleBlock(block, override)
 			diags = append(diags, moreDiags...)
-			v.Validations = append(v.Validations, vv)
+			diags = append(diags, checkVariableValidationBlock(v.Name, vv)...)
 
+			v.Validations = append(v.Validations, vv)
 		default:
 			// The above cases should be exhaustive for all block types
 			// defined in variableBlockSchema
@@ -503,4 +504,30 @@ var outputBlockSchema = &hcl.BodySchema{
 		{Type: "precondition"},
 		{Type: "postcondition"},
 	},
+}
+
+func checkVariableValidationBlock(varName string, vv *CheckRule) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	if vv.Condition != nil {
+		// The validation condition must include a reference to the variable itself
+		for _, traversal := range vv.Condition.Variables() {
+			ref, moreDiags := addrs.ParseRef(traversal)
+			if !moreDiags.HasErrors() {
+				if addr, ok := ref.Subject.(addrs.InputVariable); ok {
+					if addr.Name == varName {
+						return nil
+					}
+				}
+			}
+		}
+
+		return diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid variable validation condition",
+			Detail:   fmt.Sprintf("The condition for variable %q must refer to var.%s in order to test incoming values.", varName, varName),
+			Subject:  vv.Condition.Range().Ptr(),
+		})
+	}
+	return nil
 }
