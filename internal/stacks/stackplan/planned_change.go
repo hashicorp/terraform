@@ -534,8 +534,6 @@ func (pc *PlannedChangeOutputValue) PlannedChangeProto() (*terraform1.PlannedCha
 // the external-facing plan description.
 type PlannedChangeHeader struct {
 	TerraformVersion *version.Version
-
-	PrevRunStateRaw map[string]*anypb.Any
 }
 
 var _ PlannedChange = (*PlannedChangeHeader)(nil)
@@ -545,7 +543,37 @@ func (pc *PlannedChangeHeader) PlannedChangeProto() (*terraform1.PlannedChange, 
 	var raw anypb.Any
 	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanHeader{
 		TerraformVersion: pc.TerraformVersion.String(),
-		PrevRunStateRaw:  pc.PrevRunStateRaw,
+	}, proto.MarshalOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return &terraform1.PlannedChange{
+		Raw: []*anypb.Any{&raw},
+	}, nil
+}
+
+// PlannedChangePriorStateElement is a special change type we emit to capture
+// each element of the prior state.
+//
+// PlannedChangePriorStateElement has only a raw message and does not
+// contribute to the external-facing plan description, since it's really just
+// an implementation detail that allows us to deal with various state cleanup
+// concerns during the apply phase; this isn't really a "planned change" in
+// the typical sense.
+type PlannedChangePriorStateElement struct {
+	Key string
+	Raw *anypb.Any
+}
+
+var _ PlannedChange = (*PlannedChangePriorStateElement)(nil)
+
+// PlannedChangeProto implements PlannedChange.
+func (pc *PlannedChangePriorStateElement) PlannedChangeProto() (*terraform1.PlannedChange, error) {
+	var raw anypb.Any
+	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanPriorStateElem{
+		Key: pc.Key,
+		Raw: pc.Raw,
 	}, proto.MarshalOptions{})
 	if err != nil {
 		return nil, err

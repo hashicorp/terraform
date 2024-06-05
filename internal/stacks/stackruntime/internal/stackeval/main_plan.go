@@ -44,8 +44,13 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 	}
 	outp.AnnouncePlannedChange(ctx, &stackplan.PlannedChangeHeader{
 		TerraformVersion: version.SemVer,
-		PrevRunStateRaw:  prevRunStateRaw,
 	})
+	for k, raw := range prevRunStateRaw {
+		outp.AnnouncePlannedChange(ctx, &stackplan.PlannedChangePriorStateElement{
+			Key: k,
+			Raw: raw,
+		})
+	}
 
 	// TODO: Announce an extra planned change here if we have any unrecognized
 	// raw state or state description keys that we'll need to delete during the

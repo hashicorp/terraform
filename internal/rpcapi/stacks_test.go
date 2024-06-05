@@ -327,6 +327,12 @@ func TestStacksOpenPlan(t *testing.T) {
 	send(t, &tfstackdata1.PlanHeader{
 		TerraformVersion: version.SemVer.String(),
 	})
+	send(t, &tfstackdata1.PlanPriorStateElem{
+		// We don't actually analyze or validate these items while
+		// just loading a plan, so we can safely just put simple
+		// garbage in here for testing.
+		Key: "test-foo",
+	})
 	send(t, &tfstackdata1.PlanApplyable{
 		Applyable: true,
 	})
@@ -342,6 +348,9 @@ func TestStacksOpenPlan(t *testing.T) {
 	}
 	if !plan.Applyable {
 		t.Error("plan is not applyable; should've been")
+	}
+	if _, exists := plan.PrevRunStateRaw["test-foo"]; !exists {
+		t.Error("plan is missing the raw state entry for 'test-foo'")
 	}
 
 	_, err = stacksClient.ClosePlan(ctx, &terraform1.CloseStackPlan_Request{

@@ -37,6 +37,7 @@ func NewLoader() *Loader {
 	ret := &Plan{
 		RootInputValues: make(map[stackaddrs.InputVariable]cty.Value),
 		Components:      collections.NewMap[stackaddrs.AbsComponentInstance, *Component](),
+		PrevRunStateRaw: make(map[string]*anypb.Any),
 	}
 	return &Loader{
 		ret: ret,
@@ -70,8 +71,21 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 		if gotVersion != wantVersion {
 			return fmt.Errorf("plan was created by Terraform %s, but this is Terraform %s", gotVersion, wantVersion)
 		}
-		l.ret.PrevRunStateRaw = msg.PrevRunStateRaw
 		l.foundHeader = true
+
+	case *tfstackdata1.PlanPriorStateElem:
+		if _, exists := l.ret.PrevRunStateRaw[msg.Key]; exists {
+			// Suggests a bug in the caller, because a valid prior state
+			// can only have one object associated with each key.
+			return fmt.Errorf("duplicate prior state key %q", msg.Key)
+		}
+		// NOTE: We intentionally don't actually decode and validate the
+		// state elements here; we'll deal with that piecemeal as we make
+		// further use of this data structure elsewhere. This avoids spending
+		// time on decoding here if a caller is loading the plan only to
+		// extract some metadata from it, and doesn't care about the prior
+		// state.
+		l.ret.PrevRunStateRaw[msg.Key] = msg.Raw
 
 	case *tfstackdata1.PlanApplyable:
 		l.ret.Applyable = msg.Applyable
