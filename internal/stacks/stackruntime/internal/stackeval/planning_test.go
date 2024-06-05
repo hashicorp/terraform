@@ -760,11 +760,15 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		plan, err := stackplan.LoadFromProto(rawPlan)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		// Apply
 		newState, err := promising.MainTask(ctx, func(ctx context.Context) (*stackstate.State, error) {
 			outp, outpTest := testApplyOutput(t, nil)
-			_, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+			_, err := ApplyPlan(ctx, cfg, plan, ApplyOpts{
 				ProviderFactories: providerFactories,
 			}, outp)
 			if err != nil {
@@ -801,26 +805,23 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 			Nice *stackplan.Plan
 			Raw  []*anypb.Any
 		}
-		plans, err := promising.MainTask(ctx, func(ctx context.Context) (Plans, error) {
+		plan, err := promising.MainTask(ctx, func(ctx context.Context) (*stackplan.Plan, error) {
 			main := NewForPlanning(cfg, state, PlanOpts{
 				PlanningMode:      plans.NormalMode,
 				ProviderFactories: providerFactories,
 			})
 			outp, outpTest := testPlanOutput(t)
 			main.PlanAll(ctx, outp)
-			rawPlan := outpTest.RawChanges(t)
 			// The original bug would occur at this point, because
 			// outpTest.Close attempts to parse the raw plan, which fails if
 			// any part of that structure is not syntactically valid.
 			plan, diags := outpTest.Close(t)
 			assertNoDiagnostics(t, diags)
-			return Plans{plan, rawPlan}, nil
+			return plan, nil
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
-		plan := plans.Nice
-		rawPlan := plans.Raw
 
 		// We'll check whether the data resource even appears in the plan,
 		// because if not then this test is no longer testing what it thinks
@@ -859,7 +860,7 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 		// we're left with no remnant of the data resource in the updated state.
 		newState, err := promising.MainTask(ctx, func(ctx context.Context) (*stackstate.State, error) {
 			outp, outpTest := testApplyOutput(t, nil)
-			_, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+			_, err := ApplyPlan(ctx, cfg, plan, ApplyOpts{
 				ProviderFactories: providerFactories,
 			}, outp)
 			if err != nil {

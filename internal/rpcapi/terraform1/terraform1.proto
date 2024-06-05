@@ -418,11 +418,21 @@ service Stacks {
     // such as the number of instances of each component.
     rpc FindStackConfigurationComponents(FindStackConfigurationComponents.Request)
         returns (FindStackConfigurationComponents.Response);
+    // Load a prior state by sending a stream of raw state objects that were
+    // streamed from a previous ApplyStackChanges response.
+    rpc OpenPriorState(stream OpenStackPriorState.RequestItem) returns (OpenStackPriorState.Response);
+    // Close a prior state handle, discarding the associated prior state.
+    rpc ClosePriorState(CloseStackPriorState.Request) returns (CloseStackPriorState.Response);
     // Calculate a desired state from the given configuration and compare it
     // with the current state to propose a set of changes to converge the
     // current state with the desired state, at least in part.
     rpc PlanStackChanges(PlanStackChanges.Request)
         returns (stream PlanStackChanges.Event);
+    // Load a previously-created plan by sending a stream of raw change objects
+    // that were streamed from a previous PlanStackChanges response.
+    rpc OpenPlan(stream OpenStackPlan.RequestItem) returns (OpenStackPlan.Response);
+    // Close a saved plan handle, discarding the associated saved plan.
+    rpc ClosePlan(CloseStackPlan.Request) returns (CloseStackPlan.Response);
     // Execute the changes proposed by an earlier call to PlanStackChanges.
     rpc ApplyStackChanges(ApplyStackChanges.Request)
         returns (stream ApplyStackChanges.Event);
@@ -495,11 +505,29 @@ message FindStackConfigurationComponents {
     }
 }
 
+message OpenStackPriorState {
+    message RequestItem {
+        AppliedChange.RawChange raw = 1;
+    }
+    message Response {
+        int64 prior_state_handle = 1;
+    }
+}
+
+message CloseStackPriorState {
+    message Request {
+        int64 prior_state_handle = 1;
+    }
+    message Response {
+    }
+}
+
 message PlanStackChanges {
     message Request {
         PlanMode plan_mode = 1;
         int64 stack_config_handle = 2;
-        map<string, google.protobuf.Any> previous_state = 3;
+        int64 previous_state_handle = 7;
+        map<string, google.protobuf.Any> previous_state = 3 [deprecated = true];
         int64 dependency_locks_handle = 4;
         int64 provider_cache_handle = 5;
         map<string, DynamicValueWithSource> input_values = 6;
@@ -515,6 +543,23 @@ message PlanStackChanges {
     }
 }
 
+message OpenStackPlan {
+    message RequestItem {
+        google.protobuf.Any raw = 1;
+    }
+    message Response {
+        int64 plan_handle = 1;
+    }
+}
+
+message CloseStackPlan {
+    message Request {
+        int64 plan_handle = 1;
+    }
+    message Response {
+    }
+}
+
 message ApplyStackChanges {
     message Request {
         // This must refer to exactly the same configuration that was
@@ -527,11 +572,18 @@ message ApplyStackChanges {
         // formats even if no change is being made to the corresponding
         // real objects.
         repeated string known_description_keys = 3;
+        // The handle for a saved plan previously loaded using the
+        // Stacks.OpenPlan function.
+        // Applying a plan immediately invalidates it, so the handle will
+        // be automatically closed.
+        int64 plan_handle = 7;
         // This must include all of the "raw" values emitted through
         // PlannedChange events during the PlanStackChanges operation
         // that created this plan, concatenated together in the same
         // order they were written to the PlanStackChanges event stream.
-        repeated google.protobuf.Any planned_changes = 4;
+        //
+        // Use plan_handle instead. This will be removed in future.
+        repeated google.protobuf.Any planned_changes = 4  [deprecated = true];
         // This must be equivalent to the argument of the same name
         // passed to PlanStackChanges when creating this plan.
         int64 dependency_locks_handle = 5;

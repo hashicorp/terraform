@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
-	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
@@ -113,19 +112,27 @@ func TestApplyWithRemovedResource(t *testing.T) {
 		t.Fatalf("expected no diagnostics, go %s", diags.ErrWithWarnings())
 	}
 
-	var raw []*anypb.Any
+	planLoader := stackplan.NewLoader()
 	for _, change := range planChanges {
 		proto, err := change.PlannedChangeProto()
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		raw = append(raw, proto.Raw...)
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	applyReq := ApplyRequest{
-		Config:  cfg,
-		RawPlan: raw,
+		Config: cfg,
+		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewBuiltInProvider("terraform"): func() (providers.Interface, error) {
 				return terraformProvider.NewProvider(), nil
@@ -242,18 +249,27 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 		t.Fatalf("expected no diagnostics, got %s", diags.ErrWithWarnings())
 	}
 
-	var raw []*anypb.Any
+	planLoader := stackplan.NewLoader()
 	for _, change := range planChanges {
 		proto, err := change.PlannedChangeProto()
 		if err != nil {
 			t.Fatal(err)
 		}
-		raw = append(raw, proto.Raw...)
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	applyReq := ApplyRequest{
-		Config:  cfg,
-		RawPlan: raw,
+		Config: cfg,
+		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
 				return stacks_testing_provider.NewProvider(), nil
@@ -407,18 +423,27 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 		t.Errorf("wrong diagnostics\n%s", diff)
 	}
 
-	var raw []*anypb.Any
+	planLoader := stackplan.NewLoader()
 	for _, change := range planChanges {
 		proto, err := change.PlannedChangeProto()
 		if err != nil {
 			t.Fatal(err)
 		}
-		raw = append(raw, proto.Raw...)
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	applyReq := ApplyRequest{
-		Config:  cfg,
-		RawPlan: raw,
+		Config: cfg,
+		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
 				return stacks_testing_provider.NewProvider(), nil

@@ -15,11 +15,15 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/version"
 )
@@ -224,6 +228,128 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 	})
+}
+
+func TestStacksOpenPriorState(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		terraform1.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+
+	stacksClient := terraform1.NewStacksClient(grpcClient)
+	stream, err := stacksClient.OpenPriorState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	send := func(t *testing.T, key string, msg proto.Message) {
+		rawMsg, err := anypb.New(msg)
+		if err != nil {
+			t.Fatalf("failed to encode %T message %q: %s", msg, key, err)
+		}
+		err = stream.Send(&terraform1.OpenStackPriorState_RequestItem{
+			Raw: &terraform1.AppliedChange_RawChange{
+				Key:   key,
+				Value: rawMsg,
+			},
+		})
+		if err != nil {
+			t.Fatalf("failed to send %T message %q: %s", msg, key, err)
+		}
+	}
+	send(t, "CMPTcomponent.foo", &tfstackdata1.StateComponentInstanceV1{})
+
+	resp, err := stream.CloseAndRecv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	hnd := handle[*stackstate.State](resp.PriorStateHandle)
+	state := handles.StackPriorState(hnd)
+	if state == nil {
+		t.Fatalf("returned handle %d does not refer to a stack prior state", resp.PriorStateHandle)
+	}
+
+	// The state should know about component.foo from the message we sent above.
+	wantComponentInstAddr := stackaddrs.AbsComponentInstance{
+		Stack: stackaddrs.RootStackInstance,
+		Item: stackaddrs.ComponentInstance{
+			Component: stackaddrs.Component{
+				Name: "foo",
+			},
+		},
+	}
+	if !state.HasComponentInstance(wantComponentInstAddr) {
+		t.Errorf("state does not track %s", wantComponentInstAddr)
+	}
+
+	_, err = stacksClient.ClosePriorState(ctx, &terraform1.CloseStackPriorState_Request{
+		PriorStateHandle: resp.PriorStateHandle,
+	})
+	if err != nil {
+		t.Errorf("failed to close the prior state handle: %s", err)
+	}
+}
+
+func TestStacksOpenPlan(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		terraform1.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+
+	stacksClient := terraform1.NewStacksClient(grpcClient)
+	stream, err := stacksClient.OpenPlan(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	send := func(t *testing.T, msg proto.Message) {
+		rawMsg, err := anypb.New(msg)
+		if err != nil {
+			t.Fatalf("failed to encode %T message: %s", msg, err)
+		}
+		err = stream.Send(&terraform1.OpenStackPlan_RequestItem{
+			Raw: rawMsg,
+		})
+		if err != nil {
+			t.Fatalf("failed to send %T message: %s", msg, err)
+		}
+	}
+	send(t, &tfstackdata1.PlanHeader{
+		TerraformVersion: version.SemVer.String(),
+	})
+	send(t, &tfstackdata1.PlanApplyable{
+		Applyable: true,
+	})
+	resp, err := stream.CloseAndRecv()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hnd := handle[*stackplan.Plan](resp.PlanHandle)
+	plan := handles.StackPlan(hnd)
+	if plan == nil {
+		t.Fatalf("returned handle %d does not refer to a stack plan", resp.PlanHandle)
+	}
+	if !plan.Applyable {
+		t.Error("plan is not applyable; should've been")
+	}
+
+	_, err = stacksClient.ClosePlan(ctx, &terraform1.CloseStackPlan_Request{
+		PlanHandle: resp.PlanHandle,
+	})
+	if err != nil {
+		t.Errorf("failed to close the plan handle: %s", err)
+	}
 }
 
 func TestStacksPlanStackChanges(t *testing.T) {

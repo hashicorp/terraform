@@ -39,15 +39,7 @@ import (
 // Callers must call [Main.DoCleanup] on that object once they've finished
 // with it to avoid leaking non-memory resources such as goroutines and
 // provider plugin processes.
-func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb.Any, opts ApplyOpts, outp ApplyOutput) (*Main, error) {
-	// FIXME: ApplyPlan takes a raw plan and decodes it here, whereas
-	// the corresponding function for planning expects the caller to
-	// have already done the work to load the raw state. We should
-	// make these two consistent one way or the other.
-	plan, err := stackplan.LoadFromProto(rawPlan)
-	if err != nil {
-		return nil, fmt.Errorf("invalid raw plan: %w", err)
-	}
+func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.Plan, opts ApplyOpts, outp ApplyOutput) (*Main, error) {
 	if !plan.Applyable {
 		// We should not get here because a caller should not ask us to try
 		// to apply a plan that wasn't marked as applyable, but we'll check

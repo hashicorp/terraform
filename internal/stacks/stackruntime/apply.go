@@ -8,11 +8,10 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"google.golang.org/protobuf/types/known/anypb"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -57,7 +56,7 @@ func Apply(ctx context.Context, req *ApplyRequest, resp *ApplyResponse) {
 	main, err := stackeval.ApplyPlan(
 		ctx,
 		req.Config,
-		req.RawPlan,
+		req.Plan,
 		stackeval.ApplyOpts{
 			ProviderFactories:  req.ProviderFactories,
 			ExperimentsAllowed: req.ExperimentsAllowed,
@@ -93,8 +92,8 @@ func Apply(ctx context.Context, req *ApplyRequest, resp *ApplyResponse) {
 
 // ApplyRequest represents the inputs to an [Apply] call.
 type ApplyRequest struct {
-	Config  *stackconfig.Config
-	RawPlan []*anypb.Any
+	Config *stackconfig.Config
+	Plan   *stackplan.Plan
 
 	ProviderFactories map[addrs.Provider]providers.Factory
 
