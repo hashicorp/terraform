@@ -37,7 +37,7 @@ jobs:
       pkg-name: ${{ steps.get-pkg-name.outputs.pkg-name }}
 
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       - name: Get Package Name
         id: get-pkg-name
         run: |
@@ -64,7 +64,7 @@ jobs:
       go-version: ${{ steps.get-go-version.outputs.version }}
 
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       - name: Determine Go version
         id: get-go-version
         uses: ./.github/actions/go-version
@@ -77,7 +77,7 @@ jobs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
 
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       - name: Generate package metadata
         id: generate-metadata-file
         uses: hashicorp/actions-generate-metadata@fdbc8803a0e53bcbb912ddeee3808329033d6357 # v1.1.1
@@ -139,7 +139,7 @@ jobs:
       repo: "terraform"
       version: ${{needs.get-product-version.outputs.product-version}}
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       - name: Build Docker images
         uses: hashicorp/actions-docker-build@11d43ef520c65f58683d048ce9b47d6617893c9a # v2
         with:
@@ -187,7 +187,7 @@ jobs:
           cache_path=internal/command/e2etest/build
           echo "e2e-cache-key=${cache_key}" | tee -a "${GITHUB_OUTPUT}"
           echo "e2e-cache-path=${cache_path}" | tee -a "${GITHUB_OUTPUT}"
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
 
       - name: Install Go toolchain
         uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
@@ -245,7 +245,7 @@ jobs:
       # fresh build from source.)
       - name: Checkout repo
         if: ${{ (matrix.goos == 'linux') || (matrix.goos == 'darwin') }}
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
       - name: "Restore cache"
         uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         id: e2etestpkg
@@ -310,7 +310,7 @@ jobs:
           name: terraform_${{ env.version }}_linux_amd64.zip
           path: .
       - name: Checkout terraform-exec repo
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
         with:
           repository: hashicorp/terraform-exec
           path: terraform-exec
