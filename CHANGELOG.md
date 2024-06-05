@@ -1,4 +1,4 @@
-## 1.8.5 (Unreleased)
+## 1.8.5 (June 5, 2024)
 
 BUG FIXES:
 
