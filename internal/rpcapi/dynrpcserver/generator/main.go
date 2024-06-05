@@ -26,6 +26,7 @@ import (
 const protobufPkg = "github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 
 func main() {
+	panic("this is not updated for the split rawrpc packages")
 	cfg := &packages.Config{
 		Mode: packages.NeedTypes | packages.NeedTypesInfo | packages.NeedFiles,
 	}

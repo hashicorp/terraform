@@ -59,6 +59,21 @@ var protocSteps = []protocStep{
 		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "--go_opt=Mterraform1.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1", "./terraform1.proto"},
 	},
 	{
+		"terraform (Terraform Core RPC API)",
+		"internal/rpcapi/proto",
+		[]string{
+			"--go_out=module=github.com/hashicorp/terraform,plugins=grpc:../../..",
+			"--go_opt=Mterraform.proto=github.com/hashicorp/terraform/internal/rpcapi/rawrpc",
+			"--go_opt=Mterraform/dependencies1.proto=github.com/hashicorp/terraform/internal/rpcapi/rawrpc/rawdependencies1",
+			"--go_opt=Mterraform/schema.proto=github.com/hashicorp/terraform/internal/rpcapi/rawrpc/rawschema",
+			"--go_opt=Mterraform/stacks1.proto=github.com/hashicorp/terraform/internal/rpcapi/rawrpc/rawstacks1",
+			"./terraform.proto",
+			"./terraform/dependencies1.proto",
+			"./terraform/schema.proto",
+			"./terraform/stacks1.proto",
+		},
+	},
+	{
 		"tfplan (plan file serialization)",
 		"internal/plans/planproto",
 		[]string{"--go_out=paths=source_relative:.", "planfile.proto"},

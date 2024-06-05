@@ -18,7 +18,8 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc/rawdependencies1"
 )
 
 func TestPackagesServer_ProviderPackageVersions(t *testing.T) {
@@ -86,7 +87,7 @@ func TestPackagesServer_ProviderPackageVersions(t *testing.T) {
 				providerSourceFn: tc.sourceFn,
 			}
 
-			response, err := service.ProviderPackageVersions(context.Background(), &terraform1.ProviderPackageVersions_Request{
+			response, err := service.ProviderPackageVersions(context.Background(), &rawdependencies1.ProviderPackageVersions_Request{
 				SourceAddr: tc.source,
 			})
 			if err != nil {
@@ -95,7 +96,7 @@ func TestPackagesServer_ProviderPackageVersions(t *testing.T) {
 
 			if len(tc.expectedWarnings) > 0 {
 				for _, diag := range response.Diagnostics {
-					if diag.Severity == terraform1.Diagnostic_WARNING && diag.Summary == "Additional provider information from registry" {
+					if diag.Severity == rawrpc.Diagnostic_WARNING && diag.Summary == "Additional provider information from registry" {
 						expected := fmt.Sprintf("The remote registry returned warnings for %s:\n%s", tc.source, strings.Join(tc.expectedWarnings, "\n"))
 						if diff := cmp.Diff(expected, diag.Detail); len(diff) > 0 {
 							t.Errorf(diff)
@@ -230,7 +231,7 @@ func TestPackagesServer_FetchProviderPackage(t *testing.T) {
 			}
 
 			cacheDir := t.TempDir()
-			response, err := service.FetchProviderPackage(context.Background(), &terraform1.FetchProviderPackage_Request{
+			response, err := service.FetchProviderPackage(context.Background(), &rawdependencies1.FetchProviderPackage_Request{
 				CacheDir:   cacheDir,
 				SourceAddr: tc.source,
 				Version:    tc.version,

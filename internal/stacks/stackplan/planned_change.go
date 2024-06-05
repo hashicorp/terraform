@@ -19,7 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc/rawstacks1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackutils"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
@@ -41,7 +41,7 @@ import (
 type PlannedChange interface {
 	// PlannedChangeProto returns the protocol buffers representation of
 	// the change, ready to be sent verbatim to an RPC API client.
-	PlannedChangeProto() (*terraform1.PlannedChange, error)
+	PlannedChangeProto() (*rawstacks1.PlannedChange, error)
 }
 
 // PlannedChangeRootInputValue announces the existence of a root stack input
@@ -57,7 +57,7 @@ type PlannedChangeRootInputValue struct {
 var _ PlannedChange = (*PlannedChangeRootInputValue)(nil)
 
 // PlannedChangeProto implements PlannedChange.
-func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*terraform1.PlannedChange, error) {
+func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*rawstacks1.PlannedChange, error) {
 	// We use cty.DynamicPseudoType here so that we'll save both the
 	// value _and_ its dynamic type in the plan, so we can recover
 	// exactly the same value later.
@@ -76,7 +76,7 @@ func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*terraform1.Planned
 	if err != nil {
 		return nil, err
 	}
-	return &terraform1.PlannedChange{
+	return &rawstacks1.PlannedChange{
 		Raw: []*anypb.Any{&raw},
 
 		// There is no external-facing description for this change type.
@@ -142,7 +142,7 @@ type PlannedChangeComponentInstance struct {
 var _ PlannedChange = (*PlannedChangeComponentInstance)(nil)
 
 // PlannedChangeProto implements PlannedChange.
-func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.PlannedChange, error) {
+func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*rawstacks1.PlannedChange, error) {
 	var plannedInputValues map[string]*tfstackdata1.DynamicValue
 	if n := len(pc.PlannedInputValues); n != 0 {
 		plannedInputValues = make(map[string]*tfstackdata1.DynamicValue, n)
@@ -207,18 +207,18 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 		return nil, err
 	}
 
-	protoChangeTypes, err := terraform1.ChangeTypesForPlanAction(pc.Action)
+	protoChangeTypes, err := rawstacks1.ChangeTypesForPlanAction(pc.Action)
 	if err != nil {
 		return nil, err
 	}
 
-	return &terraform1.PlannedChange{
+	return &rawstacks1.PlannedChange{
 		Raw: []*anypb.Any{&raw},
-		Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+		Descriptions: []*rawstacks1.PlannedChange_ChangeDescription{
 			{
-				Description: &terraform1.PlannedChange_ChangeDescription_ComponentInstancePlanned{
-					ComponentInstancePlanned: &terraform1.PlannedChange_ComponentInstance{
-						Addr: &terraform1.ComponentInstanceInStackAddr{
+				Description: &rawstacks1.PlannedChange_ChangeDescription_ComponentInstancePlanned{
+					ComponentInstancePlanned: &rawstacks1.PlannedChange_ComponentInstance{
+						Addr: &rawstacks1.ComponentInstanceInStackAddr{
 							ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(pc.Addr).String(),
 							ComponentInstanceAddr: pc.Addr.String(),
 						},
@@ -305,7 +305,7 @@ func (pc *PlannedChangeResourceInstancePlanned) PlanResourceInstanceChangePlanne
 	}, nil
 }
 
-func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*terraform1.PlannedChange_ChangeDescription, error) {
+func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*rawstacks1.PlannedChange_ChangeDescription, error) {
 	rioAddr := pc.ResourceInstanceObjectAddr
 	// We only emit an external description if there's a change to describe.
 	// Otherwise, we just emit a raw to remind us to update the state for
@@ -314,7 +314,7 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*terraform1
 		return nil, nil
 	}
 
-	protoChangeTypes, err := terraform1.ChangeTypesForPlanAction(pc.ChangeSrc.Action)
+	protoChangeTypes, err := rawstacks1.ChangeTypesForPlanAction(pc.ChangeSrc.Action)
 	if err != nil {
 		return nil, err
 	}
@@ -323,21 +323,21 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*terraform1
 		return nil, err
 	}
 
-	return &terraform1.PlannedChange_ChangeDescription{
-		Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
-			ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
-				Addr:         terraform1.NewResourceInstanceObjectInStackAddr(rioAddr),
+	return &rawstacks1.PlannedChange_ChangeDescription{
+		Description: &rawstacks1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
+			ResourceInstancePlanned: &rawstacks1.PlannedChange_ResourceInstance{
+				Addr:         rawstacks1.NewResourceInstanceObjectInStackAddr(rioAddr),
 				ResourceMode: stackutils.ResourceModeForProto(pc.ChangeSrc.Addr.Resource.Resource.Mode),
 				ResourceType: pc.ChangeSrc.Addr.Resource.Resource.Type,
 				ProviderAddr: pc.ChangeSrc.ProviderAddr.Provider.String(),
 
 				Actions: protoChangeTypes,
-				Values: &terraform1.DynamicValueChange{
-					Old: terraform1.NewDynamicValue(
+				Values: &rawstacks1.DynamicValueChange{
+					Old: rawstacks1.NewDynamicValue(
 						pc.ChangeSrc.Before,
 						pc.ChangeSrc.BeforeSensitivePaths,
 					),
-					New: terraform1.NewDynamicValue(
+					New: rawstacks1.NewDynamicValue(
 						pc.ChangeSrc.After,
 						pc.ChangeSrc.AfterSensitivePaths,
 					),
@@ -351,7 +351,7 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*terraform1
 }
 
 // PlannedChangeProto implements PlannedChange.
-func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform1.PlannedChange, error) {
+func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*rawstacks1.PlannedChange, error) {
 	pric, err := pc.PlanResourceInstanceChangePlannedProto()
 	if err != nil {
 		return nil, err
@@ -367,12 +367,12 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 		// uninteresting edge-case. The PlanResourceInstanceChangePlannedProto
 		// function should have returned a placeholder value for this use case.
 
-		return &terraform1.PlannedChange{
+		return &rawstacks1.PlannedChange{
 			Raw: []*anypb.Any{&raw},
 		}, nil
 	}
 
-	var descs []*terraform1.PlannedChange_ChangeDescription
+	var descs []*rawstacks1.PlannedChange_ChangeDescription
 	desc, err := pc.ChangeDescription()
 	if err != nil {
 		return nil, err
@@ -381,7 +381,7 @@ func (pc *PlannedChangeResourceInstancePlanned) PlannedChangeProto() (*terraform
 		descs = append(descs, desc)
 	}
 
-	return &terraform1.PlannedChange{
+	return &rawstacks1.PlannedChange{
 		Raw:          []*anypb.Any{&raw},
 		Descriptions: descs,
 	}, nil
@@ -400,7 +400,7 @@ type PlannedChangeDeferredResourceInstancePlanned struct {
 var _ PlannedChange = (*PlannedChangeDeferredResourceInstancePlanned)(nil)
 
 // PlannedChangeProto implements PlannedChange.
-func (dpc *PlannedChangeDeferredResourceInstancePlanned) PlannedChangeProto() (*terraform1.PlannedChange, error) {
+func (dpc *PlannedChangeDeferredResourceInstancePlanned) PlannedChangeProto() (*rawstacks1.PlannedChange, error) {
 	change, err := dpc.ResourceInstancePlanned.PlanResourceInstanceChangePlannedProto()
 	if err != nil {
 		return nil, err
@@ -435,48 +435,48 @@ func (dpc *PlannedChangeDeferredResourceInstancePlanned) PlannedChangeProto() (*
 		return nil, err
 	}
 
-	var deferred2 terraform1.Deferred
+	var deferred2 rawstacks1.Deferred
 	switch dpc.DeferredReason {
 	case providers.DeferredReasonInstanceCountUnknown:
-		deferred2.Reason = terraform1.Deferred_INSTANCE_COUNT_UNKNOWN
+		deferred2.Reason = rawstacks1.Deferred_INSTANCE_COUNT_UNKNOWN
 	case providers.DeferredReasonResourceConfigUnknown:
-		deferred2.Reason = terraform1.Deferred_RESOURCE_CONFIG_UNKNOWN
+		deferred2.Reason = rawstacks1.Deferred_RESOURCE_CONFIG_UNKNOWN
 	case providers.DeferredReasonProviderConfigUnknown:
-		deferred2.Reason = terraform1.Deferred_PROVIDER_CONFIG_UNKNOWN
+		deferred2.Reason = rawstacks1.Deferred_PROVIDER_CONFIG_UNKNOWN
 	case providers.DeferredReasonAbsentPrereq:
-		deferred2.Reason = terraform1.Deferred_ABSENT_PREREQ
+		deferred2.Reason = rawstacks1.Deferred_ABSENT_PREREQ
 	case providers.DeferredReasonDeferredPrereq:
-		deferred2.Reason = terraform1.Deferred_DEFERRED_PREREQ
+		deferred2.Reason = rawstacks1.Deferred_DEFERRED_PREREQ
 	default:
-		deferred2.Reason = terraform1.Deferred_INVALID
+		deferred2.Reason = rawstacks1.Deferred_INVALID
 	}
 
-	var descs []*terraform1.PlannedChange_ChangeDescription
-	descs = append(descs, &terraform1.PlannedChange_ChangeDescription{
-		Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstanceDeferred{
-			ResourceInstanceDeferred: &terraform1.PlannedChange_ResourceInstanceDeferred{
+	var descs []*rawstacks1.PlannedChange_ChangeDescription
+	descs = append(descs, &rawstacks1.PlannedChange_ChangeDescription{
+		Description: &rawstacks1.PlannedChange_ChangeDescription_ResourceInstanceDeferred{
+			ResourceInstanceDeferred: &rawstacks1.PlannedChange_ResourceInstanceDeferred{
 				ResourceInstance: ricd.GetResourceInstancePlanned(),
 				Deferred:         &deferred2,
 			},
 		},
 	})
 
-	return &terraform1.PlannedChange{
+	return &rawstacks1.PlannedChange{
 		Raw:          []*anypb.Any{&raw},
 		Descriptions: descs,
 	}, nil
 }
 
-func encodePathSet(pathSet cty.PathSet) ([]*terraform1.AttributePath, error) {
+func encodePathSet(pathSet cty.PathSet) ([]*rawstacks1.AttributePath, error) {
 	if pathSet.Empty() {
 		return nil, nil
 	}
 
 	pathList := pathSet.List()
-	paths := make([]*terraform1.AttributePath, 0, len(pathList))
+	paths := make([]*rawstacks1.AttributePath, 0, len(pathList))
 
 	for _, path := range pathList {
-		paths = append(paths, terraform1.NewAttributePath(path))
+		paths = append(paths, rawstacks1.NewAttributePath(path))
 	}
 	return paths, nil
 }
@@ -497,26 +497,26 @@ type PlannedChangeOutputValue struct {
 var _ PlannedChange = (*PlannedChangeOutputValue)(nil)
 
 // PlannedChangeProto implements PlannedChange.
-func (pc *PlannedChangeOutputValue) PlannedChangeProto() (*terraform1.PlannedChange, error) {
-	protoChangeTypes, err := terraform1.ChangeTypesForPlanAction(pc.Action)
+func (pc *PlannedChangeOutputValue) PlannedChangeProto() (*rawstacks1.PlannedChange, error) {
+	protoChangeTypes, err := rawstacks1.ChangeTypesForPlanAction(pc.Action)
 	if err != nil {
 		return nil, err
 	}
 
-	return &terraform1.PlannedChange{
+	return &rawstacks1.PlannedChange{
 		// No "raw" representation for output values; we emit them only for
 		// external consumption, since Terraform Core will just recalculate
 		// them during apply anyway.
-		Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+		Descriptions: []*rawstacks1.PlannedChange_ChangeDescription{
 			{
-				Description: &terraform1.PlannedChange_ChangeDescription_OutputValuePlanned{
-					OutputValuePlanned: &terraform1.PlannedChange_OutputValue{
+				Description: &rawstacks1.PlannedChange_ChangeDescription_OutputValuePlanned{
+					OutputValuePlanned: &rawstacks1.PlannedChange_OutputValue{
 						Name:    pc.Addr.Name,
 						Actions: protoChangeTypes,
 
-						Values: &terraform1.DynamicValueChange{
-							Old: terraform1.NewDynamicValue(pc.OldValue, pc.OldValueSensitivePaths),
-							New: terraform1.NewDynamicValue(pc.NewValue, pc.NewValueSensitivePaths),
+						Values: &rawstacks1.DynamicValueChange{
+							Old: rawstacks1.NewDynamicValue(pc.OldValue, pc.OldValueSensitivePaths),
+							New: rawstacks1.NewDynamicValue(pc.NewValue, pc.NewValueSensitivePaths),
 						},
 					},
 				},
@@ -541,7 +541,7 @@ type PlannedChangeHeader struct {
 var _ PlannedChange = (*PlannedChangeHeader)(nil)
 
 // PlannedChangeProto implements PlannedChange.
-func (pc *PlannedChangeHeader) PlannedChangeProto() (*terraform1.PlannedChange, error) {
+func (pc *PlannedChangeHeader) PlannedChangeProto() (*rawstacks1.PlannedChange, error) {
 	var raw anypb.Any
 	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanHeader{
 		TerraformVersion: pc.TerraformVersion.String(),
@@ -551,7 +551,7 @@ func (pc *PlannedChangeHeader) PlannedChangeProto() (*terraform1.PlannedChange, 
 		return nil, err
 	}
 
-	return &terraform1.PlannedChange{
+	return &rawstacks1.PlannedChange{
 		Raw: []*anypb.Any{&raw},
 	}, nil
 }
@@ -567,7 +567,7 @@ type PlannedChangeApplyable struct {
 var _ PlannedChange = (*PlannedChangeApplyable)(nil)
 
 // PlannedChangeProto implements PlannedChange.
-func (pc *PlannedChangeApplyable) PlannedChangeProto() (*terraform1.PlannedChange, error) {
+func (pc *PlannedChangeApplyable) PlannedChangeProto() (*rawstacks1.PlannedChange, error) {
 	var raw anypb.Any
 	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanApplyable{
 		Applyable: pc.Applyable,
@@ -576,11 +576,11 @@ func (pc *PlannedChangeApplyable) PlannedChangeProto() (*terraform1.PlannedChang
 		return nil, err
 	}
 
-	return &terraform1.PlannedChange{
+	return &rawstacks1.PlannedChange{
 		Raw: []*anypb.Any{&raw},
-		Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+		Descriptions: []*rawstacks1.PlannedChange_ChangeDescription{
 			{
-				Description: &terraform1.PlannedChange_ChangeDescription_PlanApplyable{
+				Description: &rawstacks1.PlannedChange_ChangeDescription_PlanApplyable{
 					PlanApplyable: pc.Applyable,
 				},
 			},

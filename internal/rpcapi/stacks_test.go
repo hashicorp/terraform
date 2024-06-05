@@ -18,6 +18,9 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc/rawdependencies1"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc/rawstacks1"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
@@ -42,9 +45,9 @@ func TestStacksOpenCloseStackConfiguration(t *testing.T) {
 		sourcesHnd = handles.NewSourceBundle(sources)
 	}
 
-	openResp, err := stacksServer.OpenStackConfiguration(ctx, &terraform1.OpenStackConfiguration_Request{
+	openResp, err := stacksServer.OpenStackConfiguration(ctx, &rawstacks1.OpenStackConfiguration_Request{
 		SourceBundleHandle: sourcesHnd.ForProtobuf(),
-		SourceAddress: &terraform1.SourceAddress{
+		SourceAddress: &rawrpc.SourceAddress{
 			Source: "git::https://example.com/foo.git",
 		},
 	})
@@ -68,7 +71,7 @@ func TestStacksOpenCloseStackConfiguration(t *testing.T) {
 	{
 		depsServer := newDependenciesServer(handles, disco.New())
 
-		_, err := depsServer.CloseSourceBundle(ctx, &terraform1.CloseSourceBundle_Request{
+		_, err := depsServer.CloseSourceBundle(ctx, &rawdependencies1.CloseSourceBundle_Request{
 			SourceBundleHandle: sourcesHnd.ForProtobuf(),
 		})
 		if err == nil {
@@ -86,7 +89,7 @@ func TestStacksOpenCloseStackConfiguration(t *testing.T) {
 		}
 	}
 
-	_, err = stacksServer.CloseStackConfiguration(ctx, &terraform1.CloseStackConfiguration_Request{
+	_, err = stacksServer.CloseStackConfiguration(ctx, &rawstacks1.CloseStackConfiguration_Request{
 		StackConfigHandle: openResp.StackConfigHandle,
 	})
 	if err != nil {
@@ -97,7 +100,7 @@ func TestStacksOpenCloseStackConfiguration(t *testing.T) {
 	{
 		depsServer := newDependenciesServer(handles, disco.New())
 
-		_, err := depsServer.CloseSourceBundle(ctx, &terraform1.CloseSourceBundle_Request{
+		_, err := depsServer.CloseSourceBundle(ctx, &rawdependencies1.CloseSourceBundle_Request{
 			SourceBundleHandle: sourcesHnd.ForProtobuf(),
 		})
 		if err != nil {
@@ -125,9 +128,9 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 	}
 
 	t.Run("empty config", func(t *testing.T) {
-		openResp, err := stacksServer.OpenStackConfiguration(ctx, &terraform1.OpenStackConfiguration_Request{
+		openResp, err := stacksServer.OpenStackConfiguration(ctx, &rawstacks1.OpenStackConfiguration_Request{
 			SourceBundleHandle: sourcesHnd.ForProtobuf(),
-			SourceAddress: &terraform1.SourceAddress{
+			SourceAddress: &rawrpc.SourceAddress{
 				Source: "git::https://example.com/foo.git",
 			},
 		})
@@ -141,7 +144,7 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 			}
 		}
 
-		cmpntResp, err := stacksServer.FindStackConfigurationComponents(ctx, &terraform1.FindStackConfigurationComponents_Request{
+		cmpntResp, err := stacksServer.FindStackConfigurationComponents(ctx, &rawstacks1.FindStackConfigurationComponents_Request{
 			StackConfigHandle: openResp.StackConfigHandle,
 		})
 		if err != nil {
@@ -158,9 +161,9 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 		}
 	})
 	t.Run("non-empty config", func(t *testing.T) {
-		openResp, err := stacksServer.OpenStackConfiguration(ctx, &terraform1.OpenStackConfiguration_Request{
+		openResp, err := stacksServer.OpenStackConfiguration(ctx, &rawstacks1.OpenStackConfiguration_Request{
 			SourceBundleHandle: sourcesHnd.ForProtobuf(),
-			SourceAddress: &terraform1.SourceAddress{
+			SourceAddress: &rawrpc.SourceAddress{
 				Source: "git::https://example.com/foo.git//non-empty-stack",
 			},
 		})
@@ -174,7 +177,7 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 			}
 		}
 
-		cmpntResp, err := stacksServer.FindStackConfigurationComponents(ctx, &terraform1.FindStackConfigurationComponents_Request{
+		cmpntResp, err := stacksServer.FindStackConfigurationComponents(ctx, &rawstacks1.FindStackConfigurationComponents_Request{
 			StackConfigHandle: openResp.StackConfigHandle,
 		})
 		if err != nil {
@@ -247,7 +250,7 @@ func TestStacksPlanStackChanges(t *testing.T) {
 	}
 
 	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
-		terraform1.RegisterStacksServer(srv, stacksServer)
+		rawstacks1.RegisterStacksServer(srv, stacksServer)
 	})
 	defer close()
 

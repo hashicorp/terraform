@@ -5,7 +5,7 @@ package hooks
 
 import (
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc/rawstacks1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
 
@@ -28,22 +28,22 @@ const (
 )
 
 // TODO: move this into the rpcapi package somewhere
-func (s ComponentInstanceStatus) ForProtobuf() terraform1.StackChangeProgress_ComponentInstanceStatus_Status {
+func (s ComponentInstanceStatus) ForProtobuf() rawstacks1.StackChangeProgress_ComponentInstanceStatus_Status {
 	switch s {
 	case ComponentInstancePending:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_PENDING
+		return rawstacks1.StackChangeProgress_ComponentInstanceStatus_PENDING
 	case ComponentInstancePlanning:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_PLANNING
+		return rawstacks1.StackChangeProgress_ComponentInstanceStatus_PLANNING
 	case ComponentInstancePlanned:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_PLANNED
+		return rawstacks1.StackChangeProgress_ComponentInstanceStatus_PLANNED
 	case ComponentInstanceApplying:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_APPLYING
+		return rawstacks1.StackChangeProgress_ComponentInstanceStatus_APPLYING
 	case ComponentInstanceApplied:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_APPLIED
+		return rawstacks1.StackChangeProgress_ComponentInstanceStatus_APPLIED
 	case ComponentInstanceErrored:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_ERRORED
+		return rawstacks1.StackChangeProgress_ComponentInstanceStatus_ERRORED
 	default:
-		return terraform1.StackChangeProgress_ComponentInstanceStatus_INVALID
+		return rawstacks1.StackChangeProgress_ComponentInstanceStatus_INVALID
 	}
 }
 

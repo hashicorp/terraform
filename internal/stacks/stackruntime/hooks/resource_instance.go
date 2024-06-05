@@ -6,6 +6,7 @@ package hooks
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc/rawstacks1"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
@@ -31,26 +32,26 @@ const (
 )
 
 // TODO: move this into the rpcapi package somewhere
-func (s ResourceInstanceStatus) ForProtobuf() terraform1.StackChangeProgress_ResourceInstanceStatus_Status {
+func (s ResourceInstanceStatus) ForProtobuf() rawstacks1.StackChangeProgress_ResourceInstanceStatus_Status {
 	switch s {
 	case ResourceInstancePending:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_PENDING
+		return rawstacks1.StackChangeProgress_ResourceInstanceStatus_PENDING
 	case ResourceInstanceRefreshing:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_REFRESHING
+		return rawstacks1.StackChangeProgress_ResourceInstanceStatus_REFRESHING
 	case ResourceInstanceRefreshed:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_REFRESHED
+		return rawstacks1.StackChangeProgress_ResourceInstanceStatus_REFRESHED
 	case ResourceInstancePlanning:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_PLANNING
+		return rawstacks1.StackChangeProgress_ResourceInstanceStatus_PLANNING
 	case ResourceInstancePlanned:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_PLANNED
+		return rawstacks1.StackChangeProgress_ResourceInstanceStatus_PLANNED
 	case ResourceInstanceApplying:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_APPLYING
+		return rawstacks1.StackChangeProgress_ResourceInstanceStatus_APPLYING
 	case ResourceInstanceApplied:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_APPLIED
+		return rawstacks1.StackChangeProgress_ResourceInstanceStatus_APPLIED
 	case ResourceInstanceErrored:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_ERRORED
+		return rawstacks1.StackChangeProgress_ResourceInstanceStatus_ERRORED
 	default:
-		return terraform1.StackChangeProgress_ResourceInstanceStatus_INVALID
+		return rawstacks1.StackChangeProgress_ResourceInstanceStatus_INVALID
 	}
 }
 

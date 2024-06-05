@@ -12,7 +12,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -225,19 +225,19 @@ func TestTelemetryInTestsGRPC(t *testing.T) {
 
 	client, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
 		setup := &setupServer{
-			initOthers: func(ctx context.Context, cc *terraform1.Handshake_Request, stopper *stopper) (*terraform1.ServerCapabilities, error) {
-				return &terraform1.ServerCapabilities{}, nil
+			initOthers: func(ctx context.Context, cc *rawrpc.Handshake_Request, stopper *stopper) (*rawrpc.ServerCapabilities, error) {
+				return &rawrpc.ServerCapabilities{}, nil
 			},
 		}
-		terraform1.RegisterSetupServer(srv, setup)
+		rawrpc.RegisterSetupServer(srv, setup)
 	})
 	defer close()
-	setupClient := terraform1.NewSetupClient(client)
+	setupClient := rawrpc.NewSetupClient(client)
 
 	{
 		ctx, span := otel.Tracer("TestTelemetryInTestsGRPC").Start(ctx, "root")
-		_, err := setupClient.Handshake(ctx, &terraform1.Handshake_Request{
-			Capabilities: &terraform1.ClientCapabilities{},
+		_, err := setupClient.Handshake(ctx, &rawrpc.Handshake_Request{
+			Capabilities: &rawrpc.ClientCapabilities{},
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -254,14 +254,14 @@ func TestTelemetryInTestsGRPC(t *testing.T) {
 	t.Run("client span", func(t *testing.T) {
 		span := clientSpan
 		t.Logf("client span: %s", spew.Sdump(span))
-		if got, want := span.Name, "terraform1.Setup/Handshake"; got != want {
+		if got, want := span.Name, "rawrpc.Setup/Handshake"; got != want {
 			t.Errorf("wrong name\ngot:  %s\nwant: %s", got, want)
 		}
 		attrs := otelAttributesMap(span.Attributes)
 		if got, want := attrs["rpc.system"], "grpc"; got != want {
 			t.Errorf("wrong rpc.system\ngot:  %s\nwant: %s", got, want)
 		}
-		if got, want := attrs["rpc.service"], "terraform1.Setup"; got != want {
+		if got, want := attrs["rpc.service"], "rawrpc.Setup"; got != want {
 			t.Errorf("wrong rpc.service\ngot:  %s\nwant: %s", got, want)
 		}
 		if got, want := attrs["rpc.method"], "Handshake"; got != want {
@@ -271,7 +271,7 @@ func TestTelemetryInTestsGRPC(t *testing.T) {
 	t.Run("server span", func(t *testing.T) {
 		span := serverSpan
 		t.Logf("server span: %s", spew.Sdump(span))
-		if got, want := span.Name, "terraform1.Setup/Handshake"; got != want {
+		if got, want := span.Name, "rawrpc.Setup/Handshake"; got != want {
 			t.Errorf("wrong name\ngot:  %s\nwant: %s", got, want)
 		}
 		if got, want := span.Parent.SpanID(), clientSpan.SpanContext.SpanID(); got != want {
@@ -284,7 +284,7 @@ func TestTelemetryInTestsGRPC(t *testing.T) {
 		if got, want := attrs["rpc.system"], "grpc"; got != want {
 			t.Errorf("wrong rpc.system\ngot:  %s\nwant: %s", got, want)
 		}
-		if got, want := attrs["rpc.service"], "terraform1.Setup"; got != want {
+		if got, want := attrs["rpc.service"], "rawrpc.Setup"; got != want {
 			t.Errorf("wrong rpc.service\ngot:  %s\nwant: %s", got, want)
 		}
 		if got, want := attrs["rpc.method"], "Handshake"; got != want {

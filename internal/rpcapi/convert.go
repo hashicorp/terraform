@@ -11,34 +11,35 @@ import (
 	msgpack "github.com/zclconf/go-cty/cty/msgpack"
 
 	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc/rawstacks1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func diagnosticsToProto(diags tfdiags.Diagnostics) []*terraform1.Diagnostic {
+func diagnosticsToProto(diags tfdiags.Diagnostics) []*rawrpc.Diagnostic {
 	if len(diags) == 0 {
 		return nil
 	}
 
-	ret := make([]*terraform1.Diagnostic, len(diags))
+	ret := make([]*rawrpc.Diagnostic, len(diags))
 	for i, diag := range diags {
 		ret[i] = diagnosticToProto(diag)
 	}
 	return ret
 }
 
-func diagnosticToProto(diag tfdiags.Diagnostic) *terraform1.Diagnostic {
-	protoDiag := &terraform1.Diagnostic{}
+func diagnosticToProto(diag tfdiags.Diagnostic) *rawrpc.Diagnostic {
+	protoDiag := &rawrpc.Diagnostic{}
 
 	switch diag.Severity() {
 	case tfdiags.Error:
-		protoDiag.Severity = terraform1.Diagnostic_ERROR
+		protoDiag.Severity = rawrpc.Diagnostic_ERROR
 	case tfdiags.Warning:
-		protoDiag.Severity = terraform1.Diagnostic_WARNING
+		protoDiag.Severity = rawrpc.Diagnostic_WARNING
 	default:
-		protoDiag.Severity = terraform1.Diagnostic_INVALID
+		protoDiag.Severity = rawrpc.Diagnostic_INVALID
 	}
 
 	desc := diag.Description()
@@ -56,8 +57,8 @@ func diagnosticToProto(diag tfdiags.Diagnostic) *terraform1.Diagnostic {
 	return protoDiag
 }
 
-func sourceRangeToProto(rng tfdiags.SourceRange) *terraform1.SourceRange {
-	return &terraform1.SourceRange{
+func sourceRangeToProto(rng tfdiags.SourceRange) *rawrpc.SourceRange {
+	return &rawrpc.SourceRange{
 		// RPC API operations use source address syntax for "filename" by
 		// convention, because the physical filesystem layout is an
 		// implementation detail.
@@ -68,7 +69,7 @@ func sourceRangeToProto(rng tfdiags.SourceRange) *terraform1.SourceRange {
 	}
 }
 
-func sourceRangeFromProto(protoRng *terraform1.SourceRange) tfdiags.SourceRange {
+func sourceRangeFromProto(protoRng *rawrpc.SourceRange) tfdiags.SourceRange {
 	return tfdiags.SourceRange{
 		Filename: protoRng.SourceAddr,
 		Start:    sourcePosFromProto(protoRng.Start),
@@ -76,15 +77,15 @@ func sourceRangeFromProto(protoRng *terraform1.SourceRange) tfdiags.SourceRange 
 	}
 }
 
-func sourcePosToProto(pos tfdiags.SourcePos) *terraform1.SourcePos {
-	return &terraform1.SourcePos{
+func sourcePosToProto(pos tfdiags.SourcePos) *rawrpc.SourcePos {
+	return &rawrpc.SourcePos{
 		Byte:   int64(pos.Byte),
 		Line:   int64(pos.Line),
 		Column: int64(pos.Column),
 	}
 }
 
-func sourcePosFromProto(protoPos *terraform1.SourcePos) tfdiags.SourcePos {
+func sourcePosFromProto(protoPos *rawrpc.SourcePos) tfdiags.SourcePos {
 	return tfdiags.SourcePos{
 		Byte:   int(protoPos.Byte),
 		Line:   int(protoPos.Line),
@@ -92,7 +93,7 @@ func sourcePosFromProto(protoPos *terraform1.SourcePos) tfdiags.SourcePos {
 	}
 }
 
-func dynamicTypedValueFromProto(protoVal *terraform1.DynamicValue) (cty.Value, error) {
+func dynamicTypedValueFromProto(protoVal *rawstacks1.DynamicValue) (cty.Value, error) {
 	if len(protoVal.Msgpack) == 0 {
 		return cty.DynamicVal, fmt.Errorf("uses unsupported serialization format (only MessagePack is supported)")
 	}
@@ -110,7 +111,7 @@ func dynamicTypedValueFromProto(protoVal *terraform1.DynamicValue) (cty.Value, e
 	return v, nil
 }
 
-func externalInputValuesFromProto(protoVals map[string]*terraform1.DynamicValueWithSource) (map[stackaddrs.InputVariable]stackruntime.ExternalInputValue, error) {
+func externalInputValuesFromProto(protoVals map[string]*rawstacks1.DynamicValueWithSource) (map[stackaddrs.InputVariable]stackruntime.ExternalInputValue, error) {
 	if len(protoVals) == 0 {
 		return nil, nil
 	}
@@ -126,7 +127,7 @@ func externalInputValuesFromProto(protoVals map[string]*terraform1.DynamicValueW
 	return ret, err
 }
 
-func externalInputValueFromProto(protoVal *terraform1.DynamicValueWithSource) (stackruntime.ExternalInputValue, error) {
+func externalInputValueFromProto(protoVal *rawstacks1.DynamicValueWithSource) (stackruntime.ExternalInputValue, error) {
 	v, err := dynamicTypedValueFromProto(protoVal.Value)
 	if err != nil {
 		return stackruntime.ExternalInputValue{}, nil

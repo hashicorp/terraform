@@ -16,6 +16,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc/rawdependencies1"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -29,7 +31,7 @@ func TestDependenciesOpenCloseSourceBundle(t *testing.T) {
 	handles := newHandleTable()
 	depsServer := newDependenciesServer(handles, disco.New())
 
-	openResp, err := depsServer.OpenSourceBundle(ctx, &terraform1.OpenSourceBundle_Request{
+	openResp, err := depsServer.OpenSourceBundle(ctx, &rawdependencies1.OpenSourceBundle_Request{
 		LocalPath: "testdata/sourcebundle",
 	})
 	if err != nil {
@@ -58,7 +60,7 @@ func TestDependenciesOpenCloseSourceBundle(t *testing.T) {
 		}
 	}
 
-	_, err = depsServer.CloseSourceBundle(ctx, &terraform1.CloseSourceBundle_Request{
+	_, err = depsServer.CloseSourceBundle(ctx, &rawdependencies1.CloseSourceBundle_Request{
 		SourceBundleHandle: openResp.SourceBundleHandle,
 	})
 	if err != nil {
@@ -72,21 +74,21 @@ func TestDependencyLocks(t *testing.T) {
 	handles := newHandleTable()
 	depsServer := newDependenciesServer(handles, disco.New())
 
-	openSourcesResp, err := depsServer.OpenSourceBundle(ctx, &terraform1.OpenSourceBundle_Request{
+	openSourcesResp, err := depsServer.OpenSourceBundle(ctx, &rawdependencies1.OpenSourceBundle_Request{
 		LocalPath: "testdata/sourcebundle",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		depsServer.CloseSourceBundle(ctx, &terraform1.CloseSourceBundle_Request{
+		depsServer.CloseSourceBundle(ctx, &rawdependencies1.CloseSourceBundle_Request{
 			SourceBundleHandle: openSourcesResp.SourceBundleHandle,
 		})
 	}()
 
-	openLocksResp, err := depsServer.OpenDependencyLockFile(ctx, &terraform1.OpenDependencyLockFile_Request{
+	openLocksResp, err := depsServer.OpenDependencyLockFile(ctx, &rawdependencies1.OpenDependencyLockFile_Request{
 		SourceBundleHandle: openSourcesResp.SourceBundleHandle,
-		SourceAddress: &terraform1.SourceAddress{
+		SourceAddress: &rawrpc.SourceAddress{
 			Source: "git::https://example.com/foo.git//.terraform.lock.hcl",
 		},
 	})
@@ -125,7 +127,7 @@ func TestDependencyLocks(t *testing.T) {
 		}
 	}
 
-	getProvidersResp, err := depsServer.GetLockedProviderDependencies(ctx, &terraform1.GetLockedProviderDependencies_Request{
+	getProvidersResp, err := depsServer.GetLockedProviderDependencies(ctx, &rawdependencies1.GetLockedProviderDependencies_Request{
 		DependencyLocksHandle: openLocksResp.DependencyLocksHandle,
 	})
 	if err != nil {
@@ -144,7 +146,7 @@ func TestDependencyLocks(t *testing.T) {
 		t.Errorf("wrong GetLockedProviderDependencies result\n%s", diff)
 	}
 
-	_, err = depsServer.CloseDependencyLocks(ctx, &terraform1.CloseDependencyLocks_Request{
+	_, err = depsServer.CloseDependencyLocks(ctx, &rawdependencies1.CloseDependencyLocks_Request{
 		DependencyLocksHandle: openLocksResp.DependencyLocksHandle,
 	})
 	if err != nil {
@@ -154,14 +156,14 @@ func TestDependencyLocks(t *testing.T) {
 	// We should now be able to create a new locks handle referring to the
 	// same providers as the one we just closed. This simulates a caller
 	// propagating its provider locks between separate instances of rpcapi.
-	newLocksResp, err := depsServer.CreateDependencyLocks(ctx, &terraform1.CreateDependencyLocks_Request{
+	newLocksResp, err := depsServer.CreateDependencyLocks(ctx, &rawdependencies1.CreateDependencyLocks_Request{
 		ProviderSelections: getProvidersResp.SelectedProviders,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	getProvidersResp, err = depsServer.GetLockedProviderDependencies(ctx, &terraform1.GetLockedProviderDependencies_Request{
+	getProvidersResp, err = depsServer.GetLockedProviderDependencies(ctx, &rawdependencies1.GetLockedProviderDependencies_Request{
 		DependencyLocksHandle: newLocksResp.DependencyLocksHandle,
 	})
 	if err != nil {
@@ -182,7 +184,7 @@ func TestDependenciesProviderCache(t *testing.T) {
 	// a real in-memory gRPC connection to exercise it concisely so that
 	// we can work with the client API rather than the server API.
 	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
-		terraform1.RegisterDependenciesServer(srv, depsServer)
+		rawdependencies1.RegisterDependenciesServer(srv, depsServer)
 	})
 	defer close()
 	depsClient := terraform1.NewDependenciesClient(grpcClient)
@@ -320,7 +322,7 @@ func TestDependenciesProviderSchema(t *testing.T) {
 	handles := newHandleTable()
 	depsServer := newDependenciesServer(handles, disco.New())
 
-	providersResp, err := depsServer.GetBuiltInProviders(ctx, &terraform1.GetBuiltInProviders_Request{})
+	providersResp, err := depsServer.GetBuiltInProviders(ctx, &rawdependencies1.GetBuiltInProviders_Request{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -336,7 +338,7 @@ func TestDependenciesProviderSchema(t *testing.T) {
 		}
 	}
 
-	schemaResp, err := depsServer.GetProviderSchema(ctx, &terraform1.GetProviderSchema_Request{
+	schemaResp, err := depsServer.GetProviderSchema(ctx, &rawdependencies1.GetProviderSchema_Request{
 		ProviderAddr: "terraform.io/builtin/terraform",
 	})
 	if err != nil {

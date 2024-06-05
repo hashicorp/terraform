@@ -1,0 +1,95 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+package terraform;
+
+service Setup {
+    // Clients must call Handshake before any other function of any other
+    // service, to complete the capability negotiation step that may
+    // then affect the behaviors of subsequent operations.
+    //
+    // This function can be called only once per RPC server.
+    rpc Handshake(Handshake.Request) returns (Handshake.Response);
+
+    // At any time after handshaking, clients may call Stop to initiate a
+    // graceful shutdown of the server.
+    rpc Stop(Stop.Request) returns (Stop.Response);
+}
+
+message Handshake {
+    message Request {
+        ClientCapabilities capabilities = 1;
+        Config config = 2;
+    }
+    message Response {
+        ServerCapabilities capabilities = 2;
+    }
+}
+
+message Stop {
+    message Request {
+    }
+    message Response {
+    }
+}
+
+// The capabilities that the client wishes to advertise to the server during
+// handshake.
+message ClientCapabilities {
+    // There are not yet any negotiatable capabilities.
+}
+
+// The capabilities that the server wishes to advertise to the client during
+// handshake. Fields in this message can also be used to acknowledge and
+// confirm support for client capabilities advertised in ClientCapabilities,
+// in situations where the client must vary its behavior based on the server's
+// level of support.
+message ServerCapabilities {
+    // There are not yet any negotiatable capabilities.
+}
+
+message Config {
+    map<string, HostCredential> credentials = 1;
+}
+
+message HostCredential {
+    string token = 1;
+}
+
+message Diagnostic {
+    enum Severity {
+        INVALID = 0;
+        ERROR = 1;
+        WARNING = 2;
+    }
+    Severity severity = 1;
+    string summary = 2;
+    string detail = 3;
+    SourceRange subject = 4;
+    SourceRange context = 5;
+}
+
+message SourceRange {
+    string source_addr = 1;
+    SourcePos start = 2;
+    SourcePos end = 3;
+}
+
+message SourcePos {
+    int64 byte = 1;
+    int64 line = 2;
+    int64 column = 3;
+}
+
+// A source address in the same form as it would appear in a Terraform
+// configuration: a source string combined with an optional version constraint
+// string, where the latter is valid only for registry module addresses.
+//
+// This is not used for "final" source addresses that have already been reduced
+// to an exact version selection. For those we just directly encode the string
+// representation of the final address, including a version number if necessary.
+message SourceAddress {
+    string source = 1;
+    string versions = 2;
+}

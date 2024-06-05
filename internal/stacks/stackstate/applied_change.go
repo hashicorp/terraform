@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc/rawstacks1"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
@@ -35,7 +36,7 @@ import (
 type AppliedChange interface {
 	// AppliedChangeProto returns the protocol buffers representation of
 	// the change, ready to be sent verbatim to an RPC API client.
-	AppliedChangeProto() (*terraform1.AppliedChange, error)
+	AppliedChangeProto() (*rawstacks1.AppliedChange, error)
 }
 
 // AppliedChangeResourceInstanceObject announces the result of applying changes to
@@ -64,20 +65,20 @@ type AppliedChangeResourceInstanceObject struct {
 var _ AppliedChange = (*AppliedChangeResourceInstanceObject)(nil)
 
 // AppliedChangeProto implements AppliedChange.
-func (ac *AppliedChangeResourceInstanceObject) AppliedChangeProto() (*terraform1.AppliedChange, error) {
+func (ac *AppliedChangeResourceInstanceObject) AppliedChangeProto() (*rawstacks1.AppliedChange, error) {
 	descs, raws, err := ac.protosForObject()
 	if err != nil {
 		return nil, fmt.Errorf("encoding %s: %w", ac.ResourceInstanceObjectAddr, err)
 	}
-	return &terraform1.AppliedChange{
+	return &rawstacks1.AppliedChange{
 		Raw:          raws,
 		Descriptions: descs,
 	}, nil
 }
 
-func (ac *AppliedChangeResourceInstanceObject) protosForObject() ([]*terraform1.AppliedChange_ChangeDescription, []*terraform1.AppliedChange_RawChange, error) {
-	var descs []*terraform1.AppliedChange_ChangeDescription
-	var raws []*terraform1.AppliedChange_RawChange
+func (ac *AppliedChangeResourceInstanceObject) protosForObject() ([]*rawstacks1.AppliedChange_ChangeDescription, []*rawstacks1.AppliedChange_RawChange, error) {
+	var descs []*rawstacks1.AppliedChange_ChangeDescription
+	var raws []*rawstacks1.AppliedChange_RawChange
 
 	var addr = ac.ResourceInstanceObjectAddr
 	var provider = ac.ProviderConfigAddr
@@ -97,13 +98,13 @@ func (ac *AppliedChangeResourceInstanceObject) protosForObject() ([]*terraform1.
 	if objSrc == nil {
 		// If the new object is nil then we'll emit a "deleted" description
 		// to ensure that any existing prior state value gets removed.
-		descs = append(descs, &terraform1.AppliedChange_ChangeDescription{
+		descs = append(descs, &rawstacks1.AppliedChange_ChangeDescription{
 			Key: objKeyRaw,
-			Description: &terraform1.AppliedChange_ChangeDescription_Deleted{
-				Deleted: &terraform1.AppliedChange_Nothing{},
+			Description: &rawstacks1.AppliedChange_ChangeDescription_Deleted{
+				Deleted: &rawstacks1.AppliedChange_Nothing{},
 			},
 		})
-		raws = append(raws, &terraform1.AppliedChange_RawChange{
+		raws = append(raws, &rawstacks1.AppliedChange_RawChange{
 			Key:   objKeyRaw,
 			Value: nil, // unset Value field represents "delete" for raw changes
 		})
@@ -143,13 +144,13 @@ func (ac *AppliedChangeResourceInstanceObject) protosForObject() ([]*terraform1.
 	if err != nil {
 		return nil, nil, fmt.Errorf("cannot encode new state for %s in preparation for saving it: %w", addr, err)
 	}
-	protoValue := terraform1.NewDynamicValue(encValue, sensitivePaths)
+	protoValue := rawstacks1.NewDynamicValue(encValue, sensitivePaths)
 
-	descs = append(descs, &terraform1.AppliedChange_ChangeDescription{
+	descs = append(descs, &rawstacks1.AppliedChange_ChangeDescription{
 		Key: objKeyRaw,
-		Description: &terraform1.AppliedChange_ChangeDescription_ResourceInstance{
-			ResourceInstance: &terraform1.AppliedChange_ResourceInstance{
-				Addr:         terraform1.NewResourceInstanceObjectInStackAddr(addr),
+		Description: &rawstacks1.AppliedChange_ChangeDescription_ResourceInstance{
+			ResourceInstance: &rawstacks1.AppliedChange_ResourceInstance{
+				Addr:         rawstacks1.NewResourceInstanceObjectInStackAddr(addr),
 				NewValue:     protoValue,
 				ResourceMode: stackutils.ResourceModeForProto(addr.Item.ResourceInstance.Resource.Resource.Mode),
 				ResourceType: addr.Item.ResourceInstance.Resource.Resource.Type,
@@ -164,7 +165,7 @@ func (ac *AppliedChangeResourceInstanceObject) protosForObject() ([]*terraform1.
 	if err != nil {
 		return nil, nil, fmt.Errorf("encoding raw state object: %w", err)
 	}
-	raws = append(raws, &terraform1.AppliedChange_RawChange{
+	raws = append(raws, &rawstacks1.AppliedChange_RawChange{
 		Key:   objKeyRaw,
 		Value: &raw,
 	})
@@ -197,10 +198,10 @@ type AppliedChangeComponentInstance struct {
 var _ AppliedChange = (*AppliedChangeComponentInstance)(nil)
 
 // AppliedChangeProto implements AppliedChange.
-func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*terraform1.AppliedChange, error) {
-	ret := &terraform1.AppliedChange{
-		Raw:          make([]*terraform1.AppliedChange_RawChange, 0, 1),
-		Descriptions: make([]*terraform1.AppliedChange_ChangeDescription, 0, 1),
+func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*rawstacks1.AppliedChange, error) {
+	ret := &rawstacks1.AppliedChange{
+		Raw:          make([]*rawstacks1.AppliedChange_RawChange, 0, 1),
+		Descriptions: make([]*rawstacks1.AppliedChange_ChangeDescription, 0, 1),
 	}
 	stateKey := statekeys.ComponentInstance{
 		ComponentInstanceAddr: ac.ComponentInstanceAddr,
@@ -237,14 +238,14 @@ func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*terraform1.Appl
 		outputDescs[addr.Name] = protoValue
 	}
 
-	ret.Raw = append(ret.Raw, &terraform1.AppliedChange_RawChange{
+	ret.Raw = append(ret.Raw, &rawstacks1.AppliedChange_RawChange{
 		Key:   statekeys.String(stateKey),
 		Value: &raw,
 	})
-	ret.Descriptions = append(ret.Descriptions, &terraform1.AppliedChange_ChangeDescription{
+	ret.Descriptions = append(ret.Descriptions, &rawstacks1.AppliedChange_ChangeDescription{
 		Key: statekeys.String(stateKey),
-		Description: &terraform1.AppliedChange_ChangeDescription_ComponentInstance{
-			ComponentInstance: &terraform1.AppliedChange_ComponentInstance{
+		Description: &rawstacks1.AppliedChange_ChangeDescription_ComponentInstance{
+			ComponentInstance: &rawstacks1.AppliedChange_ComponentInstance{
 				ComponentAddr:         ac.ComponentAddr.String(),
 				ComponentInstanceAddr: ac.ComponentInstanceAddr.String(),
 			},
@@ -261,21 +262,21 @@ type AppliedChangeDiscardKeys struct {
 var _ AppliedChange = (*AppliedChangeDiscardKeys)(nil)
 
 // AppliedChangeProto implements AppliedChange.
-func (ac *AppliedChangeDiscardKeys) AppliedChangeProto() (*terraform1.AppliedChange, error) {
-	ret := &terraform1.AppliedChange{
-		Raw:          make([]*terraform1.AppliedChange_RawChange, 0, ac.DiscardRawKeys.Len()),
-		Descriptions: make([]*terraform1.AppliedChange_ChangeDescription, 0, ac.DiscardDescKeys.Len()),
+func (ac *AppliedChangeDiscardKeys) AppliedChangeProto() (*rawstacks1.AppliedChange, error) {
+	ret := &rawstacks1.AppliedChange{
+		Raw:          make([]*rawstacks1.AppliedChange_RawChange, 0, ac.DiscardRawKeys.Len()),
+		Descriptions: make([]*rawstacks1.AppliedChange_ChangeDescription, 0, ac.DiscardDescKeys.Len()),
 	}
 	for _, key := range ac.DiscardRawKeys.Elems() {
-		ret.Raw = append(ret.Raw, &terraform1.AppliedChange_RawChange{
+		ret.Raw = append(ret.Raw, &rawstacks1.AppliedChange_RawChange{
 			Key:   statekeys.String(key),
 			Value: nil, // nil represents deletion
 		})
 	}
 	for _, key := range ac.DiscardDescKeys.Elems() {
-		ret.Descriptions = append(ret.Descriptions, &terraform1.AppliedChange_ChangeDescription{
+		ret.Descriptions = append(ret.Descriptions, &rawstacks1.AppliedChange_ChangeDescription{
 			Key:         statekeys.String(key),
-			Description: &terraform1.AppliedChange_ChangeDescription_Deleted{
+			Description: &rawstacks1.AppliedChange_ChangeDescription_Deleted{
 				// Selection of this empty variant represents deletion
 			},
 		})

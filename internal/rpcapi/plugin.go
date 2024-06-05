@@ -14,7 +14,9 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/terraform/internal/rpcapi/dynrpcserver"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc/rawdependencies1"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc/rawstacks1"
 )
 
 type corePlugin struct {
@@ -42,18 +44,18 @@ func registerGRPCServices(s *grpc.Server, opts *serviceOpts) {
 	// of other services can vary depending on the capabilities negotiated
 	// during handshake.
 	setup := newSetupServer(serverHandshake(s, opts))
-	terraform1.RegisterSetupServer(s, setup)
+	rawrpc.RegisterSetupServer(s, setup)
 }
 
-func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *terraform1.Handshake_Request, *stopper) (*terraform1.ServerCapabilities, error) {
+func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *rawrpc.Handshake_Request, *stopper) (*rawrpc.ServerCapabilities, error) {
 	dependencies := dynrpcserver.NewDependenciesStub()
-	terraform1.RegisterDependenciesServer(s, dependencies)
+	rawdependencies1.RegisterDependenciesServer(s, dependencies)
 	stacks := dynrpcserver.NewStacksStub()
-	terraform1.RegisterStacksServer(s, stacks)
+	rawstacks1.RegisterStacksServer(s, stacks)
 	packages := dynrpcserver.NewPackagesStub()
-	terraform1.RegisterPackagesServer(s, packages)
+	rawdependencies1.RegisterPackagesServer(s, packages)
 
-	return func(ctx context.Context, request *terraform1.Handshake_Request, stopper *stopper) (*terraform1.ServerCapabilities, error) {
+	return func(ctx context.Context, request *rawrpc.Handshake_Request, stopper *stopper) (*rawrpc.ServerCapabilities, error) {
 		// All of our servers will share a common handles table so that objects
 		// can be passed from one service to another.
 		handles := newHandleTable()
@@ -70,7 +72,7 @@ func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *t
 		// CLI configuration.
 		services, err := newServiceDisco(request.GetConfig())
 		if err != nil {
-			return &terraform1.ServerCapabilities{}, err
+			return &rawrpc.ServerCapabilities{}, err
 		}
 
 		// If handshaking is successful (which it currently always is, because
@@ -84,7 +86,7 @@ func serverHandshake(s *grpc.Server, opts *serviceOpts) func(context.Context, *t
 
 		// If the client requested any extra capabililties that we're going
 		// to honor then we should announce them in this result.
-		return &terraform1.ServerCapabilities{}, nil
+		return &rawrpc.ServerCapabilities{}, nil
 	}
 }
 
@@ -97,7 +99,7 @@ type serviceOpts struct {
 	experimentsAllowed bool
 }
 
-func newServiceDisco(config *terraform1.Config) (*disco.Disco, error) {
+func newServiceDisco(config *rawrpc.Config) (*disco.Disco, error) {
 	services := disco.New()
 	credSrc := newCredentialsSource()
 

@@ -17,10 +17,11 @@ import (
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/registry/regsrc"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc"
+	"github.com/hashicorp/terraform/internal/rpcapi/rawrpc/rawdependencies1"
 )
 
-var _ terraform1.PackagesServer = (*packagesServer)(nil)
+var _ rawdependencies1.PackagesServer = (*packagesServer)(nil)
 
 func newPackagesServer(services *disco.Disco) *packagesServer {
 	return &packagesServer{
@@ -38,14 +39,14 @@ func newPackagesServer(services *disco.Disco) *packagesServer {
 type providerSourceFn func(services *disco.Disco) getproviders.Source
 
 type packagesServer struct {
-	terraform1.UnimplementedPackagesServer
+	rawdependencies1.UnimplementedPackagesServer
 
 	services         *disco.Disco
 	providerSourceFn providerSourceFn
 }
 
-func (p *packagesServer) ProviderPackageVersions(ctx context.Context, request *terraform1.ProviderPackageVersions_Request) (*terraform1.ProviderPackageVersions_Response, error) {
-	response := new(terraform1.ProviderPackageVersions_Response)
+func (p *packagesServer) ProviderPackageVersions(ctx context.Context, request *rawdependencies1.ProviderPackageVersions_Request) (*rawdependencies1.ProviderPackageVersions_Response, error) {
+	response := new(rawdependencies1.ProviderPackageVersions_Response)
 
 	source := p.providerSourceFn(p.services)
 	provider, diags := addrs.ParseProviderSourceString(request.SourceAddr)
@@ -61,8 +62,8 @@ func (p *packagesServer) ProviderPackageVersions(ctx context.Context, request *t
 		displayWarnings[ix] = fmt.Sprintf("- %s", warning)
 	}
 	if len(displayWarnings) > 0 {
-		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
-			Severity: terraform1.Diagnostic_WARNING,
+		response.Diagnostics = append(response.Diagnostics, &rawrpc.Diagnostic{
+			Severity: rawrpc.Diagnostic_WARNING,
 			Summary:  "Additional provider information from registry",
 			Detail:   fmt.Sprintf("The remote registry returned warnings for %s:\n%s", provider.ForDisplay(), strings.Join(displayWarnings, "\n")),
 		})
@@ -71,8 +72,8 @@ func (p *packagesServer) ProviderPackageVersions(ctx context.Context, request *t
 	if err != nil {
 		// TODO: Parse the different error types so we can provide specific
 		//  error diagnostics, see commands/init.go:621.
-		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
-			Severity: terraform1.Diagnostic_ERROR,
+		response.Diagnostics = append(response.Diagnostics, &rawrpc.Diagnostic{
+			Severity: rawrpc.Diagnostic_ERROR,
 			Summary:  "Failed to query available provider packages",
 			Detail:   fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s.", provider.ForDisplay(), err),
 		})
@@ -85,14 +86,14 @@ func (p *packagesServer) ProviderPackageVersions(ctx context.Context, request *t
 	return response, nil
 }
 
-func (p *packagesServer) FetchProviderPackage(ctx context.Context, request *terraform1.FetchProviderPackage_Request) (*terraform1.FetchProviderPackage_Response, error) {
+func (p *packagesServer) FetchProviderPackage(ctx context.Context, request *rawdependencies1.FetchProviderPackage_Request) (*rawdependencies1.FetchProviderPackage_Response, error) {
 
-	response := new(terraform1.FetchProviderPackage_Response)
+	response := new(rawdependencies1.FetchProviderPackage_Response)
 
 	version, err := versions.ParseVersion(request.Version)
 	if err != nil {
-		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
-			Severity: terraform1.Diagnostic_ERROR,
+		response.Diagnostics = append(response.Diagnostics, &rawrpc.Diagnostic{
+			Severity: rawrpc.Diagnostic_ERROR,
 			Summary:  "Invalid platform",
 			Detail:   fmt.Sprintf("The requested version %s is invalid: %s.", request.Version, err),
 		})
@@ -112,13 +113,13 @@ func (p *packagesServer) FetchProviderPackage(ctx context.Context, request *terr
 	}
 
 	for _, requestPlatform := range request.Platforms {
-		result := new(terraform1.FetchProviderPackage_PlatformResult)
+		result := new(rawdependencies1.FetchProviderPackage_PlatformResult)
 		response.Results = append(response.Results, result)
 
 		platform, err := getproviders.ParsePlatform(requestPlatform)
 		if err != nil {
-			result.Diagnostics = append(result.Diagnostics, &terraform1.Diagnostic{
-				Severity: terraform1.Diagnostic_ERROR,
+			result.Diagnostics = append(result.Diagnostics, &rawrpc.Diagnostic{
+				Severity: rawrpc.Diagnostic_ERROR,
 				Summary:  "Invalid platform",
 				Detail:   fmt.Sprintf("The requested platform %s is invalid: %s.", requestPlatform, err),
 			})
@@ -129,8 +130,8 @@ func (p *packagesServer) FetchProviderPackage(ctx context.Context, request *terr
 		if err != nil {
 			// TODO: Parse the different error types so we can provide specific
 			//  error diagnostics, see commands/init.go:731.
-			result.Diagnostics = append(result.Diagnostics, &terraform1.Diagnostic{
-				Severity: terraform1.Diagnostic_ERROR,
+			result.Diagnostics = append(result.Diagnostics, &rawrpc.Diagnostic{
+				Severity: rawrpc.Diagnostic_ERROR,
 				Summary:  "Failed to query provider package metadata",
 				Detail:   fmt.Sprintf("Could not retrieve package metadata for provider %s@%s for %s: %s.", provider.ForDisplay(), version.String(), platform.String(), err),
 			})
@@ -142,8 +143,8 @@ func (p *packagesServer) FetchProviderPackage(ctx context.Context, request *terr
 		if err != nil {
 			// TODO: Parse the different error types so we can provide specific
 			//  error diagnostics, see commands/init.go:731.
-			result.Diagnostics = append(result.Diagnostics, &terraform1.Diagnostic{
-				Severity: terraform1.Diagnostic_ERROR,
+			result.Diagnostics = append(result.Diagnostics, &rawrpc.Diagnostic{
+				Severity: rawrpc.Diagnostic_ERROR,
 				Summary:  "Failed to download provider package",
 				Detail:   fmt.Sprintf("Could not download provider %s@%s for %s: %s.", provider.ForDisplay(), version.String(), platform.String(), err),
 			})
@@ -160,15 +161,15 @@ func (p *packagesServer) FetchProviderPackage(ctx context.Context, request *terr
 		providerPackage := into.ProviderVersion(provider, version)
 		hash, err := providerPackage.Hash()
 		if err != nil {
-			result.Diagnostics = append(result.Diagnostics, &terraform1.Diagnostic{
-				Severity: terraform1.Diagnostic_ERROR,
+			result.Diagnostics = append(result.Diagnostics, &rawrpc.Diagnostic{
+				Severity: rawrpc.Diagnostic_ERROR,
 				Summary:  "Failed to hash provider package",
 				Detail:   fmt.Sprintf("Could not hash provider %s@%s for %s: %s.", provider.ForDisplay(), version.String(), platform.String(), err),
 			})
 			continue
 		}
 		hashes = append(hashes, string(hash))
-		result.Provider = &terraform1.ProviderPackage{
+		result.Provider = &rawdependencies1.ProviderPackage{
 			SourceAddr: request.SourceAddr,
 			Version:    request.Version,
 			Hashes:     hashes,
@@ -178,13 +179,13 @@ func (p *packagesServer) FetchProviderPackage(ctx context.Context, request *terr
 	return response, nil
 }
 
-func (p *packagesServer) ModulePackageVersions(ctx context.Context, request *terraform1.ModulePackageVersions_Request) (*terraform1.ModulePackageVersions_Response, error) {
-	response := new(terraform1.ModulePackageVersions_Response)
+func (p *packagesServer) ModulePackageVersions(ctx context.Context, request *rawdependencies1.ModulePackageVersions_Request) (*rawdependencies1.ModulePackageVersions_Response, error) {
+	response := new(rawdependencies1.ModulePackageVersions_Response)
 
 	module, err := regsrc.ParseModuleSource(request.SourceAddr)
 	if err != nil {
-		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
-			Severity: terraform1.Diagnostic_ERROR,
+		response.Diagnostics = append(response.Diagnostics, &rawrpc.Diagnostic{
+			Severity: rawrpc.Diagnostic_ERROR,
 			Summary:  "Invalid module source",
 			Detail:   fmt.Sprintf("Module source %s is invalid: %s.", request.SourceAddr, err),
 		})
@@ -194,8 +195,8 @@ func (p *packagesServer) ModulePackageVersions(ctx context.Context, request *ter
 	client := registry.NewClient(p.services, nil)
 	versions, err := client.ModuleVersions(ctx, module)
 	if err != nil {
-		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
-			Severity: terraform1.Diagnostic_ERROR,
+		response.Diagnostics = append(response.Diagnostics, &rawrpc.Diagnostic{
+			Severity: rawrpc.Diagnostic_ERROR,
 			Summary:  "Failed to query available module packages",
 			Detail:   fmt.Sprintf("Could not retrieve the list of available modules for module %s: %s.", module.Display(), err),
 		})
@@ -211,13 +212,13 @@ func (p *packagesServer) ModulePackageVersions(ctx context.Context, request *ter
 	return response, nil
 }
 
-func (p *packagesServer) ModulePackageSourceAddr(ctx context.Context, request *terraform1.ModulePackageSourceAddr_Request) (*terraform1.ModulePackageSourceAddr_Response, error) {
-	response := new(terraform1.ModulePackageSourceAddr_Response)
+func (p *packagesServer) ModulePackageSourceAddr(ctx context.Context, request *rawdependencies1.ModulePackageSourceAddr_Request) (*rawdependencies1.ModulePackageSourceAddr_Response, error) {
+	response := new(rawdependencies1.ModulePackageSourceAddr_Response)
 
 	module, err := regsrc.ParseModuleSource(request.SourceAddr)
 	if err != nil {
-		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
-			Severity: terraform1.Diagnostic_ERROR,
+		response.Diagnostics = append(response.Diagnostics, &rawrpc.Diagnostic{
+			Severity: rawrpc.Diagnostic_ERROR,
 			Summary:  "Invalid module source",
 			Detail:   fmt.Sprintf("Module source %s is invalid: %s.", request.SourceAddr, err),
 		})
@@ -227,8 +228,8 @@ func (p *packagesServer) ModulePackageSourceAddr(ctx context.Context, request *t
 	client := registry.NewClient(p.services, nil)
 	location, err := client.ModuleLocation(ctx, module, request.Version)
 	if err != nil {
-		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
-			Severity: terraform1.Diagnostic_ERROR,
+		response.Diagnostics = append(response.Diagnostics, &rawrpc.Diagnostic{
+			Severity: rawrpc.Diagnostic_ERROR,
 			Summary:  "Failed to query module package metadata",
 			Detail:   fmt.Sprintf("Could not retrieve package metadata for provider %s at %s: %s.", module.Display(), request.Version, err),
 		})
@@ -239,13 +240,13 @@ func (p *packagesServer) ModulePackageSourceAddr(ctx context.Context, request *t
 	return response, nil
 }
 
-func (p *packagesServer) FetchModulePackage(ctx context.Context, request *terraform1.FetchModulePackage_Request) (*terraform1.FetchModulePackage_Response, error) {
-	response := new(terraform1.FetchModulePackage_Response)
+func (p *packagesServer) FetchModulePackage(ctx context.Context, request *rawdependencies1.FetchModulePackage_Request) (*rawdependencies1.FetchModulePackage_Response, error) {
+	response := new(rawdependencies1.FetchModulePackage_Response)
 
 	fetcher := getmodules.NewPackageFetcher()
 	if err := fetcher.FetchPackage(ctx, request.CacheDir, request.Url); err != nil {
-		response.Diagnostics = append(response.Diagnostics, &terraform1.Diagnostic{
-			Severity: terraform1.Diagnostic_ERROR,
+		response.Diagnostics = append(response.Diagnostics, &rawrpc.Diagnostic{
+			Severity: rawrpc.Diagnostic_ERROR,
 			Summary:  "Failed to download module package",
 			Detail:   fmt.Sprintf("Could not download provider from %s: %s.", request.Url, err),
 		})
