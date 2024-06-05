@@ -29,8 +29,9 @@ BUG FIXES:
 * `terraform test`: Fix bug in which non-Hashicorp providers required by testing modules and initialised within the test files were assigned incorrect registry addresses. ([#35161](https://github.com/hashicorp/terraform/issues/35161))
 * config: The `templatefile` function no longer returns a "panic" error if the template file path is marked as sensitive. Instead, the template rendering result is also marked as sensitive. ([#35180](https://github.com/hashicorp/terraform/issues/35180))
 * `terraform init`: When selecting a version for a provider that has both positive and negative version constraints for the same prerelease -- e.g. `1.2.0-beta.1, !1.2.0-beta.1` -- the negative constraint will now overrule the positive, for consistency with how negative constraints are handled otherwise. Previously Terraform would incorrectly treat the positive as overriding the negative if the specified version was a prerelease. ([#35181](https://github.com/hashicorp/terraform/issues/35181))
-* `core`: `import` blocks could block a destroy operation if the target resource was already deleted [GH-35272]
+* `import`: `import` blocks could block a destroy operation if the target resource was already deleted [GH-35272]
 * `cli`: plan output was missing blocks which were entirely unknown [GH-35271]
+* core: Changing `create_before_destroy` when replacing an instance, then applying with `-refresh=false` would order the apply operations incorrectly [GH-35261]
 
 UPGRADE NOTES:
 
