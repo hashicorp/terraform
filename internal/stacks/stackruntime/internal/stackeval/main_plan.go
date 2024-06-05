@@ -44,8 +44,13 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 	}
 	outp.AnnouncePlannedChange(ctx, &stackplan.PlannedChangeHeader{
 		TerraformVersion: version.SemVer,
-		PrevRunStateRaw:  prevRunStateRaw,
 	})
+	for k, raw := range prevRunStateRaw {
+		outp.AnnouncePlannedChange(ctx, &stackplan.PlannedChangePriorStateElement{
+			Key: k,
+			Raw: raw,
+		})
+	}
 
 	outp.AnnouncePlannedChange(ctx, &stackplan.PlannedChangePlannedTimestamp{
 		PlannedTimestamp: m.PlanTimestamp(),
