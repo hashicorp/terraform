@@ -11,7 +11,7 @@ Experiments are only enabled in alpha releases of Terraform CLI. The following f
 
 ## Previous Releases
 
-For information on prior major and minor releases, see their changelogs:
+For information on prior major and minor releases, refer to their changelogs:
 
 * [v1.9](https://github.com/hashicorp/terraform/blob/v1.9/CHANGELOG.md)
 * [v1.8](https://github.com/hashicorp/terraform/blob/v1.8/CHANGELOG.md)
