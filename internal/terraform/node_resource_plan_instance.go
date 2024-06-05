@@ -243,7 +243,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	if n.skipRefresh && !importing && updatedCBD {
-		// CreateBeforeDestroy must be set correctly in the state which us used
+		// CreateBeforeDestroy must be set correctly in the state which is used
 		// to create the apply graph, so if we did not refresh the state make
 		// sure we still update any changes to CreateBeforeDestroy.
 		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
