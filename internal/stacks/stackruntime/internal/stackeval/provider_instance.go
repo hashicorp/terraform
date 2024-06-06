@@ -168,26 +168,15 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 			var diags tfdiags.Diagnostics
 
 			if p.repetition.EachKey != cty.NilVal && !p.repetition.EachKey.IsKnown() {
-				// If we're a placeholder standing in for all instances of
-				// a provider block whose for_each is unknown then we
-				// can't configure.
-				return stubs.ConfiguredProvider{Unknown: true}, diags
+				// We should have triggered and returned a stub.UnknownProvider
+				// in this case, so there's a bug somewhere in Terraform if
+				// this happens.
+				panic("provider instance with unknown for_each key")
 			}
 			if p.repetition.CountIndex != cty.NilVal && !p.repetition.CountIndex.IsKnown() {
-				// If we're a placeholder standing in for all instances of
-				// a provider block whose count is unknown then we
-				// can't configure.
-				return stubs.ConfiguredProvider{Unknown: true}, diags
-			}
-
-			args := p.ProviderArgs(ctx, phase)
-			if !args.IsKnown() {
-				// If we don't know the provider configuration at all then
-				// we'll just immediately return a stub client, since
-				// no provider can accept a wholly-unknown configuration.
-				// (Known objects with unknown attribute values inside are
-				// okay to try and so don't return immediately here.)
-				return stubs.ConfiguredProvider{Unknown: true}, diags
+				// Providers don't even support the count index argument, so
+				// something crazy is happening if we get here.
+				panic("provider instance with unknown count index")
 			}
 
 			providerType := p.ProviderType(ctx)
@@ -204,7 +193,7 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 					),
 					Subject: decl.DeclRange.ToHCL().Ptr(),
 				})
-				return stubs.ConfiguredProvider{Unknown: false}, diags
+				return &stubs.ErroredProvider{}, diags
 			}
 
 			// If the context we recieved gets cancelled then we want providers
@@ -244,6 +233,11 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 				return diags
 			})
 
+			allowUnknowns := true
+			if p.main.Planning() {
+				allowUnknowns = p.main.PlanningOpts().DeferralAllowed
+			}
+
 			// TODO: Some providers will malfunction if the caller doesn't
 			// fetch their schema at least once before use. That's not something
 			// the provider protocol promises but it's an implementation
@@ -257,10 +251,13 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 
 			// We unmark the config before making the RPC call, as marks cannot
 			// be serialized.
-			unmarkedArgs, _ := args.UnmarkDeep()
+			unmarkedArgs, _ := p.ProviderArgs(ctx, phase).UnmarkDeep()
 			resp := client.ConfigureProvider(providers.ConfigureProviderRequest{
 				TerraformVersion: version.SemVer.String(),
 				Config:           unmarkedArgs,
+				ClientCapabilities: providers.ClientCapabilities{
+					DeferralAllowed: allowUnknowns,
+				},
 			})
 			diags = diags.Append(resp.Diagnostics)
 			if resp.Diagnostics.HasErrors() {
@@ -269,7 +266,7 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 				// stub instead. (The real provider stays running until it
 				// gets cleaned up by the cleanup function above, despite being
 				// inaccessible to the caller.)
-				return stubs.ConfiguredProvider{Unknown: false}, diags
+				return &stubs.ErroredProvider{}, diags
 			}
 
 			return providerClose{

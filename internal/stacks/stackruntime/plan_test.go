@@ -6,6 +6,7 @@ package stackruntime
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path"
 	"sort"
@@ -2723,6 +2724,69 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+}
+
+func TestPlanInvalidProvidersFailGracefully(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, path.Join("multiple-providers"))
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("invalid"): func() (providers.Interface, error) {
+				return nil, errors.New("provider not found")
+			},
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+		ForcePlanTimestamp: &fakePlanTimestamp,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+	go Plan(ctx, &req, &resp)
+	changes, diags := collectPlanOutput(changesCh, diagsCh)
+
+	expectDiagnosticsForTest(t, diags,
+		expectDiagnostic(tfdiags.Error, "invalid configuration", "configure_error attribute was set"),
+		expectDiagnostic(tfdiags.Error, "Provider configuration is invalid", "Cannot plan changes for this resource because its associated provider configuration is invalid."))
+
+	sort.SliceStable(changes, func(i, j int) bool {
+		return plannedChangeSortKey(changes[i]) < plannedChangeSortKey(changes[j])
+	})
+
+	wantChanges := []stackplan.PlannedChange{
+		&stackplan.PlannedChangeApplyable{},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance,
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "self"},
+				},
+			),
+			Action:              plans.Create,
+			PlanTimestamp:       fakePlanTimestamp,
+			PlannedInputValues:  make(map[string]plans.DynamicValue),
+			PlannedOutputValues: make(map[string]cty.Value),
+			PlannedCheckResults: &states.CheckResults{},
+		},
+		&stackplan.PlannedChangeHeader{
+			TerraformVersion: version.SemVer,
+		},
+	}
+
+	if diff := cmp.Diff(wantChanges, changes, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }

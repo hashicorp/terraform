@@ -57,6 +57,16 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 	return &MockProvider{
 		MockProvider: &testing_provider.MockProvider{
 			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+				Provider: providers.Schema{
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"configure_error": {
+								Type:     cty.String,
+								Optional: true,
+							},
+						},
+					},
+				},
 				ResourceTypes: map[string]providers.Schema{
 					"testing_resource": {
 						Block: TestingResourceSchema,
@@ -70,6 +80,18 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 						Block: TestingDataSourceSchema,
 					},
 				},
+			},
+			ConfigureProviderFn: func(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+				// If configure_error is set, return an error.
+				err := request.Config.GetAttr("configure_error")
+				if !err.IsNull() {
+					return providers.ConfigureProviderResponse{
+						Diagnostics: tfdiags.Diagnostics{
+							tfdiags.AttributeValue(tfdiags.Error, err.AsString(), "configure_error attribute was set", cty.GetAttrPath("configure_error")),
+						},
+					}
+				}
+				return providers.ConfigureProviderResponse{}
 			},
 			PlanResourceChangeFn: func(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 				if request.ProposedNewState.IsNull() {
