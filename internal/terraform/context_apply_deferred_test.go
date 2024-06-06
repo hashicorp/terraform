@@ -2550,6 +2550,45 @@ resource "test" "a" {
 			},
 		},
 	}
+
+	unknownImportId = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "id" {
+	type = string
+}
+
+resource "test" "a" {
+	name = "a"
+}
+
+import {
+	id = var.id
+	to = test.a
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"id": cty.UnknownVal(cty.String),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonResourceConfigUnknown, Action: plans.Create},
+				},
+				wantApplied: make(map[string]cty.Value),
+				wantOutputs: make(map[string]cty.Value),
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
@@ -2584,6 +2623,7 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"plan_destroy_resource_change_but_forbidden":        planDestroyResourceChangeButForbidden,
 		"module_deferred_for_each_value":                    moduleDeferredForEachValue,
 		"module_inner_resource_instance_deferred":           moduleInnerResourceInstanceDeferred,
+		"unknown_import_id":                                 unknownImportId,
 	}
 
 	for name, test := range tests {

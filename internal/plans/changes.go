@@ -510,8 +510,23 @@ func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
 // The fields in here are subject to change, so downstream consumers should be
 // prepared for backwards compatibility in case the contents changes.
 type Importing struct {
-	// ID is the original ID of the imported resource.
-	ID string
+	ID cty.Value
+}
+
+// Encode converts the Importing object into a form suitable for serialization
+// to a plan file.
+func (i *Importing) Encode() *ImportingSrc {
+	if i == nil {
+		return nil
+	}
+	if i.ID.IsKnown() {
+		return &ImportingSrc{
+			ID: i.ID.AsString(),
+		}
+	}
+	return &ImportingSrc{
+		Unknown: true,
+	}
 }
 
 // Change describes a single change with a given action.
@@ -593,18 +608,13 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 		return nil, err
 	}
 
-	var importing *ImportingSrc
-	if c.Importing != nil {
-		importing = &ImportingSrc{ID: c.Importing.ID}
-	}
-
 	return &ChangeSrc{
 		Action:               c.Action,
 		Before:               beforeDV,
 		After:                afterDV,
 		BeforeSensitivePaths: sensitiveAttrsBefore,
 		AfterSensitivePaths:  sensitiveAttrsAfter,
-		Importing:            importing,
+		Importing:            c.Importing.Encode(),
 		GeneratedConfig:      c.GeneratedConfig,
 	}, nil
 }
