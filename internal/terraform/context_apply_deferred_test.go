@@ -2470,6 +2470,86 @@ import {
 			},
 		},
 	}
+
+	moduleDeferredForEachValue = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "input" {
+    type = set(string)
+}
+
+module "my_module" {
+  for_each = var.input
+  source  = "../module"
+
+
+  name = each.value
+}
+`,
+			"../module/main.tf": `
+variable "name" {
+    type = string
+}
+
+resource "test" "a" {
+    name = var.name
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"input": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantPlanned: map[string]cty.Value{
+					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.UnknownVal(cty.String),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					`module.my_module["*"].test.a["*"]`: {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+				},
+				wantOutputs: make(map[string]cty.Value),
+				complete:    false,
+			},
+		},
+	}
+
+	moduleInnerResourceInstanceDeferred = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+module "my_module" {
+  source  = "../module"
+}
+`,
+			"../module/main.tf": `
+resource "test" "a" {
+    name = "deferred_resource_change"
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{
+					"deferred_resource_change": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("deferred_resource_change"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					`module.my_module.test.a`: {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Create},
+				},
+				wantOutputs: make(map[string]cty.Value),
+				complete:    false,
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
@@ -2502,6 +2582,8 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"resource_read_but_forbidden":                       resourceReadButForbiddenTest,
 		"data_read_but_forbidden":                           readDataSourceButForbiddenTest,
 		"plan_destroy_resource_change_but_forbidden":        planDestroyResourceChangeButForbidden,
+		"module_deferred_for_each_value":                    moduleDeferredForEachValue,
+		"module_inner_resource_instance_deferred":           moduleInnerResourceInstanceDeferred,
 	}
 
 	for name, test := range tests {
