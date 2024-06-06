@@ -781,6 +781,14 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 		// not serialized.
 		if n.Addr.Module.IsRoot() {
 			val, _ = val.UnmarkDeep()
+			if val.IsKnown() && !val.IsWhollyKnown() {
+				// For the version of the value that ends up in state, treat
+				// partially-unknown values as wholly unknown. The goal is to avoid
+				// confusion with outputs that reference deferred values; since the
+				// referenced resource is still unready, we don't want to store
+				// planned-but-not-verified speculations in the source of truth.
+				val = cty.UnknownVal(val.Type())
+			}
 			val = cty.UnknownAsNull(val)
 		}
 		state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
