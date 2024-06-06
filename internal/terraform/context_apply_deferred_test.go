@@ -1743,17 +1743,16 @@ output "a" {
 					// The resource will be deferred, so shouldn't
 					// have any action at this stage.
 				},
+				// The output refers to a resource that is unready, so in the
+				// state it becomes a null value of the appropriate type,
+				// despite the fact that we can predict *some* information (i.e.
+				// the future `name`) about the eventual value.
 				wantOutputs: map[string]cty.Value{
-					// TODO NF: In both the refresh-only stage and the real-plan stage below, the output is
-					// getting the new `name` value from the partially-planned deferred change rather than the
-					// old `name` value from the state. Is that right? For both cases? I couldn't quite
-					// decide, but currently that's what happens because of where the early-out happens over
-					// in GetResource while we're building the hcl eval context.
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("a"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.NullVal(cty.String),
-					}),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"upstream_names": cty.Set(cty.String),
+						"output":         cty.String,
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Read},
@@ -1779,11 +1778,11 @@ output "a" {
 					// have any action at this stage.
 				},
 				wantOutputs: map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("a"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.NullVal(cty.String),
-					}),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"upstream_names": cty.Set(cty.String),
+						"output":         cty.String,
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Update},
@@ -2042,11 +2041,11 @@ output "a" {
 					// have any action at this stage.
 				},
 				wantOutputs: map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("deferred_resource_change"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.NullVal(cty.String),
-					}),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"upstream_names": cty.Set(cty.String),
+						"output":         cty.String,
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Update},
@@ -2100,6 +2099,12 @@ output "a" {
 					// The all resources will be deferred, so shouldn't
 					// have any action at this stage.
 				},
+				// This example is strange (possibly unrealistic?) because the
+				// provider deferred the PlanResourceChange call but responded
+				// immediately on the ReadResource call; usually you would
+				// expect to defer both or defer neither. So the output is still
+				// the current concrete value (not a cty.NullVal), even though
+				// the resource "is deferred."
 				wantOutputs: map[string]cty.Value{
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("deferred_resource_change"),
@@ -2160,11 +2165,11 @@ output "a" {
 					// have any action at this stage.
 				},
 				wantOutputs: map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("deferred_resource_change"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.NullVal(cty.String),
-					}),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"upstream_names": cty.Set(cty.String),
+						"output":         cty.String,
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.DeleteThenCreate},
@@ -2233,11 +2238,11 @@ output "a" {
 					// have any action at this stage.
 				},
 				wantOutputs: map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("deferred_resource_change"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.NullVal(cty.String),
-					}),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"upstream_names": cty.Set(cty.String),
+						"output":         cty.String,
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.DeleteThenCreate},
