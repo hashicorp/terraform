@@ -110,25 +110,28 @@ func (ev *forEachEvaluator) ResourceValue() (map[string]cty.Value, bool, tfdiags
 
 // ImportValue returns the for_each map for use within an import block,
 // enumerated as individual instances.RepetitionData values.
-func (ev *forEachEvaluator) ImportValues() ([]instances.RepetitionData, tfdiags.Diagnostics) {
+func (ev *forEachEvaluator) ImportValues() ([]instances.RepetitionData, bool, tfdiags.Diagnostics) {
 	var res []instances.RepetitionData
 	if ev.expr == nil {
-		return res, nil
+		return res, true, nil
 	}
 
 	forEachVal, diags := ev.Value()
 	if diags.HasErrors() {
-		return res, diags
+		return res, false, diags
 	}
 
 	// ensure our value is known for use in resource expansion
-	diags = diags.Append(ev.ensureKnownForImport(forEachVal))
-	if diags.HasErrors() {
-		return res, diags
+	unknownDiags := diags.Append(ev.ensureKnownForImport(forEachVal))
+	if unknownDiags.HasErrors() {
+		if !ev.allowUnknown {
+			diags = diags.Append(unknownDiags)
+		}
+		return res, false, diags
 	}
 
 	if forEachVal.IsNull() {
-		return res, diags
+		return res, true, diags
 	}
 
 	val, marks := forEachVal.Unmark()
@@ -143,7 +146,7 @@ func (ev *forEachEvaluator) ImportValues() ([]instances.RepetitionData, tfdiags.
 
 	}
 
-	return res, diags
+	return res, true, diags
 }
 
 // Value returns the raw cty.Value evaluated from the given for_each expression

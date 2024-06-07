@@ -27,7 +27,7 @@ import (
 // would be nice to integrate this logic a little better with the main
 // DynamicExpand logic, but it's separate for now to minimize the risk of
 // stacks-specific behavior impacting configurations that are not opted into it.
-func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, knownModules []addrs.ModuleInstance, partialModules addrs.Set[addrs.PartialExpandedModule], imports addrs.Map[addrs.AbsResourceInstance, cty.Value]) (*Graph, tfdiags.Diagnostics) {
+func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, knownModules []addrs.ModuleInstance, partialModules addrs.Set[addrs.PartialExpandedModule], knownImports addrs.Map[addrs.AbsResourceInstance, cty.Value], unknownImports addrs.Map[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]]) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 	var diags tfdiags.Diagnostics
 
@@ -37,7 +37,7 @@ func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, know
 
 	for _, moduleAddr := range knownModules {
 		resourceAddr := n.Addr.Resource.Absolute(moduleAddr)
-		resources, partials, maybeOrphans, moreDiags := n.expandKnownModule(ctx, resourceAddr, imports, &g)
+		resources, partials, maybeOrphans, moreDiags := n.expandKnownModule(ctx, resourceAddr, knownImports, unknownImports, &g)
 		diags = diags.Append(moreDiags)
 
 		// Track all the resources we know about.
@@ -83,8 +83,7 @@ func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, know
 						// Then each of the instances is a "maybe orphan"
 						// instance, and we need to add a node for that.
 						maybeOrphanResources.Add(res.Addr.Instance(key))
-						g.Add(n.concreteResource(addrs.MakeMap[addrs.AbsResourceInstance, cty.Value](), true)(NewNodeAbstractResourceInstance(res.Addr.Instance(key))))
-
+						g.Add(n.concreteResource(ctx, addrs.MakeMap[addrs.AbsResourceInstance, cty.Value](), addrs.MakeMap[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]](), true)(NewNodeAbstractResourceInstance(res.Addr.Instance(key))))
 					}
 
 					// Move onto the next resource.
@@ -111,8 +110,8 @@ func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, know
 	//
 	// See the validateExpandedImportTargets function for the equivalent of
 	// this for the known resources path.
-ImportValidation:
-	for _, addr := range imports.Keys() {
+ImportValidationKnown:
+	for _, addr := range knownImports.Keys() {
 		if knownResources.Has(addr) {
 			// Simple case, this is known to be in the configuration so we
 			// skip it.
@@ -124,7 +123,7 @@ ImportValidation:
 				// This is a partial-expanded address, so we can't yet know
 				// whether it's in the configuration or not, and so we'll
 				// defer dealing with it to a future round.
-				continue ImportValidation
+				continue ImportValidationKnown
 			}
 		}
 
@@ -142,6 +141,53 @@ ImportValidation:
 			"Configuration for import target does not exist",
 			fmt.Sprintf("The configuration for the given import %s does not exist. All target instances must have an associated configuration to be imported.", addr),
 		))
+	}
+
+	// We'll also perform the same kind of validation on our unknown imports.
+	// This will be less precise because we don't have the full state to
+	// compare against, but we can at least check that the import targets are
+	// in the configuration.
+ImportValidationUnknown:
+	for _, elem := range unknownImports.Elems {
+		unknownImport := elem.Key
+
+		for _, resource := range knownResources {
+			if unknownImport.MatchesInstance(resource) {
+				// This is in the configuration so we can skip it.
+				continue ImportValidationUnknown
+			}
+		}
+
+		for _, partialResource := range partialResources {
+			// If the partial resource is a subset of the unknown import, or
+			// vice versa, then it *might* match up one day once everything
+			// is resolved so we'll allow it for now.
+			if partialResource.MatchesPartial(unknownImport) {
+				continue ImportValidationUnknown
+			}
+			if unknownImport.MatchesPartial(partialResource) {
+				continue ImportValidationUnknown
+			}
+		}
+
+		for _, maybeOrphan := range maybeOrphanResources {
+			if unknownImport.MatchesInstance(maybeOrphan) {
+				// This is in the previous state but we can't yet know whether
+				// it's still desired, so we'll defer dealing with it to a
+				// future round.
+				continue ImportValidationUnknown
+			}
+
+		}
+
+		// If we get here then the import target is not in the configuration
+		// at all, and so we'll report an error.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Configuration for import target does not exist",
+			fmt.Sprintf("The configuration for the given import %s does not exist. All target instances must have an associated configuration to be imported.", unknownImport),
+		))
+
 	}
 
 	// If this is a resource that participates in custom condition checks
@@ -165,7 +211,7 @@ ImportValidation:
 	return &g, diags
 }
 
-func (n *nodeExpandPlannableResource) expandKnownModule(globalCtx EvalContext, resAddr addrs.AbsResource, imports addrs.Map[addrs.AbsResourceInstance, cty.Value], g *Graph) (addrs.Set[addrs.AbsResourceInstance], addrs.Set[addrs.PartialExpandedResource], addrs.Set[addrs.AbsResourceInstance], tfdiags.Diagnostics) {
+func (n *nodeExpandPlannableResource) expandKnownModule(globalCtx EvalContext, resAddr addrs.AbsResource, knownImports addrs.Map[addrs.AbsResourceInstance, cty.Value], unknownImports addrs.Map[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]], g *Graph) (addrs.Set[addrs.AbsResourceInstance], addrs.Set[addrs.PartialExpandedResource], addrs.Set[addrs.AbsResourceInstance], tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	moduleCtx := evalContextForModuleInstance(globalCtx, resAddr.Module)
@@ -201,7 +247,7 @@ func (n *nodeExpandPlannableResource) expandKnownModule(globalCtx EvalContext, r
 		diags = diags.Append(n.validForceReplaceTargets(instanceAddrs))
 	}
 
-	instGraph, maybeOrphanResources, instDiags := n.knownModuleSubgraph(moduleCtx, resAddr, knownInstKeys, haveUnknownKeys, imports)
+	instGraph, maybeOrphanResources, instDiags := n.knownModuleSubgraph(moduleCtx, resAddr, knownInstKeys, haveUnknownKeys, knownImports, unknownImports)
 	diags = diags.Append(instDiags)
 	if instDiags.HasErrors() {
 		return nil, nil, nil, diags
@@ -210,10 +256,10 @@ func (n *nodeExpandPlannableResource) expandKnownModule(globalCtx EvalContext, r
 	return knownResources, partialResources, maybeOrphanResources, diags
 }
 
-func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr addrs.AbsResource, knownInstKeys []addrs.InstanceKey, haveUnknownKeys bool, imports addrs.Map[addrs.AbsResourceInstance, cty.Value]) (*Graph, addrs.Set[addrs.AbsResourceInstance], tfdiags.Diagnostics) {
+func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr addrs.AbsResource, knownInstKeys []addrs.InstanceKey, haveUnknownKeys bool, knownImports addrs.Map[addrs.AbsResourceInstance, cty.Value], unknownImports addrs.Map[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]]) (*Graph, addrs.Set[addrs.AbsResourceInstance], tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if n.Config == nil && n.generateConfigPath != "" && imports.Len() == 0 {
+	if n.Config == nil && n.generateConfigPath != "" && knownImports.Len() == 0 {
 		// We're generating configuration, but there's nothing to import, which
 		// means the import block must have expanded to zero instances.
 		// the instance expander will always return a single instance because
@@ -234,7 +280,7 @@ func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr 
 		DynamicTransformer(func(graph *Graph) error {
 			// We'll add a node for all the known instance keys.
 			for _, key := range knownInstKeys {
-				graph.Add(n.concreteResource(imports, n.skipPlanChanges)(NewNodeAbstractResourceInstance(addr.Instance(key))))
+				graph.Add(n.concreteResource(ctx, knownImports, unknownImports, n.skipPlanChanges)(NewNodeAbstractResourceInstance(addr.Instance(key))))
 			}
 			return nil
 		}),
@@ -274,7 +320,7 @@ func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr 
 					// to a known instance but we have unknown keys so we don't
 					// know for sure that it's been deleted.
 					maybeOrphans.Add(addr.Instance(key))
-					graph.Add(n.concreteResource(addrs.MakeMap[addrs.AbsResourceInstance, cty.Value](), true)(NewNodeAbstractResourceInstance(addr.Instance(key))))
+					graph.Add(n.concreteResource(ctx, addrs.MakeMap[addrs.AbsResourceInstance, cty.Value](), addrs.MakeMap[addrs.PartialExpandedResource, addrs.Set[addrs.AbsResourceInstance]](), true)(NewNodeAbstractResourceInstance(addr.Instance(key))))
 					continue
 				}
 
