@@ -110,14 +110,6 @@ func (c *ConsoleCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Successfully creating the context can result in a lock, so ensure we release it
-	defer func() {
-		diags := opReq.StateLocker.Unlock()
-		if diags.HasErrors() {
-			c.showDiagnostics(diags)
-		}
-	}()
-
 	// Set up the UI so we can output directly to stdout
 	ui := &cli.BasicUi{
 		Writer:      os.Stdout,
@@ -170,6 +162,19 @@ func (c *ConsoleCommand) Run(args []string) int {
 	}
 	c.showDiagnostics(diags)
 	diags = nil
+
+	// Depending on the chosen backend we might be holding a state lock when
+	// we reach this point. We aren't going to create any new state snapshots
+	// based on the information we've retrieved, so we don't need to hold the
+	// lock after this point. (We're effectively using locking here just to
+	// avoid creating an evaluation scope for an intermediate snapshot created
+	// while another Terraform process is running its apply phase.)
+	{
+		diags := opReq.StateLocker.Unlock()
+		if diags.HasErrors() {
+			c.showDiagnostics(diags)
+		}
+	}
 
 	// IO Loop
 	session := &repl.Session{
