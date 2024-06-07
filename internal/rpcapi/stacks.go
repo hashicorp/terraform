@@ -157,6 +157,7 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 	ret := &terraform1.FindStackConfigurationComponents_StackConfig{
 		Components:     make(map[string]*terraform1.FindStackConfigurationComponents_Component),
 		EmbeddedStacks: make(map[string]*terraform1.FindStackConfigurationComponents_EmbeddedStack),
+		InputVariables: make(map[string]*terraform1.FindStackConfigurationComponents_InputVariable),
 	}
 
 	for name, cc := range cfgNode.Stack.Components {
@@ -186,6 +187,12 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 			sProto.Instances = terraform1.FindStackConfigurationComponents_SINGLE
 		}
 		ret.EmbeddedStacks[name] = sProto
+	}
+
+	for name, iv := range cfgNode.Stack.InputVariables {
+		ret.InputVariables[name] = &terraform1.FindStackConfigurationComponents_InputVariable{
+			Optional: !iv.DefaultValue.IsNull(),
+		}
 	}
 
 	return ret

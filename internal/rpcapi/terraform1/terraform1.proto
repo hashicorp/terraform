@@ -482,6 +482,7 @@ message FindStackConfigurationComponents {
     message StackConfig {
         map<string, Component> components = 1;
         map<string, EmbeddedStack> embedded_stacks = 2;
+        map<string, InputVariable> input_variables = 3;
     }
     message EmbeddedStack {
         string source_addr = 1;
@@ -492,6 +493,9 @@ message FindStackConfigurationComponents {
         string source_addr = 1;
         Instances instances = 2;
         string component_addr = 3;
+    }
+    message InputVariable {
+        bool optional = 1;
     }
 }
 

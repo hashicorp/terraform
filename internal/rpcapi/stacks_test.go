@@ -219,6 +219,14 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 					},
 				},
 			},
+			InputVariables: map[string]*terraform1.FindStackConfigurationComponents_InputVariable{
+				"unused": {
+					Optional: false,
+				},
+				"unused_with_default": {
+					Optional: true,
+				},
+			},
 		}
 		if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
 			t.Errorf("wrong result\n%s", diff)
