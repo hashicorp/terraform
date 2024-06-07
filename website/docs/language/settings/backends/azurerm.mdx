@@ -9,19 +9,19 @@ Stores the state as a Blob with the given Key within the Blob Container within [
 
 This backend supports state locking and consistency checking with Azure Blob Storage native capabilities.
 
-~> Terraform 1.1 and 1.2 supported a feature-flag to allow enabling/disabling the use of Microsoft Graph (and MSAL) rather than Azure Active Directory Graph (and ADAL) - however this flag has since been removed in Terraform 1.3. Microsoft Graph (and MSAL) are now enabled by default and Azure Active Directory Graph (and ADAL) can no longer be used.
+~> Terraform 1.1 and 1.2 supported a feature-flag to toggle between using Microsoft Graph (and MSAL) rather than Azure Active Directory Graph (and ADAL).We have removed this flag in Terraform 1.3, and Terraform uses Microsoft Graph (and MSAL) by default. 
 
 ## Authentication
 
 The `azurerm` backend supports 3 methods of authenticating to the storage account:
 
 - Access Key (default)
-- Azure Active Directory
+- Microsoft Entra ID (previously Azure Active Directory)
 - SAS Token
 
-The *Access Key* method can be used directly, by specifying the access key, or in combination with an Azure AD principal (e.g. user, service principal or managed identity). To use an Access Key directly you must generate one for your state file blob and specify it in the backend configuration. If neither an access key or client ID is specified, Terraform will attempt to use Azure CLI. In both cases where no access key is given, Terraform will attempt to retrieve the access key for the storage account, using the authenticated Azure AD principal.
+The *Access Key* method can be used directly, by specifying the access key, or in combination with an Entra ID principal (e.g. user, service principal or managed identity). To use an Access Key directly you must generate one for your state file blob and specify it in the backend configuration. If neither an access key or client ID is specified, Terraform will attempt to use Azure CLI. In both cases where no access key is given, Terraform will attempt to retrieve the access key for the storage account, using the authenticated Entra ID principal.
 
-The *Azure Active Directory* method can only be used in combination with an Azure AD principal. To use the Azure Active Directory method you must set the `use_azuread_auth` variable to `true` in your backend configuration. This will cause the backend to use the Access Token of the Azure AD principal to authenticate to the state file blob, instead of authenticating using a shared access key.
+The *Azure Active Directory* method can only be used in combination with an Entra ID principal. To use the Azure Active Directory method you must set the `use_azuread_auth` variable to `true` in your backend configuration. This will cause the backend to use the Access Token of the Entra ID principal to authenticate to the state file blob, instead of authenticating using a shared access key.
 
 The *SAS Token* method can only be used directly. You must generate a SAS Token for your state file blob and pass it to the backend config.
 
@@ -30,15 +30,15 @@ The `azurerm` backend supports the following authentication scenarios to connect
 | Authentication Method | Storage Account Authentication Type | Minimum Required Configuration† |
 |-----|---|---|
 | User Principal via Azure CLI | Access Key | N/A |
-| User Principal via Azure CLI | Azure AD | `use_azuread_auth = true` |
+| User Principal via Azure CLI | Entra ID | `use_azuread_auth = true` |
 | Service Principal or User Assigned Managed Identity via OIDC (Workload identity federation) | Access Key | `use_oidc = true` |
-| Service Principal or User Assigned Managed Identity via OIDC (Workload identity federation) | Azure AD | `use_azuread_auth = true`, `use_oidc = true` |
+| Service Principal or User Assigned Managed Identity via OIDC (Workload identity federation) | Entra ID | `use_azuread_auth = true`, `use_oidc = true` |
 | Managed Identity Principal | Access Key | `use_msi = true` |
-| Managed Identity Principal | Azure AD | `use_azuread_auth = true`, `use_msi = true` |
+| Managed Identity Principal | Entra ID | `use_azuread_auth = true`, `use_msi = true` |
 | Service Principal via Client Secret | Access Key | `client_secret = "..."` |
-| Service Principal via Client Secret | Azure AD | `use_azuread_auth = true`, `client_secret = "..."` |
+| Service Principal via Client Secret | Entra ID | `use_azuread_auth = true`, `client_secret = "..."` |
 | Service Principal via Client Certificate | Access Key | `client_certificate_path = "..."` |
-| Service Principal via Client Certificate | Azure AD | `client_certificate_path = "...`, `use_azuread_auth = true` |
+| Service Principal via Client Certificate | Entra ID | `client_certificate_path = "...`, `use_azuread_auth = true` |
 | Access Key direct | Access Key | `access_key = "..."` |
 | SAS Token direct | SAS Token | `sas_token = "..."` |
 
@@ -48,7 +48,7 @@ The `azurerm` backend supports the following authentication scenarios to connect
 
 ## Example Backend Configurations
 
-### Backend: Azure AD User via Azure CLI
+### Backend: Entra ID User via Azure CLI
 
 This method is not suitable for automation since it only supports a User Principal. To check which tenant and subscription you are pointed to, run `az account show`.
 
@@ -65,7 +65,7 @@ terraform {
 }
 ```
 
-*Connect to Storage Account with Azure Active Directory authentication*
+*Connect to Storage Account with Microsoft Entra ID authentication*
 
 ```hcl
 terraform {
@@ -79,7 +79,7 @@ terraform {
 }
 ```
 
-### Backend: Azure AD Service Principal or User Assigned Managed Identity via OIDC (Workload Identity Federation)
+### Backend: Entra ID Service Principal or User Assigned Managed Identity via OIDC (Workload Identity Federation)
 
 You can use an App Registration (Service Principal) or a User Assigned Managed Identity to configure federated credentials. You must supply the Client ID of the principal.
 
@@ -100,7 +100,7 @@ terraform {
 }
 ```
 
-*Connect to Storage Account with Azure Active Directory authentication*
+*Connect to Storage Account with Microsoft Entra ID authentication*
 
 ```hcl
 terraform {
@@ -118,7 +118,7 @@ terraform {
 }
 ```
 
-### Backend: Azure AD Managed Identity Principal
+### Backend: Entra ID Managed Identity Principal
 
 You can use a User Assigned Managed Identity as well as a System Assigned Managed Identity on your agent / runner compute environment. However the backend does not currently support specifying the Client ID of the User Assigned Managed Identity, so you can only supply one per compute instance.
 
@@ -139,7 +139,7 @@ terraform {
 }
 ```
 
-*Connect to Storage Account with Azure Active Directory authentication*
+*Connect to Storage Account with Microsoft Entra ID authentication*
 
 ```hcl
 terraform {
@@ -157,7 +157,7 @@ terraform {
 }
 ```
 
-### Backend: Azure AD Service Principal via Client Secret
+### Backend: Entra ID Service Principal via Client Secret
 
 ~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
 
@@ -178,7 +178,7 @@ terraform {
 }
 ```
 
-*Connect to Storage Account with Azure Active Directory authentication*
+*Connect to Storage Account with Microsoft Entra ID authentication*
 
 ```hcl
 terraform {
@@ -196,7 +196,7 @@ terraform {
 }
 ```
 
-### Backend: Azure AD Service Principal via Client Certificate
+### Backend: Entra ID Service Principal via Client Certificate
 
 ~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
 
@@ -218,7 +218,7 @@ terraform {
 }
 ```
 
-*Connect to Storage Account with Azure Active Directory authentication*
+*Connect to Storage Account with Microsoft Entra ID authentication*
 
 ```hcl
 terraform {
@@ -271,7 +271,7 @@ terraform {
 
 ## Example Data Source Configurations
 
-### Data Source: Azure AD User Principal via Azure CLI
+### Data Source: Entra ID User Principal via Azure CLI
 
 This method is not suitable for automation since it only supports a User Principal. To check which tenant and subscription you are pointed to, run `az account show`.
 
@@ -289,7 +289,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-*Connect to Storage Account with Azure Active Directory authentication*
+*Connect to Storage Account with Microsoft Entra ID authentication*
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -304,7 +304,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-### Data Source: Azure AD Service Principal or User Assigned Managed Identity via OIDC (Workload Identity Federation)
+### Data Source: Entra ID Service Principal or User Assigned Managed Identity via OIDC (Workload Identity Federation)
 
 You can use an App Registration (Service Principal) or a User Assigned Managed Identity to configure federated credentials. You must supply the Client ID of the principal.
 
@@ -326,7 +326,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-*Connect to Storage Account with Azure Active Directory authentication*
+*Connect to Storage Account with Microsoft Entra ID authentication*
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -345,7 +345,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-### Data Source: Azure AD Managed Identity Principal
+### Data Source: Entra ID Managed Identity Principal
 
 You can use a User Assigned Managed Identity as well as a System Assigned Managed Identity on your agent / runner compute environment. However the backend does not currently support specifying the Client ID of the User Assigned Managed Identity, so you can only supply one per compute instance.
 
@@ -366,7 +366,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-*Connect to Storage Account with Azure Active Directory authentication*
+*Connect to Storage Account with Microsoft Entra ID authentication*
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -384,7 +384,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-### Data Source: Azure AD Service Principal via Client Secret
+### Data Source: Entra ID Service Principal via Client Secret
 
 ~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
 
@@ -406,7 +406,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-*Connect to Storage Account with Azure Active Directory authentication*
+*Connect to Storage Account with Microsoft Entra ID authentication*
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -425,7 +425,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-### Data Source: Azure AD Service Principal via Client Certificate
+### Data Source: Entra ID Service Principal via Client Certificate
 
 ~> **Warning!** This method requires you to manage and rotate a secret. Consider using OIDC as a more secure approach.
 
@@ -448,7 +448,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-*Connect to Storage Account with Azure Active Directory authentication*
+*Connect to Storage Account with Microsoft Entra ID authentication*
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -566,11 +566,11 @@ When authenticating using the Storage Account's Access Key - the following field
 
 ***
 
-When authenticating using an Azure AD Service Principal, you have the option to use Azure Active Directory authentication for the storage account (rather than by an Access Key or SAS Token) - the following fields are also supported:
+When authenticating using an Entra ID Service Principal, you have the option to use Microsoft Entra ID authentication for the storage account (rather than by an Access Key or SAS Token) - the following fields are also supported:
 
-* `use_azuread_auth` - (Optional) Whether Azure Active Directory Authentication should be used to access the Blob Storage Account. This can also be sourced from the `ARM_USE_AZUREAD` environment variable.
+* `use_azuread_auth` - (Optional) Whether Microsoft Entra ID Authentication should be used to access the Blob Storage Account. This can also be sourced from the `ARM_USE_AZUREAD` environment variable.
 
--> **Note:** When using Azure Active Directory Authentication, you must ensure the `Storage Blob Data Owner` or `Container Blob Data Owner` roles are assigned to your Storage Account.
+-> **Note:** When using Microsoft Entra ID Authentication, you must ensure the `Storage Blob Data Owner` or `Container Blob Data Owner` roles are assigned to your Storage Account.
 
 ***
 
