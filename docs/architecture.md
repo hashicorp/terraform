@@ -280,7 +280,7 @@ a plan operation would include the following high-level steps:
   this operation.
 
 Each execution step for a vertex is an implementation of
-[`terraform.Execute`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/erraform#Execute).
+[`terraform.Execute`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#Execute).
 As with graph transforms, the behavior of these implementations varies widely:
 whereas graph transforms can take any action against the graph, an `Execute`
 implementation can take any action against the `EvalContext`.

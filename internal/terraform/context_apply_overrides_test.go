@@ -649,6 +649,43 @@ output "id" {
 			}),
 			outputs: cty.EmptyObjectVal,
 		},
+		"legacy provider config inside overridden module": {
+			configs: map[string]string{
+				"main.tf": `
+module "test" {
+  source = "./child"
+}
+`,
+				"child/main.tf": `
+module "grandchild" {
+  source = "../grandchild"
+}
+output "id" {
+  value = "child"
+}
+`,
+				"grandchild/main.tf": `
+variable "in" {
+  default = "test_value"
+}
+
+provider "test" {
+  value = var.in
+}
+
+resource "test_instance" "resource" {
+}
+`,
+			},
+			overrides: mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
+				overrides.Put(mustModuleInstance("module.test"), &configs.Override{
+					Values: cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("h3ll0"),
+					}),
+				})
+			}),
+			outputs: cty.EmptyObjectVal,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -720,6 +757,16 @@ output "id" {
 // functionality, in that they should stop the provider from being executed.
 var underlyingOverridesProvider = &testing_provider.MockProvider{
 	GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"value": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{

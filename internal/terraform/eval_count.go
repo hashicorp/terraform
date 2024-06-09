@@ -10,6 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty/gocty"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -74,8 +75,26 @@ func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Val
 		return nullCount, diags
 	}
 
-	// Unmark the count value, sensitive values are allowed in count but not for_each,
-	// as using it here will not disclose the sensitive value
+	if countVal.HasMark(marks.Ephemeral) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid count argument",
+			Detail:   `The given "count" is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify the number of resource instances.`,
+			Subject:  expr.Range().Ptr(),
+
+			// TODO: Also populate Expression and EvalContext in here, but
+			// we can't easily do that right now because the hcl.EvalContext
+			// (which is not the same as the ctx we have in scope here) is
+			// hidden away inside ctx.EvaluateExpr.
+			Extra: diagnosticCausedByEphemeral(true),
+		})
+	}
+
+	// Sensitive values are allowed in count but not for_each. This is a
+	// somewhat-dubious decision because the number of instances planned
+	// will disclose exactly what the value was, but in practice it's rare
+	// for a number alone to be sensitive and so this is pragmatic, along with
+	// being required for backward-compatibility.
 	countVal, _ = countVal.Unmark()
 
 	switch {

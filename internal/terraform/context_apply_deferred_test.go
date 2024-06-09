@@ -71,6 +71,10 @@ type deferredActionsTestStage struct {
 	// buildOpts is an optional field, that lets the test specify additional
 	// options to be used when building the plan.
 	buildOpts func(opts *PlanOpts)
+
+	// wantDiagnostic is an optional field, that lets the test specify the
+	// expected diagnostics to be returned by the plan.
+	wantDiagnostic func(diags tfdiags.Diagnostics) bool
 }
 
 type ExpectedDeferred struct {
@@ -81,6 +85,188 @@ type ExpectedDeferred struct {
 var (
 	// We build some fairly complex configurations here, so we'll use separate
 	// variables for each one outside of the test function itself for clarity.
+
+	// dataForEachTest is a test for deferral of data sources due to unknown
+	// for_each values. Since data sources don't result in planned changes,
+	// deferral has to be observed indirectly by checking for deferral of
+	// downstream objects that would otherwise have no reason to be deferred.
+	dataForEachTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "each" {
+	type = set(string)
+}
+
+data "test" "a" {
+	for_each = var.each
+
+	name = "a:${each.key}"
+}
+
+resource "test" "b" {
+	name = "b"
+	upstream_names = [for v in data.test.a : v.name]
+}
+
+output "from_data" {
+	value = [for v in data.test.a : v.output]
+}
+
+output "from_resource" {
+	value = test.b.output
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			// Stage 0. Unknown for_each in data source. The resource and
+			// outputs get transitively deferred.
+			{
+				inputs: map[string]cty.Value{
+					"each": cty.DynamicVal,
+				},
+				wantPlanned: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.UnknownVal(cty.String),
+						"upstream_names": cty.UnknownVal(cty.Set(cty.String)),
+					}),
+				},
+				wantActions: map[string]plans.Action{},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.b": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+				},
+				wantApplied: map[string]cty.Value{},
+				// TODO: These deferred output values are wrong, but outputs are a separate ticket.
+				wantOutputs: map[string]cty.Value{
+					"from_data":     cty.EmptyTupleVal,
+					"from_resource": cty.NullVal(cty.DynamicPseudoType),
+				},
+				complete:      false,
+				allowWarnings: false,
+			},
+			// Stage 1. Everything's known now, so it converges.
+			{
+				inputs: map[string]cty.Value{
+					"each": cty.SetVal([]cty.Value{cty.StringVal("hey"), cty.StringVal("ho"), cty.StringVal("let's go")}),
+				},
+				wantPlanned: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.UnknownVal(cty.String),
+						"upstream_names": cty.SetVal([]cty.Value{cty.StringVal("a:hey"), cty.StringVal("a:ho"), cty.StringVal("a:let's go")}),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.b": plans.Create,
+				},
+				wantDeferred: map[string]ExpectedDeferred{},
+				wantApplied: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.StringVal("b"),
+						"upstream_names": cty.SetVal([]cty.Value{cty.StringVal("a:hey"), cty.StringVal("a:ho"), cty.StringVal("a:let's go")}),
+					}),
+				},
+				wantOutputs: map[string]cty.Value{
+					"from_data":     cty.TupleVal([]cty.Value{cty.StringVal("a:hey"), cty.StringVal("a:ho"), cty.StringVal("a:let's go")}),
+					"from_resource": cty.StringVal("b"),
+				},
+				complete:      true,
+				allowWarnings: false,
+			},
+		},
+	}
+
+	// dataCountTest is a test for deferral of data sources due to unknown
+	// count values. Since data sources don't result in planned changes,
+	// deferral has to be observed indirectly by checking for deferral of
+	// downstream objects that would otherwise have no reason to be deferred.
+	dataCountTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "data_count" {
+	type = number
+}
+
+data "test" "a" {
+	count = var.data_count
+
+	name = "a:${count.index}"
+}
+
+resource "test" "b" {
+	name = "b"
+	upstream_names = [for v in data.test.a : v.name]
+}
+
+output "from_data" {
+	value = [for v in data.test.a : v.output]
+}
+
+output "from_resource" {
+	value = test.b.output
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			// Stage 0. Unknown count in data source. The resource and
+			// outputs get transitively deferred.
+			{
+				inputs: map[string]cty.Value{
+					"data_count": cty.DynamicVal,
+				},
+				wantPlanned: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.UnknownVal(cty.String),
+						"upstream_names": cty.UnknownVal(cty.Set(cty.String)),
+					}),
+				},
+				wantActions: map[string]plans.Action{},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.b": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+				},
+				wantApplied: map[string]cty.Value{},
+				// TODO: These deferred output values are wrong, but outputs are a separate ticket.
+				wantOutputs: map[string]cty.Value{
+					"from_data":     cty.EmptyTupleVal,
+					"from_resource": cty.NullVal(cty.DynamicPseudoType),
+				},
+				complete:      false,
+				allowWarnings: false,
+			},
+			// Stage 1. Everything's known now, so it converges.
+			{
+				inputs: map[string]cty.Value{
+					"data_count": cty.NumberIntVal(3),
+				},
+				wantPlanned: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.UnknownVal(cty.String),
+						"upstream_names": cty.SetVal([]cty.Value{cty.StringVal("a:0"), cty.StringVal("a:1"), cty.StringVal("a:2")}),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.b": plans.Create,
+				},
+				wantDeferred: map[string]ExpectedDeferred{},
+				wantApplied: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"output":         cty.StringVal("b"),
+						"upstream_names": cty.SetVal([]cty.Value{cty.StringVal("a:0"), cty.StringVal("a:1"), cty.StringVal("a:2")}),
+					}),
+				},
+				wantOutputs: map[string]cty.Value{
+					"from_data":     cty.TupleVal([]cty.Value{cty.StringVal("a:0"), cty.StringVal("a:1"), cty.StringVal("a:2")}),
+					"from_resource": cty.StringVal("b"),
+				},
+				complete:      true,
+				allowWarnings: false,
+			},
+		},
+	}
 
 	// resourceForEachTest is a test that exercises the deferred actions
 	// mechanism with a configuration that has a resource with an unknown
@@ -1581,9 +1767,65 @@ output "a" {
 					}),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
-					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Read},
+					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Update},
 				},
 				complete: false,
+			},
+		},
+	}
+
+	resourceReadButForbiddenTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "a"
+}
+output "a" {
+	value = test.a
+}
+		`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "deferred_read", // this signals the mock provider to defer the read
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.RefreshOnlyMode
+					opts.DeferralAllowed = false
+				},
+				inputs:      map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{},
+
+				wantActions: map[string]plans.Action{},
+				wantOutputs: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+					}),
+				},
+				wantDeferred: map[string]ExpectedDeferred{},
+				complete:     false,
+
+				wantDiagnostic: func(diags tfdiags.Diagnostics) bool {
+					for _, diag := range diags {
+						if diag.Description().Summary == "Provider deferred changes when Terraform did not allow deferrals" {
+							return true
+						}
+					}
+					return false
+				},
 			},
 		},
 	}
@@ -1627,7 +1869,8 @@ output "b" {
 				},
 				wantOutputs: map[string]cty.Value{
 					"a": cty.NullVal(cty.Object(map[string]cty.Type{
-						"name": cty.String,
+						"name":   cty.String,
+						"output": cty.String,
 					})),
 					"b": cty.NullVal(cty.DynamicPseudoType),
 				},
@@ -1637,6 +1880,56 @@ output "b" {
 					"test.b": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
 				},
 				complete: false,
+			},
+		},
+	}
+
+	readDataSourceButForbiddenTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+data "test" "a" {
+	name       = "deferred_read"
+}
+
+resource "test" "b" {
+	name = data.test.a.name
+}
+
+output "a" {
+	value = data.test.a
+}
+
+output "b" {
+	value = test.b
+}
+	`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.DeferralAllowed = false
+				},
+				inputs:      map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{},
+				wantActions: map[string]plans.Action{},
+
+				wantOutputs: map[string]cty.Value{
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					})),
+					"b": cty.NullVal(cty.DynamicPseudoType),
+				},
+				wantDeferred: map[string]ExpectedDeferred{},
+				complete:     false,
+
+				wantDiagnostic: func(diags tfdiags.Diagnostics) bool {
+					for _, diag := range diags {
+						if diag.Description().Summary == "Provider deferred changes when Terraform did not allow deferrals" {
+							return true
+						}
+					}
+					return false
+				},
 			},
 		},
 	}
@@ -2025,6 +2318,238 @@ output "a" {
 			},
 		},
 	}
+
+	planDestroyResourceChangeButForbidden = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "deferred_resource_change"
+}
+output "a" {
+	value = test.a
+}
+		`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name": "deferred_resource_change",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.DestroyMode
+					opts.DeferralAllowed = false
+				},
+				inputs:      map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{},
+
+				wantActions: map[string]plans.Action{},
+
+				wantOutputs:  map[string]cty.Value{},
+				wantDeferred: map[string]ExpectedDeferred{},
+				complete:     false,
+				wantDiagnostic: func(diags tfdiags.Diagnostics) bool {
+					for _, diag := range diags {
+						if diag.Description().Summary == "Provider deferred changes when Terraform did not allow deferrals" {
+							return true
+						}
+					}
+					return false
+				},
+			},
+		},
+	}
+
+	importDeferredTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "import_id" {
+    type = string
+}
+
+resource "test" "a" {
+    name = "a"
+}
+
+import {
+    id = var.import_id
+    to = test.a
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"import_id": cty.StringVal("deferred"), // Telling the test case to defer the import
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Create},
+				},
+				wantApplied: make(map[string]cty.Value),
+				wantOutputs: make(map[string]cty.Value),
+				complete:    false,
+			},
+			{
+				inputs: map[string]cty.Value{
+					"import_id": cty.StringVal("can_be_imported"),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("can_be_imported"),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.a": plans.Update,
+				},
+				wantDeferred: map[string]ExpectedDeferred{},
+				complete:     true,
+			},
+		},
+	}
+
+	importDeferredButForbiddenTest = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "import_id" {
+    type = string
+}
+
+resource "test" "a" {
+    name = "a"
+}
+
+import {
+    id = var.import_id
+    to = test.a
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					// We want to test if the user gets presented with a diagnostic in case no deferrals are allowed
+					opts.DeferralAllowed = false
+				},
+				inputs: map[string]cty.Value{
+					"import_id": cty.StringVal("deferred"), // Telling the test case to defer the import
+				},
+				wantPlanned:  map[string]cty.Value{},
+				wantActions:  make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{},
+				wantOutputs:  make(map[string]cty.Value),
+				complete:     false,
+
+				wantDiagnostic: func(diags tfdiags.Diagnostics) bool {
+					for _, diag := range diags {
+						if diag.Description().Summary == "Provider deferred changes when Terraform did not allow deferrals" {
+							return true
+						}
+					}
+					return false
+				},
+			},
+		},
+	}
+
+	moduleDeferredForEachValue = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "input" {
+    type = set(string)
+}
+
+module "my_module" {
+  for_each = var.input
+  source  = "../module"
+
+
+  name = each.value
+}
+`,
+			"../module/main.tf": `
+variable "name" {
+    type = string
+}
+
+resource "test" "a" {
+    name = var.name
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"input": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantPlanned: map[string]cty.Value{
+					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.UnknownVal(cty.String),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					`module.my_module["*"].test.a["*"]`: {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Create},
+				},
+				wantOutputs: make(map[string]cty.Value),
+				complete:    false,
+			},
+		},
+	}
+
+	moduleInnerResourceInstanceDeferred = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+module "my_module" {
+  source  = "../module"
+}
+`,
+			"../module/main.tf": `
+resource "test" "a" {
+    name = "deferred_resource_change"
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{
+					"deferred_resource_change": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("deferred_resource_change"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					`module.my_module.test.a`: {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Create},
+				},
+				wantOutputs: make(map[string]cty.Value),
+				complete:    false,
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
@@ -2043,6 +2568,8 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"custom_conditions_with_orphans":                    customConditionsWithOrphansTest,
 		"resource_read":                                     resourceReadTest,
 		"data_read":                                         readDataSourceTest,
+		"data_for_each":                                     dataForEachTest,
+		"data_count":                                        dataCountTest,
 		"plan_create_resource_change":                       planCreateResourceChange,
 		"plan_update_resource_change":                       planUpdateResourceChange,
 		"plan_noop_resource_change":                         planNoOpResourceChange,
@@ -2050,6 +2577,13 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"plan_force_replace_resource_change":                planForceReplaceResourceChange,
 		"plan_delete_resource_change":                       planDeleteResourceChange,
 		"plan_destroy_resource_change":                      planDestroyResourceChange,
+		"import_deferred":                                   importDeferredTest,
+		"import_deferred_but_forbidden":                     importDeferredButForbiddenTest,
+		"resource_read_but_forbidden":                       resourceReadButForbiddenTest,
+		"data_read_but_forbidden":                           readDataSourceButForbiddenTest,
+		"plan_destroy_resource_change_but_forbidden":        planDestroyResourceChangeButForbidden,
+		"module_deferred_for_each_value":                    moduleDeferredForEachValue,
+		"module_inner_resource_instance_deferred":           moduleInnerResourceInstanceDeferred,
 	}
 
 	for name, test := range tests {
@@ -2112,11 +2646,25 @@ func TestContextApply_deferredActions(t *testing.T) {
 						var diags tfdiags.Diagnostics
 						plan, diags = ctx.Plan(cfg, state, opts)
 
-						// We expect the correct planned changes and no diagnostics.
-						if stage.allowWarnings {
-							assertNoErrors(t, diags)
+						if stage.wantDiagnostic == nil {
+							// We expect the correct planned changes and no diagnostics.
+							if stage.allowWarnings {
+								assertNoErrors(t, diags)
+							} else {
+								assertNoDiagnostics(t, diags)
+							}
 						} else {
-							assertNoDiagnostics(t, diags)
+							if !stage.wantDiagnostic(diags) {
+								t.Fatalf("missing expected diagnostics: %s", diags)
+							} else {
+								// We don't want to make any further assertions in this case.
+								// If diagnostics are expected it's valid that no plan may be returned.
+								return
+							}
+						}
+
+						if plan == nil {
+							t.Fatalf("plan is nil")
 						}
 
 						if plan.Complete != stage.complete {
@@ -2253,6 +2801,10 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 								Type:     cty.String,
 								Required: true,
 							},
+							"output": {
+								Computed: true,
+								Type:     cty.String,
+							},
 						},
 					},
 				},
@@ -2282,7 +2834,10 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 				}
 			}
 			return providers.ReadDataSourceResponse{
-				State: req.Config,
+				State: cty.ObjectVal(map[string]cty.Value{
+					"name":   req.Config.GetAttr("name"),
+					"output": req.Config.GetAttr("name"),
+				}),
 			}
 		},
 		PlanResourceChangeFn: func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
@@ -2345,6 +2900,15 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			}
 		},
 		ImportResourceStateFn: func(request providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+			if request.ID == "deferred" {
+				return providers.ImportResourceStateResponse{
+					ImportedResources: []providers.ImportedResource{},
+					Deferred: &providers.Deferred{
+						Reason: providers.DeferredReasonProviderConfigUnknown,
+					},
+				}
+			}
+
 			return providers.ImportResourceStateResponse{
 				ImportedResources: []providers.ImportedResource{
 					{

@@ -68,7 +68,8 @@ func TestProviderInstanceCheckProviderArgs(t *testing.T) {
 		if provider == nil {
 			t.Fatal("no provider.foo.bar is available")
 		}
-		insts := provider.Instances(ctx, InspectPhase)
+		insts, unknown := provider.Instances(ctx, InspectPhase)
+		assertFalse(t, unknown)
 		inst, ok := insts[addrs.NoKey]
 		if !ok {
 			t.Fatal("missing NoKey instance of provider.foo.bar")
@@ -341,7 +342,8 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 		if provider == nil {
 			t.Fatal("no provider.foo.bar is available")
 		}
-		insts := provider.Instances(ctx, InspectPhase)
+		insts, unknown := provider.Instances(ctx, InspectPhase)
+		assertFalse(t, unknown)
 		inst, ok := insts[addrs.NoKey]
 		if !ok {
 			t.Fatal("missing NoKey instance of provider.foo.bar")
@@ -381,6 +383,9 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 				Config: cty.ObjectVal(map[string]cty.Value{
 					"test": cty.StringVal("yep"),
 				}),
+				ClientCapabilities: providers.ClientCapabilities{
+					DeferralAllowed: true,
+				},
 			}
 			if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
 				t.Errorf("wrong request\n%s", diff)
@@ -420,6 +425,9 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 				Config: cty.ObjectVal(map[string]cty.Value{
 					"test": cty.StringVal("yep"),
 				}),
+				ClientCapabilities: providers.ClientCapabilities{
+					DeferralAllowed: true,
+				},
 			}
 			if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
 				t.Errorf("wrong request\n%s", diff)

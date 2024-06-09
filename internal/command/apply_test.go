@@ -900,6 +900,16 @@ func TestApply_planWithVarFile(t *testing.T) {
 }
 
 func TestApply_planVars(t *testing.T) {
+	// This test ensures that it isn't allowed to set input variables
+	// when applying from a saved plan file, since in that case the
+	// variable values come from the saved plan file.
+	//
+	// This situation was originally checked by the apply command itself,
+	// and that's what this test was originally exercising. This rule
+	// is now enforced by the "local" backend instead, but this test
+	// is still valid since the command instance delegates to the
+	// local backend.
+
 	planPath := applyFixturePlanFile(t)
 	statePath := testTempFile(t)
 

@@ -23,6 +23,14 @@ var (
 		},
 	}
 
+	DeferredResourceSchema = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id":       {Type: cty.String, Optional: true, Computed: true},
+			"value":    {Type: cty.String, Optional: true},
+			"deferred": {Type: cty.Bool, Required: true},
+		},
+	}
+
 	TestingDataSourceSchema = &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
 			"id":    {Type: cty.String, Required: true},
@@ -49,9 +57,22 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 	return &MockProvider{
 		MockProvider: &testing_provider.MockProvider{
 			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+				Provider: providers.Schema{
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"configure_error": {
+								Type:     cty.String,
+								Optional: true,
+							},
+						},
+					},
+				},
 				ResourceTypes: map[string]providers.Schema{
 					"testing_resource": {
 						Block: TestingResourceSchema,
+					},
+					"testing_deferred_resource": {
+						Block: DeferredResourceSchema,
 					},
 				},
 				DataSources: map[string]providers.Schema{
@@ -59,6 +80,18 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 						Block: TestingDataSourceSchema,
 					},
 				},
+			},
+			ConfigureProviderFn: func(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+				// If configure_error is set, return an error.
+				err := request.Config.GetAttr("configure_error")
+				if !err.IsNull() {
+					return providers.ConfigureProviderResponse{
+						Diagnostics: tfdiags.Diagnostics{
+							tfdiags.AttributeValue(tfdiags.Error, err.AsString(), "configure_error attribute was set", cty.GetAttrPath("configure_error")),
+						},
+					}
+				}
+				return providers.ConfigureProviderResponse{}
 			},
 			PlanResourceChangeFn: func(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 				if request.ProposedNewState.IsNull() {
@@ -76,6 +109,17 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 					vals := value.AsValueMap()
 					vals["id"] = cty.UnknownVal(cty.String)
 					value = cty.ObjectVal(vals)
+				}
+
+				if request.TypeName == "testing_deferred_resource" {
+					if value.GetAttr("deferred").True() {
+						return providers.PlanResourceChangeResponse{
+							PlannedState: value,
+							Deferred: &providers.Deferred{
+								Reason: providers.DeferredReasonResourceConfigUnknown,
+							},
+						}
+					}
 				}
 
 				return providers.PlanResourceChangeResponse{

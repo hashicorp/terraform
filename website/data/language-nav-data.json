@@ -217,6 +217,10 @@
       }
     ]
   },
+  {
+    "title": "Moved block",
+    "path": "moved"
+  },
   { "title": "Checks", "path": "checks" },
   {
       "title": "Import",
@@ -360,6 +364,10 @@
           {
             "title": "<code>substr</code>",
             "href": "/language/functions/substr"
+          },
+          {
+            "title": "<code>templatestring</code>",
+            "href": "/language/functions/templatestring"
           },
           {
             "title": "<code>title</code>",
@@ -887,6 +895,11 @@
       {
         "title": "templatefile",
         "path": "functions/templatefile",
+        "hidden": true
+      },
+      {
+        "title": "templatestring",
+        "path": "functions/templatestring",
         "hidden": true
       },
       { "title": "terraform-encode_tfvars", "path": "functions/terraform-encode_tfvars", "hidden": true },

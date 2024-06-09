@@ -100,7 +100,17 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 
 						stack := main.Stack(ctx, addr.Stack, ApplyPhase)
 						component := stack.Component(ctx, addr.Item.Component)
-						insts := component.Instances(ctx, ApplyPhase)
+
+						insts, unknown := component.Instances(ctx, ApplyPhase)
+						if unknown {
+							// an unknown instance should not have been applied
+							// during the apply phase, so we should not have
+							// reached this point.
+							log.Printf("[ERROR] stackeval: %s has planned changes, but was unknown so should not have been applied", addr)
+							span.SetStatus(codes.Error, "unknown component")
+							return nil, nil
+						}
+
 						inst, ok := insts[addr.Item.Key]
 						if !ok {
 							// If we managed to plan a change for this instance

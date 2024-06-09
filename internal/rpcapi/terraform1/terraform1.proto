@@ -13,14 +13,26 @@ service Setup {
     //
     // This function can be called only once per RPC server.
     rpc Handshake(Handshake.Request) returns (Handshake.Response);
+
+    // At any time after handshaking, clients may call Stop to initiate a
+    // graceful shutdown of the server.
+    rpc Stop(Stop.Request) returns (Stop.Response);
 }
 
 message Handshake {
     message Request {
         ClientCapabilities capabilities = 1;
+        Config config = 2;
     }
     message Response {
         ServerCapabilities capabilities = 2;
+    }
+}
+
+message Stop {
+    message Request {
+    }
+    message Response {
     }
 }
 
@@ -110,6 +122,14 @@ service Dependencies {
     // has the potential to run in a context that probably has access to
     // private source code and other sensitive information.
     rpc GetProviderSchema(GetProviderSchema.Request) returns (GetProviderSchema.Response);
+}
+
+message Config {
+    map<string, HostCredential> credentials = 1;
+}
+
+message HostCredential {
+    string token = 1;
 }
 
 message OpenSourceBundle {
@@ -728,6 +748,7 @@ message PlannedChange {
             ResourceInstance resource_instance_planned = 2;
             OutputValue output_value_planned = 3;
             bool plan_applyable = 4;
+            ResourceInstanceDeferred resource_instance_deferred = 5;
         }
     }
 
@@ -806,6 +827,27 @@ message PlannedChange {
         repeated ChangeType actions = 2;
         DynamicValueChange values = 3;
     }
+
+    message ResourceInstanceDeferred {
+        ResourceInstance resource_instance = 1;
+        Deferred deferred = 2;
+    }
+}
+
+// Deferred contains all the metadata about a the deferral of a resource
+// instance change.
+message Deferred {
+    // Reason describes the reason why a resource instance change was
+    // deferred.
+    enum Reason {
+        INVALID = 0;
+        INSTANCE_COUNT_UNKNOWN = 1;
+        RESOURCE_CONFIG_UNKNOWN = 2;
+        PROVIDER_CONFIG_UNKNOWN = 3;
+        ABSENT_PREREQ = 4;
+        DEFERRED_PREREQ = 5;
+    }
+    Reason reason = 1;
 }
 
 // Describes a change made during a Stacks.ApplyStackChanges call.
@@ -949,6 +991,7 @@ message StackChangeProgress {
         ProvisionerOutput provisioner_output = 5;
         ComponentInstanceChanges component_instance_changes = 6;
         ComponentInstances component_instances = 7;
+        DeferredResourceInstancePlannedChange deferred_resource_instance_planned_change = 8;
     }
 
     // ComponentInstanceStatus describes the current status of a component instance
@@ -1006,6 +1049,13 @@ message StackChangeProgress {
         message Imported {
             string import_id = 1;
         }
+    }
+
+    // DeferredResourceInstancePlannedChange represents a planned change for a
+    // resource instance that is deferred due to the reason provided.
+    message DeferredResourceInstancePlannedChange {
+      Deferred deferred = 1;
+      ResourceInstancePlannedChange change = 2;
     }
 
     // ProvisionerStatus represents the progress of a given provisioner during its

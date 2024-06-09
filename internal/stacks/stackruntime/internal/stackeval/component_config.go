@@ -336,6 +336,12 @@ func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (
 				})
 				continue
 			}
+		} else if result.Value == cty.DynamicVal {
+			// Then we don't know the concrete type of this reference at this
+			// time, so we'll just have to accept it. This is somewhat expected
+			// during the validation phase, and even during the planning phase
+			// if we have deferred attributes. We'll get an error later (ie.
+			// during the plan phase) if the type doesn't match up then.
 		} else {
 			// We got something that isn't a provider reference at all.
 			diags = diags.Append(&hcl.Diagnostic{
@@ -497,6 +503,19 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			}
 		}()
 
+		// When our given context is cancelled, we want to instruct the
+		// modules runtime to stop the running operation. We use this
+		// nested context to ensure that we don't leak a goroutine when the
+		// parent context isn't cancelled.
+		operationCtx, operationCancel := context.WithCancel(ctx)
+		defer operationCancel()
+		go func() {
+			<-operationCtx.Done()
+			if ctx.Err() == context.Canceled {
+				tfCtx.Stop()
+			}
+		}()
+
 		diags = diags.Append(tfCtx.Validate(moduleTree, &terraform.ValidateOpts{
 			ExternalProviders: providerClients,
 		}))
@@ -523,6 +542,12 @@ func (c *ComponentConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedC
 
 func (c *ComponentConfig) tracingName() string {
 	return c.Addr().String()
+}
+
+// reportNamedPromises implements namedPromiseReporter.
+func (c *ComponentConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	cb(c.validate.PromiseID(), c.Addr().String())
+	cb(c.moduleTree.PromiseID(), c.Addr().String()+" modules")
 }
 
 // sourceBundleModuleWalker is an implementation of [configs.ModuleWalker]

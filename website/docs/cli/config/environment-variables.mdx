@@ -143,6 +143,14 @@ The default client timeout for requests to the remote registry is 10s. `TF_REGIS
 export TF_REGISTRY_CLIENT_TIMEOUT=15
 ```
 
+## TF_STATE_PERSIST_INTERVAL
+
+The interval in seconds that Terraform attempts to persist state to a remote backend during an apply operation. The default minimum interval for all remote backends is 20 seconds. Backends may override the default minimum value. If the value of `TF_STATE_PERSIST_INTERVAL` is lower than the default interval specified by a remote backend, the default interval will be used.
+
+```shell
+export TF_STATE_PERSIST_INTERVAL=100
+```
+
 ## TF_CLI_CONFIG_FILE
 
 The location of the [Terraform CLI configuration file](/terraform/cli/config/config-file).

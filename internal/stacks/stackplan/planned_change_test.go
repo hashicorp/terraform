@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
@@ -197,6 +198,111 @@ func TestPlannedChangeAsProto(t *testing.T) {
 									ComponentInstanceAddr: `stack.a["boop"].component.foo`,
 								},
 								Actions: []terraform1.ChangeType{terraform1.ChangeType_DELETE},
+							},
+						},
+					},
+				},
+			},
+		},
+		"resource instance deferred": {
+			Receiver: &PlannedChangeDeferredResourceInstancePlanned{
+				ResourceInstancePlanned: PlannedChangeResourceInstancePlanned{
+					ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+						Component: stackaddrs.AbsComponentInstance{
+							Stack: stackaddrs.RootStackInstance.Child("a", addrs.StringKey("boop")),
+							Item: stackaddrs.ComponentInstance{
+								Component: stackaddrs.Component{Name: "foo"},
+								Key:       addrs.StringKey("beep"),
+							},
+						},
+						Item: addrs.AbsResourceInstanceObject{
+							ResourceInstance: addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "thingy",
+								Name: "wotsit",
+							}.Instance(addrs.IntKey(1)).Absolute(
+								addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+							),
+							DeposedKey: addrs.DeposedKey("aaaaaaaa"),
+						},
+					},
+					ProviderConfigAddr: addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
+					},
+					ChangeSrc: &plans.ResourceInstanceChangeSrc{
+						Addr: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "thingy",
+							Name: "wotsit",
+						}.Instance(addrs.IntKey(1)).Absolute(
+							addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+						),
+						DeposedKey: addrs.DeposedKey("aaaaaaaa"),
+						ProviderAddr: addrs.AbsProviderConfig{
+							Module:   addrs.RootModule,
+							Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
+						},
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.Create,
+							Before: nullObjectForPlan,
+							After:  emptyObjectForPlan,
+						},
+					},
+				},
+				DeferredReason: providers.DeferredReasonResourceConfigUnknown,
+			},
+			Want: &terraform1.PlannedChange{
+				Raw: []*anypb.Any{
+					mustMarshalAnyPb(&tfstackdata1.PlanDeferredResourceInstanceChange{
+						Change: &tfstackdata1.PlanResourceInstanceChangePlanned{
+							ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+							ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
+							DeposedKey:            "aaaaaaaa",
+							ProviderConfigAddr:    `provider["example.com/thingers/thingy"]`,
+							Change: &planproto.ResourceInstanceChange{
+								Addr:       `module.pizza["chicken"].thingy.wotsit[1]`,
+								DeposedKey: "aaaaaaaa",
+								Change: &planproto.Change{
+									Action: planproto.Action_CREATE,
+									Values: []*planproto.DynamicValue{
+										{Msgpack: []byte{'\x80'}}, // zero-length mapping
+									},
+								},
+								Provider: `provider["example.com/thingers/thingy"]`,
+							},
+						},
+						Deferred: &tfstackdata1.PlanDeferredResourceInstanceChange_Deferred{
+							Reason: tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_RESOURCE_CONFIG_UNKNOWN,
+						},
+					}),
+				},
+				Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+					{
+						Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstanceDeferred{
+							ResourceInstanceDeferred: &terraform1.PlannedChange_ResourceInstanceDeferred{
+								ResourceInstance: &terraform1.PlannedChange_ResourceInstance{
+									Addr: &terraform1.ResourceInstanceObjectInStackAddr{
+										ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+										ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
+										DeposedKey:            "aaaaaaaa",
+									},
+									ResourceMode: terraform1.ResourceMode_MANAGED,
+									ResourceType: "thingy",
+									ProviderAddr: "example.com/thingers/thingy",
+									Actions:      []terraform1.ChangeType{terraform1.ChangeType_CREATE},
+									Values: &terraform1.DynamicValueChange{
+										Old: &terraform1.DynamicValue{
+											Msgpack: []byte{'\xc0'}, // null
+										},
+										New: &terraform1.DynamicValue{
+											Msgpack: []byte{'\x80'}, // zero-length mapping
+										},
+									},
+								},
+								Deferred: &terraform1.Deferred{
+									Reason: terraform1.Deferred_RESOURCE_CONFIG_UNKNOWN,
+								},
 							},
 						},
 					},

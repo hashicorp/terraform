@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
@@ -45,6 +46,7 @@ type Stack struct {
 	stackCalls     map[stackaddrs.StackCall]*StackCall
 	outputValues   map[stackaddrs.OutputValue]*OutputValue
 	components     map[stackaddrs.Component]*Component
+	providers      map[stackaddrs.ProviderConfigRef]*Provider
 }
 
 var _ ExpressionScope = (*Stack)(nil)
@@ -77,7 +79,7 @@ func (s *Stack) ParentStack(ctx context.Context) *Stack {
 	return s.main.StackUnchecked(ctx, parentAddr)
 }
 
-// ChildStackUnckecked returns an object representing a child of this stack, or
+// ChildStackUnchecked returns an object representing a child of this stack, or
 // nil if the "name" part of the step doesn't correspond to a declared
 // embedded stack call.
 //
@@ -137,14 +139,13 @@ func (s *Stack) ChildStackChecked(ctx context.Context, addr stackaddrs.StackInst
 	callAddr := stackaddrs.StackCall{Name: addr.Name}
 	call := calls[callAddr]
 
-	instances := call.Instances(ctx, phase)
-	if instances == nil {
-		// Totally-nil instances (as opposed to a non-nil zero-length map)
-		// means that we don't actually know what the instances for this
-		// stack call are, and so we optimistically assume that the given
-		// key was intended to exist and assume that later work with the
-		// resulting object will also return unknown/indeterminate values.
+	instances, unknown := call.Instances(ctx, phase)
+	if unknown {
 		return candidate
+	}
+
+	if instances == nil {
+		return nil
 	}
 	if _, exists := instances[addr.Key]; !exists {
 		return nil
@@ -286,6 +287,16 @@ func (s *Stack) Component(ctx context.Context, addr stackaddrs.Component) *Compo
 }
 
 func (s *Stack) ProviderByLocalAddr(ctx context.Context, localAddr stackaddrs.ProviderConfigRef) *Provider {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if existing, ok := s.providers[localAddr]; ok {
+		return existing
+	}
+	if s.providers == nil {
+		s.providers = make(map[stackaddrs.ProviderConfigRef]*Provider)
+	}
+
 	decls := s.ConfigDeclarations(ctx)
 
 	sourceAddr, ok := decls.RequiredProviders.ProviderForLocalName(localAddr.ProviderLocalName)
@@ -313,7 +324,9 @@ func (s *Stack) ProviderByLocalAddr(ctx context.Context, localAddr stackaddrs.Pr
 		return nil
 	}
 
-	return newProvider(s.main, configAddr, decl)
+	provider := newProvider(s.main, configAddr, decl)
+	s.providers[localAddr] = provider
+	return provider
 }
 
 func (s *Stack) Provider(ctx context.Context, addr stackaddrs.ProviderConfig) *Provider {
@@ -626,4 +639,29 @@ func (s *Stack) tracingName() string {
 		return "root stack"
 	}
 	return addr.String()
+}
+
+// reportNamedPromises implements namedPromiseReporter.
+func (s *Stack) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, child := range s.childStacks {
+		child.reportNamedPromises(cb)
+	}
+	for _, child := range s.inputVariables {
+		child.reportNamedPromises(cb)
+	}
+	for _, child := range s.outputValues {
+		child.reportNamedPromises(cb)
+	}
+	for _, child := range s.stackCalls {
+		child.reportNamedPromises(cb)
+	}
+	for _, child := range s.components {
+		child.reportNamedPromises(cb)
+	}
+	for _, child := range s.providers {
+		child.reportNamedPromises(cb)
+	}
 }

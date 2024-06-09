@@ -38,9 +38,11 @@ type Base struct {
 	// primitive-typed toplevel attribute in Schema, and PrepareConfig will
 	// arrange for the default values to be inserted before it returns.
 	//
-	// In particular, note that any attribute with an entry in this definition
-	// is guaranteed to never be null, since PrepareConfig will replace any
-	// nulls with an SDK-like "zero value".
+	// As a special case, if the value in the configuration is unset (null),
+	// none of the environment variables are non-empty, and the fallback
+	// value is empty, then the attribute value will be left as null in the
+	// object returned by PrepareConfig. In all other situations an attribute
+	// specified here is definitely not null.
 	SDKLikeDefaults SDKLikeDefaults
 }
 

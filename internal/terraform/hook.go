@@ -114,9 +114,11 @@ type Hook interface {
 	// function is called.
 	Stopping()
 
-	// PostStateUpdate is called each time the state is updated. It receives
-	// a deep copy of the state, which it may therefore access freely without
-	// any need for locks to protect from concurrent writes from the caller.
+	// PostStateUpdate is called each time the state is updated. The caller must
+	// coordinate a lock for the state if necessary, such that the Hook may
+	// access it freely without any need for additional locks to protect from
+	// concurrent writes. Implementations which modify or retain the state after
+	// the call has returned must copy the state.
 	PostStateUpdate(new *states.State) (HookAction, error)
 }
 

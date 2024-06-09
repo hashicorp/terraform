@@ -10,6 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -28,6 +29,16 @@ type ApplyOpts struct {
 	// the providers that were passed when creating the plan that's being
 	// applied, or the results will be erratic.
 	ExternalProviders map[addrs.RootProviderConfig]providers.Interface
+
+	// SetVariables are the raw values for root module variables as provided
+	// by the user who is requesting the run, prior to any normalization or
+	// substitution of defaults. See the documentation for the InputValue
+	// type for more information on how to correctly populate this.
+	//
+	// During the apply phase it's only valid to specify values for input
+	// values that were declared as ephemeral, because all other input
+	// values must retain the values that were specified during planning.
+	SetVariables InputValues
 }
 
 // ApplyOpts creates an [ApplyOpts] with copies of all of the elements that
@@ -117,6 +128,17 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		}
 	}
 
+	// The caller must provide values for all of the "apply-time variables"
+	// mentioned in the plan, and for no others because the others come from
+	// the plan itself.
+	diags = diags.Append(checkApplyTimeVariables(plan.ApplyTimeVariables, opts.SetVariables, config))
+
+	if diags.HasErrors() {
+		// If the apply request is invalid in some way then we'll bail out
+		// here before we do any real work.
+		return nil, nil, diags
+	}
+
 	for _, rc := range plan.Changes.Resources {
 		// Import is a no-op change during an apply (all the real action happens during the plan) but we'd
 		// like to show some helpful output that mirrors the way we show other changes.
@@ -153,6 +175,8 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		Changes:                 plan.Changes,
 		Overrides:               plan.Overrides,
 		ExternalProviderConfigs: opts.ExternalProviders,
+
+		DeferralAllowed: true,
 
 		// We need to propagate the check results from the plan phase,
 		// because that will tell us which checkable objects we're expecting
@@ -215,6 +239,44 @@ Note that the -target option is not suitable for routine use, and is provided on
 	return newState, evalScope, diags
 }
 
+func checkApplyTimeVariables(needed collections.Set[string], gotValues InputValues, config *configs.Config) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	for _, name := range needed.Elems() {
+		if vv, exists := gotValues[name]; !exists || vv.Value == cty.NilVal || vv.Value.IsNull() {
+			// This error message assumes that the only possible reason for
+			// an apply-time variable is because the variable is ephemeral,
+			// which is true at the time of writing. This error message might
+			// need to be generalized if we introduce other reasons for
+			// apply-time variables in future.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"No value for required variable",
+				fmt.Sprintf("The ephemeral input variable %q was set during the plan phase, and so must also be set during the apply phase.", name),
+			))
+		}
+	}
+	for name := range gotValues {
+		if !needed.Has(name) {
+			// We'll treat this a little differently depending on whether
+			// the variable is declared as ephemeral or not.
+			if vc, ok := config.Module.Variables[name]; ok && vc.Ephemeral {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"No value for required variable",
+					fmt.Sprintf("The ephemeral input variable %q was not set during the plan phase, and so must remain unset during the apply phase.", name),
+				))
+			} else {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Unexpected new value for variable",
+					fmt.Sprintf("Input variable %q is non-ephemeral, so its value was fixed during planning and cannot be reset during apply.", name),
+				))
+			}
+		}
+	}
+	return diags
+}
+
 func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *ApplyOpts, validate bool) (*Graph, walkOperation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -236,6 +298,15 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 		variables[name] = &InputValue{
 			Value:      val,
 			SourceType: ValueFromPlan,
+		}
+	}
+	// Apply-time variables need to be merged in too.
+	// FIXME: We should check that all of these match declared variables and
+	// that all of them are declared as ephemeral, because all non-ephemeral
+	// variables are supposed to come exclusively from plan.VariableValues.
+	if opts != nil {
+		for n, vv := range opts.SetVariables {
+			variables[n] = vv
 		}
 	}
 	if diags.HasErrors() {

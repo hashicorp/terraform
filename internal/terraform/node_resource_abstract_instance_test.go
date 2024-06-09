@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestNodeAbstractResourceInstanceProvider(t *testing.T) {
@@ -229,10 +230,9 @@ func TestNodeAbstractResourceInstance_refresh_with_deferred_read(t *testing.T) {
 	}
 	evalCtx.ProviderProvider = mockProvider
 	evalCtx.ProviderSchemaSchema = mockProvider.GetProviderSchema()
-	resourceGraph := addrs.NewDirectedGraph[addrs.ConfigResource]()
-	evalCtx.DeferralsState = deferring.NewDeferred(resourceGraph, true)
+	evalCtx.DeferralsState = deferring.NewDeferred(true)
 
-	rio, deferred, diags := node.refresh(evalCtx, states.NotDeposed, obj)
+	rio, deferred, diags := node.refresh(evalCtx, states.NotDeposed, obj, true)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}

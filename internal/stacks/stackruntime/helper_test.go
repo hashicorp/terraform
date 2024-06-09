@@ -72,6 +72,53 @@ func loadMainBundleConfigForTest(t *testing.T, dirName string) *stackconfig.Conf
 	return loadConfigForTest(t, "./testdata/mainbundle", fullSourceAddr)
 }
 
+type expectedDiagnostic struct {
+	severity tfdiags.Severity
+	summary  string
+	detail   string
+}
+
+func expectDiagnostic(severity tfdiags.Severity, summary, detail string) expectedDiagnostic {
+	return expectedDiagnostic{
+		severity: severity,
+		summary:  summary,
+		detail:   detail,
+	}
+}
+
+func expectDiagnosticsForTest(t *testing.T, actual tfdiags.Diagnostics, expected ...expectedDiagnostic) {
+	t.Helper()
+
+	max := len(expected)
+	if len(actual) < max {
+		max = len(actual)
+	}
+
+	for ix := 0; ix < max; ix++ {
+		if ix >= len(expected) {
+			t.Errorf("unexpected diagnostic [%d]: %s - %s", ix, actual[ix].Description().Summary, actual[ix].Description().Detail)
+			continue
+		}
+
+		if ix >= len(actual) {
+			t.Errorf("missing diagnostic [%d]: %s - %s", ix, expected[ix].summary, expected[ix].detail)
+			continue
+		}
+
+		if actual[ix].Severity() != expected[ix].severity {
+			t.Errorf("diagnostic [%d] has wrong severity: %s (expected %s)", ix, actual[ix].Severity(), expected[ix].severity)
+		}
+
+		if actual[ix].Description().Summary != expected[ix].summary {
+			t.Errorf("diagnostic [%d] has wrong summary: %s (expected %s)", ix, actual[ix].Description().Summary, expected[ix].summary)
+		}
+
+		if actual[ix].Description().Detail != expected[ix].detail {
+			t.Errorf("diagnostic [%d] has wrong detail: %s (expected %s)", ix, actual[ix].Description().Detail, expected[ix].detail)
+		}
+	}
+}
+
 // reportDiagnosticsForTest creates a test log entry for every diagnostic in
 // the given diags, and halts the test if any of them are error diagnostics.
 func reportDiagnosticsForTest(t *testing.T, diags tfdiags.Diagnostics) {
@@ -141,6 +188,8 @@ func plannedChangeSortKey(change stackplan.PlannedChange) string {
 		return change.Addr.String()
 	case *stackplan.PlannedChangeResourceInstancePlanned:
 		return change.ResourceInstanceObjectAddr.String()
+	case *stackplan.PlannedChangeDeferredResourceInstancePlanned:
+		return change.ResourceInstancePlanned.ResourceInstanceObjectAddr.String()
 	case *stackplan.PlannedChangeOutputValue:
 		return change.Addr.String()
 	case *stackplan.PlannedChangeHeader:

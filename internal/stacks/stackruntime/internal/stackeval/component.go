@@ -26,8 +26,9 @@ type Component struct {
 
 	main *Main
 
-	forEachValue perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
-	instances    perEvalPhase[promising.Once[withDiagnostics[map[addrs.InstanceKey]*ComponentInstance]]]
+	forEachValue    perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
+	instances       perEvalPhase[promising.Once[withDiagnostics[instancesResult[*ComponentInstance]]]]
+	unknownInstance perEvalPhase[promising.Once[*ComponentInstance]]
 }
 
 var _ Plannable = (*Component)(nil)
@@ -116,17 +117,6 @@ func (c *Component) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty
 					return cty.DynamicVal, diags
 				}
 
-				if !result.Value.IsKnown() {
-					// FIXME: We should somehow allow this and emit a
-					// "deferred change" representing all of the as-yet-unknown
-					// instances of this call and everything beneath it.
-					diags = diags.Append(result.Diagnostic(
-						tfdiags.Error,
-						"Invalid for_each value",
-						"The for_each value must not be derived from values that will be determined only during the apply phase.",
-					))
-				}
-
 				return result.Value, diags
 
 			default:
@@ -160,24 +150,37 @@ func (c *Component) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty
 // for_each expression is invalid because we assume that the main plan walk
 // will visit the stack call directly and ask it to check itself, and that
 // call will be the one responsible for returning any diagnostics.
-func (c *Component) Instances(ctx context.Context, phase EvalPhase) map[addrs.InstanceKey]*ComponentInstance {
-	ret, _ := c.CheckInstances(ctx, phase)
-	return ret
+func (c *Component) Instances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ComponentInstance, bool) {
+	ret, unknown, _ := c.CheckInstances(ctx, phase)
+	return ret, unknown
 }
 
-func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ComponentInstance, tfdiags.Diagnostics) {
-	return doOnceWithDiags(
+func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ComponentInstance, bool, tfdiags.Diagnostics) {
+	result, diags := doOnceWithDiags(
 		ctx, c.instances.For(phase), c.main,
-		func(ctx context.Context) (map[addrs.InstanceKey]*ComponentInstance, tfdiags.Diagnostics) {
+		func(ctx context.Context) (instancesResult[*ComponentInstance], tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
-			forEachVal := c.ForEachValue(ctx, phase)
+			forEachVal, forEachValueDiags := c.CheckForEachValue(ctx, phase)
 
-			ret := instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ComponentInstance {
+			diags = diags.Append(forEachValueDiags)
+			if diags.HasErrors() {
+				return instancesResult[*ComponentInstance]{}, diags
+			}
+
+			allowUnknowns := true
+			if c.main.Planning() {
+				// We'll set this to false during planning if deferrals are not
+				// allowed. It's fine to always be true during apply, as this
+				// would have failed during planning if it was not allowed.
+				allowUnknowns = c.main.PlanningOpts().DeferralAllowed
+			}
+
+			result := instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ComponentInstance {
 				return newComponentInstance(c, ik, rd)
-			})
+			}, allowUnknowns)
 
-			addrs := make([]stackaddrs.AbsComponentInstance, 0, len(ret))
-			for _, ci := range ret {
+			addrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))
+			for _, ci := range result.insts {
 				addrs = append(addrs, ci.Addr())
 			}
 
@@ -187,14 +190,27 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 				InstanceAddrs: addrs,
 			})
 
-			return ret, diags
+			return result, diags
 		},
 	)
+	return result.insts, result.unknown, diags
+}
+
+func (c *Component) UnknownInstance(ctx context.Context, phase EvalPhase) *ComponentInstance {
+	inst, err := c.unknownInstance.For(PlanPhase).Do(ctx, func(ctx context.Context) (*ComponentInstance, error) {
+		return newComponentInstance(c, addrs.WildcardKey, instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type())), nil
+	})
+	if err != nil {
+		// Since we never return an error from the function we pass to Do,
+		// this should never happen.
+		panic(err)
+	}
+	return inst
 }
 
 func (c *Component) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
 	decl := c.Declaration(ctx)
-	insts := c.Instances(ctx, phase)
+	insts, unknown := c.Instances(ctx, phase)
 
 	switch {
 	case decl.ForEach != nil:
@@ -203,10 +219,16 @@ func (c *Component) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 		// exact type constraints for its output values and so each instance of
 		// a component can potentially produce a different object type.
 
-		if insts == nil {
-			// If we don't even know what instances we have then we can't
-			// predict anything about our result.
+		if unknown {
+			// We can't predict the result if we don't know what the instances
+			// are, so we'll return dynamic.
 			return cty.DynamicVal
+		}
+
+		if insts == nil {
+			// Then we errored during instance calculation, this should have
+			// been caught before we got here.
+			return cty.NilVal
 		}
 
 		// We expect that the instances all have string keys, which will
@@ -218,6 +240,9 @@ func (c *Component) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 				panic(fmt.Sprintf("stack call with for_each has invalid instance key of type %T", instKey))
 			}
 			elems[string(k)] = inst.ResultValue(ctx, phase)
+		}
+		if len(elems) == 0 {
+			return cty.EmptyObjectVal
 		}
 		return cty.ObjectVal(elems)
 
@@ -249,11 +274,17 @@ func (c *Component) PlanIsComplete(ctx context.Context) bool {
 	if !c.main.Planning() {
 		panic("PlanIsComplete used when not in the planning phase")
 	}
-	insts := c.Instances(ctx, PlanPhase)
+	insts, unknown := c.Instances(ctx, PlanPhase)
 	if insts == nil {
 		// Suggests that the configuration was not even valid enough to
 		// decide what the instances are, so we'll return false to be
 		// conservative and let the error be returned by a different path.
+		return false
+	}
+
+	if unknown {
+		// If the wildcard key is used the instance originates from an unknown
+		// for_each value, which means the result is unknown.
 		return false
 	}
 
@@ -266,6 +297,7 @@ func (c *Component) PlanIsComplete(ctx context.Context) bool {
 			// get returned by a different return path.
 			return false
 		}
+
 		if !plan.Complete {
 			return false
 		}
@@ -283,9 +315,7 @@ func (c *Component) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty
 func (c *Component) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	_, moreDiags := c.CheckForEachValue(ctx, phase)
-	diags = diags.Append(moreDiags)
-	_, moreDiags = c.CheckInstances(ctx, phase)
+	_, _, moreDiags := c.CheckInstances(ctx, phase)
 	diags = diags.Append(moreDiags)
 
 	return diags
@@ -333,7 +363,9 @@ func (c *Component) ApplySuccessful(ctx context.Context) bool {
 
 	// Apply is successful if all of our instances fully completed their
 	// apply phases.
-	for _, inst := range c.Instances(ctx, ApplyPhase) {
+	insts, _ := c.Instances(ctx, ApplyPhase)
+
+	for _, inst := range insts {
 		result := inst.ApplyResult(ctx)
 		if result == nil || !result.Complete {
 			return false
@@ -347,4 +379,25 @@ func (c *Component) ApplySuccessful(ctx context.Context) bool {
 
 func (c *Component) tracingName() string {
 	return c.Addr().String()
+}
+
+// reportNamedPromises implements namedPromiseReporter.
+func (c *Component) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	name := c.Addr().String()
+	instsName := name + " instances"
+	forEachName := name + " for_each"
+	c.instances.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[instancesResult[*ComponentInstance]]]) {
+		cb(o.PromiseID(), instsName)
+	})
+	// FIXME: We should call reportNamedPromises on the individual
+	// ComponentInstance objects too, but promising.Once doesn't allow us
+	// to peek to see if the Once was already resolved without blocking on
+	// it, and we don't want to block on any promises in here.
+	// Without this, any promises belonging to the individual instances will
+	// not be named in a self-dependency error report, but since references
+	// to component instances are always indirect through the component this
+	// shouldn't be a big deal in most cases.
+	c.forEachValue.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
+		cb(o.PromiseID(), forEachName)
+	})
 }

@@ -8,12 +8,18 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
+
+type instancesResult[T any] struct {
+	insts   map[addrs.InstanceKey]T
+	unknown bool
+}
 
 // evaluateForEachExpr deals with all of the for_each evaluation concerns
 // that are common across all uses of for_each in all evaluation phases.
@@ -69,19 +75,15 @@ func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPha
 	case ty.IsObjectType() || ty.IsMapType():
 		// okay
 
-	case !result.Value.IsKnown():
-		// we can't validate further without knowing the value
-		return result, diags
-
 	case ty.IsSetType():
-		if markSafeLengthInt(result.Value) == 0 {
-			// we are okay with an empty set
-			return result, diags
-		}
-
 		// since we can't use a set values that are unknown, we treat the
 		// entire set as unknown
 		if !result.Value.IsWhollyKnown() {
+			return result, diags
+		}
+
+		if markSafeLengthInt(result.Value) == 0 {
+			// we are okay with an empty set
 			return result, diags
 		}
 
@@ -110,6 +112,12 @@ func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPha
 				})
 			}
 		}
+
+	case !result.Value.IsWhollyKnown() && ty.HasDynamicTypes():
+		// If the value is unknown and has dynamic types, we can't
+		// determine if it's a valid for_each value, so we'll just
+		// return the unknown value.
+		return result, diags
 
 	default:
 		diags = diags.Append(&hcl.Diagnostic{
@@ -145,19 +153,16 @@ func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPha
 // If maybeForEach value is non-nil but not a valid value produced by
 // [evaluateForEachExpr] then the behavior is unpredictable, including the
 // possibility of a panic.
-func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.InstanceKey, instances.RepetitionData) T) map[addrs.InstanceKey]T {
+func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.InstanceKey, instances.RepetitionData) T, allowsUnknown bool) instancesResult[T] {
 	switch {
-
 	case maybeForEachVal == cty.NilVal:
 		// No for_each expression at all, then. We have exactly one instance
 		// without an instance key and with no repetition data.
-		return noForEachInstancesMap(makeInst)
+		return instancesResult[T]{noForEachInstancesMap(makeInst), false}
 
 	case !maybeForEachVal.IsKnown():
-		// The for_each expression is too invalid for us to be able to
-		// know which instances exist. A totally nil map (as opposed to a
-		// non-nil map of length zero) signals that situation.
-		return nil
+		// This is temporary to gradually rollout support for unknown for_each values
+		return instancesResult[T]{nil, allowsUnknown}
 
 	default:
 		// Otherwise we should be able to assume the value is valid per the
@@ -170,7 +175,7 @@ func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.Instance
 		// this case, even if there are zero elements in it, because a nil map
 		// represents an _invalid_ for_each expression (handled above).
 		// forEachInstancesMap guarantees to never return a nil map.
-		return forEachInstancesMap(maybeForEachVal, makeInst)
+		return instancesResult[T]{forEachInstancesMap(maybeForEachVal, makeInst), false}
 
 	}
 }
