@@ -113,13 +113,13 @@ As your configuration grows, you may need to separate it into multiple state fil
 
 ## Linting and static code analysis
 
-Terraform does not have a built-in linter, but many organizations rely on a third party linting tool such as [TFLint](https://github.com/terraform-linters/tflint) to enforce code standards. A linter uses static code analysis to compare your Terraform code against a set of rules. Most linters ship with a default set of rules, but also let you write your own.
+Terraform does not have a built-in linter, but many organizations rely on a third-party linting tool such as [TFLint](https://github.com/terraform-linters/tflint) to enforce code standards. A linter uses static code analysis to compare your Terraform code against a set of rules. Most linters ship with a default set of rules, but also let you write your own.
 
 ## Comments
 
 Write your code so it is easy to understand. Only when necessary, use comments to clarify complexity for other maintainers. 
 
-Use `#` for both single- and multi-line comments. The `//` and `/* */` comment syntaxes are not considered idiomatic, but Terraform supports them to remain backwards-compatible with earlier versions of HCL.
+Use `#` for both single- and multi-line comments. The `//` and `/* */` comment syntaxes are not considered idiomatic, but Terraform supports them to remain backward-compatible with earlier versions of HCL.
 
 <CodeBlockConfig hideClipboard>
 
@@ -288,7 +288,7 @@ resource "aws_instance" "web" {
 Define local values in one of two places:
 
 - If you reference the local value in multiple files, define it in a file named `locals.tf`.
-- If the local is specific to a file, define it at the top of that file.
+- If the local value is specific to a file, define it at the top of that file.
 
 As for other Terraform objects, use descriptive nouns for local value names and underscores to separate multiple words.
 
@@ -338,7 +338,7 @@ module "aws_vpc" {
 
 ## Dynamic resource count
 
-The `for_each` and `count` meta-arguments let you create multiple resources from a single `resource` block depending on run-time conditions. You can use these meta-arguments to make your code flexible and reduce duplicate resource blocks. If the resources are almost identical, use `count`. If some of arguments need distinct values that you cannot derive from an integer, use `for_each`.
+The `for_each` and `count` meta-arguments let you create multiple resources from a single `resource` block depending on run-time conditions. You can use these meta-arguments to make your code flexible and reduce duplicate resource blocks. If the resources are almost identical, use `count`. If some of the arguments need distinct values that you cannot derive from an integer, use `for_each`.
 
 The `for_each` meta-argument accepts a `map` or `set` value, and Terraform will create an instance of that resource for each element in the value you provide. In the following example, Terraform creates an `aws_instance` for each of the strings defined in the `web_instances` variable: "ui", "api", "db" and "metrics". The example uses `each.key` to give each instance a unique name. The `web_private_ips` output uses a [for expression](https://developer.hashicorp.com/terraform/language/expressions/for) to create a map of instance names and their private IP addresses, while the `web_ui_public_ip` output addresses the instance with the key "ui" directly.
 
@@ -458,9 +458,9 @@ This section reviews standards that enable predictable and secure Terraform work
 
 ## Version pinning
 
-To prevent providers and modules upgrades from introducing unintentional changes to your infrastructure, use version pinning. 
+To prevent provider and module upgrades from introducing unintentional changes to your infrastructure, use version pinning. 
 
-Specify provider versions using the [required_providers block](/terraform/language/providers/requirements#requiring-providers). Terraform [version constraints](/terraform/language/providers/requirements#version-constraints) support a range of accepted versions. 
+Specify provider versions using the [required_providers block](/terraform/language/providers/requirements#requiring-providers). Terraform [version constraints](/terraform/language/providers/requirements#version-constraints) supports a range of accepted versions. 
 
 Pin modules to a specific major and minor version as shown in the example below to ensure stability. You can use looser restrictions if you are certain that the module does not introduce breaking changes outside of major version updates.
 
