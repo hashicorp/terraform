@@ -28,7 +28,7 @@ func TestStacksOpenCloseStackConfiguration(t *testing.T) {
 	ctx := context.Background()
 
 	handles := newHandleTable()
-	stacksServer := newStacksServer(handles, &serviceOpts{})
+	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
 
 	// In normal use a client would have previously opened a source bundle
 	// using Dependencies.OpenSourceBundle, so we'll simulate the effect
@@ -110,7 +110,7 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 	ctx := context.Background()
 
 	handles := newHandleTable()
-	stacksServer := newStacksServer(handles, &serviceOpts{})
+	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
 
 	// In normal use a client would have previously opened a source bundle
 	// using Dependencies.OpenSourceBundle, so we'll simulate the effect
@@ -230,7 +230,7 @@ func TestStacksPlanStackChanges(t *testing.T) {
 	ctx := context.Background()
 
 	handles := newHandleTable()
-	stacksServer := newStacksServer(handles, &serviceOpts{})
+	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
 
 	fakeSourceBundle := &sourcebundle.Bundle{}
 	bundleHnd := handles.NewSourceBundle(fakeSourceBundle)

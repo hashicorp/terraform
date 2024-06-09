@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -375,6 +376,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 	var plan *plans.ResourceInstanceChange
 
 	absAddr := n.Addr
+	deferralAllowed := ctx.Deferrals().DeferralAllowed()
 
 	if n.ResolvedProvider.Provider.Type == "" {
 		if deposedKey == "" {
@@ -442,10 +444,16 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			PriorPrivate:     currentState.Private,
 			ProviderMeta:     metaConfigVal,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+				DeferralAllowed: deferralAllowed,
 			},
 		})
 		deferred = resp.Deferred
+
+		// If we don't support deferrals, but the provider reports a deferral and does not
+		// emit any error level diagnostics, we should emit an error.
+		if resp.Deferred != nil && !deferralAllowed && !resp.Diagnostics.HasErrors() {
+			diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
+		}
 
 		// We may not have a config for all destroys, but we want to reference
 		// it in the diagnostics if we do.
@@ -592,7 +600,7 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 
 // refresh does a refresh for a resource
 // if the second return value is non-nil, the refresh is deferred
-func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey states.DeposedKey, state *states.ResourceInstanceObject) (*states.ResourceInstanceObject, *providers.Deferred, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey states.DeposedKey, state *states.ResourceInstanceObject, deferralAllowed bool) (*states.ResourceInstanceObject, *providers.Deferred, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var deferred *providers.Deferred
 	absAddr := n.Addr
@@ -653,9 +661,15 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			Private:      state.Private,
 			ProviderMeta: metaConfigVal,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+				DeferralAllowed: deferralAllowed,
 			},
 		})
+
+		// If we don't support deferrals, but the provider reports a deferral and does not
+		// emit any error level diagnostics, we should emit an error.
+		if resp.Deferred != nil && !deferralAllowed && !resp.Diagnostics.HasErrors() {
+			diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
+		}
 
 		if resp.Deferred != nil {
 			deferred = resp.Deferred
@@ -756,22 +770,24 @@ func (n *NodeAbstractResourceInstance) plan(
 	currentState *states.ResourceInstanceObject,
 	createBeforeDestroy bool,
 	forceReplace []addrs.AbsResourceInstance,
-) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
+) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, *providers.Deferred, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var keyData instances.RepetitionData
 	var deferred *providers.Deferred
 
 	resource := n.Addr.Resource.Resource
+	deferralAllowed := ctx.Deferrals().DeferralAllowed()
+
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		return nil, nil, keyData, diags.Append(err)
+		return nil, nil, deferred, keyData, diags.Append(err)
 	}
 
 	schema, _ := providerSchema.SchemaForResourceAddr(resource)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", resource.Type))
-		return nil, nil, keyData, diags
+		return nil, nil, deferred, keyData, diags
 	}
 
 	// If we're importing and generating config, generate it now.
@@ -785,7 +801,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			tfdiags.Error,
 			"Resource has no configuration",
 			fmt.Sprintf("Terraform attempted to process a resource at %s that has no configuration. This is a bug in Terraform; please report it!", n.Addr.String())))
-		return nil, nil, keyData, diags
+		return nil, nil, deferred, keyData, diags
 	}
 
 	config := *n.Config
@@ -813,26 +829,29 @@ func (n *NodeAbstractResourceInstance) plan(
 	)
 	diags = diags.Append(checkDiags)
 	if diags.HasErrors() {
-		return nil, nil, keyData, diags // failed preconditions prevent further evaluation
+		return nil, nil, deferred, keyData, diags // failed preconditions prevent further evaluation
 	}
 
 	// If we have a previous plan and the action was a noop, then the only
 	// reason we're in this method was to evaluate the preconditions. There's
 	// no need to re-plan this resource.
 	if plannedChange != nil && plannedChange.Action == plans.NoOp {
-		return plannedChange, currentState.DeepCopy(), keyData, diags
+		return plannedChange, currentState.DeepCopy(), deferred, keyData, diags
 	}
 
 	origConfigVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
-	if configDiags.HasErrors() {
-		return nil, nil, keyData, diags
+	diags = diags.Append(
+		validateResourceForbiddenEphemeralValues(ctx, origConfigVal, schema).InConfigBody(n.Config.Config, n.Addr.String()),
+	)
+	if diags.HasErrors() {
+		return nil, nil, deferred, keyData, diags
 	}
 
 	metaConfigVal, metaDiags := n.providerMetas(ctx)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
-		return nil, nil, keyData, diags
+		return nil, nil, deferred, keyData, diags
 	}
 
 	var priorVal cty.Value
@@ -875,7 +894,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	)
 	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
-		return nil, nil, keyData, diags
+		return nil, nil, deferred, keyData, diags
 	}
 
 	// ignore_changes is meant to only apply to the configuration, so it must
@@ -888,7 +907,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(priorVal, origConfigVal, schema)
 	diags = diags.Append(ignoreChangeDiags)
 	if ignoreChangeDiags.HasErrors() {
-		return nil, nil, keyData, diags
+		return nil, nil, deferred, keyData, diags
 	}
 
 	// Create an unmarked version of our config val and our prior val.
@@ -904,7 +923,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, priorVal, proposedNewVal)
 	}))
 	if diags.HasErrors() {
-		return nil, nil, keyData, diags
+		return nil, nil, deferred, keyData, diags
 	}
 
 	var resp providers.PlanResourceChangeResponse
@@ -936,13 +955,18 @@ func (n *NodeAbstractResourceInstance) plan(
 			PriorPrivate:     priorPrivate,
 			ProviderMeta:     metaConfigVal,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+				DeferralAllowed: deferralAllowed,
 			},
 		})
+		// If we don't support deferrals, but the provider reports a deferral and does not
+		// emit any error level diagnostics, we should emit an error.
+		if resp.Deferred != nil && !deferralAllowed && !resp.Diagnostics.HasErrors() {
+			diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
+		}
 	}
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
-		return nil, nil, keyData, diags
+		return nil, nil, deferred, keyData, diags
 	}
 
 	// We mark this node as deferred at a later point when we know the complete change
@@ -979,7 +1003,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 
 		if diags.HasErrors() {
-			return nil, nil, keyData, diags
+			return nil, nil, deferred, keyData, diags
 		}
 
 		if errs := objchange.AssertPlanValid(schema, unmarkedPriorVal, unmarkedConfigVal, plannedNewVal); len(errs) > 0 {
@@ -1009,7 +1033,7 @@ func (n *NodeAbstractResourceInstance) plan(
 						),
 					))
 				}
-				return nil, nil, keyData, diags
+				return nil, nil, deferred, keyData, diags
 			}
 		}
 	}
@@ -1030,7 +1054,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(unmarkedPriorVal, plannedNewVal, nil)
 		diags = diags.Append(ignoreChangeDiags)
 		if ignoreChangeDiags.HasErrors() {
-			return nil, nil, keyData, diags
+			return nil, nil, deferred, keyData, diags
 		}
 	}
 
@@ -1047,7 +1071,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	reqRep, reqRepDiags := getRequiredReplaces(priorVal, plannedNewVal, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
 	diags = diags.Append(reqRepDiags)
 	if diags.HasErrors() {
-		return nil, nil, keyData, diags
+		return nil, nil, deferred, keyData, diags
 	}
 
 	action, actionReason := getAction(n.Addr, unmarkedPriorVal, unmarkedPlannedNewVal, createBeforeDestroy, forceReplace, reqRep)
@@ -1093,9 +1117,15 @@ func (n *NodeAbstractResourceInstance) plan(
 				PriorPrivate:     plannedPrivate,
 				ProviderMeta:     metaConfigVal,
 				ClientCapabilities: providers.ClientCapabilities{
-					DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+					DeferralAllowed: deferralAllowed,
 				},
 			})
+
+			// If we don't support deferrals, but the provider reports a deferral and does not
+			// emit any error level diagnostics, we should emit an error.
+			if resp.Deferred != nil && !deferralAllowed && !resp.Diagnostics.HasErrors() {
+				diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
+			}
 		}
 		// We need to tread carefully here, since if there are any warnings
 		// in here they probably also came out of our previous call to
@@ -1104,10 +1134,10 @@ func (n *NodeAbstractResourceInstance) plan(
 		// append these new diagnostics if there's at least one error inside.
 		if resp.Diagnostics.HasErrors() {
 			diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
-			return nil, nil, keyData, diags
+			return nil, nil, deferred, keyData, diags
 		}
 
-		if resp.Deferred != nil {
+		if deferred == nil && resp.Deferred != nil {
 			deferred = resp.Deferred
 		}
 
@@ -1129,7 +1159,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			))
 		}
 		if diags.HasErrors() {
-			return nil, nil, keyData, diags
+			return nil, nil, deferred, keyData, diags
 		}
 	}
 
@@ -1178,7 +1208,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, action, priorVal, plannedNewVal)
 	}))
 	if diags.HasErrors() {
-		return nil, nil, keyData, diags
+		return nil, nil, deferred, keyData, diags
 	}
 
 	// Update our return plan
@@ -1200,12 +1230,6 @@ func (n *NodeAbstractResourceInstance) plan(
 		RequiredReplace: reqRep,
 	}
 
-	// If we defer the change we need to report it and return early
-	if deferred != nil {
-		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, plan)
-		return nil, nil, keyData, diags
-	}
-
 	// Update our return state
 	state := &states.ResourceInstanceObject{
 		// We use the special "planned" status here to note that this
@@ -1219,7 +1243,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		Private: plannedPrivate,
 	}
 
-	return plan, state, keyData, diags
+	return plan, state, deferred, keyData, diags
 }
 
 func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
@@ -1469,6 +1493,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	var deferred *providers.Deferred
 
 	config := *n.Config
+	deferralAllowed := ctx.Deferrals().DeferralAllowed()
 
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
@@ -1531,9 +1556,15 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 			Config:       configVal,
 			ProviderMeta: metaConfigVal,
 			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+				DeferralAllowed: deferralAllowed,
 			},
 		})
+
+		// If we don't support deferrals, but the provider reports a deferral and does not
+		// emit any error level diagnostics, we should emit an error.
+		if resp.Deferred != nil && !deferralAllowed && !resp.Diagnostics.HasErrors() {
+			diags = diags.Append(deferring.UnexpectedProviderDeferralDiagnostic(n.Addr))
+		}
 
 		if resp.Deferred != nil {
 			deferred = resp.Deferred
@@ -1683,7 +1714,10 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	var configDiags tfdiags.Diagnostics
 	configVal, _, configDiags = ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
-	if configDiags.HasErrors() {
+	diags = diags.Append(
+		validateResourceForbiddenEphemeralValues(ctx, configVal, schema).InConfigBody(n.Config.Config, n.Addr.String()),
+	)
+	if diags.HasErrors() {
 		return nil, nil, keyData, diags
 	}
 	unmarkedConfigVal, unmarkedPaths := configVal.UnmarkDeepWithPaths()
@@ -2063,7 +2097,15 @@ func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, st
 		return nil
 	}
 
-	provs := filterProvisioners(n.Config, when)
+	var allProvs []*configs.Provisioner
+	switch {
+	case n.Config != nil && n.Config.Managed != nil:
+		allProvs = n.Config.Managed.Provisioners
+	case n.RemovedConfig != nil && n.RemovedConfig.Managed != nil:
+		allProvs = n.RemovedConfig.Managed.Provisioners
+	}
+
+	provs := filterProvisioners(allProvs, when)
 	if len(provs) == 0 {
 		// We have no provisioners, so don't do anything
 		return nil
@@ -2093,18 +2135,13 @@ func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, st
 
 // filterProvisioners filters the provisioners on the resource to only
 // the provisioners specified by the "when" option.
-func filterProvisioners(config *configs.Resource, when configs.ProvisionerWhen) []*configs.Provisioner {
-	// Fast path the zero case
-	if config == nil || config.Managed == nil {
+func filterProvisioners(configured []*configs.Provisioner, when configs.ProvisionerWhen) []*configs.Provisioner {
+	if len(configured) == 0 {
 		return nil
 	}
 
-	if len(config.Managed.Provisioners) == 0 {
-		return nil
-	}
-
-	result := make([]*configs.Provisioner, 0, len(config.Managed.Provisioners))
-	for _, p := range config.Managed.Provisioners {
+	result := make([]*configs.Provisioner, 0, len(configured))
+	for _, p := range configured {
 		if p.When == when {
 			result = append(result, p)
 		}
@@ -2133,8 +2170,11 @@ func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state 
 	// then it'll serve as a base connection configuration for all of the
 	// provisioners.
 	var baseConn hcl.Body
-	if n.Config.Managed != nil && n.Config.Managed.Connection != nil {
+	switch {
+	case n.Config != nil && n.Config.Managed != nil && n.Config.Managed.Connection != nil:
 		baseConn = n.Config.Managed.Connection.Config
+	case n.RemovedConfig != nil && n.RemovedConfig.Managed != nil && n.RemovedConfig.Managed.Connection != nil:
+		baseConn = n.RemovedConfig.Managed.Connection.Config
 	}
 
 	for _, prov := range provs {

@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval/stubs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
@@ -167,26 +168,15 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 			var diags tfdiags.Diagnostics
 
 			if p.repetition.EachKey != cty.NilVal && !p.repetition.EachKey.IsKnown() {
-				// If we're a placeholder standing in for all instances of
-				// a provider block whose for_each is unknown then we
-				// can't configure.
-				return stubConfiguredProvider{unknown: true}, diags
+				// We should have triggered and returned a stub.UnknownProvider
+				// in this case, so there's a bug somewhere in Terraform if
+				// this happens.
+				panic("provider instance with unknown for_each key")
 			}
 			if p.repetition.CountIndex != cty.NilVal && !p.repetition.CountIndex.IsKnown() {
-				// If we're a placeholder standing in for all instances of
-				// a provider block whose count is unknown then we
-				// can't configure.
-				return stubConfiguredProvider{unknown: true}, diags
-			}
-
-			args := p.ProviderArgs(ctx, phase)
-			if !args.IsKnown() {
-				// If we don't know the provider configuration at all then
-				// we'll just immediately return a stub client, since
-				// no provider can accept a wholly-unknown configuration.
-				// (Known objects with unknown attribute values inside are
-				// okay to try and so don't return immediately here.)
-				return stubConfiguredProvider{unknown: true}, diags
+				// Providers don't even support the count index argument, so
+				// something crazy is happening if we get here.
+				panic("provider instance with unknown count index")
 			}
 
 			providerType := p.ProviderType(ctx)
@@ -203,13 +193,31 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 					),
 					Subject: decl.DeclRange.ToHCL().Ptr(),
 				})
-				return stubConfiguredProvider{unknown: false}, diags
+				return &stubs.ErroredProvider{}, diags
 			}
+
+			// If the context we recieved gets cancelled then we want providers
+			// to try to cancel any operations they have in progress, so we'll
+			// watch for that in a separate goroutine. This extra context
+			// is here just so we can avoid leaking this goroutine if the
+			// parent doesn't get cancelled.
+			providerCtx, localCancel := context.WithCancel(ctx)
+			go func() {
+				<-providerCtx.Done()
+				if ctx.Err() == context.Canceled {
+					// Not all providers respond to this, but some will quickly
+					// abort operations currently in progress and return a
+					// cancellation error, thus allowing us to halt more quickly
+					// when interrupted.
+					client.Stop()
+				}
+			}()
 
 			// If this provider is implemented as a separate plugin then we
 			// must terminate its child process once evaluation is complete.
 			p.main.RegisterCleanup(func(ctx context.Context) tfdiags.Diagnostics {
 				var diags tfdiags.Diagnostics
+				localCancel() // make sure our cancel-monitoring goroutine terminates
 				err := client.Close()
 				if err != nil {
 					diags = diags.Append(&hcl.Diagnostic{
@@ -225,6 +233,11 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 				return diags
 			})
 
+			allowUnknowns := true
+			if p.main.Planning() {
+				allowUnknowns = p.main.PlanningOpts().DeferralAllowed
+			}
+
 			// TODO: Some providers will malfunction if the caller doesn't
 			// fetch their schema at least once before use. That's not something
 			// the provider protocol promises but it's an implementation
@@ -238,10 +251,13 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 
 			// We unmark the config before making the RPC call, as marks cannot
 			// be serialized.
-			unmarkedArgs, _ := args.UnmarkDeep()
+			unmarkedArgs, _ := p.ProviderArgs(ctx, phase).UnmarkDeep()
 			resp := client.ConfigureProvider(providers.ConfigureProviderRequest{
 				TerraformVersion: version.SemVer.String(),
 				Config:           unmarkedArgs,
+				ClientCapabilities: providers.ClientCapabilities{
+					DeferralAllowed: allowUnknowns,
+				},
 			})
 			diags = diags.Append(resp.Diagnostics)
 			if resp.Diagnostics.HasErrors() {
@@ -250,7 +266,7 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 				// stub instead. (The real provider stays running until it
 				// gets cleaned up by the cleanup function above, despite being
 				// inaccessible to the caller.)
-				return stubConfiguredProvider{unknown: false}, diags
+				return &stubs.ErroredProvider{}, diags
 			}
 
 			return providerClose{
@@ -308,228 +324,14 @@ func (p *ProviderInstance) tracingName() string {
 	return p.Addr().String()
 }
 
-// stubConfiguredProvider is a placeholder provider used when ConfigureProvider
-// on a real provider fails, so that callers can still receieve a usable client
-// that will just produce placeholder values from its operations.
-//
-// This is essentially the cty.DynamicVal equivalent for providers.Interface,
-// allowing us to follow our usual pattern that only one return path carries
-// diagnostics up to the caller and all other codepaths just do their best
-// to unwind with placeholder values. It's intended only for use in situations
-// that would expect an already-configured provider, so it's incorrect to call
-// [ConfigureProvider] on a value of this type.
-//
-// Some methods of this type explicitly return errors saying that the provider
-// configuration was invalid, while others just optimistically do nothing at
-// all. The general rule is that anything that would for a normal provider
-// be expected to perform externally-visible side effects must return an error
-// to be explicit that those side effects did not occur, but we can silently
-// skip anything that is a Terraform-only detail.
-//
-// As usual with provider calls, the returned diagnostics must be annotated
-// using [tfdiags.Diagnostics.InConfigBody] with the relevant configuration body
-// so that they can be attributed to the appropriate configuration element.
-type stubConfiguredProvider struct {
-	// If unknown is true then the implementation will assume it's acting
-	// as a placeholder for a provider whose configuration isn't yet
-	// sufficiently known to be properly instantiated, which means that
-	// plan-time operations will return totally-unknown values.
-	// Otherwise any operation that is supposed to perform a side-effect
-	// will fail with an error saying that the provider configuration
-	// is invalid.
-	unknown bool
-}
-
-var _ providers.Interface = stubConfiguredProvider{}
-
-// ApplyResourceChange implements providers.Interface.
-func (stubConfiguredProvider) ApplyResourceChange(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"Provider configuration is invalid",
-		"Cannot apply changes because this resource's associated provider configuration is invalid.",
-		nil, // nil attribute path means the overall configuration block
-	))
-	return providers.ApplyResourceChangeResponse{
-		Diagnostics: diags,
-	}
-}
-
-func (stubConfiguredProvider) CallFunction(providers.CallFunctionRequest) providers.CallFunctionResponse {
-	panic("can't call functions on the stub provider")
-}
-
-// Close implements providers.Interface.
-func (stubConfiguredProvider) Close() error {
-	return nil
-}
-
-// ConfigureProvider implements providers.Interface.
-func (stubConfiguredProvider) ConfigureProvider(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
-	// This provider is used only in situations where ConfigureProvider on
-	// a real provider fails and the recipient was expecting a configured
-	// provider, so it doesn't make sense to configure it.
-	panic("can't configure the stub provider")
-}
-
-// GetProviderSchema implements providers.Interface.
-func (stubConfiguredProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
-	return providers.GetProviderSchemaResponse{}
-}
-
-// ImportResourceState implements providers.Interface.
-func (p stubConfiguredProvider) ImportResourceState(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
-	var diags tfdiags.Diagnostics
-	if p.unknown {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Provider configuration is deferred",
-			"Cannot import an existing object into this resource because its associated provider configuration is deferred to a later operation due to unknown expansion.",
-			nil, // nil attribute path means the overall configuration block
-		))
-	} else {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Provider configuration is invalid",
-			"Cannot import an existing object into this resource because its associated provider configuration is invalid.",
-			nil, // nil attribute path means the overall configuration block
-		))
-	}
-	return providers.ImportResourceStateResponse{
-		Diagnostics: diags,
-	}
-}
-
-// MoveResourceState implements providers.Interface.
-func (p stubConfiguredProvider) MoveResourceState(req providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
-	var diags tfdiags.Diagnostics
-	if p.unknown {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Provider configuration is deferred",
-			"Cannot move an existing object to this resource because its associated provider configuration is deferred to a later operation due to unknown expansion.",
-			nil, // nil attribute path means the overall configuration block
-		))
-	} else {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Provider configuration is invalid",
-			"Cannot move an existing object to this resource because its associated provider configuration is invalid.",
-			nil, // nil attribute path means the overall configuration block
-		))
-	}
-	return providers.MoveResourceStateResponse{
-		Diagnostics: diags,
-	}
-}
-
-// PlanResourceChange implements providers.Interface.
-func (p stubConfiguredProvider) PlanResourceChange(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
-	if p.unknown {
-		return providers.PlanResourceChangeResponse{
-			PlannedState: cty.DynamicVal,
-		}
-	}
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"Provider configuration is invalid",
-		"Cannot plan changes for this resource because its associated provider configuration is invalid.",
-		nil, // nil attribute path means the overall configuration block
-	))
-	return providers.PlanResourceChangeResponse{
-		Diagnostics: diags,
-	}
-}
-
-// ReadDataSource implements providers.Interface.
-func (p stubConfiguredProvider) ReadDataSource(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
-	if p.unknown {
-		return providers.ReadDataSourceResponse{
-			State: cty.DynamicVal,
-		}
-	}
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"Provider configuration is invalid",
-		"Cannot read from this data source because its associated provider configuration is invalid.",
-		nil, // nil attribute path means the overall configuration block
-	))
-	return providers.ReadDataSourceResponse{
-		Diagnostics: diags,
-	}
-}
-
-// ReadResource implements providers.Interface.
-func (stubConfiguredProvider) ReadResource(req providers.ReadResourceRequest) providers.ReadResourceResponse {
-	// For this one we'll just optimistically assume that the remote object
-	// hasn't changed. In many cases we'll fail calling PlanResourceChange
-	// right afterwards anyway, and even if not we'll get another opportunity
-	// to refresh on a future run once the provider configuration is fixed.
-	return providers.ReadResourceResponse{
-		NewState: req.PriorState,
-		Private:  req.Private,
-	}
-}
-
-// Stop implements providers.Interface.
-func (stubConfiguredProvider) Stop() error {
-	// This stub provider never actually does any real work, so there's nothing
-	// for us to stop.
-	return nil
-}
-
-// UpgradeResourceState implements providers.Interface.
-func (p stubConfiguredProvider) UpgradeResourceState(req providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
-	if p.unknown {
-		return providers.UpgradeResourceStateResponse{
-			UpgradedState: cty.DynamicVal,
-		}
-	}
-
-	// Ideally we'd just skip this altogether and echo back what the caller
-	// provided, but the request is in a different serialization format than
-	// the response and so only the real provider can deal with this one.
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"Provider configuration is invalid",
-		"Cannot decode the prior state for this resource instance because its provider configuration is invalid.",
-		nil, // nil attribute path means the overall configuration block
-	))
-	return providers.UpgradeResourceStateResponse{
-		Diagnostics: diags,
-	}
-}
-
-// ValidateDataResourceConfig implements providers.Interface.
-func (stubConfiguredProvider) ValidateDataResourceConfig(req providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
-	// We'll just optimistically assume the configuration is valid, so that
-	// we can progress to planning and return an error there instead.
-	return providers.ValidateDataResourceConfigResponse{
-		Diagnostics: nil,
-	}
-}
-
-// ValidateProviderConfig implements providers.Interface.
-func (stubConfiguredProvider) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
-	// It doesn't make sense to call this one on stubProvider, because
-	// we only use stubProvider for situations where ConfigureProvider failed
-	// on a real provider and we should already have called
-	// ValidateProviderConfig on that provider by then anyway.
-	return providers.ValidateProviderConfigResponse{
-		PreparedConfig: req.Config,
-		Diagnostics:    nil,
-	}
-}
-
-// ValidateResourceConfig implements providers.Interface.
-func (stubConfiguredProvider) ValidateResourceConfig(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
-	// We'll just optimistically assume the configuration is valid, so that
-	// we can progress to reading and return an error there instead.
-	return providers.ValidateResourceConfigResponse{
-		Diagnostics: nil,
-	}
+// reportNamedPromises implements namedPromiseReporter.
+func (p *ProviderInstance) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	name := p.Addr().String()
+	clientName := name + " plugin client"
+	p.providerArgs.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
+		cb(o.PromiseID(), name)
+	})
+	p.client.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[providers.Interface]]) {
+		cb(o.PromiseID(), clientName)
+	})
 }

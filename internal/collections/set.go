@@ -42,8 +42,8 @@ func NewSetFunc[T any](keyFunc func(T) UniqueKey[T], elems ...T) Set[T] {
 
 // NewSetCmp constructs a new set for any comparable type, using the built-in
 // == operator as the definition of element equivalence.
-func NewSetCmp[T comparable]() Set[T] {
-	return NewSetFunc(cmpUniqueKeyFunc[T])
+func NewSetCmp[T comparable](elems ...T) Set[T] {
+	return NewSetFunc(cmpUniqueKeyFunc[T], elems...)
 }
 
 // Has returns true if the given value is present in the set, or false

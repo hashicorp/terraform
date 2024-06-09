@@ -117,6 +117,11 @@ func (c *Client) Dependencies() terraform1.DependenciesClient {
 	return terraform1.NewDependenciesClient(c.conn)
 }
 
+// Packages returns a client for the Packages service of the RPC API.
+func (c *Client) Packages() terraform1.PackagesClient {
+	return terraform1.NewPackagesClient(c.conn)
+}
+
 // Stacks returns a client for the Stacks service of the RPC API.
 func (c *Client) Stacks() terraform1.StacksClient {
 	return terraform1.NewStacksClient(c.conn)

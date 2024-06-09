@@ -10,12 +10,13 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty-debug/ctydebug"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty-debug/ctydebug"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestStackCallCheckInstances(t *testing.T) {
@@ -44,8 +45,9 @@ func TestStackCallCheckInstances(t *testing.T) {
 			t.Fatalf("unexpected for_each value\ngot:  %#v\nwant: cty.NilVal", forEachVal)
 		}
 
-		insts, diags := call.CheckInstances(ctx, InspectPhase)
+		insts, unknown, diags := call.CheckInstances(ctx, InspectPhase)
 		assertNoDiags(t, diags)
+		assertFalse(t, unknown)
 		if got, want := len(insts), 1; got != want {
 			t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, insts)
 		}
@@ -74,8 +76,9 @@ func TestStackCallCheckInstances(t *testing.T) {
 			if got, want := forEachVal, cty.MapValEmpty(cty.EmptyObject); !want.RawEquals(got) {
 				t.Fatalf("unexpected for_each value\ngot:  %#v\nwant: %#v", got, want)
 			}
-			insts, diags := call.CheckInstances(ctx, InspectPhase)
+			insts, unknown, diags := call.CheckInstances(ctx, InspectPhase)
 			assertNoDiags(t, diags)
+			assertFalse(t, unknown)
 			if got, want := len(insts), 0; got != want {
 				t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, insts)
 			}
@@ -111,8 +114,9 @@ func TestStackCallCheckInstances(t *testing.T) {
 			if !wantForEachVal.RawEquals(gotForEachVal) {
 				t.Fatalf("unexpected for_each value\ngot:  %#v\nwant: %#v", gotForEachVal, wantForEachVal)
 			}
-			insts, diags := call.CheckInstances(ctx, InspectPhase)
+			insts, unknown, diags := call.CheckInstances(ctx, InspectPhase)
 			assertNoDiags(t, diags)
+			assertFalse(t, unknown)
 			if got, want := len(insts), 2; got != want {
 				t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, insts)
 			}
@@ -189,8 +193,12 @@ func TestStackCallCheckInstances(t *testing.T) {
 			// how many instances there are. This is a different result than
 			// when we know there are zero instances, which would be a non-nil
 			// empty map.
-			gotInsts, diags := call.CheckInstances(ctx, InspectPhase)
-			assertNoDiags(t, diags)
+			gotInsts, unknown, diags := call.CheckInstances(ctx, InspectPhase)
+			assertFalse(t, unknown)
+			assertMatchingDiag(t, diags, func(diag tfdiags.Diagnostic) bool {
+				return (diag.Severity() == tfdiags.Error &&
+					diag.Description().Detail == "The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this stack.")
+			})
 			if gotInsts != nil {
 				t.Errorf("wrong instances; want nil\n%#v", gotInsts)
 			}
@@ -203,30 +211,19 @@ func TestStackCallCheckInstances(t *testing.T) {
 				},
 			})
 
-			// For now it's invalid to use an unknown value in for_each.
-			// Later we're expecting to make this succeed but announce that
-			// planning everything beneath this call must be deferred to a
-			// future plan after everything else has been applied first.
 			call := getStackCall(ctx, main)
 			gotVal, diags := call.CheckForEachValue(ctx, InspectPhase)
-			assertMatchingDiag(t, diags, func(diag tfdiags.Diagnostic) bool {
-				return (diag.Severity() == tfdiags.Error &&
-					diag.Description().Detail == "The for_each value must not be derived from values that will be determined only during the apply phase.")
-			})
+			assertNoDiags(t, diags)
 			wantVal := cty.UnknownVal(cty.Map(cty.EmptyObject))
 			if !wantVal.RawEquals(gotVal) {
 				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", gotVal, wantVal)
 			}
 
-			// When the for_each expression is invalid, CheckInstances should
-			// return nil to represent that we don't know enough to predict
-			// how many instances there are. This is a different result than
-			// when we know there are zero instances, which would be a non-nil
-			// empty map.
-			gotInsts, diags := call.CheckInstances(ctx, InspectPhase)
+			gotInsts, unknown, diags := call.CheckInstances(ctx, InspectPhase)
 			assertNoDiags(t, diags)
-			if gotInsts != nil {
-				t.Errorf("wrong instances; want nil\n%#v", gotInsts)
+			assertTrue(t, unknown)
+			if got, want := len(gotInsts), 0; got != want {
+				t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, gotInsts)
 			}
 		})
 	})
@@ -335,10 +332,7 @@ func TestStackCallResultValue(t *testing.T) {
 			// When the for_each expression is invalid, the result value
 			// is unknown so we can use it as a placeholder for partial
 			// downstream checking.
-			want := cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{
-				"test_map":    cty.Map(cty.String),
-				"test_string": cty.String,
-			})))
+			want := cty.NilVal
 			// FIXME: the cmp transformer ctydebug.CmpOptions seems to find
 			// this particular pair of values troubling, causing it to get
 			// into an infinite recursion. For now we'll just use RawEquals,
@@ -361,10 +355,7 @@ func TestStackCallResultValue(t *testing.T) {
 			// When the for_each expression is invalid, the result value
 			// is unknown so we can use it as a placeholder for partial
 			// downstream checking.
-			want := cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{
-				"test_map":    cty.Map(cty.String),
-				"test_string": cty.String,
-			})))
+			want := cty.NilVal
 			// FIXME: the cmp transformer ctydebug.CmpOptions seems to find
 			// this particular pair of values troubling, causing it to get
 			// into an infinite recursion. For now we'll just use RawEquals,
@@ -385,12 +376,13 @@ func TestStackCallResultValue(t *testing.T) {
 			call := getStackCall(ctx, main)
 			got := call.ResultValue(ctx, InspectPhase)
 			// When the for_each expression is unknown, the result value
-			// is unknown too so we can use it as a placeholder for partial
-			// downstream checking.
+			// is a placeholder instance, with a wildcard key and potentially
+			// unknown attributes.
 			want := cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{
 				"test_map":    cty.Map(cty.String),
 				"test_string": cty.String,
 			})))
+
 			// FIXME: the cmp transformer ctydebug.CmpOptions seems to find
 			// this particular pair of values troubling, causing it to get
 			// into an infinite recursion. For now we'll just use RawEquals,

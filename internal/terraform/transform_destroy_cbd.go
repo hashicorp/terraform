@@ -115,9 +115,16 @@ func (t *ForcedCBDTransformer) hasCBDDescendent(g *Graph, v dag.Vertex) bool {
 // DiffTransformer when building the apply graph.
 type CBDEdgeTransformer struct {
 	// Module and State are only needed to look up dependencies in
-	// any way possible. Either can be nil if not availabile.
+	// any way possible. Either can be nil if not available.
 	Config *configs.Config
 	State  *states.State
+
+	// FIXME: This should optimally be decided entirely during plan, and then we
+	// can rely on the planned changes to determine the CreateBeforeDestroy
+	// status. This would require very careful auditing however, since not all
+	// nodes are represented exactly in the changes, and the way
+	// CreateBeforeDestroy propagates through the graph is extremely important
+	// for correctness and to prevent cycles.
 }
 
 func (t *CBDEdgeTransformer) Transform(g *Graph) error {

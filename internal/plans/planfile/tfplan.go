@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
@@ -163,6 +164,13 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			return nil, fmt.Errorf("invalid value for input variable %q: %s", name, err)
 		}
 		plan.VariableValues[name] = val
+	}
+
+	if len(rawPlan.ApplyTimeVariables) != 0 {
+		plan.ApplyTimeVariables = collections.NewSetCmp[string]()
+		for _, name := range rawPlan.ApplyTimeVariables {
+			plan.ApplyTimeVariables.Add(name)
+		}
 	}
 
 	for _, hash := range rawPlan.ProviderFunctionResults {
@@ -450,7 +458,7 @@ func deferredChangeFromTfplan(dc *planproto.DeferredResourceInstanceChange) (*pl
 		return nil, err
 	}
 
-	reason, err := deferredReasonFromProto(dc.Deferred.Reason)
+	reason, err := DeferredReasonFromProto(dc.Deferred.Reason)
 	if err != nil {
 		return nil, err
 	}
@@ -461,7 +469,7 @@ func deferredChangeFromTfplan(dc *planproto.DeferredResourceInstanceChange) (*pl
 	}, nil
 }
 
-func deferredReasonFromProto(reason planproto.DeferredReason) (providers.DeferredReason, error) {
+func DeferredReasonFromProto(reason planproto.DeferredReason) (providers.DeferredReason, error) {
 	switch reason {
 	case planproto.DeferredReason_INSTANCE_COUNT_UNKNOWN:
 		return providers.DeferredReasonInstanceCountUnknown, nil
@@ -588,6 +596,12 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 
 	for name, val := range plan.VariableValues {
 		rawPlan.Variables[name] = valueToTfplan(val)
+	}
+	if plan.ApplyTimeVariables.Len() != 0 {
+		rawPlan.ApplyTimeVariables = make([]string, 0, plan.ApplyTimeVariables.Len())
+		for _, name := range plan.ApplyTimeVariables.Elems() {
+			rawPlan.ApplyTimeVariables = append(rawPlan.ApplyTimeVariables, name)
+		}
 	}
 
 	for _, hash := range plan.ProviderFunctionResults {

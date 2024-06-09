@@ -227,6 +227,18 @@ func (d SDKLikeDefaults) ApplyTo(base cty.Value) (cty.Value, error) {
 			return cty.NilVal, fmt.Errorf("argument %q is required", attrName)
 		}
 
+		// As a special case, if we still have an empty string and the original
+		// value was null then we'll preserve the null. This is a compromise,
+		// assuming that SDKLikeData knows how to treat a null value as a
+		// zero value anyway and if we preserve the null then the recipient
+		// of this result can still use the cty.Value result directly to
+		// distinguish between the value being set explicitly to empty in
+		// the config vs. being entirely unset.
+		if rawStr == "" && givenVal.IsNull() {
+			retAttrs[attrName] = givenVal
+			continue
+		}
+
 		// By the time we get here, rawStr should be empty only if the original
 		// value was unset and all of the fallback environment variables were
 		// also unset. Otherwise, rawStr contains a string representation of

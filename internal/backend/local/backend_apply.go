@@ -10,9 +10,15 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
@@ -82,11 +88,13 @@ func (b *Local) opApply(
 	// stateHook uses schemas for when it periodically persists state to the
 	// persistent storage backend.
 	stateHook.Schemas = schemas
-	stateHook.PersistInterval = 20 * time.Second // arbitrary interval that's hopefully a sweet spot
+	stateHook.PersistInterval = time.Duration(op.StatePersistInterval) * time.Second
 
 	var plan *plans.Plan
+	combinedPlanApply := false
 	// If we weren't given a plan, then we refresh/plan
 	if op.PlanFile == nil {
+		combinedPlanApply = true
 		// Perform the plan
 		log.Printf("[INFO] backend/local: apply calling Plan")
 		plan, moreDiags = lr.Core.Plan(lr.Config, lr.InputState, lr.PlanOpts)
@@ -227,6 +235,59 @@ func (b *Local) opApply(
 	// Set up our hook for continuous state updates
 	stateHook.StateMgr = opState
 
+	var applyOpts *terraform.ApplyOpts
+	if lr.Config.Module.ActiveExperiments.Has(experiments.EphemeralValues) {
+		// We only try to handle apply-time input variables if the root module
+		// has opted into the ephemeral_values language experiment, because
+		// otherwise there can't possibly be any input variables required
+		// in the apply phase and this reduces the risk of the experimental
+		// code impacting non-experimental usage.
+		// If we stablize something like this experiment, we should find a
+		// less clunky way to introduce this extra step.
+		applyTimeValues, applyVarDiags := applyTimeInputValues(
+			plan.ApplyTimeVariables,
+			lr.Config.Module.Variables,
+			op.Variables,
+			combinedPlanApply,
+		)
+		diags = diags.Append(applyVarDiags)
+		if diags.HasErrors() {
+			op.ReportResult(runningOp, diags)
+			return
+		}
+		applyOpts = &terraform.ApplyOpts{
+			SetVariables: applyTimeValues,
+		}
+	} else {
+		// When the ephemeral values experiment isn't enabled, no variables
+		// may be _explicitly_ set during the apply phase at all, but it's
+		// valid for variable to show up from more implicit locations like
+		// environment variables and .auto.tfvars files.
+		if len(op.Variables) != 0 && !combinedPlanApply {
+			for _, rawV := range op.Variables {
+				// We're "parsing" only to get the resulting value's SourceType,
+				// so we'll use configs.VariableParseLiteral just because it's
+				// the most liberal interpretation and so least likely to
+				// fail with an unrelated error.
+				v, _ := rawV.ParseVariableValue(configs.VariableParseLiteral)
+				if v == nil {
+					// We'll ignore any that don't parse at all, because
+					// they'll fail elsewhere in this process anyway.
+					continue
+				}
+				if v.SourceType == terraform.ValueFromCLIArg || v.SourceType == terraform.ValueFromNamedFile {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Can't set variables when applying a saved plan",
+						"The -var and -var-file options cannot be used when applying a saved plan file, because a saved plan includes the variable values that were set when it was created.",
+					))
+					op.ReportResult(runningOp, diags)
+					return
+				}
+			}
+		}
+	}
+
 	// Start the apply in a goroutine so that we can be interrupted.
 	var applyState *states.State
 	var applyDiags tfdiags.Diagnostics
@@ -234,8 +295,9 @@ func (b *Local) opApply(
 	go func() {
 		defer logging.PanicHandler()
 		defer close(doneCh)
+
 		log.Printf("[INFO] backend/local: apply calling Apply")
-		applyState, applyDiags = lr.Core.Apply(plan, lr.Config, nil)
+		applyState, applyDiags = lr.Core.Apply(plan, lr.Config, applyOpts)
 	}()
 
 	if b.opWait(doneCh, stopCtx, cancelCtx, lr.Core, opState, op.View) {
@@ -330,6 +392,115 @@ func (b *Local) backupStateForError(stateFile *statefile.File, err error, view v
 	))
 
 	return diags
+}
+
+func applyTimeInputValues(needVars collections.Set[string], decls map[string]*configs.Variable, given map[string]backendrun.UnparsedVariableValue, ignoreExtras bool) (terraform.InputValues, tfdiags.Diagnostics) {
+	// TEMP: This function is here to deal with the currently-experimental
+	// possibility of certain input variables being required during an apply
+	// phase because they were set during planning but declared as being
+	// ephemeral.
+	//
+	// To reduce the disruption to existing code caused by this language
+	// experiment the following is implemented by lightly misusing some
+	// existing functions that were designed for interpreting variable values
+	// during the planning phase. If we move forward with something like this
+	// design for ephemeral input variables then we should consider revisiting
+	// this to see if we can share the relevant parts of this logic in a less
+	// clunky way.
+
+	// As a way to trick the functions we built for plan-time variable
+	// processing into dealing with apply-time variables, we'll construct
+	// a copy of the variable configurations map with only the needed
+	// variables in it.
+	filteredDecls := make(map[string]*configs.Variable, len(decls))
+	for name, config := range decls {
+		if needVars.Has(name) {
+			filteredDecls[name] = config
+		}
+	}
+	ret, diags := backendrun.ParseDeclaredVariableValues(given, filteredDecls)
+	undeclared, _ := backendrun.ParseUndeclaredVariableValues(given, filteredDecls)
+	// The diagnostics returned by ParseUndeclaredVariableValues are written
+	// to make sense for the plan phase, so we'll ignore them and produce
+	// our own diagnostics here.
+	for name, defn := range undeclared {
+		// Something can get in here either by being not declared at all,
+		// by being a non-ephemeral variable which should therefore have been
+		// set during the planning phase, or by being an ephemeral value that
+		// wasn't set during planning and must therefore stay unset during
+		// apply. We'll distinguish those cases below.
+		decl, declared := decls[name]
+		if !declared {
+			// FIXME: Ideally we should treat this situation similarly to how
+			// we would during planning, raising an error if defined in an
+			// "explicit-ish" way but a warning if set in an ambient way such
+			// as an environment variable. But for now we'll just ignore
+			// undeclared input variables in all cases for simplicity's sake.
+			continue
+		}
+
+		var rng *hcl.Range
+		if defn.HasSourceRange() {
+			rng = defn.SourceRange.ToHCL().Ptr()
+		}
+
+		if decl.Ephemeral {
+			// An ephemeral variable that appears as "undeclared" is one that
+			// wasn't set during planning and must therefore remain unset
+			// during apply.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Ephemeral variable was not set during planning",
+				Detail: fmt.Sprintf(
+					"The ephemeral input variable %q was not set during the planning phase, and so must remain unset during the apply phase.",
+					name,
+				),
+				Subject: rng,
+			})
+		} else {
+			// TODO: We should probably actually tolerate this if the new
+			// value is equal to the value that was saved in the plan, since
+			// that'd make it possible to, for example, reuse a .tfvars file
+			// containing a mixture of ephemeral and non-ephemeral definitions
+			// during the apply phase, rather than having to split ephemeral
+			// and non-ephemeral definitions into separate files. For initial
+			// experiment we'll keep things a little simpler, though, and
+			// just skip this check if we're doing a combined plan/apply where
+			// the apply phase will therefore always have exactly the same
+			// inputs as the plan phase.
+			if !ignoreExtras {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Cannot change value for non-ephemeral variable",
+					Detail: fmt.Sprintf(
+						"Input variable %q is non-ephemeral, so its value was decided during the planning phase and cannot be reset for the apply phase.",
+						name,
+					),
+					Subject: rng,
+				})
+			}
+		}
+	}
+
+	// We should now have a non-null value for each of the variables in needVars
+	for _, name := range needVars.Elems() {
+		val := cty.NullVal(cty.DynamicPseudoType)
+		if defn, ok := ret[name]; ok {
+			val = defn.Value
+		}
+		if val.IsNull() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Ephemeral variable must be set for apply",
+				Detail: fmt.Sprintf(
+					"The ephemeral input variable %q was set during the planning phase, and so must be set again during the apply phase.",
+					name,
+				),
+			})
+		}
+	}
+
+	return ret, diags
 }
 
 const stateWriteBackedUpError = `The error shown above has prevented Terraform from writing the updated state to the configured backend. To allow for recovery, the state has been written to the file "errored.tfstate" in the current working directory.

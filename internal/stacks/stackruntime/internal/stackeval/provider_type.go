@@ -70,3 +70,8 @@ func (pt *ProviderType) Schema(ctx context.Context) (providers.GetProviderSchema
 		return ret, nil
 	})
 }
+
+// reportNamedPromises implements namedPromiseReporter.
+func (pt *ProviderType) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	cb(pt.schema.PromiseID(), pt.Addr().String()+" schema")
+}

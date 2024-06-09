@@ -28,7 +28,7 @@ type Provider struct {
 	main *Main
 
 	forEachValue perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
-	instances    perEvalPhase[promising.Once[withDiagnostics[map[addrs.InstanceKey]*ProviderInstance]]]
+	instances    perEvalPhase[promising.Once[withDiagnostics[instancesResult[*ProviderInstance]]]]
 }
 
 func newProvider(main *Main, addr stackaddrs.AbsProviderConfig, config *stackconfig.ProviderConfig) *Provider {
@@ -123,18 +123,6 @@ func (p *Provider) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.
 				if diags.HasErrors() {
 					return cty.DynamicVal, diags
 				}
-
-				if !result.Value.IsKnown() {
-					// FIXME: We should somehow allow this and emit a
-					// "deferred change" representing all of the as-yet-unknown
-					// instances of this call and everything beneath it.
-					diags = diags.Append(result.Diagnostic(
-						tfdiags.Error,
-						"Invalid for_each value",
-						"The for_each value must not be derived from values that will be determined only during the apply phase.",
-					))
-				}
-
 				return result.Value, diags
 
 			default:
@@ -168,35 +156,53 @@ func (p *Provider) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.
 // for_each expression is invalid because we assume that the main plan walk
 // will visit the stack call directly and ask it to check itself, and that
 // call will be the one responsible for returning any diagnostics.
-func (p *Provider) Instances(ctx context.Context, phase EvalPhase) map[addrs.InstanceKey]*ProviderInstance {
-	ret, _ := p.CheckInstances(ctx, phase)
-	return ret
+func (p *Provider) Instances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ProviderInstance, bool) {
+	ret, unknown, _ := p.CheckInstances(ctx, phase)
+	return ret, unknown
 }
 
-func (p *Provider) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ProviderInstance, tfdiags.Diagnostics) {
-	return doOnceWithDiags(
+func (p *Provider) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ProviderInstance, bool, tfdiags.Diagnostics) {
+	result, diags := doOnceWithDiags(
 		ctx, p.instances.For(phase), p.main,
-		func(ctx context.Context) (map[addrs.InstanceKey]*ProviderInstance, tfdiags.Diagnostics) {
-			var diags tfdiags.Diagnostics
-			forEachVal := p.ForEachValue(ctx, phase)
+		func(ctx context.Context) (instancesResult[*ProviderInstance], tfdiags.Diagnostics) {
+			forEachVal, diags := p.CheckForEachValue(ctx, phase)
+			if diags.HasErrors() {
+				return instancesResult[*ProviderInstance]{}, diags
+			}
+
+			allowUnknowns := true
+			if p.main.Planning() {
+				// We'll set this to false during planning if deferrals are not
+				// allowed. It's fine to always be true during apply, as this
+				// would have failed during planning if it was not allowed.
+				allowUnknowns = p.main.PlanningOpts().DeferralAllowed
+			}
+
 			return instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ProviderInstance {
 				return newProviderInstance(p, ik, rd)
-			}), diags
+			}, allowUnknowns), diags
 		},
 	)
+	return result.insts, result.unknown, diags
 }
 
 // ExprReferenceValue implements Referenceable, returning a value containing
 // one or more values that act as references to instances of the provider.
 func (p *Provider) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
 	decl := p.Declaration(ctx)
-	insts := p.Instances(ctx, phase)
+	insts, unknown := p.Instances(ctx, phase)
 	refType := p.InstRefValueType(ctx)
 
 	switch {
 	case decl.ForEach != nil:
-		if insts == nil {
+		if unknown {
 			return cty.UnknownVal(cty.Map(refType))
+		}
+
+		if insts == nil {
+			// Then we errored during instance calculation, this should have
+			// been caught before we got here.
+			return cty.NilVal
 		}
 		elems := make(map[string]cty.Value, len(insts))
 		for instKey := range insts {
@@ -235,7 +241,7 @@ func (p *Provider) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diag
 
 	_, moreDiags := p.CheckForEachValue(ctx, phase)
 	diags = diags.Append(moreDiags)
-	_, moreDiags = p.CheckInstances(ctx, phase)
+	_, _, moreDiags = p.CheckInstances(ctx, phase)
 	diags = diags.Append(moreDiags)
 	// Everything else is instance-specific and so the plan walk driver must
 	// call p.Instances and ask each instance to plan itself.
@@ -272,4 +278,25 @@ func (p *Provider) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, 
 // tracingName implements Plannable.
 func (p *Provider) tracingName() string {
 	return p.Addr().String()
+}
+
+// reportNamedPromises implements namedPromiseReporter.
+func (p *Provider) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	name := p.Addr().String()
+	forEachName := name + " for_each"
+	instsName := name + " instances"
+	p.forEachValue.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[cty.Value]]) {
+		cb(o.PromiseID(), forEachName)
+	})
+	p.instances.Each(func(ep EvalPhase, o *promising.Once[withDiagnostics[instancesResult[*ProviderInstance]]]) {
+		cb(o.PromiseID(), instsName)
+	})
+	// FIXME: We should call reportNamedPromises on the individual
+	// ProviderInstance objects too, but promising.Once doesn't allow us
+	// to peek to see if the Once was already resolved without blocking on
+	// it, and we don't want to block on any promises in here.
+	// Without this, any promises belonging to the individual instances will
+	// not be named in a self-dependency error report, but since references
+	// to provider instances are always indirect through the provider this
+	// shouldn't be a big deal in most cases.
 }

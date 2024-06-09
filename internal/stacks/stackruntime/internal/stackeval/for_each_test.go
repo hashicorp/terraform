@@ -5,19 +5,19 @@ package stackeval
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
+	"github.com/zclconf/go-cty-debug/ctydebug"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty-debug/ctydebug"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestEvaluateForEachExpr(t *testing.T) {
@@ -40,10 +40,6 @@ func TestEvaluateForEachExpr(t *testing.T) {
 				"a": cty.StringVal("beep"),
 				"b": cty.StringVal("beep"),
 			}),
-		},
-		"unknown object": {
-			Expr: hcltest.MockExprLiteral(cty.UnknownVal(cty.EmptyObject)),
-			Want: cty.UnknownVal(cty.EmptyObject),
 		},
 
 		// Maps
@@ -137,6 +133,24 @@ func TestEvaluateForEachExpr(t *testing.T) {
 			Expr:    hcltest.MockExprLiteral(cty.NullVal(cty.String)),
 			WantErr: `Invalid for_each value`,
 		},
+
+		// Unknown sets, maps, objects, and dynamic types are allowed
+		"unknown set": {
+			Expr: hcltest.MockExprLiteral(cty.UnknownVal(cty.Set(cty.String))),
+			Want: cty.UnknownVal(cty.Set(cty.String)),
+		},
+		"unknown map": {
+			Expr: hcltest.MockExprLiteral(cty.UnknownVal(cty.Map(cty.String))),
+			Want: cty.UnknownVal(cty.Map(cty.String)),
+		},
+		"unknown object": {
+			Expr: hcltest.MockExprLiteral(cty.UnknownVal(cty.EmptyObject)),
+			Want: cty.UnknownVal(cty.EmptyObject),
+		},
+		"unknown dynamic type": {
+			Expr: hcltest.MockExprLiteral(cty.DynamicVal),
+			Want: cty.DynamicVal,
+		},
 	}
 
 	ctx := context.Background()
@@ -178,9 +192,17 @@ func TestEvaluateForEachExpr(t *testing.T) {
 }
 
 func TestInstancesMap(t *testing.T) {
+
 	type InstanceObj struct {
 		Key addrs.InstanceKey
 		Rep instances.RepetitionData
+	}
+	// This is a temporary nusiance while we gradually rollout support for
+	// unknown for_each values.
+	type Expectation struct {
+		UnknownValue              bool
+		UnknownForEachSupported   map[addrs.InstanceKey]InstanceObj
+		UnknownForEachUnsupported map[addrs.InstanceKey]InstanceObj
 	}
 	makeObj := func(k addrs.InstanceKey, r instances.RepetitionData) InstanceObj {
 		return InstanceObj{
@@ -190,8 +212,9 @@ func TestInstancesMap(t *testing.T) {
 	}
 
 	tests := []struct {
+		Name  string
 		Input cty.Value
-		Want  map[addrs.InstanceKey]InstanceObj
+		Want  Expectation
 
 		// This function always either succeeds or panics, because it
 		// expects to be given already-validated input from another function.
@@ -199,12 +222,23 @@ func TestInstancesMap(t *testing.T) {
 	}{
 		// No for_each at all
 		{
+			"nil",
 			cty.NilVal,
-			map[addrs.InstanceKey]InstanceObj{
-				addrs.NoKey: {
-					Key: addrs.NoKey,
-					Rep: instances.RepetitionData{
-						// No data available for the non-repeating case
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.NoKey: {
+						Key: addrs.NoKey,
+						Rep: instances.RepetitionData{
+							// No data available for the non-repeating case
+						},
+					},
+				},
+				UnknownForEachUnsupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.NoKey: {
+						Key: addrs.NoKey,
+						Rep: instances.RepetitionData{
+							// No data available for the non-repeating case
+						},
 					},
 				},
 			},
@@ -212,107 +246,203 @@ func TestInstancesMap(t *testing.T) {
 
 		// Unknowns
 		{
+			"unknown empty object",
 			cty.UnknownVal(cty.EmptyObject),
-			nil, // a nil map means "unknown" for this function
+			Expectation{
+				UnknownValue:              true,
+				UnknownForEachSupported:   nil,
+				UnknownForEachUnsupported: nil,
+			},
 		},
 		{
+			"unknown bool map",
 			cty.UnknownVal(cty.Map(cty.Bool)),
-			nil, // a nil map means "unknown" for this function
+			Expectation{
+				UnknownValue:              true,
+				UnknownForEachSupported:   nil,
+				UnknownForEachUnsupported: nil,
+			},
 		},
 		{
+			"unknown set of strings",
 			cty.UnknownVal(cty.Set(cty.String)),
-			nil, // a nil map means "unknown" for this function
+			Expectation{
+				UnknownValue:              true,
+				UnknownForEachSupported:   nil,
+				UnknownForEachUnsupported: nil,
+			},
 		},
 
 		// Empties
 		{
+			"empty object",
 			cty.EmptyObjectVal,
-			map[addrs.InstanceKey]InstanceObj{
-				// intentionally a non-nil empty map to assert that we know
-				// that there are zero instances, rather than that we don't
-				// know how many there are.
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					// intentionally a non-nil empty map to assert that we know
+					// that there are zero instances, rather than that we don't
+					// know how many there are.
+				},
+				UnknownForEachUnsupported: map[addrs.InstanceKey]InstanceObj{
+					// intentionally a non-nil empty map to assert that we know
+					// that there are zero instances, rather than that we don't
+					// know how many there are.
+				},
 			},
 		},
 		{
+			"empty string map",
 			cty.MapValEmpty(cty.String),
-			map[addrs.InstanceKey]InstanceObj{
-				// intentionally a non-nil empty map to assert that we know
-				// that there are zero instances, rather than that we don't
-				// know how many there are.
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					// intentionally a non-nil empty map to assert that we know
+					// that there are zero instances, rather than that we don't
+					// know how many there are.
+				},
+				UnknownForEachUnsupported: map[addrs.InstanceKey]InstanceObj{
+					// intentionally a non-nil empty map to assert that we know
+					// that there are zero instances, rather than that we don't
+					// know how many there are.
+				},
 			},
 		},
 		{
+			"empty string set",
 			cty.SetValEmpty(cty.String),
-			map[addrs.InstanceKey]InstanceObj{
-				// intentionally a non-nil empty map to assert that we know
-				// that there are zero instances, rather than that we don't
-				// know how many there are.
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					// intentionally a non-nil empty map to assert that we know
+					// that there are zero instances, rather than that we don't
+					// know how many there are.
+				},
+				UnknownForEachUnsupported: map[addrs.InstanceKey]InstanceObj{
+					// intentionally a non-nil empty map to assert that we know
+					// that there are zero instances, rather than that we don't
+					// know how many there are.
+				},
 			},
 		},
 
 		// Known and not empty
 		{
+			"object",
 			cty.ObjectVal(map[string]cty.Value{
 				"a": cty.StringVal("beep"),
 				"b": cty.StringVal("boop"),
 			}),
-			map[addrs.InstanceKey]InstanceObj{
-				addrs.StringKey("a"): {
-					Key: addrs.StringKey("a"),
-					Rep: instances.RepetitionData{
-						EachKey:   cty.StringVal("a"),
-						EachValue: cty.StringVal("beep"),
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.StringKey("a"): {
+						Key: addrs.StringKey("a"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("a"),
+							EachValue: cty.StringVal("beep"),
+						},
+					},
+					addrs.StringKey("b"): {
+						Key: addrs.StringKey("b"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("b"),
+							EachValue: cty.StringVal("boop"),
+						},
 					},
 				},
-				addrs.StringKey("b"): {
-					Key: addrs.StringKey("b"),
-					Rep: instances.RepetitionData{
-						EachKey:   cty.StringVal("b"),
-						EachValue: cty.StringVal("boop"),
+				UnknownForEachUnsupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.StringKey("a"): {
+						Key: addrs.StringKey("a"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("a"),
+							EachValue: cty.StringVal("beep"),
+						},
+					},
+					addrs.StringKey("b"): {
+						Key: addrs.StringKey("b"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("b"),
+							EachValue: cty.StringVal("boop"),
+						},
 					},
 				},
 			},
 		},
 		{
+			"map",
 			cty.MapVal(map[string]cty.Value{
 				"a": cty.StringVal("beep"),
 				"b": cty.StringVal("boop"),
 			}),
-			map[addrs.InstanceKey]InstanceObj{
-				addrs.StringKey("a"): {
-					Key: addrs.StringKey("a"),
-					Rep: instances.RepetitionData{
-						EachKey:   cty.StringVal("a"),
-						EachValue: cty.StringVal("beep"),
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.StringKey("a"): {
+						Key: addrs.StringKey("a"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("a"),
+							EachValue: cty.StringVal("beep"),
+						},
+					},
+					addrs.StringKey("b"): {
+						Key: addrs.StringKey("b"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("b"),
+							EachValue: cty.StringVal("boop"),
+						},
 					},
 				},
-				addrs.StringKey("b"): {
-					Key: addrs.StringKey("b"),
-					Rep: instances.RepetitionData{
-						EachKey:   cty.StringVal("b"),
-						EachValue: cty.StringVal("boop"),
+				UnknownForEachUnsupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.StringKey("a"): {
+						Key: addrs.StringKey("a"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("a"),
+							EachValue: cty.StringVal("beep"),
+						},
+					},
+					addrs.StringKey("b"): {
+						Key: addrs.StringKey("b"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("b"),
+							EachValue: cty.StringVal("boop"),
+						},
 					},
 				},
 			},
 		},
 		{
+			"set",
 			cty.SetVal([]cty.Value{
 				cty.StringVal("beep"),
 				cty.StringVal("boop"),
 			}),
-			map[addrs.InstanceKey]InstanceObj{
-				addrs.StringKey("beep"): {
-					Key: addrs.StringKey("beep"),
-					Rep: instances.RepetitionData{
-						EachKey:   cty.StringVal("beep"),
-						EachValue: cty.StringVal("beep"),
+			Expectation{
+				UnknownForEachSupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.StringKey("beep"): {
+						Key: addrs.StringKey("beep"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("beep"),
+							EachValue: cty.StringVal("beep"),
+						},
+					},
+					addrs.StringKey("boop"): {
+						Key: addrs.StringKey("boop"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("boop"),
+							EachValue: cty.StringVal("boop"),
+						},
 					},
 				},
-				addrs.StringKey("boop"): {
-					Key: addrs.StringKey("boop"),
-					Rep: instances.RepetitionData{
-						EachKey:   cty.StringVal("boop"),
-						EachValue: cty.StringVal("boop"),
+				UnknownForEachUnsupported: map[addrs.InstanceKey]InstanceObj{
+					addrs.StringKey("beep"): {
+						Key: addrs.StringKey("beep"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("beep"),
+							EachValue: cty.StringVal("beep"),
+						},
+					},
+					addrs.StringKey("boop"): {
+						Key: addrs.StringKey("boop"),
+						Rep: instances.RepetitionData{
+							EachKey:   cty.StringVal("boop"),
+							EachValue: cty.StringVal("boop"),
+						},
 					},
 				},
 			},
@@ -320,12 +450,23 @@ func TestInstancesMap(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("%s", test.Input), func(t *testing.T) {
-			got := instancesMap(test.Input, makeObj)
-
-			if diff := cmp.Diff(test.Want, got, ctydebug.CmpOptions); diff != "" {
-				t.Errorf("wrong result\ninput: %#v\n%s", test.Input, diff)
-			}
+		t.Run(test.Name, func(t *testing.T) {
+			t.Run("unknown for_each supported", func(t *testing.T) {
+				got := instancesMap(test.Input, makeObj, true)
+				if got.unknown != test.Want.UnknownValue {
+					t.Errorf("wrong unknown value\ngot:  %#v\nwant: %#v", got.unknown, test.Want.UnknownValue)
+				}
+				if diff := cmp.Diff(test.Want.UnknownForEachSupported, got.insts, ctydebug.CmpOptions); diff != "" {
+					t.Errorf("wrong result\ninput: %#v\n%s", test.Input, diff)
+				}
+			})
+			t.Run("unknown for_each unsupported", func(t *testing.T) {
+				got := instancesMap(test.Input, makeObj, false)
+				assertFalse(t, got.unknown)
+				if diff := cmp.Diff(test.Want.UnknownForEachUnsupported, got.insts, ctydebug.CmpOptions); diff != "" {
+					t.Errorf("wrong result\ninput: %#v\n%s", test.Input, diff)
+				}
+			})
 		})
 	}
 }

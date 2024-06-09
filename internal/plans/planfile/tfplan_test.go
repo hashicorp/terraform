@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -22,6 +23,8 @@ func TestTFPlanRoundTrip(t *testing.T) {
 	objTy := cty.Object(map[string]cty.Type{
 		"id": cty.String,
 	})
+	applyTimeVariables := collections.NewSetCmp[string]()
+	applyTimeVariables.Add("bar")
 
 	plan := &plans.Plan{
 		Applyable: true,
@@ -29,6 +32,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 		VariableValues: map[string]plans.DynamicValue{
 			"foo": mustNewDynamicValueStr("foo value"),
 		},
+		ApplyTimeVariables: applyTimeVariables,
 		Changes: &plans.Changes{
 			Outputs: []*plans.OutputChangeSrc{
 				{

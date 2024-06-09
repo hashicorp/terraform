@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
@@ -203,4 +204,9 @@ func (c *StackCallInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 // tracingName implements Plannable.
 func (c *StackCallInstance) tracingName() string {
 	return fmt.Sprintf("%s call", c.CalledStackAddr())
+}
+
+// reportNamedPromises implements namedPromiseReporter.
+func (c *StackCallInstance) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	// StackCallInstance does not currently own any promises
 }

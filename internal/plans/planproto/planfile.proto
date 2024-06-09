@@ -61,6 +61,9 @@ message Plan {
     // a msgpack serialization of an HCL value.
     map<string, DynamicValue> variables = 2;
 
+    // Variables whose values must be provided during the apply phase.
+    repeated string apply_time_variables = 28;
+
     // An unordered set of proposed changes to resources throughout the
     // configuration, including any nested modules. Use the address of
     // each resource to determine which module it belongs to.

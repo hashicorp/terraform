@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -380,6 +381,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		if valDiags.HasErrors() {
 			return diags
 		}
+		diags = diags.Append(
+			validateResourceForbiddenEphemeralValues(ctx, configVal, schema).InConfigBody(n.Config.Config, n.Addr.String()),
+		)
 
 		if n.Config.Managed != nil { // can be nil only in tests with poorly-configured mocks
 			for _, traversal := range n.Config.Managed.IgnoreChanges {
@@ -454,6 +458,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		if valDiags.HasErrors() {
 			return diags
 		}
+		diags = diags.Append(
+			validateResourceForbiddenEphemeralValues(ctx, configVal, schema).InConfigBody(n.Config.Config, n.Addr.String()),
+		)
 
 		// Use unmarked value for validate request
 		unmarkedConfigVal, _ := configVal.UnmarkDeep()
@@ -582,6 +589,33 @@ func validateDependsOn(ctx EvalContext, dependsOn []hcl.Traversal) (diags tfdiag
 				diags = diags.Append(refDiags)
 			}
 		}
+	}
+	return diags
+}
+
+// validateResourceForbiddenEphemeralValues returns an error diagnostic for each
+// value anywhere inside the given value that is marked as ephemeral, for
+// situations where ephemeral values are not permitted.
+//
+// All returned diagnostics are contextual diagnostics that must be finalized
+// by calling [tfdiags.Diagnostics.InConfigBody] before returning them to
+// any caller that expects fully-resolved diagnostics.
+func validateResourceForbiddenEphemeralValues(ctx EvalContext, value cty.Value, schema *configschema.Block) (diags tfdiags.Diagnostics) {
+	// NOTE: We take a schema argument in anticipation of a future feature
+	// that might allow managed resources to declare certain attributes as
+	// being "write-only", which would create a little nested island where
+	// ephemeral values are permitted in return for providers accepting that
+	// those values will not be preserved between plan and apply or between
+	// sequential plan/apply rounds. But we aren't doing that yet, so we
+	// just ignore that argument for now.
+
+	for _, path := range ephemeral.EphemeralValuePaths(value) {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid use of ephemeral value",
+			"Ephemeral values are not valid in resource arguments, because resource instances must persist between Terraform phases.",
+			path,
+		))
 	}
 	return diags
 }

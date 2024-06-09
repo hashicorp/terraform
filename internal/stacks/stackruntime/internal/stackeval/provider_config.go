@@ -224,3 +224,8 @@ func (p *ProviderConfig) PlanChanges(ctx context.Context) ([]stackplan.PlannedCh
 func (p *ProviderConfig) tracingName() string {
 	return p.Addr().String()
 }
+
+// reportNamedPromises implements namedPromiseReporter.
+func (p *ProviderConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	cb(p.providerArgs.PromiseID(), p.Addr().String())
+}

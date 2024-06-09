@@ -20,8 +20,10 @@ const (
 	VariableValidationCrossRef     = Experiment("variable_validation_crossref")
 	ModuleVariableOptionalAttrs    = Experiment("module_variable_optional_attrs")
 	SuppressProviderSensitiveAttrs = Experiment("provider_sensitive_attrs")
+	TemplateStringFunc             = Experiment("template_string_func")
 	ConfigDrivenMove               = Experiment("config_driven_move")
 	PreconditionsPostconditions    = Experiment("preconditions_postconditions")
+	EphemeralValues                = Experiment("ephemeral_values")
 	UnknownInstances               = Experiment("unknown_instances")
 )
 
@@ -30,10 +32,12 @@ func init() {
 	// a current or a concluded experiment.
 	registerConcludedExperiment(UnknownInstances, "Unknown instances are being rolled into a larger feature for deferring unready resources and modules.")
 	registerConcludedExperiment(VariableValidation, "Custom variable validation can now be used by default, without enabling an experiment.")
-	registerCurrentExperiment(VariableValidationCrossRef)
+	registerConcludedExperiment(VariableValidationCrossRef, "Input variable validation rules may now refer to other objects in the same module without enabling any experiment.")
 	registerConcludedExperiment(SuppressProviderSensitiveAttrs, "Provider-defined sensitive attributes are now redacted by default, without enabling an experiment.")
+	registerConcludedExperiment(TemplateStringFunc, "The templatestring function can now be used without enabling an experiment.")
 	registerConcludedExperiment(ConfigDrivenMove, "Declarations of moved resource instances using \"moved\" blocks can now be used by default, without enabling an experiment.")
 	registerConcludedExperiment(PreconditionsPostconditions, "Condition blocks can now be used by default, without enabling an experiment.")
+	registerCurrentExperiment(EphemeralValues)
 	registerConcludedExperiment(ModuleVariableOptionalAttrs, "The final feature corresponding to this experiment differs from the experimental form and is available in the Terraform language from Terraform v1.3.0 onwards.")
 }
 
