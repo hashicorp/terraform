@@ -368,7 +368,7 @@ func TestParsePartialExpandedResource(t *testing.T) {
 
 			partial, rest, diags := ParsePartialExpandedResource(traversal)
 			if len(diags) > 0 {
-
+				t.Fatalf("unexpected diagnostics: %s", diags)
 			}
 
 			if !partial.module.expandedPrefix.Equal(tc.want.module.expandedPrefix) {

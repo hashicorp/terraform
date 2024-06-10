@@ -430,6 +430,10 @@ func ParsePartialExpandedResource(traversal hcl.Traversal) (PartialExpandedResou
 		return PartialExpandedResource{}, nil, diags
 	}
 
+	// We know that remain[0] is a hcl.TraverseRoot object as the
+	// ParsePartialExpandedModule function always returns a hcl.TraverseRoot
+	// object as the first element in the remain slice.
+
 	mode := ManagedResourceMode
 	if remain.RootName() == "data" {
 		mode = DataResourceMode
