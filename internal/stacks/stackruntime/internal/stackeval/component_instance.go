@@ -604,7 +604,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				Mode:                       stackPlanOpts.PlanningMode,
 				SetVariables:               inputValues,
 				ExternalProviders:          providerClients,
-				DeferralAllowed:            stackPlanOpts.DeferralAllowed,
+				DeferralAllowed:            true,
 				ExternalDependencyDeferred: deferred,
 
 				// This is set by some tests but should not be used in main code.
