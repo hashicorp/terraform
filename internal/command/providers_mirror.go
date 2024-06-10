@@ -88,12 +88,6 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 	lockedDeps, lockedDepsDiags := c.Meta.lockedDependencies()
 	diags = diags.Append(lockedDepsDiags)
 
-	// If we have any error diagnostics already then we won't proceed further.
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	// If lock file is present, validate it against configuration
 	if !lockedDeps.Empty() {
 		if errs := config.VerifyDependencySelections(lockedDeps); len(errs) > 0 {
@@ -103,6 +97,12 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 				fmt.Sprintf("To update the locked dependency selections to match a changed configuration, run:\n  terraform init -upgrade\n got:%v", errs),
 			))
 		}
+	}
+
+	// If we have any error diagnostics already then we won't proceed further.
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	// Unlike other commands, this command always consults the origin registry

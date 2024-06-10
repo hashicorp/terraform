@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -20,14 +21,18 @@ import (
 // compromise for now to keep these tests relatively simple.
 
 func TestTerraformProvidersMirror(t *testing.T) {
-	testTerraformProvidersMirror(t, "terraform-providers-mirror")
+	testTerraformProvidersMirror(t, "terraform-providers-mirror", "")
 }
 
 func TestTerraformProvidersMirrorWithLockFile(t *testing.T) {
-	testTerraformProvidersMirror(t, "terraform-providers-mirror-with-lock-file")
+	testTerraformProvidersMirror(t, "terraform-providers-mirror-with-lock-file", "")
 }
 
-func testTerraformProvidersMirror(t *testing.T, fixture string) {
+func TestTerraformProvidersMirrorWithBrokenLockFile(t *testing.T) {
+	testTerraformProvidersMirror(t, "terraform-providers-mirror-with-broken-lock-file", "Inconsistent dependency lock file")
+}
+
+func testTerraformProvidersMirror(t *testing.T, fixture string, errMsg string) {
 	// This test reaches out to releases.hashicorp.com to download the
 	// template and null providers, so it can only run if network access is
 	// allowed.
@@ -40,6 +45,13 @@ func testTerraformProvidersMirror(t *testing.T, fixture string) {
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	stdout, stderr, err := tf.Run("providers", "mirror", "-platform=linux_amd64", "-platform=windows_386", outputDir)
+	if errMsg != "" {
+		if !strings.Contains(stderr, errMsg) {
+			t.Fatalf("expected error %q, got %q\n", errMsg, stderr)
+		}
+		return
+	}
+
 	if err != nil {
 		t.Fatalf("unexpected error: %s\nstdout:\n%s\nstderr:\n%s", err, stdout, stderr)
 	}
