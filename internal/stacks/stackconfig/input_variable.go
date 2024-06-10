@@ -21,6 +21,9 @@ type InputVariable struct {
 	DefaultValue cty.Value
 	Description  string
 
+	Sensitive bool
+	Ephemeral bool
+
 	DeclRange tfdiags.SourceRange
 }
 
@@ -77,6 +80,14 @@ func decodeInputVariableBlock(block *hcl.Block) (*InputVariable, tfdiags.Diagnos
 		hclDiags := gohcl.DecodeExpression(attr.Expr, nil, &ret.Description)
 		diags = diags.Append(hclDiags)
 	}
+	if attr, ok := content.Attributes["sensitive"]; ok {
+		hclDiags := gohcl.DecodeExpression(attr.Expr, nil, &ret.Sensitive)
+		diags = diags.Append(hclDiags)
+	}
+	if attr, ok := content.Attributes["ephemeral"]; ok {
+		hclDiags := gohcl.DecodeExpression(attr.Expr, nil, &ret.Ephemeral)
+		diags = diags.Append(hclDiags)
+	}
 
 	for _, block := range content.Blocks {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -95,6 +106,8 @@ var inputVariableBlockSchema = &hcl.BodySchema{
 		{Name: "type", Required: true},
 		{Name: "default", Required: false},
 		{Name: "description", Required: false},
+		{Name: "sensitive", Required: false},
+		{Name: "ephemeral", Required: false},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "validation"},
