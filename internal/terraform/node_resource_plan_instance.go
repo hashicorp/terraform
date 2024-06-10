@@ -190,6 +190,37 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			deferred = &providers.Deferred{
 				Reason: providers.DeferredReasonResourceConfigUnknown,
 			}
+			if n.Config == nil && len(n.generateConfigPath) > 0 {
+				// Then we're supposed to be generating configuration for this
+				// resource, but we can't because the configuration is unknown.
+				//
+				// Normally, the rest of this function would just be about
+				// planning the known configuration to make sure everything we
+				// do know about it is correct, but we can't even do that here.
+				//
+				// What we'll do is write out the address as being deferred with
+				// an entirely unknown value. Then we'll skip the rest of this
+				// function. (a) We're going to panic later when it complains
+				// about having no configuration, and (b) the rest of the
+				// function isn't doing anything as there is no configuration
+				// to validate.
+
+				impliedType := providerSchema.ResourceTypes[addr.Resource.Resource.Type].Block.ImpliedType()
+				ctx.Deferrals().ReportResourceInstanceDeferred(addr, providers.DeferredReasonResourceConfigUnknown, &plans.ResourceInstanceChange{
+					Addr:         addr,
+					PrevRunAddr:  addr,
+					ProviderAddr: n.ResolvedProvider,
+					Change: plans.Change{
+						Action: plans.NoOp, // assume we'll get the config generation correct.
+						Before: cty.NullVal(impliedType),
+						After:  cty.UnknownVal(impliedType),
+						Importing: &plans.Importing{
+							ID: n.importTarget,
+						},
+					},
+				})
+				return diags
+			}
 		}
 	} else {
 		var readDiags tfdiags.Diagnostics
