@@ -189,8 +189,8 @@ func (c *LoginCommand) Run(args []string) int {
 			// We prefer an OAuth code grant if the server supports it.
 			oauthToken, tokenDiags = c.interactiveGetTokenByCode(hostname, credsCtx, clientConfig)
 		case clientConfig.SupportedGrantTypes.Has(disco.OAuthOwnerPasswordGrant) && hostname == svchost.Hostname("app.terraform.io"):
-			// The password grant type is allowed only for Terraform Cloud SaaS.
-			// Note this case is purely theoretical at this point, as TFC currently uses
+			// The password grant type is allowed only for HCP Terraform SaaS.
+			// Note this case is purely theoretical at this point, as HCP Terraform currently uses
 			// its own bespoke login protocol (tfe)
 			oauthToken, tokenDiags = c.interactiveGetTokenByPassword(hostname, credsCtx, clientConfig)
 		default:
@@ -228,7 +228,7 @@ func (c *LoginCommand) Run(args []string) int {
 	}
 
 	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
-	if hostname == "app.terraform.io" { // Terraform Cloud
+	if hostname == "app.terraform.io" { // HCP Terraform
 		var motd struct {
 			Message string        `json:"msg"`
 			Errors  []interface{} `json:"errors"`
@@ -316,12 +316,12 @@ func (c *LoginCommand) outputDefaultTFELoginSuccess(dispHostname string) {
 
 func (c *LoginCommand) outputDefaultTFCLoginSuccess() {
 	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(`
-[green][bold]Success![reset] [bold]Logged in to Terraform Cloud[reset]
+[green][bold]Success![reset] [bold]Logged in to HCP Terraform[reset]
 ` + "\n")))
 }
 
 func (c *LoginCommand) logMOTDError(err error) {
-	log.Printf("[TRACE] login: An error occurred attempting to fetch a message of the day for Terraform Cloud: %s", err)
+	log.Printf("[TRACE] login: An error occurred attempting to fetch a message of the day for HCP Terraform: %s", err)
 }
 
 // Help implements cli.Command.
@@ -344,7 +344,7 @@ Usage: terraform [global options] login [hostname]
   automatic login, and saves it in a credentials file in your home directory.
 
   If no hostname is provided, the default hostname is app.terraform.io, to
-  log in to Terraform Cloud.
+  log in to HCP Terraform.
 
   If not overridden by credentials helper settings in the CLI configuration,
   the credentials will be written to the following local file:

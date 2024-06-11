@@ -4,11 +4,11 @@
 package renderers
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 )
 
 type evaluatedString struct {
@@ -30,12 +30,8 @@ func evaluatePrimitiveString(value interface{}, opts computed.RenderHumanOpts) e
 	str := value.(string)
 
 	if strings.HasPrefix(str, "{") || strings.HasPrefix(str, "[") {
-
-		decoder := json.NewDecoder(strings.NewReader(str))
-		decoder.UseNumber()
-
-		var jv interface{}
-		if err := decoder.Decode(&jv); err == nil {
+		jv, err := structured.ParseJson(strings.NewReader(str))
+		if err == nil {
 			return evaluatedString{
 				String: str,
 				Json:   jv,

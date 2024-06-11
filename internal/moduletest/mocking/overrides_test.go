@@ -86,9 +86,17 @@ func TestPackageOverrides(t *testing.T) {
 	overrides := PackageOverrides(run, file, config)
 
 	// We now expect that the run and file overrides took precedence.
-	first, pOk := overrides.GetOverride(primary)
-	second, sOk := overrides.GetOverride(secondary)
-	third, tOk := overrides.GetOverrideInclProviders(tertiary, addrs.AbsProviderConfig{
+	first, pOk := overrides.GetResourceOverride(primary, addrs.AbsProviderConfig{
+		Provider: addrs.Provider{
+			Type: "mock",
+		},
+	})
+	second, sOk := overrides.GetResourceOverride(secondary, addrs.AbsProviderConfig{
+		Provider: addrs.Provider{
+			Type: "mock",
+		},
+	})
+	third, tOk := overrides.GetResourceOverride(tertiary, addrs.AbsProviderConfig{
 		Provider: addrs.Provider{
 			Type: "mock",
 		},

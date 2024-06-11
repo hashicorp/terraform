@@ -9,12 +9,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/instances"
-
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -828,7 +827,7 @@ func TestScopeEvalSelfBlock(t *testing.T) {
 	tests := []struct {
 		Config  string
 		Self    cty.Value
-		KeyData instances.RepetitionData
+		KeyData RepetitionData
 		Want    map[string]cty.Value
 	}{
 		{
@@ -836,7 +835,7 @@ func TestScopeEvalSelfBlock(t *testing.T) {
 			Self: cty.ObjectVal(map[string]cty.Value{
 				"foo": cty.StringVal("bar"),
 			}),
-			KeyData: instances.RepetitionData{
+			KeyData: RepetitionData{
 				CountIndex: cty.NumberIntVal(0),
 			},
 			Want: map[string]cty.Value{
@@ -846,7 +845,7 @@ func TestScopeEvalSelfBlock(t *testing.T) {
 		},
 		{
 			Config: `num = count.index`,
-			KeyData: instances.RepetitionData{
+			KeyData: RepetitionData{
 				CountIndex: cty.NumberIntVal(0),
 			},
 			Want: map[string]cty.Value{
@@ -856,7 +855,7 @@ func TestScopeEvalSelfBlock(t *testing.T) {
 		},
 		{
 			Config: `attr = each.key`,
-			KeyData: instances.RepetitionData{
+			KeyData: RepetitionData{
 				EachKey: cty.StringVal("a"),
 			},
 			Want: map[string]cty.Value{

@@ -127,7 +127,7 @@ Examples of valid provider source address formats include:
   [the public Terraform Registry](https://registry.terraform.io/).
 
 * **Namespace:** An organizational namespace within the specified registry.
-  For the public Terraform Registry and for Terraform Cloud's private registry,
+  For the public Terraform Registry and for HCP Terraform's private registry,
   this represents the organization that publishes the provider. This field
   may have other meanings for other registry hosts.
 
@@ -224,7 +224,7 @@ To ensure Terraform always installs the same provider versions for a given
 configuration, you can use Terraform CLI to create a
 [dependency lock file](/terraform/language/files/dependency-lock)
 and commit it to version control along with your configuration. If a lock file
-is present, Terraform Cloud, CLI, and Enterprise will all obey it when
+is present, HCP Terraform, CLI, and Enterprise will all obey it when
 installing providers.
 
 > **Hands-on:** Try the [Lock and Upgrade Provider Versions](/terraform/tutorials/configuration-language/provider-versioning) tutorial.

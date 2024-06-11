@@ -285,6 +285,7 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 		ForceReplace:            plan.ForceReplaceAddrs,
 		Operation:               operation,
 		ExternalReferences:      plan.ExternalReferences,
+		Overrides:               plan.Overrides,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

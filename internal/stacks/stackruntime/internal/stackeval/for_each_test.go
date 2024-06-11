@@ -12,12 +12,13 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestEvaluateForEachExpr(t *testing.T) {
@@ -180,9 +181,9 @@ func TestEvaluateForEachExpr(t *testing.T) {
 func TestInstancesMap(t *testing.T) {
 	type InstanceObj struct {
 		Key addrs.InstanceKey
-		Rep instances.RepetitionData
+		Rep lang.RepetitionData
 	}
-	makeObj := func(k addrs.InstanceKey, r instances.RepetitionData) InstanceObj {
+	makeObj := func(k addrs.InstanceKey, r lang.RepetitionData) InstanceObj {
 		return InstanceObj{
 			Key: k,
 			Rep: r,
@@ -203,7 +204,7 @@ func TestInstancesMap(t *testing.T) {
 			map[addrs.InstanceKey]InstanceObj{
 				addrs.NoKey: {
 					Key: addrs.NoKey,
-					Rep: instances.RepetitionData{
+					Rep: lang.RepetitionData{
 						// No data available for the non-repeating case
 					},
 				},
@@ -259,14 +260,14 @@ func TestInstancesMap(t *testing.T) {
 			map[addrs.InstanceKey]InstanceObj{
 				addrs.StringKey("a"): {
 					Key: addrs.StringKey("a"),
-					Rep: instances.RepetitionData{
+					Rep: lang.RepetitionData{
 						EachKey:   cty.StringVal("a"),
 						EachValue: cty.StringVal("beep"),
 					},
 				},
 				addrs.StringKey("b"): {
 					Key: addrs.StringKey("b"),
-					Rep: instances.RepetitionData{
+					Rep: lang.RepetitionData{
 						EachKey:   cty.StringVal("b"),
 						EachValue: cty.StringVal("boop"),
 					},
@@ -281,14 +282,14 @@ func TestInstancesMap(t *testing.T) {
 			map[addrs.InstanceKey]InstanceObj{
 				addrs.StringKey("a"): {
 					Key: addrs.StringKey("a"),
-					Rep: instances.RepetitionData{
+					Rep: lang.RepetitionData{
 						EachKey:   cty.StringVal("a"),
 						EachValue: cty.StringVal("beep"),
 					},
 				},
 				addrs.StringKey("b"): {
 					Key: addrs.StringKey("b"),
-					Rep: instances.RepetitionData{
+					Rep: lang.RepetitionData{
 						EachKey:   cty.StringVal("b"),
 						EachValue: cty.StringVal("boop"),
 					},
@@ -303,14 +304,14 @@ func TestInstancesMap(t *testing.T) {
 			map[addrs.InstanceKey]InstanceObj{
 				addrs.StringKey("beep"): {
 					Key: addrs.StringKey("beep"),
-					Rep: instances.RepetitionData{
+					Rep: lang.RepetitionData{
 						EachKey:   cty.StringVal("beep"),
 						EachValue: cty.StringVal("beep"),
 					},
 				},
 				addrs.StringKey("boop"): {
 					Key: addrs.StringKey("boop"),
-					Rep: instances.RepetitionData{
+					Rep: lang.RepetitionData{
 						EachKey:   cty.StringVal("boop"),
 						EachValue: cty.StringVal("boop"),
 					},

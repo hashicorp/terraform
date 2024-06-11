@@ -10,12 +10,13 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestStackCallCheckInstances(t *testing.T) {
@@ -53,7 +54,7 @@ func TestStackCallCheckInstances(t *testing.T) {
 		if !ok {
 			t.Fatalf("missing expected addrs.NoKey instance\n%s", spew.Sdump(insts))
 		}
-		if diff := cmp.Diff(instances.RepetitionData{}, inst.RepetitionData(), ctydebug.CmpOptions); diff != "" {
+		if diff := cmp.Diff(lang.RepetitionData{}, inst.RepetitionData(), ctydebug.CmpOptions); diff != "" {
 			t.Errorf("wrong repetition data\n%s", diff)
 		}
 	})
@@ -121,7 +122,7 @@ func TestStackCallCheckInstances(t *testing.T) {
 				if !ok {
 					t.Fatalf("missing expected addrs.StringKey(\"a\") instance\n%s", spew.Sdump(insts))
 				}
-				wantRepData := instances.RepetitionData{
+				wantRepData := lang.RepetitionData{
 					EachKey: cty.StringVal("a"),
 					EachValue: cty.ObjectVal(map[string]cty.Value{
 						"test_string": cty.StringVal("in a"),
@@ -136,7 +137,7 @@ func TestStackCallCheckInstances(t *testing.T) {
 				if !ok {
 					t.Fatalf("missing expected addrs.StringKey(\"b\") instance\n%s", spew.Sdump(insts))
 				}
-				wantRepData := instances.RepetitionData{
+				wantRepData := lang.RepetitionData{
 					EachKey: cty.StringVal("b"),
 					EachValue: cty.ObjectVal(map[string]cty.Value{
 						"test_string": cty.StringVal("in b"),

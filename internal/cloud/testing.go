@@ -53,7 +53,7 @@ var (
 		"/api/v2/ping": func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("TFP-API-Version", "2.5")
-			w.Header().Set("TFP-AppName", "Terraform Cloud")
+			w.Header().Set("TFP-AppName", "HCP Terraform")
 		},
 	}
 )

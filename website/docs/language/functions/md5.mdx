@@ -14,7 +14,8 @@ The given string is first encoded as UTF-8 and then the MD5 algorithm is applied
 as defined in [RFC 1321](https://tools.ietf.org/html/rfc1321). The raw hash is
 then encoded to lowercase hexadecimal digits before returning.
 
-Before using this function for anything security-sensitive, refer to
+Collision attacks have been successfully performed against this hashing
+function. Before using this function for anything security-sensitive, refer to
 [RFC 6151](https://tools.ietf.org/html/rfc6151) for updated security
 considerations applying to the MD5 algorithm.
 

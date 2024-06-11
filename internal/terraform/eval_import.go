@@ -8,15 +8,16 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData instances.RepetitionData) (string, tfdiags.Diagnostics) {
+func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData lang.RepetitionData) (string, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// import blocks only exist in the root module, and must be evaluated in
@@ -84,7 +85,7 @@ func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData in
 	return importId, diags
 }
 
-func evalImportToExpression(expr hcl.Expression, keyData instances.RepetitionData) (addrs.AbsResourceInstance, tfdiags.Diagnostics) {
+func evalImportToExpression(expr hcl.Expression, keyData lang.RepetitionData) (addrs.AbsResourceInstance, tfdiags.Diagnostics) {
 	var res addrs.AbsResourceInstance
 	var diags tfdiags.Diagnostics
 
@@ -120,7 +121,7 @@ func evalImportToExpression(expr hcl.Expression, keyData instances.RepetitionDat
 // in replace_triggered_by, and converts it to a static traversal. The
 // RepetitionData contains the data necessary to evaluate the only allowed
 // variables in the expression, count.index and each.key.
-func importToExprToTraversal(expr hcl.Expression, keyData instances.RepetitionData) (hcl.Traversal, tfdiags.Diagnostics) {
+func importToExprToTraversal(expr hcl.Expression, keyData lang.RepetitionData) (hcl.Traversal, tfdiags.Diagnostics) {
 	var trav hcl.Traversal
 	var diags tfdiags.Diagnostics
 
@@ -165,7 +166,7 @@ func importToExprToTraversal(expr hcl.Expression, keyData instances.RepetitionDa
 
 // parseImportToKeyExpression takes an hcl.Expression and parses it as an index key, while
 // evaluating any references to count.index or each.key.
-func parseImportToKeyExpression(expr hcl.Expression, keyData instances.RepetitionData) (hcl.TraverseIndex, hcl.Diagnostics) {
+func parseImportToKeyExpression(expr hcl.Expression, keyData lang.RepetitionData) (hcl.TraverseIndex, hcl.Diagnostics) {
 	idx := hcl.TraverseIndex{
 		SrcRange: expr.Range(),
 	}

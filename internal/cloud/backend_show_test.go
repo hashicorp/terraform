@@ -17,7 +17,7 @@ import (
 // `terraform show cloudplan.tfplan` relies on the correctness of the following
 // behaviors:
 //
-// 1. TFC API returns redacted or unredacted plan JSON on request, if permission
+// 1. HCP Terraform API returns redacted or unredacted plan JSON on request, if permission
 // requirements are met and the run is in a condition where that JSON exists.
 // 2. Cloud.ShowPlanForRun() makes correct API calls, calculates metadata
 // properly given a tfe.Run, and returns either a cloudplan.RemotePlanJSON or an err.

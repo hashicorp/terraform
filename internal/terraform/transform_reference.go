@@ -437,17 +437,18 @@ func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsO
 
 		deps, fromParentModule := m.dependsOn(g, mod)
 		for _, dep := range deps {
-			// add the dependency
-			res = append(res, dep)
-
-			// and check any transitive resource dependencies for more resources
-			ans, _ := g.Ancestors(dep)
-			for _, v := range ans {
-				if isDependableResource(v) {
-					res = append(res, v)
-				}
+			if isDependableResource(dep) {
+				res = append(res, dep)
 			}
 		}
+
+		ans, _ := g.Ancestors(deps...)
+		for _, v := range ans {
+			if isDependableResource(v) {
+				res = append(res, v)
+			}
+		}
+
 		fromModule = fromModule || fromParentModule
 	}
 
@@ -522,21 +523,50 @@ func (m ReferenceMap) referenceMapKey(path addrs.Module, addr addrs.Referenceabl
 		// might be in a resource-oriented graph rather than an
 		// instance-oriented graph, and so we'll see if we have the
 		// resource itself instead.
-		switch ri := addr.(type) {
-		case addrs.ResourceInstance:
-			addr = ri.ContainingResource()
-		case addrs.ResourceInstancePhase:
-			addr = ri.ContainingResource()
-		case addrs.ModuleCallInstanceOutput:
-			addr = ri.ModuleCallOutput()
-		case addrs.ModuleCallInstance:
-			addr = ri.Call
-		default:
-			return key
+
+		if ri, ok := addr.(addrs.ResourceInstance); ok {
+			return m.mapKey(path, ri.ContainingResource())
 		}
-		// if we matched any of the resource node types above, generate a new
-		// key
-		key = m.mapKey(path, addr)
+
+		if rip, ok := addr.(addrs.ResourceInstancePhase); ok {
+			return m.mapKey(path, rip.ContainingResource())
+		}
+
+		if mcio, ok := addr.(addrs.ModuleCallInstanceOutput); ok {
+
+			// A module call instance output is a reference to an output of a
+			// specific module call. If we can't find that, we'll look first
+			// for the general non-instanced output.
+
+			key = m.mapKey(path, mcio.ModuleCallOutput())
+			if _, exists := m[key]; exists {
+				// We found it, so we can just use that.
+				return key
+			}
+
+			// Otherwise we'll look just for the instanced module call itself.
+
+			key = m.mapKey(path, mcio.Call)
+			if _, exists := m[key]; exists {
+				// We found it, so we can just use that.
+				return key
+			}
+
+			// If we still can't find it, then we'll look for the non-instanced
+			// module call. This is the same as we'd do if the original call had
+			// just been for a ModuleCallInstance, so we'll let that fall
+			// through.
+
+			addr = mcio.Call
+
+		}
+
+		if mci, ok := addr.(addrs.ModuleCallInstance); ok {
+			return m.mapKey(path, mci.Call)
+		}
+
+		// If nothing matched, then we'll just return the original key
+		// unchanged.
 	}
 	return key
 }

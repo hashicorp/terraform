@@ -9,6 +9,9 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -44,9 +47,9 @@ type Expander struct {
 }
 
 // NewExpander initializes and returns a new Expander, empty and ready to use.
-func NewExpander() *Expander {
+func NewExpander(overrides *mocking.Overrides) *Expander {
 	return &Expander{
-		exps: newExpanderModule(),
+		exps: newExpanderModule(overrides),
 	}
 }
 
@@ -131,8 +134,10 @@ func (e *Expander) SetResourceForEachUnknown(moduleAddr addrs.ModuleInstance, re
 // All of the modules on the path to the identified module must already have
 // had their expansion registered using one of the SetModule* methods before
 // calling, or this method will panic.
-func (e *Expander) ExpandModule(addr addrs.Module) []addrs.ModuleInstance {
-	return e.expandModule(addr, false)
+//
+// Any overridden modules will not be included in the result here.
+func (e *Expander) ExpandModule(addr addrs.Module, includeDirectOverrides bool) []addrs.ModuleInstance {
+	return e.expandModule(addr, false, includeDirectOverrides)
 }
 
 // ExpandAbsModuleCall is similar to [Expander.ExpandModule] except that it
@@ -180,7 +185,7 @@ func (e *Expander) ExpandAbsModuleCall(addr addrs.AbsModuleCall) (keyType addrs.
 // expandModule allows skipping unexpanded module addresses by setting skipUnregistered to true.
 // This is used by instances.Set, which is only concerned with the expanded
 // instances, and should not panic when looking up unknown addresses.
-func (e *Expander) expandModule(addr addrs.Module, skipUnregistered bool) []addrs.ModuleInstance {
+func (e *Expander) expandModule(addr addrs.Module, skipUnregistered, includeDirectOverrides bool) []addrs.ModuleInstance {
 	if len(addr) == 0 {
 		// Root module is always a singleton.
 		return singletonRootModule
@@ -195,7 +200,7 @@ func (e *Expander) expandModule(addr addrs.Module, skipUnregistered bool) []addr
 	// (moduleInstances does plenty of allocations itself, so the benefit of
 	// pre-allocating this is marginal but it's not hard to do.)
 	parentAddr := make(addrs.ModuleInstance, 0, 4)
-	ret := e.exps.moduleInstances(addr, parentAddr, skipUnregistered)
+	ret := e.exps.moduleInstances(addr, parentAddr, skipUnregistered, includeDirectOverrides)
 	sort.SliceStable(ret, func(i, j int) bool {
 		return ret[i].Less(ret[j])
 	})
@@ -215,7 +220,7 @@ func (e *Expander) expandModule(addr addrs.Module, skipUnregistered bool) []addr
 // considered as the union of all of those sets but we return it as a set of
 // sets because the inner sets are of infinite size while the outer set is
 // finite.
-func (e *Expander) UnknownModuleInstances(addr addrs.Module) addrs.Set[addrs.PartialExpandedModule] {
+func (e *Expander) UnknownModuleInstances(addr addrs.Module, includeDirectOverrides bool) addrs.Set[addrs.PartialExpandedModule] {
 	if len(addr) == 0 {
 		// The root module is always "expanded" because it's always a singleton,
 		// so we have nothing to return in that case.
@@ -227,7 +232,7 @@ func (e *Expander) UnknownModuleInstances(addr addrs.Module) addrs.Set[addrs.Par
 
 	ret := addrs.MakeSet[addrs.PartialExpandedModule]()
 	parentAddr := make(addrs.ModuleInstance, 0, 4)
-	e.exps.partialExpandedModuleInstances(addr, parentAddr, ret)
+	e.exps.partialExpandedModuleInstances(addr, parentAddr, includeDirectOverrides, ret)
 	return ret
 }
 
@@ -347,10 +352,10 @@ func (e *Expander) UnknownResourceInstances(resourceAddr addrs.ConfigResource) a
 // GetModuleInstanceRepetitionData returns an object describing the values
 // that should be available for each.key, each.value, and count.index within
 // the call block for the given module instance.
-func (e *Expander) GetModuleInstanceRepetitionData(addr addrs.ModuleInstance) RepetitionData {
+func (e *Expander) GetModuleInstanceRepetitionData(addr addrs.ModuleInstance) lang.RepetitionData {
 	if len(addr) == 0 {
 		// The root module is always a singleton, so it has no repetition data.
-		return RepetitionData{}
+		return lang.RepetitionData{}
 	}
 
 	e.mu.RLock()
@@ -360,7 +365,7 @@ func (e *Expander) GetModuleInstanceRepetitionData(addr addrs.ModuleInstance) Re
 	if !known {
 		// If we're nested inside something unexpanded then we don't even
 		// know what type of expansion we're doing.
-		return TotallyUnknownRepetitionData
+		return lang.TotallyUnknownRepetitionData
 	}
 	lastStep := addr[len(addr)-1]
 	exp, ok := parentMod.moduleCalls[addrs.ModuleCall{Name: lastStep.Name}]
@@ -401,7 +406,7 @@ func (e *Expander) GetModuleCallInstanceKeys(addr addrs.AbsModuleCall) (keyType 
 // GetResourceInstanceRepetitionData returns an object describing the values
 // that should be available for each.key, each.value, and count.index within
 // the definition block for the given resource instance.
-func (e *Expander) GetResourceInstanceRepetitionData(addr addrs.AbsResourceInstance) RepetitionData {
+func (e *Expander) GetResourceInstanceRepetitionData(addr addrs.AbsResourceInstance) lang.RepetitionData {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
@@ -409,7 +414,7 @@ func (e *Expander) GetResourceInstanceRepetitionData(addr addrs.AbsResourceInsta
 	if !known {
 		// If we're nested inside something unexpanded then we don't even
 		// know what type of expansion we're doing.
-		return TotallyUnknownRepetitionData
+		return lang.TotallyUnknownRepetitionData
 	}
 	exp, ok := parentMod.resources[addr.Resource.Resource]
 	if !ok {
@@ -494,7 +499,7 @@ func (e *Expander) setModuleExpansion(parentAddr addrs.ModuleInstance, callAddr 
 		_, knownKeys, _ := exp.instanceKeys()
 		for _, key := range knownKeys {
 			step := addrs.ModuleInstanceStep{Name: callAddr.Name, InstanceKey: key}
-			mod.childInstances[step] = newExpanderModule()
+			mod.childInstances[step] = newExpanderModule(e.exps.overrides)
 		}
 	}
 	mod.moduleCalls[callAddr] = exp
@@ -550,13 +555,19 @@ type expanderModule struct {
 	moduleCalls    map[addrs.ModuleCall]expansion
 	resources      map[addrs.Resource]expansion
 	childInstances map[addrs.ModuleInstanceStep]*expanderModule
+
+	// overrides ensures that any overriden modules instances will not be
+	// returned as options for expansion. A nil overrides indicates there are
+	// no overrides and we're not operating within the testing framework.
+	overrides *mocking.Overrides
 }
 
-func newExpanderModule() *expanderModule {
+func newExpanderModule(overrides *mocking.Overrides) *expanderModule {
 	return &expanderModule{
 		moduleCalls:    make(map[addrs.ModuleCall]expansion),
 		resources:      make(map[addrs.Resource]expansion),
 		childInstances: make(map[addrs.ModuleInstanceStep]*expanderModule),
+		overrides:      overrides,
 	}
 }
 
@@ -566,8 +577,16 @@ var singletonRootModule = []addrs.ModuleInstance{addrs.RootModuleInstance}
 // expansions have been done, set skipUnregistered to true which allows addrs
 // which may not have been seen to return with no instances rather than
 // panicking.
-func (m *expanderModule) moduleInstances(addr addrs.Module, parentAddr addrs.ModuleInstance, skipUnregistered bool) []addrs.ModuleInstance {
+func (m *expanderModule) moduleInstances(addr addrs.Module, parentAddr addrs.ModuleInstance, skipUnregistered, includeDirectOverrides bool) []addrs.ModuleInstance {
 	callName := addr[0]
+
+	// If the parent module is overridden then this module should not be
+	// expanded. Note, we don't check includeDirectOverrides because if the
+	// parent module is overridden then this module isn't "directly" overridden.
+	if _, overridden := m.overrides.GetModuleOverride(parentAddr); overridden {
+		return nil
+	}
+
 	exp, ok := m.moduleCalls[addrs.ModuleCall{Name: callName}]
 	if !ok {
 		if skipUnregistered {
@@ -593,8 +612,14 @@ func (m *expanderModule) moduleInstances(addr addrs.Module, parentAddr addrs.Mod
 				continue
 			}
 			instAddr := append(parentAddr, step)
-			ret = append(ret, inst.moduleInstances(addr[1:], instAddr, skipUnregistered)...)
+			ret = append(ret, inst.moduleInstances(addr[1:], instAddr, skipUnregistered, includeDirectOverrides)...)
 		}
+		return ret
+	}
+
+	if _, overridden := m.overrides.GetModuleOverride(parentAddr.Child(callName, addrs.NoKey)); !includeDirectOverrides && overridden {
+		// Then all the potential instances of this module have been
+		// overridden so we don't want to do any expansion for them.
 		return ret
 	}
 
@@ -602,6 +627,11 @@ func (m *expanderModule) moduleInstances(addr addrs.Module, parentAddr addrs.Mod
 	// a sequence of addresses under this prefix.
 	_, knownKeys, _ := exp.instanceKeys()
 	for _, k := range knownKeys {
+		if _, overridden := m.overrides.GetModuleOverride(parentAddr.Child(callName, k)); !includeDirectOverrides && overridden {
+			// This specific instance is overridden, so we won't return it.
+			continue
+		}
+
 		// We're reusing the buffer under parentAddr as we recurse through
 		// the structure, so we need to copy it here to produce a final
 		// immutable slice to return.
@@ -613,8 +643,16 @@ func (m *expanderModule) moduleInstances(addr addrs.Module, parentAddr addrs.Mod
 	return ret
 }
 
-func (m *expanderModule) partialExpandedModuleInstances(addr addrs.Module, parentAddr addrs.ModuleInstance, into addrs.Set[addrs.PartialExpandedModule]) {
+func (m *expanderModule) partialExpandedModuleInstances(addr addrs.Module, parentAddr addrs.ModuleInstance, includeDirectOverrides bool, into addrs.Set[addrs.PartialExpandedModule]) {
 	callName := addr[0]
+
+	// If the parent module is overridden then this module should not be
+	// expanded. Note, we don't check includeDirectOverrides because if the
+	// parent module is overridden then this module isn't "directly" overridden.
+	if _, overridden := m.overrides.GetModuleOverride(parentAddr); overridden {
+		return
+	}
+
 	exp, ok := m.moduleCalls[addrs.ModuleCall{Name: callName}]
 	if !ok {
 		// This is a bug in the caller, because it should always register
@@ -623,6 +661,12 @@ func (m *expanderModule) partialExpandedModuleInstances(addr addrs.Module, paren
 		panic(fmt.Sprintf("no expansion has been registered for %s", parentAddr.Child(callName, addrs.NoKey)))
 	}
 	if expansionIsDeferred(exp) {
+		if _, overridden := m.overrides.GetModuleOverride(parentAddr.Child(callName, addrs.NoKey)); !includeDirectOverrides && overridden {
+			// Then all the potential instances of this module have been
+			// overridden so we don't want to do any expansion for them.
+			return
+		}
+
 		// We've found a deferred expansion, so we're done searching this
 		// subtree and can just treat the whole of "addr" as unexpanded
 		// calls.
@@ -642,7 +686,7 @@ func (m *expanderModule) partialExpandedModuleInstances(addr addrs.Module, paren
 				continue
 			}
 			instAddr := append(parentAddr, step)
-			inst.partialExpandedModuleInstances(addr[1:], instAddr, into)
+			inst.partialExpandedModuleInstances(addr[1:], instAddr, includeDirectOverrides, into)
 		}
 	}
 }

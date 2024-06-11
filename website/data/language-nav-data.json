@@ -217,6 +217,10 @@
       }
     ]
   },
+  {
+    "title": "Moved block",
+    "path": "moved"
+  },
   { "title": "Checks", "path": "checks" },
   {
       "title": "Import",
@@ -933,7 +937,7 @@
     "title": "Terraform Settings",
     "routes": [
       { "title": "Overview", "path": "settings" },
-      { "title": "Terraform Cloud", "path": "settings/terraform-cloud" },
+      { "title": "HCP Terraform", "path": "settings/cloud" },
       {
         "title": "Backends",
         "routes": [

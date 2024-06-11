@@ -399,17 +399,17 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 }
 
 func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
-	ctx, span := tracer.Start(ctx, "initialize Terraform Cloud")
+	ctx, span := tracer.Start(ctx, "initialize HCP Terraform")
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
 	defer span.End()
 
-	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing Terraform Cloud..."))
+	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing HCP Terraform..."))
 
 	if len(extraConfig.AllItems()) != 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid command-line option",
-			"The -backend-config=... command line option is only for state backends, and is not applicable to Terraform Cloud-based configurations.\n\nTo change the set of workspaces associated with this configuration, edit the Cloud configuration block in the root module.",
+			"The -backend-config=... command line option is only for state backends, and is not applicable to HCP Terraform-based configurations.\n\nTo change the set of workspaces associated with this configuration, edit the Cloud configuration block in the root module.",
 		))
 		return nil, true, diags
 	}
@@ -441,7 +441,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Unsupported backend type",
-				Detail:   fmt.Sprintf("There is no explicit backend type named %q. To configure Terraform Cloud, declare a 'cloud' block instead.", backendType),
+				Detail:   fmt.Sprintf("There is no explicit backend type named %q. To configure HCP Terraform, declare a 'cloud' block instead.", backendType),
 				Subject:  &root.Backend.TypeRange,
 			})
 			return nil, true, diags
@@ -1115,7 +1115,7 @@ Usage: terraform [global options] init [options]
 
 Options:
 
-  -backend=false          Disable backend or Terraform Cloud initialization
+  -backend=false          Disable backend or HCP Terraform initialization
                           for this configuration and use what was previously
                           initialized instead.
 
@@ -1170,12 +1170,12 @@ Options:
   -lockfile=MODE          Set a dependency lockfile mode.
                           Currently only "readonly" is valid.
 
-  -ignore-remote-version  A rare option used for Terraform Cloud and the remote backend
+  -ignore-remote-version  A rare option used for HCP Terraform and the remote backend
                           only. Set this to ignore checking that the local and remote
                           Terraform versions use compatible state representations, making
                           an operation proceed even when there is a potential mismatch.
                           See the documentation on configuring Terraform with
-                          Terraform Cloud for more information.
+                          HCP Terraform or Terraform Enterprise for more information.
 
   -test-directory=path    Set the Terraform test directory, defaults to "tests".
 
@@ -1215,7 +1215,7 @@ const outputInitSuccess = `
 `
 
 const outputInitSuccessCloud = `
-[reset][bold][green]Terraform Cloud has been successfully initialized![reset][green]
+[reset][bold][green]HCP Terraform has been successfully initialized![reset][green]
 `
 
 const outputInitSuccessCLI = `[reset][green]
@@ -1229,7 +1229,7 @@ commands will detect it and remind you to do so if necessary.
 `
 
 const outputInitSuccessCLICloud = `[reset][green]
-You may now begin working with Terraform Cloud. Try running "terraform plan" to
+You may now begin working with HCP Terraform. Try running "terraform plan" to
 see any changes that are required for your infrastructure.
 
 If you ever set or change modules or Terraform Settings, run "terraform init"

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/states"
@@ -105,8 +106,20 @@ func (n *nodeExpandPlannableResource) ModifyCreateBeforeDestroy(v bool) error {
 func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 
+	// First, make sure the count and the foreach don't refer to the same
+	// resource. The config maybe nil if we are generating configuration, or
+	// deleting a resource.
+	if n.Config != nil {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(validateSelfRefInExpr(n.Addr.Resource, n.Config.Count))
+		diags = diags.Append(validateSelfRefInExpr(n.Addr.Resource, n.Config.ForEach))
+		if diags.HasErrors() {
+			return nil, diags
+		}
+	}
+
 	expander := ctx.InstanceExpander()
-	moduleInstances := expander.ExpandModule(n.Addr.Module)
+	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
 
 	// The possibility of partial-expanded modules and resources is
 	// currently guarded by a language experiment, and so to minimize the
@@ -128,7 +141,7 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	// these two codepaths back together, so that the behavior is less likely
 	// to diverge under future maintenence.
 	if n.unknownInstancesExperimentEnabled {
-		pem := expander.UnknownModuleInstances(n.Addr.Module)
+		pem := expander.UnknownModuleInstances(n.Addr.Module, false)
 		return n.dynamicExpandWithUnknownInstancesExperiment(ctx, moduleInstances, pem)
 	}
 

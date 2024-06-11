@@ -411,7 +411,7 @@ func TestModule_cloud_override(t *testing.T) {
 
 func TestModule_cloud_duplicate_overrides(t *testing.T) {
 	_, diags := testModuleFromDir("testdata/invalid-modules/override-cloud-duplicates")
-	want := `Duplicate Terraform Cloud configurations`
+	want := `Duplicate HCP Terraform configurations`
 	if got := diags.Error(); !strings.Contains(got, want) {
 		t.Fatalf("expected module error to contain %q\nerror was:\n%s", want, got)
 	}

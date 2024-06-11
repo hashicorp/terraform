@@ -12,7 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -156,20 +156,20 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 	// suitable unknown values for count.index, each.key, and each.value
 	// so that anything that varies between the instances will be unknown
 	// but we can still check the arguments that they all have in common.
-	var keyData instances.RepetitionData
+	var keyData lang.RepetitionData
 	switch {
 	case n.config.ForEach != nil:
 		// We don't actually know the `for_each` type here, but we do at least
 		// know it's for_each.
-		keyData = instances.UnknownForEachRepetitionData(cty.DynamicPseudoType)
+		keyData = lang.UnknownForEachRepetitionData(cty.DynamicPseudoType)
 	case n.config.Count != nil:
-		keyData = instances.UnknownCountRepetitionData
+		keyData = lang.UnknownCountRepetitionData
 	default:
 		// If we get here then we're presumably a single-instance resource
 		// inside a multi-instance module whose instances aren't known yet,
 		// and so we'll evaluate without any of the repetition symbols to
 		// still generate the usual errors if someone tries to use them here.
-		keyData = instances.RepetitionData{
+		keyData = lang.RepetitionData{
 			CountIndex: cty.NilVal,
 			EachKey:    cty.NilVal,
 			EachValue:  cty.NilVal,
@@ -275,7 +275,7 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 
 	// We need to combine the dynamic marks with the static marks implied by
 	// the provider's schema.
-	unmarkedPaths = dedupePathValueMarks(append(unmarkedPaths, schema.ValueMarks(plannedNewVal, nil)...))
+	unmarkedPaths = append(unmarkedPaths, schema.ValueMarks(plannedNewVal, nil)...)
 	if len(unmarkedPaths) > 0 {
 		plannedNewVal = plannedNewVal.MarkWithPaths(unmarkedPaths)
 	}
