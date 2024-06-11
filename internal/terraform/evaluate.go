@@ -526,7 +526,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// would be nice to rework this function to rely on the ResourceInstanceKeys
 	// result for _all_ of its work, rather than continuing to duplicate a bunch
 	// of the logic we've tried to encapsulate over ther already.
-	if d.Operation == walkPlan {
+	if d.Operation == walkPlan || d.Operation == walkApply {
 		if _, _, hasUnknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(addr.Absolute(moduleAddr)); hasUnknownKeys {
 			// There really isn't anything interesting we can do in this situation,
 			// because it means we have an unknown for_each/count, in which case
@@ -625,6 +625,11 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		}
 
 		instAddr := addr.Instance(key).Absolute(d.ModulePath)
+
+		if value, ok := d.Evaluator.Deferrals.GetDeferredResourceInstanceValue(instAddr); ok {
+			instances[key] = value
+			continue
+		}
 
 		change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, addrs.NotDeposed)
 		if change != nil {

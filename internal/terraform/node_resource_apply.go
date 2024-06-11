@@ -49,35 +49,10 @@ func (n *nodeExpandApplyableResource) Name() string {
 }
 
 func (n *nodeExpandApplyableResource) Execute(globalCtx EvalContext, op walkOperation) tfdiags.Diagnostics {
-
-	// TODO: When validating support for modules (TF-13952), we should check
-	// here if the whole module is partially expanded and skip the .ExpandModule
-	// call below.
-	//
-	//  for _, per := range n.PartialExpansions {
-	//    if _, ok := per.PartialExpandedModule(); ok {
-	//      return nil // don't even try to expand the modules
-	//    }
-	//  }
-	//
-	//  The above checks if the module is partially expanded and if it is, it
-	//  skips the expansion of the module. This isn't implemented yet, because
-	//  partial module expansion is not implemented properly yet.
-
 	var diags tfdiags.Diagnostics
 	expander := globalCtx.InstanceExpander()
 	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
-Insts:
 	for _, module := range moduleInstances {
-
-		// First check if this resource in this module instance in part of a
-		// partial expansion. If it is, we can't and don't need to expand it.
-		for _, per := range n.PartialExpansions {
-			if per.MatchesResource(n.Addr.Absolute(module)) {
-				continue Insts
-			}
-		}
-
 		moduleCtx := evalContextForModuleInstance(globalCtx, module)
 		diags = diags.Append(n.writeResourceState(moduleCtx, n.Addr.Resource.Absolute(module)))
 	}

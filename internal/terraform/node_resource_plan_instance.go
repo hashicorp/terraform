@@ -103,36 +103,47 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		checkRuleSeverity = tfdiags.Warning
 	}
 
-	change, state, repeatData, planDiags := n.planDataSource(ctx, checkRuleSeverity, n.skipPlanChanges)
+	change, state, deferred, repeatData, planDiags := n.planDataSource(ctx, checkRuleSeverity, n.skipPlanChanges)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
 	}
 
-	// write the data source into both the refresh state and the
-	// working state
-	diags = diags.Append(n.writeResourceInstanceState(ctx, state, refreshState))
-	if diags.HasErrors() {
-		return diags
-	}
-	diags = diags.Append(n.writeResourceInstanceState(ctx, state, workingState))
-	if diags.HasErrors() {
-		return diags
-	}
+	deferrals := ctx.Deferrals()
+	if deferred != nil {
+		// Then this data source got deferred by the provider during planning.
+		deferrals.ReportDataSourceInstanceDeferred(addr, deferred.Reason, change)
+	} else if deferrals.ShouldDeferResourceInstanceChanges(addr, n.Dependencies) {
+		// Then this data source is deferred because a dependency is deferred.
+		deferrals.ReportDataSourceInstanceDeferred(addr, providers.DeferredReasonDeferredPrereq, change)
+	} else {
+		// Not deferred; business as usual.
 
-	diags = diags.Append(n.writeChange(ctx, change, ""))
+		// write the data source into both the refresh state and the
+		// working state
+		diags = diags.Append(n.writeResourceInstanceState(ctx, state, refreshState))
+		if diags.HasErrors() {
+			return diags
+		}
+		diags = diags.Append(n.writeResourceInstanceState(ctx, state, workingState))
+		if diags.HasErrors() {
+			return diags
+		}
 
-	// Post-conditions might block further progress. We intentionally do this
-	// _after_ writing the state/diff because we want to check against
-	// the result of the operation, and to fail on future operations
-	// until the user makes the condition succeed.
-	checkDiags := evalCheckRules(
-		addrs.ResourcePostcondition,
-		n.Config.Postconditions,
-		ctx, addr, repeatData,
-		checkRuleSeverity,
-	)
-	diags = diags.Append(checkDiags)
+		diags = diags.Append(n.writeChange(ctx, change, ""))
+
+		// Post-conditions might block further progress. We intentionally do this
+		// _after_ writing the state/diff because we want to check against
+		// the result of the operation, and to fail on future operations
+		// until the user makes the condition succeed.
+		checkDiags := evalCheckRules(
+			addrs.ResourcePostcondition,
+			n.Config.Postconditions,
+			ctx, addr, repeatData,
+			checkRuleSeverity,
+		)
+		diags = diags.Append(checkDiags)
+	}
 
 	return diags
 }

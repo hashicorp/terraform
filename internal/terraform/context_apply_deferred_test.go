@@ -97,15 +97,22 @@ variable "each" {
 	type = set(string)
 }
 
+# Partial-expanded and deferred due to unknown for_each
 data "test" "a" {
 	for_each = var.each
 
 	name = "a:${each.key}"
 }
 
+# Instance deferred due to dependency on deferred data source
 resource "test" "b" {
 	name = "b"
 	upstream_names = [for v in data.test.a : v.name]
+}
+
+# Instance deferred due to dependency on deferred resource
+data "test" "c" {
+	name = test.b.output
 }
 
 output "from_data" {
@@ -133,13 +140,31 @@ output "from_resource" {
 				},
 				wantActions: map[string]plans.Action{},
 				wantDeferred: map[string]ExpectedDeferred{
-					"test.b": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+					// Much like a data source with unknown config results in a
+					// planned Read action to be performed in the apply, a
+					// deferred data source results in a *deferred* Read action
+					// to be performed in a future plan/apply round.
+					`data.test.a["*"]`: {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Read},
+					"test.b":           {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+					"data.test.c":      {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Read},
 				},
 				wantApplied: map[string]cty.Value{},
-				// TODO: These deferred output values are wrong, but outputs are a separate ticket.
 				wantOutputs: map[string]cty.Value{
-					"from_data":     cty.EmptyTupleVal,
-					"from_resource": cty.NullVal(cty.DynamicPseudoType),
+					// To start with: outputs that refer to deferred values are
+					// null values of some type.
+
+					// The from_data output's value is the result of a [for]
+					// expression that maps over an object of objects (the value
+					// of the data.test.a block). Since the for_each keys of the
+					// whole data source object are unknown (and the keys are an
+					// inherent part of the object type), we can't say anything
+					// about the type... and thus, can't say anything about the
+					// type of the tuple value that the [for] would derive from it.
+					"from_data": cty.NullVal(cty.DynamicPseudoType),
+					// The from_resource output's value is just a string
+					// attribute from a singleton resource instance, but it's
+					// still null because the resource got deferred.
+					"from_resource": cty.NullVal(cty.String),
 				},
 				complete:      false,
 				allowWarnings: false,
@@ -158,6 +183,9 @@ output "from_resource" {
 				},
 				wantActions: map[string]plans.Action{
 					"test.b": plans.Create,
+					// Not deferred anymore, but Read still gets delayed til
+					// apply due to unknown config.
+					"data.test.c": plans.Read,
 				},
 				wantDeferred: map[string]ExpectedDeferred{},
 				wantApplied: map[string]cty.Value{
@@ -224,13 +252,16 @@ output "from_resource" {
 				},
 				wantActions: map[string]plans.Action{},
 				wantDeferred: map[string]ExpectedDeferred{
-					"test.b": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+					`data.test.a["*"]`: {Reason: providers.DeferredReasonInstanceCountUnknown, Action: plans.Read},
+					"test.b":           {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
 				},
 				wantApplied: map[string]cty.Value{},
-				// TODO: These deferred output values are wrong, but outputs are a separate ticket.
 				wantOutputs: map[string]cty.Value{
-					"from_data":     cty.EmptyTupleVal,
-					"from_resource": cty.NullVal(cty.DynamicPseudoType),
+					// Although this will be a TupleVal later, the count of
+					// items in the tuple is part of the type itself, and that's
+					// unknown at this point, so, DynamicPseudoType.
+					"from_data":     cty.NullVal(cty.DynamicPseudoType),
+					"from_resource": cty.NullVal(cty.String),
 				},
 				complete:      false,
 				allowWarnings: false,
@@ -362,44 +393,27 @@ output "c" {
 						"output":         cty.StringVal("a"),
 					}),
 
-					// FIXME: The system is currently producing incorrect
-					//   results for output values that are derived from
-					//   resources that had deferred actions, because we're
-					//   not quite reconstructing all of the deferral state
-					//   correctly during the apply phase. The commented-out
-					//   lines below show how this _ought_ to look, but
-					//   we're accepting the incorrect answer for now so we
-					//   can start to gather feedback on the experiment
-					//   sooner, since the output value state at the interim
-					//   steps isn't really that important for demonstrating
-					//   the overall effect. We should fix this before
-					//   stabilizing the experiment, though.
+					// To start with: outputs that refer to deferred values are
+					// null values of some type.
 
-					// Currently we produce an incorrect result for output
-					// value "b" because the expression evaluator doesn't
-					// realize it's supposed to be treating this as deferred
-					// during the apply phase, and so it incorrectly decides
-					// that there are no instances due to the lack of
-					// instances in the state.
-					"b": cty.EmptyObjectVal,
-					// We can't say anything about test.b until we know what
-					// its instance keys are.
-					// "b": cty.DynamicVal,
+					// Output b is the value of the test.b resource block. The
+					// "b" resource has a for_each, so the type of the entire
+					// resource block will be an object of objects. (for_each
+					// key => resource instance.) But since the keys of an
+					// object are an inherent part of the object type, and our
+					// for_each keys are unknown, the object type is totally
+					// unknowable.
+					"b": cty.NullVal(cty.DynamicPseudoType),
 
-					// Currently we produce an incorrect result for output
-					// value "c" because the expression evaluator doesn't
-					// realize it's supposed to be treating this as deferred
-					// during the apply phase, and so it incorrectly decides
-					// that there is instance due to the lack of instances
-					// in the state.
-					"c": cty.NullVal(cty.DynamicPseudoType),
-					// test.c evaluates to the placeholder value that shows
-					// what we're expecting this object to look like in the
-					// next round.
-					// "c": cty.ObjectVal(map[string]cty.Value{
-					// 	"name":           cty.StringVal("c"),
-					// 	"upstream_names": cty.UnknownVal(cty.Set(cty.String)).RefineNotNull(),
-					// }),
+					// Output c is the value of the test.c resource block. The
+					// "c" resource is a singleton instance, so its type is
+					// wholly known from the schema! But it's still a null
+					// value, because the resource got transitively deferred.
+					"c": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"output":         cty.String,
+						"upstream_names": cty.Set(cty.String),
+					})),
 				},
 			},
 			{
@@ -1721,20 +1735,24 @@ output "a" {
 				},
 				inputs:      map[string]cty.Value{},
 				wantPlanned: map[string]cty.Value{
-					// The all resources will be deferred, so shouldn't
-					// have any action at this stage.
+					// Empty because it's a refresh-only plan in this stage.
 				},
 
 				wantActions: map[string]plans.Action{},
 				wantApplied: map[string]cty.Value{
-					// The all resources will be deferred, so shouldn't
+					// The resource will be deferred, so shouldn't
 					// have any action at this stage.
 				},
+				// The output refers to a resource that is unready, so in the
+				// state it becomes a null value of the appropriate type,
+				// despite the fact that we can predict *some* information (i.e.
+				// the future `name`) about the eventual value.
 				wantOutputs: map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("a"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-					}),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"upstream_names": cty.Set(cty.String),
+						"output":         cty.String,
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Read},
@@ -1760,11 +1778,11 @@ output "a" {
 					// have any action at this stage.
 				},
 				wantOutputs: map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("deferred_read"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.NullVal(cty.String),
-					}),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"upstream_names": cty.Set(cty.String),
+						"output":         cty.String,
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Update},
@@ -1872,12 +1890,15 @@ output "b" {
 						"name":   cty.String,
 						"output": cty.String,
 					})),
-					"b": cty.NullVal(cty.DynamicPseudoType),
+					"b": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"output":         cty.String,
+						"upstream_names": cty.Set(cty.String),
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
-					// data.test.a is not part of the plan so we can only
-					// observe the indirect consequence on the resource.
-					"test.b": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+					"data.test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Read},
+					"test.b":      {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
 				},
 				complete: false,
 			},
@@ -1962,7 +1983,11 @@ output "a" {
 					// have any action at this stage.
 				},
 				wantOutputs: map[string]cty.Value{
-					"a": cty.NullVal(cty.DynamicPseudoType),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"output":         cty.String,
+						"upstream_names": cty.Set(cty.String),
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Create},
@@ -2016,11 +2041,11 @@ output "a" {
 					// have any action at this stage.
 				},
 				wantOutputs: map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("old_value"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.NullVal(cty.String),
-					}),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"upstream_names": cty.Set(cty.String),
+						"output":         cty.String,
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Update},
@@ -2074,6 +2099,12 @@ output "a" {
 					// The all resources will be deferred, so shouldn't
 					// have any action at this stage.
 				},
+				// This example is strange (possibly unrealistic?) because the
+				// provider deferred the PlanResourceChange call but responded
+				// immediately on the ReadResource call; usually you would
+				// expect to defer both or defer neither. So the output is still
+				// the current concrete value (not a cty.NullVal), even though
+				// the resource "is deferred."
 				wantOutputs: map[string]cty.Value{
 					"a": cty.ObjectVal(map[string]cty.Value{
 						"name":           cty.StringVal("deferred_resource_change"),
@@ -2134,11 +2165,11 @@ output "a" {
 					// have any action at this stage.
 				},
 				wantOutputs: map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("old_value"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.StringVal("mark_for_replacement"),
-					}),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"upstream_names": cty.Set(cty.String),
+						"output":         cty.String,
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.DeleteThenCreate},
@@ -2207,11 +2238,11 @@ output "a" {
 					// have any action at this stage.
 				},
 				wantOutputs: map[string]cty.Value{
-					"a": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("old_value"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.StringVal("computed_output"),
-					}),
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name":           cty.String,
+						"upstream_names": cty.Set(cty.String),
+						"output":         cty.String,
+					})),
 				},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.DeleteThenCreate},

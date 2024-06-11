@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -49,7 +51,7 @@ type Deferred struct {
 	// configuration block at different amounts of instance expansion under
 	// different prefixes, and so some queries require us to search across
 	// all of those options to decide if each instance is relevant.
-	dataSourceInstancesDeferred addrs.Map[addrs.ConfigResource, addrs.Set[addrs.AbsResourceInstance]]
+	dataSourceInstancesDeferred addrs.Map[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, *plans.DeferredResourceInstanceChange]]
 
 	// resourceInstancesDeferred tracks the resource instances that have
 	// been deferred despite their full addresses being known. This can happen
@@ -84,7 +86,7 @@ type Deferred struct {
 	// Data sources are never written into the plan, even when deferred, so we
 	// are tracking these for purely internal reasons. If a resource depends on
 	// a deferred data source, then that resource should be deferred as well.
-	partialExpandedDataSourcesDeferred addrs.Map[addrs.ConfigResource, addrs.Set[addrs.PartialExpandedResource]]
+	partialExpandedDataSourcesDeferred addrs.Map[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]]
 
 	// partialExpandedModulesDeferred tracks all of the partial-expanded module
 	// prefixes we were notified about.
@@ -109,9 +111,9 @@ func NewDeferred(enabled bool) *Deferred {
 	return &Deferred{
 		deferralAllowed:                    enabled,
 		resourceInstancesDeferred:          addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, *plans.DeferredResourceInstanceChange]](),
-		dataSourceInstancesDeferred:        addrs.MakeMap[addrs.ConfigResource, addrs.Set[addrs.AbsResourceInstance]](),
+		dataSourceInstancesDeferred:        addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, *plans.DeferredResourceInstanceChange]](),
 		partialExpandedResourcesDeferred:   addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
-		partialExpandedDataSourcesDeferred: addrs.MakeMap[addrs.ConfigResource, addrs.Set[addrs.PartialExpandedResource]](),
+		partialExpandedDataSourcesDeferred: addrs.MakeMap[addrs.ConfigResource, addrs.Map[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]](),
 		partialExpandedModulesDeferred:     addrs.MakeSet[addrs.PartialExpandedModule](),
 	}
 }
@@ -130,7 +132,17 @@ func (d *Deferred) GetDeferredChanges() []*plans.DeferredResourceInstanceChange 
 			changes = append(changes, changeElem.Value)
 		}
 	}
+	for _, configMapElem := range d.dataSourceInstancesDeferred.Elems {
+		for _, changeElem := range configMapElem.Value.Elems {
+			changes = append(changes, changeElem.Value)
+		}
+	}
 	for _, configMapElem := range d.partialExpandedResourcesDeferred.Elems {
+		for _, changeElem := range configMapElem.Value.Elems {
+			changes = append(changes, changeElem.Value)
+		}
+	}
+	for _, configMapElem := range d.partialExpandedDataSourcesDeferred.Elems {
 		for _, changeElem := range configMapElem.Value.Elems {
 			changes = append(changes, changeElem.Value)
 		}
@@ -178,24 +190,31 @@ func (d *Deferred) HaveAnyDeferrals() bool {
 			len(d.partialExpandedModulesDeferred) != 0)
 }
 
-// IsResourceInstanceDeferred returns true if the receiver knows some reason
-// why the resource instance with the given address should have its planned
-// action deferred for a future plan/apply round.
-func (d *Deferred) IsResourceInstanceDeferred(addr addrs.AbsResourceInstance) bool {
+// GetDeferredResourceInstanceValue returns the deferred value for the given
+// resource instance, if any.
+func (d *Deferred) GetDeferredResourceInstanceValue(addr addrs.AbsResourceInstance) (cty.Value, bool) {
 	if !d.deferralAllowed {
-		return false
+		return cty.NilVal, false
 	}
 
-	if d.externalDependencyDeferred {
-		return true
-	}
-
-	// Our resource graph describes relationships between the static resource
-	// configuration blocks, not their dynamic instances, so we need to start
-	// with the config address that the given instance belongs to.
 	configAddr := addr.ConfigResource()
+	var instancesMap addrs.Map[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, *plans.DeferredResourceInstanceChange]]
 
-	return d.resourceInstancesDeferred.Get(configAddr).Has(addr)
+	switch addr.Resource.Resource.Mode {
+	case addrs.ManagedResourceMode:
+		instancesMap = d.resourceInstancesDeferred
+	case addrs.DataResourceMode:
+		instancesMap = d.dataSourceInstancesDeferred
+	default:
+		panic(fmt.Sprintf("unexpected resource mode %q for %s", addr.Resource.Resource.Mode, addr))
+	}
+
+	change, ok := instancesMap.Get(configAddr).GetOk(addr)
+	if !ok {
+		return cty.NilVal, false
+	}
+
+	return change.Change.After, true
 }
 
 // ShouldDeferResourceInstanceChanges returns true if the receiver knows some
@@ -216,14 +235,7 @@ func (d *Deferred) IsResourceInstanceDeferred(addr addrs.AbsResourceInstance) bo
 //
 // It's invalid to call this method for an address that was already reported
 // as deferred using [Deferred.ReportResourceInstanceDeferred], and so this
-// method will panic in that case. Callers should always test whether a resource
-// instance action should be deferred _before_ reporting that it has been by
-// calling [Deferred.IsResourceInstanceDeferred].
-//
-// The deps argument should be the set of configuration blocks that the given
-// resource instance depends on. This is then compared against the set of
-// deferred resources to determine if the given resource instance should be
-// deferred.
+// method will panic in that case.
 func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInstance, deps []addrs.ConfigResource) bool {
 	if !d.deferralAllowed {
 		return false
@@ -347,7 +359,7 @@ func (d *Deferred) ReportResourceExpansionDeferred(addr addrs.PartialExpandedRes
 // ReportDataSourceExpansionDeferred reports that we cannot even predict which
 // instances of a data source will be declared and thus we must defer all
 // planning for that data source.
-func (d *Deferred) ReportDataSourceExpansionDeferred(addr addrs.PartialExpandedResource) {
+func (d *Deferred) ReportDataSourceExpansionDeferred(addr addrs.PartialExpandedResource, change *plans.ResourceInstanceChange) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -358,17 +370,20 @@ func (d *Deferred) ReportDataSourceExpansionDeferred(addr addrs.PartialExpandedR
 
 	configAddr := addr.ConfigResource()
 	if !d.partialExpandedDataSourcesDeferred.Has(configAddr) {
-		d.partialExpandedDataSourcesDeferred.Put(configAddr, addrs.MakeSet[addrs.PartialExpandedResource]())
+		d.partialExpandedDataSourcesDeferred.Put(configAddr, addrs.MakeMap[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]())
 	}
 
-	configSet := d.partialExpandedDataSourcesDeferred.Get(configAddr)
-	if configSet.Has(addr) {
+	configMap := d.partialExpandedDataSourcesDeferred.Get(configAddr)
+	if configMap.Has(addr) {
 		// This indicates a bug in the caller, since our graph walk should
 		// ensure that we visit and evaluate each distinct partial-expanded
 		// prefix only once.
 		panic(fmt.Sprintf("duplicate deferral report for %s", addr))
 	}
-	configSet.Add(addr)
+	configMap.Put(addr, &plans.DeferredResourceInstanceChange{
+		DeferredReason: providers.DeferredReasonInstanceCountUnknown,
+		Change:         change,
+	})
 }
 
 // ReportResourceInstanceDeferred records that a fully-expanded resource
@@ -395,13 +410,13 @@ func (d *Deferred) ReportResourceInstanceDeferred(addr addrs.AbsResourceInstance
 	})
 }
 
-func (d *Deferred) ReportDataSourceInstanceDeferred(addr addrs.AbsResourceInstance) {
+func (d *Deferred) ReportDataSourceInstanceDeferred(addr addrs.AbsResourceInstance, reason providers.DeferredReason, change *plans.ResourceInstanceChange) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	configAddr := addr.ConfigResource()
 	if !d.dataSourceInstancesDeferred.Has(configAddr) {
-		d.dataSourceInstancesDeferred.Put(configAddr, addrs.MakeSet[addrs.AbsResourceInstance]())
+		d.dataSourceInstancesDeferred.Put(configAddr, addrs.MakeMap[addrs.AbsResourceInstance, *plans.DeferredResourceInstanceChange]())
 	}
 
 	configMap := d.dataSourceInstancesDeferred.Get(configAddr)
@@ -410,7 +425,10 @@ func (d *Deferred) ReportDataSourceInstanceDeferred(addr addrs.AbsResourceInstan
 		// ensure that we visit and evaluate each resource instance only once.
 		panic(fmt.Sprintf("duplicate deferral report for %s", addr))
 	}
-	configMap.Add(addr)
+	configMap.Put(addr, &plans.DeferredResourceInstanceChange{
+		DeferredReason: reason,
+		Change:         change,
+	})
 }
 
 // ReportModuleExpansionDeferred reports that we cannot even predict which

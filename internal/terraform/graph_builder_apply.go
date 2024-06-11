@@ -206,10 +206,12 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			State:  b.State,
 		},
 
-		// We need to remove configuration nodes that are not used at all, as
-		// they may not be able to evaluate, especially during destroy.
-		// These include variables, locals, and instance expanders.
-		&pruneUnusedNodesTransformer{},
+		// In a destroy, we need to remove configuration nodes that are not used
+		// at all, as they may not be able to evaluate. These include variables,
+		// locals, and instance expanders.
+		&pruneUnusedNodesTransformer{
+			skip: b.Operation != walkDestroy,
+		},
 
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
