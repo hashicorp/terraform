@@ -7,9 +7,12 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -116,6 +119,137 @@ func TestInputVariableValue(t *testing.T) {
 					})
 				})
 			}
+		})
+	}
+}
+
+func TestInputVariableEphemeral(t *testing.T) {
+	ctx := context.Background()
+
+	tests := map[string]struct {
+		fixtureName string
+		givenVal    cty.Value
+		allowed     bool
+		wantInputs  cty.Value
+		wantVal     cty.Value
+	}{
+		"ephemeral and allowed": {
+			fixtureName: "ephemeral_yes",
+			givenVal:    cty.StringVal("beep").Mark(marks.Ephemeral),
+			allowed:     true,
+			wantInputs: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("beep").Mark(marks.Ephemeral),
+			}),
+			wantVal: cty.StringVal("beep").Mark(marks.Ephemeral),
+		},
+		"ephemeral and not allowed": {
+			fixtureName: "ephemeral_no",
+			givenVal:    cty.StringVal("beep").Mark(marks.Ephemeral),
+			allowed:     false,
+			wantInputs: cty.UnknownVal(cty.Object(map[string]cty.Type{
+				"a": cty.String,
+			})),
+			wantVal: cty.UnknownVal(cty.String),
+		},
+		"non-ephemeral and allowed": {
+			fixtureName: "ephemeral_yes",
+			givenVal:    cty.StringVal("beep"),
+			allowed:     true,
+			wantInputs: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("beep"), // not marked on the input side...
+			}),
+			wantVal: cty.StringVal("beep").Mark(marks.Ephemeral), // ...but marked on the result side
+		},
+		"non-ephemeral and not allowed": {
+			fixtureName: "ephemeral_no",
+			givenVal:    cty.StringVal("beep"),
+			allowed:     true,
+			wantInputs: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("beep"),
+			}),
+			wantVal: cty.StringVal("beep"),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			cfg := testStackConfig(t, "input_variable", test.fixtureName)
+			childStackAddr := stackaddrs.RootStackInstance.Child("child", addrs.NoKey)
+			childStackCallAddr := stackaddrs.StackCall{Name: "child"}
+			aVarAddr := stackaddrs.InputVariable{Name: "a"}
+
+			main := testEvaluator(t, testEvaluatorOpts{
+				Config: cfg,
+				TestOnlyGlobals: map[string]cty.Value{
+					"var_val": test.givenVal,
+				},
+			})
+
+			promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
+				childStack := main.Stack(ctx, childStackAddr, InspectPhase)
+				if childStack == nil {
+					t.Fatalf("missing %s", childStackAddr)
+				}
+				childStackCall := main.MainStack(ctx).EmbeddedStackCall(ctx, childStackCallAddr)
+				if childStackCall == nil {
+					t.Fatalf("missing %s", childStackCallAddr)
+				}
+				insts, unknown := childStackCall.Instances(ctx, InspectPhase)
+				if unknown {
+					t.Fatalf("stack call instances are unknown")
+				}
+				childStackCallInst := insts[addrs.NoKey]
+				if childStackCallInst == nil {
+					t.Fatalf("missing %s instance", childStackCallAddr)
+				}
+
+				// The responsibility for handling ephemeral input variables
+				// is split between the stack call which decides whether an
+				// ephemeral value is acceptable, and the variable declaration
+				// itself which ensures that variables declared as ephemeral
+				// always appear as ephemeral inside even if the given value
+				// wasn't.
+
+				wantInputs := test.wantInputs
+				gotInputs, diags := childStackCallInst.CheckInputVariableValues(ctx, InspectPhase)
+				if diff := cmp.Diff(wantInputs, gotInputs, ctydebug.CmpOptions); diff != "" {
+					t.Errorf("wrong inputs for %s\n%s", childStackCallAddr, diff)
+				}
+
+				aVar := childStack.InputVariable(ctx, aVarAddr)
+				if aVar == nil {
+					t.Fatalf("missing %s", stackaddrs.Absolute(childStackAddr, aVarAddr))
+				}
+				want := test.wantVal
+				got, moreDiags := aVar.CheckValue(ctx, InspectPhase)
+				diags = diags.Append(moreDiags)
+				if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
+					t.Errorf("wrong value for %s\n%s", aVarAddr, diff)
+				}
+
+				if test.allowed {
+					if diags.HasErrors() {
+						t.Errorf("unexpected errors\n%s", diags.Err().Error())
+					}
+				} else {
+					if !diags.HasErrors() {
+						t.Fatalf("no errors; should have failed")
+					}
+					found := 0
+					for _, diag := range diags {
+						summary := diag.Description().Summary
+						if summary == "Ephemeral value not allowed" {
+							found++
+						}
+					}
+					if found == 0 {
+						t.Errorf("no diagnostics about disallowed ephemeral values\n%s", diags.Err().Error())
+					} else if found > 1 {
+						t.Errorf("found %d errors about disallowed ephemeral values, but wanted only one\n%s", found, diags.Err().Error())
+					}
+				}
+				return struct{}{}, nil
+			})
 		})
 	}
 }
