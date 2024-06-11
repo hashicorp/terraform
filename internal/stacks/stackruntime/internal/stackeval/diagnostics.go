@@ -378,3 +378,27 @@ func collectPromiseNames(r namedPromiseReporter) map[promising.PromiseID]string 
 	})
 	return ret
 }
+
+// diagnosticCausedBySensitive can be assigned to the "Extra" field of a
+// diagnostic to hint to the UI layer that the sensitivity of values in scope
+// is relevant to the diagnostic message.
+type diagnosticCausedBySensitive bool
+
+var _ tfdiags.DiagnosticExtraBecauseSensitive = diagnosticCausedBySensitive(false)
+
+// DiagnosticCausedBySensitive implements tfdiags.DiagnosticExtraBecauseSensitive.
+func (d diagnosticCausedBySensitive) DiagnosticCausedBySensitive() bool {
+	return bool(d)
+}
+
+// diagnosticCausedByEphemeral can be assigned to the "Extra" field of a
+// diagnostic to hint to the UI layer that the ephemerality of values in scope
+// is relevant to the diagnostic message.
+type diagnosticCausedByEphemeral bool
+
+var _ tfdiags.DiagnosticExtraBecauseEphemeral = diagnosticCausedByEphemeral(false)
+
+// DiagnosticCausedByEphemeral implements tfdiags.DiagnosticExtraBecauseEphemeral.
+func (d diagnosticCausedByEphemeral) DiagnosticCausedByEphemeral() bool {
+	return bool(d)
+}
