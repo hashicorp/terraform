@@ -1102,6 +1102,7 @@ message StackChangeProgress {
         int32 change = 4;
         int32 import = 5;
         int32 remove = 6;
+        int32 deferred = 7;
     }
 
     // ComponentInstances represents the result of expanding a component into zero

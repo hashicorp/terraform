@@ -641,6 +641,19 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 						Change: rsrcChange,
 					})
 				}
+				for _, rsrcChange := range plan.DeferredResources {
+					cic.Deferred++
+					hookMore(ctx, seq, h.ReportResourceInstanceDeferred, &hooks.DeferredResourceInstanceChange{
+						Reason: rsrcChange.DeferredReason,
+						Change: &hooks.ResourceInstanceChange{
+							Addr: stackaddrs.AbsResourceInstanceObject{
+								Component: addr,
+								Item:      rsrcChange.ChangeSrc.ObjectAddr(),
+							},
+							Change: rsrcChange.ChangeSrc,
+						},
+					})
+				}
 				hookMore(ctx, seq, h.ReportComponentInstancePlanned, cic)
 			}
 

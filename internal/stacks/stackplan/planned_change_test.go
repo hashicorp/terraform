@@ -272,8 +272,8 @@ func TestPlannedChangeAsProto(t *testing.T) {
 								Provider: `provider["example.com/thingers/thingy"]`,
 							},
 						},
-						Deferred: &tfstackdata1.PlanDeferredResourceInstanceChange_Deferred{
-							Reason: tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_RESOURCE_CONFIG_UNKNOWN,
+						Deferred: &planproto.Deferred{
+							Reason: planproto.DeferredReason_RESOURCE_CONFIG_UNKNOWN,
 						},
 					}),
 				},
