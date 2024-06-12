@@ -1,11 +1,11 @@
-## 1.9.0 (Unreleased)
+## v1.9.0-rc1
 
 If you are upgrading from an earlier minor release, please refer to [the Terraform v1.9 Upgrade Guide](https://developer.hashicorp.com/terraform/language/v1.9.x/upgrade-guides).
 
 NEW FEATURES:
 
 * **Input variable validation rules can refer to other objects**: Previously input variable validation rules could refer only to the variable being validated. Now they are general expressions, similar to those elsewhere in a module, which can refer to other input variables and to other objects such as data resources.
-* **`templatestring` function**: a new built-in function which is similar to `templatefile` but designed to render templates obtained dynamically, such as from a data resource result. 
+* **`templatestring` function**: a new built-in function which is similar to `templatefile` but designed to render templates obtained dynamically, such as from a data resource result.
 
 ENHANCEMENTS:
 
@@ -29,9 +29,9 @@ BUG FIXES:
 * `terraform test`: Fix bug in which non-Hashicorp providers required by testing modules and initialised within the test files were assigned incorrect registry addresses. ([#35161](https://github.com/hashicorp/terraform/issues/35161))
 * config: The `templatefile` function no longer returns a "panic" error if the template file path is marked as sensitive. Instead, the template rendering result is also marked as sensitive. ([#35180](https://github.com/hashicorp/terraform/issues/35180))
 * `terraform init`: When selecting a version for a provider that has both positive and negative version constraints for the same prerelease -- e.g. `1.2.0-beta.1, !1.2.0-beta.1` -- the negative constraint will now overrule the positive, for consistency with how negative constraints are handled otherwise. Previously Terraform would incorrectly treat the positive as overriding the negative if the specified version was a prerelease. ([#35181](https://github.com/hashicorp/terraform/issues/35181))
-* `import`: `import` blocks could block a destroy operation if the target resource was already deleted [GH-35272]
-* `cli`: plan output was missing blocks which were entirely unknown [GH-35271]
-* core: Changing `create_before_destroy` when replacing an instance, then applying with `-refresh=false` would order the apply operations incorrectly [GH-35261]
+* `import`: `import` blocks could block a destroy operation if the target resource was already deleted ([#35272](https://github.com/hashicorp/terraform/issues/35272))
+* `cli`: plan output was missing blocks which were entirely unknown ([#35271](https://github.com/hashicorp/terraform/issues/35271))
+* core: Changing `create_before_destroy` when replacing an instance, then applying with `-refresh=false` would order the apply operations incorrectly ([#35261](https://github.com/hashicorp/terraform/issues/35261))
 
 UPGRADE NOTES:
 
