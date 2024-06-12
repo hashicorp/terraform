@@ -201,23 +201,7 @@ message PlanResourceInstanceChangePlanned {
 // Represents a deferred change to a particular resource instance within a
 // particular component instance.
 message PlanDeferredResourceInstanceChange {
-    // Deferred contains all the metadata about a the deferral of a resource
-    // instance change.
-    message Deferred {
-        // Reason describes the reason why a resource instance change was
-        // deferred.
-        enum Reason {
-            INVALID = 0;
-            INSTANCE_COUNT_UNKNOWN = 1;
-            RESOURCE_CONFIG_UNKNOWN = 2;
-            PROVIDER_CONFIG_UNKNOWN = 3;
-            ABSENT_PREREQ = 4;
-            DEFERRED_PREREQ = 5;
-        }
-        Reason reason = 1;
-    }
-
-    Deferred deferred = 1;
+    tfplan.Deferred deferred = 1;
     PlanResourceInstanceChangePlanned change = 2;
 }
 
