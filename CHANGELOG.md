@@ -1,4 +1,4 @@
-## v1.9.0-rc1
+## 1.9.0 (Unreleased)
 
 If you are upgrading from an earlier minor release, please refer to [the Terraform v1.9 Upgrade Guide](https://developer.hashicorp.com/terraform/language/v1.9.x/upgrade-guides).
 
