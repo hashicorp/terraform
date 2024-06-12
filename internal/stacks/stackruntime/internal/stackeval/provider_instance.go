@@ -233,11 +233,6 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 				return diags
 			})
 
-			allowUnknowns := true
-			if p.main.Planning() {
-				allowUnknowns = p.main.PlanningOpts().DeferralAllowed
-			}
-
 			// TODO: Some providers will malfunction if the caller doesn't
 			// fetch their schema at least once before use. That's not something
 			// the provider protocol promises but it's an implementation
@@ -256,7 +251,7 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 				TerraformVersion: version.SemVer.String(),
 				Config:           unmarkedArgs,
 				ClientCapabilities: providers.ClientCapabilities{
-					DeferralAllowed: allowUnknowns,
+					DeferralAllowed: true,
 				},
 			})
 			diags = diags.Append(resp.Diagnostics)

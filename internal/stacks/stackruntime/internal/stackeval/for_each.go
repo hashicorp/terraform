@@ -153,7 +153,7 @@ func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPha
 // If maybeForEach value is non-nil but not a valid value produced by
 // [evaluateForEachExpr] then the behavior is unpredictable, including the
 // possibility of a panic.
-func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.InstanceKey, instances.RepetitionData) T, allowsUnknown bool) instancesResult[T] {
+func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.InstanceKey, instances.RepetitionData) T) instancesResult[T] {
 	switch {
 	case maybeForEachVal == cty.NilVal:
 		// No for_each expression at all, then. We have exactly one instance
@@ -162,7 +162,7 @@ func instancesMap[T any](maybeForEachVal cty.Value, makeInst func(addrs.Instance
 
 	case !maybeForEachVal.IsKnown():
 		// This is temporary to gradually rollout support for unknown for_each values
-		return instancesResult[T]{nil, allowsUnknown}
+		return instancesResult[T]{nil, true}
 
 	default:
 		// Otherwise we should be able to assume the value is valid per the

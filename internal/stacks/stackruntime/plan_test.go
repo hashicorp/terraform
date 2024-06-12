@@ -1603,12 +1603,6 @@ func TestPlanWithDeferredResource(t *testing.T) {
 				Value: cty.BoolVal(true),
 			},
 		},
-		// TEMP: Currently there's no way in normal operation to set this to
-		// true in the PlanOpts, because it would regress other features. So,
-		// the test has to set it manually. In the future, deferred actions will
-		// always be enabled for stacks, and we'll remove this option from the
-		// stackeval.PlanOpts struct.
-		DeferralAllowed: true,
 	}
 	resp := PlanResponse{
 		PlannedChanges: changesCh,
@@ -1751,7 +1745,6 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 				DefRange: tfdiags.SourceRange{},
 			},
 		},
-		DeferralAllowed: true,
 	}
 	resp := PlanResponse{
 		PlannedChanges: changesCh,
@@ -1982,7 +1975,6 @@ func TestPlanWithDeferredComponentReferences(t *testing.T) {
 				DefRange: tfdiags.SourceRange{},
 			},
 		},
-		DeferralAllowed: true,
 	}
 	resp := PlanResponse{
 		PlannedChanges: changesCh,
@@ -2225,7 +2217,6 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 				DefRange: tfdiags.SourceRange{},
 			},
 		},
-		DeferralAllowed: true,
 	}
 	resp := PlanResponse{
 		PlannedChanges: changesCh,
@@ -2361,7 +2352,6 @@ func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 				DefRange: tfdiags.SourceRange{},
 			},
 		},
-		DeferralAllowed: true,
 	}
 	resp := PlanResponse{
 		PlannedChanges: changesCh,
@@ -2550,7 +2540,6 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 				DefRange: tfdiags.SourceRange{},
 			},
 		},
-		DeferralAllowed: true,
 	}
 	resp := PlanResponse{
 		PlannedChanges: changesCh,
