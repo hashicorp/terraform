@@ -417,7 +417,8 @@ func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 
 	if rawChange.Importing != nil {
 		ret.Importing = &plans.ImportingSrc{
-			ID: rawChange.Importing.Id,
+			ID:      rawChange.Importing.Id,
+			Unknown: rawChange.Importing.Unknown,
 		}
 	}
 	ret.GeneratedConfig = rawChange.GeneratedConfig
@@ -812,7 +813,8 @@ func changeToTfplan(change *plans.ChangeSrc) (*planproto.Change, error) {
 
 	if change.Importing != nil {
 		ret.Importing = &planproto.Importing{
-			Id: change.Importing.ID,
+			Id:      change.Importing.ID,
+			Unknown: change.Importing.Unknown,
 		}
 
 	}

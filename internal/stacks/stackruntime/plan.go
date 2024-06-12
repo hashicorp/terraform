@@ -48,7 +48,6 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 		ProviderFactories:   req.ProviderFactories,
 
 		ForcePlanTimestamp: req.ForcePlanTimestamp,
-		DeferralAllowed:    req.DeferralAllowed,
 	})
 	main.AllowLanguageExperiments(req.ExperimentsAllowed)
 	main.PlanAll(ctx, stackeval.PlanOutput{
@@ -101,7 +100,6 @@ type PlanRequest struct {
 	ForcePlanTimestamp *time.Time
 
 	ExperimentsAllowed bool
-	DeferralAllowed    bool
 }
 
 // PlanResponse is used by [Plan] to describe the results of planning.

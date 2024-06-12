@@ -167,17 +167,9 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 				return instancesResult[*ComponentInstance]{}, diags
 			}
 
-			allowUnknowns := true
-			if c.main.Planning() {
-				// We'll set this to false during planning if deferrals are not
-				// allowed. It's fine to always be true during apply, as this
-				// would have failed during planning if it was not allowed.
-				allowUnknowns = c.main.PlanningOpts().DeferralAllowed
-			}
-
 			result := instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ComponentInstance {
 				return newComponentInstance(c, ik, rd)
-			}, allowUnknowns)
+			})
 
 			addrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))
 			for _, ci := range result.insts {

@@ -374,6 +374,9 @@ message Path {
 message Importing {
     // The original ID of the resource.
     string id = 1;
+
+    // unknown is true if the original ID of the resource is unknown.
+    bool unknown = 2;
 }
 
 // DeferredReason describes the reason why a resource instance change was

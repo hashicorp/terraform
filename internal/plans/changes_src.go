@@ -207,6 +207,26 @@ func (ocs *OutputChangeSrc) DeepCopy() *OutputChangeSrc {
 type ImportingSrc struct {
 	// ID is the original ID of the imported resource.
 	ID string
+
+	// Unknown is true if the ID was unknown when we tried to import it. This
+	// should only be true if the overall change is embedded within a deferred
+	// action.
+	Unknown bool
+}
+
+// Decode unmarshals the raw representation of the importing action.
+func (is *ImportingSrc) Decode() *Importing {
+	if is == nil {
+		return nil
+	}
+	if is.Unknown {
+		return &Importing{
+			ID: cty.UnknownVal(cty.String),
+		}
+	}
+	return &Importing{
+		ID: cty.StringVal(is.ID),
+	}
 }
 
 // ChangeSrc is a not-yet-decoded Change.
@@ -266,16 +286,11 @@ func (cs *ChangeSrc) Decode(ty cty.Type) (*Change, error) {
 		}
 	}
 
-	var importing *Importing
-	if cs.Importing != nil {
-		importing = &Importing{ID: cs.Importing.ID}
-	}
-
 	return &Change{
 		Action:          cs.Action,
 		Before:          marks.MarkPaths(before, marks.Sensitive, cs.BeforeSensitivePaths),
 		After:           marks.MarkPaths(after, marks.Sensitive, cs.AfterSensitivePaths),
-		Importing:       importing,
+		Importing:       cs.Importing.Decode(),
 		GeneratedConfig: cs.GeneratedConfig,
 	}, nil
 }

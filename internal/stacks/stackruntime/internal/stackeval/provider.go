@@ -170,17 +170,9 @@ func (p *Provider) CheckInstances(ctx context.Context, phase EvalPhase) (map[add
 				return instancesResult[*ProviderInstance]{}, diags
 			}
 
-			allowUnknowns := true
-			if p.main.Planning() {
-				// We'll set this to false during planning if deferrals are not
-				// allowed. It's fine to always be true during apply, as this
-				// would have failed during planning if it was not allowed.
-				allowUnknowns = p.main.PlanningOpts().DeferralAllowed
-			}
-
 			return instancesMap(forEachVal, func(ik addrs.InstanceKey, rd instances.RepetitionData) *ProviderInstance {
 				return newProviderInstance(p, ik, rd)
-			}, allowUnknowns), diags
+			}), diags
 		},
 	)
 	return result.insts, result.unknown, diags

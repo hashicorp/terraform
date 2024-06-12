@@ -7,9 +7,10 @@ import (
 	"log"
 	"sync"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // SyncState is a wrapper around State that provides concurrency-safe access to
@@ -51,6 +52,20 @@ func (s *SyncState) Module(addr addrs.ModuleInstance) *Module {
 	ret := s.state.Module(addr).DeepCopy()
 	s.lock.RUnlock()
 	return ret
+}
+
+// ModuleInstances returns the addresses of the module instances currently
+// store within state for the given module.
+func (s *SyncState) ModuleInstances(addr addrs.Module) []addrs.ModuleInstance {
+	s.lock.RLock()
+	ret := s.state.ModuleInstances(addr)
+	s.lock.RUnlock()
+
+	insts := make([]addrs.ModuleInstance, len(ret))
+	for i, inst := range ret {
+		insts[i] = inst.Addr
+	}
+	return insts
 }
 
 // RemoveModule removes the entire state for the given module, taking with

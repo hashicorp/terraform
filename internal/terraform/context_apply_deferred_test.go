@@ -2581,6 +2581,349 @@ resource "test" "a" {
 			},
 		},
 	}
+
+	unknownImportId = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "id" {
+	type = string
+}
+
+resource "test" "a" {
+	name = "a"
+}
+
+import {
+	id = var.id
+	to = test.a
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"id": cty.UnknownVal(cty.String),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonResourceConfigUnknown, Action: plans.Create},
+				},
+				wantApplied: make(map[string]cty.Value),
+				wantOutputs: make(map[string]cty.Value),
+			},
+		},
+	}
+
+	unknownImportDefersConfigGeneration = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "id" {
+	type = string
+}
+
+import {
+	id = var.id
+	to = test.a
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.GenerateConfigPath = "generated.tf"
+				},
+				inputs: map[string]cty.Value{
+					"id": cty.UnknownVal(cty.String),
+				},
+				wantPlanned: make(map[string]cty.Value),
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonResourceConfigUnknown, Action: plans.NoOp},
+				},
+			},
+		},
+	}
+
+	unknownImportTo = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "strings" {
+	type = set(string)
+}
+
+resource "test" "a" {
+	for_each = toset(["a", "b"])
+	name = each.value
+}
+
+import {
+	for_each = var.strings
+	id = each.value
+	to = test.a[each.key]
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"strings": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					// Both should be deferred, as we don't know which one is
+					// being imported.
+					"test.a[\"a\"]": {Reason: providers.DeferredReasonResourceConfigUnknown, Action: plans.Create},
+					"test.a[\"b\"]": {Reason: providers.DeferredReasonResourceConfigUnknown, Action: plans.Create},
+				},
+				wantApplied: make(map[string]cty.Value),
+				wantOutputs: make(map[string]cty.Value),
+			},
+			{
+				inputs: map[string]cty.Value{
+					"strings": cty.SetVal([]cty.Value{cty.StringVal("a")}),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantDeferred: make(map[string]ExpectedDeferred),
+				wantActions: map[string]plans.Action{
+					"test.a[\"a\"]": plans.NoOp,
+					"test.a[\"b\"]": plans.Create,
+				},
+				wantApplied: map[string]cty.Value{
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("b"),
+					}),
+				},
+				wantOutputs: make(map[string]cty.Value),
+				complete:    true,
+			},
+		},
+	}
+
+	unknownImportToExistingState = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "strings" {
+	type = set(string)
+}
+
+resource "test" "a" {
+	for_each = toset(["a", "b"])
+	name = each.value
+}
+
+import {
+	for_each = var.strings
+	id = each.value
+	to = test.a[each.key]
+}
+`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test.a[\"a\"]"), &states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: mustParseJson(map[string]interface{}{
+					"name":   "a",
+					"output": "a",
+				}),
+			}, addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			})
+			state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test.a[\"b\"]"), &states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: mustParseJson(map[string]interface{}{
+					"name":   "b",
+					"output": "b",
+				}),
+			}, addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"strings": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("b"),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					// In this case, both the resources exist in state so
+					// even though they might be targeted by the unknown import
+					// it is still safe to apply the changes.
+					"test.a[\"a\"]": plans.NoOp,
+					"test.a[\"b\"]": plans.NoOp,
+				},
+				wantDeferred: make(map[string]ExpectedDeferred),
+				wantApplied:  make(map[string]cty.Value),
+				wantOutputs:  make(map[string]cty.Value),
+				complete:     true,
+			},
+			{
+				// The second stage demonstrates the known or unknown status of
+				// the import block doesn't impact the actual behaviour.
+				inputs: map[string]cty.Value{
+					"strings": cty.SetVal([]cty.Value{cty.StringVal("a")}),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("b"),
+					}),
+				},
+				wantDeferred: make(map[string]ExpectedDeferred),
+				wantActions: map[string]plans.Action{
+					"test.a[\"a\"]": plans.NoOp,
+					"test.a[\"b\"]": plans.NoOp,
+				},
+				wantApplied: make(map[string]cty.Value),
+				wantOutputs: make(map[string]cty.Value),
+				complete:    true,
+			},
+		},
+	}
+
+	unknownImportToPartialExistingState = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "strings" {
+	type = set(string)
+}
+
+resource "test" "a" {
+	for_each = toset(["a", "b"])
+	name = each.value
+}
+
+import {
+	for_each = var.strings
+	id = each.value
+	to = test.a[each.key]
+}
+`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test.a[\"a\"]"), &states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: mustParseJson(map[string]interface{}{
+					"name":   "a",
+					"output": "a",
+				}),
+			}, addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"strings": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantPlanned: map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("a"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("a"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("b"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: map[string]plans.Action{
+					"test.a[\"a\"]": plans.NoOp,
+				},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a[\"b\"]": {Reason: providers.DeferredReasonResourceConfigUnknown, Action: plans.Create},
+				},
+				wantApplied: make(map[string]cty.Value),
+				wantOutputs: make(map[string]cty.Value),
+			},
+		},
+	}
+
+	unknownImportReportsMissingConfiguration = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "strings" {
+	type = set(string)
+}
+
+import {
+	for_each = var.strings
+	id = each.value
+	to = test.a[each.key]
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{
+					"strings": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				wantPlanned:  make(map[string]cty.Value),
+				wantActions:  make(map[string]plans.Action),
+				wantDeferred: make(map[string]ExpectedDeferred),
+				wantDiagnostic: func(diags tfdiags.Diagnostics) bool {
+					for _, diag := range diags {
+						if diag.Description().Summary == "Configuration for import target does not exist" {
+							return true
+						}
+					}
+					return false
+				},
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
@@ -2615,6 +2958,12 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"plan_destroy_resource_change_but_forbidden":        planDestroyResourceChangeButForbidden,
 		"module_deferred_for_each_value":                    moduleDeferredForEachValue,
 		"module_inner_resource_instance_deferred":           moduleInnerResourceInstanceDeferred,
+		"unknown_import_id":                                 unknownImportId,
+		"unknown_import_defers_config_generation":           unknownImportDefersConfigGeneration,
+		"unknown_import_to":                                 unknownImportTo,
+		"unknown_import_to_existing_state":                  unknownImportToExistingState,
+		"unknown_import_to_partial_existing_state":          unknownImportToPartialExistingState,
+		"unknown_import_reports_missing_configuration":      unknownImportReportsMissingConfiguration,
 	}
 
 	for name, test := range tests {
