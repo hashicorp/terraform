@@ -113,6 +113,20 @@ func evalImportToExpression(expr hcl.Expression, keyData instances.RepetitionDat
 	return res, diags
 }
 
+func evalImportUnknownToExpression(expr hcl.Expression) (addrs.PartialExpandedResource, tfdiags.Diagnostics) {
+	var per addrs.PartialExpandedResource
+	var diags tfdiags.Diagnostics
+
+	traversal, diags := importToExprToTraversal(expr, instances.UnknownForEachRepetitionData(cty.DynamicPseudoType))
+	if diags.HasErrors() {
+		return per, diags
+	}
+
+	per, moreDiags := parseImportToPartialAddress(traversal)
+	diags = diags.Append(moreDiags)
+	return per, diags
+}
+
 // trggersExprToTraversal takes an hcl expression limited to the syntax allowed
 // in replace_triggered_by, and converts it to a static traversal. The
 // RepetitionData contains the data necessary to evaluate the only allowed
@@ -202,4 +216,22 @@ func parseImportToKeyExpression(expr hcl.Expression, keyData instances.Repetitio
 	idx.Key = val
 	return idx, nil
 
+}
+
+func parseImportToPartialAddress(traversal hcl.Traversal) (addrs.PartialExpandedResource, tfdiags.Diagnostics) {
+	partial, rest, diags := addrs.ParsePartialExpandedResource(traversal)
+	if diags.HasErrors() {
+		return addrs.PartialExpandedResource{}, diags
+	}
+
+	if len(rest) > 0 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid import 'to' expression",
+			Detail:   "The import block 'to' argument does not resolve to a single resource instance.",
+			Subject:  traversal.SourceRange().Ptr(),
+		})
+	}
+
+	return partial, diags
 }
