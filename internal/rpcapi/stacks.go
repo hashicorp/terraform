@@ -40,7 +40,7 @@ type stacksServer struct {
 	// providerCacheOverride is a map of provider names to provider factories
 	// that should be used instead of the default provider cache. This is used
 	// within tests to side load providers without needing a real provider
-	//	cache.
+	// cache.
 	providerCacheOverride map[addrs.Provider]providers.Factory
 }
 
