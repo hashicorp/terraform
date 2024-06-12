@@ -52,7 +52,7 @@ type NodePlannableResourceInstance struct {
 
 	// importTarget, if populated, contains the information necessary to plan
 	// an import of this resource.
-	importTarget ImportTarget
+	importTarget cty.Value
 }
 
 var (
@@ -172,15 +172,25 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	importing := n.importTarget.IDString != "" && !n.preDestroyRefresh
-	importId := n.importTarget.IDString
+	importing := n.importTarget != cty.NilVal && !n.preDestroyRefresh
 
 	var deferred *providers.Deferred
 
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
+
 	if importing {
-		instanceRefreshState, deferred, diags = n.importState(ctx, addr, importId, provider, providerSchema)
+		if n.importTarget.IsKnown() {
+			var importDiags tfdiags.Diagnostics
+			instanceRefreshState, deferred, importDiags = n.importState(ctx, addr, n.importTarget.AsString(), provider, providerSchema)
+			diags = diags.Append(importDiags)
+		} else {
+			// Otherwise, just mark the resource as deferred without trying to
+			// import it.
+			deferred = &providers.Deferred{
+				Reason: providers.DeferredReasonResourceConfigUnknown,
+			}
+		}
 	} else {
 		var readDiags tfdiags.Diagnostics
 		instanceRefreshState, readDiags = n.readResourceInstanceState(ctx, addr)
@@ -315,7 +325,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		if importing {
-			change.Importing = &plans.Importing{ID: importId}
+			change.Importing = &plans.Importing{ID: n.importTarget}
 		}
 
 		// FIXME: here we udpate the change to reflect the reason for
@@ -663,7 +673,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			"Import returned null resource",
 			fmt.Sprintf("While attempting to import with ID %s, the provider"+
 				"returned an instance with no state.",
-				n.importTarget.IDString,
+				importId,
 			),
 		))
 

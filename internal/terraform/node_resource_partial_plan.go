@@ -6,6 +6,8 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -25,7 +27,7 @@ import (
 // would be nice to integrate this logic a little better with the main
 // DynamicExpand logic, but it's separate for now to minimize the risk of
 // stacks-specific behavior impacting configurations that are not opted into it.
-func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, knownModules []addrs.ModuleInstance, partialModules addrs.Set[addrs.PartialExpandedModule], imports addrs.Map[addrs.AbsResourceInstance, string]) (*Graph, tfdiags.Diagnostics) {
+func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, knownModules []addrs.ModuleInstance, partialModules addrs.Set[addrs.PartialExpandedModule], imports addrs.Map[addrs.AbsResourceInstance, cty.Value]) (*Graph, tfdiags.Diagnostics) {
 	var g Graph
 	var diags tfdiags.Diagnostics
 
@@ -81,7 +83,7 @@ func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, know
 						// Then each of the instances is a "maybe orphan"
 						// instance, and we need to add a node for that.
 						maybeOrphanResources.Add(res.Addr.Instance(key))
-						g.Add(n.concreteResource(addrs.MakeMap[addrs.AbsResourceInstance, string](), true)(NewNodeAbstractResourceInstance(res.Addr.Instance(key))))
+						g.Add(n.concreteResource(addrs.MakeMap[addrs.AbsResourceInstance, cty.Value](), true)(NewNodeAbstractResourceInstance(res.Addr.Instance(key))))
 
 					}
 
@@ -163,7 +165,7 @@ ImportValidation:
 	return &g, diags
 }
 
-func (n *nodeExpandPlannableResource) expandKnownModule(globalCtx EvalContext, resAddr addrs.AbsResource, imports addrs.Map[addrs.AbsResourceInstance, string], g *Graph) (addrs.Set[addrs.AbsResourceInstance], addrs.Set[addrs.PartialExpandedResource], addrs.Set[addrs.AbsResourceInstance], tfdiags.Diagnostics) {
+func (n *nodeExpandPlannableResource) expandKnownModule(globalCtx EvalContext, resAddr addrs.AbsResource, imports addrs.Map[addrs.AbsResourceInstance, cty.Value], g *Graph) (addrs.Set[addrs.AbsResourceInstance], addrs.Set[addrs.PartialExpandedResource], addrs.Set[addrs.AbsResourceInstance], tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	moduleCtx := evalContextForModuleInstance(globalCtx, resAddr.Module)
@@ -208,7 +210,7 @@ func (n *nodeExpandPlannableResource) expandKnownModule(globalCtx EvalContext, r
 	return knownResources, partialResources, maybeOrphanResources, diags
 }
 
-func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr addrs.AbsResource, knownInstKeys []addrs.InstanceKey, haveUnknownKeys bool, imports addrs.Map[addrs.AbsResourceInstance, string]) (*Graph, addrs.Set[addrs.AbsResourceInstance], tfdiags.Diagnostics) {
+func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr addrs.AbsResource, knownInstKeys []addrs.InstanceKey, haveUnknownKeys bool, imports addrs.Map[addrs.AbsResourceInstance, cty.Value]) (*Graph, addrs.Set[addrs.AbsResourceInstance], tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if n.Config == nil && n.generateConfigPath != "" && imports.Len() == 0 {
@@ -272,7 +274,7 @@ func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr 
 					// to a known instance but we have unknown keys so we don't
 					// know for sure that it's been deleted.
 					maybeOrphans.Add(addr.Instance(key))
-					graph.Add(n.concreteResource(addrs.MakeMap[addrs.AbsResourceInstance, string](), true)(NewNodeAbstractResourceInstance(addr.Instance(key))))
+					graph.Add(n.concreteResource(addrs.MakeMap[addrs.AbsResourceInstance, cty.Value](), true)(NewNodeAbstractResourceInstance(addr.Instance(key))))
 					continue
 				}
 
