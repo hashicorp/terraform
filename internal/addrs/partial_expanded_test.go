@@ -357,6 +357,17 @@ func TestParsePartialExpandedResource(t *testing.T) {
 			},
 			remain: 1,
 		},
+		{
+			addr: "resource.resource_type.resource_name",
+			want: PartialExpandedResource{
+				resource: Resource{
+					Mode: ManagedResourceMode,
+					Type: "resource_type",
+					Name: "resource_name",
+				},
+			},
+			remain: 0,
+		},
 	}
 
 	for _, tc := range tcs {
