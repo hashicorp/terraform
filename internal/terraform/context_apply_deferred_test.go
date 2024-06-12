@@ -2621,6 +2621,36 @@ import {
 		},
 	}
 
+	unknownImportDefersConfigGeneration = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "id" {
+	type = string
+}
+
+import {
+	id = var.id
+	to = test.a
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.GenerateConfigPath = "generated.tf"
+				},
+				inputs: map[string]cty.Value{
+					"id": cty.UnknownVal(cty.String),
+				},
+				wantPlanned: make(map[string]cty.Value),
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonResourceConfigUnknown, Action: plans.NoOp},
+				},
+			},
+		},
+	}
+
 	unknownImportTo = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
@@ -2929,6 +2959,7 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"module_deferred_for_each_value":                    moduleDeferredForEachValue,
 		"module_inner_resource_instance_deferred":           moduleInnerResourceInstanceDeferred,
 		"unknown_import_id":                                 unknownImportId,
+		"unknown_import_defers_config_generation":           unknownImportDefersConfigGeneration,
 		"unknown_import_to":                                 unknownImportTo,
 		"unknown_import_to_existing_state":                  unknownImportToExistingState,
 		"unknown_import_to_partial_existing_state":          unknownImportToPartialExistingState,
