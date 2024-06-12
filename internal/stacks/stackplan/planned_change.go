@@ -406,26 +406,20 @@ func (dpc *PlannedChangeDeferredResourceInstancePlanned) PlannedChangeProto() (*
 		return nil, err
 	}
 
-	var deferred tfstackdata1.PlanDeferredResourceInstanceChange_Deferred
-	switch dpc.DeferredReason {
-	case providers.DeferredReasonInstanceCountUnknown:
-		deferred.Reason = tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_INSTANCE_COUNT_UNKNOWN
-	case providers.DeferredReasonResourceConfigUnknown:
-		deferred.Reason = tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_RESOURCE_CONFIG_UNKNOWN
-	case providers.DeferredReasonProviderConfigUnknown:
-		deferred.Reason = tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_PROVIDER_CONFIG_UNKNOWN
-	case providers.DeferredReasonAbsentPrereq:
-		deferred.Reason = tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_ABSENT_PREREQ
-	case providers.DeferredReasonDeferredPrereq:
-		deferred.Reason = tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_DEFERRED_PREREQ
-	default:
-		deferred.Reason = tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_INVALID
-	}
+	// We'll ignore the error here. We certainly should not have got this far
+	// if we have a deferred reason that the Terraform Core runtime doesn't
+	// recognise. There will be diagnostics elsewhere to reflect this, as we
+	// can just use INVALID to capture this. This also makes us forwards and
+	// backwards compatible, as we'll return INVALID for any new deferred
+	// reasons that are added in the future without erroring.
+	deferredReason, _ := planfile.DeferredReasonToProto(dpc.DeferredReason)
 
 	var raw anypb.Any
 	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanDeferredResourceInstanceChange{
-		Change:   change,
-		Deferred: &deferred,
+		Change: change,
+		Deferred: &planproto.Deferred{
+			Reason: deferredReason,
+		},
 	}, proto.MarshalOptions{})
 	if err != nil {
 		return nil, err
@@ -435,28 +429,12 @@ func (dpc *PlannedChangeDeferredResourceInstancePlanned) PlannedChangeProto() (*
 		return nil, err
 	}
 
-	var deferred2 terraform1.Deferred
-	switch dpc.DeferredReason {
-	case providers.DeferredReasonInstanceCountUnknown:
-		deferred2.Reason = terraform1.Deferred_INSTANCE_COUNT_UNKNOWN
-	case providers.DeferredReasonResourceConfigUnknown:
-		deferred2.Reason = terraform1.Deferred_RESOURCE_CONFIG_UNKNOWN
-	case providers.DeferredReasonProviderConfigUnknown:
-		deferred2.Reason = terraform1.Deferred_PROVIDER_CONFIG_UNKNOWN
-	case providers.DeferredReasonAbsentPrereq:
-		deferred2.Reason = terraform1.Deferred_ABSENT_PREREQ
-	case providers.DeferredReasonDeferredPrereq:
-		deferred2.Reason = terraform1.Deferred_DEFERRED_PREREQ
-	default:
-		deferred2.Reason = terraform1.Deferred_INVALID
-	}
-
 	var descs []*terraform1.PlannedChange_ChangeDescription
 	descs = append(descs, &terraform1.PlannedChange_ChangeDescription{
 		Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstanceDeferred{
 			ResourceInstanceDeferred: &terraform1.PlannedChange_ResourceInstanceDeferred{
 				ResourceInstance: ricd.GetResourceInstancePlanned(),
-				Deferred:         &deferred2,
+				Deferred:         EncodeDeferred(dpc.DeferredReason),
 			},
 		},
 	})
@@ -465,6 +443,25 @@ func (dpc *PlannedChangeDeferredResourceInstancePlanned) PlannedChangeProto() (*
 		Raw:          []*anypb.Any{&raw},
 		Descriptions: descs,
 	}, nil
+}
+
+func EncodeDeferred(reason providers.DeferredReason) *terraform1.Deferred {
+	deferred := new(terraform1.Deferred)
+	switch reason {
+	case providers.DeferredReasonInstanceCountUnknown:
+		deferred.Reason = terraform1.Deferred_INSTANCE_COUNT_UNKNOWN
+	case providers.DeferredReasonResourceConfigUnknown:
+		deferred.Reason = terraform1.Deferred_RESOURCE_CONFIG_UNKNOWN
+	case providers.DeferredReasonProviderConfigUnknown:
+		deferred.Reason = terraform1.Deferred_PROVIDER_CONFIG_UNKNOWN
+	case providers.DeferredReasonAbsentPrereq:
+		deferred.Reason = terraform1.Deferred_ABSENT_PREREQ
+	case providers.DeferredReasonDeferredPrereq:
+		deferred.Reason = terraform1.Deferred_DEFERRED_PREREQ
+	default:
+		deferred.Reason = terraform1.Deferred_INVALID
+	}
+	return deferred
 }
 
 func encodePathSet(pathSet cty.PathSet) ([]*terraform1.AttributePath, error) {

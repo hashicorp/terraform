@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
@@ -183,21 +182,10 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 				return nil, err
 			}
 
-			var deferredReason providers.DeferredReason
-			switch msg.Deferred.Reason {
-			case tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_INSTANCE_COUNT_UNKNOWN:
-				deferredReason = providers.DeferredReasonInstanceCountUnknown
-			case tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_RESOURCE_CONFIG_UNKNOWN:
-				deferredReason = providers.DeferredReasonResourceConfigUnknown
-			case tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_PROVIDER_CONFIG_UNKNOWN:
-				deferredReason = providers.DeferredReasonProviderConfigUnknown
-			case tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_ABSENT_PREREQ:
-				deferredReason = providers.DeferredReasonAbsentPrereq
-			case tfstackdata1.PlanDeferredResourceInstanceChange_Deferred_DEFERRED_PREREQ:
-				deferredReason = providers.DeferredReasonDeferredPrereq
-			default:
-				deferredReason = providers.DeferredReasonInvalid
-			}
+			// We'll just swallow the error here. A missing deferred reason
+			// could be the only cause and we want to be forward and backward
+			// compatible. This will just render as INVALID, which is fine.
+			deferredReason, _ := planfile.DeferredReasonFromProto(msg.Deferred.Reason)
 
 			c.DeferredResourceInstanceChanges.Put(fullAddr, &plans.DeferredResourceInstanceChangeSrc{
 				ChangeSrc:      riPlan,

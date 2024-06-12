@@ -116,6 +116,12 @@ type Hooks struct {
 	// [Hooks.BeginComponentInstancePlan].
 	ReportResourceInstancePlanned hooks.MoreFunc[*hooks.ResourceInstanceChange]
 
+	// ReportResourceInstanceDeferred is called after a component instance's
+	// plan results in a resource instance being deferred. It should be called
+	// inside a tracing context established by
+	// [Hooks.BeginComponentInstancePlan].
+	ReportResourceInstanceDeferred hooks.MoreFunc[*hooks.DeferredResourceInstanceChange]
+
 	// ReportComponentInstancePlanned is called after a component instance
 	// is planned. It should be called inside a tracing context established by
 	// [Hooks.BeginComponentInstancePlan].

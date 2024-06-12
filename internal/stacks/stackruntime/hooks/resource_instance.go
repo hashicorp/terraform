@@ -6,6 +6,7 @@ package hooks
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
@@ -107,4 +108,12 @@ type ResourceInstanceProvisionerHookData struct {
 type ResourceInstanceChange struct {
 	Addr   stackaddrs.AbsResourceInstanceObject
 	Change *plans.ResourceInstanceChangeSrc
+}
+
+// DeferredResourceInstanceChange is the argument type for hook callbacks which
+// signal a deferred change for a resource instance resulting from a plan
+// operation.
+type DeferredResourceInstanceChange struct {
+	Reason providers.DeferredReason
+	Change *ResourceInstanceChange
 }

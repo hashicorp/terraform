@@ -15,9 +15,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providercache"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -34,6 +36,12 @@ type stacksServer struct {
 	stopper            *stopper
 	handles            *handleTable
 	experimentsAllowed bool
+
+	// providerCacheOverride is a map of provider names to provider factories
+	// that should be used instead of the default provider cache. This is used
+	// within tests to side load providers without needing a real provider
+	// cache.
+	providerCacheOverride map[addrs.Provider]providers.Factory
 }
 
 var _ terraform1.StacksServer = (*stacksServer)(nil)
@@ -236,10 +244,17 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 		return status.Errorf(codes.InvalidArgument, "invalid input values: %s", err)
 	}
 
-	// (providerFactoriesForLocks explicitly supports a nil providerCache)
-	providerFactories, err := providerFactoriesForLocks(deps, providerCache)
-	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+	var providerFactories map[addrs.Provider]providers.Factory
+	if s.providerCacheOverride != nil {
+		// This is only used in tests to side load providers without needing a
+		// real provider cache.
+		providerFactories = s.providerCacheOverride
+	} else {
+		// (providerFactoriesForLocks explicitly supports a nil providerCache)
+		providerFactories, err = providerFactoriesForLocks(deps, providerCache)
+		if err != nil {
+			return status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
+		}
 	}
 
 	// We'll hook some internal events in the planning process both to generate
@@ -765,42 +780,42 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 		// Upon completion of a component instance plan, we emit a planned
 		// change sumary event to the client for each resource instance.
 		ReportResourceInstancePlanned: func(ctx context.Context, span any, ric *hooks.ResourceInstanceChange) any {
-			actions, err := terraform1.ChangeTypesForPlanAction(ric.Change.Action)
-			if err != nil {
-				// TODO: what do we do?
-				return span
-			}
-
 			span.(trace.Span).AddEvent("planned resource instance", trace.WithAttributes(
 				attribute.String("component_instance", ric.Addr.Component.String()),
 				attribute.String("resource_instance", ric.Addr.Item.String()),
 			))
 
-			var moved *terraform1.StackChangeProgress_ResourceInstancePlannedChange_Moved
-			if !ric.Change.PrevRunAddr.Equal(ric.Change.Addr) {
-				moved = &terraform1.StackChangeProgress_ResourceInstancePlannedChange_Moved{
-					PrevAddr: &terraform1.ResourceInstanceInStackAddr{
-						ComponentInstanceAddr: ric.Addr.Component.String(),
-						ResourceInstanceAddr:  ric.Change.PrevRunAddr.String(),
-					},
-				}
-			}
-
-			var imported *terraform1.StackChangeProgress_ResourceInstancePlannedChange_Imported
-			if ric.Change.Importing != nil {
-				imported = &terraform1.StackChangeProgress_ResourceInstancePlannedChange_Imported{
-					ImportId: ric.Change.Importing.ID,
-				}
+			ripc, err := resourceInstancePlanned(ric)
+			if err != nil {
+				return span
 			}
 
 			send(&terraform1.StackChangeProgress{
 				Event: &terraform1.StackChangeProgress_ResourceInstancePlannedChange_{
-					ResourceInstancePlannedChange: &terraform1.StackChangeProgress_ResourceInstancePlannedChange{
-						Addr:         terraform1.NewResourceInstanceObjectInStackAddr(ric.Addr),
-						Actions:      actions,
-						Moved:        moved,
-						Imported:     imported,
-						ProviderAddr: ric.Change.ProviderAddr.Provider.String(),
+					ResourceInstancePlannedChange: ripc,
+				},
+			})
+			return span
+		},
+
+		ReportResourceInstanceDeferred: func(ctx context.Context, span any, change *hooks.DeferredResourceInstanceChange) any {
+			span.(trace.Span).AddEvent("deferred resource instance", trace.WithAttributes(
+				attribute.String("component_instance", change.Change.Addr.Component.String()),
+				attribute.String("resource_instance", change.Change.Addr.Item.String()),
+			))
+
+			ripc, err := resourceInstancePlanned(change.Change)
+			if err != nil {
+				return span
+			}
+
+			deferred := stackplan.EncodeDeferred(change.Reason)
+
+			send(&terraform1.StackChangeProgress{
+				Event: &terraform1.StackChangeProgress_DeferredResourceInstancePlannedChange_{
+					DeferredResourceInstancePlannedChange: &terraform1.StackChangeProgress_DeferredResourceInstancePlannedChange{
+						Change:   ripc,
+						Deferred: deferred,
 					},
 				},
 			})
@@ -817,11 +832,12 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 							ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(cic.Addr).String(),
 							ComponentInstanceAddr: cic.Addr.String(),
 						},
-						Total:  int32(cic.Total()),
-						Add:    int32(cic.Add),
-						Change: int32(cic.Change),
-						Import: int32(cic.Import),
-						Remove: int32(cic.Remove),
+						Total:    int32(cic.Total()),
+						Add:      int32(cic.Add),
+						Change:   int32(cic.Change),
+						Import:   int32(cic.Import),
+						Remove:   int32(cic.Remove),
+						Deferred: int32(cic.Deferred),
 					},
 				},
 			})
@@ -841,17 +857,50 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 							ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(cic.Addr).String(),
 							ComponentInstanceAddr: cic.Addr.String(),
 						},
-						Total:  int32(cic.Total()),
-						Add:    int32(cic.Add),
-						Change: int32(cic.Change),
-						Import: int32(cic.Import),
-						Remove: int32(cic.Remove),
+						Total:    int32(cic.Total()),
+						Add:      int32(cic.Add),
+						Change:   int32(cic.Change),
+						Import:   int32(cic.Import),
+						Remove:   int32(cic.Remove),
+						Deferred: int32(cic.Deferred),
 					},
 				},
 			})
 			return span
 		},
 	}
+}
+
+func resourceInstancePlanned(ric *hooks.ResourceInstanceChange) (*terraform1.StackChangeProgress_ResourceInstancePlannedChange, error) {
+	actions, err := terraform1.ChangeTypesForPlanAction(ric.Change.Action)
+	if err != nil {
+		return nil, err
+	}
+
+	var moved *terraform1.StackChangeProgress_ResourceInstancePlannedChange_Moved
+	if !ric.Change.PrevRunAddr.Equal(ric.Change.Addr) {
+		moved = &terraform1.StackChangeProgress_ResourceInstancePlannedChange_Moved{
+			PrevAddr: &terraform1.ResourceInstanceInStackAddr{
+				ComponentInstanceAddr: ric.Addr.Component.String(),
+				ResourceInstanceAddr:  ric.Change.PrevRunAddr.String(),
+			},
+		}
+	}
+
+	var imported *terraform1.StackChangeProgress_ResourceInstancePlannedChange_Imported
+	if ric.Change.Importing != nil {
+		imported = &terraform1.StackChangeProgress_ResourceInstancePlannedChange_Imported{
+			ImportId: ric.Change.Importing.ID,
+		}
+	}
+
+	return &terraform1.StackChangeProgress_ResourceInstancePlannedChange{
+		Addr:         terraform1.NewResourceInstanceObjectInStackAddr(ric.Addr),
+		Actions:      actions,
+		Moved:        moved,
+		Imported:     imported,
+		ProviderAddr: ric.Change.ProviderAddr.Provider.String(),
+	}, nil
 }
 
 func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks.ComponentInstanceStatus) *terraform1.StackChangeProgress {

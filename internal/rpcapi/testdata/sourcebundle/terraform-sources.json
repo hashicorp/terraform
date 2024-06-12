@@ -5,6 +5,11 @@
       "source": "git::https://example.com/foo.git",
       "local": "foo",
       "meta": {}
+    },
+    {
+      "source": "git::https://example.com/bar.git",
+      "local": "bar",
+      "meta": {}
     }
   ]
 }

@@ -934,7 +934,7 @@ func deferredChangeToTfplan(dc *plans.DeferredResourceInstanceChangeSrc) (*planp
 		return nil, err
 	}
 
-	reason, err := deferredReasonToProto(dc.DeferredReason)
+	reason, err := DeferredReasonToProto(dc.DeferredReason)
 	if err != nil {
 		return nil, err
 	}
@@ -947,7 +947,7 @@ func deferredChangeToTfplan(dc *plans.DeferredResourceInstanceChangeSrc) (*planp
 	}, nil
 }
 
-func deferredReasonToProto(reason providers.DeferredReason) (planproto.DeferredReason, error) {
+func DeferredReasonToProto(reason providers.DeferredReason) (planproto.DeferredReason, error) {
 	switch reason {
 	case providers.DeferredReasonInstanceCountUnknown:
 		return planproto.DeferredReason_INSTANCE_COUNT_UNKNOWN, nil
