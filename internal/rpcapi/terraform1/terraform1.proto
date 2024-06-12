@@ -821,6 +821,7 @@ message PlannedChange {
         }
         message Imported {
             string import_id = 1;
+            bool unknown = 2;
         }
     }
     // Note: this is only for output values from the topmost
@@ -1052,6 +1053,7 @@ message StackChangeProgress {
         }
         message Imported {
             string import_id = 1;
+            bool unknown = 2;
         }
     }
 
