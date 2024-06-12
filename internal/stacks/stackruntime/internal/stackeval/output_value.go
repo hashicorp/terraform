@@ -12,6 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -116,6 +117,7 @@ func (v *OutputValue) CheckResultValue(ctx context.Context, phase EvalPhase) (ct
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
+			cfg := v.Config(ctx)
 			ty, defs := v.ResultType(ctx)
 
 			stack := v.Stack(ctx, phase)
@@ -123,12 +125,12 @@ func (v *OutputValue) CheckResultValue(ctx context.Context, phase EvalPhase) (ct
 				// If we're in a stack whose expansion isn't known yet then
 				// we'll return an unknown value placeholder so that
 				// downstreams can at least do type-checking.
-				return cty.UnknownVal(ty), diags
+				return cfg.markResultValue(cty.UnknownVal(ty)), diags
 			}
 			result, moreDiags := EvalExprAndEvalContext(ctx, v.Declaration(ctx).Value, phase, stack)
 			diags = diags.Append(moreDiags)
 			if moreDiags.HasErrors() {
-				return cty.UnknownVal(ty), diags
+				return cfg.markResultValue(cty.UnknownVal(ty)), diags
 			}
 
 			var err error
@@ -142,10 +144,42 @@ func (v *OutputValue) CheckResultValue(ctx context.Context, phase EvalPhase) (ct
 					"Invalid output value result",
 					fmt.Sprintf("Unsuitable value for output %q: %s.", v.Addr().Item.Name, tfdiags.FormatError(err)),
 				))
-				return cty.UnknownVal(ty), diags
+				return cfg.markResultValue(cty.UnknownVal(ty)), diags
 			}
 
-			return result.Value, diags
+			if !cfg.Declaration(ctx).Ephemeral {
+				_, markses := result.Value.UnmarkDeepWithPaths()
+				problemPaths, _ := marks.PathsWithMark(markses, marks.Ephemeral)
+				var moreDiags tfdiags.Diagnostics
+				for _, path := range problemPaths {
+					if len(path) == 0 {
+						moreDiags = moreDiags.Append(result.Diagnostic(
+							tfdiags.Error,
+							"Ephemeral value not allowed",
+							fmt.Sprintf("The output value %q does not accept ephemeral values.", v.Addr().Item.Name),
+						))
+					} else {
+						moreDiags = moreDiags.Append(result.Diagnostic(
+							tfdiags.Error,
+							"Ephemeral value not allowed",
+							fmt.Sprintf(
+								"The output value %q does not accept ephemeral values, so the value of %s is not compatible.",
+								v.Addr().Item.Name,
+								tfdiags.FormatCtyPath(path),
+							),
+						))
+					}
+				}
+				diags = diags.Append(moreDiags)
+				if moreDiags.HasErrors() {
+					// We return an unknown value placeholder here to avoid
+					// the risk of a recipient of this value using it in a
+					// way that would be inappropriate for an ephemeral value.
+					result.Value = cty.UnknownVal(ty)
+				}
+			}
+
+			return cfg.markResultValue(result.Value), diags
 		},
 	))
 }
