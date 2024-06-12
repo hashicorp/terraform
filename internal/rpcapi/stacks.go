@@ -42,15 +42,6 @@ type stacksServer struct {
 	// within tests to side load providers without needing a real provider
 	//	cache.
 	providerCacheOverride map[addrs.Provider]providers.Factory
-
-	// deferralAllowed is a flag that indicates whether deferral is allowed
-	// for the current operation.
-	//
-	// This is currently only set in tests to allow for testing deferral
-	// behaviour during the implementation phase.
-	//
-	// TEMP: Remove this when deferral is fully supported.
-	deferralAllowed bool
 }
 
 var _ terraform1.StacksServer = (*stacksServer)(nil)
@@ -298,7 +289,6 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 		ProviderFactories:  providerFactories,
 		InputValues:        inputValues,
 		ExperimentsAllowed: s.experimentsAllowed,
-		DeferralAllowed:    s.deferralAllowed,
 	}
 	rtResp := stackruntime.PlanResponse{
 		PlannedChanges: changesCh,

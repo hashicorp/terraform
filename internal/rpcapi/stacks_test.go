@@ -333,9 +333,6 @@ func TestStacksPlanStackChanges_DeferredChanges(t *testing.T) {
 		return stacks_testing_provider.NewProvider(), nil
 	}
 
-	// Enable deferrals for this test.
-	stacksServer.deferralAllowed = true
-
 	sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
 	if err != nil {
 		t.Fatal(err)
