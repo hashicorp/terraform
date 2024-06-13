@@ -1019,7 +1019,6 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 					if cmp.Diff(mapOutput, expectedMap, ctydebug.CmpOptions) != "" {
 						t.Fatalf("map output is wrong, expected \n%+v,\ngot\n%+v", expectedMap, mapOutput)
 					}
-
 				}
 			default:
 				break
