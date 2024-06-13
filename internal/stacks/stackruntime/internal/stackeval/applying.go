@@ -27,6 +27,14 @@ type ApplyOpts struct {
 	// "discard" events to keep the state consistent.
 	PrevStateDescKeys collections.Set[statekeys.Key]
 
+	// InputVariableValues are variable values to use during the apply phase.
+	//
+	// This should typically include values for only variables that were
+	// marked as being "required on apply" in the plan, but for ease of use
+	// it's also valid to set other input variables here as long as the
+	// given value is exactly equal to what was used during planning.
+	InputVariableValues map[stackaddrs.InputVariable]ExternalInputValue
+
 	ExperimentsAllowed bool
 }
 

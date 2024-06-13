@@ -24,8 +24,9 @@ import (
 
 func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 	ret := &Plan{
-		RootInputValues: make(map[stackaddrs.InputVariable]cty.Value),
-		Components:      collections.NewMap[stackaddrs.AbsComponentInstance, *Component](),
+		RootInputValues:         make(map[stackaddrs.InputVariable]cty.Value),
+		ApplyTimeInputVariables: collections.NewSetCmp[stackaddrs.InputVariable](),
+		Components:              collections.NewMap[stackaddrs.AbsComponentInstance, *Component](),
 	}
 
 	foundHeader := false
@@ -59,12 +60,21 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 			addr := stackaddrs.InputVariable{
 				Name: msg.Name,
 			}
-			dv := plans.DynamicValue(msg.Value.Msgpack)
-			val, err := dv.Decode(cty.DynamicPseudoType)
-			if err != nil {
-				return nil, fmt.Errorf("invalid stored value for %s: %w", addr, err)
+			if msg.Value != nil {
+				dv := plans.DynamicValue(msg.Value.Msgpack)
+				val, err := dv.Decode(cty.DynamicPseudoType)
+				if err != nil {
+					return nil, fmt.Errorf("invalid stored value for %s: %w", addr, err)
+				}
+				ret.RootInputValues[addr] = val
 			}
-			ret.RootInputValues[addr] = val
+			if msg.RequiredOnApply {
+				if msg.Value != nil {
+					// A variable can't be both persisted _and_ required on apply.
+					return nil, fmt.Errorf("plan has value for required-on-apply input variable %s", addr)
+				}
+				ret.ApplyTimeInputVariables.Add(addr)
+			}
 
 		case *tfstackdata1.PlanComponentInstance:
 			addr, diags := stackaddrs.ParseAbsComponentInstanceStr(msg.ComponentInstanceAddr)

@@ -41,6 +41,11 @@ type Plan struct {
 	// sure that the actions taken can be consistent with what was planned.
 	RootInputValues map[stackaddrs.InputVariable]cty.Value
 
+	// ApplyTimeInputVariables are the names of the root input variable
+	// values whose values must be re-supplied during the apply phase,
+	// instead of being persisted in [Plan.RootInputValues].
+	ApplyTimeInputVariables collections.Set[stackaddrs.InputVariable]
+
 	// Components contains the separate plans for each of the compoonent
 	// instances defined in the overall stack configuration, including any
 	// nested component instances from embedded stacks.

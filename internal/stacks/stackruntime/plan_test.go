@@ -32,6 +32,7 @@ import (
 	default_testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval"
 	stacks_testing_provider "github.com/hashicorp/terraform/internal/stacks/stackruntime/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/states"
@@ -534,6 +535,112 @@ func TestPlanWithSingleResource(t *testing.T) {
 	if diff := cmp.Diff(wantChanges, gotChanges, cmpOptions); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
+}
+
+func TestPlanWithEphemeralInputVariables(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "variable-ephemeral")
+
+	t.Run("with variables set", func(t *testing.T) {
+		changesCh := make(chan stackplan.PlannedChange, 8)
+		diagsCh := make(chan tfdiags.Diagnostic, 2)
+		req := PlanRequest{
+			Config: cfg,
+			InputValues: map[stackaddrs.InputVariable]stackeval.ExternalInputValue{
+				{Name: "eph"}:    {Value: cty.StringVal("eph value")},
+				{Name: "noneph"}: {Value: cty.StringVal("noneph value")},
+			},
+		}
+		resp := PlanResponse{
+			PlannedChanges: changesCh,
+			Diagnostics:    diagsCh,
+		}
+
+		go Plan(ctx, &req, &resp)
+		gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+
+		if len(diags) != 0 {
+			t.Errorf("unexpected diagnostics\n%s", diags.ErrWithWarnings().Error())
+		}
+
+		wantChanges := []stackplan.PlannedChange{
+			&stackplan.PlannedChangeApplyable{
+				Applyable: true,
+			},
+			&stackplan.PlannedChangeHeader{
+				TerraformVersion: version.SemVer,
+			},
+			&stackplan.PlannedChangeRootInputValue{
+				Addr: stackaddrs.InputVariable{
+					Name: "eph",
+				},
+				RequiredOnApply: true,
+			},
+			&stackplan.PlannedChangeRootInputValue{
+				Addr: stackaddrs.InputVariable{
+					Name: "noneph",
+				},
+				Value: cty.StringVal("noneph value"),
+			},
+		}
+		sort.SliceStable(gotChanges, func(i, j int) bool {
+			return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
+		})
+
+		if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions); diff != "" {
+			t.Errorf("wrong changes\n%s", diff)
+		}
+	})
+
+	t.Run("without variables set", func(t *testing.T) {
+		changesCh := make(chan stackplan.PlannedChange, 8)
+		diagsCh := make(chan tfdiags.Diagnostic, 2)
+		req := PlanRequest{
+			Config:      cfg,
+			InputValues: map[stackaddrs.InputVariable]stackeval.ExternalInputValue{
+				// Intentionally not set for this subtest.
+			},
+		}
+		resp := PlanResponse{
+			PlannedChanges: changesCh,
+			Diagnostics:    diagsCh,
+		}
+
+		go Plan(ctx, &req, &resp)
+		gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+
+		if len(diags) != 0 {
+			t.Errorf("unexpected diagnostics\n%s", diags.ErrWithWarnings().Error())
+		}
+
+		wantChanges := []stackplan.PlannedChange{
+			&stackplan.PlannedChangeApplyable{
+				Applyable: true,
+			},
+			&stackplan.PlannedChangeHeader{
+				TerraformVersion: version.SemVer,
+			},
+			&stackplan.PlannedChangeRootInputValue{
+				Addr: stackaddrs.InputVariable{
+					Name: "eph",
+				},
+				RequiredOnApply: false,
+			},
+			&stackplan.PlannedChangeRootInputValue{
+				Addr: stackaddrs.InputVariable{
+					Name: "noneph",
+				},
+				Value: cty.NullVal(cty.String),
+			},
+		}
+		sort.SliceStable(gotChanges, func(i, j int) bool {
+			return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
+		})
+
+		if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions); diff != "" {
+			t.Errorf("wrong changes\n%s", diff)
+		}
+	})
 }
 
 func TestPlanVariableOutputRoundtripNested(t *testing.T) {

@@ -214,11 +214,20 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 		return nil, diags
 	}
 
+	decl := v.Declaration(ctx)
 	val := v.Value(ctx, PlanPhase)
+	requiredOnApply := false
+	if decl.Ephemeral {
+		// we don't persist the value for an ephemeral variable, but we
+		// do need to remember whether it was set.
+		requiredOnApply = !val.IsNull()
+		val = cty.NilVal
+	}
 	return []stackplan.PlannedChange{
 		&stackplan.PlannedChangeRootInputValue{
-			Addr:  v.Addr().Item,
-			Value: val,
+			Addr:            v.Addr().Item,
+			Value:           val,
+			RequiredOnApply: requiredOnApply,
 		},
 	}, diags
 }
