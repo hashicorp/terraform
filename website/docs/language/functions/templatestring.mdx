@@ -10,7 +10,7 @@ This topic provides reference information about the `templatestring` function. T
 
 ## Introduction
 
-The primary use case for the `templatestring` function is to render templates fetched as a single string from remote locations using data resources. The function enables advanced use cases where a [string template expression](/terraform/language/expressions/strings#string-templates) is insufficient, such as when the template is available from a named object declared in the current module. To render a template from a file, use the [`templatefile` function](/terraform/language/functions/templatefile).
+The primary use case for the `templatestring` function is to render templates fetched as a single string from remote locations. The function enables advanced use cases where a [string template expression](/terraform/language/expressions/strings#string-templates) is insufficient, such as when the template is available from a named object declared in the current module. To render a template from a file, use the [`templatefile` function](/terraform/language/functions/templatefile).
 
 ## Syntax
 
@@ -23,7 +23,7 @@ templatestring(ref, vars)
 In the following example, the function renders the string value located at `data.aws_s3_object.example.body` as the template:
 
 ```hcl
-templatestring("data.aws_s3_object.example.body, $${name}", {
+templatestring(data.aws_s3_object.example.body, {
   name = var.name
 })
 ```
