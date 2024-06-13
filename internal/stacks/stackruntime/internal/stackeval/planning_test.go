@@ -970,6 +970,10 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 		return rawPlan, nil
 	})
 
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	_, err = promising.MainTask(ctx, func(ctx context.Context) (*stackstate.State, error) {
 		outp, outpTest := testApplyOutput(t, nil)
 		_, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
@@ -1032,5 +1036,4 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 }
