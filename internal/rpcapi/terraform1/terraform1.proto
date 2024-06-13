@@ -483,6 +483,7 @@ message FindStackConfigurationComponents {
         map<string, Component> components = 1;
         map<string, EmbeddedStack> embedded_stacks = 2;
         map<string, InputVariable> input_variables = 3;
+        map<string, OutputValue> output_values = 4;
     }
     message EmbeddedStack {
         string source_addr = 1;
@@ -496,6 +497,12 @@ message FindStackConfigurationComponents {
     }
     message InputVariable {
         bool optional = 1;
+        bool sensitive = 2;
+        bool ephemeral = 3;
+    }
+    message OutputValue {
+        bool sensitive = 1;
+        bool ephemeral = 2;
     }
 }
 
@@ -542,6 +549,14 @@ message ApplyStackChanges {
         // This must be equivalent to the argument of the same name
         // passed to PlanStackChanges when creating this plan.
         int64 provider_cache_handle = 6;
+
+        // Any input variables identified as an "apply-time input variable"
+        // in the plan must have values provided here.
+        //
+        // Callers may also optionally include values for other declared input
+        // variables, but if so their values must exactly match those used when
+        // creating the plan.
+        map<string, DynamicValueWithSource> input_values = 7;
 
         reserved 2; // (formerly the previous state, but we now propagate that as part of planned_changes as an implementation detail)
     }
@@ -753,6 +768,7 @@ message PlannedChange {
             OutputValue output_value_planned = 3;
             bool plan_applyable = 4;
             ResourceInstanceDeferred resource_instance_deferred = 5;
+            InputVariableDuringApply apply_time_input_variable = 6;
         }
     }
 
@@ -836,6 +852,16 @@ message PlannedChange {
     message ResourceInstanceDeferred {
         ResourceInstance resource_instance = 1;
         Deferred deferred = 2;
+    }
+
+    // Describes an input variable that must have a value provided
+    // during the apply phase.
+    //
+    // This currently arises only when the variable was declared
+    // as ephemeral and was set to a non-null value during the planning
+    // phase.
+    message InputVariableDuringApply {
+        string name = 1;
     }
 }
 

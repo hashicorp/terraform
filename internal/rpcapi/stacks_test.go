@@ -225,12 +225,15 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 				},
 			},
 			InputVariables: map[string]*terraform1.FindStackConfigurationComponents_InputVariable{
-				"unused": {
-					Optional: false,
-				},
-				"unused_with_default": {
-					Optional: true,
-				},
+				"unused":              {Optional: false},
+				"unused_with_default": {Optional: true},
+				"sensitive":           {Sensitive: true},
+				"ephemeral":           {Ephemeral: true},
+			},
+			OutputValues: map[string]*terraform1.FindStackConfigurationComponents_OutputValue{
+				"normal":    {},
+				"sensitive": {Sensitive: true},
+				"ephemeral": {Ephemeral: true},
 			},
 		}
 		if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {

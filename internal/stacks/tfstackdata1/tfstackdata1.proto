@@ -68,6 +68,7 @@ message PlanApplyable {
 message PlanRootInputValue {
     string name = 1;
     tfplan.DynamicValue value = 2;
+    bool required_on_apply = 3;
 }
 
 // Represents the existence of a particular component instance, and so must

@@ -50,8 +50,24 @@ type PlannedChange interface {
 type PlannedChangeRootInputValue struct {
 	Addr stackaddrs.InputVariable
 
-	// Value is the value we used for the variable during planning.
+	// Value is the value we used for the variable during planning, or
+	// [cty.NilVal] if the variable was declared as ephemeral and therefore
+	// its value must not be persisted between phases.
 	Value cty.Value
+
+	// RequiredOnApply is true if a non-null value for this variable
+	// must be supplied during the apply phase.
+	//
+	// If this field is false then the variable must either be left unset
+	// or must be set to the same value during the apply phase, both of
+	// which are equivalent.
+	//
+	// This is set for an input variable that was declared as ephemeral
+	// and was set to a non-null value during the planning phase. The
+	// "null-ness" of an ephemeral value is not allowed to change between
+	// plan and apply, but a value set during planning can have a different
+	// value during apply.
+	RequiredOnApply bool
 }
 
 var _ PlannedChange = (*PlannedChangeRootInputValue)(nil)
@@ -61,25 +77,46 @@ func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*terraform1.Planned
 	// We use cty.DynamicPseudoType here so that we'll save both the
 	// value _and_ its dynamic type in the plan, so we can recover
 	// exactly the same value later.
-	dv, err := plans.NewDynamicValue(pc.Value, cty.DynamicPseudoType)
-	if err != nil {
-		return nil, fmt.Errorf("can't encode value for %s: %w", pc.Addr, err)
+	var ppdv *planproto.DynamicValue
+	if pc.Value != cty.NilVal {
+		dv, err := plans.NewDynamicValue(pc.Value, cty.DynamicPseudoType)
+		if err != nil {
+			return nil, fmt.Errorf("can't encode value for %s: %w", pc.Addr, err)
+		}
+		ppdv = &planproto.DynamicValue{
+			Msgpack: dv,
+		}
 	}
 
 	var raw anypb.Any
-	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanRootInputValue{
-		Name: pc.Addr.Name,
-		Value: &planproto.DynamicValue{
-			Msgpack: dv,
-		},
+	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanRootInputValue{
+		Name:            pc.Addr.Name,
+		Value:           ppdv,
+		RequiredOnApply: pc.RequiredOnApply,
 	}, proto.MarshalOptions{})
 	if err != nil {
 		return nil, err
 	}
-	return &terraform1.PlannedChange{
-		Raw: []*anypb.Any{&raw},
 
-		// There is no external-facing description for this change type.
+	var descs []*terraform1.PlannedChange_ChangeDescription
+	if pc.RequiredOnApply {
+		// We only include a change description for the subset of variables
+		// which must be re-supplied during apply. This allows an apply-time
+		// caller to know which subset of variables it needs to provide.
+		descs = []*terraform1.PlannedChange_ChangeDescription{
+			{
+				Description: &terraform1.PlannedChange_ChangeDescription_ApplyTimeInputVariable{
+					ApplyTimeInputVariable: &terraform1.PlannedChange_InputVariableDuringApply{
+						Name: pc.Addr.Name,
+					},
+				},
+			},
+		}
+	}
+
+	return &terraform1.PlannedChange{
+		Raw:          []*anypb.Any{&raw},
+		Descriptions: descs,
 	}, nil
 }
 

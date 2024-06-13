@@ -7,8 +7,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"maps"
 	"sync/atomic"
 
+	"github.com/zclconf/go-cty/cty"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -73,6 +75,19 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 	hooks := hooksFromContext(ctx)
 	hs, ctx := hookBegin(ctx, hooks.BeginApply, hooks.ContextAttach, struct{}{})
 	defer hookMore(ctx, hs, hooks.EndApply, struct{}{})
+
+	canBeginApply := true
+	applyTimeVariables, varDiags := checkApplyTimeVariables(plan, opts.InputVariableValues)
+	if len(varDiags) != 0 {
+		outp.AnnounceDiagnostics(ctx, varDiags)
+		// We intentionally continue here because we've made applyTimeVariables
+		// valid enough that it shouldn't indirectly cause any other problems.
+		// We'll still halt before the apply phase begins, but we'll still
+		// create the *Main value that we need to satisfy our signature.
+		if varDiags.HasErrors() {
+			canBeginApply = false
+		}
+	}
 
 	// Before doing anything else we'll emit zero or more events to deal
 	// with discarding the previous run state data that's no longer needed.
@@ -208,8 +223,16 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 			}
 		})
 
-		main := NewForApplying(config, plan.RootInputValues, plan, results, opts)
+		main := NewForApplying(config, applyTimeVariables, plan, results, opts)
 		main.AllowLanguageExperiments(opts.ExperimentsAllowed)
+		if !canBeginApply {
+			// Some eariler error means that it's unsafe to begin. The earlier
+			// code that set this should already have emitted its error
+			// diagnostics through outp directly, so we'll just return now.
+			return withDiagnostics[*Main]{
+				Result: main,
+			}, nil
+		}
 		begin(ctx, main) // the change tasks registered above become runnable
 
 		// With the planned changes now in progress, we'll visit everything and
@@ -281,6 +304,55 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, rawPlan []*anypb
 	log.Printf("[TRACE] stackeval.ApplyPlan complete")
 
 	return main, nil
+}
+
+func checkApplyTimeVariables(plan *stackplan.Plan, providedValues map[stackaddrs.InputVariable]ExternalInputValue) (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	ret := make(map[stackaddrs.InputVariable]cty.Value, len(plan.RootInputValues)+plan.ApplyTimeInputVariables.Len())
+	maps.Copy(ret, plan.RootInputValues)
+	for _, varAddr := range plan.ApplyTimeInputVariables.Elems() {
+		applyTimeVal := providedValues[varAddr]
+		if applyTimeVal.Value == cty.NilVal || applyTimeVal.Value.IsNull() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"No value for required input variable",
+				fmt.Sprintf("Ephemeral input variable %s was set during planning, and so it must be set again to apply the plan.", varAddr),
+			))
+			ret[varAddr] = cty.DynamicVal // placeholder just to allow us to continue below and potentially collect other errors
+			continue
+		}
+		ret[varAddr] = applyTimeVal.Value
+	}
+
+	// All of the provided variable values must either be apply-time
+	// variables or must match the value used during planning.
+	for varAddr, applyTimeVal := range providedValues {
+		if plan.ApplyTimeInputVariables.Has(varAddr) {
+			continue // This is the main case, with nothing further to do
+		}
+		planTimeVal := plan.RootInputValues[varAddr]
+		eq := false
+		if planTimeVal != cty.NilVal {
+			eqV := applyTimeVal.Value.Equals(planTimeVal)
+			if eqV.IsKnown() { // Should always be true because there's no reason for stack root input values to be unknown
+				eq = eqV.True()
+			}
+		}
+		if !eq {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Inconsistent value for input variable during apply",
+				fmt.Sprintf("The value for non-ephemeral input variable %s was set to a different value during apply than was set during plan. Only ephemeral input variables can change between the plan and apply phases.", varAddr),
+			))
+			// We'll prefer the plan-time value as we continue to minimize the
+			// risk of triggering weird errors downstream by violating the
+			// assumption that these values don't change between plan and apply.
+			ret[varAddr] = planTimeVal
+		}
+	}
+
+	return ret, diags
 }
 
 type ApplyOutput struct {
