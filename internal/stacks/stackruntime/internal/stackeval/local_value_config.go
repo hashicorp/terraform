@@ -14,7 +14,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// LocalValueConfig represents a "variable" block in a stack configuration.
+// LocalValueConfig represents a "locals" block in a stack configuration.
 type LocalValueConfig struct {
 	addr   stackaddrs.ConfigLocalValue
 	config *stackconfig.LocalValue
@@ -61,7 +61,7 @@ func (v *LocalValueConfig) StackConfig(ctx context.Context) *StackConfig {
 
 // ExprReferenceValue implements Referenceable
 func (v *LocalValueConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
-	return cty.StringVal("parent")
+	return cty.DynamicVal
 }
 
 // ValidateValue validates that the value expression is evaluatable and that

@@ -5,10 +5,8 @@ package stackeval
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -91,18 +89,6 @@ func (v *LocalValue) CheckValue(ctx context.Context, phase EvalPhase) (cty.Value
 			result, moreDiags := EvalExprAndEvalContext(ctx, decl.Value, phase, stack)
 			diags = diags.Append(moreDiags)
 			if moreDiags.HasErrors() {
-				return cty.DynamicVal, diags
-			}
-
-			var err error
-			result.Value, err = convert.Convert(result.Value, cty.DynamicPseudoType)
-
-			if err != nil {
-				diags = diags.Append(result.Diagnostic(
-					tfdiags.Error,
-					"Invalid local value",
-					fmt.Sprintf("Unsuitable value for local %q: %s.", v.Addr().Item.Name, tfdiags.FormatError(err)),
-				))
 				return cty.DynamicVal, diags
 			}
 
