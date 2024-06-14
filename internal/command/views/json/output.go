@@ -16,6 +16,7 @@ import (
 
 type Output struct {
 	Sensitive bool            `json:"sensitive"`
+	Ephemeral bool            `json:"ephemeral"`
 	Type      json.RawMessage `json:"type,omitempty"`
 	Value     json.RawMessage `json:"value,omitempty"`
 	Action    ChangeAction    `json:"action,omitempty"`
@@ -52,6 +53,7 @@ func OutputsFromMap(outputValues map[string]*states.OutputValue) (Outputs, tfdia
 
 		outputs[name] = Output{
 			Sensitive: ov.Sensitive,
+			Ephemeral: ov.Ephemeral,
 			Type:      json.RawMessage(valueType),
 			Value:     redactedValue,
 		}

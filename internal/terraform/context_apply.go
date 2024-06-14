@@ -70,9 +70,10 @@ func (po *PlanOpts) ApplyOpts() *ApplyOpts {
 // options in [PlanOpts] when creating a plan must be echoed with equivalent
 // settings during apply, so leaving opts as nil might not be valid for
 // certain combinations of plan-time options.
-func (c *Context) Apply(plan *plans.Plan, config *configs.Config, opts *ApplyOpts) (*states.State, tfdiags.Diagnostics) {
-	state, _, diags := c.ApplyAndEval(plan, config, opts)
-	return state, diags
+func (c *Context) Apply(plan *plans.Plan, config *configs.Config, opts *ApplyOpts) (*states.State, map[string]*states.OutputValue, tfdiags.Diagnostics) {
+	state, evalScope, diags := c.ApplyAndEval(plan, config, opts)
+	ephemeralOutputValues := evalScope.Data.GetEphemeralOutputs()
+	return state, ephemeralOutputValues, diags
 }
 
 // ApplyAndEval is like [Context.Apply] except that it additionally makes a

@@ -29,7 +29,7 @@ type State struct {
 	// an implementation detail and must not be used by outside callers.
 	Modules map[string]*Module
 
-	// OutputValues contains the state for each output value defined in the
+	// RootOutputValues contains the state for each output value defined in the
 	// root module.
 	//
 	// Output values in other modules don't persist anywhere between runs,

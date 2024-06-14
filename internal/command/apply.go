@@ -132,6 +132,11 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		if !c.Destroy && op.State != nil {
 			view.Outputs(op.State.RootOutputValues)
 		}
+		if !c.Destroy && op.EphemeralOutputValues != nil {
+			view.Outputs(op.EphemeralOutputValues)
+			// TODO KEM need to mark them as ephemeral probably in json output as well
+			// "The following output values are ephemeral. Next time you run Terraform apply, their value may change" or something
+		}
 	}
 
 	view.Diagnostics(diags)

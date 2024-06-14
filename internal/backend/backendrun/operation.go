@@ -237,6 +237,12 @@ type RunningOperation struct {
 	// this state is managed by the backend. This should only be read
 	// after the operation completes to avoid read/write races.
 	State *states.State
+
+	// EphemeralOutputValues is populated only after an Apply operation
+	// completes, and contains the value for each ephemeral output in the root
+	// module.
+	// Ephemeral output values are not stored in the state.
+	EphemeralOutputValues map[string]*states.OutputValue
 }
 
 // OperationResult describes the result status of an operation.

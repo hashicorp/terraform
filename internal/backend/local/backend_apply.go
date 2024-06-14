@@ -290,6 +290,7 @@ func (b *Local) opApply(
 
 	// Start the apply in a goroutine so that we can be interrupted.
 	var applyState *states.State
+	var ephemeralOutputValues map[string]*states.OutputValue
 	var applyDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})
 	go func() {
@@ -297,7 +298,7 @@ func (b *Local) opApply(
 		defer close(doneCh)
 
 		log.Printf("[INFO] backend/local: apply calling Apply")
-		applyState, applyDiags = lr.Core.Apply(plan, lr.Config, applyOpts)
+		applyState, ephemeralOutputValues, applyDiags = lr.Core.Apply(plan, lr.Config, applyOpts)
 	}()
 
 	if b.opWait(doneCh, stopCtx, cancelCtx, lr.Core, opState, op.View) {
@@ -312,6 +313,8 @@ func (b *Local) opApply(
 		op.ReportResult(runningOp, diags)
 		return
 	}
+
+	runningOp.EphemeralOutputValues = ephemeralOutputValues
 
 	// Store the final state
 	runningOp.State = applyState

@@ -85,7 +85,6 @@ func (state State) renderHumanStateModule(renderer Renderer, module jsonstate.Mo
 }
 
 func (state State) renderHumanStateOutputs(renderer Renderer, opts computed.RenderHumanOpts) {
-
 	if len(state.RootModuleOutputs) > 0 {
 		renderer.Streams.Printf("\n\nOutputs:\n\n")
 
