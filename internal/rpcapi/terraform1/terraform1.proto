@@ -821,6 +821,7 @@ message PlannedChange {
         }
         message Imported {
             string import_id = 1;
+            bool unknown = 2;
         }
     }
     // Note: this is only for output values from the topmost
@@ -1052,14 +1053,15 @@ message StackChangeProgress {
         }
         message Imported {
             string import_id = 1;
+            bool unknown = 2;
         }
     }
 
     // DeferredResourceInstancePlannedChange represents a planned change for a
     // resource instance that is deferred due to the reason provided.
     message DeferredResourceInstancePlannedChange {
-      Deferred deferred = 1;
-      ResourceInstancePlannedChange change = 2;
+        Deferred deferred = 1;
+        ResourceInstancePlannedChange change = 2;
     }
 
     // ProvisionerStatus represents the progress of a given provisioner during its

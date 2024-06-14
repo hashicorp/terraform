@@ -891,6 +891,7 @@ func resourceInstancePlanned(ric *hooks.ResourceInstanceChange) (*terraform1.Sta
 	if ric.Change.Importing != nil {
 		imported = &terraform1.StackChangeProgress_ResourceInstancePlannedChange_Imported{
 			ImportId: ric.Change.Importing.ID,
+			Unknown:  ric.Change.Importing.Unknown,
 		}
 	}
 

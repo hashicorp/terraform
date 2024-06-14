@@ -10,6 +10,11 @@
       "source": "git::https://example.com/bar.git",
       "local": "bar",
       "meta": {}
+    },
+    {
+      "source": "git::https://example.com/import.git",
+      "local": "import",
+      "meta": {}
     }
   ]
 }
