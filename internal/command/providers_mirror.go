@@ -384,5 +384,10 @@ Options:
                      Linux operating system running on an AMD64 or x86_64
                      CPU. Each provider is available only for a limited
                      set of target platforms.
+
+  -lock-file=false  Ignore the provider lock file when fetching providers.
+                    By default the mirror command will use the version info
+                    in the lock file if the configuration directory has been
+                    previously initialized.
 `
 }
