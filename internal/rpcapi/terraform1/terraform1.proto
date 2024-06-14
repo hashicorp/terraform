@@ -1060,8 +1060,8 @@ message StackChangeProgress {
     // DeferredResourceInstancePlannedChange represents a planned change for a
     // resource instance that is deferred due to the reason provided.
     message DeferredResourceInstancePlannedChange {
-      Deferred deferred = 1;
-      ResourceInstancePlannedChange change = 2;
+        Deferred deferred = 1;
+        ResourceInstancePlannedChange change = 2;
     }
 
     // ProvisionerStatus represents the progress of a given provisioner during its
