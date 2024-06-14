@@ -642,7 +642,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					})
 				}
 				for _, rsrcChange := range plan.DeferredResources {
-					cic.Deferred++
+					cic.Defer++
 					hookMore(ctx, seq, h.ReportResourceInstanceDeferred, &hooks.DeferredResourceInstanceChange{
 						Reason: rsrcChange.DeferredReason,
 						Change: &hooks.ResourceInstanceChange{
