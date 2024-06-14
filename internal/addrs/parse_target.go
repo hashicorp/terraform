@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -160,6 +161,10 @@ func parseResourceInstanceUnderModule(moduleAddr ModuleInstance, remain hcl.Trav
 	mode := ManagedResourceMode
 	if remain.RootName() == "data" {
 		mode = DataResourceMode
+		remain = remain[1:]
+	} else if remain.RootName() == "resource" {
+		// Starting a resource address with "resource" is optional, so we'll
+		// just ignore it.
 		remain = remain[1:]
 	}
 
