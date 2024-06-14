@@ -438,6 +438,10 @@ func ParsePartialExpandedResource(traversal hcl.Traversal) (PartialExpandedResou
 	if remain.RootName() == "data" {
 		mode = DataResourceMode
 		remain = remain[1:]
+	} else if remain.RootName() == "resource" {
+		// Starting a resource address with "resource" is optional, so we'll
+		// just ignore it if it's present.
+		remain = remain[1:]
 	}
 
 	if len(remain) < 2 {

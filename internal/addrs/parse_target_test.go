@@ -9,6 +9,7 @@ import (
 	"github.com/go-test/deep"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -82,6 +83,24 @@ func TestParseTarget(t *testing.T) {
 				SourceRange: tfdiags.SourceRange{
 					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
 					End:   tfdiags.SourcePos{Line: 1, Column: 17, Byte: 16},
+				},
+			},
+			``,
+		},
+		{
+			`resource.aws_instance.foo`,
+			&Target{
+				Subject: AbsResource{
+					Resource: Resource{
+						Mode: ManagedResourceMode,
+						Type: "aws_instance",
+						Name: "foo",
+					},
+					Module: RootModuleInstance,
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 26, Byte: 25},
 				},
 			},
 			``,
