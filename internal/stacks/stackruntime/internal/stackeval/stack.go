@@ -530,6 +530,8 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 				})
 				return nil, diags
 			}
+		case stackaddrs.TerraformApplying:
+			return JustValue{cty.BoolVal(s.main.Applying()).Mark(marks.Ephemeral)}, diags
 		default:
 			// The above should be exhaustive for all defined values of this type.
 			panic(fmt.Sprintf("unsupported ContextualRef %#v", addr))
