@@ -53,6 +53,7 @@ const EachValue = ContextualRef('v')
 const EachKey = ContextualRef('k')
 const CountIndex = ContextualRef('i')
 const Self = ContextualRef('s')
+const TerraformApplying = ContextualRef('a')
 
 // String implements Referenceable.
 func (e ContextualRef) String() string {
@@ -65,6 +66,8 @@ func (e ContextualRef) String() string {
 		return "count.index"
 	case Self:
 		return "self"
+	case TerraformApplying:
+		return "terraform.applying"
 	default:
 		// The four constants in this package are the only valid values of this type
 		panic("invalid ContextualRef instance")

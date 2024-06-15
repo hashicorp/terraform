@@ -118,6 +118,7 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 	providerVals := make(map[string]map[string]cty.Value)
 	eachVals := make(map[string]cty.Value)
 	countVals := make(map[string]cty.Value)
+	terraformVals := make(map[string]cty.Value)
 	var selfVal cty.Value
 	var testOnlyGlobals map[string]cty.Value // allocated only when needed (see below)
 
@@ -147,6 +148,8 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 				countVals["index"] = val
 			case stackaddrs.Self:
 				selfVal = val
+			case stackaddrs.TerraformApplying:
+				terraformVals["applying"] = val
 			default:
 				// The above should be exhaustive for all values of this enumeration
 				panic(fmt.Sprintf("unsupported ContextualRef %#v", addr))
@@ -199,6 +202,9 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 	}
 	if len(countVals) != 0 {
 		hclCtx.Variables["count"] = cty.ObjectVal(countVals)
+	}
+	if len(terraformVals) != 0 {
+		hclCtx.Variables["terraform"] = cty.ObjectVal(terraformVals)
 	}
 	if selfVal != cty.NilVal {
 		hclCtx.Variables["self"] = selfVal
