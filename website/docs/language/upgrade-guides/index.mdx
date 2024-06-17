@@ -1,23 +1,18 @@
 ---
-page_title: Upgrading to Terraform v1.8
-description: Upgrading to Terraform v1.8
+page_title: Upgrading to Terraform v1.9
+description: Upgrading to Terraform v1.9
 ---
 
-# Upgrading to Terraform v1.8
+# Upgrading to Terraform v1.9
 
 -> **Tip:** Use the version selector to view the upgrade guides for older Terraform versions.
 
-Terraform v1.8 is a minor release in the stable Terraform v1.0 series.
+Terraform v1.9 is a minor release in the stable Terraform v1.0 series.
 
-Terraform v1.8 honors the
+Terraform v1.9 honors the
 [Terraform v1.0 Compatibility Promises](https://developer.hashicorp.com/terraform/language/v1-compatibility-promises),
-but there are some behavior changes outside of those promises that may affect a
-small number of users. Specifically, the following updates may require
-additional upgrade steps:
-* [`use_legacy_workflow` is no longer available for the S3 backend](#s3-backend-authentication-changes)
-* [Possible spurious changes when refreshing](#possible-spurious-changes-when-refreshing)
-* [Ending support for macOS 10.15 Catalina](#ending-support-for-macos-1015-catalina)
-* [Minor change to `jsonencode` function results](#minor-change-to-jsonencode-function-results)
+but there is a change to the `terraform test` command that may require
+additional upgrade steps.
 
 See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.8/CHANGELOG.md)
 for more details. If you encounter any problems during upgrading which are not
@@ -25,81 +20,14 @@ covered this guide, please start a new topic in
 [the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core)
 to discuss it.
 
-## S3 Backend authentication changes
+## Provider constraints in `.tftest.hcl` files
 
-Terraform v1.7 began the deprecation of a legacy approach to authentication,
-making the `use_legacy_workflow` argument default to `false` and thus making the
-old authentication workflow opt-in.
+In Terraform v1.9, the `version` attribute has been removed from the `provider`
+block in the `.tftest.hcl` files. Terraform test files are not meant to be used
+to specify provider versions, so this attribute has been removed to reflect the
+intent of the test files.
 
-Terraform v1.8 completes this deprecation process by removing the
-`use_legacy_workflow` argument. The old behavior is no longer available, and
-so you will need to adopt the new behavior when upgrading to Terraform v1.8.
-
-The new implementation follows the authentication process implemented in the
-official AWS SDK for Go, which is therefore more consistent with other AWS
-tools such as the official AWS CLI.
-
-## Possible spurious changes when refreshing
-
-If you use the `-refresh-only` or `-refresh=false` planning options for your
-first plan after upgrading, Terraform might show resource instance diffs without
-any visible changes. This does not affect plans created with both of those
-options disabled.
-
-Previous versions of Terraform used a mixture of both dynamic and static
-tracking of sensitive values in resource instance attributes. That meant that,
-for example, correctly honoring sensitive values when interpreting the
-`terraform show -json` output required considering both the dynamic sensitivity
-information directly in the output _and_ static sensitivity information in the
-provider schema.
-
-To simplify handling of sensitivity in these cases, Terraform now copies the
-schema-based sensitivity information into the state along with the dynamic
-information. Terraform must therefore perform a one-time backfill update
-of the state metadata for resource types which have sensitive attributes.
-
-When using the default planning options Terraform should handle this update
-quietly, as part of the refresh step performed during planning. However, if
-you use the `-refresh-only` or `-refresh=false` option then you will effectively
-disable one half of this process, causing the UI to report spurious changes
-that affect only the metadata in the state.
-
-These no-change metadata updates should not cause any problems, and will be
-resolved once a plan has been applied using Terraform v1.8. If you are concerned
-about a particular plan then try removing the `-refresh-only` or `-refresh=false`
-option, which should then quiet the spurious change.
-
-## Ending support for macOS 10.15 Catalina
-
-Terraform v1.8 is the last series that will support macOS 10.15 Catalina. The
-next minor release series will require macOS 11 Big Sur or later.
-
-## Minor change to `jsonencode` function results
-
-In previous versions of Terraform, the `jsonencode` function encoded the
-control characters U+0008 (backspace) and U+000C (form feed) in strings using
-the unicode escape syntax: `\u0008` and `\u000c` respectively.
-
-Terraform now follows the JSON idiom more closely by using `\b` for backspace
-and `\f` for form feed. These shorter encodings are equivalent for a correct
-JSON parser, but are more readable for humans due to being mnemonics.
-
-These two control characters are relatively rarely used in practical JSON
-and so we don't expect that this change will have significant impact. If you
-are using them then this may cause the following effects:
-
-- If you are using `jsonencode` to produce JSON-encoded data for consumption
-  by a JSON parser that doesn't correctly support these short encoding forms
-  then it may not be able to parse the new results. Terraform implements
-  JSON encoding as defined in IETF RFC 7159, which requires that parsers
-  support these shorter encodings.
-
-- If you are using `jsonencode` to populate a resource argument where the
-  underlying provider does not perform JSON normalization, the provider might
-  propose changing the affected object to use the new encoding form. As long
-  as the remote system correctly implements JSON, this update should not
-  change the meaning of the JSON document.
-
-This change only affects strings that include these two specific control
-characters. If you do not use these control characters in the strings you pass
-to `jsonencode` then this change will have no effect for you.
+If you are using the `version` attribute in the `provider` block in your test
+files, you will need to remove it before running `terraform test` with Terraform
+v1.9. Instead, you should update the `required_providers` block in your main
+configuration to specify the provider version constraints.
