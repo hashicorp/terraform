@@ -575,7 +575,9 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 
 		// TODO: For now we just assume that all values are being created.
 		// Once we have a prior state we should compare with that to
-		// produce accurate change actions.
+		// produce accurate change actions. Also, once outputs are stored in
+		// state, we should update the definition of Applyable for a stack to
+		// reflect updates to outputs making a stack "applyable".
 
 		v, markses := v.UnmarkDeepWithPaths()
 		sensitivePaths, otherMarkses := marks.PathsWithMark(markses, marks.Sensitive)
