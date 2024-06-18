@@ -65,7 +65,7 @@ empty tuple.
 This special behavior can be useful for modules that accept optional input
 variables whose default value is `null` to represent the absence of any value. This allows the module to adapt the variable value for Terraform language features designed to work with collections. For example:
 
-```
+```hcl
 variable "website_setting" {
   type = object({
     index_document = string

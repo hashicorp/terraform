@@ -139,7 +139,7 @@ The `lifecycle` block is required. The `destroy` argument determines whether Ter
 
 A `removed` block may also contain a [Destroy-Time Provisioner](/terraform/language/resources/provisioners/syntax#destroy-time-provisioners), so that the provisioner can remain in the configuration even though the `resource` block has been removed.
 
-```
+```hcl
 removed {
   from = aws_instance.example
 
