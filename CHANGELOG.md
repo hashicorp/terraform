@@ -32,6 +32,7 @@ BUG FIXES:
 * `terraform init`: When selecting a version for a provider that has both positive and negative version constraints for the same prerelease -- e.g. `1.2.0-beta.1, !1.2.0-beta.1` -- the negative constraint will now overrule the positive, for consistency with how negative constraints are handled otherwise. Previously Terraform would incorrectly treat the positive as overriding the negative if the specified version was a prerelease. ([#35181](https://github.com/hashicorp/terraform/issues/35181))
 * `import`: `import` blocks could block a destroy operation if the target resource was already deleted ([#35272](https://github.com/hashicorp/terraform/issues/35272))
 * `cli`: plan output was missing blocks which were entirely unknown ([#35271](https://github.com/hashicorp/terraform/issues/35271))
+* `cli`: fix crash when running `providers mirror` with an incomplete lock file [GH-35322]
 * core: Changing `create_before_destroy` when replacing an instance, then applying with `-refresh=false` would order the apply operations incorrectly ([#35261](https://github.com/hashicorp/terraform/issues/35261))
 * core: Resource addresses that start with the optional `resource.` prefix will now be correctly parsed when used as an address target. ([#35333](https://github.com/hashicorp/terraform/issues/35333))
 
