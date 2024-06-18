@@ -74,8 +74,10 @@ func (c *ComponentInstance) InputVariableValues(ctx context.Context, phase EvalP
 }
 
 func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
-	wantTy, defs := c.call.Config(ctx).InputsType(ctx)
+	config := c.call.Config(ctx)
+	wantTy, defs := config.InputsType(ctx)
 	decl := c.call.Declaration(ctx)
+	varDecls := config.RootModuleVariableDecls(ctx)
 
 	if wantTy == cty.NilType {
 		// Suggests that the target module is invalid in some way, so we'll
@@ -87,7 +89,7 @@ func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase 
 
 	// We actually checked the errors statically already, so we only care about
 	// the value here.
-	return EvalComponentInputVariables(ctx, wantTy, defs, decl, phase, c)
+	return EvalComponentInputVariables(ctx, varDecls, wantTy, defs, decl, phase, c)
 }
 
 // inputValuesForModulesRuntime adapts the result of

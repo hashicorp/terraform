@@ -32,6 +32,7 @@ import (
 	default_testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval"
 	stacks_testing_provider "github.com/hashicorp/terraform/internal/stacks/stackruntime/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/states"
@@ -333,7 +334,7 @@ func TestPlanWithVariableDefaults(t *testing.T) {
 
 			wantChanges := []stackplan.PlannedChange{
 				&stackplan.PlannedChangeApplyable{
-					Applyable: true,
+					Applyable: false,
 				},
 				&stackplan.PlannedChangeHeader{
 					TerraformVersion: version.SemVer,
@@ -814,6 +815,112 @@ func TestPlanWithSingleResource(t *testing.T) {
 	}
 }
 
+func TestPlanWithEphemeralInputVariables(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "variable-ephemeral")
+
+	t.Run("with variables set", func(t *testing.T) {
+		changesCh := make(chan stackplan.PlannedChange, 8)
+		diagsCh := make(chan tfdiags.Diagnostic, 2)
+		req := PlanRequest{
+			Config: cfg,
+			InputValues: map[stackaddrs.InputVariable]stackeval.ExternalInputValue{
+				{Name: "eph"}:    {Value: cty.StringVal("eph value")},
+				{Name: "noneph"}: {Value: cty.StringVal("noneph value")},
+			},
+		}
+		resp := PlanResponse{
+			PlannedChanges: changesCh,
+			Diagnostics:    diagsCh,
+		}
+
+		go Plan(ctx, &req, &resp)
+		gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+
+		if len(diags) != 0 {
+			t.Errorf("unexpected diagnostics\n%s", diags.ErrWithWarnings().Error())
+		}
+
+		wantChanges := []stackplan.PlannedChange{
+			&stackplan.PlannedChangeApplyable{
+				Applyable: false,
+			},
+			&stackplan.PlannedChangeHeader{
+				TerraformVersion: version.SemVer,
+			},
+			&stackplan.PlannedChangeRootInputValue{
+				Addr: stackaddrs.InputVariable{
+					Name: "eph",
+				},
+				RequiredOnApply: true,
+			},
+			&stackplan.PlannedChangeRootInputValue{
+				Addr: stackaddrs.InputVariable{
+					Name: "noneph",
+				},
+				Value: cty.StringVal("noneph value"),
+			},
+		}
+		sort.SliceStable(gotChanges, func(i, j int) bool {
+			return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
+		})
+
+		if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions); diff != "" {
+			t.Errorf("wrong changes\n%s", diff)
+		}
+	})
+
+	t.Run("without variables set", func(t *testing.T) {
+		changesCh := make(chan stackplan.PlannedChange, 8)
+		diagsCh := make(chan tfdiags.Diagnostic, 2)
+		req := PlanRequest{
+			Config:      cfg,
+			InputValues: map[stackaddrs.InputVariable]stackeval.ExternalInputValue{
+				// Intentionally not set for this subtest.
+			},
+		}
+		resp := PlanResponse{
+			PlannedChanges: changesCh,
+			Diagnostics:    diagsCh,
+		}
+
+		go Plan(ctx, &req, &resp)
+		gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+
+		if len(diags) != 0 {
+			t.Errorf("unexpected diagnostics\n%s", diags.ErrWithWarnings().Error())
+		}
+
+		wantChanges := []stackplan.PlannedChange{
+			&stackplan.PlannedChangeApplyable{
+				Applyable: false,
+			},
+			&stackplan.PlannedChangeHeader{
+				TerraformVersion: version.SemVer,
+			},
+			&stackplan.PlannedChangeRootInputValue{
+				Addr: stackaddrs.InputVariable{
+					Name: "eph",
+				},
+				RequiredOnApply: false,
+			},
+			&stackplan.PlannedChangeRootInputValue{
+				Addr: stackaddrs.InputVariable{
+					Name: "noneph",
+				},
+				Value: cty.NullVal(cty.String),
+			},
+		}
+		sort.SliceStable(gotChanges, func(i, j int) bool {
+			return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
+		})
+
+		if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions); diff != "" {
+			t.Errorf("wrong changes\n%s", diff)
+		}
+	})
+}
+
 func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, "variable-output-roundtrip-nested")
@@ -837,7 +944,7 @@ func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: true,
+			Applyable: false,
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
@@ -1900,12 +2007,7 @@ func TestPlanWithDeferredResource(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			// It's slightly confusing that this is true, but the only component
-			// is not applyable. This is because this is based on the presence
-			// of any diagnostics, while the component is not applyable because
-			// it has no pending changes. This difference seems to be
-			// deliberate. (TODO(TF-15445): Consider revisiting this.)
-			Applyable: true,
+			Applyable: false,
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(
@@ -2514,7 +2616,7 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: true,
+			Applyable: false,
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
@@ -2649,7 +2751,7 @@ func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: true,
+			Applyable: false,
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
@@ -2837,7 +2939,7 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: true,
+			Applyable: false,
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(

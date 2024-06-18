@@ -177,6 +177,25 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 					Diagnostics: diags,
 				}
 			},
+			ImportResourceStateFn: func(request providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+				id := request.ID
+				value, exists := store.Get(id)
+				if !exists {
+					return providers.ImportResourceStateResponse{
+						Diagnostics: tfdiags.Diagnostics{
+							tfdiags.Sourceless(tfdiags.Error, "not found", fmt.Sprintf("%q not found", id)),
+						},
+					}
+				}
+				return providers.ImportResourceStateResponse{
+					ImportedResources: []providers.ImportedResource{
+						{
+							TypeName: request.TypeName,
+							State:    value,
+						},
+					},
+				}
+			},
 		},
 		ResourceStore: store,
 	}

@@ -110,19 +110,20 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 
+			cfg := v.Config(ctx)
+			decl := v.Declaration(ctx)
+
 			switch {
 			case v.Addr().Stack.IsRoot():
 				var err error
 
-				wantTy := v.Declaration(ctx).Type.Constraint
+				wantTy := decl.Type.Constraint
 				extVal := v.main.RootVariableValue(ctx, v.Addr().Item, phase)
 
 				// We treat a null value as equivalent to an unspecified value,
 				// and replace it with the variable's default value. This is
 				// consistent with how embedded stacks handle defaults.
 				if extVal.Value.IsNull() {
-					cfg := v.Config(ctx)
-
 					// A separate code path will validate the default value, so
 					// we don't need to do that here.
 					val := cfg.DefaultValue(ctx)
@@ -150,14 +151,13 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 								v.Addr().Item.Name, err,
 							),
 						})
-						val = cty.UnknownVal(wantTy)
+						val = cfg.markValue(cty.UnknownVal(wantTy))
 						return val, diags
 					}
 
 					// TODO: check the value against any custom validation rules
 					// declared in the configuration.
-
-					return val, diags
+					return cfg.markValue(val), diags
 				}
 
 				// Otherwise, we'll use the provided value.
@@ -165,7 +165,7 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 
 				// First, apply any defaults that are declared in the
 				// configuration.
-				if defaults := v.Declaration(ctx).Type.Defaults; defaults != nil {
+				if defaults := decl.Type.Defaults; defaults != nil {
 					val = defaults.Apply(val)
 				}
 
@@ -180,13 +180,13 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 							v.Addr().Item.Name, err,
 						),
 					})
-					val = cty.UnknownVal(wantTy)
+					val = cfg.markValue(cty.UnknownVal(wantTy))
 					return val, diags
 				}
 
 				// TODO: check the value against any custom validation rules
 				// declared in the configuration.
-				return val, diags
+				return cfg.markValue(val), diags
 
 			default:
 				definedByCallInst := v.DefinedByStackCallInstance(ctx, phase)
@@ -196,7 +196,7 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 					// something's gone wrong or we are descended from a stack
 					// call whose instances aren't known yet; we'll assume
 					// the latter and return a placeholder.
-					return cty.UnknownVal(v.Declaration(ctx).Type.Constraint), diags
+					return cfg.markValue(cty.UnknownVal(v.Declaration(ctx).Type.Constraint)), diags
 				}
 
 				allVals := definedByCallInst.InputVariableValues(ctx, phase)
@@ -205,7 +205,7 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 				// TODO: check the value against any custom validation rules
 				// declared in the configuration.
 
-				return val, diags
+				return cfg.markValue(val), diags
 			}
 		},
 	))
@@ -241,11 +241,20 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 		return nil, diags
 	}
 
+	decl := v.Declaration(ctx)
 	val := v.Value(ctx, PlanPhase)
+	requiredOnApply := false
+	if decl.Ephemeral {
+		// we don't persist the value for an ephemeral variable, but we
+		// do need to remember whether it was set.
+		requiredOnApply = !val.IsNull()
+		val = cty.NilVal
+	}
 	return []stackplan.PlannedChange{
 		&stackplan.PlannedChangeRootInputValue{
-			Addr:  v.Addr().Item,
-			Value: val,
+			Addr:            v.Addr().Item,
+			Value:           val,
+			RequiredOnApply: requiredOnApply,
 		},
 	}, diags
 }

@@ -166,6 +166,7 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 		Components:     make(map[string]*terraform1.FindStackConfigurationComponents_Component),
 		EmbeddedStacks: make(map[string]*terraform1.FindStackConfigurationComponents_EmbeddedStack),
 		InputVariables: make(map[string]*terraform1.FindStackConfigurationComponents_InputVariable),
+		OutputValues:   make(map[string]*terraform1.FindStackConfigurationComponents_OutputValue),
 	}
 
 	for name, cc := range cfgNode.Stack.Components {
@@ -197,10 +198,21 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 		ret.EmbeddedStacks[name] = sProto
 	}
 
-	for name, iv := range cfgNode.Stack.InputVariables {
-		ret.InputVariables[name] = &terraform1.FindStackConfigurationComponents_InputVariable{
-			Optional: !iv.DefaultValue.IsNull(),
+	for name, vc := range cfgNode.Stack.InputVariables {
+		vProto := &terraform1.FindStackConfigurationComponents_InputVariable{
+			Optional:  !vc.DefaultValue.IsNull(),
+			Sensitive: vc.Sensitive,
+			Ephemeral: vc.Ephemeral,
 		}
+		ret.InputVariables[name] = vProto
+	}
+
+	for name, oc := range cfgNode.Stack.OutputValues {
+		oProto := &terraform1.FindStackConfigurationComponents_OutputValue{
+			Sensitive: oc.Sensitive,
+			Ephemeral: oc.Ephemeral,
+		}
+		ret.OutputValues[name] = oProto
 	}
 
 	return ret
@@ -430,6 +442,11 @@ func (s *stacksServer) ApplyStackChanges(req *terraform1.ApplyStackChanges_Reque
 		return status.Errorf(codes.InvalidArgument, "provider dependencies are inconsistent: %s", err)
 	}
 
+	inputValues, err := externalInputValuesFromProto(req.InputValues)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "invalid input values: %s", err)
+	}
+
 	// We'll hook some internal events in the planning process both to generate
 	// tracing information if we're in an OpenTelemetry-aware context and
 	// to propagate a subset of the events to our client.
@@ -440,6 +457,7 @@ func (s *stacksServer) ApplyStackChanges(req *terraform1.ApplyStackChanges_Reque
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
 	rtReq := stackruntime.ApplyRequest{
 		Config:             cfg,
+		InputValues:        inputValues,
 		ProviderFactories:  providerFactories,
 		RawPlan:            req.PlannedChanges,
 		ExperimentsAllowed: s.experimentsAllowed,
@@ -891,6 +909,7 @@ func resourceInstancePlanned(ric *hooks.ResourceInstanceChange) (*terraform1.Sta
 	if ric.Change.Importing != nil {
 		imported = &terraform1.StackChangeProgress_ResourceInstancePlannedChange_Imported{
 			ImportId: ric.Change.Importing.ID,
+			Unknown:  ric.Change.Importing.Unknown,
 		}
 	}
 

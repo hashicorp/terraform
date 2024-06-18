@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -101,7 +102,7 @@ func (ov *OutputValueConfig) validateValueInner(ctx context.Context) (cty.Value,
 	v := result.Value
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
-		v = cty.UnknownVal(ov.ValueTypeConstraint(ctx))
+		v = ov.markResultValue(cty.UnknownVal(ov.ValueTypeConstraint(ctx)))
 	}
 
 	var err error
@@ -121,7 +122,18 @@ func (ov *OutputValueConfig) validateValueInner(ctx context.Context) (cty.Value,
 		})
 	}
 
-	return v, diags
+	return ov.markResultValue(v), diags
+}
+
+func (ov *OutputValueConfig) markResultValue(v cty.Value) cty.Value {
+	decl := ov.config
+	if decl.Sensitive {
+		v = v.Mark(marks.Sensitive)
+	}
+	if decl.Ephemeral {
+		v = v.Mark(marks.Ephemeral)
+	}
+	return v
 }
 
 func (ov *OutputValueConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {

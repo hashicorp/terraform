@@ -24,7 +24,7 @@ func TestLoadConfigDirBasics(t *testing.T) {
 	}
 
 	t.Run("root input variables", func(t *testing.T) {
-		if got, want := len(config.Root.Stack.InputVariables), 1; got != want {
+		if got, want := len(config.Root.Stack.InputVariables), 2; got != want {
 			t.Errorf("wrong number of input variables %d; want %d", got, want)
 		}
 		t.Run("name", func(t *testing.T) {
@@ -38,10 +38,34 @@ func TestLoadConfigDirBasics(t *testing.T) {
 			if got, want := cfg.Type.Constraint, cty.String; got != want {
 				t.Errorf("wrong name\ngot:  %#v\nwant: %#v", got, want)
 			}
+			if got, want := cfg.Sensitive, false; got != want {
+				t.Errorf("wrong sensitive\ngot:  %#v\nwant: %#v", got, want)
+			}
+			if got, want := cfg.Ephemeral, false; got != want {
+				t.Errorf("wrong ephemeral\ngot:  %#v\nwant: %#v", got, want)
+			}
+		})
+		t.Run("auth_jwt", func(t *testing.T) {
+			cfg, ok := config.Root.Stack.InputVariables["auth_jwt"]
+			if !ok {
+				t.Fatal("Root stack config has no variable named \"auth_jwt\".")
+			}
+			if got, want := cfg.Name, "auth_jwt"; got != want {
+				t.Errorf("wrong name\ngot:  %s\nwant: %s", got, want)
+			}
+			if got, want := cfg.Type.Constraint, cty.String; got != want {
+				t.Errorf("wrong name\ngot:  %#v\nwant: %#v", got, want)
+			}
+			if got, want := cfg.Sensitive, true; got != want {
+				t.Errorf("wrong sensitive\ngot:  %#v\nwant: %#v", got, want)
+			}
+			if got, want := cfg.Ephemeral, true; got != want {
+				t.Errorf("wrong ephemeral\ngot:  %#v\nwant: %#v", got, want)
+			}
 		})
 	})
 	t.Run("root output values", func(t *testing.T) {
-		if got, want := len(config.Root.Stack.OutputValues), 2; got != want {
+		if got, want := len(config.Root.Stack.OutputValues), 3; got != want {
 			t.Errorf("wrong number of output values %d; want %d", got, want)
 		}
 		t.Run("greeting", func(t *testing.T) {
@@ -55,6 +79,12 @@ func TestLoadConfigDirBasics(t *testing.T) {
 			if got, want := cfg.Type.Constraint, cty.String; got != want {
 				t.Errorf("wrong name\ngot:  %#v\nwant: %#v", got, want)
 			}
+			if got, want := cfg.Sensitive, false; got != want {
+				t.Errorf("wrong sensitive\ngot:  %#v\nwant: %#v", got, want)
+			}
+			if got, want := cfg.Ephemeral, false; got != want {
+				t.Errorf("wrong ephemeral\ngot:  %#v\nwant: %#v", got, want)
+			}
 		})
 		t.Run("sound", func(t *testing.T) {
 			cfg, ok := config.Root.Stack.OutputValues["sound"]
@@ -66,6 +96,30 @@ func TestLoadConfigDirBasics(t *testing.T) {
 			}
 			if got, want := cfg.Type.Constraint, cty.String; got != want {
 				t.Errorf("wrong name\ngot:  %#v\nwant: %#v", got, want)
+			}
+			if got, want := cfg.Sensitive, false; got != want {
+				t.Errorf("wrong sensitive\ngot:  %#v\nwant: %#v", got, want)
+			}
+			if got, want := cfg.Ephemeral, false; got != want {
+				t.Errorf("wrong ephemeral\ngot:  %#v\nwant: %#v", got, want)
+			}
+		})
+		t.Run("password", func(t *testing.T) {
+			cfg, ok := config.Root.Stack.OutputValues["password"]
+			if !ok {
+				t.Fatal("Root stack config has no output value named \"password\".")
+			}
+			if got, want := cfg.Name, "password"; got != want {
+				t.Errorf("wrong name\ngot:  %s\nwant: %s", got, want)
+			}
+			if got, want := cfg.Type.Constraint, cty.String; got != want {
+				t.Errorf("wrong name\ngot:  %#v\nwant: %#v", got, want)
+			}
+			if got, want := cfg.Sensitive, true; got != want {
+				t.Errorf("wrong sensitive\ngot:  %#v\nwant: %#v", got, want)
+			}
+			if got, want := cfg.Ephemeral, true; got != want {
+				t.Errorf("wrong ephemeral\ngot:  %#v\nwant: %#v", got, want)
 			}
 		})
 	})
