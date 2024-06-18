@@ -81,7 +81,7 @@ which workspace you set with the `terraform workspace select` command. Therefore
 
 If you need to determine whether a run is local or remote in your Terraform configuration, we recommend using [HCP Terraform run environment variables](/terraform/cloud-docs/run/run-environment#environment-variables). The example below uses `HCP_TERRAFORM_RUN_ID`.
 
-```
+```hcl
 output "current_workspace_name" {
   value = terraform.workspace
 }
