@@ -5,7 +5,6 @@ package stackruntime
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -32,15 +31,14 @@ import (
 // through resp after passing it to this function, aside from the implicit
 // modifications to the internal state of channels caused by reading them.
 func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
-	var respMu sync.Mutex // must hold this when accessing fields of resp, aside from channel sends
-	resp.Applyable = true // we'll reset this to false later if appropriate
-
 	// Whatever return path we take, we must close our channels to allow
 	// a caller to see that the operation is complete.
 	defer func() {
 		close(resp.Diagnostics)
 		close(resp.PlannedChanges) // MUST be the last channel to close
 	}()
+
+	var errored, applyable bool
 
 	main := stackeval.NewForPlanning(req.Config, req.PrevState, stackeval.PlanOpts{
 		PlanningMode:        req.PlanMode,
@@ -53,14 +51,16 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 	main.PlanAll(ctx, stackeval.PlanOutput{
 		AnnouncePlannedChange: func(ctx context.Context, change stackplan.PlannedChange) {
 			resp.PlannedChanges <- change
+			if componentChange, ok := change.(*stackplan.PlannedChangeComponentInstance); ok {
+				if componentChange.PlanApplyable {
+					applyable = true
+				}
+			}
 		},
 		AnnounceDiagnostics: func(ctx context.Context, diags tfdiags.Diagnostics) {
 			for _, diag := range diags {
 				if diag.Severity() == tfdiags.Error {
-					respMu.Lock()
-					// NOTE: Applyable can never become true again after this point.
-					resp.Applyable = false
-					respMu.Unlock()
+					errored = true
 				}
 				resp.Diagnostics <- diag
 			}
@@ -74,6 +74,10 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 		// such as failing to terminate a provider plugin.
 		resp.Diagnostics <- diag
 	}
+
+	// An overall stack plan is applyable if at least one of its component
+	// instances is applyable and we had no error diagnostics.
+	resp.Applyable = !errored && applyable
 
 	// Before we return we'll emit one more special planned change just to
 	// remember in the raw plan sequence whether we considered this plan to be

@@ -334,7 +334,7 @@ func TestPlanWithVariableDefaults(t *testing.T) {
 
 			wantChanges := []stackplan.PlannedChange{
 				&stackplan.PlannedChangeApplyable{
-					Applyable: true,
+					Applyable: false,
 				},
 				&stackplan.PlannedChangeHeader{
 					TerraformVersion: version.SemVer,
@@ -666,7 +666,7 @@ func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: true,
+			Applyable: false,
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
@@ -1729,12 +1729,7 @@ func TestPlanWithDeferredResource(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			// It's slightly confusing that this is true, but the only component
-			// is not applyable. This is because this is based on the presence
-			// of any diagnostics, while the component is not applyable because
-			// it has no pending changes. This difference seems to be
-			// deliberate. (TODO(TF-15445): Consider revisiting this.)
-			Applyable: true,
+			Applyable: false,
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(
@@ -2343,7 +2338,7 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: true,
+			Applyable: false,
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
@@ -2478,7 +2473,7 @@ func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: true,
+			Applyable: false,
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
@@ -2666,7 +2661,7 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: true,
+			Applyable: false,
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(
