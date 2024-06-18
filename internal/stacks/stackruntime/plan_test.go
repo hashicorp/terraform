@@ -375,6 +375,284 @@ func TestPlanWithVariableDefaults(t *testing.T) {
 	}
 }
 
+func TestPlanWithComplexVariableDefaults(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, path.Join("complex-inputs"))
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
+			stackaddrs.InputVariable{Name: "optional"}: {
+				Value:    cty.EmptyObjectVal, // This should be populated by defaults.
+				DefRange: tfdiags.SourceRange{},
+			},
+		},
+		ForcePlanTimestamp: &fakePlanTimestamp,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+	go Plan(ctx, &req, &resp)
+	changes, diags := collectPlanOutput(changesCh, diagsCh)
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics: %s", diags)
+	}
+
+	sort.SliceStable(changes, func(i, j int) bool {
+		return plannedChangeSortKey(changes[i]) < plannedChangeSortKey(changes[j])
+	})
+
+	wantChanges := []stackplan.PlannedChange{
+		&stackplan.PlannedChangeApplyable{
+			Applyable: true,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr:               mustAbsComponentInstance("component.self"),
+			PlanComplete:       true,
+			PlanApplyable:      true,
+			Action:             plans.Create,
+			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](),
+			PlannedInputValues: map[string]plans.DynamicValue{
+				"input": mustPlanDynamicValueDynamicType(cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("cec9bc39"),
+						"value": cty.StringVal("hello, mercury!"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("78d8b3d7"),
+						"value": cty.StringVal("hello, venus!"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.NullVal(cty.String),
+						"value": cty.StringVal("hello, earth!"),
+					}),
+				})),
+			},
+			PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+				"input": nil,
+			},
+			PlannedOutputValues: make(map[string]cty.Value),
+			PlannedCheckResults: &states.CheckResults{},
+			PlanTimestamp:       fakePlanTimestamp,
+		},
+		&stackplan.PlannedChangeResourceInstancePlanned{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data[0]"),
+			ChangeSrc: &plans.ResourceInstanceChangeSrc{
+				Addr:        mustAbsResourceInstance("testing_resource.data[0]"),
+				PrevRunAddr: mustAbsResourceInstance("testing_resource.data[0]"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+					After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("cec9bc39"),
+						"value": cty.StringVal("hello, mercury!"),
+					})),
+				},
+				ProviderAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+				},
+			},
+			ProviderConfigAddr: addrs.AbsProviderConfig{
+				Module:   addrs.RootModule,
+				Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+			},
+			Schema: stacks_testing_provider.TestingResourceSchema,
+		},
+		&stackplan.PlannedChangeResourceInstancePlanned{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data[1]"),
+			ChangeSrc: &plans.ResourceInstanceChangeSrc{
+				Addr:        mustAbsResourceInstance("testing_resource.data[1]"),
+				PrevRunAddr: mustAbsResourceInstance("testing_resource.data[1]"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+					After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("78d8b3d7"),
+						"value": cty.StringVal("hello, venus!"),
+					})),
+				},
+				ProviderAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+				},
+			},
+			ProviderConfigAddr: addrs.AbsProviderConfig{
+				Module:   addrs.RootModule,
+				Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+			},
+			Schema: stacks_testing_provider.TestingResourceSchema,
+		},
+		&stackplan.PlannedChangeResourceInstancePlanned{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data[2]"),
+			ChangeSrc: &plans.ResourceInstanceChangeSrc{
+				Addr:        mustAbsResourceInstance("testing_resource.data[2]"),
+				PrevRunAddr: mustAbsResourceInstance("testing_resource.data[2]"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+					After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.UnknownVal(cty.String),
+						"value": cty.StringVal("hello, earth!"),
+					})),
+				},
+				ProviderAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+				},
+			},
+			ProviderConfigAddr: addrs.AbsProviderConfig{
+				Module:   addrs.RootModule,
+				Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+			},
+			Schema: stacks_testing_provider.TestingResourceSchema,
+		},
+		&stackplan.PlannedChangeHeader{
+			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr:               mustAbsComponentInstance("stack.child.component.parent"),
+			PlanComplete:       true,
+			PlanApplyable:      true,
+			Action:             plans.Create,
+			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](),
+			PlannedInputValues: map[string]plans.DynamicValue{
+				"input": mustPlanDynamicValueDynamicType(cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("cec9bc39"),
+						"value": cty.StringVal("hello, mercury!"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("78d8b3d7"),
+						"value": cty.StringVal("hello, venus!"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.NullVal(cty.String),
+						"value": cty.StringVal("hello, earth!"),
+					}),
+				})),
+			},
+			PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+				"input": nil,
+			},
+			PlannedOutputValues: make(map[string]cty.Value),
+			PlannedCheckResults: &states.CheckResults{},
+			PlanTimestamp:       fakePlanTimestamp,
+		},
+		&stackplan.PlannedChangeResourceInstancePlanned{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("stack.child.component.parent.testing_resource.data[0]"),
+			ChangeSrc: &plans.ResourceInstanceChangeSrc{
+				Addr:        mustAbsResourceInstance("testing_resource.data[0]"),
+				PrevRunAddr: mustAbsResourceInstance("testing_resource.data[0]"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+					After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("cec9bc39"),
+						"value": cty.StringVal("hello, mercury!"),
+					})),
+				},
+				ProviderAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+				},
+			},
+			ProviderConfigAddr: addrs.AbsProviderConfig{
+				Module:   addrs.RootModule,
+				Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+			},
+			Schema: stacks_testing_provider.TestingResourceSchema,
+		},
+		&stackplan.PlannedChangeResourceInstancePlanned{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("stack.child.component.parent.testing_resource.data[1]"),
+			ChangeSrc: &plans.ResourceInstanceChangeSrc{
+				Addr:        mustAbsResourceInstance("testing_resource.data[1]"),
+				PrevRunAddr: mustAbsResourceInstance("testing_resource.data[1]"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+					After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("78d8b3d7"),
+						"value": cty.StringVal("hello, venus!"),
+					})),
+				},
+				ProviderAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+				},
+			},
+			ProviderConfigAddr: addrs.AbsProviderConfig{
+				Module:   addrs.RootModule,
+				Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+			},
+			Schema: stacks_testing_provider.TestingResourceSchema,
+		},
+		&stackplan.PlannedChangeResourceInstancePlanned{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("stack.child.component.parent.testing_resource.data[2]"),
+			ChangeSrc: &plans.ResourceInstanceChangeSrc{
+				Addr:        mustAbsResourceInstance("testing_resource.data[2]"),
+				PrevRunAddr: mustAbsResourceInstance("testing_resource.data[2]"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+					After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.UnknownVal(cty.String),
+						"value": cty.StringVal("hello, earth!"),
+					})),
+				},
+				ProviderAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+				},
+			},
+			ProviderConfigAddr: addrs.AbsProviderConfig{
+				Module:   addrs.RootModule,
+				Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+			},
+			Schema: stacks_testing_provider.TestingResourceSchema,
+		},
+		&stackplan.PlannedChangeRootInputValue{
+			Addr: stackaddrs.InputVariable{Name: "default"},
+			Value: cty.ObjectVal(map[string]cty.Value{
+				"id":    cty.StringVal("cec9bc39"),
+				"value": cty.StringVal("hello, mercury!"),
+			}),
+		},
+		&stackplan.PlannedChangeRootInputValue{
+			Addr: stackaddrs.InputVariable{Name: "optional"},
+			Value: cty.ObjectVal(map[string]cty.Value{
+				"id":    cty.NullVal(cty.String),
+				"value": cty.StringVal("hello, earth!"),
+			}),
+		},
+		&stackplan.PlannedChangeRootInputValue{
+			Addr: stackaddrs.InputVariable{Name: "optional_default"},
+			Value: cty.ObjectVal(map[string]cty.Value{
+				"id":    cty.StringVal("78d8b3d7"),
+				"value": cty.StringVal("hello, venus!"),
+			}),
+		},
+	}
+
+	if diff := cmp.Diff(wantChanges, changes, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+
+}
+
 func TestPlanWithSingleResource(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, "with-single-resource")
@@ -565,7 +843,7 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 
 		wantChanges := []stackplan.PlannedChange{
 			&stackplan.PlannedChangeApplyable{
-				Applyable: true,
+				Applyable: false,
 			},
 			&stackplan.PlannedChangeHeader{
 				TerraformVersion: version.SemVer,
@@ -615,7 +893,7 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 
 		wantChanges := []stackplan.PlannedChange{
 			&stackplan.PlannedChangeApplyable{
-				Applyable: true,
+				Applyable: false,
 			},
 			&stackplan.PlannedChangeHeader{
 				TerraformVersion: version.SemVer,

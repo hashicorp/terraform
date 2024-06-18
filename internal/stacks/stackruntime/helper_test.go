@@ -13,8 +13,10 @@ import (
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
@@ -206,6 +208,33 @@ func plannedChangeSortKey(change stackplan.PlannedChange) string {
 	}
 }
 
+func mustAbsResourceInstance(addr string) addrs.AbsResourceInstance {
+	ret, diags := addrs.ParseAbsResourceInstanceStr(addr)
+	if len(diags) > 0 {
+		panic(fmt.Sprintf("failed to parse resource instance address %q: %s", addr, diags))
+	}
+	return ret
+}
+
+func mustAbsResourceInstanceObject(addr string) stackaddrs.AbsResourceInstanceObject {
+	ret, diags := stackaddrs.ParseAbsResourceInstanceObjectStr(addr)
+	if len(diags) > 0 {
+		panic(fmt.Sprintf("failed to parse resource instance object address %q: %s", addr, diags))
+	}
+	return ret
+}
+
+func mustAbsComponentInstance(addr string) stackaddrs.AbsComponentInstance {
+	ret, diags := stackaddrs.ParseAbsComponentInstanceStr(addr)
+	if len(diags) > 0 {
+		panic(fmt.Sprintf("failed to parse component instance address %q: %s", addr, diags))
+	}
+	return ret
+}
+
+// mustPlanDynamicValue is a helper function that constructs a
+// plans.DynamicValue from the given cty.Value, panicking if the construction
+// fails.
 func mustPlanDynamicValue(v cty.Value) plans.DynamicValue {
 	ret, err := plans.NewDynamicValue(v, v.Type())
 	if err != nil {
@@ -214,6 +243,9 @@ func mustPlanDynamicValue(v cty.Value) plans.DynamicValue {
 	return ret
 }
 
+// mustPlanDynamicValueDynamicType is a helper function that constructs a
+// plans.DynamicValue from the given cty.Value, using cty.DynamicPseudoType as
+// the type, and panicking if the construction fails.
 func mustPlanDynamicValueDynamicType(v cty.Value) plans.DynamicValue {
 	ret, err := plans.NewDynamicValue(v, cty.DynamicPseudoType)
 	if err != nil {
@@ -222,6 +254,9 @@ func mustPlanDynamicValueDynamicType(v cty.Value) plans.DynamicValue {
 	return ret
 }
 
+// mustPlanDynamicValueSchema is a helper function that constructs a
+// plans.DynamicValue from the given cty.Value and configschema.Block, panicking
+// if the construction fails.
 func mustPlanDynamicValueSchema(v cty.Value, block *configschema.Block) plans.DynamicValue {
 	ty := block.ImpliedType()
 	ret, err := plans.NewDynamicValue(v, ty)

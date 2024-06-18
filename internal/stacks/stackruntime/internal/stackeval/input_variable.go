@@ -115,8 +115,9 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 
 			switch {
 			case v.Addr().Stack.IsRoot():
-				wantTy := decl.Type.Constraint
+				var err error
 
+				wantTy := decl.Type.Constraint
 				extVal := v.main.RootVariableValue(ctx, v.Addr().Item, phase)
 
 				// We treat a null value as equivalent to an unspecified value,
@@ -125,8 +126,8 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 				if extVal.Value.IsNull() {
 					// A separate code path will validate the default value, so
 					// we don't need to do that here.
-					defVal := cfg.DefaultValue(ctx)
-					if defVal == cty.NilVal {
+					val := cfg.DefaultValue(ctx)
+					if val == cty.NilVal {
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
 							Summary:  "No value for required variable",
@@ -136,18 +137,44 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 						return cty.UnknownVal(wantTy), diags
 					}
 
-					extVal = ExternalInputValue{
-						Value:    defVal,
-						DefRange: cfg.Declaration().DeclRange,
+					// The DefaultValue method already validated the default
+					// value, and applied the defaults, so we don't need to
+					// do that again.
+
+					val, err = convert.Convert(val, wantTy)
+					if err != nil {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid value for root input variable",
+							Detail: fmt.Sprintf(
+								"Cannot use the given value for input variable %q: %s.",
+								v.Addr().Item.Name, err,
+							),
+						})
+						val = cfg.markValue(cty.UnknownVal(wantTy))
+						return val, diags
 					}
+
+					// TODO: check the value against any custom validation rules
+					// declared in the configuration.
+					return cfg.markValue(val), diags
 				}
 
-				val, err := convert.Convert(extVal.Value, wantTy)
-				const errSummary = "Invalid value for root input variable"
+				// Otherwise, we'll use the provided value.
+				val := extVal.Value
+
+				// First, apply any defaults that are declared in the
+				// configuration.
+				if defaults := decl.Type.Defaults; defaults != nil {
+					val = defaults.Apply(val)
+				}
+
+				// Next, convert the value to the expected type.
+				val, err = convert.Convert(val, wantTy)
 				if err != nil {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
-						Summary:  errSummary,
+						Summary:  "Invalid value for root input variable",
 						Detail: fmt.Sprintf(
 							"Cannot use the given value for input variable %q: %s.",
 							v.Addr().Item.Name, err,
