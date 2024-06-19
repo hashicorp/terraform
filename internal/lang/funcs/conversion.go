@@ -99,6 +99,60 @@ func MakeToFunc(wantTy cty.Type) function.Function {
 	})
 }
 
+// EphemeralAsNullFunc is a cty function that takes a value of any type and
+// returns a similar value with any ephemeral-marked values anywhere in the
+// structure replaced with a null value of the same type that is not marked
+// as ephemeral.
+//
+// This is intended as a convenience for returning the non-ephemeral parts of
+// a partially-ephemeral data structure through an output value that isn't
+// ephemeral itself.
+var EphemeralAsNullFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name:             "value",
+			Type:             cty.DynamicPseudoType,
+			AllowDynamicType: true,
+			AllowUnknown:     true,
+			AllowNull:        true,
+			AllowMarked:      true,
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		// This function always preserves the type of the given argument.
+		return args[0].Type(), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		return cty.Transform(args[0], func(p cty.Path, v cty.Value) (cty.Value, error) {
+			_, givenMarks := v.Unmark()
+			if _, isEphemeral := givenMarks[marks.Ephemeral]; isEphemeral {
+				// We'll strip the ephemeral mark but retain any other marks
+				// that might be present on the input.
+				delete(givenMarks, marks.Ephemeral)
+				if !v.IsKnown() {
+					// If the source value is unknown then we must leave it
+					// unknown because its final type might be more precise
+					// than the associated type constraint and returning a
+					// typed null could therefore over-promise on what the
+					// final result type will be.
+					// We're deliberately constructing a fresh unknown value
+					// here, rather than returning the one we were given,
+					// because we need to discard any refinements that the
+					// unknown value might be carrying that definitely won't
+					// be honored when we force the final result to be null.
+					return cty.UnknownVal(v.Type()).WithMarks(givenMarks), nil
+				}
+				return cty.NullVal(v.Type()).WithMarks(givenMarks), nil
+			}
+			return v, nil
+		})
+	},
+})
+
+func EphemeralAsNull(input cty.Value) (cty.Value, error) {
+	return EphemeralAsNullFunc.Call([]cty.Value{input})
+}
+
 // TypeFunc returns an encapsulated value containing its argument's type. This
 // value is marked to allow us to limit the use of this function at the moment
 // to only a few supported use cases.
