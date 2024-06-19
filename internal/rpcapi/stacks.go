@@ -856,6 +856,8 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 						Import: int32(cic.Import),
 						Remove: int32(cic.Remove),
 						Defer:  int32(cic.Defer),
+						Move:   int32(cic.Move),
+						Forget: int32(cic.Forget),
 					},
 				},
 			})
@@ -881,6 +883,8 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 						Import: int32(cic.Import),
 						Remove: int32(cic.Remove),
 						Defer:  int32(cic.Defer),
+						Move:   int32(cic.Move),
+						Forget: int32(cic.Forget),
 					},
 				},
 			})

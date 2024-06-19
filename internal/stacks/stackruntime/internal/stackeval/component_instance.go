@@ -633,6 +633,9 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					if rsrcChange.Importing != nil {
 						cic.Import++
 					}
+					if rsrcChange.Moved() {
+						cic.Move++
+					}
 					cic.CountNewAction(rsrcChange.Action)
 
 					hookMore(ctx, seq, h.ReportResourceInstancePlanned, &hooks.ResourceInstanceChange{

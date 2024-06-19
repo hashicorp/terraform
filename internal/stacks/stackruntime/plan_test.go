@@ -3160,6 +3160,293 @@ func TestPlanInvalidProvidersFailGracefully(t *testing.T) {
 	}
 }
 
+func TestPlanWithStateManipulation(t *testing.T) {
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tcs := map[string]struct {
+		state            *stackstate.State
+		store            *stacks_testing_provider.ResourceStore
+		inputs           map[string]cty.Value
+		changes          []stackplan.PlannedChange
+		expectedWarnings []string
+	}{
+		"moved": {
+			state: stackstate.NewStateBuilder().
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self.testing_resource.before")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "moved",
+							"value": "moved",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("moved", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("moved"),
+					"value": cty.StringVal("moved"),
+				})).
+				Build(),
+			changes: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeApplyable{
+					Applyable: true,
+				},
+				&stackplan.PlannedChangeComponentInstance{
+					Addr:                mustAbsComponentInstance("component.self"),
+					PlanApplyable:       true,
+					PlanComplete:        true,
+					Action:              plans.Update,
+					PlannedInputValues:  make(map[string]plans.DynamicValue),
+					PlannedOutputValues: make(map[string]cty.Value),
+					PlannedCheckResults: &states.CheckResults{},
+					RequiredComponents:  collections.NewSet[stackaddrs.AbsComponent](),
+					PlanTimestamp:       fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeResourceInstancePlanned{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.after"),
+					ChangeSrc: &plans.ResourceInstanceChangeSrc{
+						Addr:         mustAbsResourceInstance("testing_resource.after"),
+						PrevRunAddr:  mustAbsResourceInstance("testing_resource.before"),
+						ProviderAddr: mustDefaultRootProvider("testing"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.NoOp,
+							Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+								"id":    cty.StringVal("moved"),
+								"value": cty.StringVal("moved"),
+							})),
+							After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+								"id":    cty.StringVal("moved"),
+								"value": cty.StringVal("moved"),
+							})),
+						},
+					},
+					PriorStateSrc: &states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "moved",
+							"value": "moved",
+						}),
+						Dependencies: make([]addrs.ConfigResource, 0),
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+				&stackplan.PlannedChangeHeader{
+					TerraformVersion: version.SemVer,
+				},
+			},
+		},
+		"import": {
+			state: stackstate.NewStateBuilder().Build(), // We start with an empty state for this.
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("imported", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("imported"),
+					"value": cty.StringVal("imported"),
+				})).
+				Build(),
+			inputs: map[string]cty.Value{
+				"id": cty.StringVal("imported"),
+			},
+			changes: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeApplyable{
+					Applyable: true,
+				},
+				&stackplan.PlannedChangeComponentInstance{
+					Addr:          mustAbsComponentInstance("component.self"),
+					PlanApplyable: true,
+					PlanComplete:  true,
+					// The component is still CREATE even though all the
+					// instances are NoOps, because the component itself didn't
+					// exist before even though all the resources might have.
+					Action: plans.Create,
+					PlannedInputValues: map[string]plans.DynamicValue{
+						"id": mustPlanDynamicValueDynamicType(cty.StringVal("imported")),
+					},
+					PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+						"id": nil,
+					},
+					PlannedOutputValues: make(map[string]cty.Value),
+					PlannedCheckResults: &states.CheckResults{},
+					RequiredComponents:  collections.NewSet[stackaddrs.AbsComponent](),
+					PlanTimestamp:       fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeResourceInstancePlanned{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+					ChangeSrc: &plans.ResourceInstanceChangeSrc{
+						Addr:         mustAbsResourceInstance("testing_resource.data"),
+						PrevRunAddr:  mustAbsResourceInstance("testing_resource.data"),
+						ProviderAddr: mustDefaultRootProvider("testing"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.NoOp,
+							Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+								"id":    cty.StringVal("imported"),
+								"value": cty.StringVal("imported"),
+							})),
+							After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+								"id":    cty.StringVal("imported"),
+								"value": cty.StringVal("imported"),
+							})),
+							Importing: &plans.ImportingSrc{
+								ID: "imported",
+							},
+						},
+					},
+					PriorStateSrc: &states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "imported",
+							"value": "imported",
+						}),
+						Dependencies: make([]addrs.ConfigResource, 0),
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+				&stackplan.PlannedChangeHeader{
+					TerraformVersion: version.SemVer,
+				},
+				&stackplan.PlannedChangeRootInputValue{
+					Addr: stackaddrs.InputVariable{
+						Name: "id",
+					},
+					Value:           cty.StringVal("imported"),
+					RequiredOnApply: false,
+				},
+			},
+		},
+		"removed": {
+			state: stackstate.NewStateBuilder().
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self.testing_resource.resource")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "removed",
+							"value": "removed",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("removed", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("removed"),
+					"value": cty.StringVal("removed"),
+				})).
+				Build(),
+			changes: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeApplyable{
+					Applyable: true,
+				},
+				&stackplan.PlannedChangeComponentInstance{
+					Addr:                mustAbsComponentInstance("component.self"),
+					PlanApplyable:       true,
+					PlanComplete:        true,
+					Action:              plans.Update,
+					PlannedInputValues:  make(map[string]plans.DynamicValue),
+					PlannedOutputValues: make(map[string]cty.Value),
+					PlannedCheckResults: &states.CheckResults{},
+					RequiredComponents:  collections.NewSet[stackaddrs.AbsComponent](),
+					PlanTimestamp:       fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeResourceInstancePlanned{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.resource"),
+					ChangeSrc: &plans.ResourceInstanceChangeSrc{
+						Addr:         mustAbsResourceInstance("testing_resource.resource"),
+						PrevRunAddr:  mustAbsResourceInstance("testing_resource.resource"),
+						ProviderAddr: mustDefaultRootProvider("testing"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.Forget,
+							Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+								"id":    cty.StringVal("removed"),
+								"value": cty.StringVal("removed"),
+							})),
+							After: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+								"id":    cty.String,
+								"value": cty.String,
+							}))),
+						},
+						ActionReason: plans.ResourceInstanceDeleteBecauseNoResourceConfig,
+					},
+					PriorStateSrc: &states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "removed",
+							"value": "removed",
+						}),
+						Dependencies: make([]addrs.ConfigResource, 0),
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+				&stackplan.PlannedChangeHeader{
+					TerraformVersion: version.SemVer,
+				},
+			},
+			expectedWarnings: []string{"Some objects will no longer be managed by Terraform"},
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+
+			ctx := context.Background()
+			cfg := loadMainBundleConfigForTest(t, path.Join("state-manipulation", name))
+
+			inputs := make(map[stackaddrs.InputVariable]ExternalInputValue, len(tc.inputs))
+			for name, input := range tc.inputs {
+				inputs[stackaddrs.InputVariable{Name: name}] = ExternalInputValue{
+					Value: input,
+				}
+			}
+
+			changesCh := make(chan stackplan.PlannedChange)
+			diagsCh := make(chan tfdiags.Diagnostic)
+			req := PlanRequest{
+				Config: cfg,
+				ProviderFactories: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProviderWithData(tc.store), nil
+					},
+				},
+				InputValues:        inputs,
+				ForcePlanTimestamp: &fakePlanTimestamp,
+				PrevState:          tc.state,
+			}
+			resp := PlanResponse{
+				PlannedChanges: changesCh,
+				Diagnostics:    diagsCh,
+			}
+			go Plan(ctx, &req, &resp)
+			changes, diags := collectPlanOutput(changesCh, diagsCh)
+
+			reportDiagnosticsForTest(t, diags)
+			if len(diags) > len(tc.expectedWarnings) {
+				t.Fatalf("had unexpected warnings")
+			}
+			for i, diag := range diags {
+				if diag.Description().Summary != tc.expectedWarnings[i] {
+					t.Fatalf("expected diagnostic with summary %q, got %q", tc.expectedWarnings[i], diag.Description().Summary)
+				}
+			}
+
+			sort.SliceStable(changes, func(i, j int) bool {
+				return plannedChangeSortKey(changes[i]) < plannedChangeSortKey(changes[j])
+			})
+
+			if diff := cmp.Diff(tc.changes, changes, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+				t.Errorf("wrong changes\n%s", diff)
+			}
+		})
+	}
+
+}
+
 // collectPlanOutput consumes the two output channels emitting results from
 // a call to [Plan], and collects all of the data written to them before
 // returning once changesCh has been closed by the sender to indicate that

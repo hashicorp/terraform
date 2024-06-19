@@ -15,6 +15,16 @@
       "source": "git::https://example.com/import.git",
       "local": "import",
       "meta": {}
+    },
+    {
+      "source": "git::https://example.com/moved.git",
+      "local": "moved",
+      "meta": {}
+    },
+    {
+      "source": "git::https://example.com/removed.git",
+      "local": "removed",
+      "meta": {}
     }
   ]
 }
