@@ -61,7 +61,9 @@ func (v *LocalValueConfig) StackConfig(ctx context.Context) *StackConfig {
 
 // ExprReferenceValue implements Referenceable
 func (v *LocalValueConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
-	return cty.DynamicVal
+	out, _ := v.ValidateValue(ctx, phase)
+
+	return out
 }
 
 // ValidateValue validates that the value expression is evaluatable and that
