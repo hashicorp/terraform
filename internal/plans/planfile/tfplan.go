@@ -117,7 +117,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 	}
 
 	for _, rawRC := range rawPlan.ResourceDrift {
-		change, err := resourceChangeFromTfplan(rawRC, addrs.ParsePartialResourceInstanceStr)
+		change, err := resourceChangeFromTfplan(rawRC, addrs.ParseAbsResourceInstanceStr)
 		if err != nil {
 			// errors from resourceChangeFromTfplan already include context
 			return nil, err
@@ -213,6 +213,15 @@ func ResourceChangeFromProto(rawChange *planproto.ResourceInstanceChange) (*plan
 	return resourceChangeFromTfplan(rawChange, addrs.ParseAbsResourceInstanceStr)
 }
 
+// DeferredResourceChangeFromProto decodes an isolated deferred resource
+// instance change from its representation as a protocol buffers message.
+//
+// This the same as ResourceChangeFromProto but internally allows for splat
+// addresses, which are not allowed outside deferred changes.
+func DeferredResourceChangeFromProto(rawChange *planproto.ResourceInstanceChange) (*plans.ResourceInstanceChangeSrc, error) {
+	return resourceChangeFromTfplan(rawChange, addrs.ParsePartialResourceInstanceStr)
+}
+
 func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange, parseAddr func(str string) (addrs.AbsResourceInstance, tfdiags.Diagnostics)) (*plans.ResourceInstanceChangeSrc, error) {
 	if rawChange == nil {
 		// Should never happen in practice, since protobuf can't represent
@@ -236,7 +245,7 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange, parse
 	}
 	prevRunAddr := instAddr
 	if rawChange.PrevRunAddr != "" {
-		prevRunAddr, diags = addrs.ParseAbsResourceInstanceStr(rawChange.PrevRunAddr)
+		prevRunAddr, diags = parseAddr(rawChange.PrevRunAddr)
 		if diags.HasErrors() {
 			return nil, fmt.Errorf("invalid resource instance previous run address %q: %w", rawChange.PrevRunAddr, diags.Err())
 		}
