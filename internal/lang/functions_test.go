@@ -363,6 +363,17 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"ephemeralasnull": {
+			// We can't actually test the main behavior of this one here
+			// because we don't have any ephemeral values in scope, so
+			// this is just to check that the function is registered. The
+			// real tests for this function are in package funcs.
+			{
+				`ephemeralasnull("not ephemeral")`,
+				cty.StringVal("not ephemeral"),
+			},
+		},
+
 		"file": {
 			{
 				`file("hello.txt")`,
@@ -1231,7 +1242,7 @@ func TestFunctions(t *testing.T) {
 	}
 
 	experimentalFuncs := map[string]experiments.Experiment{}
-	experimentalFuncs["defaults"] = experiments.ModuleVariableOptionalAttrs
+	experimentalFuncs["ephemeralasnull"] = experiments.EphemeralValues
 
 	// We'll also register a few "external functions" so that we can
 	// verify that registering these works. The functions actually
