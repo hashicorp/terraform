@@ -1102,7 +1102,7 @@
     ]
   },
   {
-    "title": "Upgrading to Terraform v1.7",
+    "title": "Upgrading to Terraform v1.x",
     "path": "upgrade-guides"
   },
   {
