@@ -92,7 +92,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	if err := c.storePluginPath(c.pluginPath); err != nil {
-		diags = diags.Append(fmt.Errorf("Error saving -plugin-path values: %s", err))
+		diags = diags.Append(fmt.Errorf("Error saving -plugin-dir to workspace directory: %s", err))
 		view.Diagnostics(diags)
 		return 1
 	}
