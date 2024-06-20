@@ -197,6 +197,9 @@ func (d *Deferred) GetDeferredResourceInstanceValue(addr addrs.AbsResourceInstan
 		return cty.NilVal, false
 	}
 
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	configAddr := addr.ConfigResource()
 	var instancesMap addrs.Map[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, *plans.DeferredResourceInstanceChange]]
 
