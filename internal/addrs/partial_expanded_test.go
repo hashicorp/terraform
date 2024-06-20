@@ -30,17 +30,17 @@ func TestPartialExpandedResourceIsTargetedBy(t *testing.T) {
 			true,
 		},
 		{
-			"test.a[\"*\"]",
+			"test.a[*]",
 			"test.a",
 			true,
 		},
 		{
-			"test.a[\"*\"]",
+			"test.a[*]",
 			"test.a[0]",
 			true,
 		},
 		{
-			"test.a[\"*\"]",
+			"test.a[*]",
 			"test.a[\"key\"]",
 			true,
 		},
@@ -55,47 +55,47 @@ func TestPartialExpandedResourceIsTargetedBy(t *testing.T) {
 			false,
 		},
 		{
-			"module.mod.test.a[\"*\"]",
+			"module.mod.test.a[*]",
 			"module.mod.test.a",
 			true,
 		},
 		{
-			"module.mod.test.a[\"*\"]",
+			"module.mod.test.a[*]",
 			"module.mod.test.a[0]",
 			true,
 		},
 		{
-			"module.mod.test.a[\"*\"]",
+			"module.mod.test.a[*]",
 			"module.mod.test.a[\"key\"]",
 			true,
 		},
 		{
-			"module.mod.test.a[\"*\"]",
+			"module.mod.test.a[*]",
 			"module.mod[0].test.a",
 			false,
 		},
 		{
-			"module.mod[1].test.a[\"*\"]",
+			"module.mod[1].test.a[*]",
 			"module.mod[\"key\"].test.a[0]",
 			false,
 		},
 		{
-			"module.mod[\"*\"].test.a",
+			"module.mod[*].test.a",
 			"module.mod.test.a",
 			true,
 		},
 		{
-			"module.mod[\"*\"].test.a",
+			"module.mod[*].test.a",
 			"module.mod.test.a[0]",
 			true,
 		},
 		{
-			"module.mod[\"*\"].test.a",
+			"module.mod[*].test.a",
 			"module.mod[0].test.a",
 			true,
 		},
 		{
-			"module.mod[\"*\"].test.a",
+			"module.mod[*].test.a",
 			"module.mod[\"key\"].test.a",
 			true,
 		},
@@ -103,7 +103,7 @@ func TestPartialExpandedResourceIsTargetedBy(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(fmt.Sprintf("PartialResource(%q).IsTargetedBy(%q)", tc.per, tc.target), func(t *testing.T) {
-			per := mustParseAbsResourceInstanceStr(tc.per).PartialResource()
+			per := mustParsePartialResourceInstanceStr(tc.per).PartialResource()
 			target := mustParseTarget(tc.target)
 
 			got := per.IsTargetedBy(target)
@@ -396,4 +396,12 @@ func TestParsePartialExpandedResource(t *testing.T) {
 			}
 		})
 	}
+}
+
+func mustParsePartialResourceInstanceStr(s string) AbsResourceInstance {
+	r, diags := ParsePartialResourceInstanceStr(s)
+	if diags.HasErrors() {
+		panic(diags.ErrWithWarnings().Error())
+	}
+	return r
 }

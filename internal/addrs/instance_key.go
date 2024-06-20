@@ -56,7 +56,23 @@ var NoKey InstanceKey
 // WildcardKey represents the "unknown" value of an InstanceKey. This is used
 // within the deferral logic to express absolute module and resource addresses
 // that are not known at the time of planning.
-var WildcardKey InstanceKey = StringKey("*")
+var WildcardKey InstanceKey = &wildcardKey{}
+
+// wildcardKey is a special kind of InstanceKey that represents the "unknown"
+// value of an InstanceKey. This is used within the deferral logic to express
+// absolute module and resource addresses that are not known at the time of
+// planning.
+type wildcardKey struct{}
+
+func (w *wildcardKey) instanceKeySigil() {}
+
+func (w *wildcardKey) String() string {
+	return "[*]"
+}
+
+func (w *wildcardKey) Value() cty.Value {
+	return cty.DynamicVal
+}
 
 // IntKey is the InstanceKey representation representing integer indices, as
 // used when the "count" argument is specified or if for_each is used with

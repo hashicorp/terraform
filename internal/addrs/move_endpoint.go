@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -126,7 +127,7 @@ func (e *MoveEndpoint) ConfigMoveable(baseModule Module) ConfigMoveable {
 // it with the address of the module where it was declared in order to get
 // an absolute address relative to the root module.
 func ParseMoveEndpoint(traversal hcl.Traversal) (*MoveEndpoint, tfdiags.Diagnostics) {
-	path, remain, diags := parseModuleInstancePrefix(traversal)
+	path, remain, diags := parseModuleInstancePrefix(traversal, false)
 	if diags.HasErrors() {
 		return nil, diags
 	}
@@ -140,7 +141,7 @@ func ParseMoveEndpoint(traversal hcl.Traversal) (*MoveEndpoint, tfdiags.Diagnost
 		}, diags
 	}
 
-	riAddr, moreDiags := parseResourceInstanceUnderModule(path, remain)
+	riAddr, moreDiags := parseResourceInstanceUnderModule(path, false, remain)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return nil, diags

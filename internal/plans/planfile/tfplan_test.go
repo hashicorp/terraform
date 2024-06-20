@@ -216,6 +216,35 @@ func TestTFPlanRoundTrip(t *testing.T) {
 					},
 				},
 			},
+			{
+				DeferredReason: providers.DeferredReasonInstanceCountUnknown,
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "woot",
+					}.Instance(addrs.WildcardKey).Absolute(addrs.ModuleInstance{
+						addrs.ModuleInstanceStep{
+							Name:        "mod",
+							InstanceKey: addrs.WildcardKey,
+						},
+					}),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+						After: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+							"id": cty.UnknownVal(cty.String),
+							"boop": cty.ListVal([]cty.Value{
+								cty.StringVal("beep"),
+								cty.StringVal("bonk"),
+							}),
+						}), objTy),
+					},
+				},
+			},
 		},
 		RelevantAttributes: []globalref.ResourceAttr{
 			{
