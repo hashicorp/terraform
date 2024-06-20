@@ -5,6 +5,7 @@ package rpcapi
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"testing"
 
@@ -13,6 +14,10 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 )
 
 // grpcClientForTesting creates an in-memory-only gRPC server, offers the
@@ -63,6 +68,57 @@ func grpcClientForTesting(ctx context.Context, t *testing.T, registerServices fu
 	}
 }
 
+func appliedChangeToRawState(t *testing.T, changes []stackstate.AppliedChange) map[string]*anypb.Any {
+	ret := make(map[string]*anypb.Any)
+	for _, change := range changes {
+		raw, err := change.AppliedChangeProto()
+		if err != nil {
+			t.Fatalf("failed to marshal change to proto: %s", err)
+		}
+		for _, raw := range raw.Raw {
+			ret[raw.Key] = raw.Value
+		}
+	}
+	return ret
+}
+
+func mustDefaultRootProvider(provider string) addrs.AbsProviderConfig {
+	return addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: addrs.NewDefaultProvider(provider),
+	}
+}
+
+func mustAbsComponentInstance(t *testing.T, addr string) stackaddrs.AbsComponentInstance {
+	ret, diags := stackaddrs.ParseAbsComponentInstanceStr(addr)
+	if len(diags) > 0 {
+		t.Fatalf("failed to parse component instance address %q: %s", addr, diags)
+	}
+	return ret
+}
+
+func mustAbsComponent(t *testing.T, addr string) stackaddrs.AbsComponent {
+	ret, diags := stackaddrs.ParseAbsComponentInstanceStr(addr)
+	if len(diags) > 0 {
+		t.Fatalf("failed to parse component instance address %q: %s", addr, diags)
+	}
+	if ret.Item.Key != addrs.NoKey {
+		t.Fatalf("expected component address %q to have no key, but got %q", addr, ret.Item.Key)
+	}
+	return stackaddrs.AbsComponent{
+		Stack: ret.Stack,
+		Item:  ret.Item.Component,
+	}
+}
+
+func mustAbsResourceInstanceObject(t *testing.T, addr string) stackaddrs.AbsResourceInstanceObject {
+	ret, diags := stackaddrs.ParseAbsResourceInstanceObjectStr(addr)
+	if len(diags) > 0 {
+		t.Fatalf("failed to parse resource instance object address %q: %s", addr, diags)
+	}
+	return ret
+}
+
 func mustMarshalAnyPb(msg proto.Message) *anypb.Any {
 	var ret anypb.Any
 	err := anypb.MarshalFrom(&ret, msg, proto.MarshalOptions{})
@@ -70,4 +126,12 @@ func mustMarshalAnyPb(msg proto.Message) *anypb.Any {
 		panic(err)
 	}
 	return &ret
+}
+
+func mustMarshalJSONAttrs(attrs map[string]interface{}) []byte {
+	jsonAttrs, err := json.Marshal(attrs)
+	if err != nil {
+		panic(err)
+	}
+	return jsonAttrs
 }

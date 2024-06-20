@@ -56,6 +56,8 @@ type ComponentInstanceChange struct {
 	Import int
 	Remove int
 	Defer  int
+	Move   int
+	Forget int
 }
 
 // Total sums all of the change counts as a forwards-compatibility measure. If
@@ -63,7 +65,7 @@ type ComponentInstanceChange struct {
 // that the component instance has some unknown changes, rather than falsely
 // stating that there are no changes at all.
 func (cic ComponentInstanceChange) Total() int {
-	return cic.Add + cic.Change + cic.Import + cic.Remove + cic.Defer
+	return cic.Add + cic.Change + cic.Import + cic.Remove + cic.Defer + cic.Move + cic.Forget
 }
 
 // CountNewAction increments zero or more of the count fields based on the
@@ -79,5 +81,10 @@ func (cic *ComponentInstanceChange) CountNewAction(action plans.Action) {
 	case plans.CreateThenDelete, plans.DeleteThenCreate:
 		cic.Add++
 		cic.Remove++
+	case plans.Forget:
+		cic.Forget++
+	case plans.CreateThenForget:
+		cic.Add++
+		cic.Forget++
 	}
 }

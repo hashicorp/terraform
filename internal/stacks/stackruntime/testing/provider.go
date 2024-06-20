@@ -54,6 +54,10 @@ func NewProvider() *MockProvider {
 
 // NewProviderWithData returns a new MockProvider with the given data store.
 func NewProviderWithData(store *ResourceStore) *MockProvider {
+	if store == nil {
+		store = NewResourceStore()
+	}
+
 	return &MockProvider{
 		MockProvider: &testing_provider.MockProvider{
 			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{

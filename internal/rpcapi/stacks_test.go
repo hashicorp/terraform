@@ -25,7 +25,9 @@ import (
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	stacks_testing_provider "github.com/hashicorp/terraform/internal/stacks/stackruntime/testing"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -325,59 +327,19 @@ func TestStacksPlanStackChanges(t *testing.T) {
 	}
 }
 
-func TestStacksPlanStackChanges_DeferredChanges(t *testing.T) {
-	ctx := context.Background()
-
-	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
-
-	// For this test, we do actually want to use a "real" provider. We'll
-	// use the providerCacheOverride to side-load the testing provider.
-	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
-	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
-		return stacks_testing_provider.NewProvider(), nil
-	}
-
-	sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
-	if err != nil {
-		t.Fatal(err)
-	}
-	hnd := handles.NewSourceBundle(sb)
-
-	client, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
-		terraform1.RegisterStacksServer(srv, stacksServer)
-	})
-	defer close()
-
-	stacks := terraform1.NewStacksClient(client)
-
-	open, err := stacks.OpenStackConfiguration(ctx, &terraform1.OpenStackConfiguration_Request{
-		SourceBundleHandle: hnd.ForProtobuf(),
-		SourceAddress: &terraform1.SourceAddress{
-			Source: "git::https://example.com/bar.git",
-		},
-	})
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-	defer stacks.CloseStackConfiguration(ctx, &terraform1.CloseStackConfiguration_Request{
-		StackConfigHandle: open.StackConfigHandle,
-	})
-
-	resp, err := stacks.PlanStackChanges(ctx, &terraform1.PlanStackChanges_Request{
-		PlanMode:          terraform1.PlanMode_NORMAL,
-		StackConfigHandle: open.StackConfigHandle,
-	})
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-
-	wantEvents := splitStackOperationEvents([]*terraform1.PlanStackChanges_Event{
-		// We're checking for the progress events for the deferred changes
-		// here.
-		{
-			Event: &terraform1.PlanStackChanges_Event_Progress{
-				Progress: &terraform1.StackChangeProgress{
+func TestStackChangeProgress(t *testing.T) {
+	tcs := map[string]struct {
+		source      string
+		store       *stacks_testing_provider.ResourceStore
+		state       []stackstate.AppliedChange
+		inputs      map[string]cty.Value
+		want        []*terraform1.StackChangeProgress
+		diagnostics []*terraform1.Diagnostic
+	}{
+		"deferred_changes": {
+			source: "git::https://example.com/bar.git",
+			want: []*terraform1.StackChangeProgress{
+				{
 					Event: &terraform1.StackChangeProgress_ComponentInstanceChanges_{
 						ComponentInstanceChanges: &terraform1.StackChangeProgress_ComponentInstanceChanges{
 							Addr: &terraform1.ComponentInstanceInStackAddr{
@@ -389,11 +351,7 @@ func TestStacksPlanStackChanges_DeferredChanges(t *testing.T) {
 						},
 					},
 				},
-			},
-		},
-		{
-			Event: &terraform1.PlanStackChanges_Event_Progress{
-				Progress: &terraform1.StackChangeProgress{
+				{
 					Event: &terraform1.StackChangeProgress_DeferredResourceInstancePlannedChange_{
 						DeferredResourceInstancePlannedChange: &terraform1.StackChangeProgress_DeferredResourceInstancePlannedChange{
 							Deferred: &terraform1.Deferred{
@@ -410,11 +368,7 @@ func TestStacksPlanStackChanges_DeferredChanges(t *testing.T) {
 						},
 					},
 				},
-			},
-		},
-		{
-			Event: &terraform1.PlanStackChanges_Event_Progress{
-				Progress: &terraform1.StackChangeProgress{
+				{
 					Event: &terraform1.StackChangeProgress_ResourceInstanceStatus_{
 						ResourceInstanceStatus: &terraform1.StackChangeProgress_ResourceInstanceStatus{
 							Addr: &terraform1.ResourceInstanceObjectInStackAddr{
@@ -426,11 +380,7 @@ func TestStacksPlanStackChanges_DeferredChanges(t *testing.T) {
 						},
 					},
 				},
-			},
-		},
-		{
-			Event: &terraform1.PlanStackChanges_Event_Progress{
-				Progress: &terraform1.StackChangeProgress{
+				{
 					Event: &terraform1.StackChangeProgress_ResourceInstanceStatus_{
 						ResourceInstanceStatus: &terraform1.StackChangeProgress_ResourceInstanceStatus{
 							Addr: &terraform1.ResourceInstanceObjectInStackAddr{
@@ -444,137 +394,81 @@ func TestStacksPlanStackChanges_DeferredChanges(t *testing.T) {
 				},
 			},
 		},
-	})
-	gotEvents := splitStackOperationEvents(func() []*terraform1.PlanStackChanges_Event {
-		var events []*terraform1.PlanStackChanges_Event
-		for {
-			event, err := resp.Recv()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				t.Fatalf("unexpected error: %s", err)
-			}
-			events = append(events, event)
-		}
-		return events
-	}())
-
-	if len(gotEvents.Diagnostics) > 0 {
-		for _, evt := range gotEvents.Diagnostics {
-			t.Logf("diagnostic: %s", evt.String())
-		}
-		t.Fatalf("unexpected diagnostics")
-	}
-
-	// Now we're going to manually verify the existence of some key events.
-	// We're not looking for every event because (a) the exact ordering of
-	// events is not guaranteed and (b) we don't want to start failing every
-	// time a new event is added.
-
-WantPlannedChange:
-	for _, want := range wantEvents.PlannedChanges {
-		for _, got := range gotEvents.PlannedChanges {
-			if len(cmp.Diff(want, got, protocmp.Transform())) == 0 {
-				continue WantPlannedChange
-			}
-		}
-		t.Errorf("missing expected planned change: %v", want)
-	}
-
-WantMiscHook:
-	for _, want := range wantEvents.MiscHooks {
-		for _, got := range gotEvents.MiscHooks {
-			if len(cmp.Diff(want, got, protocmp.Transform())) == 0 {
-				continue WantMiscHook
-			}
-		}
-		t.Errorf("missing expected event: %v", want)
-	}
-
-	if t.Failed() {
-		// if the test failed, let's print out all the events we got to help
-		// with debugging.
-		for _, evt := range gotEvents.MiscHooks {
-			t.Logf("        returned event: %s", evt.String())
-		}
-
-		for _, evt := range gotEvents.PlannedChanges {
-			t.Logf("        returned event: %s", evt.String())
-		}
-	}
-}
-
-func TestStacksPlanStackChanges_Importing(t *testing.T) {
-	ctx := context.Background()
-
-	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
-
-	// For this test, we do actually want to use a "real" provider. We'll
-	// use the providerCacheOverride to side-load the testing provider.
-	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
-	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
-		return stacks_testing_provider.NewProviderWithData(stacks_testing_provider.NewResourceStoreBuilder().
-			AddResource("self", cty.ObjectVal(map[string]cty.Value{
-				"id":    cty.StringVal("self"),
-				"value": cty.NullVal(cty.String),
-			})).
-			Build()), nil
-	}
-
-	sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
-	if err != nil {
-		t.Fatal(err)
-	}
-	hnd := handles.NewSourceBundle(sb)
-
-	client, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
-		terraform1.RegisterStacksServer(srv, stacksServer)
-	})
-	defer close()
-
-	stacks := terraform1.NewStacksClient(client)
-
-	open, err := stacks.OpenStackConfiguration(ctx, &terraform1.OpenStackConfiguration_Request{
-		SourceBundleHandle: hnd.ForProtobuf(),
-		SourceAddress: &terraform1.SourceAddress{
-			Source: "git::https://example.com/import.git",
-		},
-	})
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-	defer stacks.CloseStackConfiguration(ctx, &terraform1.CloseStackConfiguration_Request{
-		StackConfigHandle: open.StackConfigHandle,
-	})
-
-	resp, err := stacks.PlanStackChanges(ctx, &terraform1.PlanStackChanges_Request{
-		PlanMode:          terraform1.PlanMode_NORMAL,
-		StackConfigHandle: open.StackConfigHandle,
-		InputValues: map[string]*terraform1.DynamicValueWithSource{
-			"unknown": {
-				Value: &terraform1.DynamicValue{
-					Msgpack:   mustMsgpack(t, cty.UnknownVal(cty.String), cty.String),
-					Sensitive: nil,
+		"moved": {
+			source: "git::https://example.com/moved.git",
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("before", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("before"),
+					"value": cty.NullVal(cty.String),
+				})).
+				Build(),
+			state: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent(t, "component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance(t, "component.self"),
 				},
-				SourceRange: &terraform1.SourceRange{
-					Start: &terraform1.SourcePos{},
-					End:   &terraform1.SourcePos{},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject(t, "component.self.testing_resource.before"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "before",
+							"value": nil,
+						}),
+						Status: states.ObjectReady,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+			},
+			want: []*terraform1.StackChangeProgress{
+				{
+					Event: &terraform1.StackChangeProgress_ResourceInstancePlannedChange_{
+						ResourceInstancePlannedChange: &terraform1.StackChangeProgress_ResourceInstancePlannedChange{
+							Addr: &terraform1.ResourceInstanceObjectInStackAddr{
+								ComponentInstanceAddr: "component.self",
+								ResourceInstanceAddr:  "testing_resource.after",
+							},
+							Actions: []terraform1.ChangeType{
+								terraform1.ChangeType_NOOP,
+							},
+							Moved: &terraform1.StackChangeProgress_ResourceInstancePlannedChange_Moved{
+								PrevAddr: &terraform1.ResourceInstanceInStackAddr{
+									ComponentInstanceAddr: "component.self",
+									ResourceInstanceAddr:  "testing_resource.before",
+								},
+							},
+							ProviderAddr: "registry.terraform.io/hashicorp/testing",
+						},
+					},
+				},
+				{
+					Event: &terraform1.StackChangeProgress_ComponentInstanceChanges_{
+						ComponentInstanceChanges: &terraform1.StackChangeProgress_ComponentInstanceChanges{
+							Addr: &terraform1.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Total: 1,
+							Move:  1,
+						},
+					},
 				},
 			},
 		},
-	})
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
+		"import": {
+			source: "git::https://example.com/import.git",
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("self", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("self"),
+					"value": cty.NullVal(cty.String),
+				})).
+				Build(),
+			inputs: map[string]cty.Value{
+				"unknown": cty.UnknownVal(cty.String),
+			},
+			want: []*terraform1.StackChangeProgress{
+				{
 
-	wantEvents := splitStackOperationEvents([]*terraform1.PlanStackChanges_Event{
-		// We're checking for the progress events for the deferred changes
-		// here.
-		{
-			Event: &terraform1.PlanStackChanges_Event_Progress{
-				Progress: &terraform1.StackChangeProgress{
 					Event: &terraform1.StackChangeProgress_ComponentInstanceChanges_{
 						ComponentInstanceChanges: &terraform1.StackChangeProgress_ComponentInstanceChanges{
 							Addr: &terraform1.ComponentInstanceInStackAddr{
@@ -586,11 +480,7 @@ func TestStacksPlanStackChanges_Importing(t *testing.T) {
 						},
 					},
 				},
-			},
-		},
-		{
-			Event: &terraform1.PlanStackChanges_Event_Progress{
-				Progress: &terraform1.StackChangeProgress{
+				{
 					Event: &terraform1.StackChangeProgress_DeferredResourceInstancePlannedChange_{
 						DeferredResourceInstancePlannedChange: &terraform1.StackChangeProgress_DeferredResourceInstancePlannedChange{
 							Deferred: &terraform1.Deferred{
@@ -610,11 +500,7 @@ func TestStacksPlanStackChanges_Importing(t *testing.T) {
 						},
 					},
 				},
-			},
-		},
-		{
-			Event: &terraform1.PlanStackChanges_Event_Progress{
-				Progress: &terraform1.StackChangeProgress{
+				{
 					Event: &terraform1.StackChangeProgress_ResourceInstanceStatus_{
 						ResourceInstanceStatus: &terraform1.StackChangeProgress_ResourceInstanceStatus{
 							Addr: &terraform1.ResourceInstanceObjectInStackAddr{
@@ -626,11 +512,7 @@ func TestStacksPlanStackChanges_Importing(t *testing.T) {
 						},
 					},
 				},
-			},
-		},
-		{
-			Event: &terraform1.PlanStackChanges_Event_Progress{
-				Progress: &terraform1.StackChangeProgress{
+				{
 					Event: &terraform1.StackChangeProgress_ResourceInstanceStatus_{
 						ResourceInstanceStatus: &terraform1.StackChangeProgress_ResourceInstanceStatus{
 							Addr: &terraform1.ResourceInstanceObjectInStackAddr{
@@ -641,11 +523,7 @@ func TestStacksPlanStackChanges_Importing(t *testing.T) {
 							ProviderAddr: "registry.terraform.io/hashicorp/testing",
 						},
 					},
-				},
-			},
-		}, {
-			Event: &terraform1.PlanStackChanges_Event_Progress{
-				Progress: &terraform1.StackChangeProgress{
+				}, {
 					Event: &terraform1.StackChangeProgress_ComponentInstanceChanges_{
 						ComponentInstanceChanges: &terraform1.StackChangeProgress_ComponentInstanceChanges{
 							Addr: &terraform1.ComponentInstanceInStackAddr{
@@ -657,11 +535,7 @@ func TestStacksPlanStackChanges_Importing(t *testing.T) {
 						},
 					},
 				},
-			},
-		},
-		{
-			Event: &terraform1.PlanStackChanges_Event_Progress{
-				Progress: &terraform1.StackChangeProgress{
+				{
 					Event: &terraform1.StackChangeProgress_ResourceInstancePlannedChange_{
 						ResourceInstancePlannedChange: &terraform1.StackChangeProgress_ResourceInstancePlannedChange{
 							Addr: &terraform1.ResourceInstanceObjectInStackAddr{
@@ -676,11 +550,7 @@ func TestStacksPlanStackChanges_Importing(t *testing.T) {
 						},
 					},
 				},
-			},
-		},
-		{
-			Event: &terraform1.PlanStackChanges_Event_Progress{
-				Progress: &terraform1.StackChangeProgress{
+				{
 					Event: &terraform1.StackChangeProgress_ResourceInstanceStatus_{
 						ResourceInstanceStatus: &terraform1.StackChangeProgress_ResourceInstanceStatus{
 							Addr: &terraform1.ResourceInstanceObjectInStackAddr{
@@ -692,11 +562,7 @@ func TestStacksPlanStackChanges_Importing(t *testing.T) {
 						},
 					},
 				},
-			},
-		},
-		{
-			Event: &terraform1.PlanStackChanges_Event_Progress{
-				Progress: &terraform1.StackChangeProgress{
+				{
 					Event: &terraform1.StackChangeProgress_ResourceInstanceStatus_{
 						ResourceInstanceStatus: &terraform1.StackChangeProgress_ResourceInstanceStatus{
 							Addr: &terraform1.ResourceInstanceObjectInStackAddr{
@@ -710,64 +576,221 @@ func TestStacksPlanStackChanges_Importing(t *testing.T) {
 				},
 			},
 		},
-	})
-	gotEvents := splitStackOperationEvents(func() []*terraform1.PlanStackChanges_Event {
-		var events []*terraform1.PlanStackChanges_Event
-		for {
-			event, err := resp.Recv()
-			if err == io.EOF {
-				break
+		"removed": {
+			source: "git::https://example.com/removed.git",
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("resource", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("resource"),
+					"value": cty.NullVal(cty.String),
+				})).
+				Build(),
+			state: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent(t, "component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance(t, "component.self"),
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject(t, "component.self.testing_resource.resource"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "resource",
+							"value": nil,
+						}),
+						Status: states.ObjectReady,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+			},
+			want: []*terraform1.StackChangeProgress{
+				{
+					Event: &terraform1.StackChangeProgress_ResourceInstancePlannedChange_{
+						ResourceInstancePlannedChange: &terraform1.StackChangeProgress_ResourceInstancePlannedChange{
+							Addr: &terraform1.ResourceInstanceObjectInStackAddr{
+								ComponentInstanceAddr: "component.self",
+								ResourceInstanceAddr:  "testing_resource.resource",
+							},
+							Actions: []terraform1.ChangeType{
+								terraform1.ChangeType_FORGET,
+							},
+							ProviderAddr: "registry.terraform.io/hashicorp/testing",
+						},
+					},
+				},
+				{
+					Event: &terraform1.StackChangeProgress_ComponentInstanceChanges_{
+						ComponentInstanceChanges: &terraform1.StackChangeProgress_ComponentInstanceChanges{
+							Addr: &terraform1.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Total:  1,
+							Forget: 1,
+						},
+					},
+				},
+			},
+			diagnostics: []*terraform1.Diagnostic{
+				{
+					Severity: terraform1.Diagnostic_WARNING,
+					Summary:  "Some objects will no longer be managed by Terraform",
+					Detail:   "If you apply this plan, Terraform will discard its tracking information for the following objects, but it will not delete them:\n - testing_resource.resource\n\nAfter applying this plan, Terraform will no longer manage these objects. You will need to import them into Terraform to manage them again.",
+				},
+			},
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+
+			handles := newHandleTable()
+			stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+
+			// For this test, we do actually want to use a "real" provider. We'll
+			// use the providerCacheOverride to side-load the testing provider.
+			stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+			stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(tc.store), nil
 			}
+
+			sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
+			if err != nil {
+				t.Fatal(err)
+			}
+			hnd := handles.NewSourceBundle(sb)
+
+			client, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+				terraform1.RegisterStacksServer(srv, stacksServer)
+			})
+			defer close()
+
+			stacks := terraform1.NewStacksClient(client)
+
+			open, err := stacks.OpenStackConfiguration(ctx, &terraform1.OpenStackConfiguration_Request{
+				SourceBundleHandle: hnd.ForProtobuf(),
+				SourceAddress: &terraform1.SourceAddress{
+					Source: tc.source,
+				},
+			})
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
 			}
-			events = append(events, event)
-		}
-		return events
-	}())
+			defer stacks.CloseStackConfiguration(ctx, &terraform1.CloseStackConfiguration_Request{
+				StackConfigHandle: open.StackConfigHandle,
+			})
 
-	if len(gotEvents.Diagnostics) > 0 {
-		for _, evt := range gotEvents.Diagnostics {
-			t.Logf("diagnostic: %s", evt.String())
-		}
-		t.Fatalf("unexpected diagnostics")
-	}
-
-	// Now we're going to manually verify the existence of some key events.
-	// We're not looking for every event because (a) the exact ordering of
-	// events is not guaranteed and (b) we don't want to start failing every
-	// time a new event is added.
-
-WantPlannedChange:
-	for _, want := range wantEvents.PlannedChanges {
-		for _, got := range gotEvents.PlannedChanges {
-			if len(cmp.Diff(want, got, protocmp.Transform())) == 0 {
-				continue WantPlannedChange
+			resp, err := stacks.PlanStackChanges(ctx, &terraform1.PlanStackChanges_Request{
+				PlanMode:          terraform1.PlanMode_NORMAL,
+				StackConfigHandle: open.StackConfigHandle,
+				PreviousState:     appliedChangeToRawState(t, tc.state),
+				InputValues: func() map[string]*terraform1.DynamicValueWithSource {
+					values := make(map[string]*terraform1.DynamicValueWithSource)
+					for name, value := range tc.inputs {
+						values[name] = &terraform1.DynamicValueWithSource{
+							Value: &terraform1.DynamicValue{
+								Msgpack: mustMsgpack(t, value, value.Type()),
+							},
+							SourceRange: &terraform1.SourceRange{
+								Start: &terraform1.SourcePos{},
+								End:   &terraform1.SourcePos{},
+							},
+						}
+					}
+					return values
+				}(),
+			})
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
 			}
-		}
-		t.Errorf("missing expected planned change: %v", want)
-	}
 
-WantMiscHook:
-	for _, want := range wantEvents.MiscHooks {
-		for _, got := range gotEvents.MiscHooks {
-			if len(cmp.Diff(want, got, protocmp.Transform())) == 0 {
-				continue WantMiscHook
+			wantEvents := splitStackOperationEvents(func() []*terraform1.PlanStackChanges_Event {
+				events := make([]*terraform1.PlanStackChanges_Event, 0, len(tc.want))
+				for _, want := range tc.want {
+					events = append(events, &terraform1.PlanStackChanges_Event{
+						Event: &terraform1.PlanStackChanges_Event_Progress{
+							Progress: want,
+						},
+					})
+				}
+				return events
+			}())
+
+			gotEvents := splitStackOperationEvents(func() []*terraform1.PlanStackChanges_Event {
+				var events []*terraform1.PlanStackChanges_Event
+				for {
+					event, err := resp.Recv()
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						t.Fatalf("unexpected error: %s", err)
+					}
+					events = append(events, event)
+				}
+				return events
+			}())
+
+			// First, validate the diagnostics. Most of the tests are either
+			// expecting a specific single diagnostic so we do actually check
+			// everything.
+
+			diagIx := 0
+			for ; diagIx < len(tc.diagnostics); diagIx++ {
+				if diagIx >= len(gotEvents.Diagnostics) {
+					// Then we have more expected diagnostics than we got.
+					t.Errorf("missing expected diagnostic: %v", tc.diagnostics[diagIx])
+					continue
+				}
+				diag := gotEvents.Diagnostics[diagIx].Event.(*terraform1.PlanStackChanges_Event_Diagnostic).Diagnostic
+				if diff := cmp.Diff(tc.diagnostics[diagIx], diag, protocmp.Transform()); diff != "" {
+					// Then we have a diagnostic that doesn't match what we
+					// expected.
+					t.Errorf("wrong diagnostic\n%s", diff)
+				}
 			}
-		}
-		t.Errorf("missing expected event: %v", want)
-	}
+			for ; diagIx < len(gotEvents.Diagnostics); diagIx++ {
+				// Then we have more diagnostics than we expected.
+				t.Errorf("unexpected diagnostic: %v", gotEvents.Diagnostics[diagIx])
+			}
 
-	if t.Failed() {
-		// if the test failed, let's print out all the events we got to help
-		// with debugging.
-		for _, evt := range gotEvents.MiscHooks {
-			t.Logf("        returned event: %s", evt.String())
-		}
+			// Now we're going to manually verify the existence of some key events.
+			// We're not looking for every event because (a) the exact ordering of
+			// events is not guaranteed and (b) we don't want to start failing every
+			// time a new event is added.
 
-		for _, evt := range gotEvents.PlannedChanges {
-			t.Logf("        returned event: %s", evt.String())
-		}
+		WantPlannedChange:
+			for _, want := range wantEvents.PlannedChanges {
+				for _, got := range gotEvents.PlannedChanges {
+					if len(cmp.Diff(want, got, protocmp.Transform())) == 0 {
+						continue WantPlannedChange
+					}
+				}
+				t.Errorf("missing expected planned change: %v", want)
+			}
+
+		WantMiscHook:
+			for _, want := range wantEvents.MiscHooks {
+				for _, got := range gotEvents.MiscHooks {
+					if len(cmp.Diff(want, got, protocmp.Transform())) == 0 {
+						continue WantMiscHook
+					}
+				}
+				t.Errorf("missing expected event: %v", want)
+			}
+
+			if t.Failed() {
+				// if the test failed, let's print out all the events we got to help
+				// with debugging.
+				for _, evt := range gotEvents.MiscHooks {
+					t.Logf("        returned event: %s", evt.String())
+				}
+
+				for _, evt := range gotEvents.PlannedChanges {
+					t.Logf("        returned event: %s", evt.String())
+				}
+			}
+		})
 	}
 }
 

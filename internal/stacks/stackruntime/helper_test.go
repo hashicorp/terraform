@@ -208,6 +208,13 @@ func plannedChangeSortKey(change stackplan.PlannedChange) string {
 	}
 }
 
+func mustDefaultRootProvider(provider string) addrs.AbsProviderConfig {
+	return addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: addrs.NewDefaultProvider(provider),
+	}
+}
+
 func mustAbsResourceInstance(addr string) addrs.AbsResourceInstance {
 	ret, diags := addrs.ParseAbsResourceInstanceStr(addr)
 	if len(diags) > 0 {

@@ -711,6 +711,7 @@ enum ChangeType {
     CREATE = 2;
     UPDATE = 3;
     DELETE = 4;
+    FORGET = 5;
 }
 
 // Describes one item in a stack plan. The overall plan is the concatentation
@@ -1131,6 +1132,8 @@ message StackChangeProgress {
         int32 import = 5;
         int32 remove = 6;
         int32 defer = 7;
+        int32 move = 8;
+        int32 forget = 9;
     }
 
     // ComponentInstances represents the result of expanding a component into zero

@@ -34,6 +34,10 @@ func ChangeTypesForPlanAction(action plans.Action) ([]ChangeType, error) {
 		return []ChangeType{ChangeType_DELETE, ChangeType_CREATE}, nil
 	case plans.CreateThenDelete:
 		return []ChangeType{ChangeType_CREATE, ChangeType_DELETE}, nil
+	case plans.Forget:
+		return []ChangeType{ChangeType_FORGET}, nil
+	case plans.CreateThenForget:
+		return []ChangeType{ChangeType_CREATE, ChangeType_FORGET}, nil
 	default:
 		return nil, fmt.Errorf("unsupported action %s", action)
 	}
