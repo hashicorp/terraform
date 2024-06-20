@@ -37,14 +37,17 @@ type StackConfig struct {
 	mu             sync.Mutex
 	children       map[stackaddrs.StackStep]*StackConfig
 	inputVariables map[stackaddrs.InputVariable]*InputVariableConfig
+	localValues    map[stackaddrs.LocalValue]*LocalValueConfig
 	outputValues   map[stackaddrs.OutputValue]*OutputValueConfig
 	stackCalls     map[stackaddrs.StackCall]*StackCallConfig
 	components     map[stackaddrs.Component]*ComponentConfig
 	providers      map[stackaddrs.ProviderConfig]*ProviderConfig
 }
 
-var _ ExpressionScope = (*StackConfig)(nil)
-var _ namedPromiseReporter = (*StackConfig)(nil)
+var (
+	_ ExpressionScope      = (*StackConfig)(nil)
+	_ namedPromiseReporter = (*StackConfig)(nil)
+)
 
 func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.ConfigNode) *StackConfig {
 	return &StackConfig{
@@ -54,6 +57,7 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.Confi
 
 		children:       make(map[stackaddrs.StackStep]*StackConfig, len(config.Children)),
 		inputVariables: make(map[stackaddrs.InputVariable]*InputVariableConfig, len(config.Stack.Declarations.InputVariables)),
+		localValues:    make(map[stackaddrs.LocalValue]*LocalValueConfig, len(config.Stack.Declarations.LocalValues)),
 		outputValues:   make(map[stackaddrs.OutputValue]*OutputValueConfig, len(config.Stack.Declarations.OutputValues)),
 		stackCalls:     make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
 		components:     make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
@@ -126,6 +130,20 @@ func (s *StackConfig) ChildConfigs(ctx context.Context) map[stackaddrs.StackStep
 	return ret
 }
 
+// InputVariables returns a map of the objects representing all of the
+// input variables declared inside this stack configuration.
+func (s *StackConfig) InputVariables(ctx context.Context) map[stackaddrs.InputVariable]*InputVariableConfig {
+	if len(s.config.Stack.InputVariables) == 0 {
+		return nil
+	}
+	ret := make(map[stackaddrs.InputVariable]*InputVariableConfig, len(s.config.Stack.InputVariables))
+	for name := range s.config.Stack.InputVariables {
+		addr := stackaddrs.InputVariable{Name: name}
+		ret[addr] = s.InputVariable(ctx, addr)
+	}
+	return ret
+}
+
 // InputVariable returns an [InputVariableConfig] representing the input
 // variable declared within this stack config that matches the given
 // address, or nil if there is no such declaration.
@@ -147,15 +165,35 @@ func (s *StackConfig) InputVariable(ctx context.Context, addr stackaddrs.InputVa
 }
 
 // InputVariables returns a map of the objects representing all of the
-// input variables declared inside this stack configuration.
-func (s *StackConfig) InputVariables(ctx context.Context) map[stackaddrs.InputVariable]*InputVariableConfig {
-	if len(s.config.Stack.InputVariables) == 0 {
+// local values declared inside this stack configuration.
+func (s *StackConfig) LocalValues(ctx context.Context) map[stackaddrs.LocalValue]*LocalValueConfig {
+	if len(s.config.Stack.LocalValues) == 0 {
 		return nil
 	}
-	ret := make(map[stackaddrs.InputVariable]*InputVariableConfig, len(s.config.Stack.InputVariables))
-	for name := range s.config.Stack.InputVariables {
-		addr := stackaddrs.InputVariable{Name: name}
-		ret[addr] = s.InputVariable(ctx, addr)
+	ret := make(map[stackaddrs.LocalValue]*LocalValueConfig, len(s.config.Stack.LocalValues))
+	for name := range s.config.Stack.LocalValues {
+		addr := stackaddrs.LocalValue{Name: name}
+		ret[addr] = s.LocalValue(ctx, addr)
+	}
+	return ret
+}
+
+// LocalValue returns an [LocalValueConfig] representing the input
+// variable declared within this stack config that matches the given
+// address, or nil if there is no such declaration.
+func (s *StackConfig) LocalValue(_ context.Context, addr stackaddrs.LocalValue) *LocalValueConfig {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	ret, ok := s.localValues[addr]
+	if !ok {
+		cfg, ok := s.config.Stack.LocalValues[addr.Name]
+		if !ok {
+			return nil
+		}
+		cfgAddr := stackaddrs.Config(s.Addr(), addr)
+		ret = newLocalValueConfig(s.main, cfgAddr, cfg)
+		s.localValues[addr] = ret
 	}
 	return ret
 }
@@ -384,7 +422,12 @@ func (s *StackConfig) ResolveExpressionReference(ctx context.Context, ref stacka
 // resolveExpressionReference is the shared implementation of various
 // validation-time ResolveExpressionReference methods, factoring out all
 // of the common parts into one place.
-func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stackaddrs.Reference, selfAddr stackaddrs.Referenceable, repetition instances.RepetitionData) (Referenceable, tfdiags.Diagnostics) {
+func (s *StackConfig) resolveExpressionReference(
+	ctx context.Context,
+	ref stackaddrs.Reference,
+	selfAddr stackaddrs.Referenceable,
+	repetition instances.RepetitionData,
+) (Referenceable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// "Test-only globals" is a special affordance we have only when running
@@ -405,6 +448,18 @@ func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stacka
 				Severity: hcl.DiagError,
 				Summary:  "Reference to undeclared input variable",
 				Detail:   fmt.Sprintf("There is no variable %q block declared in this stack.", addr.Name),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+			return nil, diags
+		}
+		return ret, diags
+	case stackaddrs.LocalValue:
+		ret := s.LocalValue(ctx, addr)
+		if ret == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reference to undeclared local value",
+				Detail:   fmt.Sprintf("There is no local %q declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return nil, diags

@@ -6,6 +6,10 @@
       "local": "input_variable"
     },
     {
+      "source": "https://testing.invalid/local_value.tar.gz",
+      "local": "local_value"
+    },
+    {
       "source": "https://testing.invalid/output_value.tar.gz",
       "local": "output_value"
     },

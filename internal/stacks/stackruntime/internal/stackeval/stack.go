@@ -43,14 +43,17 @@ type Stack struct {
 	// use ChildStackChecked if you need to be sure it's actually configured.
 	childStacks    map[stackaddrs.StackInstanceStep]*Stack
 	inputVariables map[stackaddrs.InputVariable]*InputVariable
+	localValues    map[stackaddrs.LocalValue]*LocalValue
 	stackCalls     map[stackaddrs.StackCall]*StackCall
 	outputValues   map[stackaddrs.OutputValue]*OutputValue
 	components     map[stackaddrs.Component]*Component
 	providers      map[stackaddrs.ProviderConfigRef]*Provider
 }
 
-var _ ExpressionScope = (*Stack)(nil)
-var _ Plannable = (*Stack)(nil)
+var (
+	_ ExpressionScope = (*Stack)(nil)
+	_ Plannable       = (*Stack)(nil)
+)
 
 func newStack(main *Main, addr stackaddrs.StackInstance) *Stack {
 	return &Stack{
@@ -202,6 +205,36 @@ func (s *Stack) InputVariables(ctx context.Context) map[stackaddrs.InputVariable
 
 func (s *Stack) InputVariable(ctx context.Context, addr stackaddrs.InputVariable) *InputVariable {
 	return s.InputVariables(ctx)[addr]
+}
+
+// LocalValues returns a map of all of the input variables declared within
+// this stack's configuration.
+func (s *Stack) LocalValues(ctx context.Context) map[stackaddrs.LocalValue]*LocalValue {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// We intentionally save a non-nil map below even if it's empty so that
+	// we can unambiguously recognize whether we've loaded this or not.
+	if s.localValues != nil {
+		return s.localValues
+	}
+
+	decls := s.ConfigDeclarations(ctx)
+	ret := make(map[stackaddrs.LocalValue]*LocalValue, len(decls.LocalValues))
+	for _, c := range decls.LocalValues {
+		absAddr := stackaddrs.AbsLocalValue{
+			Stack: s.Addr(),
+			Item:  stackaddrs.LocalValue{Name: c.Name},
+		}
+		ret[absAddr.Item] = newLocalValue(s.main, absAddr)
+	}
+	s.localValues = ret
+	return ret
+}
+
+// LocalValue returns the [LocalValue] specified by address
+func (s *Stack) LocalValue(ctx context.Context, addr stackaddrs.LocalValue) *LocalValue {
+	return s.LocalValues(ctx)[addr]
 }
 
 // InputsType returns an object type that the object representing the caller's
@@ -411,7 +444,12 @@ func (s *Stack) ResolveExpressionReference(ctx context.Context, ref stackaddrs.R
 // used for this stack's scope and all of the nested scopes of declarations
 // in the same stack, since they tend to differ only in what "self" means
 // and what each.key, each.value, or count.index are set to (if anything).
-func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.Reference, selfAddr stackaddrs.Referenceable, repetition instances.RepetitionData) (Referenceable, tfdiags.Diagnostics) {
+func (s *Stack) resolveExpressionReference(
+	ctx context.Context,
+	ref stackaddrs.Reference,
+	selfAddr stackaddrs.Referenceable,
+	repetition instances.RepetitionData,
+) (Referenceable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// "Test-only globals" is a special affordance we have only when running
@@ -439,6 +477,18 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 				Severity: hcl.DiagError,
 				Summary:  "Reference to undeclared input variable",
 				Detail:   fmt.Sprintf("There is no variable %q block declared in this stack.", addr.Name),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+			return nil, diags
+		}
+		return ret, diags
+	case stackaddrs.LocalValue:
+		ret := s.LocalValue(ctx, addr)
+		if ret == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reference to undeclared local value",
+				Detail:   fmt.Sprintf("There is no local %q declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return nil, diags
