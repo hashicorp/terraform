@@ -6,6 +6,7 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -337,6 +338,12 @@ func (s *StackCallConfig) ResolveExpressionReference(ctx context.Context, ref st
 	}
 
 	return ret, diags
+}
+
+// PlanTimestamp implements ExpressionScope, providing the timestamp at which
+// the current plan is being run.
+func (s *StackCallConfig) PlanTimestamp() time.Time {
+	return s.main.PlanTimestamp()
 }
 
 func (s *StackCallConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {

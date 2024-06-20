@@ -6,6 +6,7 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -1590,4 +1591,8 @@ func (c *ComponentInstance) tracingName() string {
 // reportNamedPromises implements namedPromiseReporter.
 func (c *ComponentInstance) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
 	cb(c.moduleTreePlan.PromiseID(), c.Addr().String()+" plan")
+}
+
+func (c *ComponentInstance) PlanTimestamp() time.Time {
+	return c.main.PlanTimestamp()
 }

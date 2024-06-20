@@ -3479,3 +3479,141 @@ func collectPlanOutput(changesCh <-chan stackplan.PlannedChange, diagsCh <-chan 
 		}
 	}
 }
+func TestPlan_plantimestamp_force_timestamp(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "with-plantimestamp")
+
+	forcedPlanTimestamp := "1991-08-25T20:57:08Z"
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, forcedPlanTimestamp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange, 8)
+	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			// We support both hashicorp/testing and
+			// terraform.io/builtin/testing as providers. This lets us
+			// test the provider aliasing feature. Both providers
+			// support the same set of resources and data sources.
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+			addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+		InputValues: func() map[stackaddrs.InputVariable]ExternalInputValue {
+			return map[stackaddrs.InputVariable]ExternalInputValue{}
+		}(),
+		ForcePlanTimestamp: &fakePlanTimestamp,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	changes, diags := collectPlanOutput(changesCh, diagsCh)
+	output := expectOutput(t, "plantimestamp", changes)
+
+	plantimestampValue, err := output.NewValue.Decode(cty.String)
+
+	if plantimestampValue.AsString() != forcedPlanTimestamp {
+		t.Errorf("expected plantimestamp to be %q, got %q", forcedPlanTimestamp, plantimestampValue.AsString())
+	}
+
+	// The following will fail the test if there are any error
+	// diagnostics.
+	reportDiagnosticsForTest(t, diags)
+
+	// We also want to fail if there are just warnings, since the
+	// configurations here are supposed to be totally problem-free.
+	if len(diags) != 0 {
+		// reportDiagnosticsForTest already showed the diagnostics in
+		// the log
+		t.FailNow()
+	}
+}
+
+func TestPlan_plantimestamp_later_than_when_writing_this_test(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "with-plantimestamp")
+
+	dayOfWritingThisTest := "2024-06-21T06:37:08Z"
+	dayOfWritingThisTestTime, err := time.Parse(time.RFC3339, dayOfWritingThisTest)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange, 8)
+	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			// We support both hashicorp/testing and
+			// terraform.io/builtin/testing as providers. This lets us
+			// test the provider aliasing feature. Both providers
+			// support the same set of resources and data sources.
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+			addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+		InputValues: func() map[stackaddrs.InputVariable]ExternalInputValue {
+			return map[stackaddrs.InputVariable]ExternalInputValue{}
+		}(),
+		ForcePlanTimestamp: nil, // This is what we want to test
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	changes, diags := collectPlanOutput(changesCh, diagsCh)
+	output := expectOutput(t, "plantimestamp", changes)
+
+	plantimestampValue, err := output.NewValue.Decode(cty.String)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	plantimestamp, err := time.Parse(time.RFC3339, plantimestampValue.AsString())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if plantimestamp.Before(dayOfWritingThisTestTime) {
+		t.Errorf("expected plantimestamp to be later than %q, got %q", dayOfWritingThisTest, plantimestampValue.AsString())
+	}
+
+	// The following will fail the test if there are any error
+	// diagnostics.
+	reportDiagnosticsForTest(t, diags)
+
+	// We also want to fail if there are just warnings, since the
+	// configurations here are supposed to be totally problem-free.
+	if len(diags) != 0 {
+		// reportDiagnosticsForTest already showed the diagnostics in
+		// the log
+		t.FailNow()
+	}
+}
+
+func expectOutput(t *testing.T, name string, changes []stackplan.PlannedChange) *stackplan.PlannedChangeOutputValue {
+	t.Helper()
+	for _, change := range changes {
+		if v, ok := change.(*stackplan.PlannedChangeOutputValue); ok && v.Addr.Name == name {
+			return v
+
+		}
+	}
+
+	t.Fatalf("expected output value %q", name)
+	return nil
+}

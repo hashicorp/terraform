@@ -128,8 +128,9 @@ func NewForPlanning(config *stackconfig.Config, prevState *stackstate.State, opt
 	return &Main{
 		config: config,
 		planning: &mainPlanning{
-			opts:      opts,
-			prevState: prevState,
+			opts:               opts,
+			prevState:          prevState,
+			forcePlanTimestamp: opts.ForcePlanTimestamp,
 		},
 		providerFactories: opts.ProviderFactories,
 		providerTypes:     make(map[addrs.Provider]*ProviderType),
@@ -596,4 +597,17 @@ func (m *Main) availableProvisioners() map[string]provisioners.Factory {
 			return nil, fmt.Errorf("local-exec provisioners are not supported in stack components; use provider functionality or remote provisioners instead")
 		},
 	}
+}
+
+// PlanTimestamp provides the timestamp at which the plan
+// associated with this operation is being executed.
+// If we are planning we either take the forced timestamp or the saved current time
+// If we are applying we take the timestamp time from the plan
+func (m *Main) planTimestamp() time.Time {
+	// TODO: Implement for applying
+	// TODO: Save the current time in m.planning
+	if m.planning != nil && m.planning.forcePlanTimestamp != nil {
+		return *m.planning.forcePlanTimestamp
+	}
+	return time.Now().UTC()
 }

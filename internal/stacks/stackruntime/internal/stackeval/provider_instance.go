@@ -6,6 +6,7 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
@@ -40,6 +41,8 @@ type ProviderInstance struct {
 	providerArgs perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
 	client       perEvalPhase[promising.Once[withDiagnostics[providers.Interface]]]
 }
+
+var _ ExpressionScope = (*ProviderInstance)(nil)
 
 func newProviderInstance(provider *Provider, key addrs.InstanceKey, repetition instances.RepetitionData) *ProviderInstance {
 	return &ProviderInstance{
@@ -282,6 +285,12 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 func (p *ProviderInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	stack := p.provider.Stack(ctx)
 	return stack.resolveExpressionReference(ctx, ref, nil, p.repetition)
+}
+
+// PlanTimestamp implements ExpressionScope, providing the timestamp at which
+// the current plan is being run.
+func (p *ProviderInstance) PlanTimestamp() time.Time {
+	return p.main.PlanTimestamp()
 }
 
 func (p *ProviderInstance) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {

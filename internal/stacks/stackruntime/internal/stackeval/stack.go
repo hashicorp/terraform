@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -438,6 +439,12 @@ func (s *Stack) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
 // plan and apply phases.
 func (s *Stack) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	return s.resolveExpressionReference(ctx, ref, nil, instances.RepetitionData{})
+}
+
+// PlanTimestamp implements ExpressionScope, providing the timestamp at which
+// the current plan is being run.
+func (s *Stack) PlanTimestamp() time.Time {
+	return s.main.PlanTimestamp()
 }
 
 // resolveExpressionReference is a shared implementation of [ExpressionScope]
