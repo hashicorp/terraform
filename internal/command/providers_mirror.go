@@ -34,8 +34,13 @@ func (c *ProvidersMirrorCommand) Synopsis() string {
 func (c *ProvidersMirrorCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	cmdFlags := c.Meta.defaultFlagSet("providers mirror")
+
 	var optPlatforms arguments.FlagStringSlice
 	cmdFlags.Var(&optPlatforms, "platform", "target platform")
+
+	var optLockFile bool
+	cmdFlags.BoolVar(&optLockFile, "lock-file", true, "use lock file")
+
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
@@ -88,14 +93,8 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 	lockedDeps, lockedDepsDiags := c.Meta.lockedDependencies()
 	diags = diags.Append(lockedDepsDiags)
 
-	// If we have any error diagnostics already then we won't proceed further.
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	// If lock file is present, validate it against configuration
-	if !lockedDeps.Empty() {
+	if !lockedDeps.Empty() && optLockFile {
 		if errs := config.VerifyDependencySelections(lockedDeps); len(errs) > 0 {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -103,6 +102,12 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 				fmt.Sprintf("To update the locked dependency selections to match a changed configuration, run:\n  terraform init -upgrade\n got:%v", errs),
 			))
 		}
+	}
+
+	// If we have any error diagnostics already then we won't proceed further.
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	// Unlike other commands, this command always consults the origin registry
@@ -161,7 +166,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 			continue
 		}
 		selected := candidates.Newest()
-		if !lockedDeps.Empty() {
+		if !lockedDeps.Empty() && optLockFile {
 			selected = lockedDeps.Provider(provider).Version()
 			c.Ui.Output(fmt.Sprintf("  - Selected v%s to match dependency lock file", selected.String()))
 		} else if len(constraintsStr) > 0 {
@@ -379,5 +384,10 @@ Options:
                      Linux operating system running on an AMD64 or x86_64
                      CPU. Each provider is available only for a limited
                      set of target platforms.
+
+  -lock-file=false  Ignore the provider lock file when fetching providers.
+                    By default the mirror command will use the version info
+                    in the lock file if the configuration directory has been
+                    previously initialized.
 `
 }

@@ -122,6 +122,19 @@ func ParseAbsComponentInstanceStr(s string) (AbsComponentInstance, tfdiags.Diagn
 	return ret, diags
 }
 
+func ParsePartialComponentInstanceStr(s string) (AbsComponentInstance, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	traversal, hclDiags := hclsyntax.ParseTraversalPartial([]byte(s), "", hcl.InitialPos)
+	diags = diags.Append(hclDiags)
+	if diags.HasErrors() {
+		return AbsComponentInstance{}, diags
+	}
+
+	ret, moreDiags := ParseAbsComponentInstance(traversal)
+	diags = diags.Append(moreDiags)
+	return ret, diags
+}
+
 func parseAbsComponentInstance(traversal hcl.Traversal) (AbsComponentInstance, hcl.Traversal, tfdiags.Diagnostics) {
 	if traversal.IsRelative() {
 		// This is always a caller bug: caller must only pass absolute
@@ -165,7 +178,8 @@ func parseAbsComponentInstance(traversal hcl.Traversal) (AbsComponentInstance, h
 	}
 
 	if len(remain) > 0 {
-		if instStep, ok := remain[0].(hcl.TraverseIndex); ok {
+		switch instStep := remain[0].(type) {
+		case hcl.TraverseIndex:
 			var err error
 			componentAddr.Key, err = addrs.ParseInstanceKey(instStep.Key)
 			if err != nil {
@@ -178,6 +192,9 @@ func parseAbsComponentInstance(traversal hcl.Traversal) (AbsComponentInstance, h
 				return AbsComponentInstance{}, remain, diags
 			}
 
+			remain = remain[1:]
+		case hcl.TraverseSplat:
+			componentAddr.Key = addrs.WildcardKey
 			remain = remain[1:]
 		}
 	}
