@@ -598,6 +598,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				}
 			}()
 
+			plantimestamp := c.main.PlanTimestamp()
 			// NOTE: This ComponentInstance type only deals with component
 			// instances currently declared in the configuration. See
 			// [ComponentInstanceRemoved] for the model of a component instance
@@ -610,9 +611,8 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				DeferralAllowed:            true,
 				ExternalDependencyDeferred: deferred,
 
-				// This is set by some tests but should not be used in main code.
-				// (nil means to use the real time when tfCtx.Plan was called.)
-				ForcePlanTimestamp: stackPlanOpts.ForcePlanTimestamp,
+				// We want the same plantimestamp between all components and the stacks language
+				ForcePlanTimestamp: &plantimestamp,
 			})
 			diags = diags.Append(moreDiags)
 
