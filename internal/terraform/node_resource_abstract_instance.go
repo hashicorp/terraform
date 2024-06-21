@@ -1065,7 +1065,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		plannedNewVal = marks.MarkPaths(plannedNewVal, marks.Sensitive, sensitivePaths)
 	}
 
-	reqRep, reqRepDiags := getRequiredReplaces(priorVal, plannedNewVal, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
+	reqRep, reqRepDiags := getRequiredReplaces(unmarkedPriorVal, unmarkedPlannedNewVal, resp.RequiresReplace, n.ResolvedProvider.Provider, n.Addr)
 	diags = diags.Append(reqRepDiags)
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -2765,6 +2765,11 @@ func getAction(addr addrs.AbsResourceInstance, priorVal, plannedNewVal cty.Value
 // actually changed -- particularly after we may have undone some of the
 // changes in processIgnoreChanges -- so now we'll filter that list to
 // include only where changes are detected.
+//
+// Both the priorVal and plannedNewVal should be unmarked before calling this
+// function. This function exposes nothing about the priorVal or plannedVal
+// except for the paths that require replacement which can be deduced from the
+// type with or without marks.
 func getRequiredReplaces(priorVal, plannedNewVal cty.Value, requiredReplaces []cty.Path, providerAddr tfaddr.Provider, addr addrs.AbsResourceInstance) (cty.PathSet, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -2809,10 +2814,7 @@ func getRequiredReplaces(priorVal, plannedNewVal cty.Value, requiredReplaces []c
 				plannedChangedVal = cty.NullVal(priorChangedVal.Type())
 			}
 
-			// Unmark for this value for the equality test. If only sensitivity has changed,
-			// this does not require an Update or Replace
-			unmarkedPlannedChangedVal, _ := plannedChangedVal.UnmarkDeep()
-			eqV := unmarkedPlannedChangedVal.Equals(priorChangedVal)
+			eqV := plannedChangedVal.Equals(priorChangedVal)
 			if !eqV.IsKnown() || eqV.False() {
 				reqRep.Add(path)
 			}
