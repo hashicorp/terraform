@@ -4,6 +4,8 @@
 package stackplan
 
 import (
+	"time"
+
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/types/known/anypb"
 
@@ -50,6 +52,9 @@ type Plan struct {
 	// instances defined in the overall stack configuration, including any
 	// nested component instances from embedded stacks.
 	Components collections.Map[stackaddrs.AbsComponentInstance, *Component]
+
+	// PlanTimestamp is the time at which the plan was created.
+	PlanTimestamp time.Time
 }
 
 // RequiredProviderInstances returns a description of all of the provider

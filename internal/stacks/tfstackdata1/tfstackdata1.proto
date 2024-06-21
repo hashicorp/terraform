@@ -61,6 +61,11 @@ message PlanApplyable {
     bool applyable = 1;
 }
 
+// Records the plan timestamp to be used for all components and the stacks language.
+message PlanTimestamp {
+    string plan_timestamp = 1;
+}
+
 // Records the value of one of the main stack's input values during planning.
 //
 // These values get fixed during the plan phase so that we can ensure that we

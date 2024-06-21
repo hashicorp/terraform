@@ -47,6 +47,10 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 		PrevRunStateRaw:  prevRunStateRaw,
 	})
 
+	outp.AnnouncePlannedChange(ctx, &stackplan.PlannedChangePlannedTimestamp{
+		PlannedTimestamp: m.PlanTimestamp(),
+	})
+
 	// TODO: Announce an extra planned change here if we have any unrecognized
 	// raw state or state description keys that we'll need to delete during the
 	// apply phase.

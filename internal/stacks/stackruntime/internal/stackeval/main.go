@@ -94,6 +94,9 @@ type mainPlanning struct {
 	// This is a utility for unit tests that want to encourage stable output
 	// to assert against. Not for real use.
 	forcePlanTimestamp *time.Time
+
+	// This is the plan timestamp that will be used for the plan if forcePlanTimestamp is not set.
+	planTimestamp *time.Time
 }
 
 type mainApplying struct {
@@ -603,11 +606,27 @@ func (m *Main) availableProvisioners() map[string]provisioners.Factory {
 // associated with this operation is being executed.
 // If we are planning we either take the forced timestamp or the saved current time
 // If we are applying we take the timestamp time from the plan
-func (m *Main) planTimestamp() time.Time {
-	// TODO: Implement for applying
-	// TODO: Save the current time in m.planning
-	if m.planning != nil && m.planning.forcePlanTimestamp != nil {
-		return *m.planning.forcePlanTimestamp
+func (m *Main) PlanTimestamp() time.Time {
+	if m.applying != nil {
+		return m.applying.plan.PlanTimestamp
 	}
+	if m.planning != nil {
+		if m.planning.forcePlanTimestamp != nil {
+			return *m.planning.forcePlanTimestamp
+		}
+
+		if m.planning.planTimestamp != nil {
+			return *m.planning.planTimestamp
+		}
+
+		// We have not yet set the planTimestamp, so we set it now
+		now := time.Now().UTC()
+		m.mu.Lock()
+		defer m.mu.Unlock()
+		m.planning.planTimestamp = &now
+		return now
+	}
+
+	// This is the default case, we are not planning / applying
 	return time.Now().UTC()
 }

@@ -5,8 +5,10 @@ package stackruntime
 
 import (
 	"context"
+	"fmt"
 	"path"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -498,6 +500,241 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 
 	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
+	}
+}
+
+func TestApplyWithForcePlanTimestamp(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "with-plantimestamp")
+
+	forcedPlanTimestamp := "1991-08-25T20:57:08Z"
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, forcedPlanTimestamp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+		ForcePlanTimestamp: &fakePlanTimestamp,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	planChanges, diags := collectPlanOutput(changesCh, diagsCh)
+	if len(diags) > 0 {
+		t.Fatalf("expected no diagnostics, got %s", diags.ErrWithWarnings())
+	}
+	// Sanity check that the plan timestamp was set correctly
+	output := expectOutput(t, "plantimestamp", planChanges)
+	plantimestampValue, err := output.NewValue.Decode(cty.String)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if plantimestampValue.AsString() != forcedPlanTimestamp {
+		t.Errorf("expected plantimestamp to be %q, got %q", forcedPlanTimestamp, plantimestampValue.AsString())
+	}
+
+	var raw []*anypb.Any
+	for _, change := range planChanges {
+		proto, err := change.PlannedChangeProto()
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw = append(raw, proto.Raw...)
+	}
+
+	applyReq := ApplyRequest{
+		Config:  cfg,
+		RawPlan: raw,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+	}
+
+	applyChangesCh := make(chan stackstate.AppliedChange)
+	diagsCh = make(chan tfdiags.Diagnostic)
+
+	applyResp := ApplyResponse{
+		AppliedChanges: applyChangesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Apply(ctx, &applyReq, &applyResp)
+	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, diagsCh)
+	if len(applyDiags) > 0 {
+		t.Fatalf("expected no diagnostics, got %s", applyDiags.ErrWithWarnings())
+	}
+
+	wantChanges := []stackstate.AppliedChange{
+		&stackstate.AppliedChangeComponentInstance{
+			ComponentAddr: stackaddrs.AbsComponent{
+				Item: stackaddrs.Component{
+					Name: "second-self",
+				},
+			},
+			ComponentInstanceAddr: stackaddrs.AbsComponentInstance{
+				Item: stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{
+						Name: "second-self",
+					},
+				},
+			},
+			OutputValues: map[addrs.OutputValue]cty.Value{
+				// We want to make sure the plantimestamp is set correctly
+				{Name: "input"}: cty.StringVal(forcedPlanTimestamp),
+				// plantimestamp should also be set for the module runtime used in the components
+				{Name: "out"}: cty.StringVal(fmt.Sprintf("module-output-%s", forcedPlanTimestamp)),
+			},
+		},
+		&stackstate.AppliedChangeComponentInstance{
+			ComponentAddr: stackaddrs.AbsComponent{
+				Item: stackaddrs.Component{
+					Name: "self",
+				},
+			},
+			ComponentInstanceAddr: stackaddrs.AbsComponentInstance{
+				Item: stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{
+						Name: "self",
+					},
+				},
+			},
+			OutputValues: map[addrs.OutputValue]cty.Value{
+				// We want to make sure the plantimestamp is set correctly
+				{Name: "input"}: cty.StringVal(forcedPlanTimestamp),
+				// plantimestamp should also be set for the module runtime used in the components
+				{Name: "out"}: cty.StringVal(fmt.Sprintf("module-output-%s", forcedPlanTimestamp)),
+			},
+		},
+	}
+
+	sort.SliceStable(applyChanges, func(i, j int) bool {
+		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
+	})
+
+	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+}
+
+func TestApplyWithDefaultPlanTimestamp(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "with-plantimestamp")
+
+	dayOfWritingThisTest := "2024-06-21T06:37:08Z"
+	dayOfWritingThisTestTime, err := time.Parse(time.RFC3339, dayOfWritingThisTest)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	planChanges, diags := collectPlanOutput(changesCh, diagsCh)
+	if len(diags) > 0 {
+		t.Fatalf("expected no diagnostics, got %s", diags.ErrWithWarnings())
+	}
+	// Sanity check that the plan timestamp was set correctly
+	output := expectOutput(t, "plantimestamp", planChanges)
+	plantimestampValue, err := output.NewValue.Decode(cty.String)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	plantimestamp, err := time.Parse(time.RFC3339, plantimestampValue.AsString())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if plantimestamp.Before(dayOfWritingThisTestTime) {
+		t.Errorf("expected plantimestamp to be later than %q, got %q", dayOfWritingThisTest, plantimestampValue.AsString())
+	}
+
+	var raw []*anypb.Any
+	for _, change := range planChanges {
+		proto, err := change.PlannedChangeProto()
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw = append(raw, proto.Raw...)
+	}
+
+	applyReq := ApplyRequest{
+		Config:  cfg,
+		RawPlan: raw,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+	}
+
+	applyChangesCh := make(chan stackstate.AppliedChange)
+	diagsCh = make(chan tfdiags.Diagnostic)
+
+	applyResp := ApplyResponse{
+		AppliedChanges: applyChangesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Apply(ctx, &applyReq, &applyResp)
+	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, diagsCh)
+	if len(applyDiags) > 0 {
+		t.Fatalf("expected no diagnostics, got %s", applyDiags.ErrWithWarnings())
+	}
+
+	for _, x := range applyChanges {
+		if v, ok := x.(*stackstate.AppliedChangeComponentInstance); ok {
+			if actualTimestampValue, ok := v.OutputValues[addrs.OutputValue{
+				Name: "input",
+			}]; ok {
+				actualTimestamp, err := time.Parse(time.RFC3339, actualTimestampValue.AsString())
+				if err != nil {
+					t.Fatalf("Could not parse component output value: %q", err)
+				}
+				if actualTimestamp.Before(dayOfWritingThisTestTime) {
+					t.Error("Timestamp is before day of writing this test, that should be incorrect.")
+				}
+			}
+
+			if actualTimestampValue, ok := v.OutputValues[addrs.OutputValue{
+				Name: "out",
+			}]; ok {
+				actualTimestamp, err := time.Parse(time.RFC3339, strings.ReplaceAll(actualTimestampValue.AsString(), "module-output-", ""))
+				if err != nil {
+					t.Fatalf("Could not parse component output value: %q", err)
+				}
+				if actualTimestamp.Before(dayOfWritingThisTestTime) {
+					t.Error("Timestamp is before day of writing this test, that should be incorrect.")
+				}
+			}
+		}
 	}
 }
 

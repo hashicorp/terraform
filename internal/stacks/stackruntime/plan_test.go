@@ -301,7 +301,7 @@ func TestPlanWithVariableDefaults(t *testing.T) {
 		},
 		"explicit null": {
 			inputs: map[stackaddrs.InputVariable]ExternalInputValue{
-				stackaddrs.InputVariable{Name: "beep"}: ExternalInputValue{
+				{Name: "beep"}: {
 					Value:    cty.NullVal(cty.DynamicPseudoType),
 					DefRange: tfdiags.SourceRange{Filename: "fake.tfstack.hcl"},
 				},
@@ -314,11 +314,17 @@ func TestPlanWithVariableDefaults(t *testing.T) {
 			ctx := context.Background()
 			cfg := loadMainBundleConfigForTest(t, "plan-variable-defaults")
 
+			fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			changesCh := make(chan stackplan.PlannedChange, 8)
 			diagsCh := make(chan tfdiags.Diagnostic, 2)
 			req := PlanRequest{
-				Config:      cfg,
-				InputValues: tc.inputs,
+				Config:             cfg,
+				InputValues:        tc.inputs,
+				ForcePlanTimestamp: &fakePlanTimestamp,
 			}
 			resp := PlanResponse{
 				PlannedChanges: changesCh,
@@ -357,6 +363,9 @@ func TestPlanWithVariableDefaults(t *testing.T) {
 					OldValue: plans.DynamicValue{0xc0},               // MessagePack nil
 					NewValue: plans.DynamicValue([]byte("\xa4BEEP")), // MessagePack string "BEEP"
 				},
+				&stackplan.PlannedChangePlannedTimestamp{
+					PlannedTimestamp: fakePlanTimestamp,
+				},
 				&stackplan.PlannedChangeRootInputValue{
 					Addr: stackaddrs.InputVariable{
 						Name: "beep",
@@ -394,7 +403,7 @@ func TestPlanWithComplexVariableDefaults(t *testing.T) {
 			},
 		},
 		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
-			stackaddrs.InputVariable{Name: "optional"}: {
+			{Name: "optional"}: {
 				Value:    cty.EmptyObjectVal, // This should be populated by defaults.
 				DefRange: tfdiags.SourceRange{},
 			},
@@ -522,6 +531,9 @@ func TestPlanWithComplexVariableDefaults(t *testing.T) {
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr:               mustAbsComponentInstance("stack.child.component.parent"),
@@ -730,6 +742,9 @@ func TestPlanWithSingleResource(t *testing.T) {
 				"output": cty.UnknownVal(cty.String),
 			})),
 		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
+		},
 		&stackplan.PlannedChangeResourceInstancePlanned{
 			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
 				Component: stackaddrs.Absolute(
@@ -822,12 +837,18 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 	t.Run("with variables set", func(t *testing.T) {
 		changesCh := make(chan stackplan.PlannedChange, 8)
 		diagsCh := make(chan tfdiags.Diagnostic, 2)
+		fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		req := PlanRequest{
 			Config: cfg,
 			InputValues: map[stackaddrs.InputVariable]stackeval.ExternalInputValue{
 				{Name: "eph"}:    {Value: cty.StringVal("eph value")},
 				{Name: "noneph"}: {Value: cty.StringVal("noneph value")},
 			},
+			ForcePlanTimestamp: &fakePlanTimestamp,
 		}
 		resp := PlanResponse{
 			PlannedChanges: changesCh,
@@ -847,6 +868,9 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 			},
 			&stackplan.PlannedChangeHeader{
 				TerraformVersion: version.SemVer,
+			},
+			&stackplan.PlannedChangePlannedTimestamp{
+				PlannedTimestamp: fakePlanTimestamp,
 			},
 			&stackplan.PlannedChangeRootInputValue{
 				Addr: stackaddrs.InputVariable{
@@ -873,11 +897,16 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 	t.Run("without variables set", func(t *testing.T) {
 		changesCh := make(chan stackplan.PlannedChange, 8)
 		diagsCh := make(chan tfdiags.Diagnostic, 2)
+		fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
+		if err != nil {
+			t.Fatal(err)
+		}
 		req := PlanRequest{
 			Config:      cfg,
 			InputValues: map[stackaddrs.InputVariable]stackeval.ExternalInputValue{
 				// Intentionally not set for this subtest.
 			},
+			ForcePlanTimestamp: &fakePlanTimestamp,
 		}
 		resp := PlanResponse{
 			PlannedChanges: changesCh,
@@ -897,6 +926,9 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 			},
 			&stackplan.PlannedChangeHeader{
 				TerraformVersion: version.SemVer,
+			},
+			&stackplan.PlannedChangePlannedTimestamp{
+				PlannedTimestamp: fakePlanTimestamp,
 			},
 			&stackplan.PlannedChangeRootInputValue{
 				Addr: stackaddrs.InputVariable{
@@ -927,8 +959,13 @@ func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
 	req := PlanRequest{
-		Config: cfg,
+		Config:             cfg,
+		ForcePlanTimestamp: &fakePlanTimestamp,
 	}
 	resp := PlanResponse{
 		PlannedChanges: changesCh,
@@ -954,6 +991,9 @@ func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 			Action:   plans.Create,
 			OldValue: plans.DynamicValue{0xc0},                  // MessagePack nil
 			NewValue: plans.DynamicValue([]byte("\xa7default")), // MessagePack string "default"
+		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeRootInputValue{
 			Addr: stackaddrs.InputVariable{
@@ -1045,6 +1085,9 @@ func TestPlanSensitiveOutput(t *testing.T) {
 				nil, // the whole value is sensitive
 			},
 		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
+		},
 	}
 	sort.SliceStable(gotChanges, func(i, j int) bool {
 		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
@@ -1097,6 +1140,9 @@ func TestPlanSensitiveOutputNested(t *testing.T) {
 			NewValueSensitivePaths: []cty.Path{
 				nil, // the whole value is sensitive
 			},
+		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(
@@ -1193,6 +1239,9 @@ func TestPlanSensitiveOutputAsInput(t *testing.T) {
 			NewValueSensitivePaths: []cty.Path{
 				nil, // the whole value is sensitive
 			},
+		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(
@@ -1548,6 +1597,9 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
 		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
+		},
 		&stackplan.PlannedChangeRootInputValue{
 			Addr:  stackaddrs.InputVariable{Name: "id"},
 			Value: cty.NullVal(cty.String),
@@ -1678,6 +1730,9 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
 		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
+		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(
 				stackaddrs.RootStackInstance.Child("sensitive", addrs.NoKey),
@@ -1732,7 +1787,7 @@ func TestPlanWithForEach(t *testing.T) {
 		ForcePlanTimestamp: &fakePlanTimestamp,
 
 		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
-			stackaddrs.InputVariable{Name: "components"}: {
+			{Name: "components"}: {
 				Value:    cty.ListVal([]cty.Value{cty.StringVal("one"), cty.StringVal("two"), cty.StringVal("three")}),
 				DefRange: tfdiags.SourceRange{},
 			},
@@ -1774,7 +1829,7 @@ func TestPlanWithCheckableObjects(t *testing.T) {
 		ForcePlanTimestamp: &fakePlanTimestamp,
 
 		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
-			stackaddrs.InputVariable{Name: "foo"}: {
+			{Name: "foo"}: {
 				Value: cty.StringVal("bar"),
 			},
 		},
@@ -1899,6 +1954,9 @@ func TestPlanWithCheckableObjects(t *testing.T) {
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeResourceInstancePlanned{
 			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
@@ -2084,6 +2142,9 @@ func TestPlanWithDeferredResource(t *testing.T) {
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeRootInputValue{
 			Addr:  stackaddrs.InputVariable{Name: "defer"},
@@ -2314,6 +2375,9 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeRootInputValue{
 			Addr:  stackaddrs.InputVariable{Name: "components"},
@@ -2554,6 +2618,9 @@ func TestPlanWithDeferredComponentReferences(t *testing.T) {
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
 		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
+		},
 		&stackplan.PlannedChangeRootInputValue{
 			Addr:  stackaddrs.InputVariable{Name: "known_components"},
 			Value: cty.SetVal([]cty.Value{cty.StringVal("known")}),
@@ -2620,6 +2687,9 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(
@@ -2755,6 +2825,9 @@ func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(
@@ -3086,6 +3159,9 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
 		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
+		},
 		&stackplan.PlannedChangeRootInputValue{
 			Addr:  stackaddrs.InputVariable{Name: "providers"},
 			Value: cty.UnknownVal(cty.Set(cty.String)),
@@ -3153,6 +3229,9 @@ func TestPlanInvalidProvidersFailGracefully(t *testing.T) {
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
 		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
+		},
 	}
 
 	if diff := cmp.Diff(wantChanges, changes, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
@@ -3161,7 +3240,6 @@ func TestPlanInvalidProvidersFailGracefully(t *testing.T) {
 }
 
 func TestPlanWithStateManipulation(t *testing.T) {
-
 	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
 	if err != nil {
 		t.Fatal(err)
@@ -3240,6 +3318,9 @@ func TestPlanWithStateManipulation(t *testing.T) {
 				&stackplan.PlannedChangeHeader{
 					TerraformVersion: version.SemVer,
 				},
+				&stackplan.PlannedChangePlannedTimestamp{
+					PlannedTimestamp: fakePlanTimestamp,
+				},
 			},
 		},
 		"import": {
@@ -3310,6 +3391,9 @@ func TestPlanWithStateManipulation(t *testing.T) {
 				},
 				&stackplan.PlannedChangeHeader{
 					TerraformVersion: version.SemVer,
+				},
+				&stackplan.PlannedChangePlannedTimestamp{
+					PlannedTimestamp: fakePlanTimestamp,
 				},
 				&stackplan.PlannedChangeRootInputValue{
 					Addr: stackaddrs.InputVariable{
@@ -3386,6 +3470,9 @@ func TestPlanWithStateManipulation(t *testing.T) {
 				},
 				&stackplan.PlannedChangeHeader{
 					TerraformVersion: version.SemVer,
+				},
+				&stackplan.PlannedChangePlannedTimestamp{
+					PlannedTimestamp: fakePlanTimestamp,
 				},
 			},
 			expectedWarnings: []string{"Some objects will no longer be managed by Terraform"},
@@ -3516,14 +3603,7 @@ func TestPlan_plantimestamp_force_timestamp(t *testing.T) {
 	}
 
 	go Plan(ctx, &req, &resp)
-	changes, diags := collectPlanOutput(changesCh, diagsCh)
-	output := expectOutput(t, "plantimestamp", changes)
-
-	plantimestampValue, err := output.NewValue.Decode(cty.String)
-
-	if plantimestampValue.AsString() != forcedPlanTimestamp {
-		t.Errorf("expected plantimestamp to be %q, got %q", forcedPlanTimestamp, plantimestampValue.AsString())
-	}
+	gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
 
 	// The following will fail the test if there are any error
 	// diagnostics.
@@ -3535,6 +3615,80 @@ func TestPlan_plantimestamp_force_timestamp(t *testing.T) {
 		// reportDiagnosticsForTest already showed the diagnostics in
 		// the log
 		t.FailNow()
+	}
+
+	sort.SliceStable(gotChanges, func(i, j int) bool {
+		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
+	})
+
+	wantChanges := []stackplan.PlannedChange{
+		&stackplan.PlannedChangeApplyable{
+			Applyable: true,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance,
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "second-self"},
+				},
+			),
+			Action:              plans.Create,
+			PlanApplyable:       true,
+			PlanComplete:        true,
+			PlannedCheckResults: &states.CheckResults{},
+			PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+				"value": nil,
+			},
+			PlannedInputValues: map[string]plans.DynamicValue{
+				"value": mustPlanDynamicValueDynamicType(cty.StringVal(forcedPlanTimestamp)),
+			},
+			PlannedOutputValues: map[string]cty.Value{
+				"input": cty.StringVal(forcedPlanTimestamp),
+				"out":   cty.StringVal(fmt.Sprintf("module-output-%s", forcedPlanTimestamp)),
+			},
+			PlanTimestamp: fakePlanTimestamp,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance,
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "self"},
+				},
+			),
+			Action:              plans.Create,
+			PlanApplyable:       true,
+			PlanComplete:        true,
+			PlannedCheckResults: &states.CheckResults{},
+			PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+				"value": nil,
+			},
+			PlannedInputValues: map[string]plans.DynamicValue{
+				"value": mustPlanDynamicValueDynamicType(cty.StringVal(forcedPlanTimestamp)),
+			},
+			PlannedOutputValues: map[string]cty.Value{
+				"input": cty.StringVal(forcedPlanTimestamp),
+				"out":   cty.StringVal(fmt.Sprintf("module-output-%s", forcedPlanTimestamp)),
+			},
+			PlanTimestamp: fakePlanTimestamp,
+		},
+		&stackplan.PlannedChangeHeader{
+			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangeOutputValue{
+			Addr:     stackaddrs.OutputValue{Name: "plantimestamp"},
+			Action:   plans.Create,
+			OldValue: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+			NewValue: mustPlanDynamicValue(cty.StringVal(forcedPlanTimestamp)),
+		},
+		&stackplan.PlannedChangePlannedTimestamp{PlannedTimestamp: fakePlanTimestamp},
+	}
+
+	cmpOptions := cmp.Options{
+		ctydebug.CmpOptions,
+		collections.CmpOptions,
+	}
+	if diff := cmp.Diff(wantChanges, gotChanges, cmpOptions); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
 	}
 }
 

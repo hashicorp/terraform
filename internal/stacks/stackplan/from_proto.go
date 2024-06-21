@@ -56,6 +56,12 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 		case *tfstackdata1.PlanApplyable:
 			ret.Applyable = msg.Applyable
 
+		case *tfstackdata1.PlanTimestamp:
+			err = ret.PlanTimestamp.UnmarshalText([]byte(msg.PlanTimestamp))
+			if err != nil {
+				return nil, fmt.Errorf("invalid plan timestamp %q", msg.PlanTimestamp)
+			}
+
 		case *tfstackdata1.PlanRootInputValue:
 			addr := stackaddrs.InputVariable{
 				Name: msg.Name,

@@ -7,6 +7,7 @@ import (
 	"context"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/go-slug/sourceaddrs"
@@ -285,6 +286,17 @@ func TestStacksPlanStackChanges(t *testing.T) {
 					Raw: []*anypb.Any{
 						mustMarshalAnyPb(&tfstackdata1.PlanHeader{
 							TerraformVersion: version.SemVer.String(),
+						}),
+					},
+				},
+			},
+		},
+		{
+			Event: &terraform1.PlanStackChanges_Event_PlannedChange{
+				PlannedChange: &terraform1.PlannedChange{
+					Raw: []*anypb.Any{
+						mustMarshalAnyPb(&tfstackdata1.PlanTimestamp{
+							PlanTimestamp: time.Now().UTC().Format(time.RFC3339),
 						}),
 					},
 				},
