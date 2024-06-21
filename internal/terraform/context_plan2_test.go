@@ -5723,3 +5723,63 @@ output "value" {
 	_, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 }
+
+func TestContext2Plan_sensitiveRequiredReplace(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "obj" {
+	value = "changed"
+}
+`,
+	})
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"value": {
+							Type:      cty.String,
+							Required:  true,
+							Sensitive: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeResponse = &providers.PlanResourceChangeResponse{
+		PlannedState: cty.ObjectVal(map[string]cty.Value{
+			"value": cty.StringVal("changed"),
+		}),
+		RequiresReplace: []cty.Path{
+			cty.GetAttrPath("value"),
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.obj"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustParseJson(map[string]any{
+					"value": "original",
+				}),
+				AttrSensitivePaths: []cty.Path{
+					cty.GetAttrPath("value"),
+				},
+				Status: states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	_, diags := ctx.Plan(m, state, nil)
+	if len(diags) > 0 {
+		t.Errorf("unexpected diags\n%s", diags)
+	}
+}
