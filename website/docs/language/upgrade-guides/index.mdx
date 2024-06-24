@@ -27,6 +27,14 @@ to discuss it.
 
 ## S3 Backend authentication changes
 
+* If you use the S3 backend, you must run `terraform init -reconfigure` in any
+long-lived working directories after upgrading to Terraform 1.8.
+
+* If you previously used the `use_legacy_workflow` argument in your S3 backend
+config, you must remove it, and ensure that Terraform can still load the proper
+AWS authentication credentials using the default credential chain ordering
+defined by the AWS SDKs.
+
 Terraform v1.7 began the deprecation of a legacy approach to authentication,
 making the `use_legacy_workflow` argument default to `false` and thus making the
 old authentication workflow opt-in.
