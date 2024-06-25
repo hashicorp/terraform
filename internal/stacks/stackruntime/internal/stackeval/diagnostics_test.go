@@ -5,6 +5,7 @@ package stackeval
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
@@ -64,6 +65,7 @@ func TestNamedPromisesPlan(t *testing.T) {
 				},
 			),
 		},
+		PlanTimestamp: time.Now().UTC(),
 	})
 
 	// We don't actually really care about the plan here. We just want the

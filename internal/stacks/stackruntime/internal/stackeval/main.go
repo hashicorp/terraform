@@ -91,12 +91,8 @@ type mainPlanning struct {
 	opts      PlanOpts
 	prevState *stackstate.State
 
-	// This is a utility for unit tests that want to encourage stable output
-	// to assert against. Not for real use.
-	forcePlanTimestamp *time.Time
-
 	// This is the plan timestamp that will be used for the plan if forcePlanTimestamp is not set.
-	planTimestamp *time.Time
+	planTimestamp time.Time
 }
 
 type mainApplying struct {
@@ -131,9 +127,9 @@ func NewForPlanning(config *stackconfig.Config, prevState *stackstate.State, opt
 	return &Main{
 		config: config,
 		planning: &mainPlanning{
-			opts:               opts,
-			prevState:          prevState,
-			forcePlanTimestamp: opts.ForcePlanTimestamp,
+			opts:          opts,
+			prevState:     prevState,
+			planTimestamp: opts.PlanTimestamp,
 		},
 		providerFactories: opts.ProviderFactories,
 		providerTypes:     make(map[addrs.Provider]*ProviderType),
@@ -611,20 +607,7 @@ func (m *Main) PlanTimestamp() time.Time {
 		return m.applying.plan.PlanTimestamp
 	}
 	if m.planning != nil {
-		if m.planning.forcePlanTimestamp != nil {
-			return *m.planning.forcePlanTimestamp
-		}
-
-		if m.planning.planTimestamp != nil {
-			return *m.planning.planTimestamp
-		}
-
-		// We have not yet set the planTimestamp, so we set it now
-		now := time.Now().UTC()
-		m.mu.Lock()
-		defer m.mu.Unlock()
-		m.planning.planTimestamp = &now
-		return now
+		return m.planning.planTimestamp
 	}
 
 	// This is the default case, we are not planning / applying

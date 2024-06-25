@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
@@ -158,7 +159,8 @@ func TestPlanning_DestroyMode(t *testing.T) {
 		},
 	}
 	main := NewForPlanning(cfg, priorState, PlanOpts{
-		PlanningMode: plans.DestroyMode,
+		PlanningMode:  plans.DestroyMode,
+		PlanTimestamp: time.Now().UTC(),
 		ProviderFactories: ProviderFactories{
 			addrs.NewBuiltInProvider("test"): func() (providers.Interface, error) {
 				return &providerTesting.MockProvider{
@@ -368,6 +370,7 @@ func TestPlanning_RequiredComponents(t *testing.T) {
 				}, nil
 			},
 		},
+		PlanTimestamp: time.Now().UTC(),
 	})
 
 	cmpA := stackaddrs.AbsComponent{
@@ -596,7 +599,8 @@ func TestPlanning_DeferredChangesPropagation(t *testing.T) {
 
 	cfg := testStackConfig(t, "planning", "deferred_changes_propagation")
 	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
-		PlanningMode: plans.NormalMode,
+		PlanningMode:  plans.NormalMode,
+		PlanTimestamp: time.Now().UTC(),
 		InputVariableValues: map[stackaddrs.InputVariable]ExternalInputValue{
 			// This causes the first component to have a module whose
 			// instance count isn't known yet.
@@ -745,6 +749,7 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 			main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
 				PlanningMode:      plans.NormalMode,
 				ProviderFactories: providerFactories,
+				PlanTimestamp:     time.Now().UTC(),
 			})
 			outp, outpTest := testPlanOutput(t)
 			main.PlanAll(ctx, outp)
@@ -801,6 +806,7 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 			main := NewForPlanning(cfg, state, PlanOpts{
 				PlanningMode:      plans.NormalMode,
 				ProviderFactories: providerFactories,
+				PlanTimestamp:     time.Now().UTC(),
 			})
 			outp, outpTest := testPlanOutput(t)
 			main.PlanAll(ctx, outp)
@@ -883,7 +889,8 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 func TestPlanning_PathValues(t *testing.T) {
 	cfg := testStackConfig(t, "planning", "path_values")
 	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
-		PlanningMode: plans.NormalMode,
+		PlanningMode:  plans.NormalMode,
+		PlanTimestamp: time.Now().UTC(),
 	})
 
 	inPromisingTask(t, func(ctx context.Context, t *testing.T) {
@@ -1009,6 +1016,7 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
 		PlanningMode:      plans.NormalMode,
 		ProviderFactories: providerFactories,
+		PlanTimestamp:     time.Now().UTC(),
 	})
 
 	comp2Addr := stackaddrs.AbsComponentInstance{

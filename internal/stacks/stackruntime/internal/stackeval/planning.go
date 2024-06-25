@@ -20,10 +20,7 @@ type PlanOpts struct {
 
 	ProviderFactories ProviderFactories
 
-	// ForcePlanTimestamp, if not nil, will force the plantimestamp function
-	// to return the given time instead of whatever real time the plan was
-	// started. This is here for unit testing only.
-	ForcePlanTimestamp *time.Time
+	PlanTimestamp time.Time
 }
 
 // Plannable is implemented by objects that can participate in planning.
