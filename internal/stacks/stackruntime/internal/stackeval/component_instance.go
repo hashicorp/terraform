@@ -1200,6 +1200,12 @@ func (c *ComponentInstance) ResolveExpressionReference(ctx context.Context, ref 
 	return stack.resolveExpressionReference(ctx, ref, nil, c.repetition)
 }
 
+// PlanTimestamp implements ExpressionScope, providing the timestamp at which
+// the current plan is being run.
+func (c *ComponentInstance) PlanTimestamp() time.Time {
+	return c.main.PlanTimestamp()
+}
+
 // PlanChanges implements Plannable by validating that all of the per-instance
 // arguments are suitable, and then asking the main Terraform language runtime
 // to produce a plan in terms of the component's selected module.
@@ -1591,8 +1597,4 @@ func (c *ComponentInstance) tracingName() string {
 // reportNamedPromises implements namedPromiseReporter.
 func (c *ComponentInstance) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
 	cb(c.moduleTreePlan.PromiseID(), c.Addr().String()+" plan")
-}
-
-func (c *ComponentInstance) PlanTimestamp() time.Time {
-	return c.main.PlanTimestamp()
 }
