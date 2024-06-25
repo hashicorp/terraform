@@ -6,6 +6,7 @@ package azure
 import (
 	"context"
 	"fmt"
+	authWrapper "github.com/hashicorp/go-azure-sdk/sdk/auth/autorest"
 	"log"
 	"math/rand"
 	"os"
@@ -123,8 +124,9 @@ func buildSasToken(accountName, accessKey string) (*string, error) {
 	startDate := utcNow.Add(time.Minute * -5).Format(time.RFC3339)
 	endDate := utcNow.Add(time.Hour * 24).Format(time.RFC3339)
 
+	signedEncryptionScope := ""
 	sasToken, err := sasStorage.ComputeAccountSASToken(accountName, accessKey, permissions, services, resourceTypes,
-		startDate, endDate, signedProtocol, signedIp, signedVersion)
+		startDate, endDate, signedProtocol, signedIp, signedVersion, signedEncryptionScope)
 	if err != nil {
 		return nil, fmt.Errorf("Error computing SAS Token: %+v", err)
 	}
@@ -184,9 +186,14 @@ func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames
 		return fmt.Errorf("failed waiting for the creation of storage account: %s", err)
 	}
 
-	containersClient := containers.NewWithEnvironment(c.environment)
+	containersClient := containers.New()
+	domainSuffix, ok := c.environment.Storage.DomainSuffix()
+	if !ok {
+		return fmt.Errorf("failed to get storage domain suffix: %s", err)
+	}
+	containersClient.BaseURI = *domainSuffix
 	if names.useAzureADAuth {
-		containersClient.Client.Authorizer = *c.azureAdStorageAuth
+		containersClient.Client.Authorizer = authWrapper.AutorestAuthorizer(*c.azureAdStorageAuth)
 	} else {
 		log.Printf("fetching access key for storage account")
 		resp, err := c.storageAccountsClient.ListKeys(ctx, names.resourceGroup, names.storageAccountName, "")

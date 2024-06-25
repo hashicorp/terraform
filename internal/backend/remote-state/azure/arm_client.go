@@ -7,18 +7,19 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
 	armStorage "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2021-01-01/storage"
 	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/hashicorp/go-azure-helpers/authentication"
-	"github.com/hashicorp/go-azure-helpers/sender"
+	"github.com/hashicorp/go-azure-sdk/sdk/auth"
+	authWrapper "github.com/hashicorp/go-azure-sdk/sdk/auth/autorest"
+	"github.com/hashicorp/go-azure-sdk/sdk/environments"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/version"
-	"github.com/manicminer/hamilton/environments"
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
 )
@@ -31,19 +32,33 @@ type ArmClient struct {
 	blobsClient           *blobs.Client
 
 	// azureAdStorageAuth is only here if we're using AzureAD Authentication but is an Authorizer for Storage
-	azureAdStorageAuth *autorest.Authorizer
+	azureAdStorageAuth *auth.Authorizer
 
 	accessKey          string
-	environment        azure.Environment
+	environment        environments.Environment
 	resourceGroupName  string
 	storageAccountName string
 	sasToken           string
 }
 
 func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, error) {
-	env, err := authentication.AzureEnvironmentByNameFromEndpoint(ctx, config.MetadataHost, config.Environment)
-	if err != nil {
-		return nil, err
+	var (
+		env *environments.Environment
+		err error
+	)
+
+	if config.MetadataHost != "" {
+		if env, err = environments.FromEndpoint(ctx, fmt.Sprintf("https://%s", config.MetadataHost)); err != nil {
+			return nil, err
+		}
+	} else {
+		if env, err = environments.FromName(config.Environment); err != nil {
+			return nil, err
+		}
+	}
+
+	if config.CustomResourceManagerEndpoint != "" {
+		env.ResourceManager = environments.ResourceManagerAPI(config.CustomResourceManagerEndpoint)
 	}
 
 	client := ArmClient{
@@ -64,76 +79,68 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 		return &client, nil
 	}
 
-	builder := authentication.Builder{
-		ClientID:                      config.ClientID,
-		SubscriptionID:                config.SubscriptionID,
-		TenantID:                      config.TenantID,
-		CustomResourceManagerEndpoint: config.CustomResourceManagerEndpoint,
-		MetadataHost:                  config.MetadataHost,
-		Environment:                   config.Environment,
-		ClientSecretDocsLink:          "https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret",
+	oidcToken, err := getOidcToken(config)
+	if err != nil {
+		return nil, err
+	}
+
+	authConfig := &auth.Credentials{
+		Environment:                *env,
+		ClientID:                   config.ClientID,
+		TenantID:                   config.TenantID,
+		AzureCliSubscriptionIDHint: config.SubscriptionID,
 
 		// Service Principal (Client Certificate)
-		ClientCertPassword: config.ClientCertificatePassword,
-		ClientCertPath:     config.ClientCertificatePath,
+		ClientCertificatePath:     config.ClientCertificatePath,
+		ClientCertificatePassword: config.ClientCertificatePassword,
 
 		// Service Principal (Client Secret)
 		ClientSecret: config.ClientSecret,
 
 		// Managed Service Identity
-		MsiEndpoint: config.MsiEndpoint,
+		CustomManagedIdentityEndpoint: config.MsiEndpoint,
 
 		// OIDC
-		IDToken:             config.OIDCToken,
-		IDTokenFilePath:     config.OIDCTokenFilePath,
-		IDTokenRequestURL:   config.OIDCRequestURL,
-		IDTokenRequestToken: config.OIDCRequestToken,
+		OIDCAssertionToken:          *oidcToken,
+		GitHubOIDCTokenRequestURL:   config.OIDCRequestURL,
+		GitHubOIDCTokenRequestToken: config.OIDCRequestToken,
 
 		// Feature Toggles
-		SupportsAzureCliToken:          true,
-		SupportsClientCertAuth:         true,
-		SupportsClientSecretAuth:       true,
-		SupportsManagedServiceIdentity: config.UseMsi,
-		SupportsOIDCAuth:               config.UseOIDC,
-		UseMicrosoftGraph:              true,
-	}
-	armConfig, err := builder.Build()
-	if err != nil {
-		return nil, fmt.Errorf("Error building ARM Config: %+v", err)
+		EnableAuthenticatingUsingClientCertificate: true,
+		EnableAuthenticatingUsingClientSecret:      true,
+		EnableAuthenticatingUsingAzureCLI:          true,
+		EnableAuthenticatingUsingManagedIdentity:   config.UseMsi,
+		EnableAuthenticationUsingOIDC:              config.UseOIDC,
+		EnableAuthenticationUsingGitHubOIDC:        config.UseOIDC,
 	}
 
-	oauthConfig, err := armConfig.BuildOAuthConfig(env.ActiveDirectoryEndpoint)
+	authorizer, err := auth.NewAuthorizerFromCredentials(ctx, *authConfig, authConfig.Environment.ResourceManager)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to build authorizer for Resource Manager API: %+v", err)
 	}
 
-	hamiltonEnv, err := environments.EnvironmentFromString(config.Environment)
+	subscriptionId, err := getSubscriptionId(ctx, *authConfig)
 	if err != nil {
-		return nil, err
-	}
-
-	sender := sender.BuildSender("backend/remote-state/azure")
-	log.Printf("[DEBUG] Obtaining an MSAL / Microsoft Graph token for Resource Manager..")
-	auth, err := armConfig.GetMSALToken(ctx, hamiltonEnv.ResourceManager, sender, oauthConfig, env.TokenAudience)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("building account: %+v", err)
 	}
 
 	if config.UseAzureADAuthentication {
 		log.Printf("[DEBUG] Obtaining an MSAL / Microsoft Graph token for Storage..")
-		storageAuth, err := armConfig.GetMSALToken(ctx, hamiltonEnv.Storage, sender, oauthConfig, env.ResourceIdentifiers.Storage)
-		if err != nil {
-			return nil, err
-		}
-		client.azureAdStorageAuth = &storageAuth
+		client.azureAdStorageAuth = &authorizer
 	}
 
-	accountsClient := armStorage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, armConfig.SubscriptionID)
-	client.configureClient(&accountsClient.Client, auth)
+	resourceManagerEndpoint, ok := authConfig.Environment.ResourceManager.Endpoint()
+	if !ok {
+		return nil, fmt.Errorf("unable to determine resource manager endpoint for the current environment")
+	}
+
+	autorestAuthorizer := authWrapper.AutorestAuthorizer(authorizer)
+	accountsClient := armStorage.NewAccountsClientWithBaseURI(*resourceManagerEndpoint, *subscriptionId)
+	client.configureClient(&accountsClient.Client, autorestAuthorizer)
 	client.storageAccountsClient = &accountsClient
 
-	groupsClient := resources.NewGroupsClientWithBaseURI(env.ResourceManagerEndpoint, armConfig.SubscriptionID)
-	client.configureClient(&groupsClient.Client, auth)
+	groupsClient := resources.NewGroupsClientWithBaseURI(*resourceManagerEndpoint, *subscriptionId)
+	client.configureClient(&groupsClient.Client, autorestAuthorizer)
 	client.groupsClient = &groupsClient
 
 	return &client, nil
@@ -147,14 +154,24 @@ func (c ArmClient) getBlobClient(ctx context.Context) (*blobs.Client, error) {
 			return nil, fmt.Errorf("Error building Authorizer: %+v", err)
 		}
 
-		blobsClient := blobs.NewWithEnvironment(c.environment)
+		blobsClient := blobs.New()
+		domainSuffix, ok := c.environment.Storage.DomainSuffix()
+		if !ok {
+			return nil, fmt.Errorf("Error retrieving domain suffix for storage account, environment: %v", c.environment)
+		}
+		blobsClient.BaseURI = *domainSuffix
 		c.configureClient(&blobsClient.Client, storageAuth)
 		return &blobsClient, nil
 	}
 
 	if c.azureAdStorageAuth != nil {
-		blobsClient := blobs.NewWithEnvironment(c.environment)
-		c.configureClient(&blobsClient.Client, *c.azureAdStorageAuth)
+		blobsClient := blobs.New()
+		domainSuffix, ok := c.environment.Storage.DomainSuffix()
+		if !ok {
+			return nil, fmt.Errorf("Error retrieving domain suffix for storage account, environment: %v", c.environment)
+		}
+		blobsClient.BaseURI = *domainSuffix
+		c.configureClient(&blobsClient.Client, authWrapper.AutorestAuthorizer(*c.azureAdStorageAuth))
 		return &blobsClient, nil
 	}
 
@@ -179,7 +196,12 @@ func (c ArmClient) getBlobClient(ctx context.Context) (*blobs.Client, error) {
 		return nil, fmt.Errorf("Error building Authorizer: %+v", err)
 	}
 
-	blobsClient := blobs.NewWithEnvironment(c.environment)
+	blobsClient := blobs.New()
+	domainSuffix, ok := c.environment.Storage.DomainSuffix()
+	if !ok {
+		return nil, fmt.Errorf("Error retrieving domain suffix for storage account, environment: %v", c.environment)
+	}
+	blobsClient.BaseURI = *domainSuffix
 	c.configureClient(&blobsClient.Client, storageAuth)
 	return &blobsClient, nil
 }
@@ -192,14 +214,24 @@ func (c ArmClient) getContainersClient(ctx context.Context) (*containers.Client,
 			return nil, fmt.Errorf("Error building Authorizer: %+v", err)
 		}
 
-		containersClient := containers.NewWithEnvironment(c.environment)
+		containersClient := containers.New()
+		domainSuffix, ok := c.environment.Storage.DomainSuffix()
+		if !ok {
+			return nil, fmt.Errorf("Error retrieving domain suffix for storage account, environment: %v", c.environment)
+		}
+		containersClient.BaseURI = *domainSuffix
 		c.configureClient(&containersClient.Client, storageAuth)
 		return &containersClient, nil
 	}
 
 	if c.azureAdStorageAuth != nil {
-		containersClient := containers.NewWithEnvironment(c.environment)
-		c.configureClient(&containersClient.Client, *c.azureAdStorageAuth)
+		containersClient := containers.New()
+		domainSuffix, ok := c.environment.Storage.DomainSuffix()
+		if !ok {
+			return nil, fmt.Errorf("Error retrieving domain suffix for storage account, environment: %v", c.environment)
+		}
+		containersClient.BaseURI = *domainSuffix
+		c.configureClient(&containersClient.Client, authWrapper.AutorestAuthorizer(*c.azureAdStorageAuth))
 		return &containersClient, nil
 	}
 
@@ -224,7 +256,12 @@ func (c ArmClient) getContainersClient(ctx context.Context) (*containers.Client,
 		return nil, fmt.Errorf("Error building Authorizer: %+v", err)
 	}
 
-	containersClient := containers.NewWithEnvironment(c.environment)
+	containersClient := containers.New()
+	domainSuffix, ok := c.environment.Storage.DomainSuffix()
+	if !ok {
+		return nil, fmt.Errorf("Error retrieving domain suffix for storage account, environment: %v", c.environment)
+	}
+	containersClient.BaseURI = *domainSuffix
 	c.configureClient(&containersClient.Client, storageAuth)
 	return &containersClient, nil
 }
@@ -246,4 +283,63 @@ func buildUserAgent() string {
 	}
 
 	return userAgent
+}
+
+func getOidcToken(config BackendConfig) (*string, error) {
+	idToken := strings.TrimSpace(config.OIDCToken)
+
+	if path := config.OIDCTokenFilePath; path != "" {
+		fileTokenRaw, err := os.ReadFile(path)
+
+		if err != nil {
+			return nil, fmt.Errorf("reading OIDC Token from file %q: %v", path, err)
+		}
+
+		fileToken := strings.TrimSpace(string(fileTokenRaw))
+
+		if idToken != "" && idToken != fileToken {
+			return nil, fmt.Errorf("mismatch between supplied OIDC token and supplied OIDC token file contents - please either remove one or ensure they match")
+		}
+
+		idToken = fileToken
+	}
+
+	return &idToken, nil
+}
+
+func getSubscriptionId(ctx context.Context, config auth.Credentials) (*string, error) {
+	if config.AzureCliSubscriptionIDHint != "" {
+		return &config.AzureCliSubscriptionIDHint, nil
+	}
+	authorizer, err := auth.NewAuthorizerFromCredentials(ctx, config, config.Environment.MicrosoftGraph)
+	if err != nil {
+		return nil, fmt.Errorf("unable to build authorizer for Microsoft Graph API: %+v", err)
+	}
+
+	// Acquire an access token so we can inspect the claims
+	_, err = authorizer.Token(ctx, &http.Request{})
+	if err != nil {
+		return nil, fmt.Errorf("could not acquire access token to parse claims: %+v", err)
+	}
+	// Finally, defer to Azure CLI to obtain tenant ID, subscription ID and client ID when not specified and missing from claims
+	realAuthorizer := authorizer
+	if cache, ok := authorizer.(*auth.CachedAuthorizer); ok {
+		realAuthorizer = cache.Source
+	}
+	subscriptionId := ""
+	if cli, ok := realAuthorizer.(*auth.AzureCliAuthorizer); ok {
+
+		if cli.DefaultSubscriptionID == "" {
+			return nil, fmt.Errorf("azure-cli could not determine subscription ID to use and no subscription was specified")
+		}
+
+		subscriptionId = cli.DefaultSubscriptionID
+		log.Printf("[DEBUG] Using default subscription ID from Azure CLI: %q", subscriptionId)
+	}
+
+	if subscriptionId == "" {
+		return nil, fmt.Errorf("unable to configure ResourceManagerAccount: subscription ID could not be determined and was not specified")
+	}
+
+	return &subscriptionId, nil
 }
