@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/experiments"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 
 	tfversion "github.com/hashicorp/terraform/version"
 )
@@ -745,6 +746,186 @@ func (m *Module) CheckCoreVersionRequirements(path addrs.Module, sourceAddr addr
 				})
 			}
 		}
+	}
+
+	return diags
+}
+
+func (m *Module) ProviderRequirementsShallow() (providerreqs.Requirements, hcl.Diagnostics) {
+	reqs := make(providerreqs.Requirements)
+	diags := m.addProviderRequirements(reqs)
+	return reqs, diags
+}
+
+func (m *Module) addProviderRequirements(reqs providerreqs.Requirements) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	// First we'll deal with the requirements directly in _our_ module...
+	if m.ProviderRequirements != nil {
+		for _, providerReqs := range m.ProviderRequirements.RequiredProviders {
+			fqn := providerReqs.Type
+			if _, ok := reqs[fqn]; !ok {
+				// We'll at least have an unconstrained dependency then, but might
+				// add to this in the loop below.
+				reqs[fqn] = nil
+			}
+			// The model of version constraints in this package is still the
+			// old one using a different upstream module to represent versions,
+			// so we'll need to shim that out here for now. The two parsers
+			// don't exactly agree in practice 🙄 so this might produce new errors.
+			// TODO: Use the new parser throughout this package so we can get the
+			// better error messages it produces in more situations.
+			constraints, err := providerreqs.ParseVersionConstraints(providerReqs.Requirement.Required.String())
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid version constraint",
+					// The errors returned by ParseVersionConstraint already include
+					// the section of input that was incorrect, so we don't need to
+					// include that here.
+					Detail:  fmt.Sprintf("Incorrect version constraint syntax: %s.", err.Error()),
+					Subject: providerReqs.Requirement.DeclRange.Ptr(),
+				})
+			}
+			reqs[fqn] = append(reqs[fqn], constraints...)
+		}
+	}
+
+	// Each resource in the configuration creates an *implicit* provider
+	// dependency, though we'll only record it if there isn't already
+	// an explicit dependency on the same provider.
+	for _, rc := range m.ManagedResources {
+		fqn := rc.Provider
+		if _, exists := reqs[fqn]; exists {
+			// Explicit dependency already present
+			continue
+		}
+		reqs[fqn] = nil
+	}
+	for _, rc := range m.DataResources {
+		fqn := rc.Provider
+		if _, exists := reqs[fqn]; exists {
+			// Explicit dependency already present
+			continue
+		}
+		reqs[fqn] = nil
+	}
+
+	// Import blocks that are generating config may have a custom provider
+	// meta-argument. Like the provider meta-argument used in resource blocks,
+	// we use this opportunity to load any implicit providers.
+	//
+	// We'll also use this to validate that import blocks and targeted resource
+	// blocks agree on which provider they should be using. If they don't agree,
+	// this will be because the user has written explicit provider arguments
+	// that don't agree and we'll get them to fix it.
+	for _, i := range m.Import {
+		if len(i.ToResource.Module) > 0 {
+			// All provider information for imports into modules should come
+			// from the module block, so we don't need to load anything for
+			// import targets within modules.
+			continue
+		}
+
+		if target, exists := m.ManagedResources[i.ToResource.Resource.String()]; exists {
+			// This means the information about the provider for this import
+			// should come from the resource block itself and not the import
+			// block.
+			//
+			// In general, we say that you shouldn't set the provider attribute
+			// on import blocks in this case. But to make config generation
+			// easier, we will say that if it is set in both places and it's the
+			// same then that is okay.
+
+			if i.ProviderConfigRef != nil {
+				if target.ProviderConfigRef == nil {
+					// This means we have a provider specified in the import
+					// block and not in the resource block. This isn't the right
+					// way round so let's consider this a failure.
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid import provider argument",
+						Detail:   "The provider argument can only be specified in import blocks that will generate configuration.\n\nUse the provider argument in the target resource block to configure the provider for a resource with explicit provider configuration.",
+						Subject:  i.ProviderDeclRange.Ptr(),
+					})
+					continue
+				}
+
+				if i.ProviderConfigRef.Name != target.ProviderConfigRef.Name || i.ProviderConfigRef.Alias != target.ProviderConfigRef.Alias {
+					// This means we have a provider specified in both the
+					// import block and the resource block, and they disagree.
+					// This is bad as Terraform now has different instructions
+					// about which provider to use.
+					//
+					// The general guidance is that only the resource should be
+					// specifying the provider as the import block provider
+					// attribute is just for generating config. So, let's just
+					// tell the user to only set the provider argument in the
+					// resource.
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid import provider argument",
+						Detail:   "The provider argument can only be specified in import blocks that will generate configuration.\n\nUse the provider argument in the target resource block to configure the provider for a resource with explicit provider configuration.",
+						Subject:  i.ProviderDeclRange.Ptr(),
+					})
+					continue
+				}
+			}
+
+			// All the provider information should come from the target resource
+			// which has already been processed, so skip the rest of this
+			// processing.
+			continue
+		}
+
+		// Otherwise we are generating config for the resource being imported,
+		// so all the provider information must come from this import block.
+		fqn := i.Provider
+		if _, exists := reqs[fqn]; exists {
+			// Explicit dependency already present
+			continue
+		}
+		reqs[fqn] = nil
+	}
+
+	// "provider" block can also contain version constraints
+	for _, provider := range m.ProviderConfigs {
+		moreDiags := m.addProviderRequirementsFromProviderBlock(reqs, provider)
+		diags = append(diags, moreDiags...)
+	}
+
+	return diags
+}
+
+func (m *Module) addProviderRequirementsFromProviderBlock(reqs providerreqs.Requirements, provider *Provider) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	fqn := m.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: provider.Name})
+	if _, ok := reqs[fqn]; !ok {
+		// We'll at least have an unconstrained dependency then, but might
+		// add to this in the loop below.
+		reqs[fqn] = nil
+	}
+	if provider.Version.Required != nil {
+		// The model of version constraints in this package is still the
+		// old one using a different upstream module to represent versions,
+		// so we'll need to shim that out here for now. The two parsers
+		// don't exactly agree in practice 🙄 so this might produce new errors.
+		// TODO: Use the new parser throughout this package so we can get the
+		// better error messages it produces in more situations.
+		constraints, err := providerreqs.ParseVersionConstraints(provider.Version.Required.String())
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid version constraint",
+				// The errors returned by ParseVersionConstraint already include
+				// the section of input that was incorrect, so we don't need to
+				// include that here.
+				Detail:  fmt.Sprintf("Incorrect version constraint syntax: %s.", err.Error()),
+				Subject: provider.Version.DeclRange.Ptr(),
+			})
+		}
+		reqs[fqn] = append(reqs[fqn], constraints...)
 	}
 
 	return diags
