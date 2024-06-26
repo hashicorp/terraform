@@ -55,6 +55,12 @@ type AppliedChangeResourceInstanceObject struct {
 	NewStateSrc                *states.ResourceInstanceObjectSrc
 	ProviderConfigAddr         addrs.AbsProviderConfig
 
+	// PreviousResourceInstanceObjectAddr is the absolute address of the
+	// resource instance object within the component instance if this object
+	// was moved from another address. This will be nil if the object was not
+	// moved.
+	PreviousResourceInstanceObjectAddr *stackaddrs.AbsResourceInstanceObject
+
 	// Schema MUST be the same schema that was used to encode the dynamic
 	// values inside NewStateSrc. This can be left as nil if NewStateSrc
 	// is nil, which represents that the object has been deleted.
@@ -108,6 +114,33 @@ func (ac *AppliedChangeResourceInstanceObject) protosForObject() ([]*terraform1.
 			Value: nil, // unset Value field represents "delete" for raw changes
 		})
 		return descs, raws, nil
+	}
+
+	if ac.PreviousResourceInstanceObjectAddr != nil {
+		// If the object was moved, we need to emit a "deleted" description
+		// for the old address to ensure that any existing prior state value
+		// gets removed.
+		prevKey := statekeys.ResourceInstanceObject{
+			ResourceInstance: stackaddrs.AbsResourceInstance{
+				Component: ac.PreviousResourceInstanceObjectAddr.Component,
+				Item:      ac.PreviousResourceInstanceObjectAddr.Item.ResourceInstance,
+			},
+			DeposedKey: ac.PreviousResourceInstanceObjectAddr.Item.DeposedKey,
+		}
+		prevKeyRaw := statekeys.String(prevKey)
+
+		descs = append(descs, &terraform1.AppliedChange_ChangeDescription{
+			Key: prevKeyRaw,
+			Description: &terraform1.AppliedChange_ChangeDescription_Moved{
+				Moved: &terraform1.AppliedChange_Nothing{},
+			},
+		})
+		raws = append(raws, &terraform1.AppliedChange_RawChange{
+			Key:   prevKeyRaw,
+			Value: nil, // unset Value field represents "delete" for raw changes
+		})
+
+		// Don't return now - we'll still add the main change below.
 	}
 
 	// TRICKY: For historical reasons, a states.ResourceInstance

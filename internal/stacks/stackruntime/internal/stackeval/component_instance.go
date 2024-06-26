@@ -1557,16 +1557,33 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 				}
 			}
 
+			var previousAddress *stackaddrs.AbsResourceInstanceObject
+			if plannedChange := c.main.PlanBeingApplied().Components.Get(c.Addr()).ResourceInstancePlanned.Get(rioAddr); plannedChange != nil && plannedChange.Moved() {
+				// If we moved the resource instance object, we need to record
+				// the previous address in the applied change. The planned
+				// change might be nil if the resource instance object was
+				// deleted.
+				previousAddress = &stackaddrs.AbsResourceInstanceObject{
+					Component: c.Addr(),
+					Item: addrs.AbsResourceInstanceObject{
+						ResourceInstance: plannedChange.PrevRunAddr,
+						DeposedKey:       addrs.NotDeposed,
+					},
+				}
+			}
+
 			changes = append(changes, &stackstate.AppliedChangeResourceInstanceObject{
 				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
 					Component: c.Addr(),
 					Item:      rioAddr,
 				},
-				NewStateSrc:        os,
-				ProviderConfigAddr: providerConfigAddr,
-				Schema:             schema,
+				PreviousResourceInstanceObjectAddr: previousAddress,
+				NewStateSrc:                        os,
+				ProviderConfigAddr:                 providerConfigAddr,
+				Schema:                             schema,
 			})
 		}
+
 	}
 
 	return changes, diags
