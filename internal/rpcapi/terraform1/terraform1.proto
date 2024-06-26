@@ -956,7 +956,8 @@ message AppliedChange {
     message ChangeDescription {
         string key = 1;
         oneof description {
-            Nothing deleted = 4; // explicitly represents the absense of a description
+            Nothing deleted = 4; // explicitly represents the absence of a description
+            Nothing moved = 6; // explicitly represents the absence of a description
             ResourceInstance resource_instance = 2;
             OutputValue output_value = 3;
             ComponentInstance component_instance = 5;
