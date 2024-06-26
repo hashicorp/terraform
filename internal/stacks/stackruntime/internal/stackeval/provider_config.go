@@ -14,6 +14,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -80,6 +81,24 @@ func (p *ProviderConfig) ProviderArgs(ctx context.Context, phase EvalPhase) cty.
 	return v
 }
 
+func CheckProviderInLockfile(locks depsfile.Locks, providerType *ProviderType, declRange tfdiags.SourceRange) (diags tfdiags.Diagnostics) {
+	if providerType.addr.IsBuiltIn() {
+		return diags // built-in providers are not in the lockfile
+	}
+	if p := locks.Provider(providerType.Addr()); p == nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Provider missing from lockfile",
+			Detail: fmt.Sprintf(
+				"Provider %q is not in the lockfile. This provider must be in the lockfile to be used in the configuration. Please run `tfstacks provider lock` to update the lockfile and run this operation again with an updated configuration.",
+				providerType.Addr(),
+			),
+			Subject: declRange.ToHCL().Ptr(),
+		})
+	}
+	return diags
+}
+
 func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
 		ctx, &p.providerArgs, p.main,
@@ -88,6 +107,15 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase)
 
 			providerType := p.ProviderType(ctx)
 			decl := p.Declaration(ctx)
+
+			// Check if the provider is in the lockfile,
+			// if it is not we can not read the provider schema
+			lockfileDiags := CheckProviderInLockfile(p.main.validating.opts.DependencyLocks, providerType, decl.DeclRange)
+			if lockfileDiags.HasErrors() {
+				return cty.DynamicVal, lockfileDiags
+			}
+			diags = diags.Append(lockfileDiags)
+
 			spec, err := p.ProviderArgsDecoderSpec(ctx)
 			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{

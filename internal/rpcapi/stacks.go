@@ -143,6 +143,7 @@ func (s *stacksServer) ValidateStackConfiguration(ctx context.Context, req *terr
 		Config:             cfg,
 		ExperimentsAllowed: s.experimentsAllowed,
 		ProviderFactories:  providerFactories,
+		DependencyLocks:    *deps,
 	})
 	return &terraform1.ValidateStackConfiguration_Response{
 		Diagnostics: diagnosticsToProto(diags),

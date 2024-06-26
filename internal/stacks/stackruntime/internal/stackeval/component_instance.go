@@ -390,6 +390,13 @@ func (c *ComponentInstance) neededProviderSchemas(ctx context.Context) (map[addr
 			continue // not our job to report a missing provider type
 		}
 		schema, err := pTy.Schema(ctx)
+
+		providerLockfileDiags := CheckProviderInLockfile(c.main.validating.opts.DependencyLocks, pTy, decl.DeclRange)
+		// We report these diagnostics in a different place
+		if providerLockfileDiags.HasErrors() {
+			continue
+		}
+
 		if err != nil {
 			// FIXME: it's not technically our job to report a schema
 			// fetch failure, but currently there is no single other
