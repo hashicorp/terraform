@@ -40,12 +40,17 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 
 	var errored, applyable bool
 
+	planTimestamp := time.Now().UTC()
+	if req.ForcePlanTimestamp != nil {
+		planTimestamp = *req.ForcePlanTimestamp
+	}
+
 	main := stackeval.NewForPlanning(req.Config, req.PrevState, stackeval.PlanOpts{
 		PlanningMode:        req.PlanMode,
 		InputVariableValues: req.InputValues,
 		ProviderFactories:   req.ProviderFactories,
 
-		ForcePlanTimestamp: req.ForcePlanTimestamp,
+		PlanTimestamp: planTimestamp,
 	})
 	main.AllowLanguageExperiments(req.ExperimentsAllowed)
 	main.PlanAll(ctx, stackeval.PlanOutput{

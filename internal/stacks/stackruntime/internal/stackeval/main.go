@@ -90,10 +90,6 @@ type mainValidating struct {
 type mainPlanning struct {
 	opts      PlanOpts
 	prevState *stackstate.State
-
-	// This is a utility for unit tests that want to encourage stable output
-	// to assert against. Not for real use.
-	forcePlanTimestamp *time.Time
 }
 
 type mainApplying struct {
@@ -596,4 +592,20 @@ func (m *Main) availableProvisioners() map[string]provisioners.Factory {
 			return nil, fmt.Errorf("local-exec provisioners are not supported in stack components; use provider functionality or remote provisioners instead")
 		},
 	}
+}
+
+// PlanTimestamp provides the timestamp at which the plan
+// associated with this operation is being executed.
+// If we are planning we either take the forced timestamp or the saved current time
+// If we are applying we take the timestamp time from the plan
+func (m *Main) PlanTimestamp() time.Time {
+	if m.applying != nil {
+		return m.applying.plan.PlanTimestamp
+	}
+	if m.planning != nil {
+		return m.planning.opts.PlanTimestamp
+	}
+
+	// This is the default case, we are not planning / applying
+	return time.Now().UTC()
 }

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
@@ -173,6 +174,12 @@ func (p *ProviderConfig) ResolveExpressionReference(ctx context.Context, ref sta
 	}
 
 	return ret, diags
+}
+
+// PlanTimestamp implements ExpressionScope, providing the timestamp at which
+// the current plan is being run.
+func (p *ProviderConfig) PlanTimestamp() time.Time {
+	return p.main.PlanTimestamp()
 }
 
 // ExprReferenceValue implements Referenceable.

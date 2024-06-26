@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
@@ -128,6 +129,7 @@ func TestApply_componentOrdering(t *testing.T) {
 					}, nil
 				},
 			},
+			PlanTimestamp: time.Now().UTC(),
 		})
 
 		outp, outpTester := testPlanOutput(t)
@@ -287,6 +289,7 @@ func TestApply_componentOrdering(t *testing.T) {
 					}, nil
 				},
 			},
+			PlanTimestamp: time.Now().UTC(),
 		})
 
 		outp, outpTester := testPlanOutput(t)

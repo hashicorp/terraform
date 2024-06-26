@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
@@ -66,6 +67,10 @@ type ExpressionScope interface {
 	// means in the receiver's evaluation scope and returns the concrete object
 	// that the address is referring to.
 	ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics)
+
+	// PlanTimestamp returns the timestamp that should be used as part of the
+	// plantimestamp function in expressions.
+	PlanTimestamp() time.Time
 }
 
 // EvalContextForExpr produces an HCL expression evaluation context for the
@@ -181,11 +186,11 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 	// use the same functions but have entirely separate implementations
 	// of what data is in scope.
 	fakeScope := &lang.Scope{
-		Data:        nil, // not a real scope; can't actually make an evalcontext
-		BaseDir:     ".",
-		PureOnly:    phase != ApplyPhase,
-		ConsoleMode: false,
-		// TODO: PlanTimestamp
+		Data:          nil, // not a real scope; can't actually make an evalcontext
+		BaseDir:       ".",
+		PureOnly:      phase != ApplyPhase,
+		ConsoleMode:   false,
+		PlanTimestamp: scope.PlanTimestamp(),
 	}
 	hclCtx := &hcl.EvalContext{
 		Variables: map[string]cty.Value{

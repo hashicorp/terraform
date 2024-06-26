@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -564,6 +565,12 @@ func (s *StackConfig) resolveExpressionReference(
 		})
 		return nil, diags
 	}
+}
+
+// PlanTimestamp implements ExpressionScope, providing the timestamp at which
+// the current plan is being run.
+func (s *StackConfig) PlanTimestamp() time.Time {
+	return s.main.PlanTimestamp()
 }
 
 // reportNamedPromises implements namedPromiseReporter.

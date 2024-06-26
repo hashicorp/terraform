@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
@@ -347,6 +348,11 @@ func (s staticExpressionScope) ResolveExpressionReference(ctx context.Context, r
 		return nil, diags
 	}
 	return ret, diags
+}
+
+// PlanTimestamp implements ExpressionScope
+func (s staticExpressionScope) PlanTimestamp() time.Time {
+	return time.Now().UTC()
 }
 
 // Add makes the given object available in the scope at the given address.

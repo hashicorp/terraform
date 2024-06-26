@@ -6,6 +6,7 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/go-slug/sourceaddrs"
@@ -447,6 +448,12 @@ func (c *ComponentConfig) ResolveExpressionReference(ctx context.Context, ref st
 		repetition.EachValue = cty.DynamicVal
 	}
 	return c.StackConfig(ctx).resolveExpressionReference(ctx, ref, nil, repetition)
+}
+
+// PlanTimestamp implements ExpressionScope, providing the timestamp at which
+// the current plan is being run.
+func (c *ComponentConfig) PlanTimestamp() time.Time {
+	return c.main.PlanTimestamp()
 }
 
 func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {

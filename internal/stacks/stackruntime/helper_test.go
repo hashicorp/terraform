@@ -202,6 +202,10 @@ func plannedChangeSortKey(change stackplan.PlannedChange) string {
 		// There should only be a single applyable marker in a plan, so we can
 		// just return a static string here.
 		return "applyable"
+	case *stackplan.PlannedChangePlannedTimestamp:
+		// There should only be a single timestamp in a plan, so we can
+		// just return a static string here.
+		return "planned-timestamp"
 	default:
 		// This is only going to happen during tests, so we can panic here.
 		panic(fmt.Errorf("unrecognized planned change type: %T", change))

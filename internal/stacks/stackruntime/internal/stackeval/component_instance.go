@@ -6,6 +6,7 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -597,6 +598,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				}
 			}()
 
+			plantimestamp := c.main.PlanTimestamp()
 			// NOTE: This ComponentInstance type only deals with component
 			// instances currently declared in the configuration. See
 			// [ComponentInstanceRemoved] for the model of a component instance
@@ -609,9 +611,8 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				DeferralAllowed:            true,
 				ExternalDependencyDeferred: deferred,
 
-				// This is set by some tests but should not be used in main code.
-				// (nil means to use the real time when tfCtx.Plan was called.)
-				ForcePlanTimestamp: stackPlanOpts.ForcePlanTimestamp,
+				// We want the same plantimestamp between all components and the stacks language
+				ForcePlanTimestamp: &plantimestamp,
 			})
 			diags = diags.Append(moreDiags)
 
@@ -1197,6 +1198,12 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 func (c *ComponentInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	stack := c.call.Stack(ctx)
 	return stack.resolveExpressionReference(ctx, ref, nil, c.repetition)
+}
+
+// PlanTimestamp implements ExpressionScope, providing the timestamp at which
+// the current plan is being run.
+func (c *ComponentInstance) PlanTimestamp() time.Time {
+	return c.main.PlanTimestamp()
 }
 
 // PlanChanges implements Plannable by validating that all of the per-instance

@@ -590,6 +590,29 @@ func (pc *PlannedChangeHeader) PlannedChangeProto() (*terraform1.PlannedChange, 
 	}, nil
 }
 
+// PlannedChangePlannedTimestamp is a special change type we emit to record the timestamp
+// of when the plan was generated. This is being used in the plantimestamp function.
+type PlannedChangePlannedTimestamp struct {
+	PlannedTimestamp time.Time
+}
+
+var _ PlannedChange = (*PlannedChangePlannedTimestamp)(nil)
+
+// PlannedChangeProto implements PlannedChange.
+func (pc *PlannedChangePlannedTimestamp) PlannedChangeProto() (*terraform1.PlannedChange, error) {
+	var raw anypb.Any
+	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanTimestamp{
+		PlanTimestamp: pc.PlannedTimestamp.Format(time.RFC3339),
+	}, proto.MarshalOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return &terraform1.PlannedChange{
+		Raw: []*anypb.Any{&raw},
+	}, nil
+}
+
 // PlannedChangeApplyable is a special change type we typically append at the
 // end of the raw plan stream to represent that the planning process ran to
 // completion without encountering any errors, and therefore the plan could
