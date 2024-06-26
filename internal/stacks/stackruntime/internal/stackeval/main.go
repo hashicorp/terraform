@@ -90,9 +90,6 @@ type mainValidating struct {
 type mainPlanning struct {
 	opts      PlanOpts
 	prevState *stackstate.State
-
-	// This is the plan timestamp that will be used for the plan if forcePlanTimestamp is not set.
-	planTimestamp time.Time
 }
 
 type mainApplying struct {
@@ -127,9 +124,8 @@ func NewForPlanning(config *stackconfig.Config, prevState *stackstate.State, opt
 	return &Main{
 		config: config,
 		planning: &mainPlanning{
-			opts:          opts,
-			prevState:     prevState,
-			planTimestamp: opts.PlanTimestamp,
+			opts:      opts,
+			prevState: prevState,
 		},
 		providerFactories: opts.ProviderFactories,
 		providerTypes:     make(map[addrs.Provider]*ProviderType),
@@ -607,7 +603,7 @@ func (m *Main) PlanTimestamp() time.Time {
 		return m.applying.plan.PlanTimestamp
 	}
 	if m.planning != nil {
-		return m.planning.planTimestamp
+		return m.planning.opts.PlanTimestamp
 	}
 
 	// This is the default case, we are not planning / applying
