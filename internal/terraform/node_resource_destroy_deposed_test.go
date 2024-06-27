@@ -66,7 +66,8 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 		},
 		DeposedKey: deposedKey,
 	}
-	err := node.Execute(ctx, walkPlan)
+	sema := NewSemaphore(10)
+	err := node.Execute(ctx, walkPlan, sema)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
@@ -138,7 +139,8 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 		},
 		DeposedKey: deposedKey,
 	}
-	err := node.Execute(ctx, walkApply)
+	sema := NewSemaphore(10)
+	err := node.Execute(ctx, walkApply, sema)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -211,7 +213,8 @@ func TestNodeDestroyDeposedResourceInstanceObject_ExecuteMissingState(t *testing
 		},
 		DeposedKey: states.NewDeposedKey(),
 	}
-	err := node.Execute(ctx, walkApply)
+	sema := NewSemaphore(10)
+	err := node.Execute(ctx, walkApply, sema)
 
 	if err == nil {
 		t.Fatal("expected error")

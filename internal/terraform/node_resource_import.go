@@ -24,7 +24,7 @@ type graphNodeImportState struct {
 
 var (
 	_ GraphNodeModulePath        = (*graphNodeImportState)(nil)
-	_ GraphNodeExecutable        = (*graphNodeImportState)(nil)
+	_ GraphNodeExecutableSema    = (*graphNodeImportState)(nil)
 	_ GraphNodeProviderConsumer  = (*graphNodeImportState)(nil)
 	_ GraphNodeDynamicExpandable = (*graphNodeImportState)(nil)
 )
@@ -68,8 +68,8 @@ func (n *graphNodeImportState) ModulePath() addrs.Module {
 	return n.Addr.Module.Module()
 }
 
-// GraphNodeExecutable impl.
-func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+// GraphNodeExecutableSema impl.
+func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 	// Reset our states
 	n.states = nil
 
@@ -94,12 +94,14 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 		return diags
 	}
 
-	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
-		TypeName: n.Addr.Resource.Resource.Type,
-		ID:       n.ID,
-		ClientCapabilities: providers.ClientCapabilities{
-			DeferralAllowed: false,
-		},
+	resp := whileHoldingSemaphore(concurrencySema, func() providers.ImportResourceStateResponse {
+		return provider.ImportResourceState(providers.ImportResourceStateRequest{
+			TypeName: n.Addr.Resource.Resource.Type,
+			ID:       n.ID,
+			ClientCapabilities: providers.ClientCapabilities{
+				DeferralAllowed: false,
+			},
+		})
 	})
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
@@ -203,7 +205,7 @@ type graphNodeImportStateSub struct {
 
 var (
 	_ GraphNodeModuleInstance = (*graphNodeImportStateSub)(nil)
-	_ GraphNodeExecutable     = (*graphNodeImportStateSub)(nil)
+	_ GraphNodeExecutableSema = (*graphNodeImportStateSub)(nil)
 )
 
 func (n *graphNodeImportStateSub) Name() string {
@@ -214,8 +216,8 @@ func (n *graphNodeImportStateSub) Path() addrs.ModuleInstance {
 	return n.TargetAddr.Module
 }
 
-// GraphNodeExecutable impl.
-func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+// GraphNodeExecutableSema impl.
+func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 	// If the Ephemeral type isn't set, then it is an error
 	if n.State.TypeName == "" {
 		diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.TargetAddr.String()))
@@ -231,7 +233,10 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 			ResolvedProvider: n.ResolvedProvider,
 		},
 	}
-	state, deferred, refreshDiags := riNode.refresh(ctx, states.NotDeposed, state, false)
+	state, deferred, refreshDiags := riNode.refresh(
+		ctx, concurrencySema,
+		states.NotDeposed, state, false,
+	)
 	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
 		return diags

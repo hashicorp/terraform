@@ -370,7 +370,7 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 }
 
 // planDestroy returns a plain destroy diff.
-func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, *providers.Deferred, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, concurrencySema Semaphore, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, *providers.Deferred, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var deferred *providers.Deferred
 	var plan *plans.ResourceInstanceChange
@@ -436,16 +436,18 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 	} else {
 		// Allow the provider to check the destroy plan, and insert any
 		// necessary private data.
-		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
-			TypeName:         n.Addr.Resource.Resource.Type,
-			Config:           nullVal,
-			PriorState:       unmarkedPriorVal,
-			ProposedNewState: nullVal,
-			PriorPrivate:     currentState.Private,
-			ProviderMeta:     metaConfigVal,
-			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
-			},
+		resp = whileHoldingSemaphore(concurrencySema, func() providers.PlanResourceChangeResponse {
+			return provider.PlanResourceChange(providers.PlanResourceChangeRequest{
+				TypeName:         n.Addr.Resource.Resource.Type,
+				Config:           nullVal,
+				PriorState:       unmarkedPriorVal,
+				ProposedNewState: nullVal,
+				PriorPrivate:     currentState.Private,
+				ProviderMeta:     metaConfigVal,
+				ClientCapabilities: providers.ClientCapabilities{
+					DeferralAllowed: deferralAllowed,
+				},
+			})
 		})
 		deferred = resp.Deferred
 
@@ -498,7 +500,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 }
 
 // planForget returns a Forget change.
-func (n *NodeAbstractResourceInstance) planForget(ctx EvalContext, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) planForget(ctx EvalContext, concurrencySema Semaphore, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var plan *plans.ResourceInstanceChange
 
@@ -600,7 +602,7 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 
 // refresh does a refresh for a resource
 // if the second return value is non-nil, the refresh is deferred
-func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey states.DeposedKey, state *states.ResourceInstanceObject, deferralAllowed bool) (*states.ResourceInstanceObject, *providers.Deferred, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, concurrencySema Semaphore, deposedKey states.DeposedKey, state *states.ResourceInstanceObject, deferralAllowed bool) (*states.ResourceInstanceObject, *providers.Deferred, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var deferred *providers.Deferred
 	absAddr := n.Addr
@@ -655,14 +657,16 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			NewState: priorVal,
 		}
 	} else {
-		resp = provider.ReadResource(providers.ReadResourceRequest{
-			TypeName:     n.Addr.Resource.Resource.Type,
-			PriorState:   priorVal,
-			Private:      state.Private,
-			ProviderMeta: metaConfigVal,
-			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
-			},
+		resp = whileHoldingSemaphore(concurrencySema, func() providers.ReadResourceResponse {
+			return provider.ReadResource(providers.ReadResourceRequest{
+				TypeName:     n.Addr.Resource.Resource.Type,
+				PriorState:   priorVal,
+				Private:      state.Private,
+				ProviderMeta: metaConfigVal,
+				ClientCapabilities: providers.ClientCapabilities{
+					DeferralAllowed: deferralAllowed,
+				},
+			})
 		})
 
 		// If we don't support deferrals, but the provider reports a deferral and does not
@@ -766,6 +770,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 
 func (n *NodeAbstractResourceInstance) plan(
 	ctx EvalContext,
+	concurrencySema Semaphore,
 	plannedChange *plans.ResourceInstanceChange,
 	currentState *states.ResourceInstanceObject,
 	createBeforeDestroy bool,
@@ -886,12 +891,14 @@ func (n *NodeAbstractResourceInstance) plan(
 	// we must unmark and use the original config, since the ignore_changes
 	// handling below needs access to the marks.
 	unmarkedConfigVal, _ := origConfigVal.UnmarkDeep()
-	validateResp := provider.ValidateResourceConfig(
-		providers.ValidateResourceConfigRequest{
-			TypeName: n.Addr.Resource.Resource.Type,
-			Config:   unmarkedConfigVal,
-		},
-	)
+	validateResp := whileHoldingSemaphore(concurrencySema, func() providers.ValidateResourceConfigResponse {
+		return provider.ValidateResourceConfig(
+			providers.ValidateResourceConfigRequest{
+				TypeName: n.Addr.Resource.Resource.Type,
+				Config:   unmarkedConfigVal,
+			},
+		)
+	})
 	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
 		return nil, nil, deferred, keyData, diags
@@ -947,16 +954,18 @@ func (n *NodeAbstractResourceInstance) plan(
 			}
 		}
 	} else {
-		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
-			TypeName:         n.Addr.Resource.Resource.Type,
-			Config:           unmarkedConfigVal,
-			PriorState:       unmarkedPriorVal,
-			ProposedNewState: proposedNewVal,
-			PriorPrivate:     priorPrivate,
-			ProviderMeta:     metaConfigVal,
-			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
-			},
+		resp = whileHoldingSemaphore(concurrencySema, func() providers.PlanResourceChangeResponse {
+			return provider.PlanResourceChange(providers.PlanResourceChangeRequest{
+				TypeName:         n.Addr.Resource.Resource.Type,
+				Config:           unmarkedConfigVal,
+				PriorState:       unmarkedPriorVal,
+				ProposedNewState: proposedNewVal,
+				PriorPrivate:     priorPrivate,
+				ProviderMeta:     metaConfigVal,
+				ClientCapabilities: providers.ClientCapabilities{
+					DeferralAllowed: deferralAllowed,
+				},
+			})
 		})
 		// If we don't support deferrals, but the provider reports a deferral and does not
 		// emit any error level diagnostics, we should emit an error.
@@ -1109,16 +1118,18 @@ func (n *NodeAbstractResourceInstance) plan(
 				Diagnostics:  overrideDiags,
 			}
 		} else {
-			resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
-				TypeName:         n.Addr.Resource.Resource.Type,
-				Config:           unmarkedConfigVal,
-				PriorState:       nullPriorVal,
-				ProposedNewState: proposedNewVal,
-				PriorPrivate:     plannedPrivate,
-				ProviderMeta:     metaConfigVal,
-				ClientCapabilities: providers.ClientCapabilities{
-					DeferralAllowed: deferralAllowed,
-				},
+			resp = whileHoldingSemaphore(concurrencySema, func() providers.PlanResourceChangeResponse {
+				return provider.PlanResourceChange(providers.PlanResourceChangeRequest{
+					TypeName:         n.Addr.Resource.Resource.Type,
+					Config:           unmarkedConfigVal,
+					PriorState:       nullPriorVal,
+					ProposedNewState: proposedNewVal,
+					PriorPrivate:     plannedPrivate,
+					ProviderMeta:     metaConfigVal,
+					ClientCapabilities: providers.ClientCapabilities{
+						DeferralAllowed: deferralAllowed,
+					},
+				})
 			})
 
 			// If we don't support deferrals, but the provider reports a deferral and does not
@@ -1487,7 +1498,7 @@ func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChangesPath [
 // readDataSource handles everything needed to call ReadDataSource on the provider.
 // A previously evaluated configVal can be passed in, or a new one is generated
 // from the resource configuration.
-func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal cty.Value) (cty.Value, *providers.Deferred, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal cty.Value, concurrencySema Semaphore) (cty.Value, *providers.Deferred, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var newVal cty.Value
 	var deferred *providers.Deferred
@@ -1518,12 +1529,14 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	configVal, pvm = configVal.UnmarkDeepWithPaths()
 
 	log.Printf("[TRACE] readDataSource: Re-validating config for %s", n.Addr)
-	validateResp := provider.ValidateDataResourceConfig(
-		providers.ValidateDataResourceConfigRequest{
-			TypeName: n.Addr.ContainingResource().Resource.Type,
-			Config:   configVal,
-		},
-	)
+	validateResp := whileHoldingSemaphore(concurrencySema, func() providers.ValidateDataResourceConfigResponse {
+		return provider.ValidateDataResourceConfig(
+			providers.ValidateDataResourceConfigRequest{
+				TypeName: n.Addr.ContainingResource().Resource.Type,
+				Config:   configVal,
+			},
+		)
+	})
 	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
 		return newVal, deferred, diags
@@ -1551,13 +1564,15 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 			Diagnostics: overrideDiags,
 		}
 	} else {
-		resp = provider.ReadDataSource(providers.ReadDataSourceRequest{
-			TypeName:     n.Addr.ContainingResource().Resource.Type,
-			Config:       configVal,
-			ProviderMeta: metaConfigVal,
-			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
-			},
+		resp = whileHoldingSemaphore(concurrencySema, func() providers.ReadDataSourceResponse {
+			return provider.ReadDataSource(providers.ReadDataSourceRequest{
+				TypeName:     n.Addr.ContainingResource().Resource.Type,
+				Config:       configVal,
+				ProviderMeta: metaConfigVal,
+				ClientCapabilities: providers.ClientCapabilities{
+					DeferralAllowed: deferralAllowed,
+				},
+			})
 		})
 
 		// If we don't support deferrals, but the provider reports a deferral and does not
@@ -1684,7 +1699,7 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 //     (Note that every data source that is DeferredPrereq should also fit this description.)
 //   - We attempted a read request, but the provider says we're deferred.
 //   - It's nested in a check block, and should always read again during apply.
-func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRuleSeverity tfdiags.Severity, skipPlanChanges bool) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, *providers.Deferred, instances.RepetitionData, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRuleSeverity tfdiags.Severity, skipPlanChanges bool, concurrencySema Semaphore) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, *providers.Deferred, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var keyData instances.RepetitionData
 	var configVal cty.Value
@@ -1827,7 +1842,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	// We have a complete configuration with no dependencies to wait on, so we
 	// can read the data source into the state.
 	// newVal is fully marked by the readDataSource method.
-	newVal, readDeferred, readDiags := n.readDataSource(ctx, configVal)
+	newVal, readDeferred, readDiags := n.readDataSource(ctx, configVal, concurrencySema)
 
 	if readDeferred != nil {
 		deferred = readDeferred
@@ -2004,7 +2019,7 @@ func (n *NodeAbstractResourceInstance) dependenciesHavePendingChanges(ctx EvalCo
 
 // apply deals with the main part of the data resource lifecycle: either
 // actually reading from the data source or generating a plan to do so.
-func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned *plans.ResourceInstanceChange) (*states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned *plans.ResourceInstanceChange, concurrencySema Semaphore) (*states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var keyData instances.RepetitionData
 
@@ -2060,7 +2075,7 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 		return nil, keyData, diags
 	}
 
-	newVal, readDeferred, readDiags := n.readDataSource(ctx, configVal)
+	newVal, readDeferred, readDiags := n.readDataSource(ctx, configVal, concurrencySema)
 	if check, nested := n.nestedInCheckBlock(); nested {
 		addr := check.Addr().Absolute(n.Addr.Module)
 
@@ -2379,6 +2394,7 @@ func (n *NodeAbstractResourceInstance) evalDestroyProvisionerConfig(ctx EvalCont
 // nil, since it is only used to evaluate the configuration.
 func (n *NodeAbstractResourceInstance) apply(
 	ctx EvalContext,
+	concurrencySema Semaphore,
 	state *states.ResourceInstanceObject,
 	change *plans.ResourceInstanceChange,
 	applyConfig *configs.Resource,
@@ -2499,13 +2515,15 @@ func (n *NodeAbstractResourceInstance) apply(
 			}
 		}
 	} else {
-		resp = provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
-			TypeName:       n.Addr.Resource.Resource.Type,
-			PriorState:     unmarkedBefore,
-			Config:         unmarkedConfigVal,
-			PlannedState:   unmarkedAfter,
-			PlannedPrivate: change.Private,
-			ProviderMeta:   metaConfigVal,
+		resp = whileHoldingSemaphore(concurrencySema, func() providers.ApplyResourceChangeResponse {
+			return provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
+				TypeName:       n.Addr.Resource.Resource.Type,
+				PriorState:     unmarkedBefore,
+				Config:         unmarkedConfigVal,
+				PlannedState:   unmarkedAfter,
+				PlannedPrivate: change.Private,
+				ProviderMeta:   metaConfigVal,
+			})
 		})
 	}
 	applyDiags := resp.Diagnostics

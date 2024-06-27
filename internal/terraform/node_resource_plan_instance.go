@@ -63,25 +63,25 @@ var (
 	_ GraphNodeResourceInstance     = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodePlannableResourceInstance)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlannableResourceInstance)(nil)
-	_ GraphNodeExecutable           = (*NodePlannableResourceInstance)(nil)
+	_ GraphNodeExecutableSema       = (*NodePlannableResourceInstance)(nil)
 )
 
 // GraphNodeEvalable
-func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperation, concurrencySema Semaphore) tfdiags.Diagnostics {
 	addr := n.ResourceInstanceAddr()
 
 	// Eval info is different depending on what kind of resource this is
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		return n.managedResourceExecute(ctx)
+		return n.managedResourceExecute(ctx, concurrencySema)
 	case addrs.DataResourceMode:
-		return n.dataResourceExecute(ctx)
+		return n.dataResourceExecute(ctx, concurrencySema)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
 }
 
-func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 	config := n.Config
 	addr := n.ResourceInstanceAddr()
 
@@ -103,7 +103,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		checkRuleSeverity = tfdiags.Warning
 	}
 
-	change, state, deferred, repeatData, planDiags := n.planDataSource(ctx, checkRuleSeverity, n.skipPlanChanges)
+	change, state, deferred, repeatData, planDiags := n.planDataSource(ctx, checkRuleSeverity, n.skipPlanChanges, concurrencySema)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -148,7 +148,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	return diags
 }
 
-func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 	config := n.Config
 	addr := n.ResourceInstanceAddr()
 
@@ -182,7 +182,10 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	if importing {
 		if n.importTarget.IsKnown() {
 			var importDiags tfdiags.Diagnostics
-			instanceRefreshState, deferred, importDiags = n.importState(ctx, addr, n.importTarget.AsString(), provider, providerSchema)
+			instanceRefreshState, deferred, importDiags = n.importState(
+				ctx, concurrencySema,
+				addr, n.importTarget.AsString(), provider, providerSchema,
+			)
 			diags = diags.Append(importDiags)
 		} else {
 			// Otherwise, just mark the resource as deferred without trying to
@@ -267,7 +270,10 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// The import process handles its own refresh
 	if !n.skipRefresh && !importing {
 		var refreshDiags tfdiags.Diagnostics
-		instanceRefreshState, refreshDeferred, refreshDiags = n.refresh(ctx, states.NotDeposed, instanceRefreshState, ctx.Deferrals().DeferralAllowed())
+		instanceRefreshState, refreshDeferred, refreshDiags = n.refresh(
+			ctx, concurrencySema,
+			states.NotDeposed, instanceRefreshState, ctx.Deferrals().DeferralAllowed(),
+		)
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
@@ -324,7 +330,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		change, instancePlanState, planDeferred, repeatData, planDiags := n.plan(
-			ctx, nil, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
+			ctx, concurrencySema,
+			nil, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
 		)
 		diags = diags.Append(planDiags)
 		if diags.HasErrors() {
@@ -538,7 +545,7 @@ func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repDat
 	return diags
 }
 
-func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, importId string, provider providers.Interface, providerSchema providers.ProviderSchema) (*states.ResourceInstanceObject, *providers.Deferred, tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) importState(ctx EvalContext, concurrencySema Semaphore, addr addrs.AbsResourceInstance, importId string, provider providers.Interface, providerSchema providers.ProviderSchema) (*states.ResourceInstanceObject, *providers.Deferred, tfdiags.Diagnostics) {
 	deferralAllowed := ctx.Deferrals().DeferralAllowed()
 	var diags tfdiags.Diagnostics
 	absAddr := addr.Resource.Absolute(ctx.Path())
@@ -617,12 +624,14 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			Diagnostics: overrideDiags.InConfigBody(n.Config.Config, absAddr.String()),
 		}
 	} else {
-		resp = provider.ImportResourceState(providers.ImportResourceStateRequest{
-			TypeName: addr.Resource.Resource.Type,
-			ID:       importId,
-			ClientCapabilities: providers.ClientCapabilities{
-				DeferralAllowed: deferralAllowed,
-			},
+		resp = whileHoldingSemaphore(concurrencySema, func() providers.ImportResourceStateResponse {
+			return provider.ImportResourceState(providers.ImportResourceStateRequest{
+				TypeName: addr.Resource.Resource.Type,
+				ID:       importId,
+				ClientCapabilities: providers.ClientCapabilities{
+					DeferralAllowed: deferralAllowed,
+				},
+			})
 		})
 	}
 	// If we don't support deferrals, but the provider reports a deferral and does not
@@ -673,7 +682,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		}
 
 		// We skip the read and further validation since we make up the state
-		// of the imported resource anyways.
+		// of the imported resource anyways.
 		return state.AsInstanceObject(), deferred, diags
 	}
 
@@ -718,7 +727,10 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		},
 		override: n.override,
 	}
-	instanceRefreshState, refreshDeferred, refreshDiags := riNode.refresh(ctx, states.NotDeposed, importedState, ctx.Deferrals().DeferralAllowed())
+	instanceRefreshState, refreshDeferred, refreshDiags := riNode.refresh(
+		ctx, concurrencySema,
+		states.NotDeposed, importedState, ctx.Deferrals().DeferralAllowed(),
+	)
 	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
 		return instanceRefreshState, deferred, diags

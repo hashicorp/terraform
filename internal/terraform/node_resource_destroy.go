@@ -30,7 +30,7 @@ var (
 	_ GraphNodeDestroyerCBD        = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeReferenceable       = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeReferencer          = (*NodeDestroyResourceInstance)(nil)
-	_ GraphNodeExecutable          = (*NodeDestroyResourceInstance)(nil)
+	_ GraphNodeExecutableSema      = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeProviderConsumer    = (*NodeDestroyResourceInstance)(nil)
 	_ GraphNodeProvisionerConsumer = (*NodeDestroyResourceInstance)(nil)
 )
@@ -127,21 +127,21 @@ func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
 }
 
 // GraphNodeExecutable
-func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	// Eval info is different depending on what kind of resource this is
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		return n.managedResourceExecute(ctx)
+		return n.managedResourceExecute(ctx, concurrencySema)
 	case addrs.DataResourceMode:
-		return n.dataResourceExecute(ctx)
+		return n.dataResourceExecute(ctx, concurrencySema)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
 }
 
-func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	// Get our state
@@ -206,7 +206,10 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 	// Managed resources need to be destroyed, while data sources
 	// are only removed from state.
 	// we pass a nil configuration to apply because we are destroying
-	s, d := n.apply(ctx, state, changeApply, nil, instances.RepetitionData{}, false)
+	s, d := n.apply(
+		ctx, concurrencySema,
+		state, changeApply, nil, instances.RepetitionData{}, false,
+	)
 	state, diags = s, diags.Append(d)
 	// we don't return immediately here on error, so that the state can be
 	// finalized
@@ -222,7 +225,7 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 	return diags
 }
 
-func (n *NodeDestroyResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+func (n *NodeDestroyResourceInstance) dataResourceExecute(ctx EvalContext, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 	log.Printf("[TRACE] NodeDestroyResourceInstance: removing state object for %s", n.Addr)
 	ctx.State().SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
 	return diags.Append(updateStateHook(ctx))

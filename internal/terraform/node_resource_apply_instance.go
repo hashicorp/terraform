@@ -46,7 +46,7 @@ var (
 	_ GraphNodeCreator            = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeReferencer         = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeDeposer            = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeExecutable         = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeExecutableSema     = (*NodeApplyableResourceInstance)(nil)
 	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
 )
 
@@ -114,7 +114,7 @@ func (n *NodeApplyableResourceInstance) AttachDependencies(deps []addrs.ConfigRe
 }
 
 // GraphNodeExecutable
-func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperation, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	if n.Config == nil {
@@ -142,15 +142,15 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 	// Eval info is different depending on what kind of resource this is
 	switch n.Config.Mode {
 	case addrs.ManagedResourceMode:
-		return n.managedResourceExecute(ctx)
+		return n.managedResourceExecute(ctx, concurrencySema)
 	case addrs.DataResourceMode:
-		return n.dataResourceExecute(ctx)
+		return n.dataResourceExecute(ctx, concurrencySema)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
 }
 
-func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
@@ -173,7 +173,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	// In this particular call to applyDataSource we include our planned
 	// change, which signals that we expect this read to complete fully
 	// with no unknown values; it'll produce an error if not.
-	state, repeatData, applyDiags := n.applyDataSource(ctx, change)
+	state, repeatData, applyDiags := n.applyDataSource(ctx, change, concurrencySema)
 	diags = diags.Append(applyDiags)
 	if diags.HasErrors() {
 		return diags
@@ -211,7 +211,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	return diags
 }
 
-func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
 	var state *states.ResourceInstanceObject
@@ -275,7 +275,10 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, _, deferred, repeatData, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
+	diffApply, _, deferred, repeatData, planDiags := n.plan(
+		ctx, concurrencySema,
+		diff, state, false, n.forceReplace,
+	)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -317,7 +320,10 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
 	}
 
-	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, repeatData, n.CreateBeforeDestroy())
+	state, applyDiags := n.apply(
+		ctx, concurrencySema,
+		state, diffApply, n.Config, repeatData, n.CreateBeforeDestroy(),
+	)
 	diags = diags.Append(applyDiags)
 
 	// We clear the change out here so that future nodes don't see a change

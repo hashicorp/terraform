@@ -58,7 +58,7 @@ var (
 	_ GraphNodeResourceInstance              = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeReferenceable                 = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeReferencer                    = (*NodePlanDeposedResourceInstanceObject)(nil)
-	_ GraphNodeExecutable                    = (*NodePlanDeposedResourceInstanceObject)(nil)
+	_ GraphNodeExecutableSema                = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProviderConsumer              = (*NodePlanDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProvisionerConsumer           = (*NodePlanDeposedResourceInstanceObject)(nil)
 )
@@ -85,7 +85,7 @@ func (n *NodePlanDeposedResourceInstanceObject) References() []*addrs.Reference 
 }
 
 // GraphNodeEvalable impl.
-func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 	log.Printf("[TRACE] NodePlanDeposedResourceInstanceObject: planning %s deposed object %s", n.Addr, n.DeposedKey)
 
 	// Read the state for the deposed resource instance
@@ -121,7 +121,10 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		// resource during Delete correctly. If this is a simple refresh,
 		// Terraform is expected to remove the missing resource from the state
 		// entirely
-		refreshedState, deferred, refreshDiags := n.refresh(ctx, n.DeposedKey, state, ctx.Deferrals().DeferralAllowed())
+		refreshedState, deferred, refreshDiags := n.refresh(
+			ctx, concurrencySema,
+			n.DeposedKey, state, ctx.Deferrals().DeferralAllowed(),
+		)
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
@@ -164,9 +167,15 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		var pDiags tfdiags.Diagnostics
 		var deferred *providers.Deferred
 		if forget {
-			change, pDiags = n.planForget(ctx, state, n.DeposedKey)
+			change, pDiags = n.planForget(
+				ctx, concurrencySema,
+				state, n.DeposedKey,
+			)
 		} else {
-			change, deferred, pDiags = n.planDestroy(ctx, state, n.DeposedKey)
+			change, deferred, pDiags = n.planDestroy(
+				ctx, concurrencySema,
+				state, n.DeposedKey,
+			)
 		}
 		diags = diags.Append(pDiags)
 		if diags.HasErrors() {
@@ -221,7 +230,7 @@ var (
 	_ GraphNodeDestroyerCBD                  = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeReferenceable                 = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeReferencer                    = (*NodeDestroyDeposedResourceInstanceObject)(nil)
-	_ GraphNodeExecutable                    = (*NodeDestroyDeposedResourceInstanceObject)(nil)
+	_ GraphNodeExecutableSema                = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProviderConsumer              = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProvisionerConsumer           = (*NodeDestroyDeposedResourceInstanceObject)(nil)
 )
@@ -270,7 +279,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) ModifyCreateBeforeDestroy(v b
 }
 
 // GraphNodeExecutable impl.
-func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 	var change *plans.ResourceInstanceChange
 
 	// Read the state for the deposed resource instance
@@ -284,7 +293,10 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
-	change, deferred, destroyPlanDiags := n.planDestroy(ctx, state, n.DeposedKey)
+	change, deferred, destroyPlanDiags := n.planDestroy(
+		ctx, concurrencySema,
+		state, n.DeposedKey,
+	)
 	diags = diags.Append(destroyPlanDiags)
 	if diags.HasErrors() {
 		return diags
@@ -305,7 +317,10 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	}
 
 	// we pass a nil configuration to apply because we are destroying
-	state, applyDiags := n.apply(ctx, state, change, nil, instances.RepetitionData{}, false)
+	state, applyDiags := n.apply(
+		ctx, concurrencySema,
+		state, change, nil, instances.RepetitionData{}, false,
+	)
 	diags = diags.Append(applyDiags)
 	// don't return immediately on errors, we need to handle the state
 
@@ -339,7 +354,7 @@ var (
 	_ GraphNodeResourceInstance              = (*NodeForgetDeposedResourceInstanceObject)(nil)
 	_ GraphNodeReferenceable                 = (*NodeForgetDeposedResourceInstanceObject)(nil)
 	_ GraphNodeReferencer                    = (*NodeForgetDeposedResourceInstanceObject)(nil)
-	_ GraphNodeExecutable                    = (*NodeForgetDeposedResourceInstanceObject)(nil)
+	_ GraphNodeExecutableSema                = (*NodeForgetDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProviderConsumer              = (*NodeForgetDeposedResourceInstanceObject)(nil)
 	_ GraphNodeProvisionerConsumer           = (*NodeForgetDeposedResourceInstanceObject)(nil)
 )
@@ -366,7 +381,7 @@ func (n *NodeForgetDeposedResourceInstanceObject) References() []*addrs.Referenc
 }
 
 // GraphNodeExecutable impl.
-func (n *NodeForgetDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+func (n *NodeForgetDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 	// Read the state for the deposed resource instance
 	state, err := n.readResourceInstanceStateDeposed(ctx, n.Addr, n.DeposedKey)
 	if err != nil {
@@ -378,7 +393,10 @@ func (n *NodeForgetDeposedResourceInstanceObject) Execute(ctx EvalContext, op wa
 		return diags
 	}
 
-	_, forgetPlanDiags := n.planForget(ctx, state, n.DeposedKey)
+	_, forgetPlanDiags := n.planForget(
+		ctx, concurrencySema,
+		state, n.DeposedKey,
+	)
 	diags = diags.Append(forgetPlanDiags)
 	if diags.HasErrors() {
 		return diags

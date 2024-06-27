@@ -39,7 +39,7 @@ type nodePlannablePartialExpandedResource struct {
 var (
 	_ graphNodeEvalContextScope = (*nodePlannablePartialExpandedResource)(nil)
 	_ GraphNodeConfigResource   = (*nodePlannablePartialExpandedResource)(nil)
-	_ GraphNodeExecutable       = (*nodePlannablePartialExpandedResource)(nil)
+	_ GraphNodeExecutableSema   = (*nodePlannablePartialExpandedResource)(nil)
 )
 
 // Name implements [dag.NamedVertex].
@@ -65,8 +65,8 @@ func (n *nodePlannablePartialExpandedResource) ResourceAddr() addrs.ConfigResour
 	return n.addr.ConfigResource()
 }
 
-// Execute implements GraphNodeExecutable.
-func (n *nodePlannablePartialExpandedResource) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+// Execute implements GraphNodeExecutableSema.
+func (n *nodePlannablePartialExpandedResource) Execute(ctx EvalContext, op walkOperation, concurrencySema Semaphore) tfdiags.Diagnostics {
 	// Because this node type implements [graphNodeEvalContextScope], the
 	// given EvalContext could either be for a fully-expanded module instance
 	// or an unbounded set of potential module instances sharing a common
@@ -90,11 +90,11 @@ func (n *nodePlannablePartialExpandedResource) Execute(ctx EvalContext, op walkO
 	var diags tfdiags.Diagnostics
 	switch n.addr.Resource().Mode {
 	case addrs.ManagedResourceMode:
-		change, changeDiags := n.managedResourceExecute(ctx)
+		change, changeDiags := n.managedResourceExecute(ctx, concurrencySema)
 		diags = diags.Append(changeDiags)
 		ctx.Deferrals().ReportResourceExpansionDeferred(n.addr, change)
 	case addrs.DataResourceMode:
-		change, changeDiags := n.dataResourceExecute(ctx)
+		change, changeDiags := n.dataResourceExecute(ctx, concurrencySema)
 		diags = diags.Append(changeDiags)
 		ctx.Deferrals().ReportDataSourceExpansionDeferred(n.addr, change)
 	default:
@@ -108,7 +108,7 @@ func (n *nodePlannablePartialExpandedResource) Execute(ctx EvalContext, op walkO
 }
 
 // Logic here mirrors (*NodePlannableResourceInstance).managedResourceExecute.
-func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalContext) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
+func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalContext, concurrencySema Semaphore) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// We cannot fully plan partial-expanded resources because we don't know
@@ -202,15 +202,17 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 	// still find out if any of the known values are somehow invalid and
 	// learn a subset of the "computed" attribute values to save as part
 	// of our placeholder value for downstream checks.
-	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
-		TypeName:         n.addr.Resource().Type,
-		Config:           unmarkedConfigVal,
-		PriorState:       priorVal,
-		ProposedNewState: proposedNewVal,
-		// TODO: Should we send "ProviderMeta" here? We don't have the
-		// necessary data for that wired through here right now, but
-		// we might need to do that before stabilizing support for unknown
-		// resource instance expansion.
+	resp := whileHoldingSemaphore(concurrencySema, func() providers.PlanResourceChangeResponse {
+		return provider.PlanResourceChange(providers.PlanResourceChangeRequest{
+			TypeName:         n.addr.Resource().Type,
+			Config:           unmarkedConfigVal,
+			PriorState:       priorVal,
+			ProposedNewState: proposedNewVal,
+			// TODO: Should we send "ProviderMeta" here? We don't have the
+			// necessary data for that wired through here right now, but
+			// we might need to do that before stabilizing support for unknown
+			// resource instance expansion.
+		})
 	})
 	diags = diags.Append(resp.Diagnostics.InConfigBody(n.config.Config, n.addr.String()))
 	if diags.HasErrors() {
@@ -284,7 +286,7 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 
 // Logic here mirrors a combination of (*NodePlannableResourceInstance).dataResourceExecute
 // and (*NodeAbstractResourceInstance).planDataSource.
-func (n *nodePlannablePartialExpandedResource) dataResourceExecute(ctx EvalContext) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
+func (n *nodePlannablePartialExpandedResource) dataResourceExecute(ctx EvalContext, concurrencySema Semaphore) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Start with a basic change, then attempt to fill in the After value.

@@ -64,7 +64,8 @@ func TestNodeResourcePlanOrphanExecute(t *testing.T) {
 			Addr: mustResourceInstanceAddr("test_object.foo"),
 		},
 	}
-	diags := node.Execute(ctx, walkApply)
+	sema := NewSemaphore(10)
+	diags := node.Execute(ctx, walkApply, sema)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -130,7 +131,8 @@ func TestNodeResourcePlanOrphanExecute_alreadyDeleted(t *testing.T) {
 			Addr: mustResourceInstanceAddr("test_object.foo"),
 		},
 	}
-	diags := node.Execute(ctx, walkPlan)
+	sema := NewSemaphore(10)
+	diags := node.Execute(ctx, walkPlan, sema)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -212,7 +214,8 @@ func TestNodeResourcePlanOrphanExecute_deposed(t *testing.T) {
 			Addr: mustResourceInstanceAddr("test_object.foo"),
 		},
 	}
-	diags := node.Execute(ctx, walkPlan)
+	sema := NewSemaphore(10)
+	diags := node.Execute(ctx, walkPlan, sema)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}

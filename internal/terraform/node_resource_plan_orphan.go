@@ -43,7 +43,7 @@ var (
 	_ GraphNodeResourceInstance     = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlannableResourceInstanceOrphan)(nil)
-	_ GraphNodeExecutable           = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeExecutableSema       = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeProviderConsumer     = (*NodePlannableResourceInstanceOrphan)(nil)
 )
 
@@ -51,16 +51,16 @@ func (n *NodePlannableResourceInstanceOrphan) Name() string {
 	return n.ResourceInstanceAddr().String() + " (orphan)"
 }
 
-// GraphNodeExecutable
-func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+// GraphNodeExecutableSema
+func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOperation, concurrencySema Semaphore) tfdiags.Diagnostics {
 	addr := n.ResourceInstanceAddr()
 
 	// Eval info is different depending on what kind of resource this is
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		return n.managedResourceExecute(ctx)
+		return n.managedResourceExecute(ctx, concurrencySema)
 	case addrs.DataResourceMode:
-		return n.dataResourceExecute(ctx)
+		return n.dataResourceExecute(ctx, concurrencySema)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
@@ -74,7 +74,7 @@ func (n *NodePlannableResourceInstanceOrphan) ProvidedBy() (addr addrs.ProviderC
 	return n.NodeAbstractResourceInstance.ProvidedBy()
 }
 
-func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContext) tfdiags.Diagnostics {
+func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContext, concurrencySema Semaphore) tfdiags.Diagnostics {
 	// A data source that is no longer in the config is removed from the state
 	log.Printf("[TRACE] NodePlannableResourceInstanceOrphan: removing state object for %s", n.Addr)
 
@@ -88,7 +88,7 @@ func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContex
 	return nil
 }
 
-func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalContext, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	oldState, readDiags := n.readResourceInstanceState(ctx, addr)
@@ -117,7 +117,10 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		// plan before apply, and may not handle a missing resource during
 		// Delete correctly.  If this is a simple refresh, Terraform is
 		// expected to remove the missing resource from the state entirely
-		refreshedState, deferred, refreshDiags := n.refresh(ctx, states.NotDeposed, oldState, ctx.Deferrals().DeferralAllowed())
+		refreshedState, deferred, refreshDiags := n.refresh(
+			ctx, concurrencySema,
+			states.NotDeposed, oldState, ctx.Deferrals().DeferralAllowed(),
+		)
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
@@ -167,10 +170,16 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	var pDiags tfdiags.Diagnostics
 	var deferred *providers.Deferred
 	if forget {
-		change, pDiags = n.planForget(ctx, oldState, "")
+		change, pDiags = n.planForget(
+			ctx, concurrencySema,
+			oldState, "",
+		)
 		diags = diags.Append(pDiags)
 	} else {
-		change, deferred, pDiags = n.planDestroy(ctx, oldState, "")
+		change, deferred, pDiags = n.planDestroy(
+			ctx, concurrencySema,
+			oldState, "",
+		)
 		diags = diags.Append(pDiags)
 
 		if deferred != nil {

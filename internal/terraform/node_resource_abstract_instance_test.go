@@ -232,7 +232,8 @@ func TestNodeAbstractResourceInstance_refresh_with_deferred_read(t *testing.T) {
 	evalCtx.ProviderSchemaSchema = mockProvider.GetProviderSchema()
 	evalCtx.DeferralsState = deferring.NewDeferred(true)
 
-	rio, deferred, diags := node.refresh(evalCtx, states.NotDeposed, obj, true)
+	sema := NewSemaphore(10)
+	rio, deferred, diags := node.refresh(evalCtx, sema, states.NotDeposed, obj, true)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}

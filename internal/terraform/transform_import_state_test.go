@@ -51,7 +51,8 @@ func TestGraphNodeImportStateExecute(t *testing.T) {
 		},
 	}
 
-	diags := node.Execute(ctx, walkImport)
+	sema := NewSemaphore(10)
+	diags := node.Execute(ctx, walkImport, sema)
 	if diags.HasErrors() {
 		t.Fatalf("Unexpected error: %s", diags.Err())
 	}
@@ -106,7 +107,8 @@ func TestGraphNodeImportStateSubExecute(t *testing.T) {
 			Module:   addrs.RootModule,
 		},
 	}
-	diags := node.Execute(ctx, walkImport)
+	sema := NewSemaphore(10)
+	diags := node.Execute(ctx, walkImport, sema)
 	if diags.HasErrors() {
 		t.Fatalf("Unexpected error: %s", diags.Err())
 	}
@@ -168,7 +170,8 @@ func TestGraphNodeImportStateSubExecuteNull(t *testing.T) {
 			Module:   addrs.RootModule,
 		},
 	}
-	diags := node.Execute(ctx, walkImport)
+	sema := NewSemaphore(10)
+	diags := node.Execute(ctx, walkImport, sema)
 	if !diags.HasErrors() {
 		t.Fatal("expected error for non-existent resource")
 	}

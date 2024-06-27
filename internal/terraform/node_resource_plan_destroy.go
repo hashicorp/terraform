@@ -31,7 +31,7 @@ var (
 	_ GraphNodeResourceInstance     = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlanDestroyableResourceInstance)(nil)
-	_ GraphNodeExecutable           = (*NodePlanDestroyableResourceInstance)(nil)
+	_ GraphNodeExecutableSema       = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeProviderConsumer     = (*NodePlanDestroyableResourceInstance)(nil)
 )
 
@@ -42,20 +42,20 @@ func (n *NodePlanDestroyableResourceInstance) DestroyAddr() *addrs.AbsResourceIn
 }
 
 // GraphNodeEvalable
-func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOperation, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
-		return n.managedResourceExecute(ctx, op)
+		return n.managedResourceExecute(ctx, op, concurrencySema)
 	case addrs.DataResourceMode:
-		return n.dataResourceExecute(ctx, op)
+		return n.dataResourceExecute(ctx, op, concurrencySema)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
 }
 
-func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalContext, op walkOperation, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	// Declare a bunch of variables that are used for state during
@@ -90,7 +90,10 @@ func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalCon
 		}
 	}
 
-	change, deferred, destroyPlanDiags := n.planDestroy(ctx, state, "")
+	change, deferred, destroyPlanDiags := n.planDestroy(
+		ctx, concurrencySema,
+		state, "",
+	)
 	diags = diags.Append(destroyPlanDiags)
 	if diags.HasErrors() {
 		return diags
@@ -119,7 +122,7 @@ func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalCon
 	return diags
 }
 
-func (n *NodePlanDestroyableResourceInstance) dataResourceExecute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+func (n *NodePlanDestroyableResourceInstance) dataResourceExecute(ctx EvalContext, op walkOperation, concurrencySema Semaphore) (diags tfdiags.Diagnostics) {
 
 	// We may not be able to read a prior data source from the state if the
 	// schema was upgraded and we are destroying before ever refreshing that
