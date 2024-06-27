@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
@@ -145,10 +146,6 @@ func (w *ContextGraphWalker) init() {
 	w.provisionerSchemas = make(map[string]*configschema.Block)
 }
 
-func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfdiags.Diagnostics {
-	// Acquire a lock on the semaphore
-	w.Context.parallelSem.Acquire()
-	defer w.Context.parallelSem.Release()
-
-	return n.Execute(ctx, w.Operation)
+func (w *ContextGraphWalker) Execute(ctx EvalContext, n dag.Vertex) tfdiags.Diagnostics {
+	return executeGraphNode(n, ctx, w.Operation, w.Context.parallelSem)
 }

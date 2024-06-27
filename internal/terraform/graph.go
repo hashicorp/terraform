@@ -130,12 +130,12 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			log.Printf("[TRACE] vertex %q: does not belong to any module instance", dag.VertexName(v))
 		}
 
-		// If the node is exec-able, then execute it.
-		if ev, ok := v.(GraphNodeExecutable); ok {
-			diags = diags.Append(walker.Execute(vertexCtx, ev))
-			if diags.HasErrors() {
-				return
-			}
+		// Try to execute the graph node's behavior.
+		// (If the graph node isn't actually executable then this is a no-op)
+		execDiags := walker.Execute(vertexCtx, v)
+		diags = diags.Append(execDiags)
+		if execDiags.HasErrors() {
+			return
 		}
 
 		// If the node is dynamically expanded, then expand it

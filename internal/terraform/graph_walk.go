@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -13,7 +14,7 @@ type GraphWalker interface {
 	EvalContext() EvalContext
 	enterScope(evalContextScope) EvalContext
 	exitScope(evalContextScope)
-	Execute(EvalContext, GraphNodeExecutable) tfdiags.Diagnostics
+	Execute(EvalContext, dag.Vertex) tfdiags.Diagnostics
 }
 
 // NullGraphWalker is a GraphWalker implementation that does nothing.
@@ -21,7 +22,7 @@ type GraphWalker interface {
 // implementing all the required functions.
 type NullGraphWalker struct{}
 
-func (NullGraphWalker) EvalContext() EvalContext                                     { return new(MockEvalContext) }
-func (NullGraphWalker) enterScope(evalContextScope) EvalContext                      { return new(MockEvalContext) }
-func (NullGraphWalker) exitScope(evalContextScope)                                   {}
-func (NullGraphWalker) Execute(EvalContext, GraphNodeExecutable) tfdiags.Diagnostics { return nil }
+func (NullGraphWalker) EvalContext() EvalContext                            { return new(MockEvalContext) }
+func (NullGraphWalker) enterScope(evalContextScope) EvalContext             { return new(MockEvalContext) }
+func (NullGraphWalker) exitScope(evalContextScope)                          {}
+func (NullGraphWalker) Execute(EvalContext, dag.Vertex) tfdiags.Diagnostics { return nil }
