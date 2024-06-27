@@ -24,8 +24,12 @@ type MapElem[K, V any] struct {
 
 // NewMap constructs a new map whose key type knows how to calculate its own
 // unique keys, by implementing [UniqueKeyer] of itself.
-func NewMap[K UniqueKeyer[K], V any]() Map[K, V] {
-	return NewMapFunc[K, V](K.UniqueKey)
+func NewMap[K UniqueKeyer[K], V any](elems ...MapElem[K, V]) Map[K, V] {
+	m := NewMapFunc[K, V](K.UniqueKey)
+	for _, elems := range elems {
+		m.Put(elems.K, elems.V)
+	}
+	return m
 }
 
 // NewMapFunc constructs a new map with the given "map function".

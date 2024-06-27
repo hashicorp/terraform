@@ -235,12 +235,28 @@ func mustAbsResourceInstanceObject(addr string) stackaddrs.AbsResourceInstanceOb
 	return ret
 }
 
+func mustAbsResourceInstanceObjectPtr(addr string) *stackaddrs.AbsResourceInstanceObject {
+	ret := mustAbsResourceInstanceObject(addr)
+	return &ret
+}
+
 func mustAbsComponentInstance(addr string) stackaddrs.AbsComponentInstance {
 	ret, diags := stackaddrs.ParseAbsComponentInstanceStr(addr)
 	if len(diags) > 0 {
 		panic(fmt.Sprintf("failed to parse component instance address %q: %s", addr, diags))
 	}
 	return ret
+}
+
+func mustAbsComponent(addr string) stackaddrs.AbsComponent {
+	ret, diags := stackaddrs.ParseAbsComponentInstanceStr(addr)
+	if len(diags) > 0 {
+		panic(fmt.Sprintf("failed to parse component instance address %q: %s", addr, diags))
+	}
+	return stackaddrs.AbsComponent{
+		Stack: ret.Stack,
+		Item:  ret.Item.Component,
+	}
 }
 
 // mustPlanDynamicValue is a helper function that constructs a

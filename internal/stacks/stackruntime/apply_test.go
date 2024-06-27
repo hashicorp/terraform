@@ -20,10 +20,13 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval"
 	stacks_testing_provider "github.com/hashicorp/terraform/internal/stacks/stackruntime/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/states"
@@ -194,191 +197,6 @@ func TestApplyWithRemovedResource(t *testing.T) {
 					Hostname:  "terraform.io",
 				},
 			},
-		},
-	}
-
-	sort.SliceStable(applyChanges, func(i, j int) bool {
-		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
-	})
-
-	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
-		t.Errorf("wrong changes\n%s", diff)
-	}
-}
-
-func TestApplyWithMovedResource(t *testing.T) {
-	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ctx := context.Background()
-	cfg := loadMainBundleConfigForTest(t, path.Join("state-manipulation", "moved"))
-
-	planReq := PlanRequest{
-		Config: cfg,
-		ProviderFactories: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(stacks_testing_provider.NewResourceStoreBuilder().
-					AddResource("moved", cty.ObjectVal(map[string]cty.Value{
-						"id":    cty.StringVal("moved"),
-						"value": cty.StringVal("moved"),
-					})).
-					Build()), nil
-			},
-		},
-
-		ForcePlanTimestamp: &fakePlanTimestamp,
-
-		// PrevState specifies a state with a resource that is not present in
-		// the current configuration. This is a common situation when a resource
-		// is removed from the configuration but still exists in the state.
-		PrevState: stackstate.NewStateBuilder().
-			AddResourceInstance(stackstate.NewResourceInstanceBuilder().
-				SetAddr(stackaddrs.AbsResourceInstanceObject{
-					Component: stackaddrs.AbsComponentInstance{
-						Stack: stackaddrs.RootStackInstance,
-						Item: stackaddrs.ComponentInstance{
-							Component: stackaddrs.Component{
-								Name: "self",
-							},
-							Key: addrs.NoKey,
-						},
-					},
-					Item: addrs.AbsResourceInstanceObject{
-						ResourceInstance: addrs.AbsResourceInstance{
-							Module: addrs.RootModuleInstance,
-							Resource: addrs.ResourceInstance{
-								Resource: addrs.Resource{
-									Mode: addrs.ManagedResourceMode,
-									Type: "testing_resource",
-									Name: "before",
-								},
-								Key: addrs.NoKey,
-							},
-						},
-						DeposedKey: addrs.NotDeposed,
-					},
-				}).
-				SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
-					SchemaVersion: 0,
-					AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
-						"id":    "moved",
-						"value": "moved",
-					}),
-					Status: states.ObjectReady,
-				}).
-				SetProviderAddr(addrs.AbsProviderConfig{
-					Module:   addrs.RootModule,
-					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
-				})).
-			Build(),
-	}
-
-	planChangesCh := make(chan stackplan.PlannedChange)
-	diagsCh := make(chan tfdiags.Diagnostic)
-	planResp := PlanResponse{
-		PlannedChanges: planChangesCh,
-		Diagnostics:    diagsCh,
-	}
-
-	go Plan(ctx, &planReq, &planResp)
-	planChanges, diags := collectPlanOutput(planChangesCh, diagsCh)
-	if len(diags) > 0 {
-		t.Fatalf("expected no diagnostics, go %s", diags.ErrWithWarnings())
-	}
-
-	var raw []*anypb.Any
-	for _, change := range planChanges {
-		proto, err := change.PlannedChangeProto()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		raw = append(raw, proto.Raw...)
-	}
-
-	applyReq := ApplyRequest{
-		Config:  cfg,
-		RawPlan: raw,
-		ProviderFactories: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(stacks_testing_provider.NewResourceStoreBuilder().
-					AddResource("moved", cty.ObjectVal(map[string]cty.Value{
-						"id":    cty.StringVal("moved"),
-						"value": cty.StringVal("moved"),
-					})).
-					Build()), nil
-			},
-		},
-	}
-
-	applyChangesCh := make(chan stackstate.AppliedChange)
-	diagsCh = make(chan tfdiags.Diagnostic)
-
-	applyResp := ApplyResponse{
-		AppliedChanges: applyChangesCh,
-		Diagnostics:    diagsCh,
-	}
-
-	go Apply(ctx, &applyReq, &applyResp)
-	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, diagsCh)
-	if len(applyDiags) > 0 {
-		t.Fatalf("expected no diagnostics, got %s", applyDiags.ErrWithWarnings())
-	}
-
-	expectedPreviousAddr := mustAbsResourceInstanceObject("component.self.testing_resource.before")
-
-	wantChanges := []stackstate.AppliedChange{
-		&stackstate.AppliedChangeComponentInstance{
-			ComponentAddr: stackaddrs.AbsComponent{
-				Item: stackaddrs.Component{
-					Name: "self",
-				},
-			},
-			ComponentInstanceAddr: stackaddrs.AbsComponentInstance{
-				Item: stackaddrs.ComponentInstance{
-					Component: stackaddrs.Component{
-						Name: "self",
-					},
-				},
-			},
-			OutputValues: make(map[addrs.OutputValue]cty.Value),
-		},
-		&stackstate.AppliedChangeResourceInstanceObject{
-			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
-				Component: stackaddrs.AbsComponentInstance{
-					Item: stackaddrs.ComponentInstance{
-						Component: stackaddrs.Component{
-							Name: "self",
-						},
-					},
-				},
-				Item: addrs.AbsResourceInstanceObject{
-					ResourceInstance: addrs.AbsResourceInstance{
-						Resource: addrs.ResourceInstance{
-							Resource: addrs.Resource{
-								Mode: addrs.ManagedResourceMode,
-								Type: "testing_resource",
-								Name: "after",
-							},
-						},
-					},
-				},
-			},
-			PreviousResourceInstanceObjectAddr: &expectedPreviousAddr,
-			NewStateSrc: &states.ResourceInstanceObjectSrc{
-				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
-					"id":    "moved",
-					"value": "moved",
-				}),
-				Status:             states.ObjectReady,
-				AttrSensitivePaths: make([]cty.Path, 0),
-			},
-			ProviderConfigAddr: addrs.AbsProviderConfig{
-				Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
-			},
-			Schema: stacks_testing_provider.TestingResourceSchema,
 		},
 	}
 
@@ -920,6 +738,274 @@ func TestApplyWithDefaultPlanTimestamp(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestApplyWithStateManipulation(t *testing.T) {
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tcs := map[string]struct {
+		state            *stackstate.State
+		store            *stacks_testing_provider.ResourceStore
+		inputs           map[string]cty.Value
+		changes          []stackstate.AppliedChange
+		counts           collections.Map[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]
+		expectedWarnings []string
+	}{
+		"moved": {
+			state: stackstate.NewStateBuilder().
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self.testing_resource.before")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "moved",
+							"value": "moved",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("moved", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("moved"),
+					"value": cty.StringVal("moved"),
+				})).
+				Build(),
+			changes: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent("component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.after"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "moved",
+							"value": "moved",
+						}),
+						Status:             states.ObjectReady,
+						AttrSensitivePaths: make([]cty.Path, 0),
+					},
+					ProviderConfigAddr:                 mustDefaultRootProvider("testing"),
+					PreviousResourceInstanceObjectAddr: mustAbsResourceInstanceObjectPtr("component.self.testing_resource.before"),
+					Schema:                             stacks_testing_provider.TestingResourceSchema,
+				},
+			},
+			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
+				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+					K: mustAbsComponentInstance("component.self"),
+					V: &hooks.ComponentInstanceChange{
+						Addr: mustAbsComponentInstance("component.self"),
+						Move: 1,
+					},
+				}),
+		},
+		"import": {
+			state: stackstate.NewStateBuilder().Build(), // We start with an empty state for this.
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("imported", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("imported"),
+					"value": cty.StringVal("imported"),
+				})).
+				Build(),
+			inputs: map[string]cty.Value{
+				"id": cty.StringVal("imported"),
+			},
+			changes: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent("component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "imported",
+							"value": "imported",
+						}),
+						Status:             states.ObjectReady,
+						AttrSensitivePaths: make([]cty.Path, 0),
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+			},
+			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
+				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+					K: mustAbsComponentInstance("component.self"),
+					V: &hooks.ComponentInstanceChange{
+						Addr:   mustAbsComponentInstance("component.self"),
+						Import: 1,
+					},
+				}),
+		},
+		"removed": {
+			state: stackstate.NewStateBuilder().
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self.testing_resource.resource")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "removed",
+							"value": "removed",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("removed", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("removed"),
+					"value": cty.StringVal("removed"),
+				})).
+				Build(),
+			changes: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent("component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.resource"),
+					NewStateSrc:                nil, // Deleted, so is nil.
+					ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+				},
+			},
+			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
+				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+					K: mustAbsComponentInstance("component.self"),
+					V: &hooks.ComponentInstanceChange{
+						Addr:   mustAbsComponentInstance("component.self"),
+						Forget: 1,
+					},
+				}),
+			expectedWarnings: []string{"Some objects will no longer be managed by Terraform"},
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+
+			ctx := context.Background()
+			cfg := loadMainBundleConfigForTest(t, path.Join("state-manipulation", name))
+
+			inputs := make(map[stackaddrs.InputVariable]ExternalInputValue, len(tc.inputs))
+			for name, input := range tc.inputs {
+				inputs[stackaddrs.InputVariable{Name: name}] = ExternalInputValue{
+					Value: input,
+				}
+			}
+
+			providers := map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+					return stacks_testing_provider.NewProviderWithData(tc.store), nil
+				},
+			}
+
+			planChangeCh := make(chan stackplan.PlannedChange)
+			diagsCh := make(chan tfdiags.Diagnostic)
+			planReq := PlanRequest{
+				Config:             cfg,
+				ProviderFactories:  providers,
+				InputValues:        inputs,
+				ForcePlanTimestamp: &fakePlanTimestamp,
+				PrevState:          tc.state,
+			}
+			planResp := PlanResponse{
+				PlannedChanges: planChangeCh,
+				Diagnostics:    diagsCh,
+			}
+			go Plan(ctx, &planReq, &planResp)
+			planChanges, diags := collectPlanOutput(planChangeCh, diagsCh)
+			reportDiagnosticsForTest(t, diags)
+			if diags.HasErrors() {
+				// we reported the diagnostics above, so we can just fail now
+				t.FailNow()
+			}
+			if len(diags) > len(tc.expectedWarnings) {
+				t.Fatalf("had unexpected warnings")
+			}
+			for i, diag := range diags {
+				if diag.Description().Summary != tc.expectedWarnings[i] {
+					t.Fatalf("expected diagnostic with summary %q, got %q", tc.expectedWarnings[i], diag.Description().Summary)
+				}
+			}
+
+			var raw []*anypb.Any
+			for _, change := range planChanges {
+				proto, err := change.PlannedChangeProto()
+				if err != nil {
+					t.Fatal(err)
+				}
+				raw = append(raw, proto.Raw...)
+			}
+
+			// Check the counts during the apply for this test.
+			gotCounts := collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]()
+			ctx = ContextWithHooks(ctx, &stackeval.Hooks{
+				ReportComponentInstanceApplied: func(ctx context.Context, span any, change *hooks.ComponentInstanceChange) any {
+					gotCounts.Put(change.Addr, change)
+					return span
+				},
+			})
+
+			applyChangesCh := make(chan stackstate.AppliedChange)
+			diagsCh = make(chan tfdiags.Diagnostic)
+			applyReq := ApplyRequest{
+				Config:            cfg,
+				RawPlan:           raw,
+				ProviderFactories: providers,
+			}
+			applyResp := ApplyResponse{
+				AppliedChanges: applyChangesCh,
+				Diagnostics:    diagsCh,
+			}
+
+			go Apply(ctx, &applyReq, &applyResp)
+			applyChanges, diags := collectApplyOutput(applyChangesCh, diagsCh)
+			reportDiagnosticsForTest(t, diags)
+			if diags.HasErrors() {
+				// we reported the diagnostics above, so we can just fail now
+				t.FailNow()
+			}
+			if len(diags) > 0 {
+				t.Fatalf("expected no diagnostics, got %s", diags.ErrWithWarnings())
+			}
+
+			sort.SliceStable(applyChanges, func(i, j int) bool {
+				return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
+			})
+
+			if diff := cmp.Diff(tc.changes, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+				t.Errorf("wrong changes\n%s", diff)
+			}
+
+			wantCounts := tc.counts
+			for _, elem := range wantCounts.Elems() {
+				// First, make sure everything we wanted is present.
+				if !gotCounts.HasKey(elem.K) {
+					t.Errorf("wrong counts: wanted %s but didn't get it", elem.K)
+				}
+
+				// And that the values actually match.
+				got, want := gotCounts.Get(elem.K), elem.V
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("wrong counts for %s: %s", want.Addr, diff)
+				}
+
+			}
+
+			for _, elem := range gotCounts.Elems() {
+				// Then, make sure we didn't get anything we didn't want.
+				if !wantCounts.HasKey(elem.K) {
+					t.Errorf("wrong counts: got %s but didn't want it", elem.K)
+				}
+			}
+		})
 	}
 }
 
