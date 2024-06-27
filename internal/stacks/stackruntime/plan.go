@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -49,6 +50,7 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 		PlanningMode:        req.PlanMode,
 		InputVariableValues: req.InputValues,
 		ProviderFactories:   req.ProviderFactories,
+		DependencyLocks:     req.DependencyLocks,
 
 		PlanTimestamp: planTimestamp,
 	})

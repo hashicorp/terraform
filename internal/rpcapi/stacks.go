@@ -302,6 +302,7 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 		ProviderFactories:  providerFactories,
 		InputValues:        inputValues,
 		ExperimentsAllowed: s.experimentsAllowed,
+		DependencyLocks:    *deps,
 	}
 	rtResp := stackruntime.PlanResponse{
 		PlannedChanges: changesCh,
