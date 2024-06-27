@@ -463,6 +463,7 @@ func (s *stacksServer) ApplyStackChanges(req *terraform1.ApplyStackChanges_Reque
 		ProviderFactories:  providerFactories,
 		RawPlan:            req.PlannedChanges,
 		ExperimentsAllowed: s.experimentsAllowed,
+		DependencyLocks:    *deps,
 	}
 	rtResp := stackruntime.ApplyResponse{
 		AppliedChanges: changesCh,

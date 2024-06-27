@@ -618,6 +618,8 @@ func (m *Main) DependencyLocks(phase EvalPhase) *depsfile.Locks {
 		return &m.validating.opts.DependencyLocks
 	case PlanPhase:
 		return &m.PlanningOpts().DependencyLocks
+	case ApplyPhase:
+		return &m.applying.opts.DependencyLocks
 	default:
 		return nil
 
