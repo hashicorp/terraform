@@ -42,6 +42,9 @@ type stacksServer struct {
 	// within tests to side load providers without needing a real provider
 	// cache.
 	providerCacheOverride map[addrs.Provider]providers.Factory
+	// providerDependencyLockOverride is an in-memory override of the provider lockfile
+	// used for testing when the real provider is side-loaded.
+	providerDependencyLockOverride *depsfile.Locks
 }
 
 var _ terraform1.StacksServer = (*stacksServer)(nil)
@@ -231,7 +234,9 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 	}
 	depsHnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
 	var deps *depsfile.Locks
-	if !depsHnd.IsNil() {
+	if s.providerDependencyLockOverride != nil {
+		deps = s.providerDependencyLockOverride
+	} else if !depsHnd.IsNil() {
 		deps = s.handles.DependencyLocks(depsHnd)
 		if deps == nil {
 			return status.Error(codes.InvalidArgument, "the given dependency locks handle is invalid")
