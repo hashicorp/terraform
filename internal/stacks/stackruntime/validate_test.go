@@ -14,6 +14,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/providers"
 	stacks_testing_provider "github.com/hashicorp/terraform/internal/stacks/stackruntime/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -250,6 +252,13 @@ func TestValidate_valid(t *testing.T) {
 
 			ctx := context.Background()
 			cfg := loadMainBundleConfigForTest(t, name)
+			lock := depsfile.NewLocks()
+			lock.SetProvider(
+				addrs.NewDefaultProvider("testing"),
+				providerreqs.MustParseVersion("0.0.0"),
+				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
 
 			diags := Validate(ctx, &ValidateRequest{
 				Config: cfg,
@@ -265,6 +274,7 @@ func TestValidate_valid(t *testing.T) {
 						return stacks_testing_provider.NewProvider(), nil
 					},
 				},
+				DependencyLocks: *lock,
 			})
 
 			// The following will fail the test if there are any error
@@ -293,6 +303,14 @@ func TestValidate_invalid(t *testing.T) {
 			ctx := context.Background()
 			cfg := loadMainBundleConfigForTest(t, name)
 
+			lock := depsfile.NewLocks()
+			lock.SetProvider(
+				addrs.NewDefaultProvider("testing"),
+				providerreqs.MustParseVersion("0.0.0"),
+				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
+
 			gotDiags := Validate(ctx, &ValidateRequest{
 				Config: cfg,
 				ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -307,6 +325,7 @@ func TestValidate_invalid(t *testing.T) {
 						return stacks_testing_provider.NewProvider(), nil
 					},
 				},
+				DependencyLocks: *lock,
 			}).ForRPC()
 			wantDiags := tc.diags().ForRPC()
 

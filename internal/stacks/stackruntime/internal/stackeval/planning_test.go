@@ -22,6 +22,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -1012,10 +1014,18 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 			return provider, nil
 		},
 	}
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 
 	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
 		PlanningMode:      plans.NormalMode,
 		ProviderFactories: providerFactories,
+		DependencyLocks:   *lock,
 		PlanTimestamp:     time.Now().UTC(),
 	})
 
@@ -1043,6 +1053,7 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 		outp, outpTest := testApplyOutput(t, nil)
 		_, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
 			ProviderFactories: providerFactories,
+			DependencyLocks:   *lock,
 		}, outp)
 		if err != nil {
 			t.Fatal(err)

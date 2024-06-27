@@ -82,9 +82,10 @@ func (p *ProviderConfig) ProviderArgs(ctx context.Context, phase EvalPhase) cty.
 }
 
 func CheckProviderInLockfile(locks depsfile.Locks, providerType *ProviderType, declRange tfdiags.SourceRange) (diags tfdiags.Diagnostics) {
-	if providerType.addr.IsBuiltIn() {
-		return diags // built-in providers are not in the lockfile
+	if !depsfile.ProviderIsLockable(providerType.Addr()) {
+		return diags
 	}
+
 	if p := locks.Provider(providerType.Addr()); p == nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
