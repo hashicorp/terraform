@@ -44,3 +44,13 @@ func (s Semaphore) Release() {
 		panic("release without an acquire")
 	}
 }
+
+// whileHoldingSemaphore acquires the given semaphore, calls the given
+// function, and then releases the given semaphore before returning
+// the function's result.
+func whileHoldingSemaphore[Ret any](sema Semaphore, f func() Ret) Ret {
+	sema.Acquire()
+	ret := f()
+	sema.Release()
+	return ret
+}
