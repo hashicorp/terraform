@@ -108,13 +108,16 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase)
 			providerType := p.ProviderType(ctx)
 			decl := p.Declaration(ctx)
 
-			// Check if the provider is in the lockfile,
-			// if it is not we can not read the provider schema
-			lockfileDiags := CheckProviderInLockfile(p.main.validating.opts.DependencyLocks, providerType, decl.DeclRange)
-			if lockfileDiags.HasErrors() {
-				return cty.DynamicVal, lockfileDiags
+			depLocks := p.main.DependencyLocks(phase)
+			if depLocks != nil {
+				// Check if the provider is in the lockfile,
+				// if it is not we can not read the provider schema
+				lockfileDiags := CheckProviderInLockfile(*depLocks, providerType, decl.DeclRange)
+				if lockfileDiags.HasErrors() {
+					return cty.DynamicVal, lockfileDiags
+				}
+				diags = diags.Append(lockfileDiags)
 			}
-			diags = diags.Append(lockfileDiags)
 
 			spec, err := p.ProviderArgsDecoderSpec(ctx)
 			if err != nil {

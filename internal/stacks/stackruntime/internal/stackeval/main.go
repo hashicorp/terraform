@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	fileProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/file"
 	remoteExecProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -608,4 +609,15 @@ func (m *Main) PlanTimestamp() time.Time {
 
 	// This is the default case, we are not planning / applying
 	return time.Now().UTC()
+}
+
+// DependencyLocks returns the dependency locks for the given phase.
+func (m *Main) DependencyLocks(phase EvalPhase) *depsfile.Locks {
+	switch phase {
+	case ValidatePhase:
+		return &m.validating.opts.DependencyLocks
+	default:
+		return nil
+
+	}
 }

@@ -404,6 +404,7 @@ func (c *ComponentConfig) neededProviderClients(ctx context.Context, phase EvalP
 
 func (c *ComponentConfig) neededProviderSchemas(ctx context.Context, phase EvalPhase) (map[addrs.Provider]providers.ProviderSchema, tfdiags.Diagnostics, bool) {
 	var diags tfdiags.Diagnostics
+	skipFutherValidation := false
 
 	config := c.ModuleTree(ctx)
 	decl := c.Declaration(ctx)
@@ -415,10 +416,18 @@ func (c *ComponentConfig) neededProviderSchemas(ctx context.Context, phase EvalP
 			continue // not our job to report a missing provider
 		}
 
-		providerLockfileDiags := CheckProviderInLockfile(c.main.validating.opts.DependencyLocks, pTy, decl.DeclRange)
-		// We report these diagnostics in a different place
-		if providerLockfileDiags.HasErrors() {
-			return providerSchemas, diags, true
+		// If this phase has a dependency lockfile, check if the provider is in it.
+		depLocks := c.main.DependencyLocks(phase)
+		if depLocks != nil {
+			// Check if the provider is in the lockfile,
+			// if it is not we can not read the provider schema
+			providerLockfileDiags := CheckProviderInLockfile(*depLocks, pTy, decl.DeclRange)
+
+			// We report these diagnostics in a different place
+			if providerLockfileDiags.HasErrors() {
+				skipFutherValidation = true
+				continue
+			}
 		}
 
 		schema, err := pTy.Schema(ctx)
