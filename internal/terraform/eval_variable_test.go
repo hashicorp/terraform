@@ -9,10 +9,12 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/namedvals"
@@ -1373,4 +1375,48 @@ variable "bar" {
 			}
 		})
 	}
+}
+
+func TestEvalVariableValidation_unknownValues(t *testing.T) {
+	t.Run("known condition, unknown error_message", func(t *testing.T) {
+		rule := &configs.CheckRule{
+			Condition:    hcltest.MockExprLiteral(cty.False),
+			ErrorMessage: hcltest.MockExprLiteral(cty.UnknownVal(cty.String)),
+		}
+		hclCtx := &hcl.EvalContext{}
+		varAddr := addrs.AbsInputVariableInstance{
+			Module:   addrs.RootModuleInstance,
+			Variable: addrs.InputVariable{Name: "foo"},
+		}
+
+		result, diags := evalVariableValidation(rule, hclCtx, hcl.Range{}, varAddr, 0)
+		if got, want := result.Status, checks.StatusError; got != want {
+			t.Errorf("wrong result.Status\ngot:  %s\nwant: %s", got, want)
+		}
+		if !diags.HasErrors() {
+			t.Fatalf("unexpected success; want error")
+		}
+		found := false
+		hasCorrectExtra := false
+		wantDesc := tfdiags.Description{
+			Summary: "Invalid error message",
+			Detail:  "Unsuitable value for error message: expression refers to values that won't be known until the apply phase.",
+		}
+		for _, diag := range diags {
+			gotDesc := diag.Description()
+			if diag.Severity() == tfdiags.Error && gotDesc.Summary == wantDesc.Summary && gotDesc.Detail == wantDesc.Detail {
+				found = true
+				hasCorrectExtra = tfdiags.DiagnosticCausedByUnknown(diag)
+				break
+			}
+		}
+		if !found {
+			t.Errorf("missing expected error diagnostic\nwant: %s: %s\ngot:  %s",
+				wantDesc.Summary, wantDesc.Detail,
+				diags.Err().Error(),
+			)
+		} else if !hasCorrectExtra {
+			t.Errorf("diagnostic is not marked as being 'caused by unknown'")
+		}
+	})
 }
