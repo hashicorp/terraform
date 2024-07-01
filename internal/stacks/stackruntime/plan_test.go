@@ -21,6 +21,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
@@ -1010,20 +1011,6 @@ func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
-
-var cmpCollectionsSet = cmp.Comparer(func(x, y collections.Set[stackaddrs.AbsComponent]) bool {
-	if x.Len() != y.Len() {
-		return false
-	}
-
-	for _, v := range x.Elems() {
-		if !y.Has(v) {
-			return false
-		}
-	}
-
-	return true
-})
 
 func TestPlanSensitiveOutput(t *testing.T) {
 	ctx := context.Background()
@@ -3250,6 +3237,7 @@ func TestPlanWithStateManipulation(t *testing.T) {
 		store            *stacks_testing_provider.ResourceStore
 		inputs           map[string]cty.Value
 		changes          []stackplan.PlannedChange
+		counts           collections.Map[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]
 		expectedWarnings []string
 	}{
 		"moved": {
@@ -3322,6 +3310,14 @@ func TestPlanWithStateManipulation(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 			},
+			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
+				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+					K: mustAbsComponentInstance("component.self"),
+					V: &hooks.ComponentInstanceChange{
+						Addr: mustAbsComponentInstance("component.self"),
+						Move: 1,
+					},
+				}),
 		},
 		"import": {
 			state: stackstate.NewStateBuilder().Build(), // We start with an empty state for this.
@@ -3403,6 +3399,14 @@ func TestPlanWithStateManipulation(t *testing.T) {
 					RequiredOnApply: false,
 				},
 			},
+			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
+				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+					K: mustAbsComponentInstance("component.self"),
+					V: &hooks.ComponentInstanceChange{
+						Addr:   mustAbsComponentInstance("component.self"),
+						Import: 1,
+					},
+				}),
 		},
 		"removed": {
 			state: stackstate.NewStateBuilder().
@@ -3475,6 +3479,14 @@ func TestPlanWithStateManipulation(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 			},
+			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
+				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+					K: mustAbsComponentInstance("component.self"),
+					V: &hooks.ComponentInstanceChange{
+						Addr:   mustAbsComponentInstance("component.self"),
+						Forget: 1,
+					},
+				}),
 			expectedWarnings: []string{"Some objects will no longer be managed by Terraform"},
 		},
 	}
@@ -3484,6 +3496,14 @@ func TestPlanWithStateManipulation(t *testing.T) {
 
 			ctx := context.Background()
 			cfg := loadMainBundleConfigForTest(t, path.Join("state-manipulation", name))
+
+			gotCounts := collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]()
+			ctx = ContextWithHooks(ctx, &stackeval.Hooks{
+				ReportComponentInstancePlanned: func(ctx context.Context, span any, change *hooks.ComponentInstanceChange) any {
+					gotCounts.Put(change.Addr, change)
+					return span
+				},
+			})
 
 			inputs := make(map[stackaddrs.InputVariable]ExternalInputValue, len(tc.inputs))
 			for name, input := range tc.inputs {
@@ -3529,9 +3549,30 @@ func TestPlanWithStateManipulation(t *testing.T) {
 			if diff := cmp.Diff(tc.changes, changes, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
 				t.Errorf("wrong changes\n%s", diff)
 			}
+
+			wantCounts := tc.counts
+			for _, elem := range wantCounts.Elems() {
+				// First, make sure everything we wanted is present.
+				if !gotCounts.HasKey(elem.K) {
+					t.Errorf("wrong counts: wanted %s but didn't get it", elem.K)
+				}
+
+				// And that the values actually match.
+				got, want := gotCounts.Get(elem.K), elem.V
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("wrong counts for %s: %s", want.Addr, diff)
+				}
+
+			}
+
+			for _, elem := range gotCounts.Elems() {
+				// Then, make sure we didn't get anything we didn't want.
+				if !wantCounts.HasKey(elem.K) {
+					t.Errorf("wrong counts: got %s but didn't want it", elem.K)
+				}
+			}
 		})
 	}
-
 }
 
 // collectPlanOutput consumes the two output channels emitting results from
@@ -3771,3 +3812,17 @@ func expectOutput(t *testing.T, name string, changes []stackplan.PlannedChange) 
 	t.Fatalf("expected output value %q", name)
 	return nil
 }
+
+var cmpCollectionsSet = cmp.Comparer(func(x, y collections.Set[stackaddrs.AbsComponent]) bool {
+	if x.Len() != y.Len() {
+		return false
+	}
+
+	for _, v := range x.Elems() {
+		if !y.Has(v) {
+			return false
+		}
+	}
+
+	return true
+})

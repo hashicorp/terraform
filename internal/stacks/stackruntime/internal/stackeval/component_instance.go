@@ -873,7 +873,14 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 			// We'll increment these gradually as we visit each change below.
 			Add:    0,
 			Change: 0,
+			Import: 0,
 			Remove: 0,
+			Move:   0,
+			Forget: 0,
+
+			// Defer changes will always be 0 during the apply as we don't
+			// actually apply them.
+			Defer: 0,
 		}
 
 		// We need to report what changes were applied, which is mostly just
@@ -883,12 +890,46 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		applied := tfHook.ResourceInstanceObjectsSuccessfullyApplied()
 		for _, rioAddr := range applied {
 			action := tfHook.ResourceInstanceObjectAppliedAction(rioAddr)
-
-			// FIXME: We can't count imports here because they aren't "actions"
-			// in the sense that our hook gets informed about, and so the
-			// import number will always be zero in the apply phase.
-
 			cic.CountNewAction(action)
+		}
+
+		// The state management actions (create, import, forget) don't emit
+		// actions during an apply so they're not being counted by looking
+		// at the ResourceInstanceObjectAppliedAction above.
+		//
+		// Instead, we'll recheck the planned actions here to count them.
+		plan := c.main.PlanBeingApplied().Components.Get(c.Addr())
+		for _, rioAddr := range affectedResourceInstanceObjects {
+			if applied.Has(rioAddr) {
+				// Then we processed this above.
+				continue
+			}
+
+			change, exists := plan.ResourceInstancePlanned.GetOk(rioAddr)
+			if !exists {
+				// This is a bit weird, but not something we should prevent
+				// the apply from continuing for. We'll just ignore it and
+				// assume that the plan was incomplete in some way.
+				continue
+			}
+
+			// Otherwise, we have a change that wasn't successfully applied
+			// for some reason. If the change was a no-op and a move or import
+			// then it was still successful so we'll count it as such. Also,
+			// forget actions don't count as applied changes but still happened
+			// so we'll count them here.
+
+			switch change.Action {
+			case plans.NoOp:
+				if change.Importing != nil {
+					cic.Import++
+				}
+				if change.Moved() {
+					cic.Move++
+				}
+			case plans.Forget:
+				cic.Forget++
+			}
 		}
 
 		hookMore(ctx, seq, h.ReportComponentInstanceApplied, cic)
