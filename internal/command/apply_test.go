@@ -1574,7 +1574,7 @@ func TestApply_backup(t *testing.T) {
 				Name: "foo",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte("{\n            \"id\": \"bar\"\n          }"),
+				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
