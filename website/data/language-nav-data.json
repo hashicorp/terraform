@@ -694,6 +694,10 @@
           {
             "title": "<code>cidrsubnets</code>",
             "href": "/language/functions/cidrsubnets"
+          },
+          {
+            "title": "<code>cidrcollapse</code>",
+            "href": "/language/functions/cidrcollapse"
           }
         ]
       },
