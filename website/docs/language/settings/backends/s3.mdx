@@ -552,7 +552,7 @@ to only a single state object within an S3 bucket is shown below:
     {
       "Effect": "Allow",
       "Action": "s3:ListBucket",
-      "Resource": "arn:aws:s3:::myorg-terraform-states",
+      "Resource": "arn:aws:s3:::BucketName",
       "Condition": {
         "StringEquals": {
           "s3:prefix": "myapp/production/tfstate"
@@ -562,7 +562,7 @@ to only a single state object within an S3 bucket is shown below:
     {
       "Effect": "Allow",
       "Action": ["s3:GetObject", "s3:PutObject"],
-      "Resource": "arn:aws:s3:::myorg-terraform-states/myapp/production/tfstate"
+      "Resource": "arn:aws:s3:::BucketName/myapp/production/tfstate"
     }
   ]
 }
@@ -573,7 +573,7 @@ The example backend configuration below documents the corresponding `bucket` and
 ```hcl
 terraform {
   backend "s3" {
-    bucket = "myorg-terraform-states"
+    bucket = "BucketName"
     key    = "myapp/production/tfstate"
     region = "us-east-1"
   }
@@ -600,8 +600,8 @@ For example, you can use the `dynamodb:LeadingKeys` condition key to match on th
       "Condition": {
         "ForAllValues:StringEquals": {
           "dynamodb:LeadingKeys": [
-            "TableName/myapp/production/tfstate",
-            "TableName/myapp/production/tfstate-md5"
+            "BucketName/myapp/production/tfstate",
+            "BucketName/myapp/production/tfstate-md5"
           ]
         }
       }
@@ -617,7 +617,7 @@ The example backend configuration below documents the corresponding arguments:
 ```hcl
 terraform {
   backend "s3" {
-    bucket         = "myorg-terraform-states"
+    bucket         = "BucketName"
     key            = "myapp/production/tfstate"
     region         = "us-east-1"
     dynamodb_table = "TableName"
