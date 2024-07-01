@@ -1300,6 +1300,7 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 			Addr: c.Addr(),
 
 			Action:                 action,
+			Mode:                   corePlan.UIMode,
 			PlanApplyable:          corePlan.Applyable,
 			PlanComplete:           corePlan.Complete,
 			RequiredComponents:     c.RequiredComponents(ctx),

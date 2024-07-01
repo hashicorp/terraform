@@ -149,6 +149,10 @@ type PlannedChangeComponentInstance struct {
 	// are tracked in their own [PlannedChange] objects.
 	Action plans.Action
 
+	// Mode describes the mode that the component instance is being planned
+	// in.
+	Mode plans.Mode
+
 	// RequiredComponents is a set of the addresses of all of the components
 	// that provide infrastructure that this one's infrastructure will
 	// depend on. Any component named here must exist for the entire lifespan
@@ -228,12 +232,18 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 		return nil, fmt.Errorf("failed to encode check results: %s", err)
 	}
 
+	mode, err := planproto.NewMode(pc.Mode)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode mode: %s", err)
+	}
+
 	var raw anypb.Any
 	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanComponentInstance{
 		ComponentInstanceAddr:   pc.Addr.String(),
 		PlanTimestamp:           planTimestampStr,
 		PlannedInputValues:      plannedInputValues,
 		PlannedAction:           planproto.NewAction(pc.Action),
+		Mode:                    mode,
 		PlanApplyable:           pc.PlanApplyable,
 		PlanComplete:            pc.PlanComplete,
 		DependsOnComponentAddrs: componentAddrsRaw,
