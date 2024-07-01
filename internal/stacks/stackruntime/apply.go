@@ -11,6 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -63,6 +64,7 @@ func Apply(ctx context.Context, req *ApplyRequest, resp *ApplyResponse) {
 			InputVariableValues: req.InputValues,
 			ProviderFactories:   req.ProviderFactories,
 			ExperimentsAllowed:  req.ExperimentsAllowed,
+			DependencyLocks:     req.DependencyLocks,
 		},
 		outp,
 	)
@@ -102,6 +104,7 @@ type ApplyRequest struct {
 	ProviderFactories map[addrs.Provider]providers.Factory
 
 	ExperimentsAllowed bool
+	DependencyLocks    depsfile.Locks
 }
 
 // ApplyResponse is used by [Apply] to describe the results of applying.

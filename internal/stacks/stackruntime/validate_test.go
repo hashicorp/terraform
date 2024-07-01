@@ -14,6 +14,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/providers"
 	stacks_testing_provider "github.com/hashicorp/terraform/internal/stacks/stackruntime/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -250,6 +252,13 @@ func TestValidate_valid(t *testing.T) {
 
 			ctx := context.Background()
 			cfg := loadMainBundleConfigForTest(t, name)
+			lock := depsfile.NewLocks()
+			lock.SetProvider(
+				addrs.NewDefaultProvider("testing"),
+				providerreqs.MustParseVersion("0.0.0"),
+				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
 
 			diags := Validate(ctx, &ValidateRequest{
 				Config: cfg,
@@ -265,6 +274,7 @@ func TestValidate_valid(t *testing.T) {
 						return stacks_testing_provider.NewProvider(), nil
 					},
 				},
+				DependencyLocks: *lock,
 			})
 
 			// The following will fail the test if there are any error
@@ -293,6 +303,14 @@ func TestValidate_invalid(t *testing.T) {
 			ctx := context.Background()
 			cfg := loadMainBundleConfigForTest(t, name)
 
+			lock := depsfile.NewLocks()
+			lock.SetProvider(
+				addrs.NewDefaultProvider("testing"),
+				providerreqs.MustParseVersion("0.0.0"),
+				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
+
 			gotDiags := Validate(ctx, &ValidateRequest{
 				Config: cfg,
 				ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -307,6 +325,7 @@ func TestValidate_invalid(t *testing.T) {
 						return stacks_testing_provider.NewProvider(), nil
 					},
 				},
+				DependencyLocks: *lock,
 			}).ForRPC()
 			wantDiags := tc.diags().ForRPC()
 
@@ -354,5 +373,45 @@ Terraform uses references to decide a suitable order for performing operations, 
 
 	if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
 		t.Errorf("wrong diagnostics\n%s", diff)
+	}
+}
+
+func TestValidate_missing_provider_from_lockfile(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, filepath.Join("with-single-input", "input-from-component"))
+	lock := depsfile.NewLocks()
+
+	diags := Validate(ctx, &ValidateRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			// We support both hashicorp/testing and
+			// terraform.io/builtin/testing as providers. This lets us
+			// test the provider aliasing feature. Both providers
+			// support the same set of resources and data sources.
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+			addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+		DependencyLocks: *lock,
+	})
+
+	if len(diags) != 1 {
+		t.Fatalf("expected exactly one diagnostic, got %d", len(diags))
+	}
+
+	diag := diags[0]
+	if diag.Severity() != tfdiags.Error {
+		t.Fatalf("expected error diagnostic, got %s", diag.Severity())
+	}
+
+	if diag.Description().Summary != "Provider missing from lockfile" {
+		t.Fatalf("expected diagnostic summary 'Provider missing from lockfile', got %q", diag.Description().Summary)
+	}
+
+	if diag.Description().Detail != "Provider \"registry.terraform.io/hashicorp/testing\" is not in the lockfile. This provider must be in the lockfile to be used in the configuration. Please run `tfstacks provider lock` to update the lockfile and run this operation again with an updated configuration." {
+		t.Fatalf("expected diagnostic detail to be a specific message, got %q", diag.Description().Detail)
 	}
 }
