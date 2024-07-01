@@ -582,6 +582,14 @@
             "href": "/language/functions/fileset"
           },
           {
+            "title": "<code>directoryexists</code>",
+            "href": "/language/functions/directoryexists"
+          },
+          {
+            "title": "<code>directoryset</code>",
+            "href": "/language/functions/directoryset"
+          },
+          {
             "title": "<code>filebase64</code>",
             "href": "/language/functions/filebase64"
           },
