@@ -45,7 +45,7 @@ jobs:
           echo "pkg-name=${pkg_name}" | tee -a "${GITHUB_OUTPUT}"
       - name: Decide version number
         id: get-product-version
-        uses: hashicorp/actions-set-product-version@e2c49d61aff17b1280ddfe7bb031331d02ca0140 # v1.0.1
+        uses: hashicorp/actions-set-product-version@d9b52fb778068099ca4c5e28e1ca0fee2544e114 # v2
       - name: Determine experiments
         id: get-ldflags
         env:
