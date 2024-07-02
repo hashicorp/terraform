@@ -176,6 +176,7 @@ func (s *State) HasManagedResourceInstanceObjects() bool {
 // Resource returns the state for the resource with the given address, or nil
 // if no such resource is tracked in the state.
 func (s *State) Resource(addr addrs.AbsResource) *Resource {
+	assertPersistableResource(addr.Resource)
 	ms := s.Module(addr.Module)
 	if ms == nil {
 		return nil
@@ -185,6 +186,7 @@ func (s *State) Resource(addr addrs.AbsResource) *Resource {
 
 // Resources returns the set of resources that match the given configuration path.
 func (s *State) Resources(addr addrs.ConfigResource) []*Resource {
+	assertPersistableResource(addr.Resource)
 	var ret []*Resource
 	for _, m := range s.ModuleInstances(addr.Module) {
 		r := m.Resource(addr.Resource)
@@ -260,6 +262,7 @@ func (s *State) allResourceInstanceObjectAddrs(keepAddr func(addr addrs.AbsResou
 // ResourceInstance returns the state for the resource instance with the given
 // address, or nil if no such resource is tracked in the state.
 func (s *State) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInstance {
+	assertPersistableResource(addr.Resource.Resource)
 	if s == nil {
 		panic("State.ResourceInstance on nil *State")
 	}
@@ -273,6 +276,7 @@ func (s *State) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInstan
 // ResourceInstance returns the (encoded) state for the resource instance object
 // with the given address, or nil if no such object is tracked in the state.
 func (s *State) ResourceInstanceObjectSrc(addr addrs.AbsResourceInstanceObject) *ResourceInstanceObjectSrc {
+	assertPersistableResource(addr.ResourceInstance.Resource.Resource)
 	if s == nil {
 		panic("State.ResourceInstanceObjectSrc on nil *State")
 	}
@@ -408,6 +412,9 @@ func (s *State) SyncWrapper() *SyncState {
 // responsibility to verify the validity of the move (for example, that the src
 // and dst are compatible types).
 func (s *State) MoveAbsResource(src, dst addrs.AbsResource) {
+	assertPersistableResource(src.Resource)
+	assertPersistableResource(dst.Resource)
+
 	// verify that the src address exists and the dst address does not
 	rs := s.Resource(src)
 	if rs == nil {
@@ -439,6 +446,9 @@ func (s *State) MoveAbsResource(src, dst addrs.AbsResource) {
 // or not the move occurred. This function will panic if either the src does not
 // exist or the dst does exist (but not both).
 func (s *State) MaybeMoveAbsResource(src, dst addrs.AbsResource) bool {
+	assertPersistableResource(src.Resource)
+	assertPersistableResource(dst.Resource)
+
 	// Get the source and destinatation addresses from state.
 	rs := s.Resource(src)
 	ds := s.Resource(dst)
@@ -465,6 +475,9 @@ func (s *State) MaybeMoveAbsResource(src, dst addrs.AbsResource) bool {
 // the caller's responsibility to verify the validity of the move (for example,
 // that the src and dst are compatible types).
 func (s *State) MoveAbsResourceInstance(src, dst addrs.AbsResourceInstance) {
+	assertPersistableResource(src.Resource.Resource)
+	assertPersistableResource(dst.Resource.Resource)
+
 	srcInstanceState := s.ResourceInstance(src)
 	if srcInstanceState == nil {
 		panic(fmt.Sprintf("no state for src address %s", src.String()))
@@ -513,6 +526,9 @@ func (s *State) MoveAbsResourceInstance(src, dst addrs.AbsResourceInstance) {
 // value indicates whether or not the move occured. This function will panic if
 // either the src does not exist or the dst does exist (but not both).
 func (s *State) MaybeMoveAbsResourceInstance(src, dst addrs.AbsResourceInstance) bool {
+	assertPersistableResource(src.Resource.Resource)
+	assertPersistableResource(dst.Resource.Resource)
+
 	// get the src and dst resource instances from state
 	rs := s.ResourceInstance(src)
 	ds := s.ResourceInstance(dst)
@@ -634,5 +650,18 @@ func (s *State) MoveModule(src, dst addrs.AbsModuleCall) {
 			}
 		}
 		s.MoveModuleInstance(ms.Addr, newInst)
+	}
+}
+
+// assertPersistableResource panics if the given address describes a resource
+// which should not be persisted in state.
+//
+// Currently this panics only if the resource mode is not one whose instances
+// are expected to persist between plan/apply rounds.
+func assertPersistableResource(addr addrs.Resource) {
+	if mode := addr.Mode; !mode.PersistsBetweenRounds() {
+		// This is always a bug in the caller: they should only call this
+		// method for resources of modes that persist between rounds.
+		panic(fmt.Sprintf("resources of mode %s do not persist in Terraform state", mode))
 	}
 }

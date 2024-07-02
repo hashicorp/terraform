@@ -283,6 +283,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	// that's redundant in the process of populating our values map.
 	dataResources := map[string]map[string]cty.Value{}
 	managedResources := map[string]map[string]cty.Value{}
+	ephemeralResources := map[string]map[string]cty.Value{}
 	wholeModules := map[string]cty.Value{}
 	inputVariables := map[string]cty.Value{}
 	localValues := map[string]cty.Value{}
@@ -365,6 +366,8 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 				into = managedResources
 			case addrs.DataResourceMode:
 				into = dataResources
+			case addrs.EphemeralResourceMode:
+				into = ephemeralResources
 			default:
 				panic(fmt.Errorf("unsupported ResourceMode %s", subj.Mode))
 			}
@@ -443,8 +446,8 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 		vals[k] = v
 	}
 	vals["resource"] = cty.ObjectVal(buildResourceObjects(managedResources))
-
 	vals["data"] = cty.ObjectVal(buildResourceObjects(dataResources))
+	vals["ephemeral"] = cty.ObjectVal(buildResourceObjects(ephemeralResources))
 	vals["module"] = cty.ObjectVal(wholeModules)
 	vals["var"] = cty.ObjectVal(inputVariables)
 	vals["local"] = cty.ObjectVal(localValues)

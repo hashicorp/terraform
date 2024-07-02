@@ -4,6 +4,10 @@ terraform {
       source = "foobar/beep" # intentional mismatch between local name and type
     }
   }
+  # TODO: Remove this if ephemeral values / resources get stabilized. If this
+  # experiment is removed without stabilization, also remove the
+  # "ephemeral" block below and the test cases it's supporting.
+  experiments = [ephemeral_values]
 }
 
 resource "aws_instance" "no_count" {
@@ -20,6 +24,10 @@ resource "boop_whatever" "nope" {
 }
 
 data "beep" "boop" {
+}
+
+ephemeral "beep" "boop" {
+  provider = boop
 }
 
 check "foo" {

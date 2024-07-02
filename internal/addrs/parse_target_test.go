@@ -166,6 +166,45 @@ func TestParseTarget(t *testing.T) {
 			``,
 		},
 		{
+			`ephemeral.aws_instance.foo`,
+			&Target{
+				Subject: AbsResource{
+					Resource: Resource{
+						Mode: EphemeralResourceMode,
+						Type: "aws_instance",
+						Name: "foo",
+					},
+					Module: RootModuleInstance,
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 27, Byte: 26},
+				},
+			},
+			``,
+		},
+		{
+			`ephemeral.aws_instance.foo[1]`,
+			&Target{
+				Subject: AbsResourceInstance{
+					Resource: ResourceInstance{
+						Resource: Resource{
+							Mode: EphemeralResourceMode,
+							Type: "aws_instance",
+							Name: "foo",
+						},
+						Key: IntKey(1),
+					},
+					Module: RootModuleInstance,
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 30, Byte: 29},
+				},
+			},
+			``,
+		},
+		{
 			`module.foo.aws_instance.bar`,
 			&Target{
 				Subject: AbsResource{
@@ -267,6 +306,27 @@ func TestParseTarget(t *testing.T) {
 				SourceRange: tfdiags.SourceRange{
 					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
 					End:   tfdiags.SourcePos{Line: 1, Column: 44, Byte: 43},
+				},
+			},
+			``,
+		},
+		{
+			`module.foo.module.bar.ephemeral.aws_instance.baz`,
+			&Target{
+				Subject: AbsResource{
+					Resource: Resource{
+						Mode: EphemeralResourceMode,
+						Type: "aws_instance",
+						Name: "baz",
+					},
+					Module: ModuleInstance{
+						{Name: "foo"},
+						{Name: "bar"},
+					},
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 49, Byte: 48},
 				},
 			},
 			``,

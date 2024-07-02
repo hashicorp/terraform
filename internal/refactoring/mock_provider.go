@@ -85,6 +85,18 @@ func (provider *mockProvider) ReadDataSource(providers.ReadDataSourceRequest) pr
 	panic("not implemented in mock")
 }
 
+func (provider *mockProvider) OpenEphemeral(providers.OpenEphemeralRequest) providers.OpenEphemeralResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) RenewEphemeral(providers.RenewEphemeralRequest) providers.RenewEphemeralResponse {
+	panic("not implemented in mock")
+}
+
+func (provider *mockProvider) CloseEphemeral(providers.CloseEphemeralRequest) providers.CloseEphemeralResponse {
+	panic("not implemented in mock")
+}
+
 func (provider *mockProvider) CallFunction(providers.CallFunctionRequest) providers.CallFunctionResponse {
 	panic("not implemented in mock")
 }

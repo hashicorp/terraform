@@ -222,6 +222,40 @@ func (u *unknownProvider) ReadDataSource(request providers.ReadDataSourceRequest
 	}
 }
 
+// OpenEphemeral implements providers.Interface.
+func (u *unknownProvider) OpenEphemeral(providers.OpenEphemeralRequest) providers.OpenEphemeralResponse {
+	// TODO: Once there's a definition for how deferred actions ought to work
+	// for ephemeral resource instances, make this report that this one needs
+	// to be deferred if the client announced that it supports deferral.
+	//
+	// For now this is just always an error, because ephemeral resources are
+	// just a prototype being developed concurrently with deferred actions.
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Provider configuration is unknown",
+		"Cannot open this resource instance because its associated provider configuration is unknown.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.OpenEphemeralResponse{
+		Diagnostics: diags,
+	}
+}
+
+// RenewEphemeral implements providers.Interface.
+func (u *unknownProvider) RenewEphemeral(providers.RenewEphemeralRequest) providers.RenewEphemeralResponse {
+	// We don't have anything to do here because OpenEphemeral didn't really
+	// actually "open" anything.
+	return providers.RenewEphemeralResponse{}
+}
+
+// CloseEphemeral implements providers.Interface.
+func (u *unknownProvider) CloseEphemeral(providers.CloseEphemeralRequest) providers.CloseEphemeralResponse {
+	// We don't have anything to do here because OpenEphemeral didn't really
+	// actually "open" anything.
+	return providers.CloseEphemeralResponse{}
+}
+
 func (u *unknownProvider) CallFunction(request providers.CallFunctionRequest) providers.CallFunctionResponse {
 	// This is offline functionality, so we can hand it off to the unconfigured
 	// client.

@@ -91,6 +91,10 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 				case addrs.DataResourceMode:
 					modeStr = "data"
 				default:
+					// NOTE: the above cases intentionally cover only the subset
+					// of modes where mode.PersistsBetweenRounds() would return
+					// true, because it's a bug for any others to end up in the
+					// state.
 					return nil, fmt.Errorf("state contains resource %s with an unsupported resource mode %#v", resAddr, resAddr.Mode)
 				}
 

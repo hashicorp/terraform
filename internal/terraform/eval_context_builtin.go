@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
@@ -68,23 +69,24 @@ type BuiltinEvalContext struct {
 	// DeferralsValue is the object returned by [BuiltinEvalContext.Deferrals].
 	DeferralsValue *deferring.Deferred
 
-	Hooks                 []Hook
-	InputValue            UIInput
-	ProviderCache         map[string]providers.Interface
-	ProviderFuncCache     map[string]providers.Interface
-	ProviderFuncResults   *providers.FunctionResults
-	ProviderInputConfig   map[string]map[string]cty.Value
-	ProviderLock          *sync.Mutex
-	ProvisionerCache      map[string]provisioners.Interface
-	ProvisionerLock       *sync.Mutex
-	ChangesValue          *plans.ChangesSync
-	StateValue            *states.SyncState
-	ChecksValue           *checks.State
-	RefreshStateValue     *states.SyncState
-	PrevRunStateValue     *states.SyncState
-	InstanceExpanderValue *instances.Expander
-	MoveResultsValue      refactoring.MoveResults
-	OverrideValues        *mocking.Overrides
+	Hooks                   []Hook
+	InputValue              UIInput
+	ProviderCache           map[string]providers.Interface
+	ProviderFuncCache       map[string]providers.Interface
+	ProviderFuncResults     *providers.FunctionResults
+	ProviderInputConfig     map[string]map[string]cty.Value
+	ProviderLock            *sync.Mutex
+	ProvisionerCache        map[string]provisioners.Interface
+	ProvisionerLock         *sync.Mutex
+	ChangesValue            *plans.ChangesSync
+	StateValue              *states.SyncState
+	ChecksValue             *checks.State
+	RefreshStateValue       *states.SyncState
+	PrevRunStateValue       *states.SyncState
+	EphemeralResourcesValue *ephemeral.Resources
+	InstanceExpanderValue   *instances.Expander
+	MoveResultsValue        refactoring.MoveResults
+	OverrideValues          *mocking.Overrides
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -610,6 +612,10 @@ func (ctx *BuiltinEvalContext) RefreshState() *states.SyncState {
 
 func (ctx *BuiltinEvalContext) PrevRunState() *states.SyncState {
 	return ctx.PrevRunStateValue
+}
+
+func (ctx *BuiltinEvalContext) EphemeralResources() *ephemeral.Resources {
+	return ctx.EphemeralResourcesValue
 }
 
 func (ctx *BuiltinEvalContext) InstanceExpander() *instances.Expander {

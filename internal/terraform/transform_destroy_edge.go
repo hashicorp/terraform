@@ -346,6 +346,25 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 					}
 
 				case graphNodeExpandsInstances:
+					// FIXME: A hacky special case :(
+					//
+					// Ephemeral resources can be needed during the apply phase
+					// even if only ephemeral output values or other similar
+					// temporary objects refer to them.
+					// ephemeralResourceCloseTransformer has its own specialized
+					// logic for pruning truly-unused ephemeral resources once
+					// other transforms (including this one) are done, so we
+					// never want to prune them here.
+					//
+					// However, it would be better to find a more reasoned
+					// way to express why ephemeral resources need special
+					// treatment here and introduce a less-tightly-coupled
+					// way to express it, if ephemeral values cease to be just
+					// a prototype.
+					if n, ok := n.(GraphNodeConfigResource); ok && n.ResourceAddr().Resource.Mode == addrs.EphemeralResourceMode {
+						return
+					}
+
 					// Any nodes that expand instances are kept when their
 					// instances may need to be evaluated.
 					for _, v := range g.UpEdges(n) {

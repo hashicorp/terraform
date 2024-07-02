@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/refactoring"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -184,6 +185,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		NamedValues:             namedvals.NewState(),
 		Deferrals:               deferred,
 		Checks:                  checkState,
+		EphemeralResources:      ephemeral.NewResources(),
 		InstanceExpander:        instances.NewExpander(opts.Overrides),
 		ExternalProviderConfigs: opts.ExternalProviderConfigs,
 		MoveResults:             opts.MoveResults,

@@ -94,6 +94,19 @@ type MockProvider struct {
 	ReadDataSourceRequest  providers.ReadDataSourceRequest
 	ReadDataSourceFn       func(providers.ReadDataSourceRequest) providers.ReadDataSourceResponse
 
+	OpenEphemeralCalled    bool
+	OpenEphemeralResponse  *providers.OpenEphemeralResponse
+	OpenEphemeralRequest   providers.OpenEphemeralRequest
+	OpenEphemeralFn        func(providers.OpenEphemeralRequest) providers.OpenEphemeralResponse
+	RenewEphemeralCalled   bool
+	RenewEphemeralResponse *providers.RenewEphemeralResponse
+	RenewEphemeralRequest  providers.RenewEphemeralRequest
+	RenewEphemeralFn       func(providers.RenewEphemeralRequest) providers.RenewEphemeralResponse
+	CloseEphemeralCalled   bool
+	CloseEphemeralResponse *providers.CloseEphemeralResponse
+	CloseEphemeralRequest  providers.CloseEphemeralRequest
+	CloseEphemeralFn       func(providers.CloseEphemeralRequest) providers.CloseEphemeralResponse
+
 	CallFunctionCalled   bool
 	CallFunctionResponse providers.CallFunctionResponse
 	CallFunctionRequest  providers.CallFunctionRequest
@@ -548,6 +561,75 @@ func (p *MockProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 
 	if p.ReadDataSourceResponse != nil {
 		resp = *p.ReadDataSourceResponse
+	}
+
+	return resp
+}
+
+func (p *MockProvider) OpenEphemeral(r providers.OpenEphemeralRequest) (resp providers.OpenEphemeralResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before OpenEphemeral %q", r.TypeName))
+		return resp
+	}
+
+	p.OpenEphemeralCalled = true
+	p.OpenEphemeralRequest = r
+
+	if p.OpenEphemeralFn != nil {
+		return p.OpenEphemeralFn(r)
+	}
+
+	if p.OpenEphemeralResponse != nil {
+		resp = *p.OpenEphemeralResponse
+	}
+
+	return resp
+}
+
+func (p *MockProvider) RenewEphemeral(r providers.RenewEphemeralRequest) (resp providers.RenewEphemeralResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before RenewEphemeral %q", r.TypeName))
+		return resp
+	}
+
+	p.RenewEphemeralCalled = true
+	p.RenewEphemeralRequest = r
+
+	if p.RenewEphemeralFn != nil {
+		return p.RenewEphemeralFn(r)
+	}
+
+	if p.RenewEphemeralResponse != nil {
+		resp = *p.RenewEphemeralResponse
+	}
+
+	return resp
+}
+
+func (p *MockProvider) CloseEphemeral(r providers.CloseEphemeralRequest) (resp providers.CloseEphemeralResponse) {
+	p.Lock()
+	defer p.Unlock()
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before CloseEphemeral %q", r.TypeName))
+		return resp
+	}
+
+	p.CloseEphemeralCalled = true
+	p.CloseEphemeralRequest = r
+
+	if p.CloseEphemeralFn != nil {
+		return p.CloseEphemeralFn(r)
+	}
+
+	if p.CloseEphemeralResponse != nil {
+		resp = *p.CloseEphemeralResponse
 	}
 
 	return resp

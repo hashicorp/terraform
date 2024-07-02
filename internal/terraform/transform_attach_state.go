@@ -46,6 +46,10 @@ func (t *AttachStateTransformer) Transform(g *Graph) error {
 			continue
 		}
 		addr := an.ResourceInstanceAddr()
+		if !addr.Resource.Resource.Mode.PersistsBetweenRounds() {
+			// Non-persisting resources never have any state to attach.
+			continue
+		}
 
 		rs := t.State.Resource(addr.ContainingResource())
 		if rs == nil {

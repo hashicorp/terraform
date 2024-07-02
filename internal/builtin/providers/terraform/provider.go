@@ -32,6 +32,10 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 		ResourceTypes: map[string]providers.Schema{
 			"terraform_data": dataStoreResourceSchema(),
 		},
+		EphemeralResourceTypes: map[string]providers.Schema{
+			"terraform_random_number": ephemeralRandomNumberSchema(),
+			"terraform_ssh_tunnels":   ephemeralSSHTunnelsSchema(),
+		},
 		Functions: map[string]providers.FunctionDecl{
 			"encode_tfvars": {
 				Summary:     "Produce a string representation of an object using the same syntax as for `.tfvars` files",
@@ -169,7 +173,7 @@ func (p *Provider) ImportResourceState(req providers.ImportResourceStateRequest)
 		return importDataStore(req)
 	}
 
-	panic("unimplemented - terraform_remote_state has no resources")
+	panic("unimplemented - terraform.io/builtin/terraform has no managed resource types")
 }
 
 // MoveResourceState requests that the given resource be moved.
@@ -189,6 +193,51 @@ func (p *Provider) MoveResourceState(req providers.MoveResourceStateRequest) pro
 // ValidateResourceConfig is used to to validate the resource configuration values.
 func (p *Provider) ValidateResourceConfig(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 	return validateDataStoreResourceConfig(req)
+}
+
+// OpenEphemeral implements providers.Interface.
+func (p *Provider) OpenEphemeral(req providers.OpenEphemeralRequest) providers.OpenEphemeralResponse {
+	switch req.TypeName {
+	case "terraform_random_number":
+		return openEphemeralRandomNumber(req)
+	case "terraform_ssh_tunnels":
+		return openEphemeralSSHTunnels(req)
+	default:
+		// This should not happen
+		var resp providers.OpenEphemeralResponse
+		resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
+		return resp
+	}
+}
+
+// RenewEphemeral implements providers.Interface.
+func (p *Provider) RenewEphemeral(req providers.RenewEphemeralRequest) providers.RenewEphemeralResponse {
+	switch req.TypeName {
+	case "terraform_random_number":
+		return renewEphemeralRandomNumber(req)
+	case "terraform_ssh_tunnels":
+		return renewEphemeralSSHTunnels(req)
+	default:
+		// This should not happen
+		var resp providers.RenewEphemeralResponse
+		resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
+		return resp
+	}
+}
+
+// CloseEphemeral implements providers.Interface.
+func (p *Provider) CloseEphemeral(req providers.CloseEphemeralRequest) providers.CloseEphemeralResponse {
+	switch req.TypeName {
+	case "terraform_random_number":
+		return closeEphemeralRandomNumber(req)
+	case "terraform_ssh_tunnels":
+		return closeEphemeralSSHTunnels(req)
+	default:
+		// This should not happen
+		var resp providers.CloseEphemeralResponse
+		resp.Diagnostics.Append(fmt.Errorf("unsupported ephemeral resource type %q", req.TypeName))
+		return resp
+	}
 }
 
 // CallFunction would call a function contributed by this provider, but this

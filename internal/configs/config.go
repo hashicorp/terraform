@@ -466,6 +466,14 @@ func (c *Config) addProviderRequirements(reqs providerreqs.Requirements, recurse
 		}
 		reqs[fqn] = nil
 	}
+	for _, rc := range c.Module.EphemeralResources {
+		fqn := rc.Provider
+		if _, exists := reqs[fqn]; exists {
+			// Explicit dependency already present
+			continue
+		}
+		reqs[fqn] = nil
+	}
 
 	// Import blocks that are generating config may have a custom provider
 	// meta-argument. Like the provider meta-argument used in resource blocks,

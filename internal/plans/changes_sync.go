@@ -32,6 +32,7 @@ func (cs *ChangesSync) AppendResourceInstanceChange(changeSrc *ResourceInstanceC
 	if cs == nil {
 		panic("AppendResourceInstanceChange on nil ChangesSync")
 	}
+	assertPlannableResource(changeSrc.Addr.Resource.Resource)
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
 
@@ -53,6 +54,7 @@ func (cs *ChangesSync) GetResourceInstanceChange(addr addrs.AbsResourceInstance,
 	if cs == nil {
 		panic("GetResourceInstanceChange on nil ChangesSync")
 	}
+	assertPlannableResource(addr.Resource.Resource)
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
 
@@ -76,6 +78,7 @@ func (cs *ChangesSync) GetChangesForConfigResource(addr addrs.ConfigResource) []
 	if cs == nil {
 		panic("GetChangesForConfigResource on nil ChangesSync")
 	}
+	assertPlannableResource(addr.Resource)
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
 	var changes []*ResourceInstanceChangeSrc
@@ -97,6 +100,7 @@ func (cs *ChangesSync) GetChangesForAbsResource(addr addrs.AbsResource) []*Resou
 	if cs == nil {
 		panic("GetChangesForAbsResource on nil ChangesSync")
 	}
+	assertPlannableResource(addr.Resource)
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
 	var changes []*ResourceInstanceChangeSrc
@@ -113,6 +117,7 @@ func (cs *ChangesSync) RemoveResourceInstanceChange(addr addrs.AbsResourceInstan
 	if cs == nil {
 		panic("RemoveResourceInstanceChange on nil ChangesSync")
 	}
+	assertPlannableResource(addr.Resource.Resource)
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
 

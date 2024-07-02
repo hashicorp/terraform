@@ -14,6 +14,7 @@ type GraphWalker interface {
 	enterScope(evalContextScope) EvalContext
 	exitScope(evalContextScope)
 	Execute(EvalContext, GraphNodeExecutable) tfdiags.Diagnostics
+	Close() tfdiags.Diagnostics
 }
 
 // NullGraphWalker is a GraphWalker implementation that does nothing.
@@ -25,3 +26,4 @@ func (NullGraphWalker) EvalContext() EvalContext                                
 func (NullGraphWalker) enterScope(evalContextScope) EvalContext                      { return new(MockEvalContext) }
 func (NullGraphWalker) exitScope(evalContextScope)                                   {}
 func (NullGraphWalker) Execute(EvalContext, GraphNodeExecutable) tfdiags.Diagnostics { return nil }
+func (NullGraphWalker) Close() tfdiags.Diagnostics                                   { return nil }

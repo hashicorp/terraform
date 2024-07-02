@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -146,6 +147,9 @@ type MockEvalContext struct {
 
 	MoveResultsCalled  bool
 	MoveResultsResults refactoring.MoveResults
+
+	EphemeralResourcesCalled    bool
+	EphemeralResourcesResources *ephemeral.Resources
 
 	InstanceExpanderCalled   bool
 	InstanceExpanderExpander *instances.Expander
@@ -391,6 +395,11 @@ func (c *MockEvalContext) PrevRunState() *states.SyncState {
 func (c *MockEvalContext) MoveResults() refactoring.MoveResults {
 	c.MoveResultsCalled = true
 	return c.MoveResultsResults
+}
+
+func (c *MockEvalContext) EphemeralResources() *ephemeral.Resources {
+	c.EphemeralResourcesCalled = true
+	return c.EphemeralResourcesResources
 }
 
 func (c *MockEvalContext) InstanceExpander() *instances.Expander {

@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
+	"github.com/hashicorp/terraform/internal/resources/ephemeral"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -32,14 +33,15 @@ type ContextGraphWalker struct {
 
 	// Configurable values
 	Context                 *Context
-	State                   *states.SyncState   // Used for safe concurrent access to state
-	RefreshState            *states.SyncState   // Used for safe concurrent access to state
-	PrevRunState            *states.SyncState   // Used for safe concurrent access to state
-	Changes                 *plans.ChangesSync  // Used for safe concurrent writes to changes
-	Checks                  *checks.State       // Used for safe concurrent writes of checkable objects and their check results
-	NamedValues             *namedvals.State    // Tracks evaluation of input variables, local values, and output values
-	InstanceExpander        *instances.Expander // Tracks our gradual expansion of module and resource instances
-	Deferrals               *deferring.Deferred // Tracks any deferred actions
+	State                   *states.SyncState    // Used for safe concurrent access to state
+	RefreshState            *states.SyncState    // Used for safe concurrent access to state
+	PrevRunState            *states.SyncState    // Used for safe concurrent access to state
+	Changes                 *plans.ChangesSync   // Used for safe concurrent writes to changes
+	Checks                  *checks.State        // Used for safe concurrent writes of checkable objects and their check results
+	NamedValues             *namedvals.State     // Tracks evaluation of input variables, local values, and output values
+	EphemeralResources      *ephemeral.Resources // Tracks active instances of ephemeral resources
+	InstanceExpander        *instances.Expander  // Tracks our gradual expansion of module and resource instances
+	Deferrals               *deferring.Deferred  // Tracks any deferred actions
 	Imports                 []configs.Import
 	MoveResults             refactoring.MoveResults // Read-only record of earlier processing of move statements
 	Operation               walkOperation
@@ -95,22 +97,24 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 	// so that we can safely run multiple evaluations at once across
 	// different modules.
 	evaluator := &Evaluator{
-		Meta:          w.Context.meta,
-		Config:        w.Config,
-		Operation:     w.Operation,
-		State:         w.State,
-		Changes:       w.Changes,
-		Plugins:       w.Context.plugins,
-		Instances:     w.InstanceExpander,
-		NamedValues:   w.NamedValues,
-		Deferrals:     w.Deferrals,
-		PlanTimestamp: w.PlanTimestamp,
+		Meta:               w.Context.meta,
+		Config:             w.Config,
+		Operation:          w.Operation,
+		State:              w.State,
+		Changes:            w.Changes,
+		Plugins:            w.Context.plugins,
+		Instances:          w.InstanceExpander,
+		EphemeralResources: w.EphemeralResources,
+		NamedValues:        w.NamedValues,
+		Deferrals:          w.Deferrals,
+		PlanTimestamp:      w.PlanTimestamp,
 	}
 
 	ctx := &BuiltinEvalContext{
 		StopContext:             w.StopContext,
 		Hooks:                   w.Context.hooks,
 		InputValue:              w.Context.uiInput,
+		EphemeralResourcesValue: w.EphemeralResources,
 		InstanceExpanderValue:   w.InstanceExpander,
 		Plugins:                 w.Context.plugins,
 		ExternalProviderConfigs: w.ExternalProviderConfigs,
@@ -151,4 +155,16 @@ func (w *ContextGraphWalker) Execute(ctx EvalContext, n GraphNodeExecutable) tfd
 	defer w.Context.parallelSem.Release()
 
 	return n.Execute(ctx, w.Operation)
+}
+
+func (w *ContextGraphWalker) Close() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	if er := w.EphemeralResources; er != nil {
+		// FIXME: The graph walk bits all long predate Go's context.Context
+		// and so we don't have a general ambient context.Context for the
+		// overall operation. Hopefully one day we do, and then it could
+		// be passed in here.
+		diags = diags.Append(er.Close(context.TODO()))
+	}
+	return diags
 }

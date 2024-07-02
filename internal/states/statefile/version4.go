@@ -68,6 +68,10 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 		case "data":
 			rAddr.Mode = addrs.DataResourceMode
 		default:
+			// NOTE: the above cases intentionally cover only the subset
+			// of modes where rAddr.Mode.PersistsBetweenRounds() would return
+			// true, because it's a bug for any others to end up in the
+			// state.
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Invalid resource mode in state",
@@ -368,6 +372,10 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 			case addrs.DataResourceMode:
 				mode = "data"
 			default:
+				// NOTE: the above cases intentionally cover only the subset
+				// of modes where mode.PersistsBetweenRounds() would return
+				// true, because it's a bug for any others to end up in the
+				// state.
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Failed to serialize resource in state",

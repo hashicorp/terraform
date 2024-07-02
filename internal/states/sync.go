@@ -150,6 +150,7 @@ func (s *SyncState) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceIn
 // The return value is a pointer to a copy of the object, which the caller may
 // then freely access and mutate.
 func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, dk DeposedKey) *ResourceInstanceObjectSrc {
+	assertPersistableResource(addr.Resource.Resource)
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -164,6 +165,7 @@ func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, dk De
 // the given address, creating the containing module state and resource state
 // as a side-effect if not already present.
 func (s *SyncState) SetResourceProvider(addr addrs.AbsResource, provider addrs.AbsProviderConfig) {
+	assertPersistableResource(addr.Resource)
 	defer s.beginWrite()()
 
 	ms := s.state.EnsureModule(addr.Module)
@@ -176,6 +178,7 @@ func (s *SyncState) SetResourceProvider(addr addrs.AbsResource, provider addrs.A
 // but that is not enforced by this method. (Use RemoveResourceIfEmpty instead
 // to safely check first.)
 func (s *SyncState) RemoveResource(addr addrs.AbsResource) {
+	assertPersistableResource(addr.Resource)
 	defer s.beginWrite()()
 
 	ms := s.state.EnsureModule(addr.Module)
@@ -231,6 +234,7 @@ func (s *SyncState) RemoveResourceIfEmpty(addr addrs.AbsResource) bool {
 // If the containing module for this resource or the resource itself are not
 // already tracked in state then they will be added as a side-effect.
 func (s *SyncState) SetResourceInstanceCurrent(addr addrs.AbsResourceInstance, obj *ResourceInstanceObjectSrc, provider addrs.AbsProviderConfig) {
+	assertPersistableResource(addr.Resource.Resource)
 	defer s.beginWrite()()
 
 	ms := s.state.EnsureModule(addr.Module)
@@ -262,6 +266,7 @@ func (s *SyncState) SetResourceInstanceCurrent(addr addrs.AbsResourceInstance, o
 // If the containing module for this resource or the resource itself are not
 // already tracked in state then they will be added as a side-effect.
 func (s *SyncState) SetResourceInstanceDeposed(addr addrs.AbsResourceInstance, key DeposedKey, obj *ResourceInstanceObjectSrc, provider addrs.AbsProviderConfig) {
+	assertPersistableResource(addr.Resource.Resource)
 	defer s.beginWrite()()
 
 	ms := s.state.EnsureModule(addr.Module)
@@ -281,6 +286,7 @@ func (s *SyncState) SetResourceInstanceDeposed(addr addrs.AbsResourceInstance, k
 // given instance, and so NotDeposed will be returned without modifying the
 // state at all.
 func (s *SyncState) DeposeResourceInstanceObject(addr addrs.AbsResourceInstance) DeposedKey {
+	assertPersistableResource(addr.Resource.Resource)
 	defer s.beginWrite()()
 
 	ms := s.state.Module(addr.Module)
@@ -296,6 +302,7 @@ func (s *SyncState) DeposeResourceInstanceObject(addr addrs.AbsResourceInstance)
 // that there aren't any races to use a particular key; this method will panic
 // if the given key is already in use.
 func (s *SyncState) DeposeResourceInstanceObjectForceKey(addr addrs.AbsResourceInstance, forcedKey DeposedKey) {
+	assertPersistableResource(addr.Resource.Resource)
 	defer s.beginWrite()()
 
 	if forcedKey == NotDeposed {
@@ -314,6 +321,7 @@ func (s *SyncState) DeposeResourceInstanceObjectForceKey(addr addrs.AbsResourceI
 // ForgetResourceInstanceAll removes the record of all objects associated with
 // the specified resource instance, if present. If not present, this is a no-op.
 func (s *SyncState) ForgetResourceInstanceAll(addr addrs.AbsResourceInstance) {
+	assertPersistableResource(addr.Resource.Resource)
 	defer s.beginWrite()()
 
 	ms := s.state.Module(addr.Module)
@@ -327,6 +335,7 @@ func (s *SyncState) ForgetResourceInstanceAll(addr addrs.AbsResourceInstance) {
 // ForgetResourceInstanceDeposed removes the record of the deposed object with
 // the given address and key, if present. If not present, this is a no-op.
 func (s *SyncState) ForgetResourceInstanceDeposed(addr addrs.AbsResourceInstance, key DeposedKey) {
+	assertPersistableResource(addr.Resource.Resource)
 	defer s.beginWrite()()
 
 	ms := s.state.Module(addr.Module)
@@ -345,6 +354,7 @@ func (s *SyncState) ForgetResourceInstanceDeposed(addr addrs.AbsResourceInstance
 // Returns true if the object was restored to current, or false if no change
 // was made at all.
 func (s *SyncState) MaybeRestoreResourceInstanceDeposed(addr addrs.AbsResourceInstance, key DeposedKey) bool {
+	assertPersistableResource(addr.Resource.Resource)
 	defer s.beginWrite()()
 
 	if key == NotDeposed {
@@ -491,24 +501,32 @@ func (s *SyncState) maybePruneModule(addr addrs.ModuleInstance) {
 }
 
 func (s *SyncState) MoveAbsResource(src, dst addrs.AbsResource) {
+	assertPersistableResource(src.Resource)
+	assertPersistableResource(dst.Resource)
 	defer s.beginWrite()()
 
 	s.state.MoveAbsResource(src, dst)
 }
 
 func (s *SyncState) MaybeMoveAbsResource(src, dst addrs.AbsResource) bool {
+	assertPersistableResource(src.Resource)
+	assertPersistableResource(dst.Resource)
 	defer s.beginWrite()()
 
 	return s.state.MaybeMoveAbsResource(src, dst)
 }
 
 func (s *SyncState) MoveResourceInstance(src, dst addrs.AbsResourceInstance) {
+	assertPersistableResource(src.Resource.Resource)
+	assertPersistableResource(dst.Resource.Resource)
 	defer s.beginWrite()()
 
 	s.state.MoveAbsResourceInstance(src, dst)
 }
 
 func (s *SyncState) MaybeMoveResourceInstance(src, dst addrs.AbsResourceInstance) bool {
+	assertPersistableResource(src.Resource.Resource)
+	assertPersistableResource(dst.Resource.Resource)
 	defer s.beginWrite()()
 
 	return s.state.MaybeMoveAbsResourceInstance(src, dst)

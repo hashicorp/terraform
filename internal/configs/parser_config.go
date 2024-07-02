@@ -193,6 +193,13 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 				file.DataResources = append(file.DataResources, cfg)
 			}
 
+		case "ephemeral":
+			cfg, cfgDiags := decodeEphemeralBlock(block, override)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.EphemeralResources = append(file.EphemeralResources, cfg)
+			}
+
 		case "moved":
 			cfg, cfgDiags := decodeMovedBlock(block)
 			diags = append(diags, cfgDiags...)
@@ -306,6 +313,10 @@ var configFileSchema = &hcl.BodySchema{
 		},
 		{
 			Type:       "data",
+			LabelNames: []string{"type", "name"},
+		},
+		{
+			Type:       "ephemeral",
 			LabelNames: []string{"type", "name"},
 		},
 		{

@@ -398,6 +398,10 @@ func (n *NodeAbstractResource) DotNode(name string, opts *dag.DotOpts) *dag.DotN
 // eval is the only change we get to set the resource "each mode" to list
 // in that case, allowing expression evaluation to see it as a zero-element list
 // rather than as not set at all.
+//
+// The name of this method has grown to be a bit of a misnomer, since it's
+// responsible both for updating the state _and_ for recording the "expansion"
+// of the resource in the EvalContext's InstanceExpander.
 func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.AbsResource) (diags tfdiags.Diagnostics) {
 	state := ctx.State()
 
@@ -422,7 +426,9 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 			return diags
 		}
 
-		state.SetResourceProvider(addr, n.ResolvedProvider)
+		if addr.Resource.Mode.PersistsBetweenRounds() {
+			state.SetResourceProvider(addr, n.ResolvedProvider)
+		}
 		if count >= 0 {
 			expander.SetResourceCount(addr.Module, n.Addr.Resource, count)
 		} else {
@@ -439,7 +445,9 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 
 		// This method takes care of all of the business logic of updating this
 		// while ensuring that any existing instances are preserved, etc.
-		state.SetResourceProvider(addr, n.ResolvedProvider)
+		if addr.Resource.Mode.PersistsBetweenRounds() {
+			state.SetResourceProvider(addr, n.ResolvedProvider)
+		}
 		if known {
 			expander.SetResourceForEach(addr.Module, n.Addr.Resource, forEach)
 		} else {
@@ -447,7 +455,9 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 		}
 
 	default:
-		state.SetResourceProvider(addr, n.ResolvedProvider)
+		if addr.Resource.Mode.PersistsBetweenRounds() {
+			state.SetResourceProvider(addr, n.ResolvedProvider)
+		}
 		expander.SetResourceSingle(addr.Module, n.Addr.Resource)
 	}
 

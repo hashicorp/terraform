@@ -236,6 +236,7 @@ Note that the -target option is not suitable for routine use, and is provided on
 	// expressions, like in "terraform console" or the test harness.
 	evalScope := evalScopeFromGraphWalk(walker, addrs.RootModuleInstance)
 
+	diags = diags.Append(walker.Close())
 	return newState, evalScope, diags
 }
 
