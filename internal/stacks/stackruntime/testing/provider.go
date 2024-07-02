@@ -133,7 +133,7 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 			ApplyResourceChangeFn: func(request providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 				if request.PlannedState.IsNull() {
 					// Deleting, so just update the store and return.
-					store.Delete(request.PlannedState.GetAttr("id").AsString())
+					store.Delete(request.PriorState.GetAttr("id").AsString())
 					return providers.ApplyResourceChangeResponse{
 						NewState: request.PlannedState,
 					}

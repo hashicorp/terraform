@@ -22,6 +22,7 @@ import (
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
@@ -370,13 +371,15 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	store := stacks_testing_provider.NewResourceStore()
+
 	changesCh := make(chan stackplan.PlannedChange)
 	diagsCh := make(chan tfdiags.Diagnostic)
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProviderWithData(store), nil
 			},
 		},
 
@@ -400,8 +403,8 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 		Detail:  `value must be 'baz'`,
 		Subject: &hcl.Range{
 			Filename: mainBundleSourceAddrStr("checkable-objects/checkable-objects.tf"),
-			Start:    hcl.Pos{Line: 32, Column: 21, Byte: 532},
-			End:      hcl.Pos{Line: 32, Column: 57, Byte: 568},
+			Start:    hcl.Pos{Line: 41, Column: 21, Byte: 716},
+			End:      hcl.Pos{Line: 41, Column: 57, Byte: 752},
 		},
 	})
 
@@ -412,21 +415,21 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 		t.Errorf("wrong diagnostics\n%s", diff)
 	}
 
-	var raw []*anypb.Any
+	var rawPlan []*anypb.Any
 	for _, change := range planChanges {
 		proto, err := change.PlannedChangeProto()
 		if err != nil {
 			t.Fatal(err)
 		}
-		raw = append(raw, proto.Raw...)
+		rawPlan = append(rawPlan, proto.Raw...)
 	}
 
 	applyReq := ApplyRequest{
 		Config:  cfg,
-		RawPlan: raw,
+		RawPlan: rawPlan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProviderWithData(store), nil
 			},
 		},
 	}
@@ -459,7 +462,9 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 					},
 				},
 			},
-			OutputValues: make(map[addrs.OutputValue]cty.Value),
+			OutputValues: map[addrs.OutputValue]cty.Value{
+				addrs.OutputValue{Name: "foo"}: cty.StringVal("bar"),
+			},
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
@@ -494,6 +499,120 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 				Provider: addrs.NewDefaultProvider("testing"),
 			},
 			Schema: stacks_testing_provider.TestingResourceSchema,
+		},
+	}
+
+	sort.SliceStable(applyChanges, func(i, j int) bool {
+		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
+	})
+
+	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+
+	// capture the state
+	state := make(map[string]*anypb.Any)
+	for _, change := range applyChanges {
+		proto, err := change.AppliedChangeProto()
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, raw := range proto.Raw {
+			state[raw.Key] = raw.Value
+		}
+	}
+	prevState, err := stackstate.LoadFromProto(state)
+	if err != nil {
+		t.Fatalf("failed to load state from proto: %s", err)
+	}
+
+	// We'll follow this up with a destroy plan to verify everything the checks
+	// don't get in the way here.
+
+	changesCh = make(chan stackplan.PlannedChange)
+	diagsCh = make(chan tfdiags.Diagnostic)
+	req = PlanRequest{
+		// For this plan, we're destroying and we now have some state.
+		PlanMode:  plans.DestroyMode,
+		PrevState: prevState,
+
+		// The rest is the same as the previous plan.
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(store), nil
+			},
+		},
+
+		ForcePlanTimestamp: &fakePlanTimestamp,
+
+		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
+			stackaddrs.InputVariable{Name: "foo"}: {
+				Value: cty.StringVal("bar"),
+			},
+		},
+	}
+	resp = PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	planChanges, planDiags = collectPlanOutput(changesCh, diagsCh)
+
+	if len(planDiags) > 0 {
+		// At this point we shouldn't see the check warning, as they don't
+		// execute during destroy plans.
+		t.Fatalf("expected no diagnostics, got %s", planDiags.ErrWithWarnings())
+	}
+
+	rawPlan = nil // clear rawPlan for the next apply
+	for _, change := range planChanges {
+		proto, err := change.PlannedChangeProto()
+		if err != nil {
+			t.Fatal(err)
+		}
+		rawPlan = append(rawPlan, proto.Raw...)
+	}
+
+	// And now we'll apply the destroy plan to verify that the checks don't
+	// get in the way here.
+
+	applyReq = ApplyRequest{
+		Config:  cfg,
+		RawPlan: rawPlan,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(store), nil
+			},
+		},
+	}
+
+	applyChangesCh = make(chan stackstate.AppliedChange)
+	diagsCh = make(chan tfdiags.Diagnostic)
+
+	applyResp = ApplyResponse{
+		AppliedChanges: applyChangesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Apply(ctx, &applyReq, &applyResp)
+	applyChanges, applyDiags = collectApplyOutput(applyChangesCh, diagsCh)
+	if len(applyDiags) > 0 {
+		// Again, the warning from the check block shouldn't be included during
+		// a destroy operation.
+		t.Fatalf("expected no diagnostics, got %s", applyDiags.ErrWithWarnings())
+	}
+
+	wantChanges = []stackstate.AppliedChange{
+		&stackstate.AppliedChangeComponentInstance{
+			ComponentAddr:         mustAbsComponent("component.single"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.single"),
+			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+		},
+		&stackstate.AppliedChangeResourceInstanceObject{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.single.testing_resource.main"),
+			ProviderConfigAddr:         mustDefaultRootProvider("testing"),
 		},
 	}
 

@@ -27,6 +27,15 @@ resource "testing_resource" "main" {
   }
 }
 
+output "foo" {
+  value = testing_resource.main.value
+
+  precondition {
+    condition     = length(testing_resource.main.value) > 0
+    error_message = "value must not be empty"
+  }
+}
+
 check "value_is_baz" {
   assert {
     condition     = testing_resource.main.value == "baz"

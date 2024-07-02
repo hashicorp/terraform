@@ -121,6 +121,17 @@ message PlanComponentInstance {
     // the apply phase.
     tfplan.Action planned_action = 4;
 
+    // The mode that was used to plan this component.
+    //
+    // This is used to determine the behavior of the apply phase for this
+    // component instance.
+    //
+    // Ideally, we wouldn't need to include this at all as the plan should
+    // contain everything we need without a general mode. However, this is
+    // not currently the case. See context_apply.go:332 for more details.
+    // TODO: Remove this once walkDestroy has been properly audited.
+    tfplan.Mode mode = 10;
+
     // The appliability flag decided by the modules runtime for this component's
     // plan. See the docs for plans.Plan.Applyable for details on what this
     // represents. (It's here largely just so that we can repopulate it
