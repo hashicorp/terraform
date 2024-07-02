@@ -159,6 +159,69 @@ func TestBase64Gzip(t *testing.T) {
 	}
 }
 
+func TestURLDecode(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.StringVal("abc123-_"),
+			cty.StringVal("abc123-_"),
+			false,
+		},
+		{
+			cty.StringVal("foo%3Abar%40localhost%3Ffoo%3Dbar%26bar%3Dbaz"),
+			cty.StringVal("foo:bar@localhost?foo=bar&bar=baz"),
+			false,
+		},
+		{
+			cty.StringVal("mailto%3Aemail%3Fsubject%3Dthis%2Bis%2Bmy%2Bsubject"),
+			cty.StringVal("mailto:email?subject=this+is+my+subject"),
+			false,
+		},
+		{
+			cty.StringVal("foo%2Fbar"),
+			cty.StringVal("foo/bar"),
+			false,
+		},
+		{
+			cty.StringVal("abc123!%3F%24*%26()'-%3D%40~"),
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			false,
+		},
+		{ // Invalid url encoded data decoding
+			cty.StringVal("this-is-an-invalid-urlencode-data-%1"),
+			cty.UnknownVal(cty.String),
+			true,
+		},
+		{ // Invalid utf-8
+			cty.StringVal("\xc3\x28"),
+			cty.UnknownVal(cty.String),
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("urldecode(%#v)", test.String), func(t *testing.T) {
+			got, err := URLDecode(test.String)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestURLEncode(t *testing.T) {
 	tests := []struct {
 		String cty.Value

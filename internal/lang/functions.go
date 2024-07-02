@@ -171,6 +171,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"trimsuffix":       stdlib.TrimSuffixFunc,
 			"try":              tryfunc.TryFunc,
 			"upper":            stdlib.UpperFunc,
+			"urldecode":        funcs.URLDecodeFunc,
 			"urlencode":        funcs.URLEncodeFunc,
 			"uuid":             funcs.UUIDFunc,
 			"uuidv5":           funcs.UUIDV5Func,
