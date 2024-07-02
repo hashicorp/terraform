@@ -156,6 +156,17 @@ naming pattern. Terraform will not prevent you from using other names but follow
 this convention will help your editor understand the content and likely provide
 better editing experience as a result.
 
+- Using a backend configuration file  or CLI key-value pairs overrides the contents, 
+but not the type of `backend`. (e.g. Use a Partial Configuration in the primary config.)
+
+```hcl
+terraform {
+  backend {
+    # values provided by backend-config file
+  }
+}
+```
+
 ### Command-line key/value pairs
 
 The same settings can alternatively be specified on the command line as
