@@ -1,5 +1,9 @@
 ## 1.9.1 (Unreleased)
 
+BUG FIXES:
+
+* `terraform test`: Removed additional erroneous error message when referencing attributes that don't exist. ([#35408](https://github.com/hashicorp/terraform/pull/35408))
+
 ## 1.9.0 (June 26, 2024)
 
 If you are upgrading from an earlier minor release, please refer to [the Terraform v1.9 Upgrade Guide](https://developer.hashicorp.com/terraform/language/v1.9.x/upgrade-guides).
