@@ -427,8 +427,23 @@ func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalConte
 		return checkResult{Status: status}, diags
 	}
 
+	if !errorValue.IsKnown() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     "Invalid error message",
+			Detail:      "Unsuitable value for error message: expression refers to values that won't be known until the apply phase.",
+			Subject:     validation.ErrorMessage.Range().Ptr(),
+			Expression:  validation.ErrorMessage,
+			EvalContext: hclCtx,
+			Extra:       diagnosticCausedByUnknown(true),
+		})
+		return checkResult{
+			Status: checks.StatusError,
+		}, diags
+	}
+
 	var errorMessage string
-	if !errorDiags.HasErrors() && errorValue.IsKnown() && !errorValue.IsNull() {
+	if !errorDiags.HasErrors() && !errorValue.IsNull() {
 		var err error
 		errorValue, err = convert.Convert(errorValue, cty.String)
 		if err != nil {
