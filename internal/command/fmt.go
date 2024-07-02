@@ -12,14 +12,19 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -28,7 +33,8 @@ const (
 )
 
 var (
-	fmtSupportedExts = []string{
+	fmtModuleFileHCLExt = ".tf"
+	fmtSupportedExts    = []string{
 		".tf",
 		".tfvars",
 		".tftest.hcl",
@@ -120,7 +126,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 			diags = diags.Append(fmt.Errorf("Option -write cannot be used when reading from stdin"))
 			return diags
 		}
-		fileDiags := c.processFile("<stdin>", stdin, stdout, true)
+		fileDiags := c.processFile("<stdin>", stdin, stdout, true, nil)
 		diags = diags.Append(fileDiags)
 		return diags
 	}
@@ -147,7 +153,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 						continue
 					}
 
-					fileDiags := c.processFile(c.normalizePath(path), f, stdout, false)
+					fileDiags := c.processFile(c.normalizePath(path), f, stdout, false, nil)
 					diags = diags.Append(fileDiags)
 					f.Close()
 
@@ -169,7 +175,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 	return diags
 }
 
-func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout bool) tfdiags.Diagnostics {
+func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout bool, moduleMeta *fmtModuleAnalysis) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	log.Printf("[TRACE] terraform fmt: Formatting %s", path)
@@ -193,7 +199,7 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 		return diags
 	}
 
-	result := c.formatSourceCode(src, path)
+	result := c.formatSourceCode(src, path, moduleMeta)
 
 	if !bytes.Equal(src, result) {
 		// Something was changed
@@ -245,6 +251,13 @@ func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnosti
 		return diags
 	}
 
+	// moduleMeta will be non-nil only if the directory seems to contain a
+	// valid Terraform module, but the rest of the formatter is designed to
+	// tolerate that and just skip any formatting rules that only make sense
+	// when formatting a whole module directory at once.
+	moduleMeta := c.analyzeModuleDir(path)
+	seenRequiredProvidersFile := false
+
 	for _, info := range entries {
 		name := info.Name()
 		if configs.IsIgnoredFile(name) {
@@ -263,6 +276,10 @@ func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnosti
 			continue
 		}
 
+		if moduleMeta.IsRequiredProvidersFile(name) {
+			seenRequiredProvidersFile = true
+		}
+
 		for _, ext := range fmtSupportedExts {
 			if strings.HasSuffix(name, ext) {
 				f, err := os.Open(subPath)
@@ -273,7 +290,7 @@ func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnosti
 					continue
 				}
 
-				fileDiags := c.processFile(c.normalizePath(subPath), f, stdout, false)
+				fileDiags := c.processFile(c.normalizePath(subPath), f, stdout, false, moduleMeta)
 				diags = diags.Append(fileDiags)
 				f.Close()
 
@@ -283,18 +300,75 @@ func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnosti
 		}
 	}
 
+	if moduleMeta.SeemsLikeModule() && !seenRequiredProvidersFile {
+		// If this directory is a valid Terraform module but we didn't
+		// encounter the file that ought to contain its required_providers
+		// block then we might need to generate that file from scratch.
+		moreDiags := c.maybeGenerateRequiredProvidersFile(path, moduleMeta, stdout)
+		diags = diags.Append(moreDiags)
+	}
+
 	return diags
+}
+
+// analyzeModuleDir tries to treat the given path as a module directory and,
+// if successful, returns some module-wide context that other formatting rules
+// can use to deal with normalizations that must take into account context
+// from elsewhere in the module.
+//
+// This is a "best effort" operation that will return nil if the given path
+// doesn't seem to be a Terraform module or if the module is invalid in a way
+// that prevents us from analyzing it. We assume it's better for this command
+// to succeed with some partial normalization rather than to fail hard, since
+// other commands will quickly catch any problems that this module would've
+// detected while fmt is primarily concerned with just syntax details.
+func (c *FmtCommand) analyzeModuleDir(path string) *fmtModuleAnalysis {
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		// errors are unlikely; we'll just treat this as not a valid module
+		// directory if we do encounter an error.
+		return nil
+	}
+	parser := loader.Parser()
+	module, diags := parser.LoadConfigDir(path)
+	if diags.HasErrors() {
+		return nil
+	}
+
+	providerReqs, diags := module.ProviderRequirementsShallow()
+	if diags.HasErrors() {
+		return nil
+	}
+
+	fileWithReqs := "versions.tf" // the conventional default, unless there's already a block in a different file
+	var declaredReqs map[string]*configs.RequiredProvider
+	if reqsBlock := module.ProviderRequirements; reqsBlock != nil && !reqsBlock.DeclRange.Empty() {
+		fileWithReqs = filepath.Base(reqsBlock.DeclRange.Filename)
+		declaredReqs = reqsBlock.RequiredProviders
+	}
+
+	return &fmtModuleAnalysis{
+		requiredProvidersFilename: fileWithReqs,
+		detectedProviderReqs:      providerReqs,
+		declaredProviderReqs:      declaredReqs,
+	}
 }
 
 // formatSourceCode is the formatting logic itself, applied to each file that
 // is selected (directly or indirectly) on the command line.
-func (c *FmtCommand) formatSourceCode(src []byte, filename string) []byte {
+func (c *FmtCommand) formatSourceCode(src []byte, filename string, moduleMeta *fmtModuleAnalysis) []byte {
 	f, diags := hclwrite.ParseConfig(src, filename, hcl.InitialPos)
 	if diags.HasErrors() {
 		// It would be weird to get here because the caller should already have
 		// checked for syntax errors and returned them. We'll just do nothing
 		// in this case, returning the input exactly as given.
 		return src
+	}
+
+	if moduleMeta.IsRequiredProvidersFile(filename) {
+		// The current file is the one that either already contains or should
+		// contain our required_providers block, if needed.
+		c.formatProviderRequirements(f, moduleMeta.DetectedProviderReqs(), moduleMeta.DeclaredProviderReqs())
 	}
 
 	c.formatBody(f.Body(), nil)
@@ -546,6 +620,160 @@ func (c *FmtCommand) trimNewlines(tokens hclwrite.Tokens) hclwrite.Tokens {
 	return tokens[start:end]
 }
 
+func (c *FmtCommand) formatProviderRequirements(file *hclwrite.File, detectedReqs providerreqs.Requirements, declaredReqs map[string]*configs.RequiredProvider) bool {
+
+	// Before we do anything else we'll check to see if we have any detected
+	// requirements that aren't already declared. If not then we don't need
+	// to make any changes at all.
+	declaredAddrs := collections.NewSetCmp[addrs.Provider]()
+	var undeclaredReqs []addrs.Provider
+	for _, reqd := range declaredReqs {
+		declaredAddrs.Add(reqd.Type)
+	}
+	for providerType := range detectedReqs {
+		if !declaredAddrs.Has(providerType) {
+			if !addrs.IsDefaultProvider(providerType) {
+				// We shouldn't be able to get here because non-default
+				// providers can only be required if they are already
+				// explicitly declared. Nonetheless we'll just quietly
+				// ignore it in case some rules change in the future:
+				// our logic below is assuming that only official
+				// providers can end up in undeclaredReqs.
+				continue
+			}
+			undeclaredReqs = append(undeclaredReqs, providerType)
+		}
+	}
+	if len(undeclaredReqs) == 0 {
+		return false
+	}
+
+	// Beyond this point we can assume we're definitely going to insert
+	// at least one new required_providers entry, and that any that we
+	// are adding must be for a provider in the default "hashicorp"
+	// namespace because otherwise it would need to have been explicitly
+	// declared by definition.
+
+	rootBody := file.Body()
+
+	var terraformBlock *hclwrite.Block
+	var reqsBlock *hclwrite.Block
+TopLevelBlocks:
+	for _, block := range rootBody.Blocks() {
+		if block.Type() != "terraform" {
+			continue
+		}
+
+		// We'll remember the first terraform block we find in the file
+		// to use in case we don't find one that already contains a
+		// required_providers block; we'll want to add a required_providers
+		// block to this one rather than adding a redundant extra terraform
+		// block.
+		if terraformBlock == nil {
+			terraformBlock = block
+		}
+
+		// If we've found a terraform block then it might be the one that
+		// contains our required_providers block.
+		for _, childBlock := range block.Body().Blocks() {
+			if childBlock.Type() != "required_providers" {
+				continue
+			}
+
+			// We've found our required_providers block. The config loader
+			// allows only one, so we can stop searching now.
+			terraformBlock = block
+			reqsBlock = childBlock
+			break TopLevelBlocks
+		}
+	}
+
+	if terraformBlock == nil {
+		terraformBlock = rootBody.AppendBlock(hclwrite.NewBlock("terraform", nil))
+	}
+	if reqsBlock == nil {
+		reqsBlock = terraformBlock.Body().AppendBlock(hclwrite.NewBlock("required_providers", nil))
+	}
+	// One way or another we should now definitely have a non-nil reqsBlock
+	// to which we will add one or more entries.
+
+	// We'll add any new entries in a predictable order.
+	sort.Slice(undeclaredReqs, func(i, j int) bool {
+		return undeclaredReqs[i].LessThan(undeclaredReqs[j])
+	})
+
+	reqsBody := reqsBlock.Body()
+	toks := []hclwrite.ObjectAttrTokens{
+		{
+			Name: hclwrite.TokensForIdentifier("source"),
+			// (Value tokens will be populated below as we reuse this object)
+		},
+	}
+	for _, providerAddr := range undeclaredReqs {
+		// The local name for an implicitly-required provider is always
+		// the "type" part of its fully-qualified name, because we
+		// infer these from locations in the configuration where local
+		// names would normally be expected.
+		localName := providerAddr.Type
+		toks[0].Value = hclwrite.TokensForValue(cty.StringVal(providerAddr.ForDisplay()))
+		reqsBody.SetAttributeRaw(localName, hclwrite.TokensForObject(toks))
+	}
+
+	return true
+}
+
+// maybeGenerateRequiredProvidersFile creates a new source file for a module's
+// provider requirements if the provided moduleMeta indicates that there are
+// implicitly-required providers.
+//
+// This should be called only if formatting didn't already encounter the
+// module's file containing required_providers during earlier work. This is
+// for the case where that file doesn't exist at all yet and so we might
+// need to create it for the first time.
+func (c *FmtCommand) maybeGenerateRequiredProvidersFile(moduleDir string, moduleMeta *fmtModuleAnalysis, w io.Writer) tfdiags.Diagnostics {
+	if !moduleMeta.SeemsLikeModule() {
+		return nil
+	}
+
+	f := hclwrite.NewEmptyFile()
+	haveContent := c.formatProviderRequirements(f, moduleMeta.DetectedProviderReqs(), moduleMeta.DeclaredProviderReqs())
+	if !haveContent {
+		return nil
+	}
+
+	var diags tfdiags.Diagnostics
+
+	// What we'll do with our result depends on what mode we're running in.
+	filename := filepath.Join(moduleDir, moduleMeta.RequiredProvidersFilename())
+	if !strings.HasSuffix(filename, fmtModuleFileHCLExt) {
+		// We can't generate anything other than Terraform's native (HCL) syntax,
+		// so we'll just let the author worry about this themselves.
+		return diags
+	}
+	if c.list {
+		fmt.Fprintln(w, filename)
+	}
+	if c.write {
+		result := f.Bytes()
+		err := os.WriteFile(filename, result, 0644)
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("Failed to write %s", filename))
+			return diags
+		}
+	}
+	if c.diff {
+		result := f.Bytes()
+		diff, err := bytesDiff(nil, result, filename)
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("Failed to generate diff for %s: %s", filename, err))
+			return diags
+		}
+		w.Write(diff)
+	}
+
+	return diags
+}
+
 func (c *FmtCommand) Help() string {
 	helpText := `
 Usage: terraform [global options] fmt [options] [target...]
@@ -614,4 +842,81 @@ func bytesDiff(b1, b2 []byte, path string) (data []byte, err error) {
 		err = nil
 	}
 	return
+}
+
+type fmtModuleAnalysis struct {
+	// requiredProvidersFilename is the name of the file that either already
+	// contains or could potentially have added a required_providers block.
+	//
+	// Each module is allowed to have only one required_providers block, so
+	// we respect the author's choice about where to place it if they already
+	// wrote one but we'll choose a sensible default location if not.
+	requiredProvidersFilename string
+
+	// detectedProviderReqs are the provider requirements detected when
+	// analyzing the module. This includes both dependencies that are already
+	// explicitly declared in required_providers and any that we infer through
+	// of our backward-compatibility heuristics.
+	detectedProviderReqs providerreqs.Requirements
+
+	// declaredProviderReqs are the explicitly-declared provider requirements
+	// that are already present in the module's required_providers block.
+	declaredProviderReqs map[string]*configs.RequiredProvider
+}
+
+func (a *fmtModuleAnalysis) SeemsLikeModule() bool {
+	return a != nil
+}
+
+// RequiredProvidersFilename returns the discovered or chosen file that
+// currently does contain or could potentially have added a required_providers
+// block, or the empty string if analysis did not recognize the directory
+// as a valid module.
+func (a *fmtModuleAnalysis) RequiredProvidersFilename() string {
+	if a == nil {
+		return ""
+	}
+	return a.requiredProvidersFilename
+}
+
+// IsRequiredProvidersFile returns true if the basename of the given path
+// matches the analyzed module's required providers filename.
+//
+// Always returns false if analysis did not recognize the directory as a valid
+// module.
+//
+// Note that this doesn't pay any attention to the directory part of the
+// given path; callers must only pass paths of files in the same directory
+// where this analysis was performed, or the result is meaningless.
+func (a *fmtModuleAnalysis) IsRequiredProvidersFile(fn string) bool {
+	if a == nil {
+		return false
+	}
+	return filepath.Base(fn) == a.RequiredProvidersFilename()
+}
+
+// DetectedProviderReqs returns the full set of detected provider requirements
+// for the module, including any that were inferred using backward-compatibility
+// heuristics.
+//
+// Returns an empty set of requirements if analysis did not recognize the
+// directory as a valid module.
+//
+// Callers must not modify the returned map.
+func (a *fmtModuleAnalysis) DetectedProviderReqs() providerreqs.Requirements {
+	if a == nil {
+		return nil
+	}
+	return a.detectedProviderReqs
+}
+
+// DeclaredProviderReqs returns the explicit provider declarations from the
+// module.
+//
+// Callers must not modify the returned map.
+func (a *fmtModuleAnalysis) DeclaredProviderReqs() map[string]*configs.RequiredProvider {
+	if a == nil {
+		return nil
+	}
+	return a.declaredProviderReqs
 }

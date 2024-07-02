@@ -525,6 +525,304 @@ func TestFmt_checkStdin(t *testing.T) {
 	}
 }
 
+func TestFmt_providerReqs(t *testing.T) {
+	runFmt := func(t *testing.T, args ...string) string {
+		ui := cli.NewMockUi()
+		c := &FmtCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("unexpected failure\nerrors:\n%s", ui.ErrorWriter.String())
+		}
+		return ui.OutputWriter.String()
+	}
+
+	t.Run("no existing terraform blocks at all and no versions.tf", func(t *testing.T) {
+		workDir := t.TempDir()
+		err := os.WriteFile(filepath.Join(workDir, "main.tf"), []byte(`
+			resource "tls_thingy" "placeholder" {
+			}
+			resource "local_thingy" "placeholder" {
+			}
+		`), os.ModePerm)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		runFmt(t, "-write", workDir)
+
+		got, err := os.ReadFile(filepath.Join(workDir, "versions.tf"))
+		if err != nil {
+			t.Fatalf("can't open versions.tf: %s", err)
+		}
+		want := `terraform {
+  required_providers {
+    local = {
+      source = "hashicorp/local"
+    }
+    tls = {
+      source = "hashicorp/tls"
+    }
+  }
+}
+`
+		if diff := cmp.Diff(want, string(got)); diff != "" {
+			t.Errorf("wrong versions.tf content\n%s", diff)
+		}
+	})
+	t.Run("versions.tf has existing terraform block but no required_providers", func(t *testing.T) {
+		workDir := t.TempDir()
+		err := os.WriteFile(filepath.Join(workDir, "main.tf"), []byte(`
+			resource "tls_thingy" "placeholder" {
+			}
+		`), os.ModePerm)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = os.WriteFile(filepath.Join(workDir, "versions.tf"), []byte(`
+			terraform {
+				required_version = ">= 1.0.0"
+			}
+		`), os.ModePerm)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		runFmt(t, "-write", workDir)
+
+		got, err := os.ReadFile(filepath.Join(workDir, "versions.tf"))
+		if err != nil {
+			t.Fatalf("can't open versions.tf: %s", err)
+		}
+		want := `terraform {
+  required_version = ">= 1.0.0"
+  required_providers {
+    tls = {
+      source = "hashicorp/tls"
+    }
+  }
+}`
+		if diff := cmp.Diff(want, string(bytes.TrimSpace(got))); diff != "" {
+			t.Errorf("wrong versions.tf content\n%s", diff)
+		}
+	})
+	t.Run("another file has existing terraform block but no required_providers", func(t *testing.T) {
+		workDir := t.TempDir()
+		err := os.WriteFile(filepath.Join(workDir, "main.tf"), []byte(`
+			terraform {
+				required_version = ">= 1.0.0"
+			}
+
+			resource "tls_thingy" "placeholder" {
+			}
+		`), os.ModePerm)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		runFmt(t, "-write", workDir)
+
+		// Because the existing terraform block wasn't in versions.tf and
+		// didn't have a nested required_providers block already, we
+		// don't presume that the existing block would be a good home for
+		// our new required_providers entries. (Not all "terraform" blocks
+		// are intended for dependency-related declarations.)
+		got, err := os.ReadFile(filepath.Join(workDir, "versions.tf"))
+		if err != nil {
+			t.Fatalf("can't open versions.tf: %s", err)
+		}
+		want := `terraform {
+  required_providers {
+    tls = {
+      source = "hashicorp/tls"
+    }
+  }
+}`
+		if diff := cmp.Diff(want, string(bytes.TrimSpace(got))); diff != "" {
+			t.Errorf("wrong versions.tf content\n%s", diff)
+		}
+	})
+	t.Run("versions.tf already declares another provider", func(t *testing.T) {
+		workDir := t.TempDir()
+		err := os.WriteFile(filepath.Join(workDir, "main.tf"), []byte(`
+			resource "tls_thingy" "placeholder" {
+			}
+		`), os.ModePerm)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = os.WriteFile(filepath.Join(workDir, "versions.tf"), []byte(`
+			terraform {
+				required_providers {
+					anyother = {
+						source = "example.com/foo/bar"
+					}
+				}
+			}
+		`), os.ModePerm)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		runFmt(t, "-write", workDir)
+
+		got, err := os.ReadFile(filepath.Join(workDir, "versions.tf"))
+		if err != nil {
+			t.Fatalf("can't open versions.tf: %s", err)
+		}
+		want := `terraform {
+  required_providers {
+    anyother = {
+      source = "example.com/foo/bar"
+    }
+    tls = {
+      source = "hashicorp/tls"
+    }
+  }
+}`
+		if diff := cmp.Diff(want, string(bytes.TrimSpace(got))); diff != "" {
+			t.Errorf("wrong versions.tf content\n%s", diff)
+		}
+	})
+	t.Run("versions.tf already declares another provider in an unconventional file", func(t *testing.T) {
+		workDir := t.TempDir()
+		err := os.WriteFile(filepath.Join(workDir, "main.tf"), []byte(`
+			terraform {
+				required_providers {
+					anyother = {
+						source = "example.com/foo/bar"
+					}
+				}
+			}
+
+			resource "tls_thingy" "placeholder" {
+			}
+		`), os.ModePerm)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		runFmt(t, "-write", workDir)
+
+		// If the author decided to use a different file for required_providers
+		// then we preserve that preference and skip generating version.tf.
+		_, err = os.ReadFile(filepath.Join(workDir, "versions.tf"))
+		if !os.IsNotExist(err) {
+			t.Error("versions.tf was generated, but should not have been")
+		}
+
+		got, err := os.ReadFile(filepath.Join(workDir, "main.tf"))
+		if err != nil {
+			t.Fatalf("can't open main.tf: %s", err)
+		}
+		want := `terraform {
+  required_providers {
+    anyother = {
+      source = "example.com/foo/bar"
+    }
+    tls = {
+      source = "hashicorp/tls"
+    }
+  }
+}
+
+resource "tls_thingy" "placeholder" {
+}`
+		if diff := cmp.Diff(want, string(bytes.TrimSpace(got))); diff != "" {
+			t.Errorf("wrong main.tf content\n%s", diff)
+		}
+	})
+	t.Run("module already declares all of the providers it should", func(t *testing.T) {
+		workDir := t.TempDir()
+		err := os.WriteFile(filepath.Join(workDir, "main.tf"), []byte(`
+			terraform {
+				required_providers {
+					tls = {
+						source = "hashicorp/tls"
+					}
+				}
+			}
+
+			resource "tls_thingy" "placeholder" {
+			}
+		`), os.ModePerm)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		runFmt(t, "-write", workDir)
+
+		_, err = os.ReadFile(filepath.Join(workDir, "versions.tf"))
+		if !os.IsNotExist(err) {
+			t.Error("versions.tf was generated, but should not have been")
+		}
+
+		got, err := os.ReadFile(filepath.Join(workDir, "main.tf"))
+		if err != nil {
+			t.Fatalf("can't open main.tf: %s", err)
+		}
+		want := `terraform {
+  required_providers {
+    tls = {
+      source = "hashicorp/tls"
+    }
+  }
+}
+
+resource "tls_thingy" "placeholder" {
+}`
+		if diff := cmp.Diff(want, string(bytes.TrimSpace(got))); diff != "" {
+			t.Errorf("wrong main.tf content\n%s", diff)
+		}
+	})
+	t.Run("required_providers is already in a .tf.json file", func(t *testing.T) {
+		workDir := t.TempDir()
+		err := os.WriteFile(filepath.Join(workDir, "main.tf"), []byte(`
+			resource "tls_thingy" "placeholder" {
+			}
+		`), os.ModePerm)
+		if err != nil {
+			t.Fatal(err)
+		}
+		versionsJSON := []byte(`
+			{
+				"terraform": {
+					"required_providers": {
+					}
+				}
+			}
+		`)
+		err = os.WriteFile(filepath.Join(workDir, "versions.tf.json"), versionsJSON, os.ModePerm)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		runFmt(t, "-write", workDir)
+
+		// No versions.tf should have been generated, because a module can
+		// only have one required_providers block and this one is in a file
+		// we cannot format.
+		_, err = os.ReadFile(filepath.Join(workDir, "versions.tf"))
+		if !os.IsNotExist(err) {
+			t.Error("versions.tf was generated, but should not have been")
+		}
+
+		// The JSON file should not have been modified either.
+		got, err := os.ReadFile(filepath.Join(workDir, "versions.tf.json"))
+		if err != nil {
+			t.Fatalf("can't open main.tf: %s", err)
+		}
+		want := versionsJSON
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("wrong versions.tf.json content\n%s", diff)
+		}
+	})
+
+}
+
 var fmtFixture = struct {
 	filename      string
 	input, golden []byte
