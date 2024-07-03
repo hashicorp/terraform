@@ -963,6 +963,14 @@ func TestApplyWithStateManipulation(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
 	tcs := map[string]struct {
 		state            *stackstate.State
 		store            *stacks_testing_provider.ResourceStore
@@ -1130,6 +1138,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				InputValues:        inputs,
 				ForcePlanTimestamp: &fakePlanTimestamp,
 				PrevState:          tc.state,
+				DependencyLocks:    *lock,
 			}
 			planResp := PlanResponse{
 				PlannedChanges: planChangeCh,
@@ -1175,6 +1184,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				Config:            cfg,
 				RawPlan:           raw,
 				ProviderFactories: providers,
+				DependencyLocks:   *lock,
 			}
 			applyResp := ApplyResponse{
 				AppliedChanges: applyChangesCh,
