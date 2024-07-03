@@ -1045,11 +1045,3 @@ func (c *Config) CheckCoreVersionRequirements() hcl.Diagnostics {
 
 	return diags
 }
-
-// ImpliedProviderType returns true if the given local provider configuration
-// is not explicitly declared in the required_providers block of this module or
-// any of its descendants. This means the underlying "type" of the provider
-// has been implied to be a Hashicorp internal provider.
-func (c *Config) ImpliedProviderType(config addrs.LocalProviderConfig) bool {
-	panic("implement me")
-}

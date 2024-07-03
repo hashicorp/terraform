@@ -395,8 +395,6 @@ func TestValidate_impliedProviderTypes(t *testing.T) {
 				return diags
 			},
 		},
-		// TODO: Add a test for deeply nested modules, the middle module still needs a required provider block.
-		// TODO: Add a test that contains all the correct providers in the required_providers block, but mismatches the provider type in the providers attribute.
 	}
 
 	for _, tc := range tcs {
