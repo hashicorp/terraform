@@ -16,12 +16,8 @@ import (
 	"github.com/zclconf/go-cty/cty/gocty"
 )
 
-func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData instances.RepetitionData) (string, tfdiags.Diagnostics) {
+func evaluateImportIdExpression(expr hcl.Expression, target addrs.AbsResourceInstance, ctx EvalContext, keyData instances.RepetitionData) (string, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
-	// import blocks only exist in the root module, and must be evaluated in
-	// that context.
-	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
 
 	if expr == nil {
 		return "", diags.Append(&hcl.Diagnostic{
@@ -32,6 +28,14 @@ func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData in
 		})
 	}
 
+	diags = diags.Append(validateSelfRefFromImport(target.Resource.Resource, expr))
+	if diags.HasErrors() {
+		return "", diags
+	}
+
+	// import blocks only exist in the root module, and must be evaluated in
+	// that context.
+	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
 	scope := ctx.EvaluationScope(nil, nil, keyData)
 	importIdVal, evalDiags := scope.EvalExpr(expr, cty.String)
 	diags = diags.Append(evalDiags)
