@@ -331,7 +331,7 @@ func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (
 					// Then the user just hasn't declared the target provider
 					// type or name at all. We'll return a generic error message
 					// asking the user to update the required_providers list.
-					errorDetail = fmt.Sprintf("\n\nDeclare the required provider in the stack's required_providers block, and then assign a configuration for that provider in this component's \"providers\" argument.")
+					errorDetail = "\n\nDeclare the required provider in the stack's required_providers block, and then assign a configuration for that provider in this component's \"providers\" argument."
 				} else if !matchingNameExists {
 					// Then we have a type that matches, but the name doesn't.
 					errorDetail = fmt.Sprintf("\n\nThis stack has a configured provider of the right type under the name %q. Update this component's \"providers\" argument to reference this provider.", stackName)
@@ -346,7 +346,7 @@ func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (
 						// implied by Terraform and not explicitly set within
 						// the required_providers block. We'll suggest the user
 						// to update the required_providers block of the module.
-						errorDetail = fmt.Sprintf("\n\nThe provider type required by the module has been automatically implied by Terraform, explicitly setting the provider type within the modules required_providers block may resolve this issue.")
+						errorDetail = "\n\nThe provider type required by the module has been automatically implied by Terraform, explicitly setting the provider type within the modules required_providers block may resolve this issue."
 					}
 
 					// Otherwise the user has explicitly set the provider type
