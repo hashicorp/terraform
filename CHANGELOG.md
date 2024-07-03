@@ -1,5 +1,9 @@
 ## 1.9.1 (Unreleased)
 
+UPGRADE NOTES:
+
+* Library used by Terraform (hashicorp/go-getter) for installing/updating modules was upgraded from v1.7.5 to v1.7.6. This addresses [a vulnerability](https://github.com/hashicorp/go-getter/pull/497). This change may have a negative effect on performance of `terraform init` or `terraform get` in case of larger git repositories. Please do file an issue if you find the performance difference noticable. ([#35376](https://github.com/hashicorp/terraform/pull/35376))
+
 BUG FIXES:
 
 * `terraform test`: Removed additional erroneous error message when referencing attributes that don't exist. ([#35408](https://github.com/hashicorp/terraform/pull/35408))
