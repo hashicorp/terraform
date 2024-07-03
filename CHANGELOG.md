@@ -1,4 +1,6 @@
-## 1.9.1 (Unreleased)
+## 1.9.2 (Unreleased)
+
+## 1.9.1 (July 3, 2024)
 
 UPGRADE NOTES:
 
