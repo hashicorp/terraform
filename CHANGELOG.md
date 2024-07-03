@@ -7,6 +7,7 @@ UPGRADE NOTES:
 BUG FIXES:
 
 * `terraform test`: Removed additional erroneous error message when referencing attributes that don't exist. ([#35408](https://github.com/hashicorp/terraform/pull/35408))
+* `import` blocks: Fix crash that occurs when incorrectly referencing the `to` resource from the `id` attribute. ([#35420](https://github.com/hashicorp/terraform/pull/35420))
 
 ## 1.9.0 (June 26, 2024)
 
