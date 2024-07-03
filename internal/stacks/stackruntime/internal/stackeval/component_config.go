@@ -257,13 +257,13 @@ func (c *ComponentConfig) CheckInputVariableValues(ctx context.Context, phase Ev
 // If any modules in the component's root module tree are invalid then this
 // result could under-promise or over-promise depending on the kind of
 // invalidity.
-func (c *ComponentConfig) RequiredProviderInstances(ctx context.Context) addrs.Map[addrs.RootProviderConfig, addrs.LocalProviderConfig] {
+func (c *ComponentConfig) RequiredProviderInstances(ctx context.Context) addrs.Map[addrs.RootProviderConfig, configs.RequiredProviderConfig] {
 	moduleTree := c.ModuleTree(ctx)
 	if moduleTree == nil || moduleTree.Root == nil {
 		// If we get here then we presumably failed to load the module, and
 		// so we'll just unwind quickly so a different return path can return
 		// the error diagnostics.
-		return addrs.MakeMap[addrs.RootProviderConfig, addrs.LocalProviderConfig]()
+		return addrs.MakeMap[addrs.RootProviderConfig, configs.RequiredProviderConfig]()
 	}
 	return moduleTree.Root.EffectiveRequiredProviderConfigs()
 }
@@ -284,26 +284,10 @@ func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (
 
 		// componentAddr is the addrs.LocalProviderConfig that specifies the
 		// local name and (optional) alias of the provider in the component.
-		componentAddr := elem.Value
+		componentAddr := elem.Value.Local
 
 		// typeAddr is the absolute address of the provider type itself.
 		typeAddr := sourceAddr.Provider
-
-		// This type should be in the stack's required_providers list.
-		if _, ok := stackConfig.ProviderLocalName(ctx, typeAddr); !ok {
-			// This means we haven't got this provider in the stacks
-			// required_provider list.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Component requires undeclared provider",
-				Detail: fmt.Sprintf(
-					"The root module for %s requires a configuration for provider %q, which isn't declared as a dependency of this stack configuration.\n\nDeclare this provider in the stack's required_providers block, and then assign a configuration for that provider in this component's \"providers\" argument.",
-					c.Addr(), typeAddr.ForDisplay(),
-				),
-				Subject: c.Declaration(ctx).DeclRange.ToHCL().Ptr(),
-			})
-			continue
-		}
 
 		expr, exists := declConfigs[componentAddr]
 		if !exists {
@@ -330,19 +314,55 @@ func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (
 			continue
 		}
 
+		// Next, we want to make sure the linked providers are actually of the
+		// same type.
+
 		const errSummary = "Invalid provider configuration"
 		if actualTy := result.Value.Type(); stackconfigtypes.IsProviderConfigType(actualTy) {
 			// Then we at least got a provider reference of some kind.
 			actualTypeAddr := stackconfigtypes.ProviderForProviderConfigType(actualTy)
 			if actualTypeAddr != typeAddr {
+				var errorDetail string
+
+				stackName, matchingTypeExists := stackConfig.ProviderLocalName(ctx, typeAddr)
+				_, matchingNameExists := stackConfig.ProviderForLocalName(ctx, componentAddr.LocalName)
+				moduleProviderTypeExplicit := elem.Value.Explicit
+				if !matchingTypeExists && !matchingNameExists {
+					// Then the user just hasn't declared the target provider
+					// type or name at all. We'll return a generic error message
+					// asking the user to update the required_providers list.
+					errorDetail = fmt.Sprintf("\n\nDeclare the required provider in the stack's required_providers block, and then assign a configuration for that provider in this component's \"providers\" argument.")
+				} else if !matchingNameExists {
+					// Then we have a type that matches, but the name doesn't.
+					errorDetail = fmt.Sprintf("\n\nThis stack has a configured provider of the right type under the name %q. Update this component's \"providers\" argument to reference this provider.", stackName)
+				} else if !matchingTypeExists {
+					// Then we have a name that matches, but the type doesn't.
+
+					// If the types don't match and the names do, then maybe
+					// the user hasn't properly filled in the required types
+					// within the module.
+					if !moduleProviderTypeExplicit {
+						// Yes! The provider type within the module has been
+						// implied by Terraform and not explicitly set within
+						// the required_providers block. We'll suggest the user
+						// to update the required_providers block of the module.
+						errorDetail = fmt.Sprintf("\n\nThe provider type required by the module has been automatically implied by Terraform, explicitly setting the provider type within the modules required_providers block may resolve this issue.")
+					}
+
+					// Otherwise the user has explicitly set the provider type
+					// within the module, but it doesn't match the provider type
+					// within the stack configuration. The generic error message
+					// should be sufficient.
+				}
+
 				// But, unfortunately, the underlying types of the providers
 				// do not match up.
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  errSummary,
 					Detail: fmt.Sprintf(
-						"The provider configuration slot %s requires a configuration for provider %q, not for provider %q.",
-						componentAddr.StringCompact(), typeAddr, actualTypeAddr,
+						"The provider configuration slot %q requires a configuration for provider %q, not for provider %q.%s",
+						componentAddr.StringCompact(), typeAddr, actualTypeAddr, errorDetail,
 					),
 					Subject: result.Expression.Range().Ptr(),
 				})

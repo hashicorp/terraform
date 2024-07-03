@@ -173,7 +173,7 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 
 		// componentAddr is the addrs.LocalProviderConfig that specifies the
 		// local name and (optional) alias of the provider in the component.
-		componentAddr := elem.Value
+		componentAddr := elem.Value.Local
 
 		// We validated the config providers during the static analysis, so we
 		// know this expression exists and resolves to the correct type.

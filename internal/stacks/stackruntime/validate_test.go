@@ -107,12 +107,12 @@ var (
 				var diags tfdiags.Diagnostics
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Component requires undeclared provider",
-					Detail:   "The root module for component.self requires a configuration for provider \"hashicorp/testing\", which isn't declared as a dependency of this stack configuration.\n\nDeclare this provider in the stack's required_providers block, and then assign a configuration for that provider in this component's \"providers\" argument.",
+					Summary:  "Reference to undeclared provider configuration",
+					Detail:   "There is no provider \"testing\" \"default\" block declared in this stack.",
 					Subject: &hcl.Range{
 						Filename: mainBundleSourceAddrStr("with-single-input/undeclared-provider/undeclared-provider.tfstack.hcl"),
-						Start:    hcl.Pos{Line: 5, Column: 1, Byte: 38},
-						End:      hcl.Pos{Line: 5, Column: 17, Byte: 54},
+						Start:    hcl.Pos{Line: 10, Column: 15, Byte: 163},
+						End:      hcl.Pos{Line: 10, Column: 39, Byte: 187},
 					},
 				})
 				return diags
@@ -140,7 +140,7 @@ var (
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid provider configuration",
-					Detail:   "The provider configuration slot testing requires a configuration for provider \"registry.terraform.io/hashicorp/testing\", not for provider \"terraform.io/builtin/testing\".",
+					Detail:   "The provider configuration slot \"testing\" requires a configuration for provider \"registry.terraform.io/hashicorp/testing\", not for provider \"terraform.io/builtin/testing\".",
 					Subject: &hcl.Range{
 						Filename: mainBundleSourceAddrStr("with-single-input/invalid-provider-type/invalid-provider-type.tfstack.hcl"),
 						Start:    hcl.Pos{Line: 22, Column: 15, Byte: 378},
@@ -354,5 +354,70 @@ Terraform uses references to decide a suitable order for performing operations, 
 
 	if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
 		t.Errorf("wrong diagnostics\n%s", diff)
+	}
+}
+
+func TestValidate_impliedProviderTypes(t *testing.T) {
+
+	tcs := []struct {
+		directory string
+		providers map[addrs.Provider]providers.Factory
+		wantDiags func() tfdiags.Diagnostics
+	}{
+		{
+			directory: "with-hashicorp-provider",
+			providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+					return stacks_testing_provider.NewProvider(), nil
+				},
+			},
+		},
+		{
+			directory: "with-non-hashicorp-provider",
+			providers: map[addrs.Provider]providers.Factory{
+				addrs.NewProvider(addrs.DefaultProviderRegistryHost, "other", "testing"): func() (providers.Interface, error) {
+					return stacks_testing_provider.NewProvider(), nil
+				},
+			},
+			wantDiags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid provider configuration",
+					Detail: "The provider configuration slot \"testing\" requires a configuration for provider \"registry.terraform.io/hashicorp/testing\", not for provider \"registry.terraform.io/other/testing\"." +
+						"\n\nThe provider type required by the module has been automatically implied by Terraform, explicitly setting the provider type within the modules required_providers block may resolve this issue.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("legacy-module/with-non-hashicorp-provider/with-non-hashicorp-provider.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 21, Column: 15, Byte: 447},
+						End:      hcl.Pos{Line: 21, Column: 39, Byte: 471},
+					},
+				})
+				return diags
+			},
+		},
+		// TODO: Add a test for deeply nested modules, the middle module still needs a required provider block.
+		// TODO: Add a test that contains all the correct providers in the required_providers block, but mismatches the provider type in the providers attribute.
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.directory, func(t *testing.T) {
+
+			ctx := context.Background()
+
+			cfg := loadMainBundleConfigForTest(t, filepath.Join("legacy-module", tc.directory))
+			gotDiags := Validate(ctx, &ValidateRequest{
+				Config:            cfg,
+				ProviderFactories: tc.providers,
+			}).ForRPC()
+
+			wantDiags := tfdiags.Diagnostics{}.ForRPC()
+			if tc.wantDiags != nil {
+				wantDiags = tc.wantDiags().ForRPC()
+			}
+
+			if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
+				t.Errorf("wrong diagnostics\n%s", diff)
+			}
+		})
 	}
 }

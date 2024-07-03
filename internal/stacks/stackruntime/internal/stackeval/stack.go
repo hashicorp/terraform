@@ -519,7 +519,7 @@ func (s *Stack) resolveExpressionReference(
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Reference to undeclared embedded stack",
-				Detail:   fmt.Sprintf("There is no stack %q block declared this stack.", addr.Name),
+				Detail:   fmt.Sprintf("There is no stack %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return nil, diags
@@ -531,7 +531,7 @@ func (s *Stack) resolveExpressionReference(
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Reference to undeclared provider configuration",
-				Detail:   fmt.Sprintf("There is no provider %q %q block declared this stack.", addr.ProviderLocalName, addr.Name),
+				Detail:   fmt.Sprintf("There is no provider %q %q block declared in this stack.", addr.ProviderLocalName, addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return nil, diags
