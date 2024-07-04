@@ -460,11 +460,21 @@ func TestValidate_impliedProviderTypes(t *testing.T) {
 		t.Run(tc.directory, func(t *testing.T) {
 
 			ctx := context.Background()
+			lock := depsfile.NewLocks()
+			for addr := range tc.providers {
+				lock.SetProvider(
+					addr,
+					providerreqs.MustParseVersion("0.0.0"),
+					providerreqs.MustParseVersionConstraints("=0.0.0"),
+					providerreqs.PreferredHashes([]providerreqs.Hash{}),
+				)
+			}
 
 			cfg := loadMainBundleConfigForTest(t, filepath.Join("legacy-module", tc.directory))
 			gotDiags := Validate(ctx, &ValidateRequest{
 				Config:            cfg,
 				ProviderFactories: tc.providers,
+				DependencyLocks:   *lock,
 			}).ForRPC()
 
 			wantDiags := tfdiags.Diagnostics{}.ForRPC()
