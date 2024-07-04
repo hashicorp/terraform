@@ -346,7 +346,7 @@ func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (
 						// implied by Terraform and not explicitly set within
 						// the required_providers block. We'll suggest the user
 						// to update the required_providers block of the module.
-						errorDetail = fmt.Sprintf("\n\nThe module does not declare a source address for %q in its required_provider block, so Terraform assumed %q for backward-compatibility with older versions of Terraform", componentAddr.LocalName, elem.Key.Provider.ForDisplay())
+						errorDetail = fmt.Sprintf("\n\nThe module does not declare a source address for %q in its required_providers block, so Terraform assumed %q for backward-compatibility with older versions of Terraform", componentAddr.LocalName, elem.Key.Provider.ForDisplay())
 					}
 
 					// Otherwise the user has explicitly set the provider type

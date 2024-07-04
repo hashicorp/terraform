@@ -385,7 +385,7 @@ func TestValidate_impliedProviderTypes(t *testing.T) {
 					Severity: hcl.DiagError,
 					Summary:  "Invalid provider configuration",
 					Detail: "The provider configuration slot \"testing\" requires a configuration for provider \"registry.terraform.io/hashicorp/testing\", not for provider \"registry.terraform.io/other/testing\"." +
-						"\n\nThe module does not declare a source address for \"testing\" in its required_provider block, so Terraform assumed \"hashicorp/testing\" for backward-compatibility with older versions of Terraform",
+						"\n\nThe module does not declare a source address for \"testing\" in its required_providers block, so Terraform assumed \"hashicorp/testing\" for backward-compatibility with older versions of Terraform",
 					Subject: &hcl.Range{
 						Filename: mainBundleSourceAddrStr("legacy-module/with-non-hashicorp-provider/with-non-hashicorp-provider.tfstack.hcl"),
 						Start:    hcl.Pos{Line: 21, Column: 15, Byte: 447},
