@@ -241,7 +241,7 @@ Note that the -target option is not suitable for routine use, and is provided on
 
 func checkApplyTimeVariables(needed collections.Set[string], gotValues InputValues, config *configs.Config) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	for _, name := range needed.Elems() {
+	for name := range needed.All() {
 		if vv, exists := gotValues[name]; !exists || vv.Value == cty.NilVal || vv.Value.IsNull() {
 			// This error message assumes that the only possible reason for
 			// an apply-time variable is because the variable is ephemeral,

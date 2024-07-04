@@ -176,8 +176,8 @@ func (r *ChangeExecResults) AwaitCompletion(ctx context.Context) {
 	// We don't have any single signal that everything is complete here,
 	// but it's sufficient for us to just visit each of our saved promise
 	// getters in turn and read from them.
-	for _, elem := range r.componentInstances.Elems() {
-		elem.V(ctx) // intentionally discards result; we only care that it's complete
+	for _, cb := range r.componentInstances.All() {
+		cb(ctx) // intentionally discards result; we only care that it's complete
 	}
 }
 

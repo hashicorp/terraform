@@ -299,13 +299,13 @@ func (ac *AppliedChangeDiscardKeys) AppliedChangeProto() (*terraform1.AppliedCha
 		Raw:          make([]*terraform1.AppliedChange_RawChange, 0, ac.DiscardRawKeys.Len()),
 		Descriptions: make([]*terraform1.AppliedChange_ChangeDescription, 0, ac.DiscardDescKeys.Len()),
 	}
-	for _, key := range ac.DiscardRawKeys.Elems() {
+	for key := range ac.DiscardRawKeys.All() {
 		ret.Raw = append(ret.Raw, &terraform1.AppliedChange_RawChange{
 			Key:   statekeys.String(key),
 			Value: nil, // nil represents deletion
 		})
 	}
-	for _, key := range ac.DiscardDescKeys.Elems() {
+	for key := range ac.DiscardDescKeys.All() {
 		ret.Descriptions = append(ret.Descriptions, &terraform1.AppliedChange_ChangeDescription{
 			Key:         statekeys.String(key),
 			Description: &terraform1.AppliedChange_ChangeDescription_Deleted{

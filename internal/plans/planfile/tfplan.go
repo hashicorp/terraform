@@ -599,7 +599,7 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 	}
 	if plan.ApplyTimeVariables.Len() != 0 {
 		rawPlan.ApplyTimeVariables = make([]string, 0, plan.ApplyTimeVariables.Len())
-		for _, name := range plan.ApplyTimeVariables.Elems() {
+		for name := range plan.ApplyTimeVariables.All() {
 			rawPlan.ApplyTimeVariables = append(rawPlan.ApplyTimeVariables, name)
 		}
 	}

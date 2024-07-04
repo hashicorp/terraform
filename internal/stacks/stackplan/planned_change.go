@@ -214,7 +214,7 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*terraform1.Plan
 	}
 
 	componentAddrsRaw := make([]string, 0, pc.RequiredComponents.Len())
-	for _, componentAddr := range pc.RequiredComponents.Elems() {
+	for componentAddr := range pc.RequiredComponents.All() {
 		componentAddrsRaw = append(componentAddrsRaw, componentAddr.String())
 	}
 

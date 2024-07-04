@@ -566,7 +566,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			// we need to force treating everything in this component as
 			// deferred so we can preserve the correct dependency ordering.
 			deferred := false
-			for _, depAddr := range c.call.RequiredComponents(ctx).Elems() {
+			for depAddr := range c.call.RequiredComponents(ctx).All() {
 				depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
 				if depStack == nil {
 					deferred = true // to be conservative

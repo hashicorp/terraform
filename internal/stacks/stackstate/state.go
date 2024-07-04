@@ -61,8 +61,8 @@ func (s *State) AllComponentInstances() collections.Set[stackaddrs.AbsComponentI
 		return ret
 	}
 	ret = collections.NewSet[stackaddrs.AbsComponentInstance]()
-	for _, elem := range s.componentInstances.Elems() {
-		ret.Add(elem.K)
+	for k, _ := range s.componentInstances.All() {
+		ret.Add(k)
 	}
 	return ret
 }
@@ -95,9 +95,8 @@ func (s *State) ComponentInstanceResourceInstanceObjects(addr stackaddrs.AbsComp
 // instance objects that are tracked in the state, across all components.
 func (s *State) AllResourceInstanceObjects() collections.Set[stackaddrs.AbsResourceInstanceObject] {
 	ret := collections.NewSet[stackaddrs.AbsResourceInstanceObject]()
-	for _, elem := range s.componentInstances.Elems() {
-		componentAddr := elem.K
-		for _, elem := range elem.V.resourceInstanceObjects.Elems {
+	for componentAddr, componentState := range s.componentInstances.All() {
+		for _, elem := range componentState.resourceInstanceObjects.Elems {
 			objKey := stackaddrs.AbsResourceInstanceObject{
 				Component: componentAddr,
 				Item:      elem.Key,
@@ -160,7 +159,7 @@ func (s *State) resourceInstanceObjectState(addr stackaddrs.AbsResourceInstanceO
 func (s *State) ComponentInstanceStateForModulesRuntime(addr stackaddrs.AbsComponentInstance) *states.State {
 	return states.BuildState(func(ss *states.SyncState) {
 		objAddrs := s.ComponentInstanceResourceInstanceObjects(addr)
-		for _, objAddr := range objAddrs.Elems() {
+		for objAddr := range objAddrs.All() {
 			rios := s.resourceInstanceObjectState(objAddr)
 
 			if objAddr.Item.IsCurrent() {
