@@ -1564,6 +1564,7 @@ import {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
 }
+
 func TestContext2Plan_importDuringDestroy(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -1626,5 +1627,132 @@ func TestContext2Plan_importDuringDestroy(t *testing.T) {
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+}
+
+func TestContext2Plan_importSelfReference(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to = test_object.a
+  id = test_object.a.test_string
+}
+
+resource "test_object" "a" {
+  test_string = "foo"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			// The providers never actually going to get called here, we should
+			// catch the error long before anything happens.
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+
+	// We're expecting exactly one diag, which is the self-reference error.
+	if len(diags) != 1 {
+		t.Fatalf("expected one diag, got %d", len(diags))
+	}
+
+	got, want := diags.Err().Error(), "Invalid import id argument: The import ID cannot reference the resource being imported."
+	if cmp.Diff(want, got) != "" {
+		t.Fatalf("unexpected error\n%s", cmp.Diff(want, got))
+	}
+}
+
+func TestContext2Plan_importSelfReferenceInst(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to = test_object.a[0]
+  id = test_object.a.test_string
+}
+
+resource "test_object" "a" {
+  count = 1
+  test_string = "foo"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			// The providers never actually going to get called here, we should
+			// catch the error long before anything happens.
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+
+	// We're expecting exactly one diag, which is the self-reference error.
+	if len(diags) != 1 {
+		t.Fatalf("expected one diag, got %d: %s", len(diags), diags.ErrWithWarnings())
+	}
+
+	got, want := diags.Err().Error(), "Invalid import id argument: The import ID cannot reference the resource being imported."
+	if cmp.Diff(want, got) != "" {
+		t.Fatalf("unexpected error\n%s", cmp.Diff(want, got))
+	}
+}
+
+func TestContext2Plan_importSelfReferenceInModule(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to = module.mod.test_object.a
+  id = module.mod.foo
+}
+
+module "mod" {
+  source = "./mod"
+}
+`,
+		"mod/main.tf": `
+resource "test_object" "a" {
+  test_string = "foo"
+}
+
+output "foo" {
+  value = test_object.a.test_string
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			// The providers never actually going to get called here, we should
+			// catch the error long before anything happens.
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+
+	// We're expecting exactly one diag, which is the self-reference error.
+	if len(diags) != 1 {
+		t.Fatalf("expected one diag, got %d", len(diags))
+	}
+
+	// Terraform detects this case as a cycle, and the order of rendering the
+	// cycle if non-deterministic, so we can't do a straight string match.
+
+	got := diags.Err().Error()
+	if !strings.Contains(got, "Cycle:") {
+		t.Errorf("should have reported a cycle error, but got %s", got)
+	}
+	if !strings.Contains(got, "module.mod.output.foo (expand)") {
+		t.Errorf("should have reported the cycle to contain the module output, but got %s", got)
+	}
+	if !strings.Contains(got, "module.mod.test_object.a (expand)") {
+		t.Errorf("should have reported the cycle to contain the target resource, but got %s", got)
 	}
 }

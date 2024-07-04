@@ -89,6 +89,38 @@ func validateSelfRefInExpr(addr addrs.Referenceable, expr hcl.Expression) tfdiag
 	return diags
 }
 
+// validateSelfRefFromImport is similar to validateSelfRefInExpr except it
+// tweaks the error message slightly to reflect the self-reference is coming
+// from an import block instead of directly from the resource.
+func validateSelfRefFromImport(addr addrs.Referenceable, expr hcl.Expression) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	addrStrs := make([]string, 0, 1)
+	addrStrs = append(addrStrs, addr.String())
+	switch tAddr := addr.(type) {
+	case addrs.ResourceInstance:
+		// A resource instance may not refer to its containing resource either.
+		addrStrs = append(addrStrs, tAddr.ContainingResource().String())
+	}
+
+	refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, expr)
+	for _, ref := range refs {
+
+		for _, addrStr := range addrStrs {
+			if ref.Subject.String() == addrStr {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid import id argument",
+					Detail:   "The import ID cannot reference the resource being imported.",
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+			}
+		}
+	}
+
+	return diags
+}
+
 // Legacy provisioner configurations may refer to single instances using the
 // resource address. We need to filter these out from the reported references
 // to prevent cycles.

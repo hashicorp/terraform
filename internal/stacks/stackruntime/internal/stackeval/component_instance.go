@@ -370,7 +370,7 @@ func (c *ComponentInstance) checkProvider(ctx context.Context, sourceAddr addrs.
 	return stackconfigtypes.ProviderInstanceForValue(v), false, diags
 }
 
-func (c *ComponentInstance) neededProviderSchemas(ctx context.Context) (map[addrs.Provider]providers.ProviderSchema, tfdiags.Diagnostics) {
+func (c *ComponentInstance) neededProviderSchemas(ctx context.Context, phase EvalPhase) (map[addrs.Provider]providers.ProviderSchema, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	decl := c.call.Declaration(ctx)
@@ -390,6 +390,17 @@ func (c *ComponentInstance) neededProviderSchemas(ctx context.Context) (map[addr
 			continue // not our job to report a missing provider type
 		}
 		schema, err := pTy.Schema(ctx)
+
+		// If this phase has a dependency lockfile, check if the provider is in it.
+		depLocks := c.main.DependencyLocks(phase)
+		if depLocks != nil {
+			providerLockfileDiags := CheckProviderInLockfile(*depLocks, pTy, decl.DeclRange)
+			// We report these diagnostics in a different place
+			if providerLockfileDiags.HasErrors() {
+				continue
+			}
+		}
+
 		if err != nil {
 			// FIXME: it's not technically our job to report a schema
 			// fetch failure, but currently there is no single other
@@ -498,7 +509,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			}
 			prevState := c.PlanPrevState(ctx)
 
-			providerSchemas, moreDiags := c.neededProviderSchemas(ctx)
+			providerSchemas, moreDiags := c.neededProviderSchemas(ctx, PlanPhase)
 			diags = diags.Append(moreDiags)
 			if moreDiags.HasErrors() {
 				return nil, diags
@@ -743,7 +754,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		return noOpResult, diags
 	}
 
-	providerSchemas, moreDiags := c.neededProviderSchemas(ctx)
+	providerSchemas, moreDiags := c.neededProviderSchemas(ctx, ApplyPhase)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return noOpResult, diags

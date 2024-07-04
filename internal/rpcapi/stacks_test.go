@@ -22,6 +22,8 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -665,6 +667,14 @@ func TestStackChangeProgress(t *testing.T) {
 			stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
 				return stacks_testing_provider.NewProviderWithData(tc.store), nil
 			}
+			lock := depsfile.NewLocks()
+			lock.SetProvider(
+				addrs.NewDefaultProvider("testing"),
+				providerreqs.MustParseVersion("0.0.0"),
+				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
+			stacksServer.providerDependencyLockOverride = lock
 
 			sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
 			if err != nil {

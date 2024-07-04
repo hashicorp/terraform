@@ -422,8 +422,9 @@ func (c *ComponentConfig) neededProviderClients(ctx context.Context, phase EvalP
 	return insts, valid
 }
 
-func (c *ComponentConfig) neededProviderSchemas(ctx context.Context, phase EvalPhase) (map[addrs.Provider]providers.ProviderSchema, tfdiags.Diagnostics) {
+func (c *ComponentConfig) neededProviderSchemas(ctx context.Context, phase EvalPhase) (map[addrs.Provider]providers.ProviderSchema, tfdiags.Diagnostics, bool) {
 	var diags tfdiags.Diagnostics
+	skipFutherValidation := false
 
 	config := c.ModuleTree(ctx)
 	decl := c.Declaration(ctx)
@@ -434,6 +435,21 @@ func (c *ComponentConfig) neededProviderSchemas(ctx context.Context, phase EvalP
 		if pTy == nil {
 			continue // not our job to report a missing provider
 		}
+
+		// If this phase has a dependency lockfile, check if the provider is in it.
+		depLocks := c.main.DependencyLocks(phase)
+		if depLocks != nil {
+			// Check if the provider is in the lockfile,
+			// if it is not we can not read the provider schema
+			providerLockfileDiags := CheckProviderInLockfile(*depLocks, pTy, decl.DeclRange)
+
+			// We report these diagnostics in a different place
+			if providerLockfileDiags.HasErrors() {
+				skipFutherValidation = true
+				continue
+			}
+		}
+
 		schema, err := pTy.Schema(ctx)
 		if err != nil {
 			diags = diags.Append(&hcl.Diagnostic{
@@ -446,7 +462,7 @@ func (c *ComponentConfig) neededProviderSchemas(ctx context.Context, phase EvalP
 		}
 		providerSchemas[sourceAddr] = schema
 	}
-	return providerSchemas, diags
+	return providerSchemas, diags, skipFutherValidation
 }
 
 // ExprReferenceValue implements Referenceable.
@@ -502,7 +518,10 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			return diags, nil
 		}
 
-		providerSchemas, moreDiags := c.neededProviderSchemas(ctx, phase)
+		providerSchemas, moreDiags, skipFurtherValidation := c.neededProviderSchemas(ctx, phase)
+		if skipFurtherValidation {
+			return diags.Append(moreDiags), nil
+		}
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
 			return diags, nil
