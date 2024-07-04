@@ -9,6 +9,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval"
@@ -23,6 +24,7 @@ func Validate(ctx context.Context, req *ValidateRequest) tfdiags.Diagnostics {
 
 	main := stackeval.NewForValidating(req.Config, stackeval.ValidateOpts{
 		ProviderFactories: req.ProviderFactories,
+		DependencyLocks:   req.DependencyLocks,
 	})
 	main.AllowLanguageExperiments(req.ExperimentsAllowed)
 	diags := main.ValidateAll(ctx)
@@ -38,6 +40,7 @@ func Validate(ctx context.Context, req *ValidateRequest) tfdiags.Diagnostics {
 type ValidateRequest struct {
 	Config            *stackconfig.Config
 	ProviderFactories map[addrs.Provider]providers.Factory
+	DependencyLocks   depsfile.Locks
 
 	ExperimentsAllowed bool
 }

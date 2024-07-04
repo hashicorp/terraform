@@ -21,6 +21,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -41,7 +43,7 @@ func TestApplyWithRemovedResource(t *testing.T) {
 
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, path.Join("empty-component", "valid-providers"))
-
+	lock := depsfile.NewLocks()
 	planReq := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -49,6 +51,7 @@ func TestApplyWithRemovedResource(t *testing.T) {
 				return terraformProvider.NewProvider(), nil
 			},
 		},
+		DependencyLocks: *lock,
 
 		ForcePlanTimestamp: &fakePlanTimestamp,
 
@@ -209,6 +212,201 @@ func TestApplyWithRemovedResource(t *testing.T) {
 	}
 }
 
+func TestApplyWithMovedResource(t *testing.T) {
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, path.Join("state-manipulation", "moved"))
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	planReq := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(stacks_testing_provider.NewResourceStoreBuilder().
+					AddResource("moved", cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("moved"),
+						"value": cty.StringVal("moved"),
+					})).
+					Build()), nil
+			},
+		},
+		DependencyLocks: *lock,
+
+		ForcePlanTimestamp: &fakePlanTimestamp,
+
+		// PrevState specifies a state with a resource that is not present in
+		// the current configuration. This is a common situation when a resource
+		// is removed from the configuration but still exists in the state.
+		PrevState: stackstate.NewStateBuilder().
+			AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+				SetAddr(stackaddrs.AbsResourceInstanceObject{
+					Component: stackaddrs.AbsComponentInstance{
+						Stack: stackaddrs.RootStackInstance,
+						Item: stackaddrs.ComponentInstance{
+							Component: stackaddrs.Component{
+								Name: "self",
+							},
+							Key: addrs.NoKey,
+						},
+					},
+					Item: addrs.AbsResourceInstanceObject{
+						ResourceInstance: addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "testing_resource",
+									Name: "before",
+								},
+								Key: addrs.NoKey,
+							},
+						},
+						DeposedKey: addrs.NotDeposed,
+					},
+				}).
+				SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+					SchemaVersion: 0,
+					AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+						"id":    "moved",
+						"value": "moved",
+					}),
+					Status: states.ObjectReady,
+				}).
+				SetProviderAddr(addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+				})).
+			Build(),
+	}
+
+	planChangesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	planResp := PlanResponse{
+		PlannedChanges: planChangesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &planReq, &planResp)
+	planChanges, diags := collectPlanOutput(planChangesCh, diagsCh)
+	if len(diags) > 0 {
+		t.Fatalf("expected no diagnostics, go %s", diags.ErrWithWarnings())
+	}
+
+	var raw []*anypb.Any
+	for _, change := range planChanges {
+		proto, err := change.PlannedChangeProto()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		raw = append(raw, proto.Raw...)
+	}
+
+	applyReq := ApplyRequest{
+		Config:  cfg,
+		RawPlan: raw,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(stacks_testing_provider.NewResourceStoreBuilder().
+					AddResource("moved", cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("moved"),
+						"value": cty.StringVal("moved"),
+					})).
+					Build()), nil
+			},
+		},
+		DependencyLocks: *lock,
+	}
+
+	applyChangesCh := make(chan stackstate.AppliedChange)
+	diagsCh = make(chan tfdiags.Diagnostic)
+
+	applyResp := ApplyResponse{
+		AppliedChanges: applyChangesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Apply(ctx, &applyReq, &applyResp)
+	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, diagsCh)
+	if len(applyDiags) > 0 {
+		t.Fatalf("expected no diagnostics, got %s", applyDiags.ErrWithWarnings())
+	}
+
+	expectedPreviousAddr := mustAbsResourceInstanceObject("component.self.testing_resource.before")
+
+	wantChanges := []stackstate.AppliedChange{
+		&stackstate.AppliedChangeComponentInstance{
+			ComponentAddr: stackaddrs.AbsComponent{
+				Item: stackaddrs.Component{
+					Name: "self",
+				},
+			},
+			ComponentInstanceAddr: stackaddrs.AbsComponentInstance{
+				Item: stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{
+						Name: "self",
+					},
+				},
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
+		},
+		&stackstate.AppliedChangeResourceInstanceObject{
+			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+				Component: stackaddrs.AbsComponentInstance{
+					Item: stackaddrs.ComponentInstance{
+						Component: stackaddrs.Component{
+							Name: "self",
+						},
+					},
+				},
+				Item: addrs.AbsResourceInstanceObject{
+					ResourceInstance: addrs.AbsResourceInstance{
+						Resource: addrs.ResourceInstance{
+							Resource: addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "testing_resource",
+								Name: "after",
+							},
+						},
+					},
+				},
+			},
+			PreviousResourceInstanceObjectAddr: &expectedPreviousAddr,
+			NewStateSrc: &states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+					"id":    "moved",
+					"value": "moved",
+				}),
+				Status:             states.ObjectReady,
+				AttrSensitivePaths: make([]cty.Path, 0),
+			},
+			ProviderConfigAddr: addrs.AbsProviderConfig{
+				Provider: addrs.MustParseProviderSourceString("hashicorp/testing"),
+			},
+			Schema: stacks_testing_provider.TestingResourceSchema,
+		},
+	}
+
+	sort.SliceStable(applyChanges, func(i, j int) bool {
+		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
+	})
+
+	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+}
+
 func TestApplyWithSensitivePropagation(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, path.Join("with-single-input", "sensitive-input"))
@@ -220,6 +418,13 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 
 	changesCh := make(chan stackplan.PlannedChange)
 	diagsCh := make(chan tfdiags.Diagnostic)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -227,6 +432,7 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
+		DependencyLocks: *lock,
 
 		ForcePlanTimestamp: &fakePlanTimestamp,
 
@@ -264,6 +470,7 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
+		DependencyLocks: *lock,
 	}
 
 	applyChangesCh := make(chan stackstate.AppliedChange)
@@ -372,6 +579,13 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 
 	changesCh := make(chan stackplan.PlannedChange)
 	diagsCh := make(chan tfdiags.Diagnostic)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -379,6 +593,7 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
+		DependencyLocks: *lock,
 
 		ForcePlanTimestamp: &fakePlanTimestamp,
 
@@ -429,6 +644,7 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
+		DependencyLocks: *lock,
 	}
 
 	applyChangesCh := make(chan stackstate.AppliedChange)
@@ -747,6 +963,14 @@ func TestApplyWithStateManipulation(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
 	tcs := map[string]struct {
 		state            *stackstate.State
 		store            *stacks_testing_provider.ResourceStore
@@ -914,6 +1138,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				InputValues:        inputs,
 				ForcePlanTimestamp: &fakePlanTimestamp,
 				PrevState:          tc.state,
+				DependencyLocks:    *lock,
 			}
 			planResp := PlanResponse{
 				PlannedChanges: planChangeCh,
@@ -959,6 +1184,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				Config:            cfg,
 				RawPlan:           raw,
 				ProviderFactories: providers,
+				DependencyLocks:   *lock,
 			}
 			applyResp := ApplyResponse{
 				AppliedChanges: applyChangesCh,

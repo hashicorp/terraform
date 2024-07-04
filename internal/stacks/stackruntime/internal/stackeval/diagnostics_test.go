@@ -13,6 +13,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -42,6 +44,15 @@ func TestNamedPromisesPlan(t *testing.T) {
 
 	cfg := testStackConfig(t, "planning", "named_promises")
 
+	providerAddrs := addrs.MustParseProviderSourceString("example.com/test/happycloud")
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		providerAddrs,
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
 	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
 		PlanningMode: plans.NormalMode,
 		InputVariableValues: map[stackaddrs.InputVariable]ExternalInputValue{
@@ -50,7 +61,7 @@ func TestNamedPromisesPlan(t *testing.T) {
 			},
 		},
 		ProviderFactories: ProviderFactories{
-			addrs.MustParseProviderSourceString("example.com/test/happycloud"): providers.FactoryFixed(
+			providerAddrs: providers.FactoryFixed(
 				&providertest.MockProvider{
 					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 						Provider: providers.Schema{
@@ -65,7 +76,8 @@ func TestNamedPromisesPlan(t *testing.T) {
 				},
 			),
 		},
-		PlanTimestamp: time.Now().UTC(),
+		DependencyLocks: *lock,
+		PlanTimestamp:   time.Now().UTC(),
 	})
 
 	// We don't actually really care about the plan here. We just want the
