@@ -677,7 +677,13 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			if diags.HasErrors() {
 				hookMore(ctx, seq, h.ErrorComponentInstancePlan, addr)
 			} else {
-				hookMore(ctx, seq, h.EndComponentInstancePlan, addr)
+				if plan.Complete {
+					hookMore(ctx, seq, h.EndComponentInstancePlan, addr)
+
+				} else {
+					hookMore(ctx, seq, h.DeferComponentInstancePlan, addr)
+				}
+
 			}
 
 			return plan, diags
