@@ -345,6 +345,16 @@ func (s *StackConfig) ProviderLocalName(ctx context.Context, addr addrs.Provider
 	return s.config.Stack.RequiredProviders.LocalNameForProvider(addr)
 }
 
+// ProviderForLocalName returns the provider for the given local name in this
+// particular stack configuration, based on the declarations in the
+// required_providers configuration block.
+//
+// If the second return value is false then there is no provider declared
+// for the given local name, and so the first return value is invalid.
+func (s *StackConfig) ProviderForLocalName(ctx context.Context, localName string) (addrs.Provider, bool) {
+	return s.config.Stack.RequiredProviders.ProviderForLocalName(localName)
+}
+
 // StackCall returns a [StackCallConfig] representing the "stack" block
 // matching the given address declared within this stack config, or nil if
 // there is no such declaration.
@@ -484,7 +494,7 @@ func (s *StackConfig) resolveExpressionReference(
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Reference to undeclared embedded stack",
-				Detail:   fmt.Sprintf("There is no stack %q block declared this stack.", addr.Name),
+				Detail:   fmt.Sprintf("There is no stack %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return nil, diags
@@ -496,7 +506,7 @@ func (s *StackConfig) resolveExpressionReference(
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Reference to undeclared provider configuration",
-				Detail:   fmt.Sprintf("There is no provider %q %q block declared this stack.", addr.ProviderLocalName, addr.Name),
+				Detail:   fmt.Sprintf("There is no provider %q %q block declared in this stack.", addr.ProviderLocalName, addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return nil, diags
