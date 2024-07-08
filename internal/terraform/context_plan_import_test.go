@@ -1657,7 +1657,44 @@ resource "test_object" "a" {
 
 	// We're expecting exactly one diag, which is the self-reference error.
 	if len(diags) != 1 {
-		t.Fatalf("expected one diag, got %d", len(diags))
+		t.Fatalf("expected one diag, got %d: %s", len(diags), diags.ErrWithWarnings())
+	}
+
+	got, want := diags.Err().Error(), "Invalid import id argument: The import ID cannot reference the resource being imported."
+	if cmp.Diff(want, got) != "" {
+		t.Fatalf("unexpected error\n%s", cmp.Diff(want, got))
+	}
+}
+
+func TestContext2Plan_importSelfReferenceInstanceRef(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to = test_object.a
+  id = test_object.a[0].test_string
+}
+
+resource "test_object" "a" {
+  count = 1
+  test_string = "foo"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			// The providers never actually going to get called here, we should
+			// catch the error long before anything happens.
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+
+	// We're expecting exactly one diag, which is the self-reference error.
+	if len(diags) != 1 {
+		t.Fatalf("expected one diag, got %d: %s", len(diags), diags.ErrWithWarnings())
 	}
 
 	got, want := diags.Err().Error(), "Invalid import id argument: The import ID cannot reference the resource being imported."
@@ -1739,7 +1776,7 @@ output "foo" {
 
 	// We're expecting exactly one diag, which is the self-reference error.
 	if len(diags) != 1 {
-		t.Fatalf("expected one diag, got %d", len(diags))
+		t.Fatalf("expected one diag, got %d: %s", len(diags), diags.ErrWithWarnings())
 	}
 
 	// Terraform detects this case as a cycle, and the order of rendering the
