@@ -86,6 +86,16 @@ message Plan {
     // at apply time.
     repeated OutputChange output_changes = 4;
 
+    // The custom action sequences that would be executed if this plan is
+    // applied.
+    //
+    // Custom action sequences include custom actions performed against
+    // arbitrary resource instances. When at least one custom action is
+    // present for a resource instance, its entry in resource_changes
+    // has an "after" value that incorporates the effects of custom
+    // actions on that resource instance.
+    repeated CustomActionSequence custom_action_seqs = 29;
+
     // An unordered set of check results for the entire configuration.
     //
     // Each element represents a single static configuration object that has
@@ -245,6 +255,14 @@ message ResourceInstanceChange {
     // "replace", "delete" and "no-op" actions.
     Change change = 9;
 
+    // If the overall plan includes any custom actions for this resource
+    // instance then this field captures the total number of those actions.
+    //
+    // When the custom action count is nonzero the "after" value for
+    // "change" also incorporates the effects of the custom actions, which
+    // always happen before the base action described by "change".
+    int64 custom_action_count = 15;
+
     // raw blob value provided by the provider as additional context for the
     // change. Must be considered an opaque value for any consumer other than
     // the provider that generated it, and will be returned verbatim to the
@@ -287,6 +305,105 @@ message OutputChange {
     // in "change" is sensitive and should not be shown directly in any
     // rendered plan.
     bool sensitive = 3;
+}
+
+message CustomActionSequence {
+    message Declaration {
+        message ResourceInstanceLifecycle {
+            enum HookType {
+                INVALID = 0;
+                WHEN_CREATING = 1;
+                WHEN_UPDATING = 2;
+                WHEN_DESTROYING = 3;
+            }
+
+            // The address of the resource block that contains the sequence.
+            string resource_addr = 1;
+            // The hook type implies which of the nested blocks of "lifecycle"
+            // this sequence was derived from.
+            Action base_action = 2;
+        }
+        message ModuleCustomAction {
+            string module_addr = 1;
+            string action_name = 2;
+        }
+
+        oneof block {
+            ResourceInstanceLifecycle resource_instance_lifecycle = 1;
+            ModuleCustomAction module_custom_action = 2;
+        }
+    }
+
+    // declaration captures enough information for us to locate the block in
+    // the configuration that this sequence was derived from, which we need
+    // so that we can re-evaluate the step arguments with additional information
+    // during the apply phase.
+    //
+    // This only retains enough to find the static configuration block.
+    // Terraform re-evaluates the information in the block during the apply
+    // phase to recover the associated dynamic context.
+    Declaration declaration = 1;
+
+    // The sequence of steps determined by evaluating the sequence of "step"
+    // blocks in the configuration.
+    repeated CustomActionStep steps = 2;
+}
+
+message CustomActionStep {
+    message InvokeCustomAction {
+        // The name of the step declaration that the result of the invocation
+        // should be associated with.
+        string step_name = 1;
+
+        // The address of the resource instance that the action will be
+        // invoked on.
+        //
+        // The final base action on this resource instance must happen only
+        // after all of its action invocations are complete.
+        string resource_instance_addr = 2;
+
+        // The name of the custom action to be invoked. This must match
+        // one of the custom action types declared by the provider that
+        // is managing the receiving resource instance for the type
+        // given in the resource instance address.
+        string action_type_name = 3;
+
+        // The argument values as evaluated during planning.
+        //
+        // These include unknown values for anything that cannot be
+        // fully evaluated until the apply step.
+        //
+        // If ephemeral values appear anywhere any of the arguments then
+        // they are stored either as null or an unknown value, depending
+        // on whether the ephemeral value was set or not, to avoid saving
+        // the concrete value of a non-null ephemeral value.
+        //
+        // Terraform retains this only to verify that the arguments remain
+        // consistent after evaluation during apply, because otherwise the
+        // plan was invalidated and so execution must halt.
+        map<string, DynamicValue> arguments = 4;
+
+        // The resource instance state that the provider expects to generate
+        // when applying this action. Includes unknown values for anything
+        // that cannot be resolved concretely until the apply step.
+        //
+        // A custom action acts as an additional resource change described
+        // using PlanResourceChange and ApplyResourceChange, and so this
+        // value is the planned state returned by the custom action's own
+        // PlanResourceChange call.
+        DynamicValue planned_state = 5;
+    }
+    message CallSubsequence {
+        // The name of the step declaration that the result of the subsequence
+        // call should be associated with.
+        string step_name = 1;
+        CustomActionSequence subsequence = 2;
+    }
+
+    oneof op {
+        InvokeCustomAction invoke = 1;
+        CallSubsequence call_subsequence = 2;
+    }
 }
 
 message CheckResults {
