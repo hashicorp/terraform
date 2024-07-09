@@ -686,11 +686,12 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 				// the end, by checking ctx.Err().
 
 			default:
+				suggestion := fmt.Sprintf("\n\nTo see which modules are currently depending on %s and what versions are specified, run the following command:\n    terraform providers", provider.ForDisplay())
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Failed to query available provider packages",
-					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s",
-						provider.ForDisplay(), err,
+					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s%s",
+						provider.ForDisplay(), err, suggestion,
 					),
 				))
 			}
