@@ -1008,7 +1008,7 @@ func (c *ComponentInstance) CheckApplyResult(ctx context.Context) (*ComponentIns
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Component instance apply not scheduled",
-			fmt.Sprintf("Terraform needs the result from applying changes to %s, but that apply was apparently not scheduled to run. This is a bug in Terraform.", c.Addr()),
+			fmt.Sprintf("Terraform needs the result from applying changes to %s, but that apply was apparently not scheduled to run: %s. This is a bug in Terraform.", c.Addr(), err),
 		))
 	}
 	return applyResult, diags
