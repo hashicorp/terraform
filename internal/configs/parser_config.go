@@ -193,6 +193,13 @@ func parseConfigFile(body hcl.Body, diags hcl.Diagnostics, override, allowExperi
 				file.DataResources = append(file.DataResources, cfg)
 			}
 
+		case "action":
+			cfg, cfgDiags := decodeModuleDefinedCustomActionBlock(block)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.CustomActions = append(file.CustomActions, cfg)
+			}
+
 		case "moved":
 			cfg, cfgDiags := decodeMovedBlock(block)
 			diags = append(diags, cfgDiags...)
@@ -307,6 +314,10 @@ var configFileSchema = &hcl.BodySchema{
 		{
 			Type:       "data",
 			LabelNames: []string{"type", "name"},
+		},
+		{
+			Type:       "action",
+			LabelNames: []string{"name"},
 		},
 		{
 			Type: "moved",

@@ -62,6 +62,10 @@ type ManagedResource struct {
 
 	CreateBeforeDestroySet bool
 	PreventDestroySet      bool
+
+	WhenCreating   *CustomActionSequence
+	WhenUpdating   *CustomActionSequence
+	WhenDestroying *CustomActionSequence
 }
 
 func (r *Resource) moduleUniqueKey() string {
@@ -281,6 +285,30 @@ func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagno
 					case "postcondition":
 						r.Postconditions = append(r.Postconditions, cr)
 					}
+				case "when_creating", "when_updating", "when_destroying":
+					var dest **CustomActionSequence
+					switch block.Type {
+					case "when_creating":
+						dest = &r.Managed.WhenCreating
+					case "when_updating":
+						dest = &r.Managed.WhenUpdating
+					case "when_destroying":
+						dest = &r.Managed.WhenDestroying
+					}
+					if *dest != nil && !override {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  fmt.Sprintf("Duplicate %q block", block.Type),
+							Detail:   fmt.Sprintf("Each resource can have only one %q block.", block.Type),
+							Subject:  block.TypeRange.Ptr(),
+						})
+						continue
+					}
+
+					seq, moreDiags := decodeCustomActionSequenceBlock(block)
+					diags = append(diags, moreDiags...)
+					*dest = seq
+
 				default:
 					// The cases above should be exhaustive for all block types
 					// defined in the lifecycle schema, so this shouldn't happen.
@@ -512,6 +540,13 @@ func decodeDataBlock(block *hcl.Block, override, nested bool) (*Resource, hcl.Di
 					case "postcondition":
 						r.Postconditions = append(r.Postconditions, cr)
 					}
+				case "when_creating", "when_updating", "when_destroying":
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid lifecycle hook block",
+						Detail:   fmt.Sprintf("The lifecycle hook block %q is not available for data resources.", block.Type),
+						Subject:  block.TypeRange.Ptr(),
+					})
 				default:
 					// The cases above should be exhaustive for all block types
 					// defined in the lifecycle schema, so this shouldn't happen.
@@ -805,5 +840,8 @@ var resourceLifecycleBlockSchema = &hcl.BodySchema{
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "precondition"},
 		{Type: "postcondition"},
+		{Type: "when_creating"},
+		{Type: "when_updating"},
+		{Type: "when_destroying"},
 	},
 }

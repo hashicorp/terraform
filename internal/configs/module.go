@@ -48,6 +48,7 @@ type Module struct {
 
 	ManagedResources map[string]*Resource
 	DataResources    map[string]*Resource
+	CustomActions    map[string]*ModuleDefinedCustomAction
 
 	Moved   []*Moved
 	Removed []*Removed
@@ -88,6 +89,7 @@ type File struct {
 
 	ManagedResources []*Resource
 	DataResources    []*Resource
+	CustomActions    []*ModuleDefinedCustomAction
 
 	Moved   []*Moved
 	Removed []*Removed
@@ -125,6 +127,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		ModuleCalls:        map[string]*ModuleCall{},
 		ManagedResources:   map[string]*Resource{},
 		DataResources:      map[string]*Resource{},
+		CustomActions:      map[string]*ModuleDefinedCustomAction{},
 		Checks:             map[string]*Check{},
 		ProviderMetas:      map[addrs.Provider]*ProviderMeta{},
 		Tests:              map[string]*TestFile{},
@@ -370,6 +373,19 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.DataResources[key] = r
+	}
+
+	for _, a := range file.CustomActions {
+		if existing, exists := m.CustomActions[a.Name]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate custom action configuration",
+				Detail:   fmt.Sprintf("A custom action named %q was already declared at %s. Custom action names must be unique in each module.", existing.Name, existing.DeclRange),
+				Subject:  &a.DeclRange,
+			})
+			continue
+		}
+		m.CustomActions[a.Name] = a
 	}
 
 	for _, c := range file.Checks {
@@ -627,6 +643,23 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 		}
 		mergeDiags := existing.merge(r, m.ProviderRequirements.RequiredProviders)
 		diags = append(diags, mergeDiags...)
+	}
+
+	for _, a := range file.CustomActions {
+		if _, exists := m.CustomActions[a.Name]; !exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing custom action to override",
+				Detail:   fmt.Sprintf("There is no custom action named %q. An override file can only override a custom action block defined in a primary configuration file.", a.Name),
+				Subject:  &a.DeclRange,
+			})
+			continue
+		}
+		// Custom actions always override entirely because there isn't any
+		// reasonable merging behavior for an ordered sequence of steps,
+		// and the other declarations inside are only there to support the
+		// steps so would not make sense to override in isolation.
+		m.CustomActions[a.Name] = a
 	}
 
 	for _, m := range file.Moved {
