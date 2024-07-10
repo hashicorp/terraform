@@ -14,3 +14,28 @@ provider "null" "a" {
 locals {
   sound = "bleep bloop"
 }
+
+# component "a" {
+#   source = "../"
+
+#   inputs = {
+#     name = var.name
+#   }
+#   providers = {
+#     null = var.provider
+#   }
+# }
+
+removed {
+  from = component.a
+
+  source = "../"
+
+  providers = {
+    null = var.provider
+  }
+
+  # lifecycle {
+  #   destroy = false
+  # }
+}
