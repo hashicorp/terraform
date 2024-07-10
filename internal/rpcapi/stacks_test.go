@@ -406,6 +406,17 @@ func TestStackChangeProgress(t *testing.T) {
 						},
 					},
 				},
+				{
+					Event: &terraform1.StackChangeProgress_ComponentInstanceStatus_{
+						ComponentInstanceStatus: &terraform1.StackChangeProgress_ComponentInstanceStatus{
+							Addr: &terraform1.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.deferred",
+								ComponentInstanceAddr: "component.deferred",
+							},
+							Status: terraform1.StackChangeProgress_ComponentInstanceStatus_DEFERRED,
+						},
+					},
+				},
 			},
 		},
 		"moved": {
