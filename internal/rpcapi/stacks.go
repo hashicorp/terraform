@@ -757,6 +757,12 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 			span.(trace.Span).End()
 			return nil
 		},
+		DeferComponentInstancePlan: func(ctx context.Context, span any, ci stackaddrs.AbsComponentInstance) any {
+			send(evtComponentInstanceStatus(ci, hooks.ComponentInstanceDeferred))
+			span.(trace.Span).SetStatus(otelCodes.Error, "planning succeeded, but deferred")
+			span.(trace.Span).End()
+			return nil
+		},
 		PendingComponentInstanceApply: func(ctx context.Context, ci stackaddrs.AbsComponentInstance) {
 			send(evtComponentInstanceStatus(ci, hooks.ComponentInstancePending))
 		},

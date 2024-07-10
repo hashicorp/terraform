@@ -1041,6 +1041,7 @@ message StackChangeProgress {
             APPLYING = 4;
             APPLIED = 5;
             ERRORED = 6;
+            DEFERRED = 7;
         }
     }
 
