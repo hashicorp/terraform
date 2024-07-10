@@ -43,6 +43,9 @@ type Declarations struct {
 	// particular stack configuration. Other stack configurations in the
 	// overall tree might have their own provider configurations.
 	ProviderConfigs map[addrs.LocalProviderConfig]*ProviderConfig
+
+	// Removed corresponds to a remove block
+	Removed []*Removed
 }
 
 func makeDeclarations() Declarations {
@@ -53,6 +56,7 @@ func makeDeclarations() Declarations {
 		LocalValues:     make(map[string]*LocalValue),
 		OutputValues:    make(map[string]*OutputValue),
 		ProviderConfigs: make(map[addrs.LocalProviderConfig]*ProviderConfig),
+		Removed:         []*Removed{},
 	}
 }
 
@@ -219,6 +223,16 @@ func (d *Declarations) addProviderConfig(decl *ProviderConfig) tfdiags.Diagnosti
 
 	d.ProviderConfigs[addr] = decl
 	return diags
+}
+
+func (d *Declarations) addRemoved(decl *Removed) tfdiags.Diagnostics {
+	if decl == nil {
+		return nil
+	}
+
+	d.Removed = append(d.Removed, decl)
+
+	return nil
 }
 
 func (d *Declarations) merge(other *Declarations) tfdiags.Diagnostics {
