@@ -27,6 +27,10 @@ recursive calls to `templatefile` are not permitted. Variable names must
 each start with a letter, followed by zero or more letters, digits, or
 underscores.
 
+~> Warning: While only the use of `templatefile` function is prohibited,
+   the use of the `file` function can also have unexpected effects. This 
+   function will include other files, but cannot include other template files.
+
 Strings in the Terraform language are sequences of Unicode characters, so
 this function will interpret the file contents as UTF-8 encoded text and
 return the resulting Unicode characters. If the file contains invalid UTF-8
