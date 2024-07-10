@@ -28,7 +28,7 @@ func evaluateImportIdExpression(expr hcl.Expression, target addrs.AbsResourceIns
 		})
 	}
 
-	diags = diags.Append(validateSelfRefFromImport(target.Resource.Resource, expr))
+	diags = diags.Append(validateImportSelfRef(target.Resource.Resource, expr))
 	if diags.HasErrors() {
 		return cty.NilVal, diags
 	}

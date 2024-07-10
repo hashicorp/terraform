@@ -109,10 +109,55 @@ func TestValidateSelfRef(t *testing.T) {
 					t.Errorf("unexpected error\n\n%s", diags.Err())
 				}
 			}
+		})
+	}
+}
 
-			// We can use the same expressions to test the expression
-			// validation.
-			diags = validateSelfRefInExpr(test.Addr, test.Expr)
+func TestValidateSelfInExpr(t *testing.T) {
+	rAddr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "aws_instance",
+		Name: "foo",
+	}
+
+	tests := []struct {
+		Name string
+		Addr addrs.Resource
+		Expr hcl.Expression
+		Err  bool
+	}{
+		{
+			"no references at all",
+			rAddr,
+			hcltest.MockExprLiteral(cty.StringVal("bar")),
+			false,
+		},
+
+		{
+			"non self reference",
+			rAddr,
+			hcltest.MockExprTraversalSrc("aws_instance.bar.id"),
+			false,
+		},
+
+		{
+			"self reference",
+			rAddr,
+			hcltest.MockExprTraversalSrc("aws_instance.foo.id"),
+			true,
+		},
+
+		{
+			"self reference other index",
+			rAddr,
+			hcltest.MockExprTraversalSrc("aws_instance.foo[4].id"),
+			true,
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, test.Name), func(t *testing.T) {
+			diags := validateMetaSelfRef(test.Addr, test.Expr)
 			if diags.HasErrors() != test.Err {
 				if test.Err {
 					t.Errorf("unexpected success; want error")
