@@ -1,5 +1,9 @@
 ## 1.9.2 (Unreleased)
 
+BUG FIXES:
+
+* Fix panic when self-referencing direct instances from `count` and `for_each` meta attributes. ([#35432](https://github.com/hashicorp/terraform/pull/35432))
+
 ## 1.9.1 (July 3, 2024)
 
 UPGRADE NOTES:
