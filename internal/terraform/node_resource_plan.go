@@ -102,8 +102,8 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	// resource. The config maybe nil if we are generating configuration, or
 	// deleting a resource.
 	if n.Config != nil {
-		diags = diags.Append(validateSelfRefInExpr(n.Addr.Resource, n.Config.Count))
-		diags = diags.Append(validateSelfRefInExpr(n.Addr.Resource, n.Config.ForEach))
+		diags = diags.Append(validateMetaSelfRef(n.Addr.Resource, n.Config.Count))
+		diags = diags.Append(validateMetaSelfRef(n.Addr.Resource, n.Config.ForEach))
 		if diags.HasErrors() {
 			return nil, diags
 		}

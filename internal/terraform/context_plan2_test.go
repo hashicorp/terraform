@@ -5594,3 +5594,67 @@ resource "test_object" "obj" {
 		t.Errorf("unexpected diags\n%s", diags)
 	}
 }
+
+func TestContext2Plan_selfReferences(t *testing.T) {
+	tcs := []struct {
+		attribute string
+	}{
+		// Note here, the type returned by the lookup doesn't really matter as
+		// we should safely fail before we even get to type checking.
+		{
+			attribute: "count = test_object.a[0].test_string",
+		},
+		{
+			attribute: "count = test_object.a[*].test_string",
+		},
+		{
+			attribute: "for_each = test_object.a[0].test_string",
+		},
+		{
+			attribute: "for_each = test_object.a[*].test_string",
+		},
+		// Even though the can and try functions might normally allow some
+		// fairly crazy things, we're still going to put a stop to a self
+		// reference since it is more akin to a compilation error than some kind
+		// of dynamic exception.
+		{
+			attribute: "for_each = can(test_object.a[0].test_string) ? 0 : 1",
+		},
+		{
+			attribute: "count = try(test_object.a[0].test_string, 0)",
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.attribute, func(t *testing.T) {
+			tmpl := `
+resource "test_object" "a" {
+  %%attribute%%
+}
+`
+			module := strings.ReplaceAll(tmpl, "%%attribute%%", tc.attribute)
+			m := testModuleInline(t, map[string]string{
+				"main.tf": module,
+			})
+
+			p := simpleMockProvider()
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					// The providers never actually going to get called here, we should
+					// catch the error long before anything happens.
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+			if len(diags) != 1 {
+				t.Fatalf("expected one diag, got %d: %s", len(diags), diags.ErrWithWarnings())
+			}
+
+			got, want := diags.Err().Error(), "Self-referential block: Configuration for test_object.a may not refer to itself."
+			if cmp.Diff(want, got) != "" {
+				t.Fatalf("unexpected error\n%s", cmp.Diff(want, got))
+			}
+		})
+	}
+
+}
