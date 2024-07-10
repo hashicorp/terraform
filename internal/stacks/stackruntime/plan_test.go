@@ -3937,6 +3937,101 @@ func TestPlan_plantimestamp_later_than_when_writing_this_test(t *testing.T) {
 	}
 }
 
+func TestPlan_removed_success(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, path.Join("removed", "success"))
+
+	forcedPlanTimestamp := "1991-08-25T20:57:08Z"
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, forcedPlanTimestamp)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	changesCh := make(chan stackplan.PlannedChange, 8)
+	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			// We support both hashicorp/testing and
+			// terraform.io/builtin/testing as providers. This lets us
+			// test the provider aliasing feature. Both providers
+			// support the same set of resources and data sources.
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+			addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+		InputValues: func() map[stackaddrs.InputVariable]ExternalInputValue {
+			return map[stackaddrs.InputVariable]ExternalInputValue{}
+		}(),
+		ForcePlanTimestamp: &fakePlanTimestamp,
+		DependencyLocks:    *lock,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	gotChanges, diags := collectPlanOutput(changesCh, diagsCh)
+
+	// The following will fail the test if there are any error
+	// diagnostics.
+	reportDiagnosticsForTest(t, diags)
+
+	// We also want to fail if there are just warnings, since the
+	// configurations here are supposed to be totally problem-free.
+	if len(diags) != 0 {
+		// reportDiagnosticsForTest already showed the diagnostics in
+		// the log
+		t.FailNow()
+	}
+
+	wantChanges := []stackplan.PlannedChange{
+		&stackplan.PlannedChangeApplyable{
+			Applyable: true,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance,
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "self"},
+				},
+			),
+			Action:                 plans.Delete,
+			PlanApplyable:          true,
+			PlanComplete:           true,
+			PlannedCheckResults:    &states.CheckResults{},
+			PlannedInputValueMarks: map[string][]cty.PathValueMarks{},
+			PlannedInputValues:     map[string]plans.DynamicValue{},
+			PlannedOutputValues:    map[string]cty.Value{},
+			PlanTimestamp:          fakePlanTimestamp,
+		},
+		&stackplan.PlannedChangeHeader{
+			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangePlannedTimestamp{PlannedTimestamp: fakePlanTimestamp},
+	}
+
+	cmpOptions := cmp.Options{
+		ctydebug.CmpOptions,
+		collections.CmpOptions,
+	}
+	if diff := cmp.Diff(wantChanges, gotChanges, cmpOptions); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+}
+
 func expectOutput(t *testing.T, name string, changes []stackplan.PlannedChange) *stackplan.PlannedChangeOutputValue {
 	t.Helper()
 	for _, change := range changes {

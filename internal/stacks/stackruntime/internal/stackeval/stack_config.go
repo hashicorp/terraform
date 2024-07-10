@@ -43,6 +43,7 @@ type StackConfig struct {
 	stackCalls     map[stackaddrs.StackCall]*StackCallConfig
 	components     map[stackaddrs.Component]*ComponentConfig
 	providers      map[stackaddrs.ProviderConfig]*ProviderConfig
+	removed        []*RemovedConfig
 }
 
 var (
@@ -63,6 +64,7 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.Confi
 		stackCalls:     make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
 		components:     make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
 		providers:      make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(config.Stack.Declarations.ProviderConfigs)),
+		removed:        []*RemovedConfig{},
 	}
 }
 
@@ -420,6 +422,15 @@ func (s *StackConfig) Components(ctx context.Context) map[stackaddrs.Component]*
 		addr := stackaddrs.Component{Name: name}
 		ret[addr] = s.Component(ctx, addr)
 	}
+	return ret
+}
+
+func (s *StackConfig) Removed(ctx context.Context) []*RemovedConfig {
+	ret := make([]*RemovedConfig, 0, len(s.config.Stack.Removed))
+	for _, cfg := range s.config.Stack.Removed {
+		ret = append(ret, newRemovedConfig(s.main, cfg))
+	}
+
 	return ret
 }
 
