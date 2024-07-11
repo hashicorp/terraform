@@ -332,6 +332,7 @@ func (pc *PlannedChangeResourceInstancePlanned) PlanResourceInstanceChangePlanne
 	if err != nil {
 		return nil, fmt.Errorf("converting resource instance change to proto: %w", err)
 	}
+
 	return &tfstackdata1.PlanResourceInstanceChangePlanned{
 		ComponentInstanceAddr: rioAddr.Component.String(),
 		ResourceInstanceAddr:  rioAddr.Item.ResourceInstance.String(),
@@ -360,6 +361,25 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*terraform1
 		return nil, err
 	}
 
+	var moved *terraform1.PlannedChange_ResourceInstance_Moved
+	var imported *terraform1.PlannedChange_ResourceInstance_Imported
+
+	if pc.ChangeSrc.Moved() {
+		moved = &terraform1.PlannedChange_ResourceInstance_Moved{
+			PrevAddr: terraform1.NewResourceInstanceInStackAddr(stackaddrs.AbsResourceInstance{
+				Component: rioAddr.Component,
+				Item:      pc.ChangeSrc.PrevRunAddr,
+			}),
+		}
+	}
+
+	if pc.ChangeSrc.Importing != nil {
+		imported = &terraform1.PlannedChange_ResourceInstance_Imported{
+			ImportId: pc.ChangeSrc.Importing.ID,
+			Unknown:  pc.ChangeSrc.Importing.Unknown,
+		}
+	}
+
 	return &terraform1.PlannedChange_ChangeDescription{
 		Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
 			ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
@@ -380,7 +400,8 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*terraform1
 					),
 				},
 				ReplacePaths: replacePaths,
-				// TODO: Moved, Imported
+				Moved:        moved,
+				Imported:     imported,
 			},
 		},
 	}, nil

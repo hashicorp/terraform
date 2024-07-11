@@ -515,6 +515,204 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				},
 			},
 		},
+		"resource instance planned import": {
+			Receiver: &PlannedChangeResourceInstancePlanned{
+				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+					Component: stackaddrs.AbsComponentInstance{
+						Stack: stackaddrs.RootStackInstance.Child("a", addrs.StringKey("boop")),
+						Item: stackaddrs.ComponentInstance{
+							Component: stackaddrs.Component{Name: "foo"},
+							Key:       addrs.StringKey("beep"),
+						},
+					},
+					Item: addrs.AbsResourceInstanceObject{
+						ResourceInstance: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "thingy",
+							Name: "wotsit",
+						}.Instance(addrs.IntKey(1)).Absolute(
+							addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+						),
+					},
+				},
+				ProviderConfigAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
+				},
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "thingy",
+						Name: "wotsit",
+					}.Instance(addrs.IntKey(1)).Absolute(
+						addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+					),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.NoOp,
+						Before: emptyObjectForPlan,
+						After:  emptyObjectForPlan,
+						Importing: &plans.ImportingSrc{
+							ID: "bbbbbbb",
+						},
+					},
+				},
+			},
+			Want: &terraform1.PlannedChange{
+				Raw: []*anypb.Any{
+					mustMarshalAnyPb(&tfstackdata1.PlanResourceInstanceChangePlanned{
+						ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+						ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
+						ProviderConfigAddr:    `provider["example.com/thingers/thingy"]`,
+						Change: &planproto.ResourceInstanceChange{
+							Addr: `module.pizza["chicken"].thingy.wotsit[1]`,
+							Change: &planproto.Change{
+								Action: planproto.Action_NOOP,
+								Values: []*planproto.DynamicValue{
+									{Msgpack: []byte{'\x80'}}, // zero-length mapping
+								},
+								Importing: &planproto.Importing{
+									Id: "bbbbbbb",
+								},
+							},
+							Provider: `provider["example.com/thingers/thingy"]`,
+						},
+					}),
+				},
+				Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+					{
+						Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
+							ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
+								Addr: &terraform1.ResourceInstanceObjectInStackAddr{
+									ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+									ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
+								},
+								ResourceMode: terraform1.ResourceMode_MANAGED,
+								ResourceType: "thingy",
+								ProviderAddr: "example.com/thingers/thingy",
+								Actions:      []terraform1.ChangeType{terraform1.ChangeType_NOOP},
+								Values: &terraform1.DynamicValueChange{
+									Old: &terraform1.DynamicValue{
+										Msgpack: []byte{'\x80'}, // zero-length mapping
+									},
+									New: &terraform1.DynamicValue{
+										Msgpack: []byte{'\x80'}, // zero-length mapping
+									},
+								},
+								Imported: &terraform1.PlannedChange_ResourceInstance_Imported{
+									ImportId: "bbbbbbb",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"resource instance planned moved": {
+			Receiver: &PlannedChangeResourceInstancePlanned{
+				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+					Component: stackaddrs.AbsComponentInstance{
+						Stack: stackaddrs.RootStackInstance.Child("a", addrs.StringKey("boop")),
+						Item: stackaddrs.ComponentInstance{
+							Component: stackaddrs.Component{Name: "foo"},
+							Key:       addrs.StringKey("beep"),
+						},
+					},
+					Item: addrs.AbsResourceInstanceObject{
+						ResourceInstance: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "thingy",
+							Name: "wotsit",
+						}.Instance(addrs.IntKey(1)).Absolute(
+							addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+						),
+					},
+				},
+				ProviderConfigAddr: addrs.AbsProviderConfig{
+					Module:   addrs.RootModule,
+					Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
+				},
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "thingy",
+						Name: "wotsit",
+					}.Instance(addrs.IntKey(1)).Absolute(
+						addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+					),
+					PrevRunAddr: addrs.AbsResourceInstance{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "thingy",
+							Name: "wotsit",
+						}.Instance(addrs.NoKey),
+						Module: addrs.RootModuleInstance.Child("pizza", addrs.StringKey("chicken")),
+					},
+					ProviderAddr: addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.MustParseProviderSourceString("example.com/thingers/thingy"),
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.NoOp,
+						Before: emptyObjectForPlan,
+						After:  emptyObjectForPlan,
+					},
+				},
+			},
+			Want: &terraform1.PlannedChange{
+				Raw: []*anypb.Any{
+					mustMarshalAnyPb(&tfstackdata1.PlanResourceInstanceChangePlanned{
+						ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+						ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
+						ProviderConfigAddr:    `provider["example.com/thingers/thingy"]`,
+						Change: &planproto.ResourceInstanceChange{
+							Addr:        `module.pizza["chicken"].thingy.wotsit[1]`,
+							PrevRunAddr: `module.pizza["chicken"].thingy.wotsit`,
+							Change: &planproto.Change{
+								Action: planproto.Action_NOOP,
+								Values: []*planproto.DynamicValue{
+									{Msgpack: []byte{'\x80'}}, // zero-length mapping
+								},
+							},
+							Provider: `provider["example.com/thingers/thingy"]`,
+						},
+					}),
+				},
+				Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+					{
+						Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
+							ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
+								Addr: &terraform1.ResourceInstanceObjectInStackAddr{
+									ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+									ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit[1]`,
+								},
+								ResourceMode: terraform1.ResourceMode_MANAGED,
+								ResourceType: "thingy",
+								ProviderAddr: "example.com/thingers/thingy",
+								Actions:      []terraform1.ChangeType{terraform1.ChangeType_NOOP},
+								Values: &terraform1.DynamicValueChange{
+									Old: &terraform1.DynamicValue{
+										Msgpack: []byte{'\x80'}, // zero-length mapping
+									},
+									New: &terraform1.DynamicValue{
+										Msgpack: []byte{'\x80'}, // zero-length mapping
+									},
+								},
+								Moved: &terraform1.PlannedChange_ResourceInstance_Moved{
+									PrevAddr: &terraform1.ResourceInstanceInStackAddr{
+										ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
+										ResourceInstanceAddr:  `module.pizza["chicken"].thingy.wotsit`,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 		"output value updated": {
 			Receiver: &PlannedChangeOutputValue{
 				Addr:   stackaddrs.OutputValue{Name: "thingy_id"},
