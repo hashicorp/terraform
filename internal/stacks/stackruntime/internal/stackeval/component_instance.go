@@ -948,6 +948,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 				cic.Forget++
 			}
 		}
+		cic.Defer = plan.DeferredResourceInstanceChanges.Len()
 
 		hookMore(ctx, seq, h.ReportComponentInstanceApplied, cic)
 	}

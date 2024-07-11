@@ -1109,6 +1109,58 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				}),
 			expectedWarnings: []string{"Some objects will no longer be managed by Terraform"},
 		},
+		"deferred": {
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("self", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("deferred"),
+					"value": cty.UnknownVal(cty.String),
+				})).
+				Build(),
+			changes: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent("component.deferred"),
+					ComponentInstanceAddr: mustAbsComponentInstance("component.deferred"),
+					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+				},
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent("component.ok"),
+					ComponentInstanceAddr: mustAbsComponentInstance("component.ok"),
+					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.ok.testing_resource.self"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "ok",
+							"value": "ok",
+						}),
+						Status:             states.ObjectReady,
+						AttrSensitivePaths: nil,
+						Dependencies:       []addrs.ConfigResource{},
+					},
+					ProviderConfigAddr:                 mustDefaultRootProvider("testing"),
+					PreviousResourceInstanceObjectAddr: nil,
+					Schema:                             stacks_testing_provider.TestingResourceSchema,
+				},
+			},
+			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
+				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+					K: mustAbsComponentInstance("component.ok"),
+					V: &hooks.ComponentInstanceChange{
+						Addr:  mustAbsComponentInstance("component.ok"),
+						Add:   1,
+						Defer: 0,
+					},
+				},
+				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+					K: mustAbsComponentInstance("component.deferred"),
+					V: &hooks.ComponentInstanceChange{
+						Addr:  mustAbsComponentInstance("component.deferred"),
+						Defer: 1,
+					},
+				},
+			),
+		},
 	}
 
 	for name, tc := range tcs {
