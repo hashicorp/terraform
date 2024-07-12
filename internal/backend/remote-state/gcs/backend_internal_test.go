@@ -24,13 +24,12 @@ func TestBackendConfig_encryptionKey(t *testing.T) {
 		if key == "" {
 			return nil
 		}
-		if key != "" {
-			v, err := base64.StdEncoding.DecodeString(key)
-			if err != nil {
-				t.Fatalf("error in test setup: %s", err.Error())
-			}
-			return v
+
+		v, err := base64.StdEncoding.DecodeString(key)
+		if err != nil {
+			t.Fatalf("error in test setup: %s", err.Error())
 		}
+		return v
 	}
 
 	cases := map[string]struct {
