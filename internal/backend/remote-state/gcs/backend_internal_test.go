@@ -17,22 +17,20 @@ func TestBackendConfig_encryptionKey(t *testing.T) {
 	preCheckEnvironmentVariables(t)
 	// Cannot use t.Parallel as t.SetEnv used
 
-	// getWantValue is required because the key input is changed internally in the backend's code
-	// This function is a quick way to help us get a want value, but ideally in future the test and
-	// the code under test will use a reusable function to avoid logic duplication.
-	getWantValue := func(key string) []byte {
-		var want []byte
+	// This function is required because the key input is changed internally in the backend's code.
+	// This function is a quick way to help us get an expected value for tests, but ideally in future
+	// the test and the code under test will use a reusable function to avoid logic duplication.
+	expectedValue := func(key string) []byte {
 		if key == "" {
-			want = nil
+			return nil
 		}
 		if key != "" {
-			var err error
-			want, err = base64.StdEncoding.DecodeString(key)
+			v, err := base64.StdEncoding.DecodeString(key)
 			if err != nil {
 				t.Fatalf("error in test setup: %s", err.Error())
 			}
+			return v
 		}
-		return want
 	}
 
 	cases := map[string]struct {
@@ -44,7 +42,7 @@ func TestBackendConfig_encryptionKey(t *testing.T) {
 			config: map[string]interface{}{
 				"bucket": "foobar",
 			},
-			want: getWantValue(""),
+			want: expectedValue(""),
 		},
 
 		"set in config only": {
@@ -52,7 +50,7 @@ func TestBackendConfig_encryptionKey(t *testing.T) {
 				"bucket":         "foobar",
 				"encryption_key": encryptionKey,
 			},
-			want: getWantValue(encryptionKey),
+			want: expectedValue(encryptionKey),
 		},
 
 		"set in config and GOOGLE_ENCRYPTION_KEY": {
@@ -63,7 +61,7 @@ func TestBackendConfig_encryptionKey(t *testing.T) {
 			envs: map[string]string{
 				"GOOGLE_ENCRYPTION_KEY": encryptionKey2, // Different
 			},
-			want: getWantValue(encryptionKey),
+			want: expectedValue(encryptionKey),
 		},
 
 		"set in GOOGLE_ENCRYPTION_KEY only": {
@@ -73,7 +71,7 @@ func TestBackendConfig_encryptionKey(t *testing.T) {
 			envs: map[string]string{
 				"GOOGLE_ENCRYPTION_KEY": encryptionKey2,
 			},
-			want: getWantValue(encryptionKey2),
+			want: expectedValue(encryptionKey2),
 		},
 
 		"set in config as empty string and in GOOGLE_ENCRYPTION_KEY": {
@@ -84,7 +82,7 @@ func TestBackendConfig_encryptionKey(t *testing.T) {
 			envs: map[string]string{
 				"GOOGLE_ENCRYPTION_KEY": encryptionKey2,
 			},
-			want: getWantValue(encryptionKey2),
+			want: expectedValue(encryptionKey2),
 		},
 	}
 
