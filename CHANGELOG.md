@@ -1,5 +1,9 @@
 ## 1.9.3 (Unreleased)
 
+ENHANCEMENTS:
+
+* Terraform now returns a more specific error message in the awkward situation where an input variable validation rule is known to have failed (`condition` returned `false`) but the error message is derived from an unknown value. ([#35400](https://github.com/hashicorp/terraform/pull/35400))
+
 ## 1.9.2 (July 10, 2024)
 
 BUG FIXES:
