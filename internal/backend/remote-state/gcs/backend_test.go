@@ -111,18 +111,15 @@ func TestAccBackendConfig_credentials(t *testing.T) {
 				"GOOGLE_CREDENTIALS": credentials,
 			},
 		},
-		// Uncomment below for sanity checking
-		// Testing with TestBackendConfig currently doesn't let us assert for errors, so instead
-		// run the below and expect it to fail.
-		// "nonsense in config causes an error and GOOGLE_CREDENTIALS isn't used": {
-		// 	config: map[string]interface{}{
-		// 		"bucket":      "tf-test-testaccbackendconfig_credentials_3",
-		// 		"credentials": "foobar",
-		// 	},
-		// 	envs: map[string]string{
-		// 		"GOOGLE_CREDENTIALS": credentials,
-		// 	},
-		// },
+		"credentials in config that isn't an empty string takes precedence over credentials from the environment": {
+			config: map[string]interface{}{
+				"bucket":      "tf-test-testaccbackendconfig_credentials_3",
+				"credentials": credentials,
+			},
+			envs: map[string]string{
+				"GOOGLE_CREDENTIALS": "foobar", // Would cause an error if used
+			},
+		},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
