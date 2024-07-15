@@ -2671,6 +2671,11 @@ removed {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
+	// check that the provider was not asked to refresh the resource
+	if p.ReadResourceCalled {
+		t.Fatalf("Expected ReadResource not to be called, but it was called")
+	}
+
 	// check that the provider was not asked to destroy the resource
 	if p.ApplyResourceChangeCalled {
 		t.Fatalf("Expected ApplyResourceChange not to be called, but it was called")
@@ -2715,6 +2720,11 @@ removed {
 	state, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	// check that the provider was not asked to refresh the resource
+	if p.ReadResourceCalled {
+		t.Fatalf("Expected ReadResource not to be called, but it was called")
 	}
 
 	// check that the provider was not asked to destroy the resource
