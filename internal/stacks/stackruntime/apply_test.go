@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
@@ -955,6 +956,103 @@ func TestApplyWithDefaultPlanTimestamp(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestApplyWithFailedComponent(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, filepath.Join("with-single-input", "failed-parent"))
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	req := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+		DependencyLocks:    *lock,
+		ForcePlanTimestamp: &fakePlanTimestamp,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+	go Plan(ctx, &req, &resp)
+	planChanges, diags := collectPlanOutput(changesCh, diagsCh)
+	if len(diags) > 0 {
+		t.Fatalf("expected no diagnostics, got %s", diags.ErrWithWarnings())
+	}
+
+	var raw []*anypb.Any
+	for _, change := range planChanges {
+		proto, err := change.PlannedChangeProto()
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw = append(raw, proto.Raw...)
+	}
+
+	applyReq := ApplyRequest{
+		Config:  cfg,
+		RawPlan: raw,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+		DependencyLocks: *lock,
+	}
+
+	applyChangesCh := make(chan stackstate.AppliedChange)
+	diagsCh = make(chan tfdiags.Diagnostic)
+
+	applyResp := ApplyResponse{
+		AppliedChanges: applyChangesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Apply(ctx, &applyReq, &applyResp)
+	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, diagsCh)
+
+	expectDiagnosticsForTestUnordered(t, applyDiags,
+		// Our child component should have failed to apply because the dependency already failed.
+		expectDiagnostic(tfdiags.Error, "Component dependency failed", "The component \"component.self\" has a dependency on a failed component \"component.parent\", and so was not applied."),
+		// This is the expected failure, from our testing_failed_resource.
+		expectDiagnostic(tfdiags.Error, "planned failure", "apply failure"))
+
+	wantChanges := []stackstate.AppliedChange{
+		&stackstate.AppliedChangeComponentInstance{
+			ComponentAddr:         mustAbsComponent("component.parent"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.parent"),
+			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+		},
+		&stackstate.AppliedChangeResourceInstanceObject{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_failed_resource.data"),
+			ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+		},
+	}
+
+	sort.SliceStable(applyChanges, func(i, j int) bool {
+		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
+	})
+
+	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+
 }
 
 func TestApplyWithStateManipulation(t *testing.T) {

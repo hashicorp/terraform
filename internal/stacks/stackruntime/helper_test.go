@@ -121,6 +121,32 @@ func expectDiagnosticsForTest(t *testing.T, actual tfdiags.Diagnostics, expected
 	}
 }
 
+func expectDiagnosticsForTestUnordered(t *testing.T, actual tfdiags.Diagnostics, expected ...expectedDiagnostic) {
+	t.Helper()
+
+	for _, diag := range expected {
+		found := false
+		for ix, actualDiag := range actual {
+			if actualDiag.Severity() == diag.severity &&
+				actualDiag.Description().Summary == diag.summary &&
+				actualDiag.Description().Detail == diag.detail {
+				found = true
+				actual = append(actual[:ix], actual[ix+1:]...)
+				break
+			}
+		}
+		if !found {
+			t.Errorf("missing diagnostic:    %s - %s", diag.summary, diag.detail)
+		}
+
+	}
+
+	for _, diag := range actual {
+		// Anything left over is unexpected.
+		t.Errorf("unexpected diagnostic: %s - %s", diag.Description().Summary, diag.Description().Detail)
+	}
+}
+
 // reportDiagnosticsForTest creates a test log entry for every diagnostic in
 // the given diags, and halts the test if any of them are error diagnostics.
 func reportDiagnosticsForTest(t *testing.T, diags tfdiags.Diagnostics) {

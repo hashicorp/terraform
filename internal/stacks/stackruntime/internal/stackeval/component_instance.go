@@ -39,6 +39,7 @@ type ComponentInstance struct {
 	repetition instances.RepetitionData
 
 	moduleTreePlan promising.Once[withDiagnostics[*plans.Plan]]
+	apply          promising.Once[withDiagnostics[[]stackstate.AppliedChange]]
 }
 
 var _ Plannable = (*ComponentInstance)(nil)
@@ -91,6 +92,46 @@ func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase 
 	// We actually checked the errors statically already, so we only care about
 	// the value here.
 	return EvalComponentInputVariables(ctx, varDecls, wantTy, defs, decl, phase, c)
+}
+
+// CheckDependencies validates that all the dependencies of this component
+// executed successfully. If any of the dependencies failed, this function
+// will return diagnostics indicating the failures.
+func (c *ComponentInstance) CheckDependencies(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
+	if phase != ApplyPhase {
+		panic("CheckDependencies is only valid in the apply phase")
+	}
+
+	var diags tfdiags.Diagnostics
+
+	plan := c.main.PlanBeingApplied()
+	deps := plan.Components.Get(c.Addr()).Dependencies
+	for _, dep := range deps.Elems() {
+		stack := c.main.Stack(ctx, dep.Stack, phase)
+		component := stack.Component(ctx, dep.Item)
+
+		insts, unknown := component.Instances(ctx, phase)
+		if unknown {
+			// If one of the dependencies has unknown instances, then this
+			// component should also have been deferred and we shouldn't
+			// have got here.
+			panic("component dependency has unknown instances")
+		}
+
+		for _, inst := range insts {
+			_, instDiags := inst.CheckApply(ctx)
+			if instDiags.HasErrors() {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Component dependency failed",
+					Detail:   fmt.Sprintf("The component %q has a dependency on a failed component %q, and so was not applied.", c.Addr(), inst.Addr()),
+					Subject:  c.call.Declaration(ctx).DeclRange.ToHCL().Ptr(),
+				})
+			}
+		}
+	}
+
+	return diags
 }
 
 // inputValuesForModulesRuntime adapts the result of
@@ -1520,132 +1561,141 @@ func (c *ComponentInstance) RequiredComponents(ctx context.Context) collections.
 
 // CheckApply implements Applyable.
 func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
-	var changes []stackstate.AppliedChange
-	var diags tfdiags.Diagnostics
+	return doOnceWithDiags(ctx, &c.apply, c.main, func(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
+		var changes []stackstate.AppliedChange
 
-	// FIXME: We need to report an AppliedChange object for the component
-	// instance itself, and we need to emit "interim" objects representing
-	// the "prior state" (refreshed) in each resource instance change in
-	// the plan, so that the effect of refreshing will still get committed
-	// to the state even if other downstream changes don't succeed.
+		// FIXME: We need to report an AppliedChange object for the component
+		// instance itself, and we need to emit "interim" objects representing
+		// the "prior state" (refreshed) in each resource instance change in
+		// the plan, so that the effect of refreshing will still get committed
+		// to the state even if other downstream changes don't succeed.
 
-	_, moreDiags := c.CheckInputVariableValues(ctx, ApplyPhase)
-	diags = diags.Append(moreDiags)
-
-	_, _, moreDiags = c.CheckProviders(ctx, ApplyPhase)
-	diags = diags.Append(moreDiags)
-
-	applyResult, moreDiags := c.CheckApplyResult(ctx)
-	diags = diags.Append(moreDiags)
-
-	if applyResult != nil {
-		newState := applyResult.FinalState
-
-		ourChange := &stackstate.AppliedChangeComponentInstance{
-			ComponentAddr:         c.call.Addr(),
-			ComponentInstanceAddr: c.Addr(),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value, len(newState.RootOutputValues)),
+		diags := c.CheckDependencies(ctx, ApplyPhase)
+		if diags.HasErrors() {
+			// Give up at this point, we can't check anything about here as
+			// there is a very good chance some crucial information is missing
+			// due to a failed dependency.
+			return changes, diags
 		}
-		for name, os := range newState.RootOutputValues {
-			val := os.Value
-			if os.Sensitive {
-				val = val.Mark(marks.Sensitive)
+
+		_, moreDiags := c.CheckInputVariableValues(ctx, ApplyPhase)
+		diags = diags.Append(moreDiags)
+
+		_, _, moreDiags = c.CheckProviders(ctx, ApplyPhase)
+		diags = diags.Append(moreDiags)
+
+		applyResult, moreDiags := c.CheckApplyResult(ctx)
+		diags = diags.Append(moreDiags)
+
+		if applyResult != nil {
+			newState := applyResult.FinalState
+
+			ourChange := &stackstate.AppliedChangeComponentInstance{
+				ComponentAddr:         c.call.Addr(),
+				ComponentInstanceAddr: c.Addr(),
+				OutputValues:          make(map[addrs.OutputValue]cty.Value, len(newState.RootOutputValues)),
 			}
-			ourChange.OutputValues[addrs.OutputValue{Name: name}] = val
-		}
-		changes = append(changes, ourChange)
-
-		for _, rioAddr := range applyResult.AffectedResourceInstanceObjects {
-			os := newState.ResourceInstanceObjectSrc(rioAddr)
-			var providerConfigAddr addrs.AbsProviderConfig
-			var schema *configschema.Block
-			if os != nil {
-				rAddr := rioAddr.ResourceInstance.ContainingResource()
-				rs := newState.Resource(rAddr)
-				if rs == nil {
-					// We should not get here: it should be impossible to
-					// have state for a resource instance object without
-					// also having state for its containing resource, because
-					// the object is nested inside the resource state.
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Inconsistent updated state for resource",
-						fmt.Sprintf(
-							"There is a state for %s specifically, but somehow no state for its containing resource %s. This is a bug in Terraform.",
-							rioAddr, rAddr,
-						),
-					))
-					continue
+			for name, os := range newState.RootOutputValues {
+				val := os.Value
+				if os.Sensitive {
+					val = val.Mark(marks.Sensitive)
 				}
-				providerConfigAddr = rs.ProviderConfig
-
-				var err error
-				schema, err = c.resourceTypeSchema(
-					ctx,
-					rs.ProviderConfig.Provider,
-					rAddr.Resource.Mode,
-					rAddr.Resource.Type,
-				)
-				if err != nil {
-					// It shouldn't be possible to get here because we would've
-					// used the same schema we were just trying to retrieve
-					// to encode the dynamic data in this states.State object
-					// in the first place. If we _do_ get here then we won't
-					// actually be able to save the updated state, which will
-					// force the user to manually clean things up.
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Can't fetch provider schema to save new state",
-						fmt.Sprintf(
-							"Failed to retrieve the schema for %s from provider %s: %s. This is a bug in Terraform.\n\nThe new state for this object cannot be saved. If this object was only just created, you may need to delete it manually in the target system to reconcile with the Terraform state before trying again.",
-							rAddr, rs.ProviderConfig.Provider, err,
-						),
-					))
-					continue
-				}
-			} else {
-				// Our model doesn't have any way to represent the absense
-				// of a provider configuration, so if we're trying to describe
-				// just that the object has been deleted then we'll just
-				// use a synthetic provider config address, this won't get
-				// used for anything significant anyway.
-				providerAddr := addrs.ImpliedProviderForUnqualifiedType(rioAddr.ResourceInstance.Resource.Resource.ImpliedProvider())
-				providerConfigAddr = addrs.AbsProviderConfig{
-					Module:   addrs.RootModule,
-					Provider: providerAddr,
-				}
+				ourChange.OutputValues[addrs.OutputValue{Name: name}] = val
 			}
+			changes = append(changes, ourChange)
 
-			var previousAddress *stackaddrs.AbsResourceInstanceObject
-			if plannedChange := c.main.PlanBeingApplied().Components.Get(c.Addr()).ResourceInstancePlanned.Get(rioAddr); plannedChange != nil && plannedChange.Moved() {
-				// If we moved the resource instance object, we need to record
-				// the previous address in the applied change. The planned
-				// change might be nil if the resource instance object was
-				// deleted.
-				previousAddress = &stackaddrs.AbsResourceInstanceObject{
-					Component: c.Addr(),
-					Item: addrs.AbsResourceInstanceObject{
-						ResourceInstance: plannedChange.PrevRunAddr,
-						DeposedKey:       addrs.NotDeposed,
+			for _, rioAddr := range applyResult.AffectedResourceInstanceObjects {
+				os := newState.ResourceInstanceObjectSrc(rioAddr)
+				var providerConfigAddr addrs.AbsProviderConfig
+				var schema *configschema.Block
+				if os != nil {
+					rAddr := rioAddr.ResourceInstance.ContainingResource()
+					rs := newState.Resource(rAddr)
+					if rs == nil {
+						// We should not get here: it should be impossible to
+						// have state for a resource instance object without
+						// also having state for its containing resource, because
+						// the object is nested inside the resource state.
+						diags = diags.Append(tfdiags.Sourceless(
+							tfdiags.Error,
+							"Inconsistent updated state for resource",
+							fmt.Sprintf(
+								"There is a state for %s specifically, but somehow no state for its containing resource %s. This is a bug in Terraform.",
+								rioAddr, rAddr,
+							),
+						))
+						continue
+					}
+					providerConfigAddr = rs.ProviderConfig
+
+					var err error
+					schema, err = c.resourceTypeSchema(
+						ctx,
+						rs.ProviderConfig.Provider,
+						rAddr.Resource.Mode,
+						rAddr.Resource.Type,
+					)
+					if err != nil {
+						// It shouldn't be possible to get here because we would've
+						// used the same schema we were just trying to retrieve
+						// to encode the dynamic data in this states.State object
+						// in the first place. If we _do_ get here then we won't
+						// actually be able to save the updated state, which will
+						// force the user to manually clean things up.
+						diags = diags.Append(tfdiags.Sourceless(
+							tfdiags.Error,
+							"Can't fetch provider schema to save new state",
+							fmt.Sprintf(
+								"Failed to retrieve the schema for %s from provider %s: %s. This is a bug in Terraform.\n\nThe new state for this object cannot be saved. If this object was only just created, you may need to delete it manually in the target system to reconcile with the Terraform state before trying again.",
+								rAddr, rs.ProviderConfig.Provider, err,
+							),
+						))
+						continue
+					}
+				} else {
+					// Our model doesn't have any way to represent the absense
+					// of a provider configuration, so if we're trying to describe
+					// just that the object has been deleted then we'll just
+					// use a synthetic provider config address, this won't get
+					// used for anything significant anyway.
+					providerAddr := addrs.ImpliedProviderForUnqualifiedType(rioAddr.ResourceInstance.Resource.Resource.ImpliedProvider())
+					providerConfigAddr = addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: providerAddr,
+					}
+				}
+
+				var previousAddress *stackaddrs.AbsResourceInstanceObject
+				if plannedChange := c.main.PlanBeingApplied().Components.Get(c.Addr()).ResourceInstancePlanned.Get(rioAddr); plannedChange != nil && plannedChange.Moved() {
+					// If we moved the resource instance object, we need to record
+					// the previous address in the applied change. The planned
+					// change might be nil if the resource instance object was
+					// deleted.
+					previousAddress = &stackaddrs.AbsResourceInstanceObject{
+						Component: c.Addr(),
+						Item: addrs.AbsResourceInstanceObject{
+							ResourceInstance: plannedChange.PrevRunAddr,
+							DeposedKey:       addrs.NotDeposed,
+						},
+					}
+				}
+
+				changes = append(changes, &stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+						Component: c.Addr(),
+						Item:      rioAddr,
 					},
-				}
+					PreviousResourceInstanceObjectAddr: previousAddress,
+					NewStateSrc:                        os,
+					ProviderConfigAddr:                 providerConfigAddr,
+					Schema:                             schema,
+				})
 			}
 
-			changes = append(changes, &stackstate.AppliedChangeResourceInstanceObject{
-				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
-					Component: c.Addr(),
-					Item:      rioAddr,
-				},
-				PreviousResourceInstanceObjectAddr: previousAddress,
-				NewStateSrc:                        os,
-				ProviderConfigAddr:                 providerConfigAddr,
-				Schema:                             schema,
-			})
 		}
 
-	}
-
-	return changes, diags
+		return changes, diags
+	})
 }
 
 func (c *ComponentInstance) resourceTypeSchema(ctx context.Context, providerTypeAddr addrs.Provider, mode addrs.ResourceMode, typ string) (*configschema.Block, error) {
@@ -1673,4 +1723,5 @@ func (c *ComponentInstance) tracingName() string {
 // reportNamedPromises implements namedPromiseReporter.
 func (c *ComponentInstance) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
 	cb(c.moduleTreePlan.PromiseID(), c.Addr().String()+" plan")
+	cb(c.apply.PromiseID(), c.Addr().String()+" apply")
 }
