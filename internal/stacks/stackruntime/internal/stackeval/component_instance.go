@@ -1245,6 +1245,23 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 			// Otherwise, just set the value as is.
 			attrs[name] = ov.Value
 		}
+
+		// If the apply operation was unsuccessful for any reason then we
+		// might have some output values that are missing from the state,
+		// because the state is only updated with the results of successful
+		// operations. To avoid downstream errors we'll insert unknown values
+		// for any declared output values that don't yet have a final value.
+		//
+		// The status of the apply operation will have been recorded elsewhere
+		// so we don't need to worry about that here. This also ensures that
+		// nothing will actually attempt to apply the unknown values here.
+		config := c.call.Config(ctx).ModuleTree(ctx)
+		for _, output := range config.Module.Outputs {
+			if _, ok := attrs[output.Name]; !ok {
+				attrs[output.Name] = cty.DynamicVal
+			}
+		}
+
 		return cty.ObjectVal(attrs)
 
 	default:
