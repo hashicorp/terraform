@@ -121,6 +121,7 @@ jobs:
           - {goos: "solaris", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "windows", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "windows", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "windows", goarch: "arm64", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "darwin", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "darwin", goarch: "arm64", runson: "ubuntu-latest", cgo-enabled: "0"}
       fail-fast: false
@@ -169,6 +170,7 @@ jobs:
           - {goos: "darwin", goarch: "amd64"}
           - {goos: "darwin", goarch: "arm64"}
           - {goos: "windows", goarch: "amd64"}
+          - {goos: "windows", goarch: "arm64"}
           - {goos: "windows", goarch: "386"}
           - {goos: "linux", goarch: "386"}
           - {goos: "linux", goarch: "amd64"}
@@ -228,6 +230,7 @@ jobs:
           - { runson: ubuntu-latest, goos: linux, goarch: "arm64" }
           - { runson: macos-latest, goos: darwin, goarch: "amd64" }
           - { runson: windows-latest, goos: windows, goarch: "amd64" }
+          - { runson: windows-latest, goos: windows, goarch: "arm64" }
           - { runson: windows-latest, goos: windows, goarch: "386" }
       fail-fast: false
 
