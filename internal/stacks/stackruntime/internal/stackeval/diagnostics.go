@@ -192,6 +192,8 @@ func diagnosticsForPromisingTaskError(err error, root namedPromiseReporter) tfdi
 	switch err := err.(type) {
 	case promising.ErrSelfDependent:
 		diags = diags.Append(taskSelfDependencyDiagnostics(err, root))
+	case promising.ErrUnresolved:
+		diags = diags.Append(taskPromisesUnresolvedDiagnostics(err, root))
 	default:
 		// For all other errors we'll just let tfdiags.Diagnostics do its
 		// usual best effort to coerse into diagnostics.
@@ -203,7 +205,7 @@ func diagnosticsForPromisingTaskError(err error, root namedPromiseReporter) tfdi
 // taskSelfDependencyDiagnostics transforms a [promising.ErrSelfDependent]
 // error into one or more error diagnostics suitable for returning to an
 // end user, after first trying to discover user-friendly names for each
-// of the promises involved using the .
+// of the promises involved using the given namedPromiseReporter.
 func taskSelfDependencyDiagnostics(err promising.ErrSelfDependent, root namedPromiseReporter) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	// For now we just save the context about the problem, and then we'll
@@ -216,10 +218,26 @@ func taskSelfDependencyDiagnostics(err promising.ErrSelfDependent, root namedPro
 	return diags
 }
 
+// taskPromisesUnresolvedDiagnostics transforms a [promising.ErrUnresolved]
+// error into one or more error diagnostics suitable for returning to an
+// end user, after first trying to discover user-friendly names for each
+// of the promises involved using the given namedPromiseReporter.
+func taskPromisesUnresolvedDiagnostics(err promising.ErrUnresolved, root namedPromiseReporter) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	// For now we just save the context about the problem, and then we'll
+	// generate the human-readable description on demand once someone asks
+	// for the diagnostic description.
+	diags = diags.Append(taskPromisesUnresolvedDiagnostic{
+		err:  err,
+		root: root,
+	})
+	return diags
+}
+
 // taskSelfDependencyDiagnostic is an implementation of tfdiags.Diagnostic
 // which represents self-dependency errors in a user-oriented way.
 //
-// This is a special dependency type because self-dependency errors tend to
+// This is a special diagnostic type because self-dependency errors tend to
 // emerge via multiple return paths (since they blow up all of the promises
 // in the cycle all at once) and so our main entry points rely on the
 // behaviors of this special type to dedupe the diagnostics before returning.
@@ -343,6 +361,106 @@ func (diag taskSelfDependencyDiagnostic) Source() tfdiags.Source {
 	// Self-dependency errors tend to involve multiple configuration locations
 	// all at once, and so we describe the affected objects in the detail
 	// text rather than as a single source location.
+	return tfdiags.Source{}
+}
+
+// taskPromisesUnresolvedDiagnostic is an implementation of tfdiags.Diagnostic
+// which represents a task's failure to resolve promises in a user-oriented way.
+//
+// This is a special dependency type just because that way we can defer
+// formatting the description as long as possible, once our namedPromiseReporter
+// has accumulated name information for as many promises as possible.
+type taskPromisesUnresolvedDiagnostic struct {
+	err  promising.ErrUnresolved
+	root namedPromiseReporter
+}
+
+var _ tfdiags.Diagnostic = taskPromisesUnresolvedDiagnostic{}
+
+// Description implements tfdiags.Diagnostic.
+func (diag taskPromisesUnresolvedDiagnostic) Description() tfdiags.Description {
+	// We build the user-oriented error message on demand, since it
+	// requires collecting some supporting information from the
+	// evaluation root so we know what result each of the promises was
+	// actually representing.
+
+	err := diag.err
+	root := diag.root
+	promiseNames := collectPromiseNames(root)
+	distinctPromises := make(map[promising.PromiseID]struct{})
+	for _, id := range err {
+		distinctPromises[id] = struct{}{}
+	}
+
+	// If we have more than one promise involved then it's non-deterministic
+	// which one we'll detect, since it depends on how the tasks get
+	// scheduled by the Go runtime. To return a deterministic-ish result
+	// anyway we'll arbitrarily descide to report whichever promise has
+	// the lexically-least name as defined by Go's own less than operator
+	// when applied to strings.
+	selectedIdx := 0
+	selectedName := promiseNames[err[0]]
+	for i, id := range err {
+		if selectedName == "" {
+			// If we don't have a name yet then we'll take whatever we get
+			selectedIdx = i
+			selectedName = promiseNames[id]
+			continue
+		}
+		candidateName := promiseNames[id]
+		if candidateName != "" && candidateName < selectedName {
+			selectedIdx = i
+			selectedName = candidateName
+		}
+	}
+	// Now we'll rotate the list of promise IDs so that the one we selected
+	// appears first.
+	ids := make([]promising.PromiseID, 0, len(err))
+	ids = append(ids, err[selectedIdx:]...)
+	ids = append(ids, err[:selectedIdx]...)
+	var nameList strings.Builder
+	for _, id := range ids {
+		name := promiseNames[id]
+		if name == "" {
+			// We should minimize the number of unnamed promises so that
+			// we can typically say at least something useful about what
+			// objects are involved.
+			name = "(unnamed promise)"
+		}
+		fmt.Fprintf(&nameList, "\n  - %s", name)
+	}
+	return tfdiags.Description{
+		Summary: "Stack language evaluation error",
+		Detail: fmt.Sprintf(
+			"While evaluating the stack configuration, the following items were left unresolved:%s\n\nOther errors returned along with this one may provide more details. This is a bug in Teraform; please report it!",
+			nameList.String(),
+		),
+	}
+}
+
+// ExtraInfo implements tfdiags.Diagnostic.
+func (diag taskPromisesUnresolvedDiagnostic) ExtraInfo() interface{} {
+	// The "extra info" for a resolution error is the error itself,
+	// so callers can access the original promise IDs if they want to for
+	// some reason.
+	return &diag.err
+}
+
+// FromExpr implements tfdiags.Diagnostic.
+func (diag taskPromisesUnresolvedDiagnostic) FromExpr() *tfdiags.FromExpr {
+	return nil
+}
+
+// Severity implements tfdiags.Diagnostic.
+func (diag taskPromisesUnresolvedDiagnostic) Severity() tfdiags.Severity {
+	return tfdiags.Error
+}
+
+// Source implements tfdiags.Diagnostic.
+func (diag taskPromisesUnresolvedDiagnostic) Source() tfdiags.Source {
+	// A failure to resolve promises is a bug in the stacks runtime rather
+	// than a problem with the provided configuration, so there's no
+	// particularly-relevant source location to report.
 	return tfdiags.Source{}
 }
 
