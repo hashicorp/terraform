@@ -43,6 +43,7 @@ var (
 		"plan-variable-defaults":           {},
 		"variable-output-roundtrip":        {},
 		"variable-output-roundtrip-nested": {},
+		"aliased-provider":                 {},
 		filepath.Join("with-single-input", "input-from-component"): {},
 		filepath.Join("with-single-input", "input-from-component-list"): {
 			planInputVars: map[string]cty.Value{
@@ -259,6 +260,12 @@ func TestValidate_valid(t *testing.T) {
 				providerreqs.MustParseVersionConstraints("=0.0.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
+			lock.SetProvider(
+				addrs.NewDefaultProvider("other"),
+				providerreqs.MustParseVersion("0.0.0"),
+				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
 
 			diags := Validate(ctx, &ValidateRequest{
 				Config: cfg,
@@ -271,6 +278,11 @@ func TestValidate_valid(t *testing.T) {
 						return stacks_testing_provider.NewProvider(), nil
 					},
 					addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProvider(), nil
+					},
+					// We also support an "other" provider out of the box to
+					// test the provider aliasing feature.
+					addrs.NewDefaultProvider("other"): func() (providers.Interface, error) {
 						return stacks_testing_provider.NewProvider(), nil
 					},
 				},
