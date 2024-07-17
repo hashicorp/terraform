@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
-	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
@@ -122,19 +121,28 @@ func TestApplyWithRemovedResource(t *testing.T) {
 		t.Fatalf("expected no diagnostics, go %s", diags.ErrWithWarnings())
 	}
 
-	var raw []*anypb.Any
+	planLoader := stackplan.NewLoader()
 	for _, change := range planChanges {
 		proto, err := change.PlannedChangeProto()
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		raw = append(raw, proto.Raw...)
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	applyReq := ApplyRequest{
-		Config:  cfg,
-		RawPlan: raw,
+		Config: cfg,
+		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewBuiltInProvider("terraform"): func() (providers.Interface, error) {
 				return terraformProvider.NewProvider(), nil
@@ -304,19 +312,28 @@ func TestApplyWithMovedResource(t *testing.T) {
 		t.Fatalf("expected no diagnostics, go %s", diags.ErrWithWarnings())
 	}
 
-	var raw []*anypb.Any
+	planLoader := stackplan.NewLoader()
 	for _, change := range planChanges {
 		proto, err := change.PlannedChangeProto()
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		raw = append(raw, proto.Raw...)
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	applyReq := ApplyRequest{
-		Config:  cfg,
-		RawPlan: raw,
+		Config: cfg,
+		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
 				return stacks_testing_provider.NewProviderWithData(stacks_testing_provider.NewResourceStoreBuilder().
@@ -454,18 +471,28 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 		t.Fatalf("expected no diagnostics, got %s", diags.ErrWithWarnings())
 	}
 
-	var raw []*anypb.Any
+	planLoader := stackplan.NewLoader()
 	for _, change := range planChanges {
 		proto, err := change.PlannedChangeProto()
 		if err != nil {
 			t.Fatal(err)
 		}
-		raw = append(raw, proto.Raw...)
+
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	applyReq := ApplyRequest{
-		Config:  cfg,
-		RawPlan: raw,
+		Config: cfg,
+		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
 				return stacks_testing_provider.NewProvider(), nil
@@ -628,18 +655,28 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 		t.Errorf("wrong diagnostics\n%s", diff)
 	}
 
-	var raw []*anypb.Any
+	planLoader := stackplan.NewLoader()
 	for _, change := range planChanges {
 		proto, err := change.PlannedChangeProto()
 		if err != nil {
 			t.Fatal(err)
 		}
-		raw = append(raw, proto.Raw...)
+
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	applyReq := ApplyRequest{
-		Config:  cfg,
-		RawPlan: raw,
+		Config: cfg,
+		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
 				return stacks_testing_provider.NewProvider(), nil
@@ -765,18 +802,28 @@ func TestApplyWithForcePlanTimestamp(t *testing.T) {
 		t.Errorf("expected plantimestamp to be %q, got %q", forcedPlanTimestamp, plantimestampValue.AsString())
 	}
 
-	var raw []*anypb.Any
+	planLoader := stackplan.NewLoader()
 	for _, change := range planChanges {
 		proto, err := change.PlannedChangeProto()
 		if err != nil {
 			t.Fatal(err)
 		}
-		raw = append(raw, proto.Raw...)
+
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	applyReq := ApplyRequest{
-		Config:  cfg,
-		RawPlan: raw,
+		Config: cfg,
+		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
 				return stacks_testing_provider.NewProvider(), nil
@@ -896,18 +943,28 @@ func TestApplyWithDefaultPlanTimestamp(t *testing.T) {
 		t.Errorf("expected plantimestamp to be later than %q, got %q", dayOfWritingThisTest, plantimestampValue.AsString())
 	}
 
-	var raw []*anypb.Any
+	planLoader := stackplan.NewLoader()
 	for _, change := range planChanges {
 		proto, err := change.PlannedChangeProto()
 		if err != nil {
 			t.Fatal(err)
 		}
-		raw = append(raw, proto.Raw...)
+
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	applyReq := ApplyRequest{
-		Config:  cfg,
-		RawPlan: raw,
+		Config: cfg,
+		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
 				return stacks_testing_provider.NewProvider(), nil
@@ -996,18 +1053,28 @@ func TestApplyWithFailedComponent(t *testing.T) {
 		t.Fatalf("expected no diagnostics, got %s", diags.ErrWithWarnings())
 	}
 
-	var raw []*anypb.Any
+	planLoader := stackplan.NewLoader()
 	for _, change := range planChanges {
 		proto, err := change.PlannedChangeProto()
 		if err != nil {
 			t.Fatal(err)
 		}
-		raw = append(raw, proto.Raw...)
+
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	applyReq := ApplyRequest{
-		Config:  cfg,
-		RawPlan: raw,
+		Config: cfg,
+		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
 				return stacks_testing_provider.NewProvider(), nil
@@ -1096,18 +1163,28 @@ func TestApplyWithFailedProviderLinkedComponent(t *testing.T) {
 		t.Fatalf("expected no diagnostics, got %s", diags.ErrWithWarnings())
 	}
 
-	var raw []*anypb.Any
+	planLoader := stackplan.NewLoader()
 	for _, change := range planChanges {
 		proto, err := change.PlannedChangeProto()
 		if err != nil {
 			t.Fatal(err)
 		}
-		raw = append(raw, proto.Raw...)
+
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	applyReq := ApplyRequest{
-		Config:  cfg,
-		RawPlan: raw,
+		Config: cfg,
+		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
 				return stacks_testing_provider.NewProvider(), nil
@@ -1413,15 +1490,6 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				}
 			}
 
-			var raw []*anypb.Any
-			for _, change := range planChanges {
-				proto, err := change.PlannedChangeProto()
-				if err != nil {
-					t.Fatal(err)
-				}
-				raw = append(raw, proto.Raw...)
-			}
-
 			// Check the counts during the apply for this test.
 			gotCounts := collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]()
 			ctx = ContextWithHooks(ctx, &stackeval.Hooks{
@@ -1431,14 +1499,33 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				},
 			})
 
-			applyChangesCh := make(chan stackstate.AppliedChange)
-			diagsCh = make(chan tfdiags.Diagnostic)
+			planLoader := stackplan.NewLoader()
+			for _, change := range planChanges {
+				proto, err := change.PlannedChangeProto()
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				for _, rawMsg := range proto.Raw {
+					err = planLoader.AddRaw(rawMsg)
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			plan, err := planLoader.Plan()
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			applyReq := ApplyRequest{
 				Config:            cfg,
-				RawPlan:           raw,
+				Plan:              plan,
 				ProviderFactories: providers,
 				DependencyLocks:   *lock,
 			}
+			applyChangesCh := make(chan stackstate.AppliedChange)
+			diagsCh = make(chan tfdiags.Diagnostic)
 			applyResp := ApplyResponse{
 				AppliedChanges: applyChangesCh,
 				Diagnostics:    diagsCh,
