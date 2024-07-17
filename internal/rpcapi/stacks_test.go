@@ -250,8 +250,14 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 func TestStacksPlanStackChanges(t *testing.T) {
 	ctx := context.Background()
 
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	handles := newHandleTable()
 	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	stacksServer.planTimestampOverride = &fakePlanTimestamp
 
 	fakeSourceBundle := &sourcebundle.Bundle{}
 	bundleHnd := handles.NewSourceBundle(fakeSourceBundle)
@@ -298,7 +304,7 @@ func TestStacksPlanStackChanges(t *testing.T) {
 				PlannedChange: &terraform1.PlannedChange{
 					Raw: []*anypb.Any{
 						mustMarshalAnyPb(&tfstackdata1.PlanTimestamp{
-							PlanTimestamp: time.Now().UTC().Format(time.RFC3339),
+							PlanTimestamp: fakePlanTimestamp.Format(time.RFC3339),
 						}),
 					},
 				},
