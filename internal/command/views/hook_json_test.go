@@ -9,11 +9,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func testJSONHookResourceID(addr addrs.AbsResourceInstance) terraform.HookResourceIdentity {
@@ -76,7 +77,7 @@ func TestJSONHook_create(t *testing.T) {
 	now = now.Add(10 * time.Second)
 	after <- now
 	nowMu.Unlock()
-	time.Sleep(1 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 
 	// Travel 10s into the future, notify the progress goroutine, and sleep
 	// briefly to allow it to execute
@@ -84,7 +85,7 @@ func TestJSONHook_create(t *testing.T) {
 	now = now.Add(10 * time.Second)
 	after <- now
 	nowMu.Unlock()
-	time.Sleep(1 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 
 	// Travel 2s into the future. We have arrived!
 	nowMu.Lock()
