@@ -5,8 +5,10 @@ package stackeval
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
@@ -15,7 +17,9 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -393,5 +397,68 @@ func TestComponentResultValue(t *testing.T) {
 				t.Fatalf("wrong result\n%s", diff)
 			}
 		})
+	})
+}
+
+// TestComponentCheckProviders is a test of the [Component.CheckProviders] function.
+func TestComponentCheckProviders(t *testing.T) {
+	getComponent := func(ctx context.Context, main *Main) *Component {
+		mainStack := main.MainStack(ctx)
+		component := mainStack.Component(ctx, stackaddrs.Component{Name: "foo"})
+		if component == nil {
+			t.Fatal("component.foo does not exist, but it should exist")
+		}
+		return component
+	}
+
+	getComponentInstance := func(ctx context.Context, c *Component) *ComponentInstance {
+		instances, unkown := c.Instances(ctx, InspectPhase)
+		if unkown {
+			t.Fatalf("unexpected unknown instances")
+		}
+		if got, want := len(instances), 1; got != want {
+			t.Fatalf("wrong number of instances %d; want %d\n%#v", got, want, instances)
+		}
+
+		inst, ok := instances[addrs.NoKey]
+		if !ok {
+			t.Fatalf("missing expected addrs.NoKey instance\n%s", spew.Sdump(instances))
+		}
+		return inst
+	}
+
+	subtestInPromisingTask(t, "provider passed", func(ctx context.Context, t *testing.T) {
+		cfg := testStackConfig(t, "component", "provider_passed")
+		main := testEvaluator(t, testEvaluatorOpts{
+			Config: cfg,
+			TestOnlyGlobals: map[string]cty.Value{
+				"component_inputs": cty.EmptyObjectVal,
+			},
+		})
+		component := getComponent(ctx, main)
+		inst := getComponentInstance(ctx, component)
+
+		// The acutal test begins here
+		_, _, diags := inst.CheckProviders(ctx, InspectPhase)
+		assertNoDiags(t, diags)
+	})
+
+	subtestInPromisingTask(t, "provider missing", func(ctx context.Context, t *testing.T) {
+		cfg := testStackConfig(t, "component", "provider_missing")
+		main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
+			PlanningMode:      plans.NormalMode,
+			ProviderFactories: ProviderFactories{},
+			PlanTimestamp:     time.Now().UTC(),
+		})
+
+		component := getComponent(ctx, main)
+		inst := getComponentInstance(ctx, component)
+
+		// The acutal test begins here
+		a, b, diags := inst.CheckProviders(ctx, InspectPhase)
+		fmt.Printf("\n--> a: \n\t%#v \n", a)
+		fmt.Printf("\n--> b: \n\t%#v \n", b)
+		fmt.Printf("\n--> diags: \n\t%#v \n", diags)
+		assertNoDiags(t, diags)
 	})
 }

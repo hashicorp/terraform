@@ -215,6 +215,7 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 
 	previousProviders := c.main.PreviousProviderInstances(c.Addr(), phase)
 	for localProviderAddr, expr := range declConfigs {
+		// here?
 		provider := moduleTree.ProviderForConfigAddr(localProviderAddr)
 
 		sourceAddr := addrs.RootProviderConfig{
