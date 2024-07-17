@@ -6,6 +6,7 @@ package rpcapi
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
@@ -42,9 +43,13 @@ type stacksServer struct {
 	// within tests to side load providers without needing a real provider
 	// cache.
 	providerCacheOverride map[addrs.Provider]providers.Factory
-	// providerDependencyLockOverride is an in-memory override of the provider lockfile
-	// used for testing when the real provider is side-loaded.
+	// providerDependencyLockOverride is an in-memory override of the provider
+	// lockfile used for testing when the real provider is side-loaded.
 	providerDependencyLockOverride *depsfile.Locks
+	// planTimestampOverride is an in-memory override of the plan timestamp used
+	// for testing. This just ensures our tests aren't flaky as we can use a
+	// constant timestamp for the plan.
+	planTimestampOverride *time.Time
 }
 
 var _ terraform1.StacksServer = (*stacksServer)(nil)
@@ -308,6 +313,11 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 		InputValues:        inputValues,
 		ExperimentsAllowed: s.experimentsAllowed,
 		DependencyLocks:    *deps,
+
+		// planTimestampOverride will be null if not set, so it's fine for
+		// us to just set this all the time. In practice, this will only have
+		// a value in tests.
+		ForcePlanTimestamp: s.planTimestampOverride,
 	}
 	rtResp := stackruntime.PlanResponse{
 		PlannedChanges: changesCh,
