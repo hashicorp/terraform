@@ -4,6 +4,10 @@ ENHANCEMENTS:
 
 * Terraform now returns a more specific error message in the awkward situation where an input variable validation rule is known to have failed (`condition` returned `false`) but the error message is derived from an unknown value. ([#35400](https://github.com/hashicorp/terraform/pull/35400))
 
+BUG FIXES:
+
+* core: Terraform no longer performs an unnecessary refresh when removing an instance targeted by a `removed` block. ([#35458](https://github.com/hashicorp/terraform/pull/35458))
+
 ## 1.9.2 (July 10, 2024)
 
 BUG FIXES:
