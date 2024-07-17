@@ -108,12 +108,26 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		return diags
 	}
 
+	var forget bool
+	for _, ft := range n.forgetResources {
+		if ft.Equal(n.ResourceAddr()) {
+			forget = true
+		}
+	}
+	for _, fm := range n.forgetModules {
+		if fm.TargetContains(n.Addr) {
+			forget = true
+		}
+	}
+
 	// We don't refresh during the planDestroy walk, since that is only adding
 	// the destroy changes to the plan and the provider will not be configured
 	// at this point. The other nodes use separate types for plan and destroy,
 	// while deposed instances are always a destroy or forget operation, so the
 	// logic here is a bit overloaded.
-	if !n.skipRefresh && op != walkPlanDestroy {
+	//
+	// We also don't refresh when forgetting instances, as it is unnecessary.
+	if !n.skipRefresh && op != walkPlanDestroy && !forget {
 		// Refresh this object even though it may be destroyed, in
 		// case it's already been deleted outside of Terraform. If this is a
 		// normal plan, providers expect a Read request to remove missing
@@ -149,17 +163,6 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 	}
 
 	if !n.skipPlanChanges {
-		var forget bool
-		for _, ft := range n.forgetResources {
-			if ft.Equal(n.ResourceAddr()) {
-				forget = true
-			}
-		}
-		for _, fm := range n.forgetModules {
-			if fm.TargetContains(n.Addr) {
-				forget = true
-			}
-		}
 		var change *plans.ResourceInstanceChange
 		var pDiags tfdiags.Diagnostics
 		var deferred *providers.Deferred

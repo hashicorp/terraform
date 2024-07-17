@@ -110,7 +110,40 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		return diags
 	}
 
-	if !n.skipRefresh {
+	var forget bool
+	for _, ft := range n.forgetResources {
+		if ft.Equal(n.ResourceAddr()) {
+			forget = true
+		}
+	}
+	for _, fm := range n.forgetModules {
+		if fm.TargetContains(n.Addr) {
+			forget = true
+		}
+	}
+	var change *plans.ResourceInstanceChange
+	var pDiags tfdiags.Diagnostics
+	var deferred *providers.Deferred
+	if forget {
+		change, pDiags = n.planForget(ctx, oldState, "")
+		diags = diags.Append(pDiags)
+	} else {
+		change, deferred, pDiags = n.planDestroy(ctx, oldState, "")
+		diags = diags.Append(pDiags)
+
+		if deferred != nil {
+			ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, &plans.ResourceInstanceChange{
+				Addr:   n.Addr,
+				Change: change.Change,
+			})
+			return diags
+		}
+	}
+	if diags.HasErrors() {
+		return diags
+	}
+
+	if !n.skipRefresh && !forget {
 		// Refresh this instance even though it is going to be destroyed, in
 		// order to catch missing resources. If this is a normal plan,
 		// providers expect a Read request to remove missing resources from the
@@ -150,39 +183,6 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	// config.
 	if n.skipPlanChanges || oldState == nil || oldState.Value.IsNull() {
 		return diags.Append(n.writeResourceInstanceState(ctx, oldState, workingState))
-	}
-
-	var forget bool
-	for _, ft := range n.forgetResources {
-		if ft.Equal(n.ResourceAddr()) {
-			forget = true
-		}
-	}
-	for _, fm := range n.forgetModules {
-		if fm.TargetContains(n.Addr) {
-			forget = true
-		}
-	}
-	var change *plans.ResourceInstanceChange
-	var pDiags tfdiags.Diagnostics
-	var deferred *providers.Deferred
-	if forget {
-		change, pDiags = n.planForget(ctx, oldState, "")
-		diags = diags.Append(pDiags)
-	} else {
-		change, deferred, pDiags = n.planDestroy(ctx, oldState, "")
-		diags = diags.Append(pDiags)
-
-		if deferred != nil {
-			ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, &plans.ResourceInstanceChange{
-				Addr:   n.Addr,
-				Change: change.Change,
-			})
-			return diags
-		}
-	}
-	if diags.HasErrors() {
-		return diags
 	}
 
 	// We might be able to offer an approximate reason for why we are
