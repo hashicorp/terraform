@@ -771,6 +771,11 @@ message PlannedChange {
             ResourceInstanceDeferred resource_instance_deferred = 5;
             InputVariableDuringApply apply_time_input_variable = 6;
         }
+
+        // Field number 20000 is reserved as a field number that will
+        // always be unknown to any client, to allow clients to test
+        // whether they correctly preserve unexpected fields.
+        reserved 20000;
     }
 
     // Reports the existence of a particular instance of a component,
