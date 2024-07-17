@@ -770,6 +770,7 @@ message PlannedChange {
             bool plan_applyable = 4;
             ResourceInstanceDeferred resource_instance_deferred = 5;
             InputVariableDuringApply apply_time_input_variable = 6;
+            bool plan_the_best_thing_in_the_world = 7;
         }
 
         // Field number 20000 is reserved as a field number that will

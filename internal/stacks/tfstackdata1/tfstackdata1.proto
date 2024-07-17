@@ -61,6 +61,10 @@ message PlanApplyable {
     bool applyable = 1;
 }
 
+message PlanBestThingInTheWorld {
+    bool best = 1;
+}
+
 // Records the plan timestamp to be used for all components and the stacks language.
 message PlanTimestamp {
     string plan_timestamp = 1;

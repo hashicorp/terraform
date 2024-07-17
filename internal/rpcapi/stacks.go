@@ -14,6 +14,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
@@ -27,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
+	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -341,6 +344,28 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 			})
 		}
 	}
+
+	var raw anypb.Any
+	anypb.MarshalFrom(&raw, &tfstackdata1.PlanBestThingInTheWorld{
+		Best: true,
+	}, proto.MarshalOptions{})
+
+	protoChange := &terraform1.PlannedChange{
+		Raw: []*anypb.Any{&raw},
+		Descriptions: []*terraform1.PlannedChange_ChangeDescription{
+			{
+				Description: &terraform1.PlannedChange_ChangeDescription_PlanTheBestThingInTheWorld{
+					PlanTheBestThingInTheWorld: true,
+				},
+			},
+		},
+	}
+
+	syncEvts.Send(&terraform1.PlanStackChanges_Event{
+		Event: &terraform1.PlanStackChanges_Event_PlannedChange{
+			PlannedChange: protoChange,
+		},
+	})
 
 	// There is no strong ordering between the planned changes and the
 	// diagnostics, so we need to be prepared for them to arrive in any
