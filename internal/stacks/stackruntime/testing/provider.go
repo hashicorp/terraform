@@ -31,6 +31,15 @@ var (
 		},
 	}
 
+	FailedResourceSchema = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id":         {Type: cty.String, Optional: true, Computed: true},
+			"value":      {Type: cty.String, Optional: true},
+			"fail_plan":  {Type: cty.Bool, Optional: true, Computed: true},
+			"fail_apply": {Type: cty.Bool, Optional: true, Computed: true},
+		},
+	}
+
 	TestingDataSourceSchema = &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
 			"id":    {Type: cty.String, Required: true},
@@ -78,6 +87,9 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 					"testing_deferred_resource": {
 						Block: DeferredResourceSchema,
 					},
+					"testing_failed_resource": {
+						Block: FailedResourceSchema,
+					},
 				},
 				DataSources: map[string]providers.Schema{
 					"testing_data_source": {
@@ -88,7 +100,7 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 			ConfigureProviderFn: func(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 				// If configure_error is set, return an error.
 				err := request.Config.GetAttr("configure_error")
-				if !err.IsNull() {
+				if err.IsKnown() && !err.IsNull() {
 					return providers.ConfigureProviderResponse{
 						Diagnostics: tfdiags.Diagnostics{
 							tfdiags.AttributeValue(tfdiags.Error, err.AsString(), "configure_error attribute was set", cty.GetAttrPath("configure_error")),
@@ -126,6 +138,31 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 					}
 				}
 
+				if request.TypeName == "testing_failed_resource" {
+					// First, populate the fail attributes with null if they are
+					// null
+					if value.GetAttr("fail_apply").IsNull() {
+						vals := value.AsValueMap()
+						vals["fail_apply"] = cty.False
+						value = cty.ObjectVal(vals)
+					}
+					if value.GetAttr("fail_plan").IsNull() {
+						vals := value.AsValueMap()
+						vals["fail_plan"] = cty.False
+						value = cty.ObjectVal(vals)
+					}
+
+					// If fail_plan is set, return a planned failure.
+					if value.GetAttr("fail_plan").True() {
+						return providers.PlanResourceChangeResponse{
+							PlannedState: value,
+							Diagnostics: tfdiags.Diagnostics{
+								tfdiags.Sourceless(tfdiags.Error, "planned failure", "plan failure"),
+							},
+						}
+					}
+				}
+
 				return providers.PlanResourceChangeResponse{
 					PlannedState: value,
 				}
@@ -147,6 +184,16 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 					vals := value.AsValueMap()
 					vals["id"] = cty.StringVal(mustGenerateUUID())
 					value = cty.ObjectVal(vals)
+				}
+
+				if request.TypeName == "testing_failed_resource" {
+					if value.GetAttr("fail_apply").True() {
+						return providers.ApplyResourceChangeResponse{
+							Diagnostics: tfdiags.Diagnostics{
+								tfdiags.Sourceless(tfdiags.Error, "planned failure", "apply failure"),
+							},
+						}
+					}
 				}
 
 				// Finally, update the store and return.

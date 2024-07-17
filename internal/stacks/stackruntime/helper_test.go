@@ -92,7 +92,7 @@ func expectDiagnosticsForTest(t *testing.T, actual tfdiags.Diagnostics, expected
 	t.Helper()
 
 	max := len(expected)
-	if len(actual) < max {
+	if len(actual) > max {
 		max = len(actual)
 	}
 
