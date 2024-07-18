@@ -49,6 +49,7 @@ type Stack struct {
 	outputValues   map[stackaddrs.OutputValue]*OutputValue
 	components     map[stackaddrs.Component]*Component
 	providers      map[stackaddrs.ProviderConfigRef]*Provider
+	removed        map[stackaddrs.Component]*Removed
 }
 
 var (
@@ -318,6 +319,29 @@ func (s *Stack) Components(ctx context.Context) map[stackaddrs.Component]*Compon
 
 func (s *Stack) Component(ctx context.Context, addr stackaddrs.Component) *Component {
 	return s.Components(ctx)[addr]
+}
+
+func (s *Stack) RemovedBlocks(ctx context.Context) map[stackaddrs.ComponentInstance]*Removed {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// We intentionally save a non-nil map below even if it's empty so that
+	// we can unambiguously recognize whether we've loaded this or not.
+	if s.removed != nil {
+		return s.removed
+	}
+
+	decls := s.ConfigDeclarations(ctx)
+	ret := make(map[stackaddrs.ComponentInstance]*Removed, len(decls.Removed))
+	for _, c := range decls.Components {
+		absAddr := stackaddrs.AbsComponent{
+			Stack: s.Addr(),
+			Item:  stackaddrs.Component{Name: c.Name},
+		}
+		ret[absAddr] = newRemoved(s.main, absAddr)
+	}
+	s.components = ret
+	return ret
 }
 
 func (s *Stack) ProviderByLocalAddr(ctx context.Context, localAddr stackaddrs.ProviderConfigRef) *Provider {

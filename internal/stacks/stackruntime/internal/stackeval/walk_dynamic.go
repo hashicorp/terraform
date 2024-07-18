@@ -124,6 +124,27 @@ func walkDynamicObjectsInStack[Output any](
 			}
 		})
 	}
+	for _, removed := range stack.RemovedBlocks(ctx) {
+		removed := removed // separate symbol per loop iteration
+
+		visit(ctx, walk, removed)
+
+		// We need to perform the instance expansion in an overall async
+		// task because it involves potentially evaluating a for_each expression,
+		// and that might depend on data from elsewhere in the same stack.
+		walk.AsyncTask(ctx, func(ctx context.Context) {
+			insts, unknown := removed.Instances(ctx, phase)
+			if unknown {
+				// We use the unconfigured client for unknown instances of a
+				// provider so there is nothing for us to do here.
+				return
+			}
+
+			for _, inst := range insts {
+				visit(ctx, walk, inst)
+			}
+		})
+	}
 	for _, variable := range stack.InputVariables(ctx) {
 		visit(ctx, walk, variable)
 	}

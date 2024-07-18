@@ -43,7 +43,7 @@ type StackConfig struct {
 	stackCalls     map[stackaddrs.StackCall]*StackCallConfig
 	components     map[stackaddrs.Component]*ComponentConfig
 	providers      map[stackaddrs.ProviderConfig]*ProviderConfig
-	removed        []*RemovedConfig
+	removed        map[stackaddrs.ComponentInstance]*RemovedConfig
 }
 
 var (
@@ -64,7 +64,7 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.Confi
 		stackCalls:     make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
 		components:     make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
 		providers:      make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(config.Stack.Declarations.ProviderConfigs)),
-		removed:        []*RemovedConfig{},
+		removed:        make(map[stackaddrs.ComponentInstance]*RemovedConfig, len(config.Stack.Declarations.Removed)),
 	}
 }
 
@@ -425,12 +425,47 @@ func (s *StackConfig) Components(ctx context.Context) map[stackaddrs.Component]*
 	return ret
 }
 
-func (s *StackConfig) Removed(ctx context.Context) []*RemovedConfig {
-	ret := make([]*RemovedConfig, 0, len(s.config.Stack.Removed))
-	for _, cfg := range s.config.Stack.Removed {
-		ret = append(ret, newRemovedConfig(s.main, cfg))
-	}
+// RemovedBlock returns a [RemovedConfig] representing the removed block
+// declared within this stack config that matches the given from address, or nil if
+// there is no such declaration.
+func (s *StackConfig) RemovedBlock(ctx context.Context, addr stackaddrs.ComponentInstance) *RemovedConfig {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
+	ret, ok := s.removed[addr]
+	if !ok {
+		found := false
+		var cfg *stackconfig.Removed
+		// We identify the right removed block based on the from attribute
+		for _, removed := range s.config.Stack.Removed {
+			// TODO: Maybe add sth like s.addr == removed.From.Stack
+			if removed.From.Item == addr {
+				cfg = removed
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return nil
+		}
+
+		ret = newRemovedConfig(s.main, cfg)
+		s.removed[addr] = ret
+	}
+	return ret
+}
+
+// RemovedBlocks returns a map of the objects representing all of the
+// removed blocks declared inside this stack configuration.
+func (s *StackConfig) RemovedBlocks(ctx context.Context, addr stackaddrs.Component) map[stackaddrs.Component]*RemovedConfig {
+	if len(s.config.Stack.Removed) == 0 {
+		return nil
+	}
+	ret := make(map[stackaddrs.Component]*RemovedConfig, len(s.config.Stack.Removed))
+	for _, removed := range s.config.Stack.Removed {
+		ret[addr] = s.RemovedBlock(ctx, removed.From.Item)
+	}
 	return ret
 }
 
