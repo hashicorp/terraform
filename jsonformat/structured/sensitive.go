@@ -4,8 +4,8 @@
 package structured
 
 import (
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/jsonformat/computed"
 )
 
 type ProcessSensitiveInner func(change Change) computed.Diff

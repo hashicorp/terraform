@@ -11,11 +11,11 @@ import (
 	"github.com/hashicorp/go-tfe"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/jsonformat"
 )
 
 func TestTest(t *testing.T) {

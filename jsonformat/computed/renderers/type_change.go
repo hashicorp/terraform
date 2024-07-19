@@ -6,7 +6,7 @@ package renderers
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+	"github.com/hashicorp/terraform/jsonformat/computed"
 )
 
 var _ computed.DiffRenderer = (*typeChangeRenderer)(nil)

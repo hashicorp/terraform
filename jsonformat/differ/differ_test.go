@@ -11,11 +11,11 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/jsonformat/computed/renderers"
+	"github.com/hashicorp/terraform/jsonformat/structured"
+	"github.com/hashicorp/terraform/jsonformat/structured/attribute_path"
 )
 
 type SetDiff struct {

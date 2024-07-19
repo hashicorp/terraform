@@ -11,8 +11,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/jsonformat/computed"
 )
 
 // NoWarningsRenderer defines a Warnings function that returns an empty list of

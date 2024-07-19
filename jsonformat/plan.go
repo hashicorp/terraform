@@ -11,12 +11,12 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/format"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
-	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/jsonformat/computed"
+	"github.com/hashicorp/terraform/jsonformat/computed/renderers"
+	"github.com/hashicorp/terraform/jsonplan"
 )
 
 const (

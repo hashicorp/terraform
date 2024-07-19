@@ -24,11 +24,11 @@ import (
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
-	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/jsonformat"
 )
 
 var planConfigurationVersionsPollInterval = 500 * time.Millisecond
