@@ -13,11 +13,11 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/jsonformat"
 )
 
 // StateShowCommand is a Command implementation that shows a single resource.
@@ -195,11 +195,11 @@ func (c *StateShowCommand) Synopsis() string {
 const errNoInstanceFound = `No instance found for the given address!
 
 This command requires that the address references one specific instance.
-To view the available instances, use "terraform state list". Please modify 
+To view the available instances, use "terraform state list". Please modify
 the address to reference a specific instance.`
 
 const errParsingAddress = `Error parsing instance address: %s
 
 This command requires that the address references one specific instance.
-To view the available instances, use "terraform state list". Please modify 
+To view the available instances, use "terraform state list". Please modify
 the address to reference a specific instance.`

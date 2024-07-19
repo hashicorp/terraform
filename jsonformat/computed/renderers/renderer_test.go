@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+	"github.com/hashicorp/terraform/jsonformat/computed"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/colorstring"

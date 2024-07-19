@@ -4,7 +4,7 @@
 package structured
 
 import (
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+	"github.com/hashicorp/terraform/jsonformat/computed"
 )
 
 type ProcessUnknown func(current Change) computed.Diff

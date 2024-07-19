@@ -4,11 +4,11 @@
 package differ
 
 import (
-	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
+	"github.com/hashicorp/terraform/jsonformat/structured"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+	"github.com/hashicorp/terraform/jsonformat/computed"
 
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 )
