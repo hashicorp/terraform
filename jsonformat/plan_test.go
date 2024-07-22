@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terminal"
@@ -33,7 +33,7 @@ func TestRenderHuman_EmptyPlan(t *testing.T) {
 	plan := Plan{}
 
 	renderer := Renderer{Colorize: color, Streams: streams}
-	plan.renderHuman(renderer, plans.NormalMode)
+	plan.RenderHuman(renderer, plans.NormalMode)
 
 	want := `
 No changes. Your infrastructure matches the configuration.
@@ -64,7 +64,7 @@ func TestRenderHuman_EmptyOutputs(t *testing.T) {
 	}
 
 	renderer := Renderer{Colorize: color, Streams: streams}
-	plan.renderHuman(renderer, plans.NormalMode)
+	plan.RenderHuman(renderer, plans.NormalMode)
 
 	want := `
 No changes. Your infrastructure matches the configuration.
@@ -415,7 +415,7 @@ Plan: 1 to import, 1 to add, 0 to change, 1 to destroy.
 				Colorize: color,
 				Streams:  streams,
 			}
-			plan.renderHuman(renderer, plans.NormalMode)
+			plan.RenderHuman(renderer, plans.NormalMode)
 
 			got := done(t).Stdout()
 			want := tc.output

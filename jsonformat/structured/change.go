@@ -12,7 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/jsonformat/structured/attribute_path"
 	"github.com/hashicorp/terraform/jsonplan"
 )

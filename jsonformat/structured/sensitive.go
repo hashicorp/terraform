@@ -4,7 +4,7 @@
 package structured
 
 import (
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/jsonformat/computed"
 )
 

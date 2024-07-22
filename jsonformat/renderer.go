@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/jsonformat/computed"
 	"github.com/hashicorp/terraform/jsonformat/differ"
@@ -115,7 +115,7 @@ func (renderer Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...pla
 			renderer.Streams.Stdout.Columns()))
 	}
 
-	plan.renderHuman(renderer, mode, opts...)
+	plan.RenderHuman(renderer, mode, opts...)
 }
 
 func (renderer Renderer) RenderHumanState(state State) {

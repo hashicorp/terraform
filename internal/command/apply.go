@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/plans/planfile"
+	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 

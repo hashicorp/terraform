@@ -7,7 +7,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/plans"
 )
 
 // reducePlan takes a planned resource instance change as might be produced by

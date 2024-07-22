@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/jsonformat/computed"
 	"github.com/hashicorp/terraform/jsonformat/computed/renderers"
 	"github.com/hashicorp/terraform/jsonplan"
@@ -46,7 +46,7 @@ func (plan Plan) getSchema(change jsonplan.ResourceChange) *jsonprovider.Schema 
 	}
 }
 
-func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Quality) {
+func (plan Plan) RenderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Quality) {
 	checkOpts := func(target plans.Quality) bool {
 		for _, opt := range opts {
 			if opt == target {

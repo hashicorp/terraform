@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/plans/planfile"
+	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"

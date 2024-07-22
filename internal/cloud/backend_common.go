@@ -23,7 +23,7 @@ import (
 	"github.com/hashicorp/jsonapi"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/jsonformat"
 )
