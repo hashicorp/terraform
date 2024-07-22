@@ -7,6 +7,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * core: Terraform no longer performs an unnecessary refresh when removing an instance targeted by a `removed` block. ([#35458](https://github.com/hashicorp/terraform/pull/35458))
+* Updated to newer github.com/hashicorp/go-retryablehttp version, addressing CVE-2024-6104, and bringing in updates for several indirect dependencies. ([#35473](https://github.com/hashicorp/terraform/pull/35473))
 
 ## 1.9.2 (July 10, 2024)
 
