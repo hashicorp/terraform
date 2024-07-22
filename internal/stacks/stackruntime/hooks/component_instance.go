@@ -4,9 +4,9 @@
 package hooks
 
 import (
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/plans"
 )
 
 // ComponentInstanceStatus is a UI-focused description of the overall status

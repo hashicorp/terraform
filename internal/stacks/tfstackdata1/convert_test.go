@@ -12,7 +12,7 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/plans/planproto"
+	"github.com/hashicorp/terraform/plans/planproto"
 )
 
 func TestDynamicValueToTFStackData1(t *testing.T) {

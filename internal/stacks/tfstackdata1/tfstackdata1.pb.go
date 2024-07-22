@@ -10,7 +10,7 @@
 package tfstackdata1
 
 import (
-	planproto "github.com/hashicorp/terraform/internal/plans/planproto"
+	planproto "github.com/hashicorp/terraform/plans/planproto"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	anypb "google.golang.org/protobuf/types/known/anypb"

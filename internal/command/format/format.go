@@ -10,7 +10,7 @@
 // structures have a consistent look and feel.
 package format
 
-import "github.com/hashicorp/terraform/internal/plans"
+import "github.com/hashicorp/terraform/plans"
 
 // DiffActionSymbol returns a string that, once passed through a
 // colorstring.Colorize, will produce a result that can be written

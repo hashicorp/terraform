@@ -14,8 +14,8 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/plans/deferring"
 )
 
 func TestNodeApplyableOutputExecute_knownValue(t *testing.T) {
