@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/terminal"
 	"github.com/zclconf/go-cty/cty"
 )
 

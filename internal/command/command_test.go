@@ -41,15 +41,15 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/initwd"
 	_ "github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/terminal"
 	"github.com/hashicorp/terraform/version"
 )
 

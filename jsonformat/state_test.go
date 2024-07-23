@@ -10,11 +10,11 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/colorstring"
 
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/jsonprovider"
+	"github.com/hashicorp/terraform/terminal"
 
 	"github.com/zclconf/go-cty/cty"
 

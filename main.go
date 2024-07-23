@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/terminal"
 	"github.com/hashicorp/terraform/version"
 	"github.com/mattn/go-shellwords"
 	"github.com/mitchellh/colorstring"

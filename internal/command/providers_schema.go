@@ -9,8 +9,8 @@ import (
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/jsonprovider"
 )
 
 // ProvidersCommand is a Command implementation that prints out information
@@ -120,6 +120,6 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 const providersSchemaCommandHelp = `
 Usage: terraform [global options] providers schema -json
 
-  Prints out a json representation of the schemas for all providers used 
+  Prints out a json representation of the schemas for all providers used
   in the current configuration.
 `

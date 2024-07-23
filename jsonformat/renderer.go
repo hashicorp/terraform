@@ -11,15 +11,15 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/command/format"
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
-	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/jsonformat/computed"
 	"github.com/hashicorp/terraform/jsonformat/differ"
 	"github.com/hashicorp/terraform/jsonformat/structured"
 	"github.com/hashicorp/terraform/jsonplan"
+	"github.com/hashicorp/terraform/jsonprovider"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/terminal"
 )
 
 type JSONLogType string

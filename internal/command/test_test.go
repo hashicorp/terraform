@@ -19,7 +19,7 @@ import (
 	testing_command "github.com/hashicorp/terraform/internal/command/testing"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/terminal"
 )
 
 func TestTest_Runs(t *testing.T) {

@@ -6,10 +6,10 @@ package differ
 import (
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/jsonformat/computed"
 	"github.com/hashicorp/terraform/jsonformat/computed/renderers"
 	"github.com/hashicorp/terraform/jsonformat/structured"
+	"github.com/hashicorp/terraform/jsonprovider"
 )
 
 func checkForUnknownType(change structured.Change, ctype cty.Type) (computed.Diff, bool) {
