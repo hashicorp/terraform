@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
@@ -797,6 +798,7 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 				return stacks_testing_provider.NewProviderWithData(store), nil
 			},
 		},
+		DependencyLocks: *lock,
 
 		ForcePlanTimestamp: &fakePlanTimestamp,
 
@@ -820,26 +822,37 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 		t.Fatalf("expected no diagnostics, got %s", planDiags.ErrWithWarnings())
 	}
 
-	rawPlan = nil // clear rawPlan for the next apply
+	planLoader = stackplan.NewLoader()
 	for _, change := range planChanges {
 		proto, err := change.PlannedChangeProto()
 		if err != nil {
 			t.Fatal(err)
 		}
-		rawPlan = append(rawPlan, proto.Raw...)
+
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err = planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	// And now we'll apply the destroy plan to verify that the checks don't
 	// get in the way here.
 
 	applyReq = ApplyRequest{
-		Config:  cfg,
-		RawPlan: rawPlan,
+		Config: cfg,
+		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
 				return stacks_testing_provider.NewProviderWithData(store), nil
 			},
 		},
+		DependencyLocks: *lock,
 	}
 
 	applyChangesCh = make(chan stackstate.AppliedChange)

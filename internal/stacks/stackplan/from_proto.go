@@ -170,7 +170,7 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 		if !l.ret.Components.HasKey(addr) {
 			l.ret.Components.Put(addr, &Component{
 				PlannedAction:       plannedAction,
-				Mode: mode,
+				Mode:                mode,
 				PlanApplyable:       msg.PlanApplyable,
 				PlanComplete:        msg.PlanComplete,
 				Dependencies:        dependencies,
