@@ -6,6 +6,8 @@ package rpcapi
 import (
 	"context"
 	"fmt"
+	"io"
+	"time"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
@@ -42,6 +44,13 @@ type stacksServer struct {
 	// within tests to side load providers without needing a real provider
 	// cache.
 	providerCacheOverride map[addrs.Provider]providers.Factory
+	// providerDependencyLockOverride is an in-memory override of the provider
+	// lockfile used for testing when the real provider is side-loaded.
+	providerDependencyLockOverride *depsfile.Locks
+	// planTimestampOverride is an in-memory override of the plan timestamp used
+	// for testing. This just ensures our tests aren't flaky as we can use a
+	// constant timestamp for the plan.
+	planTimestampOverride *time.Time
 }
 
 var _ terraform1.StacksServer = (*stacksServer)(nil)
@@ -143,6 +152,7 @@ func (s *stacksServer) ValidateStackConfiguration(ctx context.Context, req *terr
 		Config:             cfg,
 		ExperimentsAllowed: s.experimentsAllowed,
 		ProviderFactories:  providerFactories,
+		DependencyLocks:    *deps,
 	})
 	return &terraform1.ValidateStackConfiguration_Response{
 		Diagnostics: diagnosticsToProto(diags),
@@ -218,6 +228,36 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 	return ret
 }
 
+func (s *stacksServer) OpenState(stream terraform1.Stacks_OpenStateServer) error {
+	loader := stackstate.NewLoader()
+	for {
+		item, err := stream.Recv()
+		if err == io.EOF {
+			break // All done!
+		} else if err != nil {
+			return err
+		}
+		err = loader.AddRaw(item.Raw.Key, item.Raw.Value)
+		if err != nil {
+			return status.Errorf(codes.InvalidArgument, "invalid raw state element: %s", err)
+		}
+	}
+
+	hnd := s.handles.NewStackState(loader.State())
+	return stream.SendAndClose(&terraform1.OpenStackState_Response{
+		StateHandle: hnd.ForProtobuf(),
+	})
+}
+
+func (s *stacksServer) CloseState(ctx context.Context, req *terraform1.CloseStackState_Request) (*terraform1.CloseStackState_Response, error) {
+	hnd := handle[*stackstate.State](req.StateHandle)
+	err := s.handles.CloseStackState(hnd)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	return &terraform1.CloseStackState_Response{}, nil
+}
+
 func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request, evts terraform1.Stacks_PlanStackChangesServer) error {
 	ctx := evts.Context()
 	syncEvts := newSyncStreamingRPCSender(evts)
@@ -230,7 +270,9 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 	}
 	depsHnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
 	var deps *depsfile.Locks
-	if !depsHnd.IsNil() {
+	if s.providerDependencyLockOverride != nil {
+		deps = s.providerDependencyLockOverride
+	} else if !depsHnd.IsNil() {
 		deps = s.handles.DependencyLocks(depsHnd)
 		if deps == nil {
 			return status.Error(codes.InvalidArgument, "the given dependency locks handle is invalid")
@@ -250,6 +292,10 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 	// case the call can only use built-in providers. All code below
 	// must avoid panicking when providerCache is nil, but is allowed to
 	// return an InvalidArgument error in that case.
+
+	if req.PreviousStateHandle != 0 && len(req.PreviousState) != 0 {
+		return status.Error(codes.InvalidArgument, "must not set both previous_state_handle and previous_state")
+	}
 
 	inputValues, err := externalInputValuesFromProto(req.InputValues)
 	if err != nil {
@@ -287,9 +333,20 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 		return status.Errorf(codes.InvalidArgument, "unsupported planning mode %d", req.PlanMode)
 	}
 
-	prevState, err := stackstate.LoadFromProto(req.PreviousState)
-	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "can't load previous state: %s", err)
+	var prevState *stackstate.State
+	if req.PreviousStateHandle != 0 {
+		stateHnd := handle[*stackstate.State](req.PreviousStateHandle)
+		prevState = s.handles.StackState(stateHnd)
+		if prevState == nil {
+			return status.Error(codes.InvalidArgument, "the given previous state handle is invalid")
+		}
+	} else {
+		// Deprecated: The previous state is provided inline as a map.
+		// FIXME: Remove this old field once our existing clients are updated.
+		prevState, err = stackstate.LoadFromProto(req.PreviousState)
+		if err != nil {
+			return status.Errorf(codes.InvalidArgument, "can't load previous state: %s", err)
+		}
 	}
 
 	changesCh := make(chan stackplan.PlannedChange, 8)
@@ -301,6 +358,12 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 		ProviderFactories:  providerFactories,
 		InputValues:        inputValues,
 		ExperimentsAllowed: s.experimentsAllowed,
+		DependencyLocks:    *deps,
+
+		// planTimestampOverride will be null if not set, so it's fine for
+		// us to just set this all the time. In practice, this will only have
+		// a value in tests.
+		ForcePlanTimestamp: s.planTimestampOverride,
 	}
 	rtResp := stackruntime.PlanResponse{
 		PlannedChanges: changesCh,
@@ -404,10 +467,71 @@ Events:
 	return nil
 }
 
+func (s *stacksServer) OpenPlan(stream terraform1.Stacks_OpenPlanServer) error {
+	loader := stackplan.NewLoader()
+	for {
+		item, err := stream.Recv()
+		if err == io.EOF {
+			break // All done!
+		} else if err != nil {
+			return err
+		}
+		err = loader.AddRaw(item.Raw)
+		if err != nil {
+			return status.Errorf(codes.InvalidArgument, "invalid raw plan element: %s", err)
+		}
+	}
+
+	plan, err := loader.Plan()
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "invalid raw plan: %s", err)
+	}
+	hnd := s.handles.NewStackPlan(plan)
+	return stream.SendAndClose(&terraform1.OpenStackPlan_Response{
+		PlanHandle: hnd.ForProtobuf(),
+	})
+}
+
+func (s *stacksServer) ClosePlan(ctx context.Context, req *terraform1.CloseStackPlan_Request) (*terraform1.CloseStackPlan_Response, error) {
+	hnd := handle[*stackplan.Plan](req.PlanHandle)
+	err := s.handles.CloseStackPlan(hnd)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	return &terraform1.CloseStackPlan_Response{}, nil
+}
+
 func (s *stacksServer) ApplyStackChanges(req *terraform1.ApplyStackChanges_Request, evts terraform1.Stacks_ApplyStackChangesServer) error {
 	ctx := evts.Context()
 	syncEvts := newSyncStreamingRPCSender(evts)
 	evts = nil // Prevent accidental unsynchronized usage of this server
+
+	if req.PlanHandle != 0 && len(req.PlannedChanges) != 0 {
+		return status.Error(codes.InvalidArgument, "must not set both plan_handle and planned_changes")
+	}
+	var plan *stackplan.Plan
+	if req.PlanHandle != 0 {
+		planHnd := handle[*stackplan.Plan](req.PlanHandle)
+		plan = s.handles.StackPlan(planHnd)
+		if plan == nil {
+			return status.Error(codes.InvalidArgument, "the given plan handle is invalid")
+		}
+		// The plan handle is immediately invalidated by trying to apply it;
+		// plans are not reusable because they are valid only against the
+		// exact prior state they were generated for.
+		if err := s.handles.CloseStackPlan(planHnd); err != nil {
+			// It would be very strange to get here!
+			return status.Error(codes.Internal, "failed to close the plan handle")
+		}
+	} else {
+		// Deprecated: whole plan specified inline
+		// FIXME: Remove this old field once our existing clients are updated.
+		var err error
+		plan, err = stackplan.LoadFromProto(req.PlannedChanges)
+		if err != nil {
+			return status.Errorf(codes.InvalidArgument, "invalid planned_changes: %s", err)
+		}
+	}
 
 	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
 	cfg := s.handles.StackConfig(cfgHnd)
@@ -459,8 +583,9 @@ func (s *stacksServer) ApplyStackChanges(req *terraform1.ApplyStackChanges_Reque
 		Config:             cfg,
 		InputValues:        inputValues,
 		ProviderFactories:  providerFactories,
-		RawPlan:            req.PlannedChanges,
+		Plan:               plan,
 		ExperimentsAllowed: s.experimentsAllowed,
+		DependencyLocks:    *deps,
 	}
 	rtResp := stackruntime.ApplyResponse{
 		AppliedChanges: changesCh,
@@ -746,6 +871,12 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 		ErrorComponentInstancePlan: func(ctx context.Context, span any, ci stackaddrs.AbsComponentInstance) any {
 			send(evtComponentInstanceStatus(ci, hooks.ComponentInstanceErrored))
 			span.(trace.Span).SetStatus(otelCodes.Error, "planning failed")
+			span.(trace.Span).End()
+			return nil
+		},
+		DeferComponentInstancePlan: func(ctx context.Context, span any, ci stackaddrs.AbsComponentInstance) any {
+			send(evtComponentInstanceStatus(ci, hooks.ComponentInstanceDeferred))
+			span.(trace.Span).SetStatus(otelCodes.Error, "planning succeeded, but deferred")
 			span.(trace.Span).End()
 			return nil
 		},

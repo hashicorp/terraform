@@ -1,5 +1,9 @@
 ## 1.10.0 (Unreleased)
 
+BUG FIXES:
+
+- The error message for an invalid default value for an input variable now indicates when the problem is with a nested value in a complex data type. [GH-35465]
+
 EXPERIMENTS:
 
 Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.

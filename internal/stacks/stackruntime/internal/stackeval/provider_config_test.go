@@ -72,7 +72,7 @@ func TestProviderConfig_CheckProviderArgs_EmptyConfig(t *testing.T) {
 		config := getProviderConfig(ctx, t, main)
 
 		want := cty.EmptyObjectVal
-		got, diags := config.CheckProviderArgs(ctx, ValidatePhase)
+		got, diags := config.CheckProviderArgs(ctx, InspectPhase)
 		assertNoDiags(t, diags)
 
 		if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
@@ -159,7 +159,7 @@ func TestProviderConfig_CheckProviderArgs(t *testing.T) {
 		want := cty.ObjectVal(map[string]cty.Value{
 			"test": cty.StringVal("yep"),
 		})
-		got, diags := config.CheckProviderArgs(ctx, ValidatePhase)
+		got, diags := config.CheckProviderArgs(ctx, InspectPhase)
 		assertNoDiags(t, diags)
 
 		if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {
@@ -196,7 +196,7 @@ func TestProviderConfig_CheckProviderArgs(t *testing.T) {
 		want := cty.ObjectVal(map[string]cty.Value{
 			"test": cty.StringVal("yep").Mark("nope"),
 		})
-		got, diags := config.CheckProviderArgs(ctx, ValidatePhase)
+		got, diags := config.CheckProviderArgs(ctx, InspectPhase)
 		assertNoDiags(t, diags)
 
 		if diff := cmp.Diff(want, got, ctydebug.CmpOptions); diff != "" {

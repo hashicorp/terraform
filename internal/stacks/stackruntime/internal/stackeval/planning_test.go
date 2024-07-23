@@ -22,6 +22,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -761,11 +763,15 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		plan, err := stackplan.LoadFromProto(rawPlan)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		// Apply
 		newState, err := promising.MainTask(ctx, func(ctx context.Context) (*stackstate.State, error) {
 			outp, outpTest := testApplyOutput(t, nil)
-			_, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+			_, err := ApplyPlan(ctx, cfg, plan, ApplyOpts{
 				ProviderFactories: providerFactories,
 			}, outp)
 			if err != nil {
@@ -802,7 +808,7 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 			Nice *stackplan.Plan
 			Raw  []*anypb.Any
 		}
-		plans, err := promising.MainTask(ctx, func(ctx context.Context) (Plans, error) {
+		plan, err := promising.MainTask(ctx, func(ctx context.Context) (*stackplan.Plan, error) {
 			main := NewForPlanning(cfg, state, PlanOpts{
 				PlanningMode:      plans.NormalMode,
 				ProviderFactories: providerFactories,
@@ -810,19 +816,16 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 			})
 			outp, outpTest := testPlanOutput(t)
 			main.PlanAll(ctx, outp)
-			rawPlan := outpTest.RawChanges(t)
 			// The original bug would occur at this point, because
 			// outpTest.Close attempts to parse the raw plan, which fails if
 			// any part of that structure is not syntactically valid.
 			plan, diags := outpTest.Close(t)
 			assertNoDiagnostics(t, diags)
-			return Plans{plan, rawPlan}, nil
+			return plan, nil
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
-		plan := plans.Nice
-		rawPlan := plans.Raw
 
 		// We'll check whether the data resource even appears in the plan,
 		// because if not then this test is no longer testing what it thinks
@@ -861,7 +864,7 @@ func TestPlanning_RemoveDataResource(t *testing.T) {
 		// we're left with no remnant of the data resource in the updated state.
 		newState, err := promising.MainTask(ctx, func(ctx context.Context) (*stackstate.State, error) {
 			outp, outpTest := testApplyOutput(t, nil)
-			_, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+			_, err := ApplyPlan(ctx, cfg, plan, ApplyOpts{
 				ProviderFactories: providerFactories,
 			}, outp)
 			if err != nil {
@@ -1012,10 +1015,18 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 			return provider, nil
 		},
 	}
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 
 	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
 		PlanningMode:      plans.NormalMode,
 		ProviderFactories: providerFactories,
+		DependencyLocks:   *lock,
 		PlanTimestamp:     time.Now().UTC(),
 	})
 
@@ -1039,10 +1050,16 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	plan, err := stackplan.LoadFromProto(rawPlan)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	_, err = promising.MainTask(ctx, func(ctx context.Context) (*stackstate.State, error) {
 		outp, outpTest := testApplyOutput(t, nil)
-		_, err := ApplyPlan(ctx, cfg, rawPlan, ApplyOpts{
+		_, err := ApplyPlan(ctx, cfg, plan, ApplyOpts{
 			ProviderFactories: providerFactories,
+			DependencyLocks:   *lock,
 		}, outp)
 		if err != nil {
 			t.Fatal(err)

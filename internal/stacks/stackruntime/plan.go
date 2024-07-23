@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -49,6 +50,7 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 		PlanningMode:        req.PlanMode,
 		InputVariableValues: req.InputValues,
 		ProviderFactories:   req.ProviderFactories,
+		DependencyLocks:     req.DependencyLocks,
 
 		PlanTimestamp: planTimestamp,
 	})
@@ -102,6 +104,7 @@ type PlanRequest struct {
 
 	InputValues       map[stackaddrs.InputVariable]ExternalInputValue
 	ProviderFactories map[addrs.Provider]providers.Factory
+	DependencyLocks   depsfile.Locks
 
 	// ForcePlanTimestamp, if not nil, will force the plantimestamp function
 	// to return the given value instead of whatever real time the plan

@@ -25,6 +25,7 @@ const (
 	ComponentInstanceApplying      ComponentInstanceStatus = 'a'
 	ComponentInstanceApplied       ComponentInstanceStatus = 'A'
 	ComponentInstanceErrored       ComponentInstanceStatus = 'E'
+	ComponentInstanceDeferred      ComponentInstanceStatus = 'D'
 )
 
 // TODO: move this into the rpcapi package somewhere
@@ -42,6 +43,8 @@ func (s ComponentInstanceStatus) ForProtobuf() terraform1.StackChangeProgress_Co
 		return terraform1.StackChangeProgress_ComponentInstanceStatus_APPLIED
 	case ComponentInstanceErrored:
 		return terraform1.StackChangeProgress_ComponentInstanceStatus_ERRORED
+	case ComponentInstanceDeferred:
+		return terraform1.StackChangeProgress_ComponentInstanceStatus_DEFERRED
 	default:
 		return terraform1.StackChangeProgress_ComponentInstanceStatus_INVALID
 	}

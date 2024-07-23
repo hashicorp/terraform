@@ -173,7 +173,7 @@ func (c *ComponentInstance) CheckProviders(ctx context.Context, phase EvalPhase)
 
 		// componentAddr is the addrs.LocalProviderConfig that specifies the
 		// local name and (optional) alias of the provider in the component.
-		componentAddr := elem.Value
+		componentAddr := elem.Value.Local
 
 		// We validated the config providers during the static analysis, so we
 		// know this expression exists and resolves to the correct type.
@@ -370,7 +370,7 @@ func (c *ComponentInstance) checkProvider(ctx context.Context, sourceAddr addrs.
 	return stackconfigtypes.ProviderInstanceForValue(v), false, diags
 }
 
-func (c *ComponentInstance) neededProviderSchemas(ctx context.Context) (map[addrs.Provider]providers.ProviderSchema, tfdiags.Diagnostics) {
+func (c *ComponentInstance) neededProviderSchemas(ctx context.Context, phase EvalPhase) (map[addrs.Provider]providers.ProviderSchema, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	decl := c.call.Declaration(ctx)
@@ -390,6 +390,17 @@ func (c *ComponentInstance) neededProviderSchemas(ctx context.Context) (map[addr
 			continue // not our job to report a missing provider type
 		}
 		schema, err := pTy.Schema(ctx)
+
+		// If this phase has a dependency lockfile, check if the provider is in it.
+		depLocks := c.main.DependencyLocks(phase)
+		if depLocks != nil {
+			providerLockfileDiags := CheckProviderInLockfile(*depLocks, pTy, decl.DeclRange)
+			// We report these diagnostics in a different place
+			if providerLockfileDiags.HasErrors() {
+				continue
+			}
+		}
+
 		if err != nil {
 			// FIXME: it's not technically our job to report a schema
 			// fetch failure, but currently there is no single other
@@ -498,7 +509,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			}
 			prevState := c.PlanPrevState(ctx)
 
-			providerSchemas, moreDiags := c.neededProviderSchemas(ctx)
+			providerSchemas, moreDiags := c.neededProviderSchemas(ctx, PlanPhase)
 			diags = diags.Append(moreDiags)
 			if moreDiags.HasErrors() {
 				return nil, diags
@@ -666,7 +677,13 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			if diags.HasErrors() {
 				hookMore(ctx, seq, h.ErrorComponentInstancePlan, addr)
 			} else {
-				hookMore(ctx, seq, h.EndComponentInstancePlan, addr)
+				if plan.Complete {
+					hookMore(ctx, seq, h.EndComponentInstancePlan, addr)
+
+				} else {
+					hookMore(ctx, seq, h.DeferComponentInstancePlan, addr)
+				}
+
 			}
 
 			return plan, diags
@@ -743,7 +760,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		return noOpResult, diags
 	}
 
-	providerSchemas, moreDiags := c.neededProviderSchemas(ctx)
+	providerSchemas, moreDiags := c.neededProviderSchemas(ctx, ApplyPhase)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return noOpResult, diags
@@ -931,6 +948,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 				cic.Forget++
 			}
 		}
+		cic.Defer = plan.DeferredResourceInstanceChanges.Len()
 
 		hookMore(ctx, seq, h.ReportComponentInstanceApplied, cic)
 	}
@@ -997,7 +1015,7 @@ func (c *ComponentInstance) CheckApplyResult(ctx context.Context) (*ComponentIns
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Component instance apply not scheduled",
-			fmt.Sprintf("Terraform needs the result from applying changes to %s, but that apply was apparently not scheduled to run. This is a bug in Terraform.", c.Addr()),
+			fmt.Sprintf("Terraform needs the result from applying changes to %s, but that apply was apparently not scheduled to run: %s. This is a bug in Terraform.", c.Addr(), err),
 		))
 	}
 	return applyResult, diags
@@ -1227,6 +1245,23 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 			// Otherwise, just set the value as is.
 			attrs[name] = ov.Value
 		}
+
+		// If the apply operation was unsuccessful for any reason then we
+		// might have some output values that are missing from the state,
+		// because the state is only updated with the results of successful
+		// operations. To avoid downstream errors we'll insert unknown values
+		// for any declared output values that don't yet have a final value.
+		//
+		// The status of the apply operation will have been recorded elsewhere
+		// so we don't need to worry about that here. This also ensures that
+		// nothing will actually attempt to apply the unknown values here.
+		config := c.call.Config(ctx).ModuleTree(ctx)
+		for _, output := range config.Module.Outputs {
+			if _, ok := attrs[output.Name]; !ok {
+				attrs[output.Name] = cty.DynamicVal
+			}
+		}
+
 		return cty.ObjectVal(attrs)
 
 	default:

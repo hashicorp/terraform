@@ -18,13 +18,18 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	stacks_testing_provider "github.com/hashicorp/terraform/internal/stacks/stackruntime/testing"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
@@ -245,11 +250,148 @@ func TestStacksFindStackConfigurationComponents(t *testing.T) {
 	})
 }
 
-func TestStacksPlanStackChanges(t *testing.T) {
+func TestStacksOpenState(t *testing.T) {
 	ctx := context.Background()
 
 	handles := newHandleTable()
 	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		terraform1.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+
+	stacksClient := terraform1.NewStacksClient(grpcClient)
+	stream, err := stacksClient.OpenState(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	send := func(t *testing.T, key string, msg proto.Message) {
+		rawMsg, err := anypb.New(msg)
+		if err != nil {
+			t.Fatalf("failed to encode %T message %q: %s", msg, key, err)
+		}
+		err = stream.Send(&terraform1.OpenStackState_RequestItem{
+			Raw: &terraform1.AppliedChange_RawChange{
+				Key:   key,
+				Value: rawMsg,
+			},
+		})
+		if err != nil {
+			t.Fatalf("failed to send %T message %q: %s", msg, key, err)
+		}
+	}
+	send(t, "CMPTcomponent.foo", &tfstackdata1.StateComponentInstanceV1{})
+
+	resp, err := stream.CloseAndRecv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	hnd := handle[*stackstate.State](resp.StateHandle)
+	state := handles.StackState(hnd)
+	if state == nil {
+		t.Fatalf("returned handle %d does not refer to a stack prior state", resp.StateHandle)
+	}
+
+	// The state should know about component.foo from the message we sent above.
+	wantComponentInstAddr := stackaddrs.AbsComponentInstance{
+		Stack: stackaddrs.RootStackInstance,
+		Item: stackaddrs.ComponentInstance{
+			Component: stackaddrs.Component{
+				Name: "foo",
+			},
+		},
+	}
+	if !state.HasComponentInstance(wantComponentInstAddr) {
+		t.Errorf("state does not track %s", wantComponentInstAddr)
+	}
+
+	_, err = stacksClient.CloseState(ctx, &terraform1.CloseStackState_Request{
+		StateHandle: resp.StateHandle,
+	})
+	if err != nil {
+		t.Errorf("failed to close the prior state handle: %s", err)
+	}
+}
+
+func TestStacksOpenPlan(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		terraform1.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+
+	stacksClient := terraform1.NewStacksClient(grpcClient)
+	stream, err := stacksClient.OpenPlan(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	send := func(t *testing.T, msg proto.Message) {
+		rawMsg, err := anypb.New(msg)
+		if err != nil {
+			t.Fatalf("failed to encode %T message: %s", msg, err)
+		}
+		err = stream.Send(&terraform1.OpenStackPlan_RequestItem{
+			Raw: rawMsg,
+		})
+		if err != nil {
+			t.Fatalf("failed to send %T message: %s", msg, err)
+		}
+	}
+	send(t, &tfstackdata1.PlanHeader{
+		TerraformVersion: version.SemVer.String(),
+	})
+	send(t, &tfstackdata1.PlanPriorStateElem{
+		// We don't actually analyze or validate these items while
+		// just loading a plan, so we can safely just put simple
+		// garbage in here for testing.
+		Key: "test-foo",
+	})
+	send(t, &tfstackdata1.PlanApplyable{
+		Applyable: true,
+	})
+	resp, err := stream.CloseAndRecv()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hnd := handle[*stackplan.Plan](resp.PlanHandle)
+	plan := handles.StackPlan(hnd)
+	if plan == nil {
+		t.Fatalf("returned handle %d does not refer to a stack plan", resp.PlanHandle)
+	}
+	if !plan.Applyable {
+		t.Error("plan is not applyable; should've been")
+	}
+	if _, exists := plan.PrevRunStateRaw["test-foo"]; !exists {
+		t.Error("plan is missing the raw state entry for 'test-foo'")
+	}
+
+	_, err = stacksClient.ClosePlan(ctx, &terraform1.CloseStackPlan_Request{
+		PlanHandle: resp.PlanHandle,
+	})
+	if err != nil {
+		t.Errorf("failed to close the plan handle: %s", err)
+	}
+}
+
+func TestStacksPlanStackChanges(t *testing.T) {
+	ctx := context.Background()
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, &serviceOpts{})
+	stacksServer.planTimestampOverride = &fakePlanTimestamp
 
 	fakeSourceBundle := &sourcebundle.Bundle{}
 	bundleHnd := handles.NewSourceBundle(fakeSourceBundle)
@@ -296,7 +438,7 @@ func TestStacksPlanStackChanges(t *testing.T) {
 				PlannedChange: &terraform1.PlannedChange{
 					Raw: []*anypb.Any{
 						mustMarshalAnyPb(&tfstackdata1.PlanTimestamp{
-							PlanTimestamp: time.Now().UTC().Format(time.RFC3339),
+							PlanTimestamp: fakePlanTimestamp.Format(time.RFC3339),
 						}),
 					},
 				},
@@ -401,6 +543,17 @@ func TestStackChangeProgress(t *testing.T) {
 							},
 							Status:       terraform1.StackChangeProgress_ResourceInstanceStatus_PLANNED,
 							ProviderAddr: "registry.terraform.io/hashicorp/testing",
+						},
+					},
+				},
+				{
+					Event: &terraform1.StackChangeProgress_ComponentInstanceStatus_{
+						ComponentInstanceStatus: &terraform1.StackChangeProgress_ComponentInstanceStatus{
+							Addr: &terraform1.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.deferred",
+								ComponentInstanceAddr: "component.deferred",
+							},
+							Status: terraform1.StackChangeProgress_ComponentInstanceStatus_DEFERRED,
 						},
 					},
 				},
@@ -665,6 +818,14 @@ func TestStackChangeProgress(t *testing.T) {
 			stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
 				return stacks_testing_provider.NewProviderWithData(tc.store), nil
 			}
+			lock := depsfile.NewLocks()
+			lock.SetProvider(
+				addrs.NewDefaultProvider("testing"),
+				providerreqs.MustParseVersion("0.0.0"),
+				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
+			stacksServer.providerDependencyLockOverride = lock
 
 			sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
 			if err != nil {

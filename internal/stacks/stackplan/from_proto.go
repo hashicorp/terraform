@@ -5,6 +5,7 @@ package stackplan
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
@@ -22,217 +23,257 @@ import (
 	"github.com/hashicorp/terraform/version"
 )
 
-func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
+// A helper for loading saved plans in a streaming manner.
+type Loader struct {
+	ret         *Plan
+	foundHeader bool
+
+	mu sync.Mutex
+}
+
+// Constructs a new [Loader], with an initial empty plan.
+func NewLoader() *Loader {
 	ret := &Plan{
 		RootInputValues:         make(map[stackaddrs.InputVariable]cty.Value),
 		ApplyTimeInputVariables: collections.NewSetCmp[stackaddrs.InputVariable](),
 		Components:              collections.NewMap[stackaddrs.AbsComponentInstance, *Component](),
+		PrevRunStateRaw:         make(map[string]*anypb.Any),
+	}
+	return &Loader{
+		ret: ret,
+	}
+}
+
+// AddRaw adds a single raw change object to the plan being loaded.
+func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.ret == nil {
+		return fmt.Errorf("loader has been consumed")
 	}
 
-	foundHeader := false
-	for i, rawMsg := range msgs {
-		msg, err := anypb.UnmarshalNew(rawMsg, proto.UnmarshalOptions{
-			// Just the default unmarshalling options
-		})
+	msg, err := anypb.UnmarshalNew(rawMsg, proto.UnmarshalOptions{
+		// Just the default unmarshalling options
+	})
+	if err != nil {
+		return fmt.Errorf("invalid raw message: %w", err)
+	}
+
+	// The references to specific message types below ensure that
+	// the protobuf descriptors for these types are included in the
+	// compiled program, and thus available in the global protobuf
+	// registry that anypb.UnmarshalNew relies on above.
+	switch msg := msg.(type) {
+
+	case *tfstackdata1.PlanHeader:
+		wantVersion := version.SemVer.String()
+		gotVersion := msg.TerraformVersion
+		if gotVersion != wantVersion {
+			return fmt.Errorf("plan was created by Terraform %s, but this is Terraform %s", gotVersion, wantVersion)
+		}
+		l.foundHeader = true
+
+	case *tfstackdata1.PlanPriorStateElem:
+		if _, exists := l.ret.PrevRunStateRaw[msg.Key]; exists {
+			// Suggests a bug in the caller, because a valid prior state
+			// can only have one object associated with each key.
+			return fmt.Errorf("duplicate prior state key %q", msg.Key)
+		}
+		// NOTE: We intentionally don't actually decode and validate the
+		// state elements here; we'll deal with that piecemeal as we make
+		// further use of this data structure elsewhere. This avoids spending
+		// time on decoding here if a caller is loading the plan only to
+		// extract some metadata from it, and doesn't care about the prior
+		// state.
+		l.ret.PrevRunStateRaw[msg.Key] = msg.Raw
+
+	case *tfstackdata1.PlanApplyable:
+		l.ret.Applyable = msg.Applyable
+
+	case *tfstackdata1.PlanTimestamp:
+		err = l.ret.PlanTimestamp.UnmarshalText([]byte(msg.PlanTimestamp))
 		if err != nil {
-			return nil, fmt.Errorf("invalid raw message %d: %w", i, err)
+			return fmt.Errorf("invalid plan timestamp %q", msg.PlanTimestamp)
 		}
 
-		// The references to specific message types below ensure that
-		// the protobuf descriptors for these types are included in the
-		// compiled program, and thus available in the global protobuf
-		// registry that anypb.UnmarshalNew relies on above.
-		switch msg := msg.(type) {
-
-		case *tfstackdata1.PlanHeader:
-			wantVersion := version.SemVer.String()
-			gotVersion := msg.TerraformVersion
-			if gotVersion != wantVersion {
-				return nil, fmt.Errorf("plan was created by Terraform %s, but this is Terraform %s", gotVersion, wantVersion)
-			}
-			ret.PrevRunStateRaw = msg.PrevRunStateRaw
-			foundHeader = true
-
-		case *tfstackdata1.PlanApplyable:
-			ret.Applyable = msg.Applyable
-
-		case *tfstackdata1.PlanTimestamp:
-			err = ret.PlanTimestamp.UnmarshalText([]byte(msg.PlanTimestamp))
+	case *tfstackdata1.PlanRootInputValue:
+		addr := stackaddrs.InputVariable{
+			Name: msg.Name,
+		}
+		if msg.Value != nil {
+			dv := plans.DynamicValue(msg.Value.Msgpack)
+			val, err := dv.Decode(cty.DynamicPseudoType)
 			if err != nil {
-				return nil, fmt.Errorf("invalid plan timestamp %q", msg.PlanTimestamp)
+				return fmt.Errorf("invalid stored value for %s: %w", addr, err)
 			}
-
-		case *tfstackdata1.PlanRootInputValue:
-			addr := stackaddrs.InputVariable{
-				Name: msg.Name,
-			}
+			l.ret.RootInputValues[addr] = val
+		}
+		if msg.RequiredOnApply {
 			if msg.Value != nil {
-				dv := plans.DynamicValue(msg.Value.Msgpack)
-				val, err := dv.Decode(cty.DynamicPseudoType)
-				if err != nil {
-					return nil, fmt.Errorf("invalid stored value for %s: %w", addr, err)
-				}
-				ret.RootInputValues[addr] = val
+				// A variable can't be both persisted _and_ required on apply.
+				return fmt.Errorf("plan has value for required-on-apply input variable %s", addr)
 			}
-			if msg.RequiredOnApply {
-				if msg.Value != nil {
-					// A variable can't be both persisted _and_ required on apply.
-					return nil, fmt.Errorf("plan has value for required-on-apply input variable %s", addr)
-				}
-				ret.ApplyTimeInputVariables.Add(addr)
-			}
-
-		case *tfstackdata1.PlanComponentInstance:
-			addr, diags := stackaddrs.ParseAbsComponentInstanceStr(msg.ComponentInstanceAddr)
-			if diags.HasErrors() {
-				// Should not get here because the address we're parsing
-				// should've been produced by this same version of Terraform.
-				return nil, fmt.Errorf("invalid component instance address syntax in %q", msg.ComponentInstanceAddr)
-			}
-
-			dependencies := collections.NewSet[stackaddrs.AbsComponent]()
-			for _, rawAddr := range msg.DependsOnComponentAddrs {
-				// NOTE: We're using the component _instance_ address parser
-				// here, but we really want just components, so we'll need to
-				// check afterwards to make sure we don't have an instance key.
-				addr, diags := stackaddrs.ParseAbsComponentInstanceStr(rawAddr)
-				if diags.HasErrors() {
-					return nil, fmt.Errorf("invalid component address syntax in %q", rawAddr)
-				}
-				if addr.Item.Key != addrs.NoKey {
-					return nil, fmt.Errorf("invalid component address syntax in %q: is actually a component instance address", rawAddr)
-				}
-				realAddr := stackaddrs.AbsComponent{
-					Stack: addr.Stack,
-					Item:  addr.Item.Component,
-				}
-				dependencies.Add(realAddr)
-			}
-
-			plannedAction, err := planproto.FromAction(msg.PlannedAction)
-			if err != nil {
-				return nil, fmt.Errorf("decoding plan for %s: %w", addr, err)
-			}
-
-			mode, err := planproto.FromMode(msg.Mode)
-			if err != nil {
-				return nil, fmt.Errorf("decoding mode for %s: %w", addr, err)
-			}
-
-			outputVals := make(map[addrs.OutputValue]cty.Value)
-			for name, rawVal := range msg.PlannedOutputValues {
-				v, err := tfstackdata1.DynamicValueFromTFStackData1(rawVal, cty.DynamicPseudoType)
-				if err != nil {
-					return nil, fmt.Errorf("decoding output value %q for %s: %w", name, addr, err)
-				}
-				outputVals[addrs.OutputValue{Name: name}] = v
-			}
-
-			checkResults, err := planfile.CheckResultsFromPlanProto(msg.PlannedCheckResults)
-			if err != nil {
-				return nil, fmt.Errorf("decoding check results: %w", err)
-			}
-
-			if !ret.Components.HasKey(addr) {
-				ret.Components.Put(addr, &Component{
-					PlannedAction:       plannedAction,
-					Mode:                mode,
-					PlanApplyable:       msg.PlanApplyable,
-					PlanComplete:        msg.PlanComplete,
-					Dependencies:        dependencies,
-					Dependents:          collections.NewSet[stackaddrs.AbsComponent](),
-					PlannedOutputValues: outputVals,
-					PlannedChecks:       checkResults,
-
-					ResourceInstancePlanned:         addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.ResourceInstanceChangeSrc](),
-					ResourceInstancePriorState:      addrs.MakeMap[addrs.AbsResourceInstanceObject, *states.ResourceInstanceObjectSrc](),
-					ResourceInstanceProviderConfig:  addrs.MakeMap[addrs.AbsResourceInstanceObject, addrs.AbsProviderConfig](),
-					DeferredResourceInstanceChanges: addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.DeferredResourceInstanceChangeSrc](),
-				})
-			}
-			c := ret.Components.Get(addr)
-			err = c.PlanTimestamp.UnmarshalText([]byte(msg.PlanTimestamp))
-			if err != nil {
-				return nil, fmt.Errorf("invalid plan timestamp %q for %s", msg.PlanTimestamp, addr)
-			}
-
-		case *tfstackdata1.PlanResourceInstanceChangePlanned:
-			c, fullAddr, providerConfigAddr, err := LoadComponentForResourceInstance(ret, msg)
-			if err != nil {
-				return nil, err
-			}
-			c.ResourceInstanceProviderConfig.Put(fullAddr, providerConfigAddr)
-
-			// Not all "planned changes" for resource instances are actually
-			// changes in the plans.Change sense, confusingly: sometimes the
-			// "change" we're recording is just to overwrite the state entry
-			// with a refreshed copy, in which case riPlan is nil and
-			// msg.PriorState is the main content of this change, handled below.
-			if msg.Change != nil {
-				riPlan, err := ValidateResourceInstanceChange(msg, fullAddr, providerConfigAddr)
-				if err != nil {
-					return nil, err
-				}
-				c.ResourceInstancePlanned.Put(fullAddr, riPlan)
-			}
-
-			if msg.PriorState != nil {
-				stateSrc, err := stackstate.DecodeProtoResourceInstanceObject(msg.PriorState)
-				if err != nil {
-					return nil, fmt.Errorf("invalid prior state for %s: %w", fullAddr, err)
-				}
-				c.ResourceInstancePriorState.Put(fullAddr, stateSrc)
-			} else {
-				// We'll record an explicit nil just to affirm that there's
-				// intentionally no prior state for this resource instance
-				// object.
-				c.ResourceInstancePriorState.Put(fullAddr, nil)
-			}
-
-		case *tfstackdata1.PlanDeferredResourceInstanceChange:
-			if msg.Deferred == nil {
-				return nil, fmt.Errorf("missing deferred from PlanDeferredResourceInstanceChange")
-			}
-
-			c, fullAddr, providerConfigAddr, err := LoadComponentForPartialResourceInstance(ret, msg.Change)
-			if err != nil {
-				return nil, err
-			}
-
-			riPlan, err := ValidatePartialResourceInstanceChange(msg.Change, fullAddr, providerConfigAddr)
-			if err != nil {
-				return nil, err
-			}
-
-			// We'll just swallow the error here. A missing deferred reason
-			// could be the only cause and we want to be forward and backward
-			// compatible. This will just render as INVALID, which is fine.
-			deferredReason, _ := planfile.DeferredReasonFromProto(msg.Deferred.Reason)
-
-			c.DeferredResourceInstanceChanges.Put(fullAddr, &plans.DeferredResourceInstanceChangeSrc{
-				ChangeSrc:      riPlan,
-				DeferredReason: deferredReason,
-			})
-
-		default:
-			// Should not get here, because a stack plan can only be loaded by
-			// the same version of Terraform that created it, and the above
-			// should cover everything this version of Terraform can possibly
-			// emit during PlanStackChanges.
-			return nil, fmt.Errorf("unsupported raw message type %T at index %d", msg, i)
+			l.ret.ApplyTimeInputVariables.Add(addr)
 		}
+
+	case *tfstackdata1.PlanComponentInstance:
+		addr, diags := stackaddrs.ParseAbsComponentInstanceStr(msg.ComponentInstanceAddr)
+		if diags.HasErrors() {
+			// Should not get here because the address we're parsing
+			// should've been produced by this same version of Terraform.
+			return fmt.Errorf("invalid component instance address syntax in %q", msg.ComponentInstanceAddr)
+		}
+
+		dependencies := collections.NewSet[stackaddrs.AbsComponent]()
+		for _, rawAddr := range msg.DependsOnComponentAddrs {
+			// NOTE: We're using the component _instance_ address parser
+			// here, but we really want just components, so we'll need to
+			// check afterwards to make sure we don't have an instance key.
+			addr, diags := stackaddrs.ParseAbsComponentInstanceStr(rawAddr)
+			if diags.HasErrors() {
+				return fmt.Errorf("invalid component address syntax in %q", rawAddr)
+			}
+			if addr.Item.Key != addrs.NoKey {
+				return fmt.Errorf("invalid component address syntax in %q: is actually a component instance address", rawAddr)
+			}
+			realAddr := stackaddrs.AbsComponent{
+				Stack: addr.Stack,
+				Item:  addr.Item.Component,
+			}
+			dependencies.Add(realAddr)
+		}
+
+		plannedAction, err := planproto.FromAction(msg.PlannedAction)
+		if err != nil {
+			return fmt.Errorf("decoding plan for %s: %w", addr, err)
+		}
+
+		mode, err := planproto.FromMode(msg.Mode)
+		if err != nil {
+			return fmt.Errorf("decoding mode for %s: %w", addr, err)
+		}
+
+		outputVals := make(map[addrs.OutputValue]cty.Value)
+		for name, rawVal := range msg.PlannedOutputValues {
+			v, err := tfstackdata1.DynamicValueFromTFStackData1(rawVal, cty.DynamicPseudoType)
+			if err != nil {
+				return fmt.Errorf("decoding output value %q for %s: %w", name, addr, err)
+			}
+			outputVals[addrs.OutputValue{Name: name}] = v
+		}
+
+		checkResults, err := planfile.CheckResultsFromPlanProto(msg.PlannedCheckResults)
+		if err != nil {
+			return fmt.Errorf("decoding check results: %w", err)
+		}
+
+		if !l.ret.Components.HasKey(addr) {
+			l.ret.Components.Put(addr, &Component{
+				PlannedAction:       plannedAction,
+				Mode: mode,
+				PlanApplyable:       msg.PlanApplyable,
+				PlanComplete:        msg.PlanComplete,
+				Dependencies:        dependencies,
+				Dependents:          collections.NewSet[stackaddrs.AbsComponent](),
+				PlannedOutputValues: outputVals,
+				PlannedChecks:       checkResults,
+
+				ResourceInstancePlanned:         addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.ResourceInstanceChangeSrc](),
+				ResourceInstancePriorState:      addrs.MakeMap[addrs.AbsResourceInstanceObject, *states.ResourceInstanceObjectSrc](),
+				ResourceInstanceProviderConfig:  addrs.MakeMap[addrs.AbsResourceInstanceObject, addrs.AbsProviderConfig](),
+				DeferredResourceInstanceChanges: addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.DeferredResourceInstanceChangeSrc](),
+			})
+		}
+		c := l.ret.Components.Get(addr)
+		err = c.PlanTimestamp.UnmarshalText([]byte(msg.PlanTimestamp))
+		if err != nil {
+			return fmt.Errorf("invalid plan timestamp %q for %s", msg.PlanTimestamp, addr)
+		}
+
+	case *tfstackdata1.PlanResourceInstanceChangePlanned:
+		c, fullAddr, providerConfigAddr, err := LoadComponentForResourceInstance(l.ret, msg)
+		if err != nil {
+			return err
+		}
+		c.ResourceInstanceProviderConfig.Put(fullAddr, providerConfigAddr)
+
+		// Not all "planned changes" for resource instances are actually
+		// changes in the plans.Change sense, confusingly: sometimes the
+		// "change" we're recording is just to overwrite the state entry
+		// with a refreshed copy, in which case riPlan is nil and
+		// msg.PriorState is the main content of this change, handled below.
+		if msg.Change != nil {
+			riPlan, err := ValidateResourceInstanceChange(msg, fullAddr, providerConfigAddr)
+			if err != nil {
+				return err
+			}
+			c.ResourceInstancePlanned.Put(fullAddr, riPlan)
+		}
+
+		if msg.PriorState != nil {
+			stateSrc, err := stackstate.DecodeProtoResourceInstanceObject(msg.PriorState)
+			if err != nil {
+				return fmt.Errorf("invalid prior state for %s: %w", fullAddr, err)
+			}
+			c.ResourceInstancePriorState.Put(fullAddr, stateSrc)
+		} else {
+			// We'll record an explicit nil just to affirm that there's
+			// intentionally no prior state for this resource instance
+			// object.
+			c.ResourceInstancePriorState.Put(fullAddr, nil)
+		}
+
+	case *tfstackdata1.PlanDeferredResourceInstanceChange:
+		if msg.Deferred == nil {
+			return fmt.Errorf("missing deferred from PlanDeferredResourceInstanceChange")
+		}
+
+		c, fullAddr, providerConfigAddr, err := LoadComponentForPartialResourceInstance(l.ret, msg.Change)
+		if err != nil {
+			return err
+		}
+
+		riPlan, err := ValidatePartialResourceInstanceChange(msg.Change, fullAddr, providerConfigAddr)
+		if err != nil {
+			return err
+		}
+
+		// We'll just swallow the error here. A missing deferred reason
+		// could be the only cause and we want to be forward and backward
+		// compatible. This will just render as INVALID, which is fine.
+		deferredReason, _ := planfile.DeferredReasonFromProto(msg.Deferred.Reason)
+
+		c.DeferredResourceInstanceChanges.Put(fullAddr, &plans.DeferredResourceInstanceChangeSrc{
+			ChangeSrc:      riPlan,
+			DeferredReason: deferredReason,
+		})
+
+	default:
+		// Should not get here, because a stack plan can only be loaded by
+		// the same version of Terraform that created it, and the above
+		// should cover everything this version of Terraform can possibly
+		// emit during PlanStackChanges.
+		return fmt.Errorf("unsupported raw message type %T", msg)
 	}
+	return nil
+}
+
+// Plan consumes the loaded plan, making the associated loader closed to
+// further additions.
+func (l *Loader) Plan() (*Plan, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
 	// If we got through all of the messages without encountering at least
 	// one *PlanHeader then we'll abort because we may have lost part of the
 	// plan sequence somehow.
-	if !foundHeader {
+	if !l.foundHeader {
 		return nil, fmt.Errorf("missing PlanHeader")
 	}
 
 	// Before we return we'll calculate the reverse dependency information
-	// based on the forward dependency information we loaded above.
-	for _, elem := range ret.Components.Elems() {
+	// based on the forward dependency information we loaded earlier.
+	for _, elem := range l.ret.Components.Elems() {
 		dependentInstAddr := elem.K
 		dependentAddr := stackaddrs.AbsComponent{
 			Stack: dependentInstAddr.Stack,
@@ -245,7 +286,7 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 			// component. This'll be okay as long as the number of components is
 			// small, but we'll need to improve this if we ever want to support stacks
 			// with a large number of components.
-			for _, elem := range ret.Components.Elems() {
+			for _, elem := range l.ret.Components.Elems() {
 				maybeDependencyInstAddr := elem.K
 				maybeDependencyAddr := stackaddrs.AbsComponent{
 					Stack: maybeDependencyInstAddr.Stack,
@@ -258,7 +299,21 @@ func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
 		}
 	}
 
+	ret := l.ret
+	l.ret = nil
+
 	return ret, nil
+}
+
+func LoadFromProto(msgs []*anypb.Any) (*Plan, error) {
+	loader := NewLoader()
+	for i, rawMsg := range msgs {
+		err := loader.AddRaw(rawMsg)
+		if err != nil {
+			return nil, fmt.Errorf("raw item %d: %w", i, err)
+		}
+	}
+	return loader.Plan()
 }
 
 func ValidateResourceInstanceChange(change *tfstackdata1.PlanResourceInstanceChangePlanned, fullAddr addrs.AbsResourceInstanceObject, providerConfigAddr addrs.AbsProviderConfig) (*plans.ResourceInstanceChangeSrc, error) {

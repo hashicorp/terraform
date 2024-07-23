@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
@@ -15,6 +16,7 @@ import (
 
 type ApplyOpts struct {
 	ProviderFactories ProviderFactories
+	DependencyLocks   depsfile.Locks
 
 	// PrevStateDescKeys is a set of all of the state description keys currently
 	// known by the caller.

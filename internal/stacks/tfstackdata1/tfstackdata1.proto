@@ -43,10 +43,15 @@ message PlanHeader {
     // decoding the message, because we always expect plans to be applied by
     // the same version of Terraform that created them.
     string terraform_version = 1;
+}
 
-    // A verbatim copy of the state that was provided with the request to
-    // create the plan.
-    map<string, google.protobuf.Any> prev_run_state_raw = 2;
+// Captures one element from the raw prior state that was provided when
+// creating the plan. A valid plan includes a copy of its entire prior state
+// represented as zero or more messages of this type, which we then interpret
+// as a map from key to raw during load.
+message PlanPriorStateElem {
+    string key = 1;
+    google.protobuf.Any raw = 2;
 }
 
 // Confirms whether the overall plan whose raw plan sequence includes this

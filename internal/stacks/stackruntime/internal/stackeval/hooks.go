@@ -74,6 +74,10 @@ type Hooks struct {
 	// is called when the plan operation failed.
 	ErrorComponentInstancePlan hooks.MoreFunc[stackaddrs.AbsComponentInstance]
 
+	// DeferComponentInstancePlan is similar to [Hooks.EndComponentInstancePlan], but
+	// is called when the plan operation succeeded but signaled a deferral.
+	DeferComponentInstancePlan hooks.MoreFunc[stackaddrs.AbsComponentInstance]
+
 	// PendingComponentInstanceApply is called at the start of the apply
 	// operation.
 	PendingComponentInstanceApply hooks.SingleFunc[stackaddrs.AbsComponentInstance]

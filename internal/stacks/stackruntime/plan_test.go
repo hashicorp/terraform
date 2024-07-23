@@ -21,6 +21,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -67,6 +69,13 @@ func TestPlan_valid(t *testing.T) {
 
 			changesCh := make(chan stackplan.PlannedChange, 8)
 			diagsCh := make(chan tfdiags.Diagnostic, 2)
+			lock := depsfile.NewLocks()
+			lock.SetProvider(
+				addrs.NewDefaultProvider("testing"),
+				providerreqs.MustParseVersion("0.0.0"),
+				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
 			req := PlanRequest{
 				Config: cfg,
 				ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -81,6 +90,7 @@ func TestPlan_valid(t *testing.T) {
 						return stacks_testing_provider.NewProvider(), nil
 					},
 				},
+				DependencyLocks: *lock,
 				InputValues: func() map[stackaddrs.InputVariable]ExternalInputValue {
 					inputs := map[stackaddrs.InputVariable]ExternalInputValue{}
 					for k, v := range tc.planInputVars {
@@ -148,6 +158,13 @@ func TestPlan_invalid(t *testing.T) {
 
 			changesCh := make(chan stackplan.PlannedChange, 8)
 			diagsCh := make(chan tfdiags.Diagnostic, 2)
+			lock := depsfile.NewLocks()
+			lock.SetProvider(
+				addrs.NewDefaultProvider("testing"),
+				providerreqs.MustParseVersion("0.0.0"),
+				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
 			req := PlanRequest{
 				Config: cfg,
 				ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -162,6 +179,7 @@ func TestPlan_invalid(t *testing.T) {
 						return stacks_testing_provider.NewProvider(), nil
 					},
 				},
+				DependencyLocks: *lock,
 				InputValues: func() map[stackaddrs.InputVariable]ExternalInputValue {
 					inputs := map[stackaddrs.InputVariable]ExternalInputValue{}
 					for k, v := range tc.planInputVars {
@@ -396,6 +414,13 @@ func TestPlanWithComplexVariableDefaults(t *testing.T) {
 
 	changesCh := make(chan stackplan.PlannedChange)
 	diagsCh := make(chan tfdiags.Diagnostic)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -403,6 +428,7 @@ func TestPlanWithComplexVariableDefaults(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
+		DependencyLocks: *lock,
 		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
 			{Name: "optional"}: {
 				Value:    cty.EmptyObjectVal, // This should be populated by defaults.
@@ -1277,6 +1303,13 @@ func TestPlanWithProviderConfig(t *testing.T) {
 	fakeSrcRng := tfdiags.SourceRange{
 		Filename: "fake-source",
 	}
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		providerAddr,
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 
 	t.Run("valid", func(t *testing.T) {
 		changesCh := make(chan stackplan.PlannedChange, 8)
@@ -1301,6 +1334,7 @@ func TestPlanWithProviderConfig(t *testing.T) {
 					return provider, nil
 				},
 			},
+			DependencyLocks: *lock,
 		}
 		resp := PlanResponse{
 			PlannedChanges: changesCh,
@@ -1457,6 +1491,13 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -1464,7 +1505,7 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
-
+		DependencyLocks:    *lock,
 		ForcePlanTimestamp: &fakePlanTimestamp,
 	}
 	resp := PlanResponse{
@@ -1613,6 +1654,13 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -1620,6 +1668,7 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
+		DependencyLocks: *lock,
 
 		ForcePlanTimestamp: &fakePlanTimestamp,
 	}
@@ -1763,6 +1812,13 @@ func TestPlanWithForEach(t *testing.T) {
 
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -1770,6 +1826,7 @@ func TestPlanWithForEach(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
+		DependencyLocks: *lock,
 
 		ForcePlanTimestamp: &fakePlanTimestamp,
 
@@ -1805,6 +1862,13 @@ func TestPlanWithCheckableObjects(t *testing.T) {
 
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -1812,6 +1876,7 @@ func TestPlanWithCheckableObjects(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
+		DependencyLocks: *lock,
 
 		ForcePlanTimestamp: &fakePlanTimestamp,
 
@@ -2037,6 +2102,13 @@ func TestPlanWithDeferredResource(t *testing.T) {
 
 	changesCh := make(chan stackplan.PlannedChange)
 	diagsCh := make(chan tfdiags.Diagnostic)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -2044,6 +2116,7 @@ func TestPlanWithDeferredResource(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
+		DependencyLocks:    *lock,
 		ForcePlanTimestamp: &fakePlanTimestamp,
 		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
 			{Name: "id"}: {
@@ -2179,6 +2252,13 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -2186,6 +2266,7 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
+		DependencyLocks:    *lock,
 		ForcePlanTimestamp: &fakePlanTimestamp,
 		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
 			{Name: "components"}: {
@@ -2408,6 +2489,13 @@ func TestPlanWithDeferredComponentReferences(t *testing.T) {
 
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -2415,6 +2503,7 @@ func TestPlanWithDeferredComponentReferences(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
+		DependencyLocks:    *lock,
 		ForcePlanTimestamp: &fakePlanTimestamp,
 		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
 			{Name: "known_components"}: {
@@ -2657,6 +2746,13 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -2664,6 +2760,7 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
+		DependencyLocks:    *lock,
 		ForcePlanTimestamp: &fakePlanTimestamp,
 		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
 			{Name: "stacks"}: {
@@ -2795,6 +2892,13 @@ func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -2802,6 +2906,7 @@ func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
+		DependencyLocks:    *lock,
 		ForcePlanTimestamp: &fakePlanTimestamp,
 		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
 			{Name: "stacks"}: {
@@ -2932,6 +3037,13 @@ func TestPlanWithDeferredComponentForEachOfInvalidType(t *testing.T) {
 
 	changesCh := make(chan stackplan.PlannedChange, 8)
 	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -2939,6 +3051,7 @@ func TestPlanWithDeferredComponentForEachOfInvalidType(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
+		DependencyLocks: *lock,
 
 		ForcePlanTimestamp: &fakePlanTimestamp,
 
@@ -2986,6 +3099,13 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 
 	changesCh := make(chan stackplan.PlannedChange)
 	diagsCh := make(chan tfdiags.Diagnostic)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -2993,6 +3113,7 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
+		DependencyLocks:    *lock,
 		ForcePlanTimestamp: &fakePlanTimestamp,
 		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
 			{Name: "providers"}: {
@@ -3191,6 +3312,13 @@ func TestPlanInvalidProvidersFailGracefully(t *testing.T) {
 
 	changesCh := make(chan stackplan.PlannedChange)
 	diagsCh := make(chan tfdiags.Diagnostic)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
@@ -3201,6 +3329,7 @@ func TestPlanInvalidProvidersFailGracefully(t *testing.T) {
 				return stacks_testing_provider.NewProvider(), nil
 			},
 		},
+		DependencyLocks:    *lock,
 		ForcePlanTimestamp: &fakePlanTimestamp,
 	}
 	resp := PlanResponse{
@@ -3251,6 +3380,13 @@ func TestPlanWithStateManipulation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
 
 	tcs := map[string]struct {
 		state            *stackstate.State
@@ -3541,6 +3677,7 @@ func TestPlanWithStateManipulation(t *testing.T) {
 						return stacks_testing_provider.NewProviderWithData(tc.store), nil
 					},
 				},
+				DependencyLocks:    *lock,
 				InputValues:        inputs,
 				ForcePlanTimestamp: &fakePlanTimestamp,
 				PrevState:          tc.state,

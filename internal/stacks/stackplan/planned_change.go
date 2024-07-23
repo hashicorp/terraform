@@ -342,6 +342,7 @@ func (pc *PlannedChangeResourceInstancePlanned) PlanResourceInstanceChangePlanne
 	if err != nil {
 		return nil, fmt.Errorf("converting resource instance change to proto: %w", err)
 	}
+
 	return &tfstackdata1.PlanResourceInstanceChangePlanned{
 		ComponentInstanceAddr: rioAddr.Component.String(),
 		ResourceInstanceAddr:  rioAddr.Item.ResourceInstance.String(),
@@ -370,6 +371,25 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*terraform1
 		return nil, err
 	}
 
+	var moved *terraform1.PlannedChange_ResourceInstance_Moved
+	var imported *terraform1.PlannedChange_ResourceInstance_Imported
+
+	if pc.ChangeSrc.Moved() {
+		moved = &terraform1.PlannedChange_ResourceInstance_Moved{
+			PrevAddr: terraform1.NewResourceInstanceInStackAddr(stackaddrs.AbsResourceInstance{
+				Component: rioAddr.Component,
+				Item:      pc.ChangeSrc.PrevRunAddr,
+			}),
+		}
+	}
+
+	if pc.ChangeSrc.Importing != nil {
+		imported = &terraform1.PlannedChange_ResourceInstance_Imported{
+			ImportId: pc.ChangeSrc.Importing.ID,
+			Unknown:  pc.ChangeSrc.Importing.Unknown,
+		}
+	}
+
 	return &terraform1.PlannedChange_ChangeDescription{
 		Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
 			ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
@@ -390,7 +410,8 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*terraform1
 					),
 				},
 				ReplacePaths: replacePaths,
-				// TODO: Moved, Imported
+				Moved:        moved,
+				Imported:     imported,
 			},
 		},
 	}, nil
@@ -578,8 +599,6 @@ func (pc *PlannedChangeOutputValue) PlannedChangeProto() (*terraform1.PlannedCha
 // the external-facing plan description.
 type PlannedChangeHeader struct {
 	TerraformVersion *version.Version
-
-	PrevRunStateRaw map[string]*anypb.Any
 }
 
 var _ PlannedChange = (*PlannedChangeHeader)(nil)
@@ -589,7 +608,37 @@ func (pc *PlannedChangeHeader) PlannedChangeProto() (*terraform1.PlannedChange, 
 	var raw anypb.Any
 	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanHeader{
 		TerraformVersion: pc.TerraformVersion.String(),
-		PrevRunStateRaw:  pc.PrevRunStateRaw,
+	}, proto.MarshalOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return &terraform1.PlannedChange{
+		Raw: []*anypb.Any{&raw},
+	}, nil
+}
+
+// PlannedChangePriorStateElement is a special change type we emit to capture
+// each element of the prior state.
+//
+// PlannedChangePriorStateElement has only a raw message and does not
+// contribute to the external-facing plan description, since it's really just
+// an implementation detail that allows us to deal with various state cleanup
+// concerns during the apply phase; this isn't really a "planned change" in
+// the typical sense.
+type PlannedChangePriorStateElement struct {
+	Key string
+	Raw *anypb.Any
+}
+
+var _ PlannedChange = (*PlannedChangePriorStateElement)(nil)
+
+// PlannedChangeProto implements PlannedChange.
+func (pc *PlannedChangePriorStateElement) PlannedChangeProto() (*terraform1.PlannedChange, error) {
+	var raw anypb.Any
+	err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanPriorStateElem{
+		Key: pc.Key,
+		Raw: pc.Raw,
 	}, proto.MarshalOptions{})
 	if err != nil {
 		return nil, err
