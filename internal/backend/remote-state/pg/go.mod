@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform/internal/backend/remote-state/pg
 
-go 1.22.4
+go 1.22.5
 
 require (
 	github.com/hashicorp/go-uuid v1.0.3
