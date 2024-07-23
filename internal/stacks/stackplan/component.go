@@ -64,6 +64,11 @@ type Component struct {
 	// be destroyed.
 	Dependents collections.Set[stackaddrs.AbsComponent]
 
+	// PlannedInputValues and PlannedInputValueMarks are the values that
+	// Terraform has planned to use for input variables in this component.
+	PlannedInputValues     map[addrs.InputVariable]plans.DynamicValue
+	PlannedInputValueMarks map[addrs.InputVariable][]cty.PathValueMarks
+
 	PlannedOutputValues map[addrs.OutputValue]cty.Value
 
 	PlannedChecks *states.CheckResults
@@ -116,6 +121,17 @@ func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 			ss.SetResourceInstanceDeposed(addr.ResourceInstance, addr.DeposedKey, stateSrc, providerConfigAddr)
 		}
 	}
+
+	variableValues := make(map[string]plans.DynamicValue, len(c.PlannedInputValues))
+	variableMarks := make(map[string][]cty.PathValueMarks, len(c.PlannedInputValueMarks))
+	for k, v := range c.PlannedInputValues {
+		variableValues[k.Name] = v
+	}
+	plan.VariableValues = variableValues
+	for k, v := range c.PlannedInputValueMarks {
+		variableMarks[k.Name] = v
+	}
+	plan.VariableMarks = variableMarks
 
 	plan.PriorState = priorState
 	plan.PrevRunState = priorState.DeepCopy() // This is just here to complete the data structure; we don't really do anything with it

@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
@@ -148,6 +149,26 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 			return fmt.Errorf("decoding plan for %s: %w", addr, err)
 		}
 
+		inputVals := make(map[addrs.InputVariable]plans.DynamicValue)
+		inputValMarks := make(map[addrs.InputVariable][]cty.PathValueMarks)
+		for name, rawVal := range msg.PlannedInputValues {
+			val := addrs.InputVariable{
+				Name: name,
+			}
+			inputVals[val] = rawVal.Value.Msgpack
+			inputValMarks[val] = make([]cty.PathValueMarks, len(rawVal.SensitivePaths))
+			for _, path := range rawVal.SensitivePaths {
+				path, err := planfile.PathFromProto(path)
+				if err != nil {
+					return fmt.Errorf("decoding sensitive path %q for %s: %w", val, addr, err)
+				}
+				inputValMarks[val] = append(inputValMarks[val], cty.PathValueMarks{
+					Path:  path,
+					Marks: cty.NewValueMarks(marks.Sensitive),
+				})
+			}
+		}
+
 		outputVals := make(map[addrs.OutputValue]cty.Value)
 		for name, rawVal := range msg.PlannedOutputValues {
 			v, err := tfstackdata1.DynamicValueFromTFStackData1(rawVal, cty.DynamicPseudoType)
@@ -164,13 +185,15 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 
 		if !l.ret.Components.HasKey(addr) {
 			l.ret.Components.Put(addr, &Component{
-				PlannedAction:       plannedAction,
-				PlanApplyable:       msg.PlanApplyable,
-				PlanComplete:        msg.PlanComplete,
-				Dependencies:        dependencies,
-				Dependents:          collections.NewSet[stackaddrs.AbsComponent](),
-				PlannedOutputValues: outputVals,
-				PlannedChecks:       checkResults,
+				PlannedAction:          plannedAction,
+				PlanApplyable:          msg.PlanApplyable,
+				PlanComplete:           msg.PlanComplete,
+				Dependencies:           dependencies,
+				Dependents:             collections.NewSet[stackaddrs.AbsComponent](),
+				PlannedInputValues:     inputVals,
+				PlannedInputValueMarks: inputValMarks,
+				PlannedOutputValues:    outputVals,
+				PlannedChecks:          checkResults,
 
 				ResourceInstancePlanned:         addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.ResourceInstanceChangeSrc](),
 				ResourceInstancePriorState:      addrs.MakeMap[addrs.AbsResourceInstanceObject, *states.ResourceInstanceObjectSrc](),
