@@ -11,11 +11,11 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
-	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/terminal"
 )
 
 // Ensure that the correct view type and in-automation settings propagate to the

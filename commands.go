@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 	pluginDiscovery "github.com/hashicorp/terraform/internal/plugin/discovery"
 	"github.com/hashicorp/terraform/internal/rpcapi"
-	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/terminal"
 )
 
 // runningInAutomationEnvName gives the name of an environment variable that

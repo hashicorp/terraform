@@ -12,9 +12,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/terminal"
 )
 
 func testJSONHookResourceID(addr addrs.AbsResourceInstance) terraform.HookResourceIdentity {

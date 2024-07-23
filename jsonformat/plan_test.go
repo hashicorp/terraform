@@ -13,17 +13,17 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/jsonformat/differ"
 	"github.com/hashicorp/terraform/jsonformat/structured"
 	"github.com/hashicorp/terraform/jsonformat/structured/attribute_path"
 	"github.com/hashicorp/terraform/jsonplan"
+	"github.com/hashicorp/terraform/jsonprovider"
+	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/terminal"
 )
 
 func TestRenderHuman_EmptyPlan(t *testing.T) {

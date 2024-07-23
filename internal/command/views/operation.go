@@ -11,14 +11,14 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/views/json"
-	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/jsonformat"
 	"github.com/hashicorp/terraform/jsonplan"
+	"github.com/hashicorp/terraform/jsonprovider"
+	"github.com/hashicorp/terraform/plans"
 )
 
 type Operation interface {

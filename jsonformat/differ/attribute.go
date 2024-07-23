@@ -10,7 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/jsonformat/computed"
 
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/jsonprovider"
 )
 
 func ComputeDiffForAttribute(change structured.Change, attribute *jsonprovider.Attribute) computed.Diff {
