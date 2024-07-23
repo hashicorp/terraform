@@ -35,6 +35,8 @@ If you import the same object multiple times, Terraform may exhibit unwanted
 behavior. For more information on this assumption, see
 [the State section](/terraform/language/state).
 
+-> If you have a need to automate this with CI/CD pipelines, you may want to look at utilizing the [import block](https://developer.hashicorp.com/terraform/language/import#syntax) in a .tf file in your root module instead. This will avoid manual coordination work to update state and potential security issues such endeavors.
+
 The command-line flags are all optional. The following flags are available:
 
 - `-config=path` - Path to directory of Terraform configuration files that
