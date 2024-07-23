@@ -148,6 +148,11 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 			return fmt.Errorf("decoding plan for %s: %w", addr, err)
 		}
 
+		mode, err := planproto.FromMode(msg.Mode)
+		if err != nil {
+			return fmt.Errorf("decoding mode for %s: %w", addr, err)
+		}
+
 		outputVals := make(map[addrs.OutputValue]cty.Value)
 		for name, rawVal := range msg.PlannedOutputValues {
 			v, err := tfstackdata1.DynamicValueFromTFStackData1(rawVal, cty.DynamicPseudoType)
@@ -165,6 +170,7 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 		if !l.ret.Components.HasKey(addr) {
 			l.ret.Components.Put(addr, &Component{
 				PlannedAction:       plannedAction,
+				Mode:                mode,
 				PlanApplyable:       msg.PlanApplyable,
 				PlanComplete:        msg.PlanComplete,
 				Dependencies:        dependencies,

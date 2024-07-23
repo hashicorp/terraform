@@ -24,6 +24,7 @@ import (
 // a single operation.
 type Component struct {
 	PlannedAction plans.Action
+	Mode          plans.Mode
 
 	// These fields echo the [plans.Plan.Applyable] and [plans.Plan.Complete]
 	// field respectively. See the docs for those fields for more information.
@@ -86,6 +87,7 @@ type Component struct {
 func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 	changes := plans.NewChanges()
 	plan := &plans.Plan{
+		UIMode:    c.Mode,
 		Changes:   changes,
 		Timestamp: c.PlanTimestamp,
 		Applyable: c.PlanApplyable,
