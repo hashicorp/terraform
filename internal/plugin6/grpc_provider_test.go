@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -16,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+	"go.uber.org/mock/gomock"
 
 	mockproto "github.com/hashicorp/terraform/internal/plugin6/mock_proto"
 	proto "github.com/hashicorp/terraform/internal/tfplugin6"
