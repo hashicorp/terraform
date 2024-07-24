@@ -3,6 +3,11 @@
 BUG FIXES:
 
 - The error message for an invalid default value for an input variable now indicates when the problem is with a nested value in a complex data type. [GH-35465]
+- Sensitive marks could be incorrectly transferred to nested resource values, causing erroneous changes during a plan [GH-35501]
+
+ENHANCEMENTS:
+
+- The `element` function now accepts negative indices [GH-35501]
 
 EXPERIMENTS:
 
