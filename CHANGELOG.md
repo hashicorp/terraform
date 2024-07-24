@@ -1,4 +1,4 @@
-## 1.9.3 (Unreleased)
+## 1.9.3 (July 24, 2024)
 
 ENHANCEMENTS:
 
