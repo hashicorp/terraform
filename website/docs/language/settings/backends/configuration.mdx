@@ -105,7 +105,32 @@ There are several ways to supply the remaining arguments:
 
 - **File**: A configuration file may be specified via the `init` command line.
   To specify a file, use the `-backend-config=PATH` option when running
-  `terraform init`. If the file contains secrets it may be kept in
+  `terraform init`. The partial configuration must have a `backend` block containing keys set to empty values. When you run the `terraform init -backend-config="<path-to-remaining-configuration>"` command, Terraform populates the keys in the partial `backend` configuration with matching key values from the specified configuration file. In the following example, the keys defined in the `backend` block of the `state.tf` configuration file are populated with values from the `state.config` configuration:  
+    ```
+    $ `terraform init -backend-config="./state.config"`
+    ```   
+
+  ```hcl
+  # state.tf
+  terraform {
+    backend "s3" {
+      bucket = "" 
+      key    = ""
+      region = ""
+      profile= ""
+    }
+  }
+  ```
+
+  ```hcl
+  # state.config
+  bucket = "your-bucket" 
+  key    = "your-state.tfstate"
+  region = "eu-central-1"
+  profile= "Your_Profile"
+  ```
+
+  When your configuration file contains secrets, you can store them in
   a secure data store, such as [Vault](https://www.vaultproject.io/),
   in which case it must be downloaded to the local disk before running Terraform.
 
