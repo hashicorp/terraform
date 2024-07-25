@@ -111,6 +111,9 @@ func (c *ComponentInstance) inputValuesForModulesRuntime(ctx context.Context, pr
 		return nil, diags
 	}
 
+	// module is the configuration for the root module of this component.
+	module := c.call.Config(ctx).ModuleTree(ctx).Module
+
 	// valsObj might be an unknown value during the planning phase, in which
 	// case we'll return an InputValues with all of the expected variables
 	// defined as unknown values of their expected type constraints. To
@@ -141,14 +144,17 @@ func (c *ComponentInstance) inputValuesForModulesRuntime(ctx context.Context, pr
 		// diagnostics acknowledge that the root cause here is a bug in
 		// Terraform.
 		if phase == ApplyPhase {
+			config := module.Variables[name]
+			if config.Ephemeral {
+				// Ephemeral variables are allowed to change between the plan
+				// and apply stages, so we won't bother checking them.
+				continue
+			}
+
 			raw, ok := previousValues[name]
 			if !ok {
 				// This shouldn't happen because we should have a value for
 				// every input variable that we have a value for in the plan.
-				// TODO: Support for ephemeral values is incoming, once that
-				//   is implemented it will be possible for there to be a
-				//   different set of input variables between the plan and the
-				//   apply phase.
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Missing input variable value",
