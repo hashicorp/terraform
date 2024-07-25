@@ -48,8 +48,8 @@ Without a saved plan file, `terraform apply` supports all planning modes and pla
 
 The following options change how the apply command executes and reports on the apply operation.
 
-- `-auto-approve` - Skips interactive approval of the plan before applying. This
-  option is ignored when you pass a previously-saved plan file because
+- `-auto-approve` - Skips interactive approval of the plan before applying. Terraform ignores this
+  option when you pass a previously-saved plan file. This is because
   Terraform considers you passing the plan file as the approval and so
   will never prompt in that case.
 
