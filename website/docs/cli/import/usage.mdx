@@ -46,7 +46,7 @@ $ terraform import aws_instance.example i-abcd1234
 
 This command locates the AWS EC2 instance with ID `i-abcd1234`. Then it attaches
 the existing settings of the instance, as described by the EC2 API, to the
-name `aws_instance.example` of a module. In this example the module path
+name `aws_instance.example` of a module. In this example, the module path
 implies that the root module is used. Finally, the mapping is saved in the
 Terraform state.
 
@@ -73,8 +73,8 @@ multiple resources are imported. For example, an AWS network ACL imports
 an `aws_network_acl` but also one `aws_network_acl_rule` for each rule.
 
 In this scenario, the secondary resources will not already exist in
-configuration, so it is necessary to consult the import output and create
-a `resource` block in configuration for each secondary resource. If this is
+the configuration, so it is necessary to consult the import output and create
+a `resource` block in the configuration for each secondary resource. If this is
 not done, Terraform will plan to destroy the imported objects on the next run.
 
 If you want to rename or otherwise move the imported resources, the

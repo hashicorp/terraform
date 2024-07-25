@@ -17,7 +17,7 @@ existing state. It is thus primarily useful for general verification of
 reusable modules, including correctness of attribute names and value types.
 
 It is safe to run this command automatically, for example as a post-save
-check in a text editor or as a test step for a re-usable module in a CI
+check in a text editor or as a test step for a reusable module in a CI
 system.
 
 Validation requires an initialized working directory with any referenced plugins and modules installed. To initialize a working directory for validation without accessing any configured backend, use:
@@ -26,7 +26,7 @@ Validation requires an initialized working directory with any referenced plugins
 $ terraform init -backend=false
 ```
 
-To verify configuration in the context of a particular run (a particular
+To verify the configuration in the context of a particular run (a particular
 target workspace, input variable values, etc), use the `terraform plan`
 command instead, which includes an implied validation check.
 
@@ -107,7 +107,7 @@ The nested objects in `diagnostics` have the following properties:
 
   Summaries are typically short, single sentences, but can sometimes be longer
   as a result of returning errors from subsystems that are not designed to
-  return full diagnostics, where the entire error message therefore becomes the
+  return full diagnostics, where the entire error message becomes the
   summary. In those cases, the summary might include newline characters which
   a renderer should honor when presenting the message visually to a user.
 
@@ -119,7 +119,7 @@ The nested objects in `diagnostics` have the following properties:
   reference.
 
   Detail messages are often multiple paragraphs and possibly interspersed with
-  non-paragraph lines, so tools which aim to present detail messages to the
+  non-paragraph lines, so tools that aim to present detailed messages to the
   user should distinguish between lines without leading spaces, treating them
   as paragraphs, and lines with leading spaces, treating them as preformatted
   text. Renderers should then soft-wrap the paragraphs to fit the width of the
@@ -127,16 +127,16 @@ The nested objects in `diagnostics` have the following properties:
 
   Some Terraform detail messages contain an approximation of bullet
   lists using ASCII characters to mark the bullets. This is not a
-  contractural formatting convention, so renderers should avoid depending on
+  contractual formatting convention, so renderers should avoid depending on
   it and should instead treat those lines as either paragraphs or preformatted
-  text. Future versions of this format may define additional rules for other text conventions, but will maintain backward compatibility.
+  text. 
 
 - `range` (object): An optional object referencing a portion of the configuration
   source code that the diagnostic message relates to. For errors, this will
   typically indicate the bounds of the specific block header, attribute, or
   expression which was detected as invalid.
 
-  A source range is an object with a property `filename` which gives the
+  A source range is an object with a property `filename` that gives the
   filename as a relative path from the current working directory, and then
   two properties `start` and `end` which are both themselves objects
   describing source positions, as described below.
@@ -152,7 +152,7 @@ The nested objects in `diagnostics` have the following properties:
 
   - `context` (string): An optional summary of the root context of the
     diagnostic. For example, this might be the resource block containing the
-    expression which triggered the diagnostic. For some diagnostics this
+    expression that triggered the diagnostic. For some diagnostics, this
     information is not available, and then this property will be `null`.
 
   - `code` (string): A snippet of Terraform configuration including the
@@ -197,7 +197,7 @@ interpretation only.
 
 ### Expression Value
 
-An expression value object gives additional information about a value which is
+An expression value object gives additional information about a value that is
 part of the expression which triggered the diagnostic. This is especially
 useful when using `for_each` or similar constructs, in order to identify
 exactly which values are responsible for an error. The object has two properties:
