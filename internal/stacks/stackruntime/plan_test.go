@@ -359,7 +359,7 @@ func TestPlanWithVariableDefaults(t *testing.T) {
 
 			wantChanges := []stackplan.PlannedChange{
 				&stackplan.PlannedChangeApplyable{
-					Applyable: false,
+					Applyable: true,
 				},
 				&stackplan.PlannedChangeHeader{
 					TerraformVersion: version.SemVer,
@@ -891,7 +891,7 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 
 		wantChanges := []stackplan.PlannedChange{
 			&stackplan.PlannedChangeApplyable{
-				Applyable: false,
+				Applyable: true,
 			},
 			&stackplan.PlannedChangeHeader{
 				TerraformVersion: version.SemVer,
@@ -949,7 +949,7 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 
 		wantChanges := []stackplan.PlannedChange{
 			&stackplan.PlannedChangeApplyable{
-				Applyable: false,
+				Applyable: true,
 			},
 			&stackplan.PlannedChangeHeader{
 				TerraformVersion: version.SemVer,
@@ -1008,7 +1008,7 @@ func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: false,
+			Applyable: true,
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
@@ -2145,7 +2145,7 @@ func TestPlanWithDeferredResource(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: false,
+			Applyable: true,
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(
@@ -2787,7 +2787,7 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: false,
+			Applyable: true,
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
@@ -2933,7 +2933,7 @@ func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: false,
+			Applyable: true,
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
@@ -3140,7 +3140,7 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: false,
+			Applyable: true,
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(
