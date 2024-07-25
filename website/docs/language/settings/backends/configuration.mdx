@@ -104,10 +104,10 @@ There are several ways to supply the remaining arguments:
 
 - **File**: A configuration file may be specified via the `init` command line.
   To specify a file, use the `-backend-config=PATH` option when running
-  `terraform init`. You need an existing backend configuration that you can override with
-  the config file you provide in PATH. The config file must contain only the key/value pairs
-  for your backend. For example, run `terraform init -backend-config="./state.config"` to 
-  override your backend configuration defined in `state.tf` with the values from `state.config`: 
+  `terraform init`. The partial configuration must have a `backend` block containing keys set to empty values. When you run the `terraform init -backend-config="<path-to-remaining-configuration>"` command, Terraform populates the keys in the partial `backend` configuration with matching key values from the specified configuration file. In the following example, the keys defined in the `backend` block of the `state.tf` configuration file are populated with values from the `state.config` configuration:  
+    ```
+    $ `terraform init -backend-config="./state.config"`
+    ```   
 
   ```hcl
   # state.tf
