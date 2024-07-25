@@ -1,10 +1,17 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package plans
 
 import (
+	"fmt"
+
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Changes describes various actions that Terraform will attempt to take if
@@ -35,6 +42,10 @@ func NewChanges() *Changes {
 func (c *Changes) Empty() bool {
 	for _, res := range c.Resources {
 		if res.Action != NoOp || res.Moved() {
+			return false
+		}
+
+		if res.Importing != nil {
 			return false
 		}
 	}
@@ -301,9 +312,11 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 				Private:      rc.Private,
 				ProviderAddr: rc.ProviderAddr,
 				Change: Change{
-					Action: Delete,
-					Before: rc.Before,
-					After:  cty.NullVal(rc.Before.Type()),
+					Action:          Delete,
+					Before:          rc.Before,
+					After:           cty.NullVal(rc.Before.Type()),
+					Importing:       rc.Importing,
+					GeneratedConfig: rc.GeneratedConfig,
 				},
 			}
 		default:
@@ -313,9 +326,11 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 				Private:      rc.Private,
 				ProviderAddr: rc.ProviderAddr,
 				Change: Change{
-					Action: NoOp,
-					Before: rc.Before,
-					After:  rc.Before,
+					Action:          NoOp,
+					Before:          rc.Before,
+					After:           rc.Before,
+					Importing:       rc.Importing,
+					GeneratedConfig: rc.GeneratedConfig,
 				},
 			}
 		}
@@ -328,9 +343,11 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 				Private:      rc.Private,
 				ProviderAddr: rc.ProviderAddr,
 				Change: Change{
-					Action: NoOp,
-					Before: rc.Before,
-					After:  rc.Before,
+					Action:          NoOp,
+					Before:          rc.Before,
+					After:           rc.Before,
+					Importing:       rc.Importing,
+					GeneratedConfig: rc.GeneratedConfig,
 				},
 			}
 		case CreateThenDelete, DeleteThenCreate:
@@ -340,9 +357,11 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 				Private:      rc.Private,
 				ProviderAddr: rc.ProviderAddr,
 				Change: Change{
-					Action: Create,
-					Before: cty.NullVal(rc.After.Type()),
-					After:  rc.After,
+					Action:          Create,
+					Before:          cty.NullVal(rc.After.Type()),
+					After:           rc.After,
+					Importing:       rc.Importing,
+					GeneratedConfig: rc.GeneratedConfig,
 				},
 			}
 		}
@@ -444,6 +463,12 @@ const (
 	// depends on a managed resource instance which has its own changes
 	// pending.
 	ResourceInstanceReadBecauseDependencyPending ResourceInstanceChangeActionReason = '!'
+
+	// ResourceInstanceReadBecauseCheckNested indicates that the resource must
+	// be read during apply (as well as during planning) because it is inside
+	// a check block and when the check assertions execute we want them to use
+	// the most up-to-date data.
+	ResourceInstanceReadBecauseCheckNested ResourceInstanceChangeActionReason = '#'
 )
 
 // OutputChange describes a change to an output value.
@@ -479,6 +504,31 @@ func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
 	}, err
 }
 
+// Importing is the part of a ChangeSrc that describes the embedded import
+// action.
+//
+// The fields in here are subject to change, so downstream consumers should be
+// prepared for backwards compatibility in case the contents changes.
+type Importing struct {
+	ID cty.Value
+}
+
+// Encode converts the Importing object into a form suitable for serialization
+// to a plan file.
+func (i *Importing) Encode() *ImportingSrc {
+	if i == nil {
+		return nil
+	}
+	if i.ID.IsKnown() {
+		return &ImportingSrc{
+			ID: i.ID.AsString(),
+		}
+	}
+	return &ImportingSrc{
+		Unknown: true,
+	}
+}
+
 // Change describes a single change with a given action.
 type Change struct {
 	// Action defines what kind of change is being made.
@@ -494,11 +544,25 @@ type Change struct {
 	//              value after update.
 	//     Replace  As with Update.
 	//     Delete   Before is the value prior to delete, and After is always nil.
+	//     Forget   As with Delete.
 	//
 	// Unknown values may appear anywhere within the Before and After values,
 	// either as the values themselves or as nested elements within known
 	// collections/structures.
 	Before, After cty.Value
+
+	// Importing is present if the resource is being imported as part of this
+	// change.
+	//
+	// Use the simple presence of this field to detect if a ChangeSrc is to be
+	// imported, the contents of this structure may be modified going forward.
+	Importing *Importing
+
+	// GeneratedConfig contains any HCL config generated for this resource
+	// during planning, as a string. If GeneratedConfig is populated, Importing
+	// should be true. However, not all Importing changes contain generated
+	// config.
+	GeneratedConfig string
 }
 
 // Encode produces a variant of the reciever that has its change values
@@ -510,22 +574,34 @@ type Change struct {
 // to call the corresponding Encode method of that struct rather than working
 // directly with its embedded Change.
 func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
-	// Storing unmarked values so that we can encode unmarked values
-	// and save the PathValueMarks for re-marking the values later
-	var beforeVM, afterVM []cty.PathValueMarks
-	unmarkedBefore := c.Before
-	unmarkedAfter := c.After
-
-	if c.Before.ContainsMarked() {
-		unmarkedBefore, beforeVM = c.Before.UnmarkDeepWithPaths()
+	// We can't serialize value marks directly so we'll need to extract the
+	// sensitive marks and store them in a separate field.
+	//
+	// We don't accept any other marks here. The caller should have dealt
+	// with those somehow and replaced them with unmarked placeholders before
+	// writing the value into the state.
+	unmarkedBefore, marksesBefore := c.Before.UnmarkDeepWithPaths()
+	unmarkedAfter, marksesAfter := c.After.UnmarkDeepWithPaths()
+	sensitiveAttrsBefore, unsupportedMarksesBefore := marks.PathsWithMark(marksesBefore, marks.Sensitive)
+	sensitiveAttrsAfter, unsupportedMarksesAfter := marks.PathsWithMark(marksesAfter, marks.Sensitive)
+	if len(unsupportedMarksesBefore) != 0 {
+		return nil, fmt.Errorf(
+			"prior value %s: can't serialize value marked with %#v (this is a bug in Terraform)",
+			tfdiags.FormatCtyPath(unsupportedMarksesBefore[0].Path),
+			unsupportedMarksesBefore[0].Marks,
+		)
 	}
+	if len(unsupportedMarksesAfter) != 0 {
+		return nil, fmt.Errorf(
+			"new value %s: can't serialize value marked with %#v (this is a bug in Terraform)",
+			tfdiags.FormatCtyPath(unsupportedMarksesAfter[0].Path),
+			unsupportedMarksesAfter[0].Marks,
+		)
+	}
+
 	beforeDV, err := NewDynamicValue(unmarkedBefore, ty)
 	if err != nil {
 		return nil, err
-	}
-
-	if c.After.ContainsMarked() {
-		unmarkedAfter, afterVM = c.After.UnmarkDeepWithPaths()
 	}
 	afterDV, err := NewDynamicValue(unmarkedAfter, ty)
 	if err != nil {
@@ -533,10 +609,12 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 	}
 
 	return &ChangeSrc{
-		Action:         c.Action,
-		Before:         beforeDV,
-		After:          afterDV,
-		BeforeValMarks: beforeVM,
-		AfterValMarks:  afterVM,
+		Action:               c.Action,
+		Before:               beforeDV,
+		After:                afterDV,
+		BeforeSensitivePaths: sensitiveAttrsBefore,
+		AfterSensitivePaths:  sensitiveAttrsAfter,
+		Importing:            c.Importing.Encode(),
+		GeneratedConfig:      c.GeneratedConfig,
 	}, nil
 }

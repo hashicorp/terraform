@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -22,8 +25,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -188,6 +191,47 @@ func TestPlan_noState(t *testing.T) {
 	if !expected.RawEquals(actual) {
 		t.Fatalf("wrong prior state\ngot:  %#v\nwant: %#v", actual, expected)
 	}
+}
+
+func TestPlan_generatedConfigPath(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-import-config-gen"), td)
+	defer testChdir(t, td)()
+
+	genPath := filepath.Join(td, "generated.tf")
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("bar"),
+				}),
+				Private: nil,
+			},
+		},
+	}
+
+	args := []string{
+		"-generate-config-out", genPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	testFileEquals(t, genPath, filepath.Join(td, "generated.tf.expected"))
 }
 
 func TestPlan_outPath(t *testing.T) {
@@ -428,7 +472,7 @@ func TestPlan_outBackend(t *testing.T) {
 func TestPlan_refreshFalse(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("plan"), td)
+	testCopyDir(t, testFixturePath("plan-existing-state"), td)
 	defer testChdir(t, td)()
 
 	p := planFixtureProvider()
@@ -451,6 +495,71 @@ func TestPlan_refreshFalse(t *testing.T) {
 
 	if p.ReadResourceCalled {
 		t.Fatal("ReadResource should not have been called")
+	}
+}
+
+func TestPlan_refreshTrue(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-existing-state"), td)
+	defer testChdir(t, td)()
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-refresh=true",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	if !p.ReadResourceCalled {
+		t.Fatalf("ReadResource should have been called")
+	}
+}
+
+// A consumer relies on the fact that running
+// terraform plan -refresh=false -refresh=true gives the same result as
+// terraform plan -refresh=true.
+// While the flag logic itself is handled by the stdlib flags package (and code
+// in main() that is tested elsewhere), we verify the overall plan command
+// behaviour here in case we accidentally break this with additional logic.
+func TestPlan_refreshFalseRefreshTrue(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-existing-state"), td)
+	defer testChdir(t, td)()
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-refresh=false",
+		"-refresh=true",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should have been called")
 	}
 }
 
@@ -1327,7 +1436,7 @@ func TestPlan_parallelism(t *testing.T) {
 	providerFactories := map[addrs.Provider]providers.Factory{}
 	for i := 0; i < 10; i++ {
 		name := fmt.Sprintf("test%d", i)
-		provider := &terraform.MockProvider{}
+		provider := &testing_provider.MockProvider{}
 		provider.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				name + "_instance": {Block: &configschema.Block{}},
@@ -1523,7 +1632,7 @@ func planFixtureSchema() *providers.GetProviderSchemaResponse {
 // operation with the configuration in testdata/plan. This mock has
 // GetSchemaResponse and PlanResourceChangeFn populated, with the plan
 // step just passing through the new object proposed by Terraform Core.
-func planFixtureProvider() *terraform.MockProvider {
+func planFixtureProvider() *testing_provider.MockProvider {
 	p := testProvider()
 	p.GetProviderSchemaResponse = planFixtureSchema()
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
@@ -1564,7 +1673,7 @@ func planVarsFixtureSchema() *providers.GetProviderSchemaResponse {
 // operation with the configuration in testdata/plan-vars. This mock has
 // GetSchemaResponse and PlanResourceChangeFn populated, with the plan
 // step just passing through the new object proposed by Terraform Core.
-func planVarsFixtureProvider() *terraform.MockProvider {
+func planVarsFixtureProvider() *testing_provider.MockProvider {
 	p := testProvider()
 	p.GetProviderSchemaResponse = planVarsFixtureSchema()
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
@@ -1586,7 +1695,7 @@ func planVarsFixtureProvider() *terraform.MockProvider {
 // planFixtureProvider returns a mock provider that is configured for basic
 // operation with the configuration in testdata/plan. This mock has
 // GetSchemaResponse and PlanResourceChangeFn populated, returning 3 warnings.
-func planWarningsFixtureProvider() *terraform.MockProvider {
+func planWarningsFixtureProvider() *testing_provider.MockProvider {
 	p := testProvider()
 	p.GetProviderSchemaResponse = planFixtureSchema()
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {

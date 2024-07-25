@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package plans
 
 import (
@@ -130,8 +133,8 @@ func TestChangeEncodeSensitive(t *testing.T) {
 		cty.ObjectVal(map[string]cty.Value{
 			"ding": cty.StringVal("dong").Mark(marks.Sensitive),
 		}),
-		cty.StringVal("bleep").Mark("bloop"),
-		cty.ListVal([]cty.Value{cty.UnknownVal(cty.String).Mark("sup?")}),
+		cty.StringVal("bleep").Mark(marks.Sensitive),
+		cty.ListVal([]cty.Value{cty.UnknownVal(cty.String).Mark(marks.Sensitive)}),
 	}
 
 	for _, v := range testVals {

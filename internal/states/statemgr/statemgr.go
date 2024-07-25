@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package statemgr
 
 // Storage is the union of Transient and Persistent, for state managers that

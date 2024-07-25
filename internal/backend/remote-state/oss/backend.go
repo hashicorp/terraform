@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package oss
 
 import (
@@ -37,10 +40,10 @@ import (
 // Deprecated in favor of flattening assume_role_* options
 func deprecatedAssumeRoleSchema() *schema.Schema {
 	return &schema.Schema{
-		Type:       schema.TypeSet,
-		Optional:   true,
-		MaxItems:   1,
-		Deprecated: "use assume_role_* options instead",
+		Type:     schema.TypeSet,
+		Optional: true,
+		MaxItems: 1,
+		//Deprecated: "use assume_role_* options instead",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"role_arn": {

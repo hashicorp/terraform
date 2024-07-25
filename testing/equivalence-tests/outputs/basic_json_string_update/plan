@@ -20,8 +20,8 @@ Terraform will perform the following actions:
               ~ object-attribute = {
                   + key_four  = "value_three"
                   ~ key_three = "value_three" -> "value_two"
-                  - key_two   = "value_two" -> null
-                    # (1 unchanged element hidden)
+                  - key_two   = "value_two"
+                    # (1 unchanged attribute hidden)
                 }
               ~ string-attribute = "string" -> "a new string"
             }

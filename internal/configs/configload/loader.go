@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configload
 
 import (
@@ -160,4 +163,11 @@ func (l *Loader) ImportSourcesFromSnapshot(snap *Snapshot) {
 // method.
 func (l *Loader) AllowLanguageExperiments(allowed bool) {
 	l.parser.AllowLanguageExperiments(allowed)
+}
+
+// AllowsLanguageExperiments returns the value most recently passed to
+// [Loader.AllowLanguageExperiments], or false if that method has not been
+// called on this object.
+func (l *Loader) AllowsLanguageExperiments() bool {
+	return l.parser.AllowsLanguageExperiments()
 }

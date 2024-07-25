@@ -1,5 +1,7 @@
 ---
 page_title: Providers Within Modules - Configuration Language
+description: >-
+  Use providers within Terraform modules. Learn about version constraints, aliases, implicit inheritance, and passing providers to Terraform modules.
 ---
 
 # Providers Within Modules
@@ -350,7 +352,7 @@ module "bucket_w1" {
   source    = "./publish_bucket"
   providers = {
     aws.src    = aws.usw1
-    google.src = google.usw2
+    google.src = google.usw1
   }
 }
 

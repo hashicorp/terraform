@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -5,16 +8,18 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // NodeValidatableResource represents a resource that is used for validation
@@ -41,6 +46,10 @@ func (n *NodeValidatableResource) Path() addrs.ModuleInstance {
 
 // GraphNodeEvalable
 func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	if n.Config == nil {
+		return diags
+	}
+
 	diags = diags.Append(n.validateResource(ctx))
 
 	diags = diags.Append(n.validateCheckRules(ctx, n.Config))
@@ -48,14 +57,7 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 	if managed := n.Config.Managed; managed != nil {
 		// Validate all the provisioners
 		for _, p := range managed.Provisioners {
-			if p.Connection == nil {
-				p.Connection = n.Config.Managed.Connection
-			} else if n.Config.Managed.Connection != nil {
-				p.Connection.Config = configs.MergeBodies(n.Config.Managed.Connection.Config, p.Connection.Config)
-			}
-
-			// Validate Provisioner Config
-			diags = diags.Append(n.validateProvisioner(ctx, p))
+			diags = diags.Append(n.validateProvisioner(ctx, p, n.Config.Managed.Connection))
 			if diags.HasErrors() {
 				return diags
 			}
@@ -67,7 +69,7 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 // validateProvisioner validates the configuration of a provisioner belonging to
 // a resource. The provisioner config is expected to contain the merged
 // connection configurations.
-func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *configs.Provisioner) tfdiags.Diagnostics {
+func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *configs.Provisioner, baseConn *configs.Connection) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	provisioner, err := ctx.Provisioner(p.Type)
@@ -112,8 +114,21 @@ func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *config
 		// configuration keys that are not valid for *any* communicator, catching
 		// typos early rather than waiting until we actually try to run one of
 		// the resource's provisioners.
-		_, _, connDiags := n.evaluateBlock(ctx, p.Connection.Config, connectionBlockSupersetSchema)
+
+		cfg := p.Connection.Config
+		if baseConn != nil {
+			// Merge the local config into the base connection config, if we
+			// both specified.
+			cfg = configs.MergeBodies(baseConn.Config, cfg)
+		}
+
+		_, _, connDiags := n.evaluateBlock(ctx, cfg, connectionBlockSupersetSchema)
 		diags = diags.Append(connDiags)
+	} else if baseConn != nil {
+		// Just validate the baseConn directly.
+		_, _, connDiags := n.evaluateBlock(ctx, baseConn.Config, connectionBlockSupersetSchema)
+		diags = diags.Append(connDiags)
+
 	}
 	return diags
 }
@@ -268,10 +283,6 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 	if diags.HasErrors() {
 		return diags
 	}
-	if providerSchema == nil {
-		diags = diags.Append(fmt.Errorf("validateResource has nil schema for %s", n.Addr))
-		return diags
-	}
 
 	keyData := EvalDataForNoInstanceKey
 
@@ -296,7 +307,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		}
 
 		// Evaluate the for_each expression here so we can expose the diagnostics
-		forEachDiags := validateForEach(ctx, n.Config.ForEach)
+		forEachDiags := newForEachEvaluator(n.Config.ForEach, ctx, false).ValidateResourceValue()
 		diags = diags.Append(forEachDiags)
 	}
 
@@ -370,6 +381,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		if valDiags.HasErrors() {
 			return diags
 		}
+		diags = diags.Append(
+			validateResourceForbiddenEphemeralValues(ctx, configVal, schema).InConfigBody(n.Config.Config, n.Addr.String()),
+		)
 
 		if n.Config.Managed != nil { // can be nil only in tests with poorly-configured mocks
 			for _, traversal := range n.Config.Managed.IgnoreChanges {
@@ -444,6 +458,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		if valDiags.HasErrors() {
 			return diags
 		}
+		diags = diags.Append(
+			validateResourceForbiddenEphemeralValues(ctx, configVal, schema).InConfigBody(n.Config.Config, n.Addr.String()),
+		)
 
 		// Use unmarked value for validate request
 		unmarkedConfigVal, _ := configVal.UnmarkDeep()
@@ -462,7 +479,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 func (n *NodeValidatableResource) evaluateExpr(ctx EvalContext, expr hcl.Expression, wantTy cty.Type, self addrs.Referenceable, keyData instances.RepetitionData) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	refs, refDiags := lang.ReferencesInExpr(expr)
+	refs, refDiags := langrefs.ReferencesInExpr(addrs.ParseRef, expr)
 	diags = diags.Append(refDiags)
 
 	scope := ctx.EvaluationScope(self, nil, keyData)
@@ -549,21 +566,6 @@ func validateCount(ctx EvalContext, expr hcl.Expression) (diags tfdiags.Diagnost
 	return diags
 }
 
-func validateForEach(ctx EvalContext, expr hcl.Expression) (diags tfdiags.Diagnostics) {
-	val, forEachDiags := evaluateForEachExpressionValue(expr, ctx, true)
-	// If the value isn't known then that's the best we can do for now, but
-	// we'll check more thoroughly during the plan walk
-	if !val.IsKnown() {
-		return diags
-	}
-
-	if forEachDiags.HasErrors() {
-		diags = diags.Append(forEachDiags)
-	}
-
-	return diags
-}
-
 func validateDependsOn(ctx EvalContext, dependsOn []hcl.Traversal) (diags tfdiags.Diagnostics) {
 	for _, traversal := range dependsOn {
 		ref, refDiags := addrs.ParseRef(traversal)
@@ -587,6 +589,33 @@ func validateDependsOn(ctx EvalContext, dependsOn []hcl.Traversal) (diags tfdiag
 				diags = diags.Append(refDiags)
 			}
 		}
+	}
+	return diags
+}
+
+// validateResourceForbiddenEphemeralValues returns an error diagnostic for each
+// value anywhere inside the given value that is marked as ephemeral, for
+// situations where ephemeral values are not permitted.
+//
+// All returned diagnostics are contextual diagnostics that must be finalized
+// by calling [tfdiags.Diagnostics.InConfigBody] before returning them to
+// any caller that expects fully-resolved diagnostics.
+func validateResourceForbiddenEphemeralValues(ctx EvalContext, value cty.Value, schema *configschema.Block) (diags tfdiags.Diagnostics) {
+	// NOTE: We take a schema argument in anticipation of a future feature
+	// that might allow managed resources to declare certain attributes as
+	// being "write-only", which would create a little nested island where
+	// ephemeral values are permitted in return for providers accepting that
+	// those values will not be preserved between plan and apply or between
+	// sequential plan/apply rounds. But we aren't doing that yet, so we
+	// just ignore that argument for now.
+
+	for _, path := range ephemeral.EphemeralValuePaths(value) {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid use of ephemeral value",
+			"Ephemeral values are not valid in resource arguments, because resource instances must persist between Terraform phases.",
+			path,
+		))
 	}
 	return diags
 }

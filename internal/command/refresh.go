@@ -1,10 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -101,13 +104,13 @@ func (c *RefreshCommand) Run(rawArgs []string) int {
 	}
 
 	if op.State != nil {
-		view.Outputs(op.State.RootModule().OutputValues)
+		view.Outputs(op.State.RootOutputValues)
 	}
 
 	return op.Result.ExitStatus()
 }
 
-func (c *RefreshCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backend.Enhanced, tfdiags.Diagnostics) {
+func (c *RefreshCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {
 	// FIXME: we need to apply the state arguments to the meta object here
 	// because they are later used when initializing the backend. Carving a
 	// path to pass these arguments to the functions that need them is
@@ -132,8 +135,8 @@ func (c *RefreshCommand) PrepareBackend(args *arguments.State, viewType argument
 	return be, diags
 }
 
-func (c *RefreshCommand) OperationRequest(be backend.Enhanced, view views.Refresh, viewType arguments.ViewType, args *arguments.Operation,
-) (*backend.Operation, tfdiags.Diagnostics) {
+func (c *RefreshCommand) OperationRequest(be backendrun.OperationsBackend, view views.Refresh, viewType arguments.ViewType, args *arguments.Operation,
+) (*backendrun.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Build the operation
@@ -141,8 +144,22 @@ func (c *RefreshCommand) OperationRequest(be backend.Enhanced, view views.Refres
 	opReq.ConfigDir = "."
 	opReq.Hooks = view.Hooks()
 	opReq.Targets = args.Targets
-	opReq.Type = backend.OperationTypeRefresh
+	opReq.Type = backendrun.OperationTypeRefresh
 	opReq.View = view.Operation()
+
+	// EXPERIMENTAL: maybe enable deferred actions
+	if c.AllowExperimentalFeatures {
+		opReq.DeferralAllowed = args.DeferralAllowed
+	} else if args.DeferralAllowed {
+		// Belated flag parse error, since we don't know about experiments
+		// support at actual parse time.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to parse command-line flags",
+			"The -allow-deferral flag is only valid in experimental builds of Terraform.",
+		))
+		return nil, diags
+	}
 
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()
@@ -154,7 +171,7 @@ func (c *RefreshCommand) OperationRequest(be backend.Enhanced, view views.Refres
 	return opReq, diags
 }
 
-func (c *RefreshCommand) GatherVariables(opReq *backend.Operation, args *arguments.Vars) tfdiags.Diagnostics {
+func (c *RefreshCommand) GatherVariables(opReq *backendrun.Operation, args *arguments.Vars) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// FIXME the arguments package currently trivially gathers variable related
@@ -165,12 +182,12 @@ func (c *RefreshCommand) GatherVariables(opReq *backend.Operation, args *argumen
 	// package directly, removing this shim layer.
 
 	varArgs := args.All()
-	items := make([]rawFlag, len(varArgs))
+	items := make([]arguments.FlagNameValue, len(varArgs))
 	for i := range varArgs {
 		items[i].Name = varArgs[i].Name
 		items[i].Value = varArgs[i].Value
 	}
-	c.Meta.variableArgs = rawFlags{items: &items}
+	c.Meta.variableArgs = arguments.FlagNameValueSlice{Items: &items}
 	opReq.Variables, diags = c.collectVariableValues()
 
 	return diags

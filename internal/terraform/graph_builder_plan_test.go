@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -10,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 )
 
 func TestPlanGraphBuilder_impl(t *testing.T) {
@@ -17,7 +21,7 @@ func TestPlanGraphBuilder_impl(t *testing.T) {
 }
 
 func TestPlanGraphBuilder(t *testing.T) {
-	awsProvider := &MockProvider{
+	awsProvider := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{Block: simpleTestSchema()},
 			ResourceTypes: map[string]providers.Schema{
@@ -31,7 +35,7 @@ func TestPlanGraphBuilder(t *testing.T) {
 	plugins := newContextPlugins(map[addrs.Provider]providers.Factory{
 		addrs.NewDefaultProvider("aws"):       providers.FactoryFixed(awsProvider),
 		addrs.NewDefaultProvider("openstack"): providers.FactoryFixed(openstackProvider),
-	}, nil)
+	}, nil, nil)
 
 	b := &PlanGraphBuilder{
 		Config:    testModule(t, "graph-builder-plan-basic"),
@@ -53,6 +57,40 @@ func TestPlanGraphBuilder(t *testing.T) {
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("wrong result\n%s", diff)
 	}
+
+	// We should also be able to derive a graph of the relationships between
+	// just the resource addresses, taking into account indirect dependencies
+	// through nodes that don't represent resources.
+	t.Run("ResourceGraph", func(t *testing.T) {
+		resAddrGraph := g.ResourceGraph()
+		got := strings.TrimSpace(resAddrGraph.StringForComparison())
+		want := strings.TrimSpace(`
+aws_instance.web
+  aws_security_group.firewall
+aws_load_balancer.weblb
+  aws_instance.web
+aws_security_group.firewall
+  openstack_floating_ip.random
+openstack_floating_ip.random
+`)
+		// HINT: aws_security_group.firewall depends on openstack_floating_ip.random
+		// because the aws provider configuration refers to it, and all of the
+		// aws_-prefixed resource types depend on their provider configuration.
+		// We collapse these indirect deps into direct deps as part of lowering
+		// into a graph of just resources.
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Fatalf("wrong result\n%s", diff)
+		}
+
+		// Building the resource graph should not have damaged the original graph.
+		{
+			got := strings.TrimSpace(g.String())
+			want := strings.TrimSpace(testPlanGraphBuilderStr)
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Fatalf("g.ResourceGraph has changed g (should not have modified it)\n%s", diff)
+			}
+		}
+	})
 }
 
 func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
@@ -74,7 +112,7 @@ func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
 	})
 	plugins := newContextPlugins(map[addrs.Provider]providers.Factory{
 		addrs.NewDefaultProvider("test"): providers.FactoryFixed(provider),
-	}, nil)
+	}, nil, nil)
 
 	b := &PlanGraphBuilder{
 		Config:    testModule(t, "graph-builder-plan-dynblock"),
@@ -130,7 +168,7 @@ func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
 	})
 	plugins := newContextPlugins(map[addrs.Provider]providers.Factory{
 		addrs.NewDefaultProvider("test"): providers.FactoryFixed(provider),
-	}, nil)
+	}, nil, nil)
 
 	b := &PlanGraphBuilder{
 		Config:    testModule(t, "graph-builder-plan-attr-as-blocks"),
@@ -195,7 +233,7 @@ func TestPlanGraphBuilder_forEach(t *testing.T) {
 
 	plugins := newContextPlugins(map[addrs.Provider]providers.Factory{
 		addrs.NewDefaultProvider("aws"): providers.FactoryFixed(awsProvider),
-	}, nil)
+	}, nil, nil)
 
 	b := &PlanGraphBuilder{
 		Config:    testModule(t, "plan-for-each"),

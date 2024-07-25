@@ -20,7 +20,7 @@ The `sensitive` function might be useful in some less-common situations where a
 sensitive value arises from a definition _within_ your module, such as if you've
 loaded sensitive data from a file on disk as part of your configuration:
 
-```
+```hcl
 locals {
   sensitive_content = sensitive(file("${path.module}/sensitive.txt"))
 }

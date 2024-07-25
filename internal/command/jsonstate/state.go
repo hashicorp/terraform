@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonstate
 
 import (
@@ -14,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const (
@@ -112,12 +116,15 @@ type Resource struct {
 // resource, whose structure depends on the resource type schema.
 type AttributeValues map[string]json.RawMessage
 
-func marshalAttributeValues(value cty.Value) AttributeValues {
+func marshalAttributeValues(value cty.Value) (unmarkedVal cty.Value, marshalledVals AttributeValues, sensitivePaths []cty.Path, err error) {
 	// unmark our value to show all values
-	value, _ = value.UnmarkDeep()
+	value, sensitivePaths, err = unmarkValueForMarshaling(value)
+	if err != nil {
+		return cty.NilVal, nil, nil, err
+	}
 
 	if value == cty.NilVal || value.IsNull() {
-		return nil
+		return value, nil, nil, nil
 	}
 
 	ret := make(AttributeValues)
@@ -128,7 +135,7 @@ func marshalAttributeValues(value cty.Value) AttributeValues {
 		vJSON, _ := ctyjson.Marshal(v, v.Type())
 		ret[k.AsString()] = json.RawMessage(vJSON)
 	}
-	return ret
+	return value, ret, sensitivePaths, nil
 }
 
 // newState() returns a minimally-initialized state
@@ -146,7 +153,7 @@ func MarshalForRenderer(sf *statefile.File, schemas *terraform.Schemas) (Module,
 		return Module{}, nil, nil
 	}
 
-	outputs, err := MarshalOutputs(sf.State.RootModule().OutputValues)
+	outputs, err := MarshalOutputs(sf.State.RootOutputValues)
 	if err != nil {
 		return Module{}, nil, err
 	}
@@ -171,13 +178,11 @@ func Marshal(sf *statefile.File, schemas *terraform.Schemas) ([]byte, error) {
 	if sf.TerraformVersion != nil {
 		output.TerraformVersion = sf.TerraformVersion.String()
 	}
-
 	// output.StateValues
 	err := output.marshalStateValues(sf.State, schemas)
 	if err != nil {
 		return nil, err
 	}
-
 	// output.Checks
 	if sf.State.CheckResults != nil && sf.State.CheckResults.ConfigResults.Len() > 0 {
 		output.Checks = jsonchecks.MarshalCheckStates(sf.State.CheckResults)
@@ -192,7 +197,7 @@ func (jsonstate *state) marshalStateValues(s *states.State, schemas *terraform.S
 	var err error
 
 	// only marshal the root module outputs
-	sv.Outputs, err = MarshalOutputs(s.RootModule().OutputValues)
+	sv.Outputs, err = MarshalOutputs(s.RootOutputValues)
 	if err != nil {
 		return err
 	}
@@ -396,9 +401,14 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 					return nil, err
 				}
 
-				current.AttributeValues = marshalAttributeValues(riObj.Value)
-
-				s := SensitiveAsBool(riObj.Value)
+				var value cty.Value
+				var sensitivePaths []cty.Path
+				value, current.AttributeValues, sensitivePaths, err = marshalAttributeValues(riObj.Value)
+				if err != nil {
+					return nil, fmt.Errorf("preparing attribute values for %s: %w", current.Address, err)
+				}
+				sensitivePaths = append(sensitivePaths, schema.SensitivePaths(value, nil)...)
+				s := SensitiveAsBool(marks.MarkPaths(value, marks.Sensitive, sensitivePaths))
 				v, err := ctyjson.Marshal(s, s.Type())
 				if err != nil {
 					return nil, err
@@ -443,9 +453,14 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 					return nil, err
 				}
 
-				deposed.AttributeValues = marshalAttributeValues(riObj.Value)
-
-				s := SensitiveAsBool(riObj.Value)
+				var value cty.Value
+				var sensitivePaths []cty.Path
+				value, deposed.AttributeValues, sensitivePaths, err = marshalAttributeValues(riObj.Value)
+				if err != nil {
+					return nil, fmt.Errorf("preparing attribute values for %s: %w", current.Address, err)
+				}
+				sensitivePaths = append(sensitivePaths, schema.SensitivePaths(value, nil)...)
+				s := SensitiveAsBool(marks.MarkPaths(value, marks.Sensitive, sensitivePaths))
 				v, err := ctyjson.Marshal(s, s.Type())
 				if err != nil {
 					return nil, err
@@ -542,4 +557,25 @@ func SensitiveAsBool(val cty.Value) cty.Value {
 		// Should never happen, since the above should cover all types
 		panic(fmt.Sprintf("sensitiveAsBool cannot handle %#v", val))
 	}
+}
+
+// unmarkValueForMarshaling takes a value that possibly contains marked values
+// and returns an equal value without markings along with the separated mark
+// metadata that should be presented alongside the value in another JSON
+// property.
+//
+// This function only accepts the marks that are valid to persist, and so will
+// return an error if other marks are present. Marks that this package doesn't
+// know how to store must be dealt with somehow by a caller -- presumably by
+// replacing each marked value with some sort of storage placeholder.
+func unmarkValueForMarshaling(v cty.Value) (unmarkedV cty.Value, sensitivePaths []cty.Path, err error) {
+	val, pvms := v.UnmarkDeepWithPaths()
+	sensitivePaths, otherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
+	if len(otherMarks) != 0 {
+		return cty.NilVal, nil, fmt.Errorf(
+			"%s: cannot serialize value marked as %#v for inclusion in a state snapshot (this is a bug in Terraform)",
+			tfdiags.FormatCtyPath(otherMarks[0].Path), otherMarks[0].Marks,
+		)
+	}
+	return val, sensitivePaths, err
 }

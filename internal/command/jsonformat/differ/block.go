@@ -1,49 +1,48 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package differ
 
 import (
 	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Diff {
-	if sensitive, ok := change.checkForSensitiveBlock(block); ok {
+func ComputeDiffForBlock(change structured.Change, block *jsonprovider.Block) computed.Diff {
+	if sensitive, ok := checkForSensitiveBlock(change, block); ok {
 		return sensitive
 	}
 
-	if unknown, ok := change.checkForUnknownBlock(block); ok {
+	if unknown, ok := checkForUnknownBlock(change, block); ok {
 		return unknown
 	}
 
-	current := change.getDefaultActionForIteration()
+	// NonLegacyValue is only ever switched from false to true, since the
+	// behavior would be for the entire resource.
+	change.NonLegacySchema = change.NonLegacySchema || containsNonLegacyFeatures(block)
 
-	blockValue := change.asMap()
+	current := change.GetDefaultActionForIteration()
+
+	blockValue := change.AsMap()
 
 	attributes := make(map[string]computed.Diff)
 	for key, attr := range block.Attributes {
-		childValue := blockValue.getChild(key)
+		childValue := blockValue.GetChild(key)
 
 		if !childValue.RelevantAttributes.MatchesPartial() {
 			// Mark non-relevant attributes as unchanged.
 			childValue = childValue.AsNoOp()
 		}
 
-		// Empty strings in blocks should be considered null for legacy reasons.
-		// The SDK doesn't support null strings yet, so we work around this now.
-		if before, ok := childValue.Before.(string); ok && len(before) == 0 {
-			childValue.Before = nil
-		}
-		if after, ok := childValue.After.(string); ok && len(after) == 0 {
-			childValue.After = nil
-		}
-
 		// Always treat changes to blocks as implicit.
 		childValue.BeforeExplicit = false
 		childValue.AfterExplicit = false
 
-		childChange := childValue.ComputeDiffForAttribute(attr)
+		childChange := ComputeDiffForAttribute(childValue, attr)
 		if childChange.Action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 			// Don't record nil values at all in blocks.
 			continue
@@ -64,20 +63,27 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 	}
 
 	for key, blockType := range block.BlockTypes {
-		childValue := blockValue.getChild(key)
+		childValue := blockValue.GetChild(key)
 
 		if !childValue.RelevantAttributes.MatchesPartial() {
 			// Mark non-relevant attributes as unchanged.
 			childValue = childValue.AsNoOp()
 		}
 
-		beforeSensitive := childValue.isBeforeSensitive()
-		afterSensitive := childValue.isAfterSensitive()
+		beforeSensitive := childValue.IsBeforeSensitive()
+		afterSensitive := childValue.IsAfterSensitive()
 		forcesReplacement := childValue.ReplacePaths.Matches()
+
+		if unknown, ok := checkForUnknownBlock(childValue, block); ok {
+			// An unknown block doesn't render any type information, so we can
+			// render it as a single block rather than switching on all types.
+			blocks.AddSingleBlock(key, unknown, forcesReplacement, beforeSensitive, afterSensitive)
+			continue
+		}
 
 		switch NestingMode(blockType.NestingMode) {
 		case nestingModeSet:
-			diffs, action := childValue.computeBlockDiffsAsSet(blockType.Block)
+			diffs, action := computeBlockDiffsAsSet(childValue, blockType.Block)
 			if action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 				// Don't record nil values in blocks.
 				continue
@@ -85,7 +91,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 			blocks.AddAllSetBlock(key, diffs, forcesReplacement, beforeSensitive, afterSensitive)
 			current = collections.CompareActions(current, action)
 		case nestingModeList:
-			diffs, action := childValue.computeBlockDiffsAsList(blockType.Block)
+			diffs, action := computeBlockDiffsAsList(childValue, blockType.Block)
 			if action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 				// Don't record nil values in blocks.
 				continue
@@ -93,7 +99,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 			blocks.AddAllListBlock(key, diffs, forcesReplacement, beforeSensitive, afterSensitive)
 			current = collections.CompareActions(current, action)
 		case nestingModeMap:
-			diffs, action := childValue.computeBlockDiffsAsMap(blockType.Block)
+			diffs, action := computeBlockDiffsAsMap(childValue, blockType.Block)
 			if action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 				// Don't record nil values in blocks.
 				continue
@@ -101,7 +107,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 			blocks.AddAllMapBlocks(key, diffs, forcesReplacement, beforeSensitive, afterSensitive)
 			current = collections.CompareActions(current, action)
 		case nestingModeSingle, nestingModeGroup:
-			diff := childValue.ComputeDiffForBlock(blockType.Block)
+			diff := ComputeDiffForBlock(childValue, blockType.Block)
 			if diff.Action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 				// Don't record nil values in blocks.
 				continue
@@ -114,4 +120,41 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 	}
 
 	return computed.NewDiff(renderers.Block(attributes, blocks), current, change.ReplacePaths.Matches())
+}
+
+// containsNonLegacyFeatures checks for features not supported by the legacy
+// SDK, so that we can skip the empty string -> null fixup for them.
+func containsNonLegacyFeatures(block *jsonprovider.Block) bool {
+	for _, blockType := range block.BlockTypes {
+		switch NestingMode(blockType.NestingMode) {
+		case nestingModeMap, nestingModeGroup:
+			// these block types were not possible in the SDK
+			return true
+		}
+	}
+
+	for _, attribute := range block.Attributes {
+		//nested object types were not possible in the SDK
+		if attribute.AttributeNestedType != nil {
+			return true
+		}
+
+		ty := unmarshalAttribute(attribute)
+		// these types were not possible in the SDK
+		switch {
+		case ty.HasDynamicTypes():
+			return true
+		case ty.IsTupleType() || ty.IsObjectType():
+			return true
+		case ty.IsCollectionType():
+			// Nested collections were not really supported, but could be
+			// generated with string types (though we conservatively limit this
+			// to primitive types)
+			ety := ty.ElementType()
+			if ety.IsCollectionType() && !ety.ElementType().IsPrimitiveType() {
+				return true
+			}
+		}
+	}
+	return false
 }

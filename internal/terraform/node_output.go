@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -10,8 +13,10 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -20,12 +25,11 @@ import (
 // nodeExpandOutput is the placeholder for a non-root module output that has
 // not yet had its module path expanded.
 type nodeExpandOutput struct {
-	Addr         addrs.OutputValue
-	Module       addrs.Module
-	Config       *configs.Output
-	PlanDestroy  bool
-	ApplyDestroy bool
-	RefreshOnly  bool
+	Addr        addrs.OutputValue
+	Module      addrs.Module
+	Config      *configs.Output
+	Destroying  bool
+	RefreshOnly bool
 
 	// Planning is set to true when this node is in a graph that was produced
 	// by the plan graph builder, as opposed to the apply graph builder.
@@ -34,6 +38,11 @@ type nodeExpandOutput struct {
 	// we need to take between plan and apply. See method DynamicExpand for
 	// details.
 	Planning bool
+
+	// Overrides is the set of overrides applied by the testing framework. We
+	// may need to override the value for this output and if we do the value
+	// comes from here.
+	Overrides *mocking.Overrides
 }
 
 var (
@@ -52,7 +61,7 @@ func (n *nodeExpandOutput) temporaryValue() bool {
 	return !n.Module.IsRoot()
 }
 
-func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	expander := ctx.InstanceExpander()
 	changes := ctx.Changes()
 
@@ -76,54 +85,68 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	}
 
 	var g Graph
-	for _, module := range expander.ExpandModule(n.Module) {
-		absAddr := n.Addr.Absolute(module)
-		if checkableAddrs != nil {
-			checkableAddrs.Add(absAddr)
-		}
-
-		// Find any recorded change for this output
-		var change *plans.OutputChangeSrc
-		var outputChanges []*plans.OutputChangeSrc
-		if module.IsRoot() {
-			outputChanges = changes.GetRootOutputChanges()
-		} else {
-			parent, call := module.Call()
-			outputChanges = changes.GetOutputChanges(parent, call)
-		}
-		for _, c := range outputChanges {
-			if c.Addr.String() == absAddr.String() {
-				change = c
-				break
-			}
-		}
-
-		var node dag.Vertex
-		switch {
-		case module.IsRoot() && (n.PlanDestroy || n.ApplyDestroy):
-			node = &NodeDestroyableOutput{
-				Addr:     absAddr,
-				Planning: n.Planning,
+	forEachModuleInstance(
+		expander, n.Module, true,
+		func(module addrs.ModuleInstance) {
+			absAddr := n.Addr.Absolute(module)
+			if checkableAddrs != nil {
+				checkableAddrs.Add(absAddr)
 			}
 
-		case n.PlanDestroy:
-			// nothing is done here for non-root outputs
-			continue
-
-		default:
-			node = &NodeApplyableOutput{
-				Addr:         absAddr,
-				Config:       n.Config,
-				Change:       change,
-				RefreshOnly:  n.RefreshOnly,
-				DestroyApply: n.ApplyDestroy,
-				Planning:     n.Planning,
+			// Find any recorded change for this output
+			var change *plans.OutputChangeSrc
+			var outputChanges []*plans.OutputChangeSrc
+			if module.IsRoot() {
+				outputChanges = changes.GetRootOutputChanges()
+			} else {
+				parent, call := module.Call()
+				outputChanges = changes.GetOutputChanges(parent, call)
 			}
-		}
+			for _, c := range outputChanges {
+				if c.Addr.String() == absAddr.String() {
+					change = c
+					break
+				}
+			}
 
-		log.Printf("[TRACE] Expanding output: adding %s as %T", absAddr.String(), node)
-		g.Add(node)
-	}
+			var node dag.Vertex
+			switch {
+			case module.IsRoot() && n.Destroying:
+				node = &NodeDestroyableOutput{
+					Addr:     absAddr,
+					Planning: n.Planning,
+				}
+
+			default:
+				node = &NodeApplyableOutput{
+					Addr:         absAddr,
+					Config:       n.Config,
+					Change:       change,
+					RefreshOnly:  n.RefreshOnly,
+					DestroyApply: n.Destroying,
+					Planning:     n.Planning,
+					Override:     n.getOverrideValue(absAddr.Module),
+				}
+			}
+
+			log.Printf("[TRACE] Expanding output: adding %s as %T", absAddr.String(), node)
+			g.Add(node)
+		},
+		func(pem addrs.PartialExpandedModule) {
+			absAddr := addrs.ObjectInPartialExpandedModule(pem, n.Addr)
+			node := &nodeOutputInPartialModule{
+				Addr:        absAddr,
+				Config:      n.Config,
+				RefreshOnly: n.RefreshOnly,
+			}
+			// We don't need to handle the module.IsRoot() && n.Destroying case
+			// seen in the fully-expanded case above, because the root module
+			// instance is always "fully expanded" (it's always a singleton)
+			// and so we can't get here for output values in the root module.
+			log.Printf("[TRACE] Expanding output: adding placeholder for all %s as %T", absAddr.String(), node)
+			g.Add(node)
+		},
+	)
 	addRootNodeToGraph(&g)
 
 	if checkableAddrs != nil {
@@ -183,11 +206,46 @@ func (n *nodeExpandOutput) ReferenceOutside() (selfPath, referencePath addrs.Mod
 // GraphNodeReferencer
 func (n *nodeExpandOutput) References() []*addrs.Reference {
 	// DestroyNodes do not reference anything.
-	if n.Module.IsRoot() && n.ApplyDestroy {
+	if n.Module.IsRoot() && n.Destroying {
 		return nil
 	}
 
 	return referencesForOutput(n.Config)
+}
+
+func (n *nodeExpandOutput) getOverrideValue(inst addrs.ModuleInstance) cty.Value {
+	// First check if we have any overrides at all, this is a shorthand for
+	// "are we running terraform test".
+	if n.Overrides.Empty() {
+		// cty.NilVal means no override
+		return cty.NilVal
+	}
+
+	// We have overrides, let's see if we have one for this module instance.
+	if override, ok := n.Overrides.GetModuleOverride(inst); ok {
+
+		output := n.Addr.Name
+		values := override.Values
+
+		// The values.Type() should be an object type, but it might have
+		// been set to nil by a test or something. We can handle it in the
+		// same way as the attribute just not being specified. It's
+		// functionally the same for us and not something we need to raise
+		// alarms about.
+		if values.Type().IsObjectType() && values.Type().HasAttribute(output) {
+			return values.GetAttr(output)
+		}
+
+		// If we don't have a value provided for an output, then we'll
+		// just set it to be null.
+		//
+		// TODO(liamcervante): Can we generate a value here? Probably
+		//   not as we don't know the type.
+		return cty.NullVal(cty.DynamicPseudoType)
+	}
+
+	// cty.NilVal indicates no override.
+	return cty.NilVal
 }
 
 // NodeApplyableOutput represents an output that is "applyable":
@@ -207,6 +265,10 @@ type NodeApplyableOutput struct {
 	DestroyApply bool
 
 	Planning bool
+
+	// Override provides the value to use for this output, if any. This can be
+	// set by testing framework when a module is overridden.
+	Override cty.Value
 }
 
 var (
@@ -280,16 +342,16 @@ func (n *NodeApplyableOutput) ReferenceableAddrs() []addrs.Referenceable {
 func referencesForOutput(c *configs.Output) []*addrs.Reference {
 	var refs []*addrs.Reference
 
-	impRefs, _ := lang.ReferencesInExpr(c.Expr)
-	expRefs, _ := lang.References(c.DependsOn)
+	impRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, c.Expr)
+	expRefs, _ := langrefs.References(addrs.ParseRef, c.DependsOn)
 
 	refs = append(refs, impRefs...)
 	refs = append(refs, expRefs...)
 
 	for _, check := range c.Preconditions {
-		condRefs, _ := lang.ReferencesInExpr(check.Condition)
+		condRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, check.Condition)
 		refs = append(refs, condRefs...)
-		errRefs, _ := lang.ReferencesInExpr(check.ErrorMessage)
+		errRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, check.ErrorMessage)
 		refs = append(refs, errRefs...)
 	}
 
@@ -324,7 +386,9 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 
 	// Checks are not evaluated during a destroy. The checks may fail, may not
 	// be valid, or may not have been registered at all.
-	if !n.DestroyApply {
+	// We also don't evaluate checks for overridden outputs. This is because
+	// any references within the checks will likely not have been created.
+	if !n.DestroyApply && n.Override == cty.NilVal {
 		checkRuleSeverity := tfdiags.Error
 		if n.RefreshOnly {
 			checkRuleSeverity = tfdiags.Warning
@@ -344,32 +408,38 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 	// If there was no change recorded, or the recorded change was not wholly
 	// known, then we need to re-evaluate the output
 	if !changeRecorded || !val.IsWhollyKnown() {
-		// This has to run before we have a state lock, since evaluation also
-		// reads the state
-		var evalDiags tfdiags.Diagnostics
-		val, evalDiags = ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
-		diags = diags.Append(evalDiags)
 
-		// We'll handle errors below, after we have loaded the module.
-		// Outputs don't have a separate mode for validation, so validate
-		// depends_on expressions here too
-		diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
+		// First, we check if we have an overridden value. If we do, then we
+		// use that and we don't try and evaluate the underlying expression.
+		val = n.Override
+		if val == cty.NilVal {
+			// This has to run before we have a state lock, since evaluation also
+			// reads the state
+			var evalDiags tfdiags.Diagnostics
+			val, evalDiags = ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
+			diags = diags.Append(evalDiags)
 
-		// For root module outputs in particular, an output value must be
-		// statically declared as sensitive in order to dynamically return
-		// a sensitive result, to help avoid accidental exposure in the state
-		// of a sensitive value that the user doesn't want to include there.
-		if n.Addr.Module.IsRoot() {
-			if !n.Config.Sensitive && marks.Contains(val, marks.Sensitive) {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Output refers to sensitive values",
-					Detail: `To reduce the risk of accidentally exporting sensitive data that was intended to be only internal, Terraform requires that any root module output containing sensitive data be explicitly marked as sensitive, to confirm your intent.
+			// We'll handle errors below, after we have loaded the module.
+			// Outputs don't have a separate mode for validation, so validate
+			// depends_on expressions here too
+			diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
+
+			// For root module outputs in particular, an output value must be
+			// statically declared as sensitive in order to dynamically return
+			// a sensitive result, to help avoid accidental exposure in the state
+			// of a sensitive value that the user doesn't want to include there.
+			if n.Addr.Module.IsRoot() {
+				if !n.Config.Sensitive && marks.Contains(val, marks.Sensitive) {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Output refers to sensitive values",
+						Detail: `To reduce the risk of accidentally exporting sensitive data that was intended to be only internal, Terraform requires that any root module output containing sensitive data be explicitly marked as sensitive, to confirm your intent.
 
 If you do intend to export this data, annotate the output value as sensitive by adding the following argument:
     sensitive = true`,
-					Subject: n.Config.DeclRange.Ptr(),
-				})
+						Subject: n.Config.DeclRange.Ptr(),
+					})
+				}
 			}
 		}
 	}
@@ -381,7 +451,7 @@ If you do intend to export this data, annotate the output value as sensitive by 
 			// if we're continuing, make sure the output is included, and
 			// marked as unknown. If the evaluator was able to find a type
 			// for the value in spite of the error then we'll use it.
-			n.setValue(state, changes, cty.UnknownVal(val.Type()))
+			n.setValue(ctx.NamedValues(), state, changes, cty.UnknownVal(val.Type()))
 
 			// Keep existing warnings, while converting errors to warnings.
 			// This is not meant to be the normal path, so there no need to
@@ -401,13 +471,40 @@ If you do intend to export this data, annotate the output value as sensitive by 
 		}
 		return diags
 	}
-	n.setValue(state, changes, val)
+
+	// The checks below this point are intentionally not opted out by
+	// "flagWarnOutputErrors", because they relate to features that were added
+	// more recently than the historical change to treat invalid output values
+	// as errors rather than warnings.
+
+	if n.Config.Ephemeral {
+		// An ephemeral output value always produces an ephemeral result,
+		// even if the value assigned to it internally is not. This is
+		// a useful simplification so that module authors can be
+		// explicit about what guarantees they are intending to make
+		// (regardless of current implementation details). Marking an
+		// output value as ephemeral when it wasn't before is always a
+		// breaking change to a module's API.
+		val = val.Mark(marks.Ephemeral)
+	} else {
+		if marks.Contains(val, marks.Ephemeral) {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Ephemeral value not allowed",
+				Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+				Subject:  n.Config.Expr.Range().Ptr(),
+			})
+			return diags
+		}
+	}
+
+	n.setValue(ctx.NamedValues(), state, changes, val)
 
 	// If we were able to evaluate a new value, we can update that in the
 	// refreshed state as well.
 	if state = ctx.RefreshState(); state != nil && val.IsWhollyKnown() {
 		// we only need to update the state, do not pass in the changes again
-		n.setValue(state, nil, val)
+		n.setValue(nil, state, nil, val)
 	}
 
 	return diags
@@ -422,6 +519,61 @@ func (n *NodeApplyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.DotNo
 			"shape": "note",
 		},
 	}
+}
+
+// nodeOutputInPartialModule represents an infinite set of possible output value
+// instances beneath a partially-expanded module instance prefix.
+//
+// Its job is to find a suitable placeholder value that approximates the
+// values of all of those possible instances. Ideally that's a concrete
+// known value if all instances would have the same value, an unknown value
+// of a specific type if the definition produces a known type, or a
+// totally-unknown value of unknown type in the worst case.
+type nodeOutputInPartialModule struct {
+	Addr   addrs.InPartialExpandedModule[addrs.OutputValue]
+	Config *configs.Output
+
+	// Refresh-only mode means that any failing output preconditions are
+	// reported as warnings rather than errors
+	RefreshOnly bool
+}
+
+// Path implements [GraphNodePartialExpandedModule], meaning that the
+// Execute method receives an [EvalContext] that's set up for partial-expanded
+// evaluation instead of full evaluation.
+func (n *nodeOutputInPartialModule) Path() addrs.PartialExpandedModule {
+	return n.Addr.Module
+}
+
+func (n *nodeOutputInPartialModule) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	// Our job here is to make sure that the output value definition is
+	// valid for all instances of this output value across all of the possible
+	// module instances under our partially-expanded prefix, and to record
+	// a placeholder value that captures as precisely as possible what all
+	// of those results have in common. In the worst case where they have
+	// absolutely nothing in common cty.DynamicVal is the ultimate fallback,
+	// but we should try to do better when possible to give operators earlier
+	// feedback about any problems they would definitely encounter on a
+	// subsequent plan where the output values get evaluated concretely.
+
+	namedVals := ctx.NamedValues()
+
+	// this "ctx" is preconfigured to evaluate in terms of other placeholder
+	// values generated in the same unexpanded module prefix, rather than
+	// from the active state/plan, so this result is likely to be derived
+	// from unknown value placeholders itself.
+	val, diags := ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
+	if val == cty.NilVal {
+		val = cty.DynamicVal
+	}
+
+	// We'll also check that the depends_on argument is valid, since that's
+	// a static concern anyway and so cannot vary between instances of the
+	// same module.
+	diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
+
+	namedVals.SetOutputValuePlaceholder(n.Addr, val)
+	return diags
 }
 
 // NodeDestroyableOutput represents an output that is "destroyable":
@@ -463,15 +615,18 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 	before := cty.NullVal(cty.DynamicPseudoType)
 	mod := state.Module(n.Addr.Module)
 	if n.Addr.Module.IsRoot() && mod != nil {
-		if o, ok := mod.OutputValues[n.Addr.OutputValue.Name]; ok {
+		s := state.Lock()
+		rootOutputs := s.RootOutputValues
+		if o, ok := rootOutputs[n.Addr.OutputValue.Name]; ok {
 			sensitiveBefore = o.Sensitive
 			before = o.Value
 		} else {
 			// If the output was not in state, a delete change would
 			// be meaningless, so exit early.
+			state.Unlock()
 			return nil
-
 		}
+		state.Unlock()
 	}
 
 	changes := ctx.Changes()
@@ -512,11 +667,7 @@ func (n *NodeDestroyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.Dot
 	}
 }
 
-func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.ChangesSync, val cty.Value) {
-	// If we have an active changeset then we'll first replicate the value in
-	// there and lookup the prior value in the state. This is used in
-	// preference to the state where present, since it *is* able to represent
-	// unknowns, while the state cannot.
+func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states.SyncState, changes *plans.ChangesSync, val cty.Value) {
 	if changes != nil && n.Planning {
 		// if this is a root module, try to get a before value from the state for
 		// the diff
@@ -528,7 +679,9 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 
 		mod := state.Module(n.Addr.Module)
 		if n.Addr.Module.IsRoot() && mod != nil {
-			for name, o := range mod.OutputValues {
+			s := state.Lock()
+			rootOutputs := s.RootOutputValues
+			for name, o := range rootOutputs {
 				if name == n.Addr.OutputValue.Name {
 					before = o.Value
 					sensitiveBefore = o.Sensitive
@@ -536,10 +689,11 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 					break
 				}
 			}
+			state.Unlock()
 		}
 
-		// We will not show the value is either the before or after are marked
-		// as sensitivity. We can show the value again once sensitivity is
+		// We will not show the value if either the before or after are marked
+		// as sensitive. We can show the value again once sensitivity is
 		// removed from both the config and the state.
 		sensitiveChange := sensitiveBefore || n.Config.Sensitive
 
@@ -567,23 +721,26 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 			action = plans.NoOp
 		}
 
-		change := &plans.OutputChange{
-			Addr:      n.Addr,
-			Sensitive: sensitiveChange,
-			Change: plans.Change{
-				Action: action,
-				Before: before,
-				After:  val,
-			},
-		}
+		// Non-ephemeral output values get their changes recorded in the plan
+		if !n.Config.Ephemeral {
+			change := &plans.OutputChange{
+				Addr:      n.Addr,
+				Sensitive: sensitiveChange,
+				Change: plans.Change{
+					Action: action,
+					Before: before,
+					After:  val,
+				},
+			}
 
-		cs, err := change.Encode()
-		if err != nil {
-			// Should never happen, since we just constructed this right above
-			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
+			cs, err := change.Encode()
+			if err != nil {
+				// Should never happen, since we just constructed this right above
+				panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
+			}
+			log.Printf("[TRACE] setValue: Saving %s change for %s in changeset", change.Action, n.Addr)
+			changes.AppendOutputChange(cs) // add the new planned change
 		}
-		log.Printf("[TRACE] setValue: Saving %s change for %s in changeset", change.Action, n.Addr)
-		changes.AppendOutputChange(cs) // add the new planned change
 	}
 
 	if changes != nil && !n.Planning {
@@ -601,22 +758,38 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		return
 	}
 
-	// The state itself doesn't represent unknown values, so we null them
-	// out here and then we'll save the real unknown value in the planned
-	// changeset, if we have one on this graph walk.
-	log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
-	sensitive := n.Config.Sensitive
-	unmarkedVal, valueMarks := val.UnmarkDeep()
-
-	// If the evaluated value contains sensitive marks, the output has no
-	// choice but to declare itself as "sensitive".
-	for mark := range valueMarks {
-		if mark == marks.Sensitive {
-			sensitive = true
-			break
+	// caller leaves namedVals nil if they've already called this function
+	// with a different state, since we only have one namedVals regardless
+	// of how many states are involved in an operation.
+	if namedVals != nil {
+		saveVal := val
+		if n.Config.Ephemeral {
+			// Downstream uses of this output value must propagate the
+			// ephemerality.
+			saveVal = saveVal.Mark(marks.Ephemeral)
 		}
+		namedVals.SetOutputValue(n.Addr, saveVal)
 	}
 
-	stateVal := cty.UnknownAsNull(unmarkedVal)
-	state.SetOutputValue(n.Addr, stateVal, sensitive)
+	// Non-ephemeral output values get saved in the state too
+	if !n.Config.Ephemeral {
+		// The state itself doesn't represent unknown values, so we null them
+		// out here and then we'll save the real unknown value in the planned
+		// changeset, if we have one on this graph walk.
+		log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
+		// non-root outputs need to keep sensitive marks for evaluation, but are
+		// not serialized.
+		if n.Addr.Module.IsRoot() {
+			val, _ = val.UnmarkDeep()
+			if val.IsKnown() && !val.IsWhollyKnown() {
+				// If the value is partially unknown, act like it's fully
+				// unknown and store a null value in state. This can happen if
+				// an output references a deferred value.
+				val = cty.NullVal(val.Type())
+			} else {
+				val = cty.UnknownAsNull(val)
+			}
+		}
+		state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
+	}
 }

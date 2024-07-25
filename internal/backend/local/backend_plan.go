@@ -1,11 +1,16 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package local
 
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -18,8 +23,8 @@ import (
 func (b *Local) opPlan(
 	stopCtx context.Context,
 	cancelCtx context.Context,
-	op *backend.Operation,
-	runningOp *backend.RunningOperation) {
+	op *backendrun.Operation,
+	runningOp *backendrun.RunningOperation) {
 
 	log.Printf("[INFO] backend/local: starting Plan operation")
 
@@ -50,6 +55,23 @@ func (b *Local) opPlan(
 		return
 	}
 
+	if len(op.GenerateConfigOut) > 0 {
+		if op.PlanMode != plans.NormalMode {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid generate-config-out flag",
+				"Config can only be generated during a normal plan operation, and not during a refresh-only or destroy plan."))
+			op.ReportResult(runningOp, diags)
+			return
+		}
+
+		diags = diags.Append(genconfig.ValidateTargetFile(op.GenerateConfigOut))
+		if diags.HasErrors() {
+			op.ReportResult(runningOp, diags)
+			return
+		}
+	}
+
 	if b.ContextOpts == nil {
 		b.ContextOpts = new(terraform.ContextOpts)
 	}
@@ -67,7 +89,7 @@ func (b *Local) opPlan(
 		diags := op.StateLocker.Unlock()
 		if diags.HasErrors() {
 			op.View.Diagnostics(diags)
-			runningOp.Result = backend.OperationFailure
+			runningOp.Result = backendrun.OperationFailure
 		}
 	}()
 
@@ -90,7 +112,7 @@ func (b *Local) opPlan(
 		// If we get in here then the operation was cancelled, which is always
 		// considered to be a failure.
 		log.Printf("[INFO] backend/local: plan operation was force-cancelled by interrupt")
-		runningOp.Result = backend.OperationFailure
+		runningOp.Result = backendrun.OperationFailure
 		return
 	}
 	log.Printf("[INFO] backend/local: plan operation completed")
@@ -109,7 +131,7 @@ func (b *Local) opPlan(
 	}
 
 	// Record whether this plan includes any side-effects that could be applied.
-	runningOp.PlanEmpty = !plan.CanApply()
+	runningOp.PlanEmpty = !plan.Applyable
 
 	// Save the plan to disk
 	if path := op.PlanOutPath; path != "" {
@@ -168,6 +190,15 @@ func (b *Local) opPlan(
 		op.ReportResult(runningOp, diags)
 		return
 	}
+
+	// Write out any generated config, before we render the plan.
+	wroteConfig, moreDiags := maybeWriteGeneratedConfig(plan, op.GenerateConfigOut)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		op.ReportResult(runningOp, diags)
+		return
+	}
+
 	op.View.Plan(plan, schemas)
 
 	// If we've accumulated any diagnostics along the way then we'll show them
@@ -178,6 +209,45 @@ func (b *Local) opPlan(
 	op.ReportResult(runningOp, diags)
 
 	if !runningOp.PlanEmpty {
-		op.View.PlanNextStep(op.PlanOutPath)
+		if wroteConfig {
+			op.View.PlanNextStep(op.PlanOutPath, op.GenerateConfigOut)
+		} else {
+			op.View.PlanNextStep(op.PlanOutPath, "")
+		}
 	}
+}
+
+func maybeWriteGeneratedConfig(plan *plans.Plan, out string) (wroteConfig bool, diags tfdiags.Diagnostics) {
+	if genconfig.ShouldWriteConfig(out) {
+		diags := genconfig.ValidateTargetFile(out)
+		if diags.HasErrors() {
+			return false, diags
+		}
+
+		var writer io.Writer
+		for _, c := range plan.Changes.Resources {
+			change := genconfig.Change{
+				Addr:            c.Addr.String(),
+				GeneratedConfig: c.GeneratedConfig,
+			}
+			if c.Importing != nil {
+				change.ImportID = c.Importing.ID
+			}
+
+			var moreDiags tfdiags.Diagnostics
+			writer, wroteConfig, moreDiags = change.MaybeWriteConfig(writer, out)
+			if moreDiags.HasErrors() {
+				return false, diags.Append(moreDiags)
+			}
+		}
+	}
+
+	if wroteConfig {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Config generation is experimental",
+			"Generating configuration during import is currently experimental, and the generated configuration format may change in future versions."))
+	}
+
+	return wroteConfig, diags
 }

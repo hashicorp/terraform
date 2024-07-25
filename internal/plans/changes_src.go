@@ -1,11 +1,16 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package plans
 
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 // ResourceInstanceChangeSrc is a not-yet-decoded ResourceInstanceChange.
@@ -14,7 +19,22 @@ import (
 type ResourceInstanceChangeSrc struct {
 	// Addr is the absolute address of the resource instance that the change
 	// will apply to.
+	//
+	// THIS IS NOT A SUFFICIENT UNIQUE IDENTIFIER! It doesn't consider the
+	// fact that multiple objects for the same resource instance might be
+	// present in the same plan; use the ObjectAddr method instead if you
+	// need a unique address for a particular change.
 	Addr addrs.AbsResourceInstance
+
+	// DeposedKey is the identifier for a deposed object associated with the
+	// given instance, or states.NotDeposed if this change applies to the
+	// current object.
+	//
+	// A Replace change for a resource with create_before_destroy set will
+	// create a new DeposedKey temporarily during replacement. In that case,
+	// DeposedKey in the plan is always states.NotDeposed, representing that
+	// the current object is being replaced with the deposed.
+	DeposedKey states.DeposedKey
 
 	// PrevRunAddr is the absolute address that this resource instance had at
 	// the conclusion of a previous run.
@@ -28,16 +48,6 @@ type ResourceInstanceChangeSrc struct {
 	// equal to Addr in that case in order to simplify logic elsewhere which
 	// aims to detect and react to the movement of instances between addresses.
 	PrevRunAddr addrs.AbsResourceInstance
-
-	// DeposedKey is the identifier for a deposed object associated with the
-	// given instance, or states.NotDeposed if this change applies to the
-	// current object.
-	//
-	// A Replace change for a resource with create_before_destroy set will
-	// create a new DeposedKey temporarily during replacement. In that case,
-	// DeposedKey in the plan is always states.NotDeposed, representing that
-	// the current object is being replaced with the deposed.
-	DeposedKey states.DeposedKey
 
 	// Provider is the address of the provider configuration that was used
 	// to plan this change, and thus the configuration that must also be
@@ -69,6 +79,13 @@ type ResourceInstanceChangeSrc struct {
 	// Terraform that relates to this change. Terraform will save this
 	// byte-for-byte and return it to the provider in the apply call.
 	Private []byte
+}
+
+func (rcs *ResourceInstanceChangeSrc) ObjectAddr() addrs.AbsResourceInstanceObject {
+	return addrs.AbsResourceInstanceObject{
+		ResourceInstance: rcs.Addr,
+		DeposedKey:       rcs.DeposedKey,
+	}
 }
 
 // Decode unmarshals the raw representation of the instance object being
@@ -182,6 +199,36 @@ func (ocs *OutputChangeSrc) DeepCopy() *OutputChangeSrc {
 	return &ret
 }
 
+// ImportingSrc is the part of a ChangeSrc that describes the embedded import
+// action.
+//
+// The fields in here are subject to change, so downstream consumers should be
+// prepared for backwards compatibility in case the contents changes.
+type ImportingSrc struct {
+	// ID is the original ID of the imported resource.
+	ID string
+
+	// Unknown is true if the ID was unknown when we tried to import it. This
+	// should only be true if the overall change is embedded within a deferred
+	// action.
+	Unknown bool
+}
+
+// Decode unmarshals the raw representation of the importing action.
+func (is *ImportingSrc) Decode() *Importing {
+	if is == nil {
+		return nil
+	}
+	if is.Unknown {
+		return &Importing{
+			ID: cty.UnknownVal(cty.String),
+		}
+	}
+	return &Importing{
+		ID: cty.StringVal(is.ID),
+	}
+}
+
 // ChangeSrc is a not-yet-decoded Change.
 type ChangeSrc struct {
 	// Action defines what kind of change is being made.
@@ -192,12 +239,26 @@ type ChangeSrc struct {
 	// storage.
 	Before, After DynamicValue
 
-	// BeforeValMarks and AfterValMarks are stored path+mark combinations
-	// that might be discovered when encoding a change. Marks are removed
-	// to enable encoding (marked values cannot be marshalled), and so storing
-	// the path+mark combinations allow us to re-mark the value later
-	// when, for example, displaying the diff to the UI.
-	BeforeValMarks, AfterValMarks []cty.PathValueMarks
+	// BeforeSensitivePaths and AfterSensitivePaths are the paths for any
+	// values in Before or After (respectively) that are considered to be
+	// sensitive. The sensitive marks are removed from the in-memory values
+	// to enable encoding (marked values cannot be marshalled), and so we
+	// store the sensitive paths to allow re-marking later when we decode
+	// the serialized change.
+	BeforeSensitivePaths, AfterSensitivePaths []cty.Path
+
+	// Importing is present if the resource is being imported as part of this
+	// change.
+	//
+	// Use the simple presence of this field to detect if a ChangeSrc is to be
+	// imported, the contents of this structure may be modified going forward.
+	Importing *ImportingSrc
+
+	// GeneratedConfig contains any HCL config generated for this resource
+	// during planning, as a string. If GeneratedConfig is populated, Importing
+	// should be true. However, not all Importing changes contain generated
+	// config.
+	GeneratedConfig string
 }
 
 // Decode unmarshals the raw representations of the before and after values
@@ -226,8 +287,10 @@ func (cs *ChangeSrc) Decode(ty cty.Type) (*Change, error) {
 	}
 
 	return &Change{
-		Action: cs.Action,
-		Before: before.MarkWithPaths(cs.BeforeValMarks),
-		After:  after.MarkWithPaths(cs.AfterValMarks),
+		Action:          cs.Action,
+		Before:          marks.MarkPaths(before, marks.Sensitive, cs.BeforeSensitivePaths),
+		After:           marks.MarkPaths(after, marks.Sensitive, cs.AfterSensitivePaths),
+		Importing:       cs.Importing.Decode(),
+		GeneratedConfig: cs.GeneratedConfig,
 	}, nil
 }

@@ -1,0 +1,60 @@
+---
+page_title: Testing Terraform - Terraform CLI
+description: >-
+  Write structured tests and validations for your configuration to ensure
+  correctness in your infrastructure.
+---
+
+# Testing Terraform
+
+Terraform provides numerous testing capabilities to validate your infrastructure.
+
+These testing capabilities fit into two main categories:
+
+1. Validating your configuration and infrastructure as part of your regular Terraform operations.
+2. Performing traditional unit and integration testing on your configuration.
+
+Refer to [Custom Conditions](/terraform/language/expressions/custom-conditions) and [Checks](/terraform/language/checks) to learn more about the first testing capability. Terraform's [`test`](/terraform/cli/commands/test) command provides the second capability.
+
+## A brief history
+
+The various testing capabilities were introduced in the following versions:
+
+- Terraform v0.13.0 introduced [Input Variable Validation](/terraform/language/expressions/custom-conditions#input-variable-validation).
+- Terraform v0.15.0 introduced an experimental Terraform [`test`](/terraform/language/v1.5.x/modules/testing-experiment) command.
+- Terraform v1.2.0 introduced [Pre and Post-conditions](/terraform/language/expressions/custom-conditions#preconditions-and-postconditions).
+- Terraform v1.5.0 introduced [Checks](/terraform/language/checks).
+- Terraform v1.6.0 deprecated the experimental Terraform `test` command, and released an updated and finalized Terraform [`test`](/terraform/cli/commands/test) command.
+
+Note the introduction and deprecation of the experimental `test` command, followed by the introduction of the finalized `test` command. Refer to the [v1.6.x Upgrade Guide](/terraform/language/v1.6.x/upgrade-guides) for a summary of the changes between the experimental and finalized command.
+
+## The `test` command
+
+The Terraform `test` command:
+
+- Locates Terraform testing files within your configuration directory.
+- Provisions the infrastructure within your configuration as specified by each testing file.
+- Runs the assertions from the test file against the provisioned infrastructure.
+- Destroys the provisioned infrastructure at the end of the test.
+
+The `test` command, along with command-line flags and options, is discussed in detail within [Command: test](/terraform/cli/commands/test).
+
+### Write configuration for tests
+
+Terraform test files [have their own configuration syntax](/terraform/language/tests). This test file syntax focuses on customizing Terraform executions for the current configuration and overriding variables and providers to test different behaviors.
+
+## Validations
+
+Validations allow you to verify aspects of your configuration and infrastructure as it is applied and created. HCP Terraform also supports automated [continuous validation](/terraform/cloud-docs/workspaces/health#continuous-validation).
+
+The Terraform `test` command also executes any validations within your configuration as part of the tests it executes. For more information on the available validation, refer to [Checks](/terraform/language/checks) and [Custom Conditions](/terraform/language/expressions/custom-conditions).
+
+## Tests or Validations
+
+You can write many validations as test assertions, but there are specific use cases for both.
+
+Validations are executed during Terraform plan and apply operations, and the Terraform `test` command also runs validations while executing tests. Therefore, use validations to validate aspects of your configuration that should always be true and could impact the valid execution of your infrastructure. 
+
+Module authors should note that validations are executed and exposed to module users, so if they fail, ensure the failure messages are understandable and actionable.
+
+In contrast, Terraform only executes tests when you run `terraform test`. Use tests to assert the correctness of any logical operations or specific behavior within your configuration. For example, you can test that Terraform creates conditional resources based on an input by setting the input controlling those resources to a certain value then verifying the resources Terraform creates.

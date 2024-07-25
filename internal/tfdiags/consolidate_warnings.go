@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package tfdiags
 
 import "fmt"
@@ -39,6 +42,12 @@ func (diags Diagnostics) ConsolidateWarnings(threshold int) Diagnostics {
 			// our primary goal here is to deal with the situation where
 			// some configuration language feature is producing a warning
 			// each time it's used across a potentially-large config.
+			newDiags = newDiags.Append(diag)
+			continue
+		}
+
+		if DoNotConsolidateDiagnostic(diag) {
+			// Then do not consolidate this diagnostic.
 			newDiags = newDiags.Append(diag)
 			continue
 		}

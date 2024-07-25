@@ -1,17 +1,21 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package remote
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"sync"
 
 	uuid "github.com/hashicorp/go-uuid"
 
+	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // State implements the State interfaces in the state package to handle
@@ -36,10 +40,17 @@ type State struct {
 	serial, readSerial   uint64
 	state, readState     *states.State
 	disableLocks         bool
+
+	// If this is set then the state manager will decline to store intermediate
+	// state snapshots created while a Terraform Core apply operation is in
+	// progress. Otherwise (by default) it will accept persistent snapshots
+	// using the default rules defined in the local backend.
+	DisableIntermediateSnapshots bool
 }
 
 var _ statemgr.Full = (*State)(nil)
 var _ statemgr.Migrator = (*State)(nil)
+var _ statemgr.IntermediateStateConditionalPersister = (*State)(nil)
 
 // statemgr.Reader impl.
 func (s *State) State() *states.State {
@@ -49,7 +60,7 @@ func (s *State) State() *states.State {
 	return s.state.DeepCopy()
 }
 
-func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+func (s *State) GetRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
 	if err := s.RefreshState(); err != nil {
 		return nil, fmt.Errorf("Failed to load state: %s", err)
 	}
@@ -59,7 +70,7 @@ func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
 		state = states.NewState()
 	}
 
-	return state.RootModule().OutputValues, nil
+	return state.RootOutputValues, nil
 }
 
 // StateForMigration is part of our implementation of statemgr.Migrator.
@@ -155,7 +166,7 @@ func (s *State) refreshState() error {
 }
 
 // statemgr.Persister impl.
-func (s *State) PersistState(schemas *terraform.Schemas) error {
+func (s *State) PersistState(schemas *schemarepo.Schemas) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -214,6 +225,14 @@ func (s *State) PersistState(schemas *terraform.Schemas) error {
 	s.readLineage = s.lineage
 	s.readSerial = s.serial
 	return nil
+}
+
+// ShouldPersistIntermediateState implements statemgr.IntermediateStateConditionalPersister
+func (s *State) ShouldPersistIntermediateState(info *statemgr.IntermediateStatePersistInfo) bool {
+	if s.DisableIntermediateSnapshots {
+		return false
+	}
+	return statemgr.DefaultIntermediateStatePersistRule(info)
 }
 
 // Lock calls the Client's Lock method if it's implemented.

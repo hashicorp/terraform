@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configs
 
 import (
@@ -45,6 +48,10 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	if ov.SensitiveSet {
 		v.Sensitive = ov.Sensitive
 		v.SensitiveSet = ov.SensitiveSet
+	}
+	if ov.EphemeralSet {
+		v.Ephemeral = ov.Ephemeral
+		v.EphemeralSet = ov.EphemeralSet
 	}
 	if ov.Default != cty.NilVal {
 		v.Default = ov.Default
@@ -144,6 +151,10 @@ func (o *Output) merge(oo *Output) hcl.Diagnostics {
 	if oo.SensitiveSet {
 		o.Sensitive = oo.Sensitive
 		o.SensitiveSet = oo.SensitiveSet
+	}
+	if oo.EphemeralSet {
+		o.Ephemeral = oo.Ephemeral
+		o.EphemeralSet = oo.EphemeralSet
 	}
 
 	// We don't allow depends_on to be overridden because that is likely to

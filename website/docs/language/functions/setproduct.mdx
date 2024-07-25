@@ -190,9 +190,9 @@ resource "aws_subnet" "example" {
   # local.network_subnets is a list, so project it into a map
   # where each key is unique. Combine the network and subnet keys to
   # produce a single unique key per instance.
-  for_each = {
+  for_each = tomap({
     for subnet in local.network_subnets : "${subnet.network_key}.${subnet.subnet_key}" => subnet
-  }
+  })
 
   vpc_id            = each.value.network_id
   availability_zone = each.value.subnet_key

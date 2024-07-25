@@ -1,0 +1,72 @@
+---
+page_title: provider::terraform::encode_expr - Functions - Configuration Language
+description: >-
+  The encode_expr function produces a string representation of an arbitrary value
+  using Terraform expression syntax.
+---
+
+# `provider::terraform::encode_expr` Function
+
+-> **Note:** This function is supported only in Terraform v1.8 and later.
+
+`provider::terraform::encode_expr` is a rarely-needed function which takes
+any value and produces a string containing Terraform language expression syntax
+approximating that value.
+
+To use this function, your module must declare a dependency on the built-in
+`terraform` provider, which contains this function:
+
+```hcl
+terraform {
+  required_providers {
+    terraform = {
+      source = "terraform.io/builtin/terraform"
+    }
+  }
+}
+```
+
+The primary use for this function is in conjunction with the `hashicorp/tfe`
+provider's resource type
+[`tfe_variable`](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/resources/variable),
+which expects variable values to be provided in Terraform expression syntax.
+
+For example, the following concisely declares multiple input variables for
+a particular HCP Terraform workspace:
+
+```hcl
+locals {
+  workspace_vars = {
+    example1 = "Hello"
+    example2 = ["A", "B"]
+  }
+}
+
+resource "tfe_variable" "test" {
+  for_each = local.workspace_vars
+
+  category     = "terraform"
+  workspace_id = tfe_workspace.example.id
+
+  key   = each.key
+  value = provider::terraform::encode_expr(each.value)
+  hcl   = true
+}
+```
+
+When using this pattern, always set `hcl = true` in the resource declaration
+to ensure that HCP Terraform will expect `value` to be given as Terraform
+expression syntax.
+
+We do not recommend using this function in any other situation.
+
+~> **Warning:** The exact syntax used to encode certain values may change
+in future versions of Terraform to follow idiomatic style. Avoid using the
+results of this function in any context where such changes might be disruptive
+when upgrading Terraform in future.
+
+## Related Functions
+
+* [`encode_tfvars`](/terraform/language/functions/terraform-encode_tfvars)
+  produces expression strings for many different values at once, in `.tfvars`
+  syntax.

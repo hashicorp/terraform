@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonplan
 
 import (
@@ -6,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
-// Resource is the representation of a resource in the json plan
+// resource is the representation of a resource in the json plan
 type resource struct {
 	// Address is the absolute resource address
 	Address string `json:"address,omitempty"`
@@ -89,4 +92,14 @@ type ResourceChange struct {
 	// information should be resilient to encountering unrecognized values
 	// and treat them as an unspecified reason.
 	ActionReason string `json:"action_reason,omitempty"`
+}
+
+// DeferredResourceChange is a description of a resource change that has been
+// deferred for some reason.
+type DeferredResourceChange struct {
+	// Reason is the reason why this resource change was deferred.
+	Reason string `json:"reason"`
+
+	// Change contains any information we have about the deferred change.
+	ResourceChange ResourceChange `json:"resource_change"`
 }

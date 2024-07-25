@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package statefile
 
 // looksLikeVersion0 sniffs for the signature indicating a version 0 state

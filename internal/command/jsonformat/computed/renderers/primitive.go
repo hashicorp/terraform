@@ -1,15 +1,19 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package renderers
 
 import (
+	"encoding/json"
 	"fmt"
-	"math/big"
 	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
@@ -63,8 +67,8 @@ func renderPrimitiveValue(value interface{}, t cty.Type, opts computed.RenderHum
 		}
 		return "false"
 	case t == cty.Number:
-		bf := big.NewFloat(value.(float64))
-		return bf.Text('f', -1)
+		number := value.(json.Number)
+		return number.String()
 	default:
 		panic("unrecognized primitive type: " + t.FriendlyName())
 	}
@@ -88,7 +92,7 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 		}
 
 		if !str.IsMultiline {
-			return fmt.Sprintf("%q%s", str.String, forcesReplacement(diff.Replace, opts))
+			return fmt.Sprintf("%s%s", str.RenderSimple(), forcesReplacement(diff.Replace, opts))
 		}
 
 		// We are creating a single multiline string, so let's split by the new
@@ -102,13 +106,18 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 		lines[0] = fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts), lines[0])
 	case plans.Delete:
 		str := evaluatePrimitiveString(renderer.before, opts)
+		if str.IsNull {
+			// We don't put the null suffix (-> null) here because the final
+			// render or null -> null would look silly.
+			return fmt.Sprintf("%s%s", str.RenderSimple(), forcesReplacement(diff.Replace, opts))
+		}
 
 		if str.Json != nil {
 			return renderer.renderStringDiffAsJson(diff, indent, opts, str, evaluatedString{})
 		}
 
 		if !str.IsMultiline {
-			return fmt.Sprintf("%q%s%s", str.String, nullSuffix(diff.Action, opts), forcesReplacement(diff.Replace, opts))
+			return fmt.Sprintf("%s%s%s", str.RenderSimple(), nullSuffix(diff.Action, opts), forcesReplacement(diff.Replace, opts))
 		}
 
 		// We are creating a single multiline string, so let's split by the new
@@ -141,7 +150,7 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 		}
 
 		if !beforeString.IsMultiline && !afterString.IsMultiline {
-			return fmt.Sprintf("%q %s %q%s", beforeString.String, opts.Colorize.Color("[yellow]->[reset]"), afterString.String, forcesReplacement(diff.Replace, opts))
+			return fmt.Sprintf("%s %s %s%s", beforeString.RenderSimple(), opts.Colorize.Color("[yellow]->[reset]"), afterString.RenderSimple(), forcesReplacement(diff.Replace, opts))
 		}
 
 		beforeLines := strings.Split(beforeString.String, "\n")
@@ -155,6 +164,12 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 
 			if afterIx < 0 || afterIx >= len(afterLines) {
 				lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.Delete, opts), beforeLines[beforeIx]))
+				return
+			}
+
+			if beforeLines[beforeIx] != afterLines[afterIx] {
+				lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.Delete, opts), beforeLines[beforeIx]))
+				lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.Create, opts), afterLines[afterIx]))
 				return
 			}
 
@@ -178,7 +193,17 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 }
 
 func (renderer primitiveRenderer) renderStringDiffAsJson(diff computed.Diff, indent int, opts computed.RenderHumanOpts, before evaluatedString, after evaluatedString) string {
-	jsonDiff := RendererJsonOpts().Transform(before.Json, after.Json, diff.Action != plans.Create, diff.Action != plans.Delete, attribute_path.AlwaysMatcher())
+	jsonDiff := RendererJsonOpts().Transform(structured.Change{
+		BeforeExplicit:     diff.Action != plans.Create,
+		AfterExplicit:      diff.Action != plans.Delete,
+		Before:             before.Json,
+		After:              after.Json,
+		Unknown:            false,
+		BeforeSensitive:    false,
+		AfterSensitive:     false,
+		ReplacePaths:       attribute_path.Empty(false),
+		RelevantAttributes: attribute_path.AlwaysMatcher(),
+	})
 
 	action := diff.Action
 

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package main
 
 import (
@@ -23,7 +26,7 @@ func Test_init_with_empty_tags(t *testing.T) {
 							command:           []string{"init"},
 							expectedCmdOutput: `There are no workspaces with the configured tags`,
 							userInput:         []string{"emptytag-prod"},
-							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
+							postInputOutput:   []string{`HCP Terraform has been successfully initialized!`},
 						},
 					},
 				},

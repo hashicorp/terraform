@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package webbrowser
 
 // Launcher is an object that knows how to open a given URL in a new tab in

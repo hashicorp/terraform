@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -6,61 +9,70 @@ import (
 	"log"
 	"sync"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
-	"github.com/hashicorp/terraform/version"
-
 	"github.com/hashicorp/terraform/internal/states"
-
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/zclconf/go-cty/cty"
+	"github.com/hashicorp/terraform/version"
 )
 
 // BuiltinEvalContext is an EvalContext implementation that is used by
 // Terraform by default.
 type BuiltinEvalContext struct {
+	// scope is the scope (module instance or set of possible module instances)
+	// that this context is operating within.
+	//
+	// Note: this can be evalContextGlobal (i.e. nil) when visiting a graph
+	// node that doesn't belong to a particular module, in which case any
+	// method using it will panic.
+	scope evalContextScope
+
 	// StopContext is the context used to track whether we're complete
 	StopContext context.Context
-
-	// PathValue is the Path that this context is operating within.
-	PathValue addrs.ModuleInstance
-
-	// pathSet indicates that this context was explicitly created for a
-	// specific path, and can be safely used for evaluation. This lets us
-	// differentiate between PathValue being unset, and the zero value which is
-	// equivalent to RootModuleInstance.  Path and Evaluation methods will
-	// panic if this is not set.
-	pathSet bool
 
 	// Evaluator is used for evaluating expressions within the scope of this
 	// eval context.
 	Evaluator *Evaluator
 
-	// VariableValues contains the variable values across all modules. This
-	// structure is shared across the entire containing context, and so it
-	// may be accessed only when holding VariableValuesLock.
-	// The keys of the first level of VariableValues are the string
-	// representations of addrs.ModuleInstance values. The second-level keys
-	// are variable names within each module instance.
-	VariableValues     map[string]map[string]cty.Value
-	VariableValuesLock *sync.Mutex
+	// NamedValuesValue is where we keep the values of already-evaluated input
+	// variables, local values, and output values.
+	NamedValuesValue *namedvals.State
 
 	// Plugins is a library of plugin components (providers and provisioners)
 	// available for use during a graph walk.
 	Plugins *contextPlugins
 
+	// ExternalProviderConfigs are pre-configured provider instances passed
+	// in by the caller, for situations like Stack components where the
+	// root module isn't designed to be planned and applied in isolation and
+	// instead expects to recieve certain provider configurations from the
+	// stack configuration.
+	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+
+	// DeferralsValue is the object returned by [BuiltinEvalContext.Deferrals].
+	DeferralsValue *deferring.Deferred
+
 	Hooks                 []Hook
 	InputValue            UIInput
 	ProviderCache         map[string]providers.Interface
+	ProviderFuncCache     map[string]providers.Interface
+	ProviderFuncResults   *providers.FunctionResults
 	ProviderInputConfig   map[string]map[string]cty.Value
 	ProviderLock          *sync.Mutex
 	ProvisionerCache      map[string]provisioners.Interface
@@ -72,15 +84,15 @@ type BuiltinEvalContext struct {
 	PrevRunStateValue     *states.SyncState
 	InstanceExpanderValue *instances.Expander
 	MoveResultsValue      refactoring.MoveResults
+	OverrideValues        *mocking.Overrides
 }
 
 // BuiltinEvalContext implements EvalContext
 var _ EvalContext = (*BuiltinEvalContext)(nil)
 
-func (ctx *BuiltinEvalContext) WithPath(path addrs.ModuleInstance) EvalContext {
+func (ctx *BuiltinEvalContext) withScope(scope evalContextScope) EvalContext {
 	newCtx := *ctx
-	newCtx.pathSet = true
-	newCtx.PathValue = path
+	newCtx.scope = scope
 	return &newCtx
 }
 
@@ -117,7 +129,7 @@ func (ctx *BuiltinEvalContext) Input() UIInput {
 	return ctx.InputValue
 }
 
-func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig) (providers.Interface, error) {
+func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig, config *configs.Provider) (providers.Interface, error) {
 	// If we already initialized, it is an error
 	if p := ctx.Provider(addr); p != nil {
 		return nil, fmt.Errorf("%s is already initialized", addr)
@@ -130,12 +142,38 @@ func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig) (provi
 
 	key := addr.String()
 
+	if addr.Module.IsRoot() {
+		rootAddr := addrs.RootProviderConfig{
+			Provider: addr.Provider,
+			Alias:    addr.Alias,
+		}
+		if external, isExternal := ctx.ExternalProviderConfigs[rootAddr]; isExternal {
+			// External providers should always be pre-configured by the
+			// external caller, and so we'll wrap them in a type that
+			// makes operations like ConfigureProvider and Close be no-op.
+			wrapped := externalProviderWrapper{external}
+			ctx.ProviderCache[key] = wrapped
+			return wrapped, nil
+		}
+	}
+
 	p, err := ctx.Plugins.NewProviderInstance(addr.Provider)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Printf("[TRACE] BuiltinEvalContext: Initialized %q provider for %s", addr.String(), addr)
+
+	// The config might be nil, if there was no config block defined for this
+	// provider.
+	if config != nil && config.Mock {
+		log.Printf("[TRACE] BuiltinEvalContext: Mocked %q provider for %s", addr.String(), addr)
+		p = &providers.Mock{
+			Provider: p,
+			Data:     config.MockData,
+		}
+	}
+
 	ctx.ProviderCache[key] = p
 
 	return p, nil
@@ -148,7 +186,7 @@ func (ctx *BuiltinEvalContext) Provider(addr addrs.AbsProviderConfig) providers.
 	return ctx.ProviderCache[addr.String()]
 }
 
-func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (*ProviderSchema, error) {
+func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (providers.ProviderSchema, error) {
 	return ctx.Plugins.ProviderSchema(addr.Provider)
 }
 
@@ -180,19 +218,12 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, c
 		return diags
 	}
 
-	providerSchema, err := ctx.ProviderSchema(addr)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("failed to read schema for %s: %s", addr, err))
-		return diags
-	}
-	if providerSchema == nil {
-		diags = diags.Append(fmt.Errorf("schema for %s is not available", addr))
-		return diags
-	}
-
 	req := providers.ConfigureProviderRequest{
 		TerraformVersion: version.String(),
 		Config:           cfg,
+		ClientCapabilities: providers.ClientCapabilities{
+			DeferralAllowed: ctx.Deferrals().DeferralAllowed(),
+		},
 	}
 
 	resp := p.ConfigureProvider(req)
@@ -253,7 +284,7 @@ func (ctx *BuiltinEvalContext) ProvisionerSchema(n string) (*configschema.Block,
 	return ctx.Plugins.ProvisionerSchema(n)
 }
 
-func (ctx *BuiltinEvalContext) CloseProvisioners() error {
+func (ctx *BuiltinEvalContext) ClosePlugins() error {
 	var diags tfdiags.Diagnostics
 	ctx.ProvisionerLock.Lock()
 	defer ctx.ProvisionerLock.Unlock()
@@ -263,6 +294,17 @@ func (ctx *BuiltinEvalContext) CloseProvisioners() error {
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("provisioner.Close %s: %s", name, err))
 		}
+		delete(ctx.ProvisionerCache, name)
+	}
+
+	ctx.ProviderLock.Lock()
+	defer ctx.ProviderLock.Unlock()
+	for name, prov := range ctx.ProviderFuncCache {
+		err := prov.Close()
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("provider.Close %s: %s", name, err))
+		}
+		delete(ctx.ProviderFuncCache, name)
 	}
 
 	return diags.Err()
@@ -304,7 +346,7 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	case addrs.ResourceInstance:
 		resourceAddr = sub.ContainingResource()
 		rc := sub.Absolute(ctx.Path())
-		change := ctx.Changes().GetResourceInstanceChange(rc, states.CurrentGen)
+		change := ctx.Changes().GetResourceInstanceChange(rc, addrs.NotDeposed)
 		if change != nil {
 			// we'll generate an error below if there was no change
 			changes = append(changes, change)
@@ -398,81 +440,156 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 }
 
 func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {
-	if !ctx.pathSet {
-		panic("context path not set")
-	}
-	data := &evaluationStateData{
-		Evaluator:       ctx.Evaluator,
-		ModulePath:      ctx.PathValue,
-		InstanceKeyData: keyData,
-		Operation:       ctx.Evaluator.Operation,
-	}
-	scope := ctx.Evaluator.Scope(data, self, source)
+	switch scope := ctx.scope.(type) {
+	case evalContextModuleInstance:
+		data := &evaluationStateData{
+			evaluationData: &evaluationData{
+				Evaluator: ctx.Evaluator,
+				Module:    scope.Addr.Module(),
+			},
+			ModulePath:      scope.Addr,
+			InstanceKeyData: keyData,
+			Operation:       ctx.Evaluator.Operation,
+		}
+		evalScope := ctx.Evaluator.Scope(data, self, source, ctx.evaluationExternalFunctions())
 
-	// ctx.PathValue is the path of the module that contains whatever
-	// expression the caller will be trying to evaluate, so this will
-	// activate only the experiments from that particular module, to
-	// be consistent with how experiment checking in the "configs"
-	// package itself works. The nil check here is for robustness in
-	// incompletely-mocked testing situations; mc should never be nil in
-	// real situations.
-	if mc := ctx.Evaluator.Config.DescendentForInstance(ctx.PathValue); mc != nil {
-		scope.SetActiveExperiments(mc.Module.ActiveExperiments)
+		// ctx.PathValue is the path of the module that contains whatever
+		// expression the caller will be trying to evaluate, so this will
+		// activate only the experiments from that particular module, to
+		// be consistent with how experiment checking in the "configs"
+		// package itself works. The nil check here is for robustness in
+		// incompletely-mocked testing situations; mc should never be nil in
+		// real situations.
+		if mc := ctx.Evaluator.Config.DescendentForInstance(scope.Addr); mc != nil {
+			evalScope.SetActiveExperiments(mc.Module.ActiveExperiments)
+		}
+		return evalScope
+	case evalContextPartialExpandedModule:
+		data := &evaluationPlaceholderData{
+			evaluationData: &evaluationData{
+				Evaluator: ctx.Evaluator,
+				Module:    scope.Addr.Module(),
+			},
+			ModulePath:     scope.Addr,
+			CountAvailable: keyData.CountIndex != cty.NilVal,
+			EachAvailable:  keyData.EachKey != cty.NilVal,
+			Operation:      ctx.Evaluator.Operation,
+		}
+		evalScope := ctx.Evaluator.Scope(data, self, source, ctx.evaluationExternalFunctions())
+		if mc := ctx.Evaluator.Config.Descendent(scope.Addr.Module()); mc != nil {
+			evalScope.SetActiveExperiments(mc.Module.ActiveExperiments)
+		}
+		return evalScope
+	default:
+		// This method is valid only for module-scoped EvalContext objects.
+		panic("no evaluation scope available: not in module context")
 	}
-	return scope
+
+}
+
+// evaluationExternalFunctions is a helper for method EvaluationScope which
+// determines the set of external functions that should be available for
+// evaluation in this EvalContext, based on declarations in the configuration.
+func (ctx *BuiltinEvalContext) evaluationExternalFunctions() lang.ExternalFuncs {
+	// The set of functions in scope includes the functions contributed by
+	// every provider that the current module has as a requirement.
+	//
+	// We expose them under the local name for each provider that was selected
+	// by the module author.
+	ret := lang.ExternalFuncs{}
+
+	cfg := ctx.Evaluator.Config.Descendent(ctx.scope.evalContextScopeModule())
+	if cfg == nil {
+		// It's weird to not have a configuration by this point, but we'll
+		// tolerate it for robustness and just return no functions at all.
+		return ret
+	}
+	if cfg.Module.ProviderRequirements == nil {
+		// A module with no provider requirements can't have any
+		// provider-contributed functions.
+		return ret
+	}
+
+	reqs := cfg.Module.ProviderRequirements.RequiredProviders
+	ret.Provider = make(map[string]map[string]function.Function, len(reqs))
+
+	for localName, req := range reqs {
+		providerAddr := req.Type
+		funcDecls, err := ctx.Plugins.ProviderFunctionDecls(providerAddr)
+		if err != nil {
+			// If a particular provider can't return schema then we'll catch
+			// it in plenty other places where it's more reasonable for us
+			// to return an error, so here we'll just treat it as having
+			// no functions.
+			log.Printf("[WARN] Error loading schema for %s to determine its functions: %s", providerAddr, err)
+			continue
+		}
+
+		ret.Provider[localName] = make(map[string]function.Function, len(funcDecls))
+		funcs := ret.Provider[localName]
+		for name, decl := range funcDecls {
+			funcs[name] = decl.BuildFunction(providerAddr, name, ctx.ProviderFuncResults, func() (providers.Interface, error) {
+				return ctx.functionProvider(providerAddr)
+			})
+		}
+	}
+
+	return ret
+}
+
+// functionProvider fetches a running provider instance for evaluating
+// functions from the cache, or starts a new instance and adds it to the cache.
+func (ctx *BuiltinEvalContext) functionProvider(addr addrs.Provider) (providers.Interface, error) {
+	ctx.ProviderLock.Lock()
+	defer ctx.ProviderLock.Unlock()
+
+	p, ok := ctx.ProviderFuncCache[addr.String()]
+	if ok {
+		return p, nil
+	}
+
+	log.Printf("[TRACE] starting function provider instance for %s", addr)
+	p, err := ctx.Plugins.NewProviderInstance(addr)
+	if err == nil {
+		ctx.ProviderFuncCache[addr.String()] = p
+	}
+
+	return p, err
 }
 
 func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {
-	if !ctx.pathSet {
-		panic("context path not set")
+	if scope, ok := ctx.scope.(evalContextModuleInstance); ok {
+		return scope.Addr
 	}
-	return ctx.PathValue
+	panic("not evaluating in the scope of a fully-expanded module")
 }
 
-func (ctx *BuiltinEvalContext) SetRootModuleArgument(addr addrs.InputVariable, v cty.Value) {
-	ctx.VariableValuesLock.Lock()
-	defer ctx.VariableValuesLock.Unlock()
-
-	log.Printf("[TRACE] BuiltinEvalContext: Storing final value for variable %s", addr.Absolute(addrs.RootModuleInstance))
-	key := addrs.RootModuleInstance.String()
-	args := ctx.VariableValues[key]
-	if args == nil {
-		args = make(map[string]cty.Value)
-		ctx.VariableValues[key] = args
+func (ctx *BuiltinEvalContext) LanguageExperimentActive(experiment experiments.Experiment) bool {
+	if ctx.Evaluator == nil || ctx.Evaluator.Config == nil {
+		// Should not get here in normal code, but might get here in test code
+		// if the context isn't fully populated.
+		return false
 	}
-	args[addr.Name] = v
+	scope := ctx.scope
+	if scope == evalContextGlobal {
+		// If we're not associated with a specific module then there can't
+		// be any language experiments in play, because experiment activation
+		// is module-scoped.
+		return false
+	}
+	cfg := ctx.Evaluator.Config.Descendent(scope.evalContextScopeModule())
+	if cfg == nil {
+		return false
+	}
+	return cfg.Module.ActiveExperiments.Has(experiment)
 }
 
-func (ctx *BuiltinEvalContext) SetModuleCallArgument(callAddr addrs.ModuleCallInstance, varAddr addrs.InputVariable, v cty.Value) {
-	ctx.VariableValuesLock.Lock()
-	defer ctx.VariableValuesLock.Unlock()
-
-	if !ctx.pathSet {
-		panic("context path not set")
-	}
-
-	childPath := callAddr.ModuleInstance(ctx.PathValue)
-	log.Printf("[TRACE] BuiltinEvalContext: Storing final value for variable %s", varAddr.Absolute(childPath))
-	key := childPath.String()
-	args := ctx.VariableValues[key]
-	if args == nil {
-		args = make(map[string]cty.Value)
-		ctx.VariableValues[key] = args
-	}
-	args[varAddr.Name] = v
+func (ctx *BuiltinEvalContext) NamedValues() *namedvals.State {
+	return ctx.NamedValuesValue
 }
 
-func (ctx *BuiltinEvalContext) GetVariableValue(addr addrs.AbsInputVariableInstance) cty.Value {
-	ctx.VariableValuesLock.Lock()
-	defer ctx.VariableValuesLock.Unlock()
-
-	modKey := addr.Module.String()
-	modVars := ctx.VariableValues[modKey]
-	val, ok := modVars[addr.Variable.Name]
-	if !ok {
-		return cty.DynamicVal
-	}
-	return val
+func (ctx *BuiltinEvalContext) Deferrals() *deferring.Deferred {
+	return ctx.DeferralsValue
 }
 
 func (ctx *BuiltinEvalContext) Changes() *plans.ChangesSync {
@@ -501,4 +618,8 @@ func (ctx *BuiltinEvalContext) InstanceExpander() *instances.Expander {
 
 func (ctx *BuiltinEvalContext) MoveResults() refactoring.MoveResults {
 	return ctx.MoveResultsValue
+}
+
+func (ctx *BuiltinEvalContext) Overrides() *mocking.Overrides {
+	return ctx.OverrideValues
 }

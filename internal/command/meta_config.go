@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -9,6 +12,11 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -16,8 +24,6 @@ import (
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // normalizePath normalizes a given path so that it is, if possible, relative
@@ -47,6 +53,23 @@ func (m *Meta) loadConfig(rootDir string) (*configs.Config, tfdiags.Diagnostics)
 	return config, diags
 }
 
+// loadConfigWithTests matches loadConfig, except it also loads any test files
+// into the config alongside the main configuration.
+func (m *Meta) loadConfigWithTests(rootDir, testDir string) (*configs.Config, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	rootDir = m.normalizePath(rootDir)
+
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+
+	config, hclDiags := loader.LoadConfigWithTests(rootDir, testDir)
+	diags = diags.Append(hclDiags)
+	return config, diags
+}
+
 // loadSingleModule reads configuration from the given directory and returns
 // a description of that module only, without attempting to assemble a module
 // tree for referenced child modules.
@@ -66,6 +89,23 @@ func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostic
 	}
 
 	module, hclDiags := loader.Parser().LoadConfigDir(dir)
+	diags = diags.Append(hclDiags)
+	return module, diags
+}
+
+// loadSingleModuleWithTests matches loadSingleModule except it also loads any
+// tests for the target module.
+func (m *Meta) loadSingleModuleWithTests(dir string, testDir string) (*configs.Module, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	dir = m.normalizePath(dir)
+
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+
+	module, hclDiags := loader.Parser().LoadConfigDirWithTests(dir, testDir)
 	diags = diags.Append(hclDiags)
 	return module, diags
 }
@@ -143,7 +183,10 @@ func (m *Meta) loadHCLFile(filename string) (hcl.Body, tfdiags.Diagnostics) {
 // can then be relayed to the end-user. The uiModuleInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
 // via a provided cli.Ui.
-func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
+func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
+	ctx, span := tracer.Start(ctx, "install modules")
+	defer span.End()
+
 	rootDir = m.normalizePath(rootDir)
 
 	err := os.MkdirAll(m.modulesDir(), os.ModePerm)
@@ -160,16 +203,12 @@ func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleI
 
 	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient())
 
-	// Installation can be aborted by interruption signals
-	ctx, done := m.InterruptibleContext()
-	defer done()
-
-	_, moreDiags := inst.InstallModules(ctx, rootDir, upgrade, hooks)
+	_, moreDiags := inst.InstallModules(ctx, rootDir, testsDir, upgrade, installErrsOnly, hooks)
 	diags = diags.Append(moreDiags)
 
 	if ctx.Err() == context.Canceled {
 		m.showDiagnostics(diags)
-		m.Ui.Error("Module installation was canceled by an interrupt signal.")
+		diags = diags.Append(fmt.Errorf("Module installation was canceled by an interrupt signal."))
 		return true, diags
 	}
 
@@ -185,10 +224,11 @@ func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleI
 // can then be relayed to the end-user. The uiModuleInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
 // via a provided cli.Ui.
-func (m *Meta) initDirFromModule(targetDir string, addr string, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
-	// Installation can be aborted by interruption signals
-	ctx, done := m.InterruptibleContext()
-	defer done()
+func (m *Meta) initDirFromModule(ctx context.Context, targetDir string, addr string, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
+	ctx, span := tracer.Start(ctx, "initialize directory from module", trace.WithAttributes(
+		attribute.String("source_addr", addr),
+	))
+	defer span.End()
 
 	loader, err := m.initConfigLoader()
 	if err != nil {
@@ -201,7 +241,7 @@ func (m *Meta) initDirFromModule(targetDir string, addr string, hooks initwd.Mod
 	diags = diags.Append(moreDiags)
 	if ctx.Err() == context.Canceled {
 		m.showDiagnostics(diags)
-		m.Ui.Error("Module initialization was canceled by an interrupt signal.")
+		diags = diags.Append(fmt.Errorf("Module initialization was canceled by an interrupt signal."))
 		return true, diags
 	}
 	return false, diags
@@ -370,61 +410,4 @@ func configValueFromCLI(synthFilename, rawValue string, wantType cty.Type) (cty.
 		}
 		return val, diags
 	}
-}
-
-// rawFlags is a flag.Value implementation that just appends raw flag
-// names and values to a slice.
-type rawFlags struct {
-	flagName string
-	items    *[]rawFlag
-}
-
-func newRawFlags(flagName string) rawFlags {
-	var items []rawFlag
-	return rawFlags{
-		flagName: flagName,
-		items:    &items,
-	}
-}
-
-func (f rawFlags) Empty() bool {
-	if f.items == nil {
-		return true
-	}
-	return len(*f.items) == 0
-}
-
-func (f rawFlags) AllItems() []rawFlag {
-	if f.items == nil {
-		return nil
-	}
-	return *f.items
-}
-
-func (f rawFlags) Alias(flagName string) rawFlags {
-	return rawFlags{
-		flagName: flagName,
-		items:    f.items,
-	}
-}
-
-func (f rawFlags) String() string {
-	return ""
-}
-
-func (f rawFlags) Set(str string) error {
-	*f.items = append(*f.items, rawFlag{
-		Name:  f.flagName,
-		Value: str,
-	})
-	return nil
-}
-
-type rawFlag struct {
-	Name  string
-	Value string
-}
-
-func (f rawFlag) String() string {
-	return fmt.Sprintf("%s=%q", f.Name, f.Value)
 }

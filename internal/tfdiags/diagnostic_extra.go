@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package tfdiags
 
 // This "Extra" idea is something we've inherited from HCL's diagnostic model,
@@ -102,6 +105,14 @@ type DiagnosticExtraUnwrapper interface {
 	UnwrapDiagnosticExtra() interface{}
 }
 
+// DiagnosticExtraWrapper is an interface implemented by values that can be
+// dynamically updated to wrap other extra info.
+type DiagnosticExtraWrapper interface {
+	// WrapDiagnosticExtra accepts an ExtraInfo that it should add within the
+	// current ExtraInfo.
+	WrapDiagnosticExtra(inner interface{})
+}
+
 // DiagnosticExtraBecauseUnknown is an interface implemented by values in
 // the Extra field of Diagnostic when the diagnostic is potentially caused by
 // the presence of unknown values in an expression evaluation.
@@ -136,6 +147,40 @@ func DiagnosticCausedByUnknown(diag Diagnostic) bool {
 	return maybe.DiagnosticCausedByUnknown()
 }
 
+// DiagnosticExtraBecauseEphemeral is an interface implemented by values in
+// the Extra field of Diagnostic when the diagnostic is potentially caused by
+// the presence of ephemeral values in an expression evaluation.
+//
+// Just implementing this interface is not sufficient signal, though. Callers
+// must also call the DiagnosticCausedByEphemeral method in order to confirm
+// the result, or use the package-level function DiagnosticCausedByEphemeral
+// as a convenient wrapper.
+type DiagnosticExtraBecauseEphemeral interface {
+	// DiagnosticCausedByEphemeral returns true if the associated diagnostic
+	// was caused by the presence of ephemeral values during an expression
+	// evaluation, or false otherwise.
+	//
+	// Callers might use this to tailor what contextual information they show
+	// alongside an error report in the UI, to avoid potential confusion
+	// caused by talking about the presence of deferred values if that was
+	// immaterial to the error.
+	DiagnosticCausedByEphemeral() bool
+}
+
+// DiagnosticCausedByEphemeral returns true if the given diagnostic has an
+// indication that it was caused by the presence of deferred values during
+// an expression evaluation.
+//
+// This is a wrapper around checking if the diagnostic's extra info implements
+// interface DiagnosticExtraBecauseDeferred and then calling its method if so.
+func DiagnosticCausedByEphemeral(diag Diagnostic) bool {
+	maybe := ExtraInfo[DiagnosticExtraBecauseEphemeral](diag)
+	if maybe == nil {
+		return false
+	}
+	return maybe.DiagnosticCausedByEphemeral()
+}
+
 // DiagnosticExtraBecauseSensitive is an interface implemented by values in
 // the Extra field of Diagnostic when the diagnostic is potentially caused by
 // the presence of sensitive values in an expression evaluation.
@@ -168,4 +213,23 @@ func DiagnosticCausedBySensitive(diag Diagnostic) bool {
 		return false
 	}
 	return maybe.DiagnosticCausedBySensitive()
+}
+
+// DiagnosticExtraDoNotConsolidate tells the Diagnostics.ConsolidateWarnings
+// function not to consolidate this diagnostic if it otherwise would.
+type DiagnosticExtraDoNotConsolidate interface {
+	// DoNotConsolidateDiagnostic returns true if the associated diagnostic
+	// should not be consolidated by the Diagnostics.ConsolidateWarnings
+	// function.
+	DoNotConsolidateDiagnostic() bool
+}
+
+// DoNotConsolidateDiagnostic returns true if the given diagnostic should not
+// be consolidated by the Diagnostics.ConsolidateWarnings function.
+func DoNotConsolidateDiagnostic(diag Diagnostic) bool {
+	maybe := ExtraInfo[DiagnosticExtraDoNotConsolidate](diag)
+	if maybe == nil {
+		return false
+	}
+	return maybe.DoNotConsolidateDiagnostic()
 }

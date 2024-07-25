@@ -1,0 +1,127 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.5.0",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "terraform_data.foo",
+          "mode": "managed",
+          "type": "terraform_data",
+          "name": "foo",
+          "provider_name": "terraform.io/builtin/terraform",
+          "schema_version": 0,
+          "values": {
+            "id": "bar",
+            "input": null,
+            "output": null,
+            "triggers_replace": null
+          },
+          "sensitive_values": {}
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "terraform_data.foo",
+      "mode": "managed",
+      "type": "terraform_data",
+      "name": "foo",
+      "provider_name": "terraform.io/builtin/terraform",
+      "change": {
+        "actions": [
+          "no-op"
+        ],
+        "before": {
+          "id": "bar",
+          "input": null,
+          "output": null,
+          "triggers_replace": null
+        },
+        "after": {
+          "id": "bar",
+          "input": null,
+          "output": null,
+          "triggers_replace": null
+        },
+        "after_unknown": {},
+        "before_sensitive": {},
+        "after_sensitive": {},
+        "importing": {
+          "id": "bar"
+        },
+        "generated_config": "resource \"terraform_data\" \"foo\" {\n  input            = null\n  triggers_replace = null\n}"
+      }
+    }
+  ],
+  "prior_state": {
+    "format_version": "1.0",
+    "terraform_version": "1.6.0",
+    "values": {
+      "root_module": {
+        "resources": [
+          {
+            "address": "terraform_data.foo",
+            "mode": "managed",
+            "type": "terraform_data",
+            "name": "foo",
+            "provider_name": "terraform.io/builtin/terraform",
+            "schema_version": 0,
+            "values": {
+              "id": "bar",
+              "input": null,
+              "output": null,
+              "triggers_replace": null
+            },
+            "sensitive_values": {}
+          }
+        ]
+      }
+    }
+  },
+  "configuration": {
+    "provider_config": {
+      "terraform": {
+        "name": "terraform",
+        "full_name": "terraform.io/builtin/terraform"
+      }
+    },
+    "root_module": {}
+  },
+  "provider_schemas": {
+    "terraform.io/builtin/terraform": {
+      "resource_schemas": {
+        "terraform_data": {
+          "version": 0,
+          "block": {
+            "attributes": {
+              "id": {
+                "type": "string",
+                "description_kind": "plain",
+                "computed": true
+              },
+              "input": {
+                "type": "dynamic",
+                "description_kind": "plain",
+                "optional": true
+              },
+              "output": {
+                "type": "dynamic",
+                "description_kind": "plain",
+                "computed": true
+              },
+              "triggers_replace": {
+                "type": "dynamic",
+                "description_kind": "plain",
+                "optional": true
+              }
+            },
+            "description_kind": "plain"
+          }
+        }
+      }
+    }
+  },
+  "timestamp": "2023-05-30T03:34:55Z"
+}

@@ -29,7 +29,22 @@ LABEL version=$PRODUCT_VERSION
 # Historical Terraform-specific label preserved for backward compatibility.
 LABEL "com.hashicorp.terraform.version"="${PRODUCT_VERSION}"
 
+# @see https://specs.opencontainers.org/image-spec/annotations/?v=v1.0.1#pre-defined-annotation-keys
+LABEL org.opencontainers.image.title=${BIN_NAME} \
+      org.opencontainers.image.description="Terraform enables you to safely and predictably create, change, and improve infrastructure" \
+      org.opencontainers.image.authors="HashiCorp Terraform Team <terraform@hashicorp.com>" \
+      org.opencontainers.image.url="https://www.terraform.io/" \
+      org.opencontainers.image.documentation="https://www.terraform.io/docs" \
+      org.opencontainers.image.source="https://github.com/hashicorp/terraform" \
+      org.opencontainers.image.version=${PRODUCT_VERSION} \
+      org.opencontainers.image.revision=${PRODUCT_REVISION} \
+      org.opencontainers.image.vendor="HashiCorp" \
+      org.opencontainers.image.licenses="BUSL-1.1"
+
 RUN apk add --no-cache git openssh
+
+# Copy the license file as per Legal requirement
+COPY LICENSE "/usr/share/doc/${BIN_NAME}/LICENSE.txt"
 
 # The hashicorp/actions-docker-build GitHub Action extracts the appropriate
 # release package for our target architecture into the current working

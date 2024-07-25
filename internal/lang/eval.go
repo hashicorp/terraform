@@ -1,18 +1,26 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package lang
 
 import (
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/dynblock"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/blocktoattr"
+	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // ExpandBlock expands any "dynamic" blocks present in the given body. The
@@ -25,7 +33,7 @@ func (s *Scope) ExpandBlock(body hcl.Body, schema *configschema.Block) (hcl.Body
 	spec := schema.DecoderSpec()
 
 	traversals := dynblock.ExpandVariablesHCLDec(body, spec)
-	refs, diags := References(traversals)
+	refs, diags := langrefs.References(s.ParseRef, traversals)
 
 	ctx, ctxDiags := s.EvalContext(refs)
 	diags = diags.Append(ctxDiags)
@@ -46,7 +54,7 @@ func (s *Scope) ExpandBlock(body hcl.Body, schema *configschema.Block) (hcl.Body
 func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
 	spec := schema.DecoderSpec()
 
-	refs, diags := ReferencesInBlock(body, schema)
+	refs, diags := langrefs.ReferencesInBlock(s.ParseRef, body, schema)
 
 	ctx, ctxDiags := s.EvalContext(refs)
 	diags = diags.Append(ctxDiags)
@@ -65,7 +73,7 @@ func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value,
 	body = blocktoattr.FixUpBlockAttrs(body, schema)
 
 	val, evalDiags := hcldec.Decode(body, spec, ctx)
-	diags = diags.Append(evalDiags)
+	diags = diags.Append(checkForUnknownFunctionDiags(evalDiags))
 
 	return val, diags
 }
@@ -93,7 +101,7 @@ func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschem
 		})
 	}
 
-	refs, refDiags := References(hcldec.Variables(body, spec))
+	refs, refDiags := langrefs.References(s.ParseRef, hcldec.Variables(body, spec))
 	diags = diags.Append(refDiags)
 
 	terraformAttrs := map[string]cty.Value{}
@@ -143,7 +151,7 @@ func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschem
 	}
 
 	val, decDiags := hcldec.Decode(body, schema.DecoderSpec(), ctx)
-	diags = diags.Append(decDiags)
+	diags = diags.Append(checkForUnknownFunctionDiags(decDiags))
 	return val, diags
 }
 
@@ -158,7 +166,7 @@ func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschem
 // If the returned diagnostics contains errors then the result may be
 // incomplete, but will always be of the requested type.
 func (s *Scope) EvalExpr(expr hcl.Expression, wantType cty.Type) (cty.Value, tfdiags.Diagnostics) {
-	refs, diags := ReferencesInExpr(expr)
+	refs, diags := langrefs.ReferencesInExpr(s.ParseRef, expr)
 
 	ctx, ctxDiags := s.EvalContext(refs)
 	diags = diags.Append(ctxDiags)
@@ -169,7 +177,7 @@ func (s *Scope) EvalExpr(expr hcl.Expression, wantType cty.Type) (cty.Value, tfd
 	}
 
 	val, evalDiags := expr.Value(ctx)
-	diags = diags.Append(evalDiags)
+	diags = diags.Append(checkForUnknownFunctionDiags(evalDiags))
 
 	if wantType != cty.DynamicPseudoType {
 		var convErr error
@@ -278,10 +286,13 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	wholeModules := map[string]cty.Value{}
 	inputVariables := map[string]cty.Value{}
 	localValues := map[string]cty.Value{}
+	outputValues := map[string]cty.Value{}
 	pathAttrs := map[string]cty.Value{}
 	terraformAttrs := map[string]cty.Value{}
 	countAttrs := map[string]cty.Value{}
 	forEachAttrs := map[string]cty.Value{}
+	checkBlocks := map[string]cty.Value{}
+	runBlocks := map[string]cty.Value{}
 	var self cty.Value
 
 	for _, ref := range refs {
@@ -402,6 +413,21 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			diags = diags.Append(valDiags)
 			forEachAttrs[subj.Name] = val
 
+		case addrs.OutputValue:
+			val, valDiags := normalizeRefValue(s.Data.GetOutput(subj, rng))
+			diags = diags.Append(valDiags)
+			outputValues[subj.Name] = val
+
+		case addrs.Check:
+			val, valDiags := normalizeRefValue(s.Data.GetCheckBlock(subj, rng))
+			diags = diags.Append(valDiags)
+			checkBlocks[subj.Name] = val
+
+		case addrs.Run:
+			val, valDiags := normalizeRefValue(s.Data.GetRunBlock(subj, rng))
+			diags = diags.Append(valDiags)
+			runBlocks[subj.Name] = val
+
 		default:
 			// Should never happen
 			panic(fmt.Errorf("Scope.buildEvalContext cannot handle address type %T", rawSubj))
@@ -426,6 +452,22 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	vals["terraform"] = cty.ObjectVal(terraformAttrs)
 	vals["count"] = cty.ObjectVal(countAttrs)
 	vals["each"] = cty.ObjectVal(forEachAttrs)
+
+	// Checks, outputs, and run blocks are conditionally included in the
+	// available scope, so we'll only write out their values if we actually have
+	// something for them.
+	if len(checkBlocks) > 0 {
+		vals["check"] = cty.ObjectVal(checkBlocks)
+	}
+
+	if len(outputValues) > 0 {
+		vals["output"] = cty.ObjectVal(outputValues)
+	}
+
+	if len(runBlocks) > 0 {
+		vals["run"] = cty.ObjectVal(runBlocks)
+	}
+
 	if self != cty.NilVal {
 		vals["self"] = self
 	}
@@ -450,4 +492,88 @@ func normalizeRefValue(val cty.Value, diags tfdiags.Diagnostics) (cty.Value, tfd
 		return cty.UnknownVal(val.Type()), diags
 	}
 	return val, diags
+}
+
+// checkForUnknownFunctionDiags inspects the diagnostics for errors from unknown
+// function calls, and tailors the messages to better suit Terraform. We now
+// have multiple namespaces where functions may be declared, and it's up to the
+// user to have properly configured the module to populate the provider
+// namespace. The generic unknown function diagnostic from hcl does not direct
+// the user on how to remedy the situation in Terraform, and we can give more
+// useful information in a few Terraform specific cases here.
+func checkForUnknownFunctionDiags(diags hcl.Diagnostics) hcl.Diagnostics {
+	for _, d := range diags {
+		extra, ok := hcl.DiagnosticExtra[hclsyntax.FunctionCallUnknownDiagExtra](d)
+		if !ok {
+			continue
+		}
+		name := extra.CalledFunctionName()
+		namespace := extra.CalledFunctionNamespace()
+		namespaceParts := strings.Split(namespace, "::")
+		if len(namespaceParts) < 2 {
+			// no namespace (namespace includes ::, so will have at least 2
+			// parts), but check if there is a matching name in a provider
+			// namspace.
+			if d.EvalContext == nil {
+				continue
+			}
+
+			for funcName := range d.EvalContext.Functions {
+				if strings.HasSuffix(funcName, "::"+name) {
+					d.Detail = fmt.Sprintf("%s Did you mean %q?", d.Detail, funcName)
+					break
+				}
+			}
+			continue
+		}
+
+		// the diagnostic isn't really shared with anything, and copying would
+		// still retain the internal pointers, so we're going to modify the
+		// diagnostic in-place if we want to change the output. Log the original
+		// diagnostic for debugging purposes in case we overwrite something
+		// potentially useful in the future from hcl.
+		log.Printf("[ERROR] UnknownFunctionCall: %s", d.Error())
+		d.Summary = "Unknown provider function"
+
+		if namespaceParts[0] != "provider" {
+			// help if the user is skipping the provider:: prefix before the
+			// provider name.
+			d.Detail = fmt.Sprintf(`The function namespace %q is not valid. Provider function calls must use the "provider::" namespace prefix.`, namespaceParts[0])
+			continue
+		}
+
+		if namespaceParts[1] == "" {
+			// missing provider name entirely
+			d.Detail = `The function call must include the provider name after the "provider::" prefix.`
+			continue
+		}
+
+		if d.EvalContext == nil {
+			// There's no eval context for some reason, so we can't inspect the
+			// available functions.
+			d.Detail = fmt.Sprintf(`There is no function named "%s%s".`, namespace, name)
+			continue
+		}
+
+		otherProviderFuncs := false
+		for funcName := range d.EvalContext.Functions {
+			// there are other functions in this provider namespace, so it must
+			// have been included in the configuration, and we can be clear that
+			// this a function which the provider does not support.
+			if strings.HasPrefix(funcName, namespace) {
+				otherProviderFuncs = true
+				break
+			}
+		}
+		if otherProviderFuncs {
+			d.Detail = fmt.Sprintf("The function %q is not available from the provider %q.", name, namespaceParts[1])
+			continue
+		}
+
+		// no other functions exist for this provider, so hint that the user may
+		// need to include it in the configuration.
+		d.Detail = fmt.Sprintf(`There is no function named "%s%s". Ensure that provider name %q is declared in this module's required_providers block, and that this provider offers a function named %q.`, namespace, name, namespaceParts[1], name)
+	}
+
+	return diags
 }

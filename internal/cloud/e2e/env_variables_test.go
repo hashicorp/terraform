@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package main
 
 import (
@@ -28,7 +31,7 @@ func Test_cloud_organization_env_var(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized!`,
 						},
 						{
 							command:         []string{"apply", "-auto-approve"},
@@ -75,7 +78,7 @@ func Test_cloud_workspace_name_env_var(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized!`,
 						},
 						{
 							command:         []string{"apply", "-auto-approve"},
@@ -91,7 +94,7 @@ func Test_cloud_workspace_name_env_var(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized!`,
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -156,7 +159,7 @@ func Test_cloud_workspace_tags_env_var(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized!`,
 						},
 						{
 							command:         []string{"apply", "-auto-approve"},
@@ -172,7 +175,7 @@ func Test_cloud_workspace_tags_env_var(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized!`,
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -229,7 +232,7 @@ func Test_cloud_null_config(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized!`,
 						},
 						{
 							command:         []string{"apply", "-auto-approve"},
@@ -245,7 +248,7 @@ func Test_cloud_null_config(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `HCP Terraform has been successfully initialized!`,
 						},
 						{
 							command:           []string{"workspace", "show"},

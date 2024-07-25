@@ -1,0 +1,35 @@
+---
+page_title: HCP Terraform Configuration - Terraform Settings - Configuration Language
+description: >-
+  The nested `cloud` block configures Terraform's integration with HCP Terraform.
+---
+
+# HCP Terraform Configuration
+
+The main module of a Terraform configuration can integrate with HCP Terraform to enable its [CLI-driven run workflow](/terraform/cloud-docs/run/cli). You only need to configure these settings when you want to use Terraform CLI to interact with HCP Terraform. HCP Terraform ignores them when interacting with
+Terraform through version control or the API.
+
+> **Hands On:** Try the [Migrate State to HCP Terraform](/terraform/tutorials/cloud/cloud-migrate) tutorial.
+
+## Usage Example
+
+To configure the HCP Terraform CLI integration, add a nested `cloud` block within the `terraform` block. You cannot use the CLI integration and a [state backend](/terraform/language/settings/backends/configuration) in the same configuration.
+
+Refer to [Using HCP Terraform](/terraform/cli/cloud) in the Terraform CLI documentation for full configuration details, migration instructions, and command line arguments.
+
+```hcl
+terraform {
+  cloud {
+    organization = "example_corp"
+    ## Required for Terraform Enterprise; Defaults to app.terraform.io for HCP Terraform
+    hostname = "app.terraform.io"
+
+    workspaces {
+      tags = ["app"]
+    }
+  }
+}
+```
+
+
+

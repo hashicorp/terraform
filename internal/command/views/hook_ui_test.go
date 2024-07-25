@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package views
 
 import (
@@ -18,6 +21,17 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
+
+func testUiHookResourceID(addr addrs.AbsResourceInstance) terraform.HookResourceIdentity {
+	return terraform.HookResourceIdentity{
+		Addr: addr,
+		ProviderAddr: addrs.Provider{
+			Type:      "test",
+			Namespace: "hashicorp",
+			Hostname:  "example.com",
+		},
+	}
+}
 
 // Test the PreApply hook for creating a new resource
 func TestUiHookPreApply_create(t *testing.T) {
@@ -48,7 +62,7 @@ func TestUiHookPreApply_create(t *testing.T) {
 		}),
 	})
 
-	action, err := h.PreApply(addr, states.CurrentGen, plans.Create, priorState, plannedNewState)
+	action, err := h.PreApply(testUiHookResourceID(addr), addrs.NotDeposed, plans.Create, priorState, plannedNewState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +120,7 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 		}),
 	})
 
-	action, err := h.PreApply(addr, states.CurrentGen, plans.Update, priorState, plannedNewState)
+	action, err := h.PreApply(testUiHookResourceID(addr), addrs.NotDeposed, plans.Update, priorState, plannedNewState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +184,7 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 	}))
 
 	key := states.NewDeposedKey()
-	action, err := h.PreApply(addr, key, plans.Delete, priorState, plannedNewState)
+	action, err := h.PreApply(testUiHookResourceID(addr), key, plans.Delete, priorState, plannedNewState)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +235,7 @@ func TestUiHookPostApply_colorInterpolation(t *testing.T) {
 		"id": cty.StringVal("[blue]"),
 	})
 
-	action, err := h.PostApply(addr, states.CurrentGen, newState, nil)
+	action, err := h.PostApply(testUiHookResourceID(addr), addrs.NotDeposed, newState, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -274,7 +288,7 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 		"names": cty.List(cty.String),
 	}))
 
-	action, err := h.PostApply(addr, states.CurrentGen, newState, nil)
+	action, err := h.PostApply(testUiHookResourceID(addr), addrs.NotDeposed, newState, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -296,7 +310,7 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 	}
 }
 
-func TestPreProvisionInstanceStep(t *testing.T) {
+func TestUiHookPreProvisionInstanceStep(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
@@ -307,7 +321,7 @@ func TestPreProvisionInstanceStep(t *testing.T) {
 		Name: "foo",
 	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	action, err := h.PreProvisionInstanceStep(addr, "local-exec")
+	action, err := h.PreProvisionInstanceStep(testUiHookResourceID(addr), "local-exec")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -323,7 +337,7 @@ func TestPreProvisionInstanceStep(t *testing.T) {
 
 // Test ProvisionOutput, including lots of edge cases for the output
 // whitespace/line ending logic.
-func TestProvisionOutput(t *testing.T) {
+func TestUiHookProvisionOutput(t *testing.T) {
 	addr := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
 		Type: "test_instance",
@@ -394,7 +408,7 @@ test_instance.foo (winrm): bar
 			view := NewView(streams)
 			h := NewUiHook(view)
 
-			h.ProvisionOutput(addr, tc.provisioner, tc.input)
+			h.ProvisionOutput(testUiHookResourceID(addr), tc.provisioner, tc.input)
 			result := done(t)
 
 			if got := result.Stdout(); got != tc.wantOutput {
@@ -406,7 +420,7 @@ test_instance.foo (winrm): bar
 
 // Test the PreRefresh hook in the normal path where the resource exists with
 // an ID key and value in the state.
-func TestPreRefresh(t *testing.T) {
+func TestUiHookPreRefresh(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
@@ -422,7 +436,7 @@ func TestPreRefresh(t *testing.T) {
 		"bar": cty.ListValEmpty(cty.String),
 	})
 
-	action, err := h.PreRefresh(addr, states.CurrentGen, priorState)
+	action, err := h.PreRefresh(testUiHookResourceID(addr), addrs.NotDeposed, priorState)
 
 	if err != nil {
 		t.Fatal(err)
@@ -439,7 +453,7 @@ func TestPreRefresh(t *testing.T) {
 
 // Test that PreRefresh still works if no ID key and value can be determined
 // from state.
-func TestPreRefresh_noID(t *testing.T) {
+func TestUiHookPreRefresh_noID(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
@@ -454,7 +468,7 @@ func TestPreRefresh_noID(t *testing.T) {
 		"bar": cty.ListValEmpty(cty.String),
 	})
 
-	action, err := h.PreRefresh(addr, states.CurrentGen, priorState)
+	action, err := h.PreRefresh(testUiHookResourceID(addr), addrs.NotDeposed, priorState)
 
 	if err != nil {
 		t.Fatal(err)
@@ -470,7 +484,7 @@ func TestPreRefresh_noID(t *testing.T) {
 }
 
 // Test the very simple PreImportState hook.
-func TestPreImportState(t *testing.T) {
+func TestUiHookPreImportState(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
@@ -481,7 +495,7 @@ func TestPreImportState(t *testing.T) {
 		Name: "foo",
 	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	action, err := h.PreImportState(addr, "test")
+	action, err := h.PreImportState(testUiHookResourceID(addr), "test")
 
 	if err != nil {
 		t.Fatal(err)
@@ -499,7 +513,7 @@ func TestPreImportState(t *testing.T) {
 // Test the PostImportState UI hook. Again, this hook behaviour seems odd to
 // me (see below), so please don't consider these tests as justification for
 // keeping this behaviour.
-func TestPostImportState(t *testing.T) {
+func TestUiHookPostImportState(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
@@ -529,7 +543,7 @@ func TestPostImportState(t *testing.T) {
 		},
 	}
 
-	action, err := h.PostImportState(addr, imported)
+	action, err := h.PostImportState(testUiHookResourceID(addr), imported)
 
 	if err != nil {
 		t.Fatal(err)

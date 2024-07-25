@@ -15,6 +15,10 @@ Usage: `terraform workspace select NAME [DIR]`
 This command will select another workspace. The named workspace must already
 exist.
 
+The supported flags are:
+
+* `-or-create` - If the workspace that is being selected does not exist, create it. Default is `false`.
+
 ## Example
 
 ```

@@ -1,13 +1,15 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package dag
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
-
-	"github.com/hashicorp/go-multierror"
 )
 
 // AcyclicGraph is a specialization of Graph that cannot have cycles.
@@ -28,14 +30,21 @@ func (g *AcyclicGraph) DirectedGraph() Grapher {
 
 // Returns a Set that includes every Vertex yielded by walking down from the
 // provided starting Vertex v.
-func (g *AcyclicGraph) Ancestors(v Vertex) (Set, error) {
+func (g *AcyclicGraph) Ancestors(vs ...Vertex) (Set, error) {
 	s := make(Set)
 	memoFunc := func(v Vertex, d int) error {
 		s.Add(v)
 		return nil
 	}
 
-	if err := g.DepthFirstWalk(g.downEdgesNoCopy(v), memoFunc); err != nil {
+	start := make(Set)
+	for _, v := range vs {
+		for _, dep := range g.downEdgesNoCopy(v) {
+			start.Add(dep)
+		}
+	}
+
+	if err := g.DepthFirstWalk(start, memoFunc); err != nil {
 		return nil, err
 	}
 
@@ -44,14 +53,21 @@ func (g *AcyclicGraph) Ancestors(v Vertex) (Set, error) {
 
 // Returns a Set that includes every Vertex yielded by walking up from the
 // provided starting Vertex v.
-func (g *AcyclicGraph) Descendents(v Vertex) (Set, error) {
+func (g *AcyclicGraph) Descendents(vs ...Vertex) (Set, error) {
 	s := make(Set)
 	memoFunc := func(v Vertex, d int) error {
 		s.Add(v)
 		return nil
 	}
 
-	if err := g.ReverseDepthFirstWalk(g.upEdgesNoCopy(v), memoFunc); err != nil {
+	start := make(Set)
+	for _, v := range vs {
+		for _, dep := range g.upEdgesNoCopy(v) {
+			start.Add(dep)
+		}
+	}
+
+	if err := g.ReverseDepthFirstWalk(start, memoFunc); err != nil {
 		return nil, err
 	}
 
@@ -128,7 +144,7 @@ func (g *AcyclicGraph) Validate() error {
 				cycleStr[j] = VertexName(vertex)
 			}
 
-			err = multierror.Append(err, fmt.Errorf(
+			err = errors.Join(err, fmt.Errorf(
 				"Cycle: %s", strings.Join(cycleStr, ", ")))
 		}
 	}
@@ -136,7 +152,7 @@ func (g *AcyclicGraph) Validate() error {
 	// Look for cycles to self
 	for _, e := range g.Edges() {
 		if e.Source() == e.Target() {
-			err = multierror.Append(err, fmt.Errorf(
+			err = errors.Join(err, fmt.Errorf(
 				"Self reference: %s", VertexName(e.Source())))
 		}
 	}

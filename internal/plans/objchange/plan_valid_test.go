@@ -1,9 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package objchange
 
 import (
 	"testing"
 
-	"github.com/apparentlymart/go-dump/dump"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -1507,6 +1510,7 @@ func TestAssertPlanValid(t *testing.T) {
 					// When an object has dynamic attrs, the map may be
 					// handled as an object.
 					"map_as_obj": {
+						Optional: true,
 						NestedType: &configschema.Object{
 							Nesting: configschema.NestingMap,
 							Attributes: map[string]*configschema.Attribute{
@@ -1519,6 +1523,7 @@ func TestAssertPlanValid(t *testing.T) {
 						},
 					},
 					"list": {
+						Optional: true,
 						NestedType: &configschema.Object{
 							Nesting: configschema.NestingList,
 							Attributes: map[string]*configschema.Attribute{
@@ -1583,11 +1588,23 @@ func TestAssertPlanValid(t *testing.T) {
 					"one": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.NullVal(cty.DynamicPseudoType),
 					}),
+					"two": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name": cty.DynamicPseudoType,
+					})),
+					"three": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name": cty.DynamicPseudoType,
+					})),
 				}),
 				"list": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"name": cty.NullVal(cty.String),
 					}),
+					cty.NullVal(cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					})),
+					cty.NullVal(cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					})),
 				}),
 				"set": cty.SetVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
@@ -1608,11 +1625,26 @@ func TestAssertPlanValid(t *testing.T) {
 					"one": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("computed"),
 					}),
+					// The config was null, but some providers may return a
+					// non-null object here, so we need to accept this for
+					// compatibility.
+					"two": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.NullVal(cty.String),
+					}),
+					"three": cty.NullVal(cty.Object(map[string]cty.Type{
+						"name": cty.DynamicPseudoType,
+					})),
 				}),
 				"list": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"name": cty.StringVal("computed"),
 					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.NullVal(cty.String),
+					}),
+					cty.NullVal(cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					})),
 				}),
 				"set": cty.SetVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
@@ -1689,6 +1721,250 @@ func TestAssertPlanValid(t *testing.T) {
 			}),
 			nil,
 		},
+
+		// When validating collections we start by comparing length, which
+		// requires guarding for any unknown values incorrectly returned by the
+		// provider.
+		"nested collection attrs planned unknown": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"set": {
+						Computed: true,
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type:     cty.String,
+									Computed: true,
+									Optional: true,
+								},
+							},
+						},
+					},
+					"list": {
+						Computed: true,
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type:     cty.String,
+									Computed: true,
+									Optional: true,
+								},
+							},
+						},
+					},
+					"map": {
+						Computed: true,
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingMap,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type:     cty.String,
+									Computed: true,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+				"list": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+				"map": cty.MapVal(map[string]cty.Value{
+					"key": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+				"list": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+				"map": cty.MapVal(map[string]cty.Value{
+					"key": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+			}),
+			// provider cannot override the config
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.UnknownVal(cty.Set(
+					cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					}),
+				)),
+				"list": cty.UnknownVal(cty.Set(
+					cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					}),
+				)),
+				"map": cty.UnknownVal(cty.Map(
+					cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					}),
+				)),
+			}),
+			[]string{
+				`.set: planned unknown for configured value`,
+				`.list: planned unknown for configured value`,
+				`.map: planned unknown for configured value`,
+			},
+		},
+
+		"refined unknown values can become less refined": {
+			// Providers often can't preserve refinements through the provider
+			// wire protocol: although we do have a defined serialization for
+			// it, most providers were written before there was any such
+			// thing as refinements, and in future there might be new
+			// refinements that even refinement-aware providers don't know
+			// how to preserve, so we allow them to get dropped here as
+			// a concession to backward-compatibility.
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("old"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.UnknownVal(cty.String).RefineNotNull(),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.UnknownVal(cty.String),
+			}),
+			nil,
+		},
+
+		"refined unknown values in collection elements can become less refined": {
+			// Providers often can't preserve refinements through the provider
+			// wire protocol: although we do have a defined serialization for
+			// it, most providers were written before there was any such
+			// thing as refinements, and in future there might be new
+			// refinements that even refinement-aware providers don't know
+			// how to preserve, so we allow them to get dropped here as
+			// a concession to backward-compatibility.
+			//
+			// This is intending to approximate something like this:
+			//
+			//     resource "null_resource" "hello" {
+			//       triggers = {
+			//         key = uuid()
+			//       }
+			//     }
+			//
+			// ...under the assumption that the null_resource implementation
+			// cannot preserve the not-null refinement that the uuid function
+			// generates.
+			//
+			// https://github.com/hashicorp/terraform/issues/33385
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"m": {
+						Type: cty.Map(cty.String),
+					},
+				},
+			},
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"m": cty.Map(cty.String),
+			})),
+			cty.ObjectVal(map[string]cty.Value{
+				"m": cty.MapVal(map[string]cty.Value{
+					"key": cty.UnknownVal(cty.String).RefineNotNull(),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"m": cty.MapVal(map[string]cty.Value{
+					"key": cty.UnknownVal(cty.String),
+				}),
+			}),
+			nil,
+		},
+
+		"nested set values can contain computed unknown": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"set": {
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"input": {
+									Type:     cty.String,
+									Optional: true,
+								},
+								"computed": {
+									Type:     cty.String,
+									Computed: true,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"input":    cty.StringVal("a"),
+						"computed": cty.NullVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"input":    cty.StringVal("b"),
+						"computed": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"input":    cty.StringVal("a"),
+						"computed": cty.NullVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"input":    cty.StringVal("b"),
+						"computed": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			// Plan can mark the null computed values as unknown
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"input":    cty.StringVal("a"),
+						"computed": cty.UnknownVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"input":    cty.StringVal("b"),
+						"computed": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+			[]string{},
+		},
 	}
 
 	for name, test := range tests {
@@ -1706,9 +1982,9 @@ func TestAssertPlanValid(t *testing.T) {
 
 			t.Logf(
 				"\nprior:  %sconfig:  %splanned: %s",
-				dump.Value(test.Prior),
-				dump.Value(test.Config),
-				dump.Value(test.Planned),
+				ctydebug.ValueString(test.Prior),
+				ctydebug.ValueString(test.Config),
+				ctydebug.ValueString(test.Planned),
 			)
 			for msg := range wantErrs {
 				if _, ok := gotErrs[msg]; !ok {

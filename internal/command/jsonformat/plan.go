@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonformat
 
 import (
@@ -16,25 +19,20 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-type PlanRendererOpt int
-
 const (
 	detectedDrift  string = "drift"
 	proposedChange string = "change"
-
-	Errored PlanRendererOpt = iota
-	CanNotApply
 )
 
 type Plan struct {
 	PlanFormatVersion  string                     `json:"plan_format_version"`
-	OutputChanges      map[string]jsonplan.Change `json:"output_changes"`
-	ResourceChanges    []jsonplan.ResourceChange  `json:"resource_changes"`
-	ResourceDrift      []jsonplan.ResourceChange  `json:"resource_drift"`
-	RelevantAttributes []jsonplan.ResourceAttr    `json:"relevant_attributes"`
+	OutputChanges      map[string]jsonplan.Change `json:"output_changes,omitempty"`
+	ResourceChanges    []jsonplan.ResourceChange  `json:"resource_changes,omitempty"`
+	ResourceDrift      []jsonplan.ResourceChange  `json:"resource_drift,omitempty"`
+	RelevantAttributes []jsonplan.ResourceAttr    `json:"relevant_attributes,omitempty"`
 
 	ProviderFormatVersion string                            `json:"provider_format_version"`
-	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas"`
+	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas,omitempty"`
 }
 
 func (plan Plan) getSchema(change jsonplan.ResourceChange) *jsonprovider.Schema {
@@ -48,8 +46,8 @@ func (plan Plan) getSchema(change jsonplan.ResourceChange) *jsonprovider.Schema 
 	}
 }
 
-func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRendererOpt) {
-	checkOpts := func(target PlanRendererOpt) bool {
+func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Quality) {
+	checkOpts := func(target plans.Quality) bool {
 		for _, opt := range opts {
 			if opt == target {
 				return true
@@ -63,10 +61,11 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 
 	willPrintResourceChanges := false
 	counts := make(map[plans.Action]int)
+	importingCount := 0
 	var changes []diff
 	for _, diff := range diffs.changes {
 		action := jsonplan.UnmarshalActions(diff.change.Change.Actions)
-		if action == plans.NoOp && !diff.Moved() {
+		if action == plans.NoOp && !diff.Moved() && !diff.Importing() {
 			// Don't show anything for NoOp changes.
 			continue
 		}
@@ -76,6 +75,10 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 		}
 
 		changes = append(changes, diff)
+
+		if diff.Importing() {
+			importingCount++
+		}
 
 		// Don't count move-only changes
 		if action != plans.NoOp {
@@ -94,7 +97,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 		// the plan is "applyable" and, if so, whether it had refresh changes
 		// that we already would've presented above.
 
-		if checkOpts(Errored) {
+		if checkOpts(plans.Errored) {
 			if haveRefreshChanges {
 				renderer.Streams.Print(format.HorizontalRule(renderer.Colorize, renderer.Streams.Stdout.Columns()))
 				renderer.Streams.Println()
@@ -135,7 +138,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 				)
 
 				if haveRefreshChanges {
-					if !checkOpts(CanNotApply) {
+					if !checkOpts(plans.NoChanges) {
 						// In this case, applying this plan will not change any
 						// remote objects but _will_ update the state to match what
 						// we detected during refresh, so we'll reassure the user
@@ -202,7 +205,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 	}
 
 	if len(changes) > 0 {
-		if checkOpts(Errored) {
+		if checkOpts(plans.Errored) {
 			renderer.Streams.Printf("\nTerraform planned the following actions, but then encountered a problem:\n")
 		} else {
 			renderer.Streams.Printf("\nTerraform will perform the following actions:\n")
@@ -216,11 +219,20 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 			}
 		}
 
-		renderer.Streams.Printf(
-			renderer.Colorize.Color("\n[bold]Plan:[reset] %d to add, %d to change, %d to destroy.\n"),
-			counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
-			counts[plans.Update],
-			counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
+		if importingCount > 0 {
+			renderer.Streams.Printf(
+				renderer.Colorize.Color("\n[bold]Plan:[reset] %d to import, %d to add, %d to change, %d to destroy.\n"),
+				importingCount,
+				counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
+				counts[plans.Update],
+				counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
+		} else {
+			renderer.Streams.Printf(
+				renderer.Colorize.Color("\n[bold]Plan:[reset] %d to add, %d to change, %d to destroy.\n"),
+				counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
+				counts[plans.Update],
+				counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
+		}
 	}
 
 	if len(outputs) > 0 {
@@ -332,14 +344,18 @@ func renderHumanDiff(renderer Renderer, diff diff, cause string) (string, bool) 
 	// the computed actions of these.
 
 	action := jsonplan.UnmarshalActions(diff.change.Change.Actions)
-	if action == plans.NoOp && (len(diff.change.PreviousAddress) == 0 || diff.change.PreviousAddress == diff.change.Address) {
+	if action == plans.NoOp && !diff.Moved() && !diff.Importing() {
 		// Skip resource changes that have nothing interesting to say.
 		return "", false
 	}
 
 	var buf bytes.Buffer
 	buf.WriteString(renderer.Colorize.Color(resourceChangeComment(diff.change, action, cause)))
-	buf.WriteString(fmt.Sprintf("%s %s %s", renderer.Colorize.Color(format.DiffActionSymbol(action)), resourceChangeHeader(diff.change), diff.diff.RenderHuman(0, computed.NewRenderHumanOpts(renderer.Colorize))))
+
+	opts := computed.NewRenderHumanOpts(renderer.Colorize)
+	opts.ShowUnchangedChildren = diff.Importing()
+
+	buf.WriteString(fmt.Sprintf("%s %s %s", renderer.Colorize.Color(format.DiffActionSymbol(action)), resourceChangeHeader(diff.change), diff.diff.RenderHuman(0, opts)))
 	return buf.String(), true
 }
 
@@ -351,6 +367,9 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 		dispAddr = fmt.Sprintf("%s (deposed object %s)", dispAddr, resource.Deposed)
 	}
 
+	var printedMoved bool
+	var printedImported bool
+
 	switch action {
 	case plans.Create:
 		buf.WriteString(fmt.Sprintf("[bold]  # %s[reset] will be created", dispAddr))
@@ -361,6 +380,8 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 			buf.WriteString("\n  # (config refers to values not yet known)")
 		case jsonplan.ResourceInstanceReadBecauseDependencyPending:
 			buf.WriteString("\n  # (depends on a resource or a module with changes pending)")
+		case jsonplan.ResourceInstanceReadBecauseCheckNested:
+			buf.WriteString("\n  # (config will be reloaded to verify a check block)")
 		}
 	case plans.Update:
 		switch changeCause {
@@ -382,6 +403,17 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 		default:
 			buf.WriteString(fmt.Sprintf("[bold]  # %s[reset] must be [bold][red]replaced[reset]", dispAddr))
 		}
+	case plans.CreateThenForget:
+		buf.WriteString(fmt.Sprintf("[bold] # %s[reset] must be replaced, but the existing object will not be destroyed", dispAddr))
+		buf.WriteString("\n # (destroy = false is set in the configuration)")
+	case plans.Forget:
+		if len(resource.Deposed) > 0 {
+			buf.WriteString(fmt.Sprintf("[bold] # %s[reset] will be removed from Terraform state, but [bold][red]will not be destroyed[reset]", dispAddr))
+			buf.WriteString("\n[bold] # (left over from a partially-failed replacement of this instance)")
+		} else {
+			buf.WriteString(fmt.Sprintf("[bold] # %s[reset] will no longer be managed by Terraform, but [bold][red]will not be destroyed[reset]", dispAddr))
+		}
+		buf.WriteString("\n # (destroy = false is set in the configuration)")
 	case plans.Delete:
 		switch changeCause {
 		case proposedChange:
@@ -437,6 +469,15 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 	case plans.NoOp:
 		if len(resource.PreviousAddress) > 0 && resource.PreviousAddress != resource.Address {
 			buf.WriteString(fmt.Sprintf("[bold]  # %s[reset] has moved to [bold]%s[reset]", resource.PreviousAddress, dispAddr))
+			printedMoved = true
+			break
+		}
+		if resource.Change.Importing != nil {
+			buf.WriteString(fmt.Sprintf("[bold]  # %s[reset] will be imported", dispAddr))
+			if len(resource.Change.GeneratedConfig) > 0 {
+				buf.WriteString("\n  #[reset] (config will be generated)")
+			}
+			printedImported = true
 			break
 		}
 		fallthrough
@@ -446,8 +487,26 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 	}
 	buf.WriteString("\n")
 
-	if len(resource.PreviousAddress) > 0 && resource.PreviousAddress != resource.Address && action != plans.NoOp {
+	if len(resource.PreviousAddress) > 0 && resource.PreviousAddress != resource.Address && !printedMoved {
 		buf.WriteString(fmt.Sprintf("  # [reset](moved from %s)\n", resource.PreviousAddress))
+	}
+	if resource.Change.Importing != nil && !printedImported {
+		// We want to make this as forward compatible as possible, and we know
+		// the ID may be removed from the Importing metadata in favour of
+		// something else.
+		// As Importing metadata is loaded from a JSON struct, the effect of it
+		// being removed in the future will mean this renderer will receive it
+		// as an empty string
+		if len(resource.Change.Importing.ID) > 0 {
+			buf.WriteString(fmt.Sprintf("  # [reset](imported from \"%s\")\n", resource.Change.Importing.ID))
+		} else {
+			// This means we're trying to render a plan from a future version
+			// and we didn't get given the ID. So we'll do our best.
+			buf.WriteString("  # [reset](will be imported first)\n")
+		}
+	}
+	if resource.Change.Importing != nil && (action == plans.CreateThenDelete || action == plans.DeleteThenCreate) {
+		buf.WriteString("  # [reset][yellow]Warning: this will destroy the imported resource[reset]\n")
 	}
 
 	return buf.String()

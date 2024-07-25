@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonformat
 
 import (
@@ -7,9 +10,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/colorstring"
 
-	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terminal"
 
@@ -26,56 +29,39 @@ func TestState(t *testing.T) {
 	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
 
 	tests := []struct {
-		State *format.StateOpts
-		Want  string
+		State   *states.State
+		Schemas *terraform.Schemas
+		Want    string
 	}{
-		{
-			&format.StateOpts{
-				State:   &states.State{},
-				Color:   color,
-				Schemas: &terraform.Schemas{},
-			},
-			"The state file is empty. No resources are represented.\n",
+		0: {
+			State:   &states.State{},
+			Schemas: &terraform.Schemas{},
+			Want:    "The state file is empty. No resources are represented.\n",
 		},
-		{
-			&format.StateOpts{
-				State:   basicState(t),
-				Color:   color,
-				Schemas: testSchemas(),
-			},
-			basicStateOutput,
+		1: {
+			State:   basicState(t),
+			Schemas: testSchemas(),
+			Want:    basicStateOutput,
 		},
-		{
-			&format.StateOpts{
-				State:   nestedState(t),
-				Color:   color,
-				Schemas: testSchemas(),
-			},
-			nestedStateOutput,
+		2: {
+			State:   nestedState(t),
+			Schemas: testSchemas(),
+			Want:    nestedStateOutput,
 		},
-		{
-			&format.StateOpts{
-				State:   deposedState(t),
-				Color:   color,
-				Schemas: testSchemas(),
-			},
-			deposedNestedStateOutput,
+		3: {
+			State:   deposedState(t),
+			Schemas: testSchemas(),
+			Want:    deposedNestedStateOutput,
 		},
-		{
-			&format.StateOpts{
-				State:   onlyDeposedState(t),
-				Color:   color,
-				Schemas: testSchemas(),
-			},
-			onlyDeposedOutput,
+		4: {
+			State:   onlyDeposedState(t),
+			Schemas: testSchemas(),
+			Want:    onlyDeposedOutput,
 		},
-		{
-			&format.StateOpts{
-				State:   stateWithMoreOutputs(t),
-				Color:   color,
-				Schemas: testSchemas(),
-			},
-			stateWithMoreOutputsOutput,
+		5: {
+			State:   stateWithMoreOutputs(t),
+			Schemas: testSchemas(),
+			Want:    stateWithMoreOutputsOutput,
 		},
 	}
 
@@ -83,8 +69,8 @@ func TestState(t *testing.T) {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 
 			root, outputs, err := jsonstate.MarshalForRenderer(&statefile.File{
-				State: tt.State.State,
-			}, tt.State.Schemas)
+				State: tt.State,
+			}, tt.Schemas)
 
 			if err != nil {
 				t.Errorf("found err: %v", err)
@@ -102,7 +88,7 @@ func TestState(t *testing.T) {
 				RootModule:            root,
 				RootModuleOutputs:     outputs,
 				ProviderFormatVersion: jsonprovider.FormatVersion,
-				ProviderSchemas:       jsonprovider.MarshalForRenderer(tt.State.Schemas),
+				ProviderSchemas:       jsonprovider.MarshalForRenderer(tt.Schemas),
 			})
 
 			result := done(t).All()
@@ -113,8 +99,8 @@ func TestState(t *testing.T) {
 	}
 }
 
-func testProvider() *terraform.MockProvider {
-	p := new(terraform.MockProvider)
+func testProvider() *testing_provider.MockProvider {
+	p := new(testing_provider.MockProvider)
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 		return providers.ReadResourceResponse{NewState: req.PriorState}
 	}
@@ -171,8 +157,8 @@ func testProviderSchema() *providers.GetProviderSchemaResponse {
 func testSchemas() *terraform.Schemas {
 	provider := testProvider()
 	return &terraform.Schemas{
-		Providers: map[addrs.Provider]*terraform.ProviderSchema{
-			addrs.NewDefaultProvider("test"): provider.ProviderSchema(),
+		Providers: map[addrs.Provider]providers.ProviderSchema{
+			addrs.NewDefaultProvider("test"): provider.GetProviderSchema(),
 		},
 	}
 }
@@ -267,8 +253,10 @@ func basicState(t *testing.T) *states.State {
 		t.Errorf("root module is nil; want valid object")
 	}
 
-	rootModule.SetLocalValue("foo", cty.StringVal("foo value"))
-	rootModule.SetOutputValue("bar", cty.StringVal("bar value"), false)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("bar value"), false,
+	)
 	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
@@ -312,14 +300,30 @@ func stateWithMoreOutputs(t *testing.T) *states.State {
 		t.Errorf("root module is nil; want valid object")
 	}
 
-	rootModule.SetOutputValue("string_var", cty.StringVal("string value"), false)
-	rootModule.SetOutputValue("int_var", cty.NumberIntVal(42), false)
-	rootModule.SetOutputValue("bool_var", cty.BoolVal(true), false)
-	rootModule.SetOutputValue("sensitive_var", cty.StringVal("secret!!!"), true)
-	rootModule.SetOutputValue("map_var", cty.MapVal(map[string]cty.Value{
-		"first":  cty.StringVal("foo"),
-		"second": cty.StringVal("bar"),
-	}), false)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "string_var"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("string value"), false,
+	)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "int_var"}.Absolute(addrs.RootModuleInstance),
+		cty.NumberIntVal(42), false,
+	)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "bool_var"}.Absolute(addrs.RootModuleInstance),
+		cty.True, false,
+	)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "sensitive_var"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("secret!!!"), true,
+	)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "map_var"}.Absolute(addrs.RootModuleInstance),
+		cty.MapVal(map[string]cty.Value{
+			"first":  cty.StringVal("foo"),
+			"second": cty.StringVal("bar"),
+		}),
+		false,
+	)
 
 	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package funcs
 
 import (
@@ -127,16 +130,16 @@ func TestNonsensitive(t *testing.T) {
 			``,
 		},
 
-		// Passing a value that is already non-sensitive is an error,
-		// because this function should always be used with specific
-		// intention, not just as a "make everything visible" hammer.
+		// Passing a value that is already non-sensitive is not an error,
+		// as this function may be used with specific to ensure that all
+		// values are indeed non-sensitive
 		{
 			cty.NumberIntVal(1),
-			`the given value is not sensitive, so this call is redundant`,
+			``,
 		},
 		{
 			cty.NullVal(cty.String),
-			`the given value is not sensitive, so this call is redundant`,
+			``,
 		},
 
 		// Unknown values may become sensitive once they are known, so we
@@ -176,4 +179,76 @@ func TestNonsensitive(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestIssensitive(t *testing.T) {
+	tests := []struct {
+		Input     cty.Value
+		Sensitive bool
+		WantErr   string
+	}{
+		{
+			cty.NumberIntVal(1).Mark(marks.Sensitive),
+			true,
+			``,
+		},
+		{
+			cty.NumberIntVal(1),
+			false,
+			``,
+		},
+		{
+			cty.DynamicVal.Mark(marks.Sensitive),
+			true,
+			``,
+		},
+		{
+			cty.UnknownVal(cty.String).Mark(marks.Sensitive),
+			true,
+			``,
+		},
+		{
+			cty.NullVal(cty.EmptyObject).Mark(marks.Sensitive),
+			true,
+			``,
+		},
+		{
+			cty.NullVal(cty.String),
+			false,
+			``,
+		},
+		{
+			cty.DynamicVal,
+			false,
+			``,
+		},
+		{
+			cty.UnknownVal(cty.String),
+			false,
+			``,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("issensitive(%#v)", test.Input), func(t *testing.T) {
+			got, err := Issensitive(test.Input)
+
+			if test.WantErr != "" {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.WantErr; got != want {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if (got.True() && !test.Sensitive) || (got.False() && test.Sensitive) {
+				t.Errorf("wrong result \ngot:  %#v\nwant: %#v", got, test.Sensitive)
+			}
+		})
+	}
+
 }

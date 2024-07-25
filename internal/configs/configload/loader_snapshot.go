@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configload
 
 import (
@@ -10,9 +13,10 @@ import (
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/spf13/afero"
+
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/modsdir"
-	"github.com/spf13/afero"
 )
 
 // LoadConfigWithSnapshot is a variant of LoadConfig that also simultaneously
@@ -28,7 +32,7 @@ func (l *Loader) LoadConfigWithSnapshot(rootDir string) (*configs.Config, *Snaps
 		Modules: map[string]*SnapshotModule{},
 	}
 	walker := l.makeModuleWalkerSnapshot(snap)
-	cfg, cDiags := configs.BuildConfig(rootMod, walker)
+	cfg, cDiags := configs.BuildConfig(rootMod, walker, configs.MockDataLoaderFunc(l.LoadExternalMockData))
 	diags = append(diags, cDiags...)
 
 	addDiags := l.addModuleToSnapshot(snap, "", rootDir, "", nil)
@@ -323,6 +327,10 @@ func (fs snapshotFS) Name() string {
 
 func (fs snapshotFS) Chmod(name string, mode os.FileMode) error {
 	return fmt.Errorf("cannot set file mode inside configuration snapshot")
+}
+
+func (snapshotFS) Chown(name string, uid int, gid int) error {
+	return fmt.Errorf("cannot set file owner inside configuration snapshot")
 }
 
 func (fs snapshotFS) Chtimes(name string, atime, mtime time.Time) error {

@@ -43,10 +43,11 @@ The following operators are valid:
   versions for which the comparison is true. "Greater-than" requests newer
   versions, and "less-than" requests older versions.
 
-- `~>`: Allows only the _rightmost_ version component to increment. For example,
+- `~>`: Allows only the _rightmost_ version component to increment. This format is referred to as the _pessimistic constraint_ operator. For example,
   to allow new patch releases within a specific minor release, use the full
-  version number: `~> 1.0.4` will allow installation of `1.0.5` and `1.0.10`
-  but not `1.1.0`. This is usually called the pessimistic constraint operator.
+  version number: 
+  - `~> 1.0.4`: Allows Terraform to install `1.0.5` and `1.0.10` but not `1.1.0`. 
+  - `~> 1.1`: Allows Terraform to install `1.2` and `1.10` but not `2.0`. 
 
 ## Version Constraint Behavior
 

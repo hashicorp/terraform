@@ -85,7 +85,7 @@ Terraform will perform the following actions:
                     and contain multiple lines
                 EOT -> null
             },
-        }
+        } -> null
       - number  = 123456789 -> null
       - object  = {
           - bool   = false -> null

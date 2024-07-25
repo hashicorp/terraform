@@ -1,0 +1,1 @@
+import-in-child-module/child/main.tf:3,1-7: Invalid import configuration; An import block was detected in "module.child". Import blocks are only allowed in the root module.

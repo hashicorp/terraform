@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package json
 
 import (
@@ -272,6 +275,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 				values := make([]DiagnosticExpressionValue, 0, len(vars))
 				seen := make(map[string]struct{}, len(vars))
 				includeUnknown := tfdiags.DiagnosticCausedByUnknown(diag)
+				includeEphemeral := tfdiags.DiagnosticCausedByEphemeral(diag)
 				includeSensitive := tfdiags.DiagnosticCausedBySensitive(diag)
 			Traversals:
 				for _, traversal := range vars {
@@ -291,6 +295,22 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 						}
 						value := DiagnosticExpressionValue{
 							Traversal: traversalStr,
+						}
+						// We'll skip any value that has a mark that we don't
+						// know how to handle, because in that case we can't
+						// know what that mark is intended to represent and so
+						// must be conservative.
+						_, valMarks := val.Unmark()
+						for mark := range valMarks {
+							switch mark {
+							case marks.Sensitive, marks.Ephemeral:
+								// These are handled below
+								continue
+							default:
+								// All other marks are unhandled, so we'll
+								// skip this traversal entirely.
+								continue Traversals
+							}
 						}
 						switch {
 						case val.HasMark(marks.Sensitive):
@@ -315,7 +335,27 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 							// unknown value even when it isn't.
 							if ty := val.Type(); ty != cty.DynamicPseudoType {
 								if includeUnknown {
-									value.Statement = fmt.Sprintf("is a %s, known only after apply", ty.FriendlyName())
+									switch {
+									case ty.IsCollectionType():
+										valRng := val.Range()
+										minLen := valRng.LengthLowerBound()
+										maxLen := valRng.LengthUpperBound()
+										const maxLimit = 1024 // (upper limit is just an arbitrary value to avoid showing distracting large numbers in the UI)
+										switch {
+										case minLen == maxLen:
+											value.Statement = fmt.Sprintf("is a %s of length %d, known only after apply", ty.FriendlyName(), minLen)
+										case minLen != 0 && maxLen <= maxLimit:
+											value.Statement = fmt.Sprintf("is a %s with between %d and %d elements, known only after apply", ty.FriendlyName(), minLen, maxLen)
+										case minLen != 0:
+											value.Statement = fmt.Sprintf("is a %s with at least %d elements, known only after apply", ty.FriendlyName(), minLen)
+										case maxLen <= maxLimit:
+											value.Statement = fmt.Sprintf("is a %s with up to %d elements, known only after apply", ty.FriendlyName(), maxLen)
+										default:
+											value.Statement = fmt.Sprintf("is a %s, known only after apply", ty.FriendlyName())
+										}
+									default:
+										value.Statement = fmt.Sprintf("is a %s, known only after apply", ty.FriendlyName())
+									}
 								} else {
 									value.Statement = fmt.Sprintf("is a %s", ty.FriendlyName())
 								}
@@ -327,6 +367,9 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 							}
 						default:
 							value.Statement = fmt.Sprintf("is %s", compactValueStr(val))
+						}
+						if includeEphemeral && val.HasMark(marks.Ephemeral) {
+							value.Statement += ", and is ephemeral"
 						}
 						values = append(values, value)
 						seen[traversalStr] = struct{}{}
@@ -394,12 +437,27 @@ func compactValueStr(val cty.Value) string {
 	// helpful but concise messages in diagnostics. It is not comprehensive
 	// nor intended to be used for other purposes.
 
-	if val.HasMark(marks.Sensitive) {
-		// We check this in here just to make sure, but note that the caller
-		// of compactValueStr ought to have already checked this and skipped
-		// calling into compactValueStr anyway, so this shouldn't actually
-		// be reachable.
-		return "(sensitive value)"
+	val, valMarks := val.Unmark()
+	for mark := range valMarks {
+		switch mark {
+		case marks.Sensitive:
+			// We check this in here just to make sure, but note that the caller
+			// of compactValueStr ought to have already checked this and skipped
+			// calling into compactValueStr anyway, so this shouldn't actually
+			// be reachable.
+			return "(sensitive value)"
+		case marks.Ephemeral:
+			// A non-sensitive ephemeral value is fine to show in the UI. Values
+			// that are both ephemeral and sensitive should have both markings
+			// and should therefore get caught by the marks.Sensitive case
+			// above.
+			continue
+		default:
+			// We don't know about any other marks, so we'll be conservative.
+			// This shouldn't actuallyr eachable since the caller should've
+			// checked this and skipped calling compactValueStr anyway.
+			return "value with unrecognized marks (this is a bug in Terraform)"
+		}
 	}
 
 	// WARNING: We've only checked that the value isn't sensitive _shallowly_

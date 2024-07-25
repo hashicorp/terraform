@@ -1,8 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package providers
 
 import (
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -63,13 +67,25 @@ type Interface interface {
 	// ImportResourceState requests that the given resource be imported.
 	ImportResourceState(ImportResourceStateRequest) ImportResourceStateResponse
 
+	// MoveResourceState retrieves the updated value for a resource after it
+	// has moved resource types.
+	MoveResourceState(MoveResourceStateRequest) MoveResourceStateResponse
+
 	// ReadDataSource returns the data source's current state.
 	ReadDataSource(ReadDataSourceRequest) ReadDataSourceResponse
+
+	// CallFunction calls a provider-contributed function.
+	CallFunction(CallFunctionRequest) CallFunctionResponse
 
 	// Close shuts down the plugin process if applicable.
 	Close() error
 }
 
+// GetProviderSchemaResponse is the return type for GetProviderSchema, and
+// should only be used when handling a value for that method. The handling of
+// of schemas in any other context should always use ProviderSchema, so that
+// the in-memory representation can be more easily changed separately from the
+// RCP protocol.
 type GetProviderSchemaResponse struct {
 	// Provider is the schema for the provider itself.
 	Provider Schema
@@ -83,11 +99,26 @@ type GetProviderSchemaResponse struct {
 	// DataSources maps the data source name to that data source's schema.
 	DataSources map[string]Schema
 
+	// Functions maps from local function name (not including an namespace
+	// prefix) to the declaration of a function.
+	Functions map[string]FunctionDecl
+
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 
 	// ServerCapabilities lists optional features supported by the provider.
 	ServerCapabilities ServerCapabilities
+}
+
+// Schema pairs a provider or resource schema with that schema's version.
+// This is used to be able to upgrade the schema in UpgradeResourceState.
+//
+// This describes the schema for a single object within a provider. Type
+// "Schemas" (plural) instead represents the overall collection of schemas
+// for everything within a particular provider.
+type Schema struct {
+	Version int64
+	Block   *configschema.Block
 }
 
 // ServerCapabilities allows providers to communicate extra information
@@ -98,6 +129,26 @@ type ServerCapabilities struct {
 	// PlanDestroy signals that this provider expects to receive a
 	// PlanResourceChange call for resources that are to be destroyed.
 	PlanDestroy bool
+
+	// The GetProviderSchemaOptional capability indicates that this
+	// provider does not require calling GetProviderSchema to operate
+	// normally, and the caller can used a cached copy of the provider's
+	// schema.
+	GetProviderSchemaOptional bool
+
+	// The MoveResourceState capability indicates that this provider supports
+	// the MoveResourceState RPC.
+	MoveResourceState bool
+}
+
+// ClientCapabilities allows Terraform to publish information regarding
+// supported protocol features. This is used to indicate availability of
+// certain forward-compatible changes which may be optional in a major
+// protocol version, but cannot be tested for directly.
+type ClientCapabilities struct {
+	// The deferral_allowed capability signals that the client is able to
+	// handle deferred responses from the provider.
+	DeferralAllowed bool
 }
 
 type ValidateProviderConfigRequest struct {
@@ -147,12 +198,12 @@ type UpgradeResourceStateRequest struct {
 	// Version is version of the schema that created the current state.
 	Version int64
 
-	// RawStateJSON and RawStateFlatmap contiain the state that needs to be
+	// RawStateJSON and RawStateFlatmap contain the state that needs to be
 	// upgraded to match the current schema version. Because the schema is
 	// unknown, this contains only the raw data as stored in the state.
 	// RawStateJSON is the current json state encoding.
 	// RawStateFlatmap is the legacy flatmap encoding.
-	// Only on of these fields may be set for the upgrade request.
+	// Only one of these fields may be set for the upgrade request.
 	RawStateJSON    []byte
 	RawStateFlatmap map[string]string
 }
@@ -173,6 +224,9 @@ type ConfigureProviderRequest struct {
 
 	// Config is the complete configuration value for the provider.
 	Config cty.Value
+
+	// ClientCapabilities contains information about the client's capabilities.
+	ClientCapabilities ClientCapabilities
 }
 
 type ConfigureProviderResponse struct {
@@ -196,6 +250,46 @@ type ReadResourceRequest struct {
 	// each provider, and it should not be used without coordination with
 	// HashiCorp. It is considered experimental and subject to change.
 	ProviderMeta cty.Value
+
+	// ClientCapabilities contains information about the client's capabilities.
+	ClientCapabilities ClientCapabilities
+}
+
+// DeferredReason is a string that describes why a resource was deferred.
+// It differs from the protobuf enum in that it adds more cases
+// since it's more widely used to represent the reason for deferral.
+// Reasons like instance count unknown and deferred prereq are not
+// relevant for providers but can occur in general.
+type DeferredReason string
+
+const (
+	// DeferredReasonInvalid is used when the reason for deferring is
+	// unknown or irrelevant.
+	DeferredReasonInvalid DeferredReason = "invalid"
+
+	// DeferredReasonInstanceCountUnknown is used when the reason for deferring
+	// is that the count or for_each meta-attribute was unknown.
+	DeferredReasonInstanceCountUnknown DeferredReason = "instance_count_unknown"
+
+	// DeferredReasonResourceConfigUnknown is used when the reason for deferring
+	// is that the resource configuration was unknown.
+	DeferredReasonResourceConfigUnknown DeferredReason = "resource_config_unknown"
+
+	// DeferredReasonProviderConfigUnknown is used when the reason for deferring
+	// is that the provider configuration was unknown.
+	DeferredReasonProviderConfigUnknown DeferredReason = "provider_config_unknown"
+
+	// DeferredReasonAbsentPrereq is used when the reason for deferring is that
+	// a required prerequisite resource was absent.
+	DeferredReasonAbsentPrereq DeferredReason = "absent_prereq"
+
+	// DeferredReasonDeferredPrereq is used when the reason for deferring is
+	// that a required prerequisite resource was itself deferred.
+	DeferredReasonDeferredPrereq DeferredReason = "deferred_prereq"
+)
+
+type Deferred struct {
+	Reason DeferredReason
 }
 
 type ReadResourceResponse struct {
@@ -208,6 +302,10 @@ type ReadResourceResponse struct {
 	// Private is an opaque blob that will be stored in state along with the
 	// resource. It is intended only for interpretation by the provider itself.
 	Private []byte
+
+	// Deferred if present signals that the provider was not able to fully
+	// complete this operation and a susequent run is required.
+	Deferred *Deferred
 }
 
 type PlanResourceChangeRequest struct {
@@ -238,6 +336,9 @@ type PlanResourceChangeRequest struct {
 	// each provider, and it should not be used without coordination with
 	// HashiCorp. It is considered experimental and subject to change.
 	ProviderMeta cty.Value
+
+	// ClientCapabilities contains information about the client's capabilities.
+	ClientCapabilities ClientCapabilities
 }
 
 type PlanResourceChangeResponse struct {
@@ -263,6 +364,10 @@ type PlanResourceChangeResponse struct {
 	// otherwise fail due to this imprecise mapping. No other provider or SDK
 	// implementation is permitted to set this.
 	LegacyTypeSystem bool
+
+	// Deferred if present signals that the provider was not able to fully
+	// complete this operation and a susequent run is required.
+	Deferred *Deferred
 }
 
 type ApplyResourceChangeRequest struct {
@@ -320,6 +425,9 @@ type ImportResourceStateRequest struct {
 	// ID is a string with which the provider can identify the resource to be
 	// imported.
 	ID string
+
+	// ClientCapabilities contains information about the client's capabilities.
+	ClientCapabilities ClientCapabilities
 }
 
 type ImportResourceStateResponse struct {
@@ -331,6 +439,10 @@ type ImportResourceStateResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// Deferred if present signals that the provider was not able to fully
+	// complete this operation and a susequent run is required.
+	Deferred *Deferred
 }
 
 // ImportedResource represents an object being imported into Terraform with the
@@ -350,6 +462,46 @@ type ImportedResource struct {
 	// Private is an opaque blob that will be stored in state along with the
 	// resource. It is intended only for interpretation by the provider itself.
 	Private []byte
+}
+
+type MoveResourceStateRequest struct {
+	// SourceProviderAddress is the address of the provider that the resource
+	// is being moved from.
+	SourceProviderAddress string
+
+	// SourceTypeName is the name of the resource type that the resource is
+	// being moved from.
+	SourceTypeName string
+
+	// SourceSchemaVersion is the schema version of the resource type that the
+	// resource is being moved from.
+	SourceSchemaVersion int64
+
+	// SourceStateJSON contains the state of the resource that is being moved.
+	// Because the schema is unknown, this contains only the raw data as stored
+	// in the state.
+	SourceStateJSON []byte
+
+	// SourcePrivate contains the private state of the resource that is being
+	// moved.
+	SourcePrivate []byte
+
+	// TargetTypeName is the name of the resource type that the resource is
+	// being moved to.
+	TargetTypeName string
+}
+
+type MoveResourceStateResponse struct {
+	// TargetState is the state of the resource after it has been moved to the
+	// new resource type.
+	TargetState cty.Value
+
+	// TargetPrivate is the private state of the resource after it has been
+	// moved to the new resource type.
+	TargetPrivate []byte
+
+	// Diagnostics contains any warnings or errors from the method call.
+	Diagnostics tfdiags.Diagnostics
 }
 
 // AsInstanceObject converts the receiving ImportedObject into a
@@ -382,6 +534,9 @@ type ReadDataSourceRequest struct {
 	// each provider, and it should not be used without coordination with
 	// HashiCorp. It is considered experimental and subject to change.
 	ProviderMeta cty.Value
+
+	// ClientCapabilities contains information about the client's capabilities.
+	ClientCapabilities ClientCapabilities
 }
 
 type ReadDataSourceResponse struct {
@@ -390,4 +545,42 @@ type ReadDataSourceResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// Deferred if present signals that the provider was not able to fully
+	// complete this operation and a susequent run is required.
+	Deferred *Deferred
+}
+
+type CallFunctionRequest struct {
+	// FunctionName is the local name of the function to call, as it was
+	// declared by the provider in its schema and without any
+	// externally-imposed namespace prefixes.
+	FunctionName string
+
+	// Arguments are the positional argument values given at the call site.
+	//
+	// Provider functions are required to behave as pure functions, and so
+	// if all of the argument values are known then two separate calls with the
+	// same arguments must always return an identical value, without performing
+	// any externally-visible side-effects.
+	Arguments []cty.Value
+}
+
+type CallFunctionResponse struct {
+	// Result is the successful result of the function call.
+	//
+	// If all of the arguments in the call were known then the result must
+	// also be known. If any arguments were unknown then the result may
+	// optionally be unknown. The type of the returned value must conform
+	// to the return type constraint for this function as declared in the
+	// provider schema.
+	//
+	// If Diagnostics contains any errors, this field will be ignored and
+	// so can be left as cty.NilVal to represent the absense of a value.
+	Result cty.Value
+
+	// Err is the error value from the function call. This may be an instance
+	// of function.ArgError from the go-cty package to specify a problem with a
+	// specific argument.
+	Err error
 }

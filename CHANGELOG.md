@@ -1,26 +1,32 @@
-## 1.5.0 (Unreleased)
-
-UPGRADE NOTES:
-
-* This is the last version of Terraform for which macOS 10.13 High Sierra or 10.14 Mojave are officially supported. Future Terraform versions may not function correctly on these older versions of macOS.
-* This is the last version of Terraform for which Windows 7, 8, Server 2008, and Server 2012 are supported by Terraform's main implementation language, Go. We already ended explicit support for versions earlier than Windows 10 in Terraform v0.15.0, but future Terraform versions may malfunction in more significant ways on these older Windows versions.
-* On Linux (and some other non-macOS Unix platforms we don't officially support), Terraform will now notice the `trust-ad` option in `/etc/resolv.conf` and, if set, will set the "authentic data" option in outgoing DNS requests in order to better match the behavior of the GNU libc resolver.
-
-    Terraform does not pay any attention to the corresponding option in responses, but some DNSSEC-aware recursive resolvers return different responses when the request option isn't set. This should therefore avoid some potential situations where a DNS request from Terraform might get a different response than a similar request from other software on your system.
-
-ENHANCEMENTS:
-
-* Terraform CLI's local operations mode will now attempt to persist state snapshots to the state storage backend periodically during the apply step, thereby reducing the window for lost data if the Terraform process is aborted unexpectedly. [GH-32680]
-* If Terraform CLI recieves SIGINT (or its equivalent on non-Unix platforms) during the apply step then it will immediately try to persist the latest state snapshot to the state storage backend, with the assumption that a graceful shutdown request often typically followed by a hard abort some time later if the graceful shutdown doesn't complete fast enough. [GH-32680]
+## 1.10.0 (Unreleased)
 
 BUG FIXES:
 
-* `terraform init`: Fixed crash with invalid blank module name. [GH-32781]
+- The error message for an invalid default value for an input variable now indicates when the problem is with a nested value in a complex data type. [GH-35465]
+- Sensitive marks could be incorrectly transferred to nested resource values, causing erroneous changes during a plan [GH-35501]
+
+ENHANCEMENTS:
+
+- The `element` function now accepts negative indices [GH-35501]
+
+EXPERIMENTS:
+
+Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
+
+* `ephemeral_values`: This [language experiment](https://developer.hashicorp.com/terraform/language/settings#experimental-language-features) introduces a new special kind of value which Terraform allows to change between the plan phase and the apply phase, and between plan/apply rounds. Ephemeral values are never persisted in saved plan files or state snapshots, and so can only be used in parts of the language that don't require values to persist in those artifacts. Ephemeral input values are the main initial example of this concept, allowing the use of input variables to provide dynamic credentials that must change between plan and apply.
+* `terraform test` accepts a new option `-junit-xml=FILENAME`. If specified, and if the test configuration is valid enough to begin executing, then Terraform writes a JUnit XML test result report to the given filename, describing similar information as included in the normal test output. ([#34291](https://github.com/hashicorp/terraform/issues/34291))
+* The new command `terraform rpcapi` exposes some Terraform Core functionality through an RPC interface compatible with [`go-plugin`](https://github.com/hashicorp/go-plugin). The exact RPC API exposed here is currently subject to change at any time, because it's here primarily as a vehicle to support the [Terraform Stacks](https://www.hashicorp.com/blog/terraform-stacks-explained) private preview and so will be broken if necessary to respond to feedback from private preview participants, or possibly for other reasons. Do not use this mechanism yet outside of Terraform Stacks private preview.
+* The experimental "deferred actions" feature, enabled by passing the `-allow-deferral` option to `terraform plan`, permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values and allows providers to react more flexibly to unknown values. This experiment is under active development, and so it's not yet useful to participate in this experiment
 
 ## Previous Releases
 
-For information on prior major and minor releases, see their changelogs:
+For information on prior major and minor releases, refer to their changelogs:
 
+* [v1.9](https://github.com/hashicorp/terraform/blob/v1.9/CHANGELOG.md)
+* [v1.8](https://github.com/hashicorp/terraform/blob/v1.8/CHANGELOG.md)
+* [v1.7](https://github.com/hashicorp/terraform/blob/v1.7/CHANGELOG.md)
+* [v1.6](https://github.com/hashicorp/terraform/blob/v1.6/CHANGELOG.md)
+* [v1.5](https://github.com/hashicorp/terraform/blob/v1.5/CHANGELOG.md)
 * [v1.4](https://github.com/hashicorp/terraform/blob/v1.4/CHANGELOG.md)
 * [v1.3](https://github.com/hashicorp/terraform/blob/v1.3/CHANGELOG.md)
 * [v1.2](https://github.com/hashicorp/terraform/blob/v1.2/CHANGELOG.md)

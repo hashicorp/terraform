@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package format
 
 import (
@@ -13,7 +16,7 @@ import (
 // If the given colorize has colors enabled, the rule will also be given a
 // dark grey color to attempt to visually de-emphasize it for sighted users.
 //
-// This is intended for printing to the UI via mitchellh/cli.UI.Output, or
+// This is intended for printing to the UI via hashicorp/cli.UI.Output, or
 // similar, which will automatically append a trailing newline too.
 func HorizontalRule(color *colorstring.Colorize, width int) string {
 	if width <= 1 {

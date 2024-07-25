@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package initwd
 
 import (
@@ -13,11 +16,13 @@ import (
 	"github.com/apparentlymart/go-versions/versions"
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/getmodules"
+	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 	"github.com/hashicorp/terraform/internal/modsdir"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/registry/regsrc"
@@ -74,6 +79,12 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 // needs to replace a directory that is already present with a newly-extracted
 // package.
 //
+// installErrsOnly installs modules but converts validation errors from
+// building the configuration after installation to warnings. This is used by
+// commands like `get` or `init -from-module` where the established behavior
+// was only to install the requested module, and extra validation can break
+// compatibility.
+//
 // If the returned diagnostics contains errors then the module installation
 // may have wholly or partially completed. Modules must be loaded in order
 // to find their dependencies, so this function does many of the same checks
@@ -82,11 +93,11 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 // If successful (the returned diagnostics contains no errors) then the
 // first return value is the early configuration tree that was constructed by
 // the installation process.
-func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir string, upgrade bool, hooks ModuleInstallHooks) (*configs.Config, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks ModuleInstallHooks) (*configs.Config, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] ModuleInstaller: installing child modules for %s into %s", rootDir, i.modsDir)
 	var diags tfdiags.Diagnostics
 
-	rootMod, mDiags := i.loader.Parser().LoadConfigDir(rootDir)
+	rootMod, mDiags := i.loader.Parser().LoadConfigDirWithTests(rootDir, testsDir)
 	if rootMod == nil {
 		// We drop the diagnostics here because we only want to report module
 		// loading errors after checking the core version constraints, which we
@@ -112,14 +123,6 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir string, up
 	}
 
 	fetcher := getmodules.NewPackageFetcher()
-	cfg, instDiags := i.installDescendentModules(ctx, rootMod, rootDir, manifest, upgrade, hooks, fetcher)
-	diags = append(diags, instDiags...)
-
-	return cfg, diags
-}
-
-func (i *ModuleInstaller) installDescendentModules(ctx context.Context, rootMod *configs.Module, rootDir string, manifest modsdir.Manifest, upgrade bool, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*configs.Config, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
 
 	if hooks == nil {
 		// Use our no-op implementation as a placeholder
@@ -132,8 +135,16 @@ func (i *ModuleInstaller) installDescendentModules(ctx context.Context, rootMod 
 		Key: "",
 		Dir: rootDir,
 	}
+	walker := i.moduleInstallWalker(ctx, manifest, upgrade, hooks, fetcher)
 
-	cfg, cDiags := configs.BuildConfig(rootMod, configs.ModuleWalkerFunc(
+	cfg, instDiags := i.installDescendentModules(rootMod, manifest, walker, installErrsOnly)
+	diags = append(diags, instDiags...)
+
+	return cfg, diags
+}
+
+func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest modsdir.Manifest, upgrade bool, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) configs.ModuleWalker {
+	return configs.ModuleWalkerFunc(
 		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
 			var diags hcl.Diagnostics
 
@@ -150,6 +161,13 @@ func (i *ModuleInstaller) installDescendentModules(ctx context.Context, rootMod 
 				// Because we descend into modules which have errors, we need
 				// to look out for this case, but the config loader's
 				// diagnostics will report the error later.
+				return nil, nil, diags
+			}
+
+			if !hclsyntax.ValidIdentifier(req.Name) {
+				// A module with an invalid name shouldn't be installed at all. This is
+				// mostly a concern for remote modules, since we need to be able to convert
+				// the name to a valid path.
 				return nil, nil, diags
 			}
 
@@ -270,10 +288,49 @@ func (i *ModuleInstaller) installDescendentModules(ctx context.Context, rootMod 
 				// of addrs.ModuleSource.
 				panic(fmt.Sprintf("unsupported module source address %#v", addr))
 			}
-
 		},
-	))
+	)
+}
+
+func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, manifest modsdir.Manifest, installWalker configs.ModuleWalker, installErrsOnly bool) (*configs.Config, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// When attempting to initialize the current directory with a module
+	// source, some use cases may want to ignore configuration errors from the
+	// building of the entire configuration structure, but we still need to
+	// capture installation errors. Because the actual module installation
+	// happens in the ModuleWalkFunc callback while building the config, we
+	// need to create a closure to capture the installation diagnostics
+	// separately.
+	var instDiags hcl.Diagnostics
+	walker := installWalker
+	if installErrsOnly {
+		walker = configs.ModuleWalkerFunc(func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
+			mod, version, diags := installWalker.LoadModule(req)
+			instDiags = instDiags.Extend(diags)
+			return mod, version, diags
+		})
+	}
+
+	cfg, cDiags := configs.BuildConfig(rootMod, walker, configs.MockDataLoaderFunc(i.loader.LoadExternalMockData))
 	diags = diags.Append(cDiags)
+	if installErrsOnly {
+		// We can't continue if there was an error during installation, but
+		// return all diagnostics in case there happens to be anything else
+		// useful when debugging the problem. Any instDiags will be included in
+		// diags already.
+		if instDiags.HasErrors() {
+			return cfg, diags
+		}
+
+		// If there are any errors here, they must be only from building the
+		// config structures. We don't want to block initialization at this
+		// point, so convert these into warnings. Any actual errors in the
+		// configuration will be raised as soon as the config is loaded again.
+		// We continue below because writing the manifest is required to finish
+		// module installation.
+		diags = tfdiags.OverrideAll(diags, tfdiags.Warning, nil)
+	}
 
 	err := manifest.WriteSnapshotToDir(i.modsDir)
 	if err != nil {
@@ -534,7 +591,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *config
 			})
 			return nil, nil, diags
 		}
-		realAddr, err := addrs.ParseModuleSource(realAddrRaw)
+		realAddr, err := moduleaddrs.ParseModuleSource(realAddrRaw)
 		if err != nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -656,7 +713,7 @@ func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *config
 	if err != nil {
 		// go-getter generates a poor error for an invalid relative path, so
 		// we'll detect that case and generate a better one.
-		if _, ok := err.(*getmodules.MaybeRelativePathErr); ok {
+		if _, ok := err.(*moduleaddrs.MaybeRelativePathErr); ok {
 			log.Printf(
 				"[TRACE] ModuleInstaller: %s looks like a local path but is missing ./ or ../",
 				req.SourceAddr,
@@ -688,7 +745,7 @@ func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *config
 		return nil, diags
 	}
 
-	modDir, err := getmodules.ExpandSubdirGlobs(instPath, addr.Subdir)
+	modDir, err := moduleaddrs.ExpandSubdirGlobs(instPath, addr.Subdir)
 	if err != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,

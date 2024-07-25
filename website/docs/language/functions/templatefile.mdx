@@ -20,8 +20,8 @@ in the main Terraform language, including interpolation sequences delimited with
 `${` ... `}`. This function just allows longer template sequences to be factored
 out into a separate file for readability.
 
-The "vars" argument must be a map. Within the template file, each of the keys
-in the map is available as a variable for interpolation. The template may
+The "vars" argument must be an object. Within the template file, each of the
+keys in the map is available as a variable for interpolation. The template may
 also use any other function available in the Terraform language, except that
 recursive calls to `templatefile` are not permitted. Variable names must
 each start with a letter, followed by zero or more letters, digits, or
@@ -49,7 +49,7 @@ better editing experience as a result.
 Given a template file `backends.tftpl` with the following content:
 
 ```
-%{ for addr, port in ip_addrs ~}
+%{ for addr in ip_addrs ~}
 backend ${addr}:${port}
 %{ endfor ~}
 ```
@@ -60,7 +60,6 @@ The `templatefile` function renders the template:
 > templatefile("${path.module}/backends.tftpl", { port = 8080, ip_addrs = ["10.0.0.1", "10.0.0.2"] })
 backend 10.0.0.1:8080
 backend 10.0.0.2:8080
-
 ```
 
 ### Maps
@@ -148,3 +147,4 @@ For more information, see the main documentation for
 
 * [`file`](/terraform/language/functions/file) reads a file from disk and returns its literal contents
   without any template interpretation.
+* [`templatestring`](/terraform/language/functions/templatestring) takes a simple reference to a string value containing the template and renders its content.

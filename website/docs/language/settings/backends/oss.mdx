@@ -55,7 +55,7 @@ terraform {
 The `terraform_remote_state` data source will return all of the root outputs
 defined in the referenced remote state, an example output might look like:
 
-```
+```hcl
 data "terraform_remote_state" "network" {
     backend   = "oss"
     config    = {

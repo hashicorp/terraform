@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package dag
 
 // Edge represents an edge in the graph, with a source and target vertex.

@@ -6,15 +6,17 @@
     "path": "attr-as-blocks",
     "hidden": true
   },
+  { 
+    "title": "Style Guide", 
+    "path": "style" 
+  },
   {
     "title": "Files and Directories",
     "routes": [
       { "title": "Overview", "path": "files" },
       { "title": "Override Files", "path": "files/override" },
-      {
-        "title": "Dependency Lock File",
-        "path": "files/dependency-lock"
-      }
+      { "title": "Dependency Lock File", "path": "files/dependency-lock" },
+      { "title": "Test Files", "path": "files/tests" }
     ]
   },
   {
@@ -28,8 +30,7 @@
       {
         "title": "JSON Configuration Syntax",
         "path": "syntax/json"
-      },
-      { "title": "Style Conventions", "path": "syntax/style" }
+      }
     ]
   },
   {
@@ -213,12 +214,22 @@
             "path": "modules/develop/refactoring"
           }
         ]
-      },
-      {
-        "title": "Module Testing Experiment",
-        "path": "modules/testing-experiment",
-        "hidden": true
       }
+    ]
+  },
+  {
+    "title": "Moved block",
+    "path": "moved"
+  },
+  { "title": "Checks", "path": "checks" },
+  {
+      "title": "Import",
+      "routes": [
+       { "title": "Overview", "path": "import" },
+       {
+         "title": "Generating Configuration",
+         "path": "import/generating-configuration"
+       }
     ]
   },
   {
@@ -254,7 +265,7 @@
         "path": "expressions/dynamic-blocks"
       },
       {
-        "title": "Custom Condition Checks",
+        "title": "Custom Conditions",
         "path": "expressions/custom-conditions"
       },
       {
@@ -343,12 +354,20 @@
             "href": "/language/functions/startswith"
           },
           {
+            "title": "<code>strcontains</code>",
+            "href": "/language/functions/strcontains"
+          },
+          {
             "title": "<code>strrev</code>",
             "href": "/language/functions/strrev"
           },
           {
             "title": "<code>substr</code>",
             "href": "/language/functions/substr"
+          },
+          {
+            "title": "<code>templatestring</code>",
+            "href": "/language/functions/templatestring"
           },
           {
             "title": "<code>title</code>",
@@ -580,6 +599,10 @@
             "href": "/language/functions/formatdate"
           },
           {
+            "title": "<code>plantimestamp</code>",
+            "href": "/language/functions/plantimestamp"
+          },
+          {
             "title": "<code>timeadd</code>",
             "href": "/language/functions/timeadd"
           },
@@ -679,6 +702,10 @@
         "routes": [
           { "title": "<code>can</code>", "href": "/language/functions/can" },
           {
+            "title": "<code>issensitive</code>",
+            "href": "/language/functions/issensitive"
+          },
+          {
             "title": "<code>nonsensitive</code>",
             "href": "/language/functions/nonsensitive"
           },
@@ -712,6 +739,14 @@
           },
           { "title": "<code>try</code>", "href": "/language/functions/try" },
           { "title": "<code>type</code>", "href": "/language/functions/type" }
+        ]
+      },
+      {
+        "title": "Terraform-specific Functions",
+        "routes": [
+          { "title": "<code>provider::terraform::encode_tfvars</code>", "href": "/language/functions/terraform-encode_tfvars" },
+          { "title": "<code>provider::terraform::decode_tfvars</code>", "href": "/language/functions/terraform-decode_tfvars" },
+          { "title": "<code>provider::terraform::encode_expr</code>", "href": "/language/functions/terraform-encode_expr" }
         ]
       },
       { "title": "abs", "path": "functions/abs", "hidden": true },
@@ -796,6 +831,11 @@
       { "title": "formatlist", "path": "functions/formatlist", "hidden": true },
       { "title": "indent", "path": "functions/indent", "hidden": true },
       { "title": "index", "path": "functions/index_function", "hidden": true },
+      {
+        "title": "issensitive",
+        "path": "functions/issensitive",
+        "hidden": true
+      },
       { "title": "join", "path": "functions/join", "hidden": true },
       { "title": "jsondecode", "path": "functions/jsondecode", "hidden": true },
       { "title": "jsonencode", "path": "functions/jsonencode", "hidden": true },
@@ -819,6 +859,7 @@
       { "title": "one", "path": "functions/one", "hidden": true },
       { "title": "parseint", "path": "functions/parseint", "hidden": true },
       { "title": "pathexpand", "path": "functions/pathexpand", "hidden": true },
+      { "title": "plantimestamp", "path": "functions/plantimestamp", "hidden": true },
       { "title": "pow", "path": "functions/pow", "hidden": true },
       { "title": "range", "path": "functions/range", "hidden": true },
       { "title": "regex", "path": "functions/regex", "hidden": true },
@@ -847,6 +888,7 @@
       { "title": "sort", "path": "functions/sort", "hidden": true },
       { "title": "split", "path": "functions/split", "hidden": true },
       { "title": "startswith", "path": "functions/startswith", "hidden": true },
+      { "title": "strcontains", "path": "functions/strcontains", "hidden": true},
       { "title": "strrev", "path": "functions/strrev", "hidden": true },
       { "title": "substr", "path": "functions/substr", "hidden": true },
       { "title": "sum", "path": "functions/sum", "hidden": true },
@@ -855,6 +897,14 @@
         "path": "functions/templatefile",
         "hidden": true
       },
+      {
+        "title": "templatestring",
+        "path": "functions/templatestring",
+        "hidden": true
+      },
+      { "title": "terraform-encode_tfvars", "path": "functions/terraform-encode_tfvars", "hidden": true },
+      { "title": "terraform-decode_tfvars", "path": "functions/terraform-decode_tfvars", "hidden": true },
+      { "title": "terraform-encode_expr", "path": "functions/terraform-encode_expr", "hidden": true },
       {
         "title": "textdecodebase64",
         "path": "functions/textdecodebase64",
@@ -896,7 +946,7 @@
     "title": "Terraform Settings",
     "routes": [
       { "title": "Overview", "path": "settings" },
-      { "title": "Terraform Cloud", "path": "settings/terraform-cloud" },
+      { "title": "HCP Terraform", "path": "settings/cloud" },
       {
         "title": "Backends",
         "routes": [
@@ -1039,7 +1089,20 @@
     ]
   },
   {
-    "title": "Upgrading to Terraform v1.4",
+    "title": "Tests",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "tests"
+      },
+      {
+        "title": "Mocks",
+        "path": "tests/mocking"
+      }
+    ]
+  },
+  {
+    "title": "Upgrading to Terraform v1.9",
     "path": "upgrade-guides"
   },
   {

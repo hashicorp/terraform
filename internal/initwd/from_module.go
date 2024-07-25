@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package initwd
 
 import (
@@ -11,11 +14,11 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/getmodules"
+	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/modsdir"
@@ -46,6 +49,7 @@ const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 // are produced in that case, to prompt the user to rewrite the source strings
 // to be absolute references to the original remote module.
 func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modulesDir, sourceAddrStr string, reg *registry.Client, hooks ModuleInstallHooks) tfdiags.Diagnostics {
+
 	var diags tfdiags.Diagnostics
 
 	// The way this function works is pretty ugly, but we accept it because
@@ -125,7 +129,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 
 	// Now we need to create an artificial root module that will seed our
 	// installation process.
-	sourceAddr, err := addrs.ParseModuleSource(sourceAddrStr)
+	sourceAddr, err := moduleaddrs.ParseModuleSource(sourceAddrStr)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -154,11 +158,18 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	wrapHooks := installHooksInitDir{
 		Wrapped: hooks,
 	}
+	// Create a manifest record for the root module. This will be used if
+	// there are any relative-pathed modules in the root.
+	instManifest[""] = modsdir.Record{
+		Key: "",
+		Dir: rootDir,
+	}
 	fetcher := getmodules.NewPackageFetcher()
-	_, instDiags := inst.installDescendentModules(ctx, fakeRootModule, rootDir, instManifest, true, wrapHooks, fetcher)
-	diags = append(diags, instDiags...)
-	if instDiags.HasErrors() {
-		return diags
+
+	walker := inst.moduleInstallWalker(ctx, instManifest, true, wrapHooks, fetcher)
+	_, cDiags := inst.installDescendentModules(fakeRootModule, instManifest, walker, true)
+	if cDiags.HasErrors() {
+		return diags.Append(cDiags)
 	}
 
 	// If all of that succeeded then we'll now migrate what was installed
@@ -205,7 +216,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 			if mod != nil {
 				for _, mc := range mod.ModuleCalls {
 					if pathTraversesUp(mc.SourceAddrRaw) {
-						packageAddr, givenSubdir := getmodules.SplitPackageSubdir(sourceAddrStr)
+						packageAddr, givenSubdir := moduleaddrs.SplitPackageSubdir(sourceAddrStr)
 						newSubdir := filepath.Join(givenSubdir, mc.SourceAddrRaw)
 						if pathTraversesUp(newSubdir) {
 							// This should never happen in any reasonable

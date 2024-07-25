@@ -76,8 +76,7 @@ in the table below, regardless of type:
 * An unknown value (that is, a placeholder for a value that will be decided
   only during the apply operation) is represented as a
   [MessagePack extension](https://github.com/msgpack/msgpack/blob/master/spec.md#extension-types)
-  value whose type identifier is zero and whose value is unspecified and
-  meaningless.
+  value, described in more detail below.
 
 | `type` Pattern | MessagePack Representation |
 |---|---|
@@ -90,6 +89,64 @@ in the table below, regardless of type:
 | `["object",ATTRS]` | A MessagePack map with one key-value pair per attribute defined in the `ATTRS` object. The attribute name is serialized as the map key (always a MessagePack string) and the attribute value is represented by a value constructed by applying these same mapping rules to each attribute's own type. |
 | `["tuple",TYPES]` | A MessagePack array with one element per element described by the `TYPES` array. The element values are constructed by applying these same mapping rules to the corresponding element of `TYPES`. |
 | `"dynamic"` | A MessagePack array with exactly two elements. The first element is a MessagePack binary value containing a JSON-serialized type constraint in the same format described in this table. The second element is the result of applying these same mapping rules to the value with the type given in the first element. This special type constraint represents values whose types will be decided only at runtime. |
+
+Unknown values have two possible representations, both using
+[MessagePack extension](https://github.com/msgpack/msgpack/blob/master/spec.md#extension-types)
+values.
+
+The older encoding is for unrefined unknown values and uses an extension
+code of zero, with the extension value payload completely ignored.
+
+Newer Terraform versions can produce "refined" unknown values which carry some
+additional information that constrains the possible range of the final value/
+Refined unknown values have extension code 12 and then the extension object's
+payload is a MessagePack-encoded map using integer keys to represent different
+kinds of refinement:
+
+* `1` represents "nullness", and the value of that key will be a boolean
+  value that is true if the value is definitely null or false if it is
+  definitely not null. If this key isn't present at all then the value may or
+  may not be null. It's not actually useful to encode that an unknown value
+  is null; use a known null value instead in that case, because there is only
+  one null value of each type.
+* `2` represents string prefix, and the value is a string that the final
+  value is known to begin with. This is valid only for unknown values of string
+  type.
+* `3` and `4` represent the lower and upper bounds respectively of a number
+  value, and the value of both is a two-element msgpack array whose
+  first element is a valid encoding of a number (as in the table above)
+  and whose second element is a boolean value that is true for an inclusive
+  bound and false for an exclusive bound. This is valid only for unknown values
+  of number type.
+* `5` and `6` represent the lower and upper bounds respectively of the length
+  of a collection value. The value of both is an integer representing an
+  inclusive bound. This is valid only for unknown values of the three kinds of
+  collection types: list, set, and map.
+
+Unknown value refinements are an optional way to reduce the range of possible
+values for situations where that makes it possible to produce a known result
+for unknown inputs or where it allows detecting an error during the planning
+phase that would otherwise be detected only during the apply phase. It's always
+safe to ignore refinements and just treat an unknown value as wholly unknown,
+but considering refinements may allow a more precise answer. A provider that
+produces refined values in its planned new state (from `PlanResourceChange`)
+_must_ honor those refinements in the final state (from `ApplyResourceChange`).
+
+Unmarshalling code should ignore refinement map keys that they don't know about,
+because future versions of the protocol might define additional refinements.
+
+When encoding an unknown value without any refinements, always use the older
+format with extension code zero instead of using extension code 12 with an
+empty refinement map. Any refined unknown value _must_ have at least one
+refinement map entry. This rule ensures backward compatibility with older
+implementations that predate the value refinements concept.
+
+A server implementation of the protocol should treat _any_ MessagePack extension
+code as representing an unknown value, but should ignore the payload of that
+extension value entirely unless the extension code is 12 to indicate that
+the body represents refinements. Future versions of this protocol may define
+specific formats for other extension codes, but they will always represent
+unknown values.
 
 ### `Schema.NestedBlock` Mapping Rules for MessagePack
 

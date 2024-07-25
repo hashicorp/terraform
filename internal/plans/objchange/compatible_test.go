@@ -1,10 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package objchange
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/apparentlymart/go-dump/dump"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -113,6 +116,65 @@ func TestAssertObjectCompatible(t *testing.T) {
 			}),
 			[]string{
 				`.name: was cty.StringVal("wotsit"), but now cty.StringVal("thingy")`,
+			},
+		},
+		{
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"name": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.UnknownVal(cty.String),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.Zero,
+			}),
+			[]string{
+				`.name: wrong final value type: string required`,
+			},
+		},
+		{
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"name": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.UnknownVal(cty.String).RefineNotNull(),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.NullVal(cty.String),
+			}),
+			[]string{
+				`.name: final value cty.NullVal(cty.String) does not conform to planning placeholder cty.UnknownVal(cty.String).RefineNotNull()`,
+			},
+		},
+		{
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"name": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.UnknownVal(cty.String).Refine().
+					StringPrefix("boop:").
+					NewValue(),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("thingy"),
+			}),
+			[]string{
+				`.name: final value cty.StringVal("thingy") does not conform to planning placeholder cty.UnknownVal(cty.String).Refine().StringPrefixFull("boop:").NewValue()`,
 			},
 		},
 		{
@@ -1360,7 +1422,7 @@ func TestAssertObjectCompatible(t *testing.T) {
 				wantErrs[msg] = struct{}{}
 			}
 
-			t.Logf("\nplanned: %sactual:  %s", dump.Value(test.Planned), dump.Value(test.Actual))
+			t.Logf("\nplanned: %sactual:  %s", ctydebug.ValueString(test.Planned), ctydebug.ValueString(test.Actual))
 			for msg := range wantErrs {
 				if _, ok := gotErrs[msg]; !ok {
 					t.Errorf("missing expected error: %s", msg)

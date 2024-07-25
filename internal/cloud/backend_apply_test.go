@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package cloud
 
 import (
@@ -12,11 +15,14 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/cli"
 	tfe "github.com/hashicorp/go-tfe"
 	mocks "github.com/hashicorp/go-tfe/mocks"
 	version "github.com/hashicorp/go-version"
+
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
@@ -29,19 +35,18 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 	tfversion "github.com/hashicorp/terraform/version"
-	"github.com/mitchellh/cli"
 )
 
-func testOperationApply(t *testing.T, configDir string) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
+func testOperationApply(t *testing.T, configDir string) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
 	return testOperationApplyWithTimeout(t, configDir, 0)
 }
 
-func testOperationApplyWithTimeout(t *testing.T, configDir string, timeout time.Duration) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
+func testOperationApplyWithTimeout(t *testing.T, configDir string, timeout time.Duration) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
@@ -53,12 +58,12 @@ func testOperationApplyWithTimeout(t *testing.T, configDir string, timeout time.
 	depLocks := depsfile.NewLocks()
 	depLocks.SetProviderOverridden(addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/null"))
 
-	return &backend.Operation{
+	return &backendrun.Operation{
 		ConfigDir:       configDir,
 		ConfigLoader:    configLoader,
 		PlanRefresh:     true,
 		StateLocker:     clistate.NewLocker(timeout, stateLockerView),
-		Type:            backend.OperationTypeApply,
+		Type:            backendrun.OperationTypeApply,
 		View:            operationView,
 		DependencyLocks: depLocks,
 	}, configCleanup, done
@@ -86,7 +91,7 @@ func TestCloud_applyBasic(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -98,8 +103,8 @@ func TestCloud_applyBasic(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -146,7 +151,7 @@ func TestCloud_applyJSONBasic(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -205,7 +210,7 @@ func TestCloud_applyJSONWithOutputs(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -281,7 +286,7 @@ func TestCloud_applyCanceled(t *testing.T) {
 	run.Stop()
 
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 
@@ -298,7 +303,7 @@ func TestCloud_applyWithoutPermissions(t *testing.T) {
 	// Create a named workspace without permissions.
 	w, err := b.client.Workspaces.Create(
 		context.Background(),
-		b.organization,
+		b.Organization,
 		tfe.WorkspaceCreateOptions{
 			Name: tfe.String("prod"),
 		},
@@ -321,7 +326,7 @@ func TestCloud_applyWithoutPermissions(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 
@@ -338,7 +343,7 @@ func TestCloud_applyWithVCS(t *testing.T) {
 	// Create a named workspace with a VCS.
 	_, err := b.client.Workspaces.Create(
 		context.Background(),
-		b.organization,
+		b.Organization,
 		tfe.WorkspaceCreateOptions{
 			Name:    tfe.String("prod"),
 			VCSRepo: &tfe.VCSRepoOptions{},
@@ -360,7 +365,7 @@ func TestCloud_applyWithVCS(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if !run.PlanEmpty {
@@ -393,7 +398,7 @@ func TestCloud_applyWithParallelism(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 
@@ -403,14 +408,15 @@ func TestCloud_applyWithParallelism(t *testing.T) {
 	}
 }
 
-func TestCloud_applyWithPlan(t *testing.T) {
+// Apply with local plan file should fail.
+func TestCloud_applyWithLocalPlan(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
 	defer configCleanup()
 
-	op.PlanFile = &planfile.Reader{}
+	op.PlanFile = planfile.NewWrappedLocal(&planfile.Reader{})
 	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
@@ -420,7 +426,7 @@ func TestCloud_applyWithPlan(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if !run.PlanEmpty {
@@ -428,8 +434,77 @@ func TestCloud_applyWithPlan(t *testing.T) {
 	}
 
 	errOutput := output.Stderr()
-	if !strings.Contains(errOutput, "saved plan is currently not supported") {
+	if !strings.Contains(errOutput, "saved local plan is not supported") {
 		t.Fatalf("expected a saved plan error, got: %v", errOutput)
+	}
+}
+
+// Apply with bookmark to an existing cloud plan that's in a confirmable state
+// should work.
+func TestCloud_applyWithCloudPlan(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply-json")
+	defer configCleanup()
+	defer done(t)
+
+	op.UIOut = b.CLI
+	op.Workspace = testBackendSingleWorkspaceName
+
+	mockSROWorkspace(t, b, op.Workspace)
+
+	// Perform the plan before trying to apply it
+	ws, err := b.client.Workspaces.Read(context.Background(), b.Organization, b.WorkspaceMapping.Name)
+	if err != nil {
+		t.Fatalf("Couldn't read workspace: %s", err)
+	}
+
+	planRun, err := b.plan(context.Background(), context.Background(), op, ws)
+	if err != nil {
+		t.Fatalf("Couldn't perform plan: %s", err)
+	}
+
+	// Synthesize a cloud plan file with the plan's run ID
+	pf := &cloudplan.SavedPlanBookmark{
+		RemotePlanFormat: 1,
+		RunID:            planRun.ID,
+		Hostname:         b.Hostname,
+	}
+	op.PlanFile = planfile.NewWrappedCloud(pf)
+
+	// Start spying on the apply output (now that the plan's done)
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+
+	// Try apply
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	output := close(t)
+	if run.Result != backendrun.OperationSuccess {
+		t.Fatal("expected apply operation to succeed")
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected plan to not be empty")
+	}
+
+	gotOut := output.Stdout()
+	if !strings.Contains(gotOut, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("expected apply summary in output: %s", gotOut)
+	}
+
+	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
+	// An error suggests that the state was not unlocked after apply
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after apply: %s", err.Error())
 	}
 }
 
@@ -450,7 +525,7 @@ func TestCloud_applyWithoutRefresh(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -487,7 +562,7 @@ func TestCloud_applyWithRefreshOnly(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -526,7 +601,7 @@ func TestCloud_applyWithTarget(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to succeed")
 	}
 	if run.PlanEmpty {
@@ -565,7 +640,7 @@ func TestCloud_applyWithReplace(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatal("expected plan operation to succeed")
 	}
 	if run.PlanEmpty {
@@ -604,13 +679,13 @@ func TestCloud_applyWithRequiredVariables(t *testing.T) {
 	<-run.Done()
 	// The usual error of a required variable being missing is deferred and the operation
 	// is successful
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatal("expected plan operation to succeed")
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("unexpected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("unexpected HCP Terraform header in output: %s", output)
 	}
 }
 
@@ -630,7 +705,7 @@ func TestCloud_applyNoConfig(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if !run.PlanEmpty {
@@ -665,7 +740,7 @@ func TestCloud_applyNoChanges(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if !run.PlanEmpty {
@@ -703,7 +778,7 @@ func TestCloud_applyNoApprove(t *testing.T) {
 
 	<-run.Done()
 	output := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if !run.PlanEmpty {
@@ -751,7 +826,7 @@ func TestCloud_applyAutoApprove(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -763,8 +838,8 @@ func TestCloud_applyAutoApprove(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -802,7 +877,7 @@ func TestCloud_applyApprovedExternally(t *testing.T) {
 
 	wl, err := b.client.Workspaces.List(
 		ctx,
-		b.organization,
+		b.Organization,
 		nil,
 	)
 	if err != nil {
@@ -826,7 +901,7 @@ func TestCloud_applyApprovedExternally(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -834,8 +909,8 @@ func TestCloud_applyApprovedExternally(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -876,7 +951,7 @@ func TestCloud_applyDiscardedExternally(t *testing.T) {
 
 	wl, err := b.client.Workspaces.List(
 		ctx,
-		b.organization,
+		b.Organization,
 		nil,
 	)
 	if err != nil {
@@ -900,7 +975,7 @@ func TestCloud_applyDiscardedExternally(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if !run.PlanEmpty {
@@ -908,8 +983,8 @@ func TestCloud_applyDiscardedExternally(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -937,7 +1012,7 @@ func TestCloud_applyWithAutoApprove(t *testing.T) {
 	// Create a named workspace that auto applies.
 	_, err := b.client.Workspaces.Create(
 		context.Background(),
-		b.organization,
+		b.Organization,
 		tfe.WorkspaceCreateOptions{
 			Name: tfe.String("prod"),
 		},
@@ -965,7 +1040,7 @@ func TestCloud_applyWithAutoApprove(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -977,8 +1052,8 @@ func TestCloud_applyWithAutoApprove(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -1021,7 +1096,7 @@ func TestCloud_applyForceLocal(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -1033,8 +1108,8 @@ func TestCloud_applyForceLocal(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("unexpected TFC header in output: %s", output)
+	if strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("unexpected HCP Terraform header in output: %s", output)
 	}
 	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
@@ -1053,7 +1128,7 @@ func TestCloud_applyWorkspaceWithoutOperations(t *testing.T) {
 	// Create a named workspace that doesn't allow operations.
 	_, err := b.client.Workspaces.Create(
 		ctx,
-		b.organization,
+		b.Organization,
 		tfe.WorkspaceCreateOptions{
 			Name: tfe.String("no-operations"),
 		},
@@ -1084,7 +1159,7 @@ func TestCloud_applyWorkspaceWithoutOperations(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -1096,8 +1171,8 @@ func TestCloud_applyWorkspaceWithoutOperations(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("unexpected TFC header in output: %s", output)
+	if strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("unexpected HCP Terraform header in output: %s", output)
 	}
 	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
@@ -1114,7 +1189,7 @@ func TestCloud_applyLockTimeout(t *testing.T) {
 	ctx := context.Background()
 
 	// Retrieve the workspace used to run this operation in.
-	w, err := b.client.Workspaces.Read(ctx, b.organization, b.WorkspaceMapping.Name)
+	w, err := b.client.Workspaces.Read(ctx, b.Organization, b.WorkspaceMapping.Name)
 	if err != nil {
 		t.Fatalf("error retrieving workspace: %v", err)
 	}
@@ -1167,8 +1242,8 @@ func TestCloud_applyLockTimeout(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "Lock timeout exceeded") {
 		t.Fatalf("expected lock timout error in output: %s", output)
@@ -1204,7 +1279,7 @@ func TestCloud_applyDestroy(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -1216,8 +1291,8 @@ func TestCloud_applyDestroy(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "0 to add, 0 to change, 1 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -1250,7 +1325,7 @@ func TestCloud_applyDestroyNoConfig(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -1292,7 +1367,7 @@ func TestCloud_applyJSONWithProvisioner(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 
@@ -1381,7 +1456,7 @@ func TestCloud_applyPolicyPass(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -1393,8 +1468,8 @@ func TestCloud_applyPolicyPass(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -1429,7 +1504,7 @@ func TestCloud_applyPolicyHardFail(t *testing.T) {
 
 	<-run.Done()
 	viewOutput := done(t)
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if !run.PlanEmpty {
@@ -1446,8 +1521,8 @@ func TestCloud_applyPolicyHardFail(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -1484,7 +1559,7 @@ func TestCloud_applyPolicySoftFail(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -1496,8 +1571,8 @@ func TestCloud_applyPolicySoftFail(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -1559,7 +1634,7 @@ func TestCloud_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 
 	<-run.Done()
 	viewOutput := done(t)
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to success due to auto-approve")
 	}
 
@@ -1604,7 +1679,7 @@ func TestCloud_applyPolicySoftFailAutoApprove(t *testing.T) {
 	// Create a named workspace that auto applies.
 	_, err := b.client.Workspaces.Create(
 		context.Background(),
-		b.organization,
+		b.Organization,
 		tfe.WorkspaceCreateOptions{
 			Name: tfe.String("prod"),
 		},
@@ -1633,7 +1708,7 @@ func TestCloud_applyPolicySoftFailAutoApprove(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result != backend.OperationSuccess {
+	if run.Result != backendrun.OperationSuccess {
 		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
 	if run.PlanEmpty {
@@ -1645,8 +1720,8 @@ func TestCloud_applyPolicySoftFailAutoApprove(t *testing.T) {
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in Terraform Cloud") {
-		t.Fatalf("expected TFC header in output: %s", output)
+	if !strings.Contains(output, "Running apply in HCP Terraform") {
+		t.Fatalf("expected HCP Terraform header in output: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
@@ -1675,7 +1750,7 @@ func TestCloud_applyWithRemoteError(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if run.Result.ExitStatus() != 1 {
@@ -1713,7 +1788,7 @@ func TestCloud_applyJSONWithRemoteError(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
 	if run.Result.ExitStatus() != 1 {
@@ -1795,7 +1870,7 @@ func TestCloud_applyVersionCheck(t *testing.T) {
 			// remote workspace
 			_, err := b.client.Workspaces.Update(
 				ctx,
-				b.organization,
+				b.Organization,
 				b.WorkspaceMapping.Name,
 				tfe.WorkspaceUpdateOptions{
 					ExecutionMode:    tfe.String(tc.executionMode),
@@ -1835,7 +1910,7 @@ func TestCloud_applyVersionCheck(t *testing.T) {
 			if tc.wantErr != "" {
 				// ASSERT: if the test case wants an error, check for failure
 				// and the error message
-				if run.Result != backend.OperationFailure {
+				if run.Result != backendrun.OperationFailure {
 					t.Fatalf("expected run to fail, but result was %#v", run.Result)
 				}
 				errOutput := output.Stderr()
@@ -1845,23 +1920,23 @@ func TestCloud_applyVersionCheck(t *testing.T) {
 			} else {
 				// ASSERT: otherwise, check for success and appropriate output
 				// based on whether the run should be local or remote
-				if run.Result != backend.OperationSuccess {
+				if run.Result != backendrun.OperationSuccess {
 					t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 				}
 				output := b.CLI.(*cli.MockUi).OutputWriter.String()
-				hasRemote := strings.Contains(output, "Running apply in Terraform Cloud")
+				hasRemote := strings.Contains(output, "Running apply in HCP Terraform")
 				hasSummary := strings.Contains(output, "1 added, 0 changed, 0 destroyed")
 				hasResources := run.State.HasManagedResourceInstanceObjects()
 				if !tc.forceLocal && !isLocalExecutionMode(tc.executionMode) {
 					if !hasRemote {
-						t.Errorf("missing TFC header in output: %s", output)
+						t.Errorf("missing HCP Terraform header in output: %s", output)
 					}
 					if !hasSummary {
 						t.Errorf("expected apply summary in output: %s", output)
 					}
 				} else {
 					if hasRemote {
-						t.Errorf("unexpected TFC header in output: %s", output)
+						t.Errorf("unexpected HCP Terraform header in output: %s", output)
 					}
 					if !hasResources {
 						t.Errorf("expected resources in state")

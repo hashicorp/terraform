@@ -1,20 +1,25 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonformat
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/mitchellh/colorstring"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terminal"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 type JSONLogType string
@@ -25,24 +30,76 @@ type JSONLog struct {
 	Diagnostic *viewsjson.Diagnostic  `json:"diagnostic"`
 	Outputs    viewsjson.Outputs      `json:"outputs"`
 	Hook       map[string]interface{} `json:"hook"`
+
+	// Special fields for test messages.
+
+	TestRun  string `json:"@testrun,omitempty"`
+	TestFile string `json:"@testfile,omitempty"`
+
+	TestFileStatus     *viewsjson.TestFileStatus     `json:"test_file,omitempty"`
+	TestRunStatus      *viewsjson.TestRunStatus      `json:"test_run,omitempty"`
+	TestFileCleanup    *viewsjson.TestFileCleanup    `json:"test_cleanup,omitempty"`
+	TestSuiteSummary   *viewsjson.TestSuiteSummary   `json:"test_summary,omitempty"`
+	TestFatalInterrupt *viewsjson.TestFatalInterrupt `json:"test_interrupt,omitempty"`
+	TestState          *State                        `json:"test_state,omitempty"`
+	TestPlan           *Plan                         `json:"test_plan,omitempty"`
 }
 
 const (
-	LogVersion           JSONLogType = "version"
+	LogApplyComplete     JSONLogType = "apply_complete"
+	LogApplyErrored      JSONLogType = "apply_errored"
+	LogApplyStart        JSONLogType = "apply_start"
+	LogChangeSummary     JSONLogType = "change_summary"
 	LogDiagnostic        JSONLogType = "diagnostic"
 	LogPlannedChange     JSONLogType = "planned_change"
-	LogRefreshStart      JSONLogType = "refresh_start"
-	LogRefreshComplete   JSONLogType = "refresh_complete"
-	LogApplyStart        JSONLogType = "apply_start"
-	LogApplyErrored      JSONLogType = "apply_errored"
-	LogApplyComplete     JSONLogType = "apply_complete"
-	LogChangeSummary     JSONLogType = "change_summary"
-	LogProvisionStart    JSONLogType = "provision_start"
-	LogProvisionProgress JSONLogType = "provision_progress"
 	LogProvisionComplete JSONLogType = "provision_complete"
 	LogProvisionErrored  JSONLogType = "provision_errored"
+	LogProvisionProgress JSONLogType = "provision_progress"
+	LogProvisionStart    JSONLogType = "provision_start"
 	LogOutputs           JSONLogType = "outputs"
+	LogRefreshComplete   JSONLogType = "refresh_complete"
+	LogRefreshStart      JSONLogType = "refresh_start"
+	LogResourceDrift     JSONLogType = "resource_drift"
+	LogVersion           JSONLogType = "version"
+
+	// Test Messages
+
+	LogTestAbstract  JSONLogType = "test_abstract"
+	LogTestFile      JSONLogType = "test_file"
+	LogTestRun       JSONLogType = "test_run"
+	LogTestPlan      JSONLogType = "test_plan"
+	LogTestState     JSONLogType = "test_state"
+	LogTestSummary   JSONLogType = "test_summary"
+	LogTestCleanup   JSONLogType = "test_cleanup"
+	LogTestInterrupt JSONLogType = "test_interrupt"
+	LogTestStatus    JSONLogType = "test_status"
+	LogTestRetry     JSONLogType = "test_retry"
 )
+
+func incompatibleVersions(localVersion, remoteVersion string) bool {
+	var parsedLocal, parsedRemote float64
+	var err error
+
+	if parsedLocal, err = strconv.ParseFloat(localVersion, 64); err != nil {
+		return false
+	}
+	if parsedRemote, err = strconv.ParseFloat(remoteVersion, 64); err != nil {
+		return false
+	}
+
+	// If the local version is less than the remote version then the remote
+	// version might contain things the local version doesn't know about, so
+	// we're going to say they are incompatible.
+	//
+	// So far, we have built the renderer and the json packages to be backwards
+	// compatible so if the local version is greater than the remote version
+	// then that is okay, we'll still render a complete and correct plan.
+	//
+	// Note, this might change in the future. For example, if we introduce a
+	// new major version in one of the formats the renderer may no longer be
+	// backward compatible.
+	return parsedLocal < parsedRemote
+}
 
 type Renderer struct {
 	Streams  *terminal.Streams
@@ -51,14 +108,10 @@ type Renderer struct {
 	RunningInAutomation bool
 }
 
-func (renderer Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...PlanRendererOpt) {
-	// TODO(liamcervante): Tidy up this detection of version differences, we
-	// should only report warnings when the plan is generated using a newer
-	// version then we are executing. We could also look into major vs minor
-	// version differences. This should work for alpha testing in the meantime.
-	if plan.PlanFormatVersion != jsonplan.FormatVersion || plan.ProviderFormatVersion != jsonprovider.FormatVersion {
+func (renderer Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...plans.Quality) {
+	if incompatibleVersions(jsonplan.FormatVersion, plan.PlanFormatVersion) || incompatibleVersions(jsonprovider.FormatVersion, plan.ProviderFormatVersion) {
 		renderer.Streams.Println(format.WordWrap(
-			renderer.Colorize.Color("\n[bold][red]Warning:[reset][bold] This plan was generated using a different version of Terraform, the diff presented here maybe missing representations of recent features."),
+			renderer.Colorize.Color("\n[bold][red]Warning:[reset][bold] This plan was generated using a different version of Terraform, the diff presented here may be missing representations of recent features."),
 			renderer.Streams.Stdout.Columns()))
 	}
 
@@ -66,11 +119,7 @@ func (renderer Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...Pla
 }
 
 func (renderer Renderer) RenderHumanState(state State) {
-	// TODO(liamcervante): Tidy up this detection of version differences, we
-	// should only report warnings when the plan is generated using a newer
-	// version then we are executing. We could also look into major vs minor
-	// version differences. This should work for alpha testing in the meantime.
-	if state.StateFormatVersion != jsonstate.FormatVersion || state.ProviderFormatVersion != jsonprovider.FormatVersion {
+	if incompatibleVersions(jsonstate.FormatVersion, state.StateFormatVersion) || incompatibleVersions(jsonprovider.FormatVersion, state.ProviderFormatVersion) {
 		renderer.Streams.Println(format.WordWrap(
 			renderer.Colorize.Color("\n[bold][red]Warning:[reset][bold] This state was retrieved using a different version of Terraform, the state presented here maybe missing representations of recent features."),
 			renderer.Streams.Stdout.Columns()))
@@ -81,52 +130,57 @@ func (renderer Renderer) RenderHumanState(state State) {
 		return
 	}
 
-	opts := computed.RenderHumanOpts{
-		ShowUnchangedChildren: true,
-		HideDiffActionSymbols: true,
-	}
+	opts := computed.NewRenderHumanOpts(renderer.Colorize)
+	opts.ShowUnchangedChildren = true
+	opts.HideDiffActionSymbols = true
 
 	state.renderHumanStateModule(renderer, state.RootModule, opts, true)
 	state.renderHumanStateOutputs(renderer, opts)
 }
 
-func (r Renderer) RenderLog(log *JSONLog) error {
+func (renderer Renderer) RenderLog(log *JSONLog) error {
 	switch log.Type {
 	case LogRefreshComplete,
 		LogVersion,
 		LogPlannedChange,
 		LogProvisionComplete,
 		LogProvisionErrored,
-		LogApplyErrored:
+		LogApplyErrored,
+		LogTestAbstract,
+		LogTestStatus,
+		LogTestRetry,
+		LogTestPlan,
+		LogTestState,
+		LogTestInterrupt:
 		// We won't display these types of logs
 		return nil
 
-	case LogApplyStart, LogApplyComplete, LogRefreshStart, LogProvisionStart:
-		msg := fmt.Sprintf(r.Colorize.Color("[bold]%s[reset]"), log.Message)
-		r.Streams.Println(msg)
+	case LogApplyStart, LogApplyComplete, LogRefreshStart, LogProvisionStart, LogResourceDrift:
+		msg := fmt.Sprintf(renderer.Colorize.Color("[bold]%s[reset]"), log.Message)
+		renderer.Streams.Println(msg)
 
 	case LogDiagnostic:
-		diag := format.DiagnosticFromJSON(log.Diagnostic, r.Colorize, 78)
-		r.Streams.Print(diag)
+		diag := format.DiagnosticFromJSON(log.Diagnostic, renderer.Colorize, 78)
+		renderer.Streams.Print(diag)
 
 	case LogOutputs:
 		if len(log.Outputs) > 0 {
-			r.Streams.Println(r.Colorize.Color("[bold][green]Outputs:[reset]"))
+			renderer.Streams.Println(renderer.Colorize.Color("[bold][green]Outputs:[reset]"))
 			for name, output := range log.Outputs {
-				change := differ.FromJsonViewsOutput(output)
+				change := structured.FromJsonViewsOutput(output)
 				ctype, err := ctyjson.UnmarshalType(output.Type)
 				if err != nil {
 					return err
 				}
 
-				outputDiff := change.ComputeDiffForType(ctype)
-				outputStr := outputDiff.RenderHuman(0, computed.RenderHumanOpts{
-					Colorize:              r.Colorize,
-					ShowUnchangedChildren: true,
-				})
+				opts := computed.NewRenderHumanOpts(renderer.Colorize)
+				opts.ShowUnchangedChildren = true
+
+				outputDiff := differ.ComputeDiffForType(change, ctype)
+				outputStr := outputDiff.RenderHuman(0, opts)
 
 				msg := fmt.Sprintf("%s = %s", name, outputStr)
-				r.Streams.Println(msg)
+				renderer.Streams.Println(msg)
 			}
 		}
 
@@ -136,19 +190,104 @@ func (r Renderer) RenderLog(log *JSONLog) error {
 		resource := log.Hook["resource"].(map[string]interface{})
 		resourceAddr := resource["addr"].(string)
 
-		msg := fmt.Sprintf(r.Colorize.Color("[bold]%s: (%s):[reset] %s"),
+		msg := fmt.Sprintf(renderer.Colorize.Color("[bold]%s: (%s):[reset] %s"),
 			resourceAddr, provisioner, output)
-		r.Streams.Println(msg)
+		renderer.Streams.Println(msg)
 
 	case LogChangeSummary:
 		// Normally, we will only render the apply change summary since the renderer
 		// generates a plan change summary for us
-		msg := fmt.Sprintf(r.Colorize.Color("[bold][green]%s[reset]"), log.Message)
-		r.Streams.Println("\n" + msg + "\n")
+		msg := fmt.Sprintf(renderer.Colorize.Color("[bold][green]%s[reset]"), log.Message)
+		renderer.Streams.Println("\n" + msg + "\n")
+
+	case LogTestFile:
+		status := log.TestFileStatus
+
+		var msg string
+		switch status.Progress {
+		case "starting":
+			msg = fmt.Sprintf(renderer.Colorize.Color("%s... [light_gray]in progress[reset]"), status.Path)
+		case "teardown":
+			msg = fmt.Sprintf(renderer.Colorize.Color("%s... [light_gray]tearing down[reset]"), status.Path)
+		case "complete":
+			switch status.Status {
+			case "error", "fail":
+				msg = fmt.Sprintf(renderer.Colorize.Color("%s... [red]fail[reset]"), status.Path)
+			case "pass":
+				msg = fmt.Sprintf(renderer.Colorize.Color("%s... [green]pass[reset]"), status.Path)
+			case "skip", "pending":
+				msg = fmt.Sprintf(renderer.Colorize.Color("%s... [light_gray]%s[reset]"), status.Path, string(status.Status))
+			}
+		case "running":
+			// Don't print anything for the running status.
+			break
+		}
+
+		renderer.Streams.Println(msg)
+
+	case LogTestRun:
+		status := log.TestRunStatus
+
+		if status.Progress != "complete" {
+			// Don't print anything for status updates, we only report when the
+			// run is actually finished.
+			break
+		}
+
+		var msg string
+		switch status.Status {
+		case "error", "fail":
+			msg = fmt.Sprintf(renderer.Colorize.Color("  %s... [red]fail[reset]"), status.Run)
+		case "pass":
+			msg = fmt.Sprintf(renderer.Colorize.Color("  %s... [green]pass[reset]"), status.Run)
+		case "skip", "pending":
+			msg = fmt.Sprintf(renderer.Colorize.Color("  %s... [light_gray]%s[reset]"), status.Run, string(status.Status))
+		}
+
+		renderer.Streams.Println(msg)
+
+	case LogTestSummary:
+		renderer.Streams.Println() // We start our summary with a line break.
+
+		summary := log.TestSuiteSummary
+
+		switch summary.Status {
+		case "pending", "skip":
+			renderer.Streams.Print("Executed 0 tests")
+			if summary.Skipped > 0 {
+				renderer.Streams.Printf(", %d skipped.\n", summary.Skipped)
+			} else {
+				renderer.Streams.Println(".")
+			}
+			return nil
+		case "pass":
+			renderer.Streams.Print(renderer.Colorize.Color("[green]Success![reset] "))
+		case "fail", "error":
+			renderer.Streams.Print(renderer.Colorize.Color("[red]Failure![reset] "))
+		}
+
+		renderer.Streams.Printf("%d passed, %d failed", summary.Passed, summary.Failed+summary.Errored)
+		if summary.Skipped > 0 {
+			renderer.Streams.Printf(", %d skipped.\n", summary.Skipped)
+		} else {
+			renderer.Streams.Println(".")
+		}
+
+	case LogTestCleanup:
+		cleanup := log.TestFileCleanup
+
+		renderer.Streams.Eprintln(format.WordWrap(log.Message, renderer.Streams.Stderr.Columns()))
+		for _, resource := range cleanup.FailedResources {
+			if len(resource.DeposedKey) > 0 {
+				renderer.Streams.Eprintf(" - %s (%s)\n", resource.Instance, resource.DeposedKey)
+			} else {
+				renderer.Streams.Eprintf(" - %s\n", resource.Instance)
+			}
+		}
 
 	default:
 		// If the log type is not a known log type, we will just print the log message
-		r.Streams.Println(log.Message)
+		renderer.Streams.Println(log.Message)
 	}
 
 	return nil

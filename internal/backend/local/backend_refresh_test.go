@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package local
 
 import (
@@ -7,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -60,18 +63,22 @@ test_instance.foo:
 func TestLocal_refreshInput(t *testing.T) {
 	b := TestLocal(t)
 
-	schema := &terraform.ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"value": {Type: cty.String, Optional: true},
+	schema := providers.ProviderSchema{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"value": {Type: cty.String, Optional: true},
+				},
 			},
 		},
-		ResourceTypes: map[string]*configschema.Block{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Computed: true},
-					"foo": {Type: cty.String, Optional: true},
-					"ami": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Computed: true},
+						"foo": {Type: cty.String, Optional: true},
+						"ami": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -151,17 +158,21 @@ test_instance.foo:
 func TestLocal_refreshValidateProviderConfigured(t *testing.T) {
 	b := TestLocal(t)
 
-	schema := &terraform.ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"value": {Type: cty.String, Optional: true},
+	schema := providers.ProviderSchema{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"value": {Type: cty.String, Optional: true},
+				},
 			},
 		},
-		ResourceTypes: map[string]*configschema.Block{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Computed: true},
+						"ami": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -214,7 +225,7 @@ func TestLocal_refresh_context_error(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
+	if run.Result == backendrun.OperationSuccess {
 		t.Fatal("operation succeeded; want failure")
 	}
 	assertBackendStateUnlocked(t, b)
@@ -253,10 +264,10 @@ func TestLocal_refreshEmptyState(t *testing.T) {
 	assertBackendStateUnlocked(t, b)
 }
 
-func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
+func testOperationRefresh(t *testing.T, configDir string) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
@@ -266,8 +277,8 @@ func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, f
 	depLocks := depsfile.NewLocks()
 	depLocks.SetProviderOverridden(addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test"))
 
-	return &backend.Operation{
-		Type:            backend.OperationTypeRefresh,
+	return &backendrun.Operation{
+		Type:            backendrun.OperationTypeRefresh,
 		ConfigDir:       configDir,
 		ConfigLoader:    configLoader,
 		StateLocker:     clistate.NewNoopLocker(),
@@ -294,13 +305,15 @@ func testRefreshState() *states.State {
 // refreshFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/refresh . This schema should be
 // assigned to a mock provider named "test".
-func refreshFixtureSchema() *terraform.ProviderSchema {
-	return &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+func refreshFixtureSchema() providers.ProviderSchema {
+	return providers.ProviderSchema{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"ami": {Type: cty.String, Optional: true},
-					"id":  {Type: cty.String, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"ami": {Type: cty.String, Optional: true},
+						"id":  {Type: cty.String, Computed: true},
+					},
 				},
 			},
 		},

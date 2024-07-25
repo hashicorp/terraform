@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configs
 
 import (
@@ -46,7 +49,13 @@ type Module struct {
 	ManagedResources map[string]*Resource
 	DataResources    map[string]*Resource
 
-	Moved []*Moved
+	Moved   []*Moved
+	Removed []*Removed
+	Import  []*Import
+
+	Checks map[string]*Check
+
+	Tests map[string]*TestFile
 }
 
 // File describes the contents of a single configuration file.
@@ -80,7 +89,21 @@ type File struct {
 	ManagedResources []*Resource
 	DataResources    []*Resource
 
-	Moved []*Moved
+	Moved   []*Moved
+	Removed []*Removed
+	Import  []*Import
+
+	Checks []*Check
+}
+
+// NewModuleWithTests matches NewModule except it will also load in the provided
+// test files.
+func NewModuleWithTests(primaryFiles, overrideFiles []*File, testFiles map[string]*TestFile) (*Module, hcl.Diagnostics) {
+	mod, diags := NewModule(primaryFiles, overrideFiles)
+	if mod != nil {
+		mod.Tests = testFiles
+	}
+	return mod, diags
 }
 
 // NewModule takes a list of primary files and a list of override files and
@@ -102,7 +125,9 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		ModuleCalls:        map[string]*ModuleCall{},
 		ManagedResources:   map[string]*Resource{},
 		DataResources:      map[string]*Resource{},
+		Checks:             map[string]*Check{},
 		ProviderMetas:      map[addrs.Provider]*ProviderMeta{},
+		Tests:              map[string]*TestFile{},
 	}
 
 	// Process the required_providers blocks first, to ensure that all
@@ -198,8 +223,8 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		if m.CloudConfig != nil {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Duplicate Terraform Cloud configurations",
-				Detail:   fmt.Sprintf("A module may have only one 'cloud' block configuring Terraform Cloud. Terraform Cloud was previously configured at %s.", m.CloudConfig.DeclRange),
+				Summary:  "Duplicate HCP Terraform configurations",
+				Detail:   fmt.Sprintf("A module may have only one 'cloud' block configuring HCP Terraform or Terraform Enterprise. The 'cloud' block was previously configured at %s.", m.CloudConfig.DeclRange),
 				Subject:  &c.DeclRange,
 			})
 			continue
@@ -211,8 +236,8 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	if m.Backend != nil && m.CloudConfig != nil {
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Both a backend and Terraform Cloud configuration are present",
-			Detail:   fmt.Sprintf("A module may declare either one 'cloud' block configuring Terraform Cloud OR one 'backend' block configuring a state backend. Terraform Cloud is configured at %s; a backend is configured at %s. Remove the backend block to configure Terraform Cloud.", m.CloudConfig.DeclRange, m.Backend.DeclRange),
+			Summary:  "Both a backend and cloud configuration are present",
+			Detail:   fmt.Sprintf("A module may declare either one 'cloud' block OR one 'backend' block configuring a state backend. The 'cloud' block is configured at %s; a backend is configured at %s. Remove the backend block to configure HCP Terraform or Terraform Enteprise.", m.CloudConfig.DeclRange, m.Backend.DeclRange),
 			Subject:  &m.Backend.DeclRange,
 		})
 	}
@@ -330,6 +355,9 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		}
 	}
 
+	// Data sources can either be defined at the module root level, or within a
+	// single check block. We'll merge the data sources from both into the
+	// single module level DataResources map.
 	for _, r := range file.DataResources {
 		key := r.moduleUniqueKey()
 		if existing, exists := m.DataResources[key]; exists {
@@ -342,7 +370,37 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.DataResources[key] = r
+	}
 
+	for _, c := range file.Checks {
+		if c.DataResource != nil {
+			key := c.DataResource.moduleUniqueKey()
+			if existing, exists := m.DataResources[key]; exists {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Duplicate data %q configuration", existing.Type),
+					Detail:   fmt.Sprintf("A %s data resource named %q was already declared at %s. Resource names must be unique per type in each module, including within check blocks.", existing.Type, existing.Name, existing.DeclRange),
+					Subject:  &c.DataResource.DeclRange,
+				})
+				continue
+			}
+			m.DataResources[key] = c.DataResource
+		}
+
+		if existing, exists := m.Checks[c.Name]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Duplicate check %q configuration", existing.Name),
+				Detail:   fmt.Sprintf("A check block named %q was already declared at %s. Check blocks must be unique within each module.", existing.Name, existing.DeclRange),
+				Subject:  &c.DeclRange,
+			})
+			continue
+		}
+		m.Checks[c.Name] = c
+	}
+
+	// Handle the provider associations for all data resources together.
+	for _, r := range m.DataResources {
 		// set the provider FQN for the resource
 		if r.ProviderConfigRef != nil {
 			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
@@ -359,10 +417,45 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		}
 	}
 
-	// "Moved" blocks just append, because they are all independent
-	// of one another at this level. (We handle any references between
-	// them at runtime.)
+	// "Moved" blocks just append, because they are all independent of one
+	// another at this level. (We handle any references between them at
+	// runtime.)
 	m.Moved = append(m.Moved, file.Moved...)
+
+	m.Removed = append(m.Removed, file.Removed...)
+
+	for _, i := range file.Import {
+		iTo, iToOK := parseImportToStatic(i.To)
+		for _, mi := range m.Import {
+			// Try to detect duplicate import targets. We need to see if the to
+			// address can be parsed statically.
+			miTo, miToOK := parseImportToStatic(mi.To)
+			if iToOK && miToOK && iTo.Equal(miTo) {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Duplicate import configuration for %q", i.ToResource),
+					Detail:   fmt.Sprintf("An import block for the resource %q was already declared at %s. A resource can have only one import block.", i.ToResource, mi.DeclRange),
+					Subject:  i.To.Range().Ptr(),
+				})
+			}
+		}
+
+		if i.ProviderConfigRef != nil {
+			i.Provider = m.ProviderForLocalConfig(addrs.LocalProviderConfig{
+				LocalName: i.ProviderConfigRef.Name,
+				Alias:     i.ProviderConfigRef.Alias,
+			})
+		} else {
+			implied, err := addrs.ParseProviderPart(i.ToResource.Resource.ImpliedProvider())
+			if err == nil {
+				i.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+			}
+			// We don't return a diagnostic because the invalid resource name
+			// will already have been caught.
+		}
+
+		m.Import = append(m.Import, i)
+	}
 
 	return diags
 }
@@ -405,8 +498,8 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			// though it can override cloud/backend blocks from _other_ files.
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Duplicate Terraform Cloud configurations",
-				Detail:   fmt.Sprintf("A module may have only one 'cloud' block configuring Terraform Cloud. Terraform Cloud was previously configured at %s.", file.CloudConfigs[0].DeclRange),
+				Summary:  "Duplicate HCP Terraform configurations",
+				Detail:   fmt.Sprintf("A module may have only one 'cloud' block configuring HCP Terraform or Terraform Enterprise. The 'cloud' block was previously configured at %s.", file.CloudConfigs[0].DeclRange),
 				Subject:  &file.CloudConfigs[1].DeclRange,
 			})
 		}
@@ -545,10 +638,19 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 		})
 	}
 
+	for _, m := range file.Import {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Cannot override 'import' blocks",
+			Detail:   "Import blocks can appear only in normal files, not in override files.",
+			Subject:  m.DeclRange.Ptr(),
+		})
+	}
+
 	return diags
 }
 
-// gatherProviderLocalNames is a helper function that populatesA a map of
+// gatherProviderLocalNames is a helper function that populates a map of
 // provider FQNs -> provider local names. This information is useful for
 // user-facing output, which should include both the FQN and LocalName. It must
 // only be populated after the module has been parsed.

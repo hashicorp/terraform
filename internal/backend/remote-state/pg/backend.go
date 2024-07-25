@@ -1,9 +1,14 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package pg
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
+	"strconv"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
@@ -15,40 +20,53 @@ const (
 	statesIndexName = "states_by_name"
 )
 
+func defaultBoolFunc(k string, dv bool) schema.SchemaDefaultFunc {
+	return func() (interface{}, error) {
+		if v := os.Getenv(k); v != "" {
+			return strconv.ParseBool(v)
+		}
+
+		return dv, nil
+	}
+}
+
 // New creates a new backend for Postgres remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
 			"conn_str": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "Postgres connection string; a `postgres://` URL",
+				DefaultFunc: schema.EnvDefaultFunc("PG_CONN_STR", nil),
 			},
 
 			"schema_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Name of the automatically managed Postgres schema to store state",
-				Default:     "terraform_remote_state",
+				DefaultFunc: schema.EnvDefaultFunc("PG_SCHEMA_NAME", "terraform_remote_state"),
 			},
 
 			"skip_schema_creation": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "If set to `true`, Terraform won't try to create the Postgres schema",
-				Default:     false,
+				DefaultFunc: defaultBoolFunc("PG_SKIP_SCHEMA_CREATION", false),
 			},
 
 			"skip_table_creation": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "If set to `true`, Terraform won't try to create the Postgres table",
+				DefaultFunc: defaultBoolFunc("PG_SKIP_TABLE_CREATION", false),
 			},
 
 			"skip_index_creation": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "If set to `true`, Terraform won't try to create the Postgres index",
+				DefaultFunc: defaultBoolFunc("PG_SKIP_INDEX_CREATION", false),
 			},
 		},
 	}

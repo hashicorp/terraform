@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package jsonformat
 
 import (
@@ -11,11 +14,11 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -73,6 +76,353 @@ and found no differences, so no changes are needed.
 	got := done(t).Stdout()
 	if diff := cmp.Diff(want, got); len(diff) > 0 {
 		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+	}
+}
+
+func TestRenderHuman_Imports(t *testing.T) {
+	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
+
+	schemas := map[string]*jsonprovider.Provider{
+		"test": {
+			ResourceSchemas: map[string]*jsonprovider.Schema{
+				"test_resource": {
+					Block: &jsonprovider.Block{
+						Attributes: map[string]*jsonprovider.Attribute{
+							"id": {
+								AttributeType: marshalJson(t, "string"),
+							},
+							"value": {
+								AttributeType: marshalJson(t, "string"),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	tcs := map[string]struct {
+		plan   Plan
+		output string
+	}{
+		"simple_import": {
+			plan: Plan{
+				ResourceChanges: []jsonplan.ResourceChange{
+					{
+						Address:      "test_resource.resource",
+						Mode:         "managed",
+						Type:         "test_resource",
+						Name:         "resource",
+						ProviderName: "test",
+						Change: jsonplan.Change{
+							Actions: []string{"no-op"},
+							Before: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							After: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							Importing: &jsonplan.Importing{
+								ID: "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+							},
+						},
+					},
+				},
+			},
+			output: `
+Terraform will perform the following actions:
+
+  # test_resource.resource will be imported
+    resource "test_resource" "resource" {
+        id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+        value = "Hello, World!"
+    }
+
+Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
+`,
+		},
+		"simple_import_with_generated_config": {
+			plan: Plan{
+				ResourceChanges: []jsonplan.ResourceChange{
+					{
+						Address:      "test_resource.resource",
+						Mode:         "managed",
+						Type:         "test_resource",
+						Name:         "resource",
+						ProviderName: "test",
+						Change: jsonplan.Change{
+							Actions: []string{"no-op"},
+							Before: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							After: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							Importing: &jsonplan.Importing{
+								ID: "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+							},
+							GeneratedConfig: `resource "test_resource" "resource" {
+  id = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+  value = "Hello, World!"
+}`,
+						},
+					},
+				},
+			},
+			output: `
+Terraform will perform the following actions:
+
+  # test_resource.resource will be imported
+  # (config will be generated)
+    resource "test_resource" "resource" {
+        id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+        value = "Hello, World!"
+    }
+
+Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
+`,
+		},
+		"import_and_move": {
+			plan: Plan{
+				ResourceChanges: []jsonplan.ResourceChange{
+					{
+						Address:         "test_resource.after",
+						PreviousAddress: "test_resource.before",
+						Mode:            "managed",
+						Type:            "test_resource",
+						Name:            "after",
+						ProviderName:    "test",
+						Change: jsonplan.Change{
+							Actions: []string{"no-op"},
+							Before: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							After: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							Importing: &jsonplan.Importing{
+								ID: "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+							},
+						},
+					},
+				},
+			},
+			output: `
+Terraform will perform the following actions:
+
+  # test_resource.before has moved to test_resource.after
+  # (imported from "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E")
+    resource "test_resource" "after" {
+        id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+        value = "Hello, World!"
+    }
+
+Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
+`,
+		},
+		"import_move_and_update": {
+			plan: Plan{
+				ResourceChanges: []jsonplan.ResourceChange{
+					{
+						Address:         "test_resource.after",
+						PreviousAddress: "test_resource.before",
+						Mode:            "managed",
+						Type:            "test_resource",
+						Name:            "after",
+						ProviderName:    "test",
+						Change: jsonplan.Change{
+							Actions: []string{"update"},
+							Before: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							After: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, Universe!",
+							}),
+							Importing: &jsonplan.Importing{
+								ID: "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+							},
+						},
+					},
+				},
+			},
+			output: `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+
+Terraform will perform the following actions:
+
+  # test_resource.after will be updated in-place
+  # (moved from test_resource.before)
+  # (imported from "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E")
+  ~ resource "test_resource" "after" {
+        id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+      ~ value = "Hello, World!" -> "Hello, Universe!"
+    }
+
+Plan: 1 to import, 0 to add, 1 to change, 0 to destroy.
+`,
+		},
+		"import_and_update": {
+			plan: Plan{
+				ResourceChanges: []jsonplan.ResourceChange{
+					{
+						Address:      "test_resource.resource",
+						Mode:         "managed",
+						Type:         "test_resource",
+						Name:         "resource",
+						ProviderName: "test",
+						Change: jsonplan.Change{
+							Actions: []string{"update"},
+							Before: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							After: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, Universe!",
+							}),
+							Importing: &jsonplan.Importing{
+								ID: "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+							},
+						},
+					},
+				},
+			},
+			output: `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+
+Terraform will perform the following actions:
+
+  # test_resource.resource will be updated in-place
+  # (imported from "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E")
+  ~ resource "test_resource" "resource" {
+        id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+      ~ value = "Hello, World!" -> "Hello, Universe!"
+    }
+
+Plan: 1 to import, 0 to add, 1 to change, 0 to destroy.
+`,
+		},
+		"import_and_update_with_no_id": {
+			plan: Plan{
+				ResourceChanges: []jsonplan.ResourceChange{
+					{
+						Address:      "test_resource.resource",
+						Mode:         "managed",
+						Type:         "test_resource",
+						Name:         "resource",
+						ProviderName: "test",
+						Change: jsonplan.Change{
+							Actions: []string{"update"},
+							Before: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							After: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, Universe!",
+							}),
+							Importing: &jsonplan.Importing{},
+						},
+					},
+				},
+			},
+			output: `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+
+Terraform will perform the following actions:
+
+  # test_resource.resource will be updated in-place
+  # (will be imported first)
+  ~ resource "test_resource" "resource" {
+        id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+      ~ value = "Hello, World!" -> "Hello, Universe!"
+    }
+
+Plan: 1 to import, 0 to add, 1 to change, 0 to destroy.
+`,
+		},
+		"import_and_replace": {
+			plan: Plan{
+				ResourceChanges: []jsonplan.ResourceChange{
+					{
+						Address:      "test_resource.resource",
+						Mode:         "managed",
+						Type:         "test_resource",
+						Name:         "resource",
+						ProviderName: "test",
+						Change: jsonplan.Change{
+							Actions: []string{"create", "delete"},
+							Before: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							After: marshalJson(t, map[string]interface{}{
+								"id":    "9794FB1F-7260-442F-830C-F2D450E90CE3",
+								"value": "Hello, World!",
+							}),
+							ReplacePaths: marshalJson(t, [][]string{{"id"}}),
+							Importing: &jsonplan.Importing{
+								ID: "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+							},
+						},
+						ActionReason: "",
+					},
+				},
+			},
+			output: `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
++/- create replacement and then destroy
+
+Terraform will perform the following actions:
+
+  # test_resource.resource must be replaced
+  # (imported from "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E")
+  # Warning: this will destroy the imported resource
++/- resource "test_resource" "resource" {
+      ~ id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E" -> "9794FB1F-7260-442F-830C-F2D450E90CE3" # forces replacement
+        value = "Hello, World!"
+    }
+
+Plan: 1 to import, 1 to add, 0 to change, 1 to destroy.
+`,
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+
+			plan := tc.plan
+			plan.PlanFormatVersion = jsonplan.FormatVersion
+			plan.ProviderFormatVersion = jsonprovider.FormatVersion
+			plan.ProviderSchemas = schemas
+
+			renderer := Renderer{
+				Colorize: color,
+				Streams:  streams,
+			}
+			plan.renderHuman(renderer, plans.NormalMode)
+
+			got := done(t).Stdout()
+			want := tc.output
+			if diff := cmp.Diff(want, got); len(diff) > 0 {
+				t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+			}
+		})
 	}
 }
 
@@ -214,7 +564,78 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example will be destroyed
   - resource "test_instance" "example" {
-      - id = "i-02ae66f368e8518a9" -> null
+      - id                 = "i-02ae66f368e8518a9" -> null
+        # (1 unchanged attribute hidden)
+    }`,
+		},
+		"forget": {
+			Action: plans.Forget,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-123"),
+			}),
+			After: cty.NullVal(cty.EmptyObject),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: ` # test_instance.example will no longer be managed by Terraform, but will not be destroyed
+ # (destroy = false is set in the configuration)
+ . resource "test_instance" "example" {
+        id  = "i-02ae66f368e8518a9"
+        # (1 unchanged attribute hidden)
+    }`,
+		},
+		"forget (deposed)": {
+			Action:     plans.Forget,
+			Mode:       addrs.ManagedResourceMode,
+			DeposedKey: states.DeposedKey("adios"),
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+			}),
+			After: cty.NullVal(cty.EmptyObject),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: ` # test_instance.example (deposed object adios) will be removed from Terraform state, but will not be destroyed
+ # (left over from a partially-failed replacement of this instance)
+ # (destroy = false is set in the configuration)
+ . resource "test_instance" "example" {
+        id = "i-02ae66f368e8518a9"
+    }`,
+		},
+		"create-then-forget": {
+			Action: plans.CreateThenForget,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02999999999999999"),
+				"ami": cty.StringVal("ami-AFTER"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(cty.Path{
+				cty.GetAttrStep{Name: "ami"},
+			}),
+			ExpectedOutput: ` # test_instance.example must be replaced, but the existing object will not be destroyed
+ # (destroy = false is set in the configuration)
+ +/. resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER" # forces replacement
+      ~ id  = "i-02ae66f368e8518a9" -> "i-02999999999999999"
     }`,
 		},
 		"string in-place update": {
@@ -303,24 +724,95 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 				"id":        cty.StringVal("i-02ae66f368e8518a9"),
 				"ami":       cty.StringVal("ami-BEFORE"),
 				"unchanged": cty.NullVal(cty.String),
+				"empty":     cty.StringVal(""),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":        cty.StringVal("i-02ae66f368e8518a9"),
 				"ami":       cty.StringVal("ami-AFTER"),
 				"unchanged": cty.NullVal(cty.String),
+				"empty":     cty.NullVal(cty.String),
 			}),
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":        {Type: cty.String, Optional: true, Computed: true},
 					"ami":       {Type: cty.String, Optional: true},
 					"unchanged": {Type: cty.String, Optional: true},
+					"empty":     {Type: cty.String, Optional: true},
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> "ami-AFTER"
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+        id    = "i-02ae66f368e8518a9"
+        # (1 unchanged attribute hidden)
+    }`,
+		},
+		"string update (non-legacy)": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":        cty.StringVal("i-02ae66f368e8518a9"),
+				"from_null": cty.NullVal(cty.String),
+				"to_null":   cty.StringVal(""),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":        cty.StringVal("i-02ae66f368e8518a9"),
+				"from_null": cty.StringVal(""),
+				"to_null":   cty.NullVal(cty.String),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":        {Type: cty.String, Optional: true, Computed: true},
+					"from_null": {Type: cty.DynamicPseudoType, Optional: true},
+					"to_null":   {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      + from_null = ""
+        id        = "i-02ae66f368e8518a9"
+      - to_null   = "" -> null
+    }`,
+		},
+		"string update (non-legacy nested object)": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"obj": cty.ObjectVal(map[string]cty.Value{
+					"from_null": cty.NullVal(cty.String),
+					"to_null":   cty.StringVal(""),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"obj": cty.ObjectVal(map[string]cty.Value{
+					"from_null": cty.StringVal(""),
+					"to_null":   cty.NullVal(cty.String),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+					"obj": {NestedType: &configschema.Object{
+						Nesting: configschema.NestingSingle,
+						Attributes: map[string]*configschema.Attribute{
+							"from_null": {Type: cty.DynamicPseudoType, Optional: true},
+							"to_null":   {Type: cty.String, Optional: true},
+						},
+					}},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
         id  = "i-02ae66f368e8518a9"
+      ~ obj = {
+          + from_null = ""
+          - to_null   = "" -> null
+        }
     }`,
 		},
 		"in-place update of multi-line string field": {
@@ -1704,8 +2196,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       ~ list_field = [
             "aaaa",
-          - "bbbb",
-          + (known after apply),
+          ~ "bbbb" -> (known after apply),
             "cccc",
         ]
         # (1 unchanged attribute hidden)
@@ -3011,11 +3502,8 @@ func TestResourceChange_nestedSet(t *testing.T) {
 					}),
 				}),
 			}),
-			AfterValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "disks"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AfterSensitivePaths: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "disks"}},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema:          testSchema(configschema.NestingSet),
@@ -3105,11 +3593,8 @@ func TestResourceChange_nestedSet(t *testing.T) {
 					}),
 				}),
 			}),
-			AfterValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "disks"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AfterSensitivePaths: []cty.Path{
+				cty.GetAttrPath("disks"),
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema:          testSchema(configschema.NestingSet),
@@ -3155,11 +3640,8 @@ func TestResourceChange_nestedSet(t *testing.T) {
 					"volume_type": cty.String,
 				})),
 			}),
-			AfterValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "disks"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AfterSensitivePaths: []cty.Path{
+				cty.GetAttrPath("disks"),
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema:          testSchema(configschema.NestingSet),
@@ -3905,14 +4387,8 @@ func TestResourceChange_nestedMap(t *testing.T) {
 					}),
 				}),
 			}),
-			AfterValMarks: []cty.PathValueMarks{
-				{
-					Path: cty.Path{cty.GetAttrStep{Name: "disks"},
-						cty.IndexStep{Key: cty.StringVal("disk_a")},
-						cty.GetAttrStep{Name: "mount_point"},
-					},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AfterSensitivePaths: []cty.Path{
+				cty.GetAttrPath("disks").IndexString("disk_a").GetAttr("mount_point"),
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema:          testSchemaPlus(configschema.NestingMap),
@@ -5575,32 +6051,14 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					}),
 				}),
 			}),
-			AfterValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(1)}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					// Nested blocks/sets will mark the whole set/block as sensitive
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_list"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AfterSensitivePaths: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "ami"}},
+				cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(1)}},
+				cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+				cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+				// Nested blocks/sets will mark the whole set/block as sensitive
+				cty.Path{cty.GetAttrStep{Name: "nested_block_list"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema: &configschema.Block{
@@ -5719,39 +6177,15 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					}),
 				}),
 			}),
-			BeforeValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "special"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "some_number"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(2)}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			BeforeSensitivePaths: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "ami"}},
+				cty.Path{cty.GetAttrStep{Name: "special"}},
+				cty.Path{cty.GetAttrStep{Name: "some_number"}},
+				cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(2)}},
+				cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+				cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema: &configschema.Block{
@@ -5792,8 +6226,9 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
       ~ list_field  = [
             # (1 unchanged element hidden)
             "friends",
-          - (sensitive value),
-          + ".",
+          # Warning: this attribute value will no longer be marked as sensitive
+          # after applying this change.
+          ~ (sensitive value),
         ]
       ~ map_key     = {
           # Warning: this attribute value will no longer be marked as sensitive
@@ -5866,27 +6301,12 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					"an_attr": cty.StringVal("changed"),
 				}),
 			}),
-			AfterValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "tags"}, cty.IndexStep{Key: cty.StringVal("address")}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_single"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AfterSensitivePaths: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "tags"}, cty.IndexStep{Key: cty.StringVal("address")}},
+				cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
+				cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+				cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block_single"}},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema: &configschema.Block{
@@ -5911,8 +6331,9 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
   ~ resource "test_instance" "example" {
         id         = "i-02ae66f368e8518a9"
       ~ list_field = [
-          - "hello",
-          + (sensitive value),
+          # Warning: this attribute value will be marked as sensitive and will not
+          # display in UI output after applying this change.
+          ~ (sensitive value),
             "friends",
         ]
       ~ map_key    = {
@@ -5978,49 +6399,19 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					}),
 				}),
 			}),
-			BeforeValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_map"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			BeforeSensitivePaths: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "ami"}},
+				cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
+				cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+				cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block_map"}},
 			},
-			AfterValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_map"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AfterSensitivePaths: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "ami"}},
+				cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
+				cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+				cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block_map"}},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema: &configschema.Block{
@@ -6047,8 +6438,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
       ~ ami        = (sensitive value)
         id         = "i-02ae66f368e8518a9"
       ~ list_field = [
-          - (sensitive value),
-          + (sensitive value),
+          ~ (sensitive value),
             "friends",
         ]
       ~ map_key    = {
@@ -6124,39 +6514,15 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					}),
 				}),
 			}),
-			BeforeValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "special"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "some_number"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(2)}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			BeforeSensitivePaths: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "ami"}},
+				cty.Path{cty.GetAttrStep{Name: "special"}},
+				cty.Path{cty.GetAttrStep{Name: "some_number"}},
+				cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(2)}},
+				cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+				cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema: &configschema.Block{
@@ -6264,31 +6630,13 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 				}),
 			}),
 			After: cty.NullVal(cty.EmptyObject),
-			BeforeValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(1)}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			BeforeSensitivePaths: []cty.Path{
+				cty.Path{cty.GetAttrStep{Name: "ami"}},
+				cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(1)}},
+				cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+				cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block"}},
+				cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Schema: &configschema.Block{
@@ -6352,25 +6700,13 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 					}),
 				}),
 			}),
-			BeforeValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.GetAttrPath("ami"),
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.GetAttrPath("nested_block_set"),
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			BeforeSensitivePaths: []cty.Path{
+				cty.GetAttrPath("ami"),
+				cty.GetAttrPath("nested_block_set"),
 			},
-			AfterValMarks: []cty.PathValueMarks{
-				{
-					Path:  cty.GetAttrPath("ami"),
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
-				{
-					Path:  cty.GetAttrPath("nested_block_set"),
-					Marks: cty.NewValueMarks(marks.Sensitive),
-				},
+			AfterSensitivePaths: []cty.Path{
+				cty.GetAttrPath("ami"),
+				cty.GetAttrPath("nested_block_set"),
 			},
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -6553,20 +6889,20 @@ func TestResourceChange_moved(t *testing.T) {
 }
 
 type testCase struct {
-	Action          plans.Action
-	ActionReason    plans.ResourceInstanceChangeActionReason
-	ModuleInst      addrs.ModuleInstance
-	Mode            addrs.ResourceMode
-	InstanceKey     addrs.InstanceKey
-	DeposedKey      states.DeposedKey
-	Before          cty.Value
-	BeforeValMarks  []cty.PathValueMarks
-	AfterValMarks   []cty.PathValueMarks
-	After           cty.Value
-	Schema          *configschema.Block
-	RequiredReplace cty.PathSet
-	ExpectedOutput  string
-	PrevRunAddr     addrs.AbsResourceInstance
+	Action               plans.Action
+	ActionReason         plans.ResourceInstanceChangeActionReason
+	ModuleInst           addrs.ModuleInstance
+	Mode                 addrs.ResourceMode
+	InstanceKey          addrs.InstanceKey
+	DeposedKey           states.DeposedKey
+	Before               cty.Value
+	BeforeSensitivePaths []cty.Path
+	After                cty.Value
+	AfterSensitivePaths  []cty.Path
+	Schema               *configschema.Block
+	RequiredReplace      cty.PathSet
+	ExpectedOutput       string
+	PrevRunAddr          addrs.AbsResourceInstance
 }
 
 func runTestCases(t *testing.T, testCases map[string]testCase) {
@@ -6617,11 +6953,11 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 
 			src := &plans.ResourceInstanceChangeSrc{
 				ChangeSrc: plans.ChangeSrc{
-					Action:         tc.Action,
-					Before:         beforeDynamicValue,
-					BeforeValMarks: tc.BeforeValMarks,
-					After:          afterDynamicValue,
-					AfterValMarks:  tc.AfterValMarks,
+					Action:               tc.Action,
+					Before:               beforeDynamicValue,
+					BeforeSensitivePaths: tc.BeforeSensitivePaths,
+					After:                afterDynamicValue,
+					AfterSensitivePaths:  tc.AfterSensitivePaths,
 				},
 
 				Addr:        addr,
@@ -6636,13 +6972,17 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 			}
 
 			tfschemas := &terraform.Schemas{
-				Providers: map[addrs.Provider]*providers.Schemas{
+				Providers: map[addrs.Provider]providers.ProviderSchema{
 					src.ProviderAddr.Provider: {
-						ResourceTypes: map[string]*configschema.Block{
-							src.Addr.Resource.Resource.Type: tc.Schema,
+						ResourceTypes: map[string]providers.Schema{
+							src.Addr.Resource.Resource.Type: {
+								Block: tc.Schema,
+							},
 						},
-						DataSources: map[string]*configschema.Block{
-							src.Addr.Resource.Resource.Type: tc.Schema,
+						DataSources: map[string]providers.Schema{
+							src.Addr.Resource.Resource.Type: {
+								Block: tc.Schema,
+							},
 						},
 					},
 				},
@@ -6654,12 +6994,11 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 			}
 
 			jsonschemas := jsonprovider.MarshalForRenderer(tfschemas)
+			change := structured.FromJsonChange(jsonchanges[0].Change, attribute_path.AlwaysMatcher())
 			renderer := Renderer{Colorize: color}
 			diff := diff{
 				change: jsonchanges[0],
-				diff: differ.
-					FromJsonChange(jsonchanges[0].Change, attribute_path.AlwaysMatcher()).
-					ComputeDiffForBlock(jsonschemas[jsonchanges[0].ProviderName].ResourceSchemas[jsonchanges[0].Type].Block),
+				diff:   differ.ComputeDiffForBlock(change, jsonschemas[jsonchanges[0].ProviderName].ResourceSchemas[jsonchanges[0].Type].Block),
 			}
 			output, _ := renderHumanDiff(renderer, diff, proposedChange)
 			if diff := cmp.Diff(output, tc.ExpectedOutput); diff != "" {
@@ -6953,4 +7292,12 @@ func testSchemaPlus(nesting configschema.NestingMode) *configschema.Block {
 			},
 		},
 	}
+}
+
+func marshalJson(t *testing.T, data interface{}) json.RawMessage {
+	result, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("failed to marshal json: %v", err)
+	}
+	return result
 }

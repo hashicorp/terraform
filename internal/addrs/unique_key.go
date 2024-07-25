@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package addrs
 
 // UniqueKey is an interface implemented by values that serve as unique map
@@ -22,6 +25,6 @@ type UniqueKeyer interface {
 	UniqueKey() UniqueKey
 }
 
-func Equivalent[T UniqueKeyer](a, b T) bool {
+func Equivalent[T, U UniqueKeyer](a T, b U) bool {
 	return a.UniqueKey() == b.UniqueKey()
 }

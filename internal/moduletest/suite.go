@@ -1,7 +1,18 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package moduletest
 
-// A Suite is a set of tests run together as a single Terraform configuration.
+import "github.com/hashicorp/terraform/internal/tfdiags"
+
 type Suite struct {
-	Name       string
-	Components map[string]*Component
+	Status Status
+
+	Files map[string]*File
+}
+
+type TestSuiteRunner interface {
+	Test() (Status, tfdiags.Diagnostics)
+	Stop()
+	Cancel()
 }

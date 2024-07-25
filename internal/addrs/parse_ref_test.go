@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package addrs
 
 import (
@@ -6,9 +9,161 @@ import (
 	"github.com/go-test/deep"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
+
+func TestParseRefInTestingScope(t *testing.T) {
+	tests := []struct {
+		Input   string
+		Want    *Reference
+		WantErr string
+	}{
+		{
+			`output.value`,
+			&Reference{
+				Subject: OutputValue{
+					Name: "value",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 13, Byte: 12},
+				},
+			},
+			``,
+		},
+		{
+			`output`,
+			nil,
+			`The "output" object cannot be accessed directly. Instead, access one of its attributes.`,
+		},
+		{
+			`output["foo"]`,
+			nil,
+			`The "output" object does not support this operation.`,
+		},
+
+		{
+			`check.health`,
+			&Reference{
+				Subject: Check{
+					Name: "health",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 13, Byte: 12},
+				},
+			},
+			``,
+		},
+		{
+			`check`,
+			nil,
+			`The "check" object cannot be accessed directly. Instead, access one of its attributes.`,
+		},
+		{
+			`check["foo"]`,
+			nil,
+			`The "check" object does not support this operation.`,
+		},
+		{
+			`run.zero`,
+			&Reference{
+				Subject: Run{
+					Name: "zero",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 9, Byte: 8},
+				},
+			},
+			``,
+		},
+		{
+			`run.zero.value`,
+			&Reference{
+				Subject: Run{
+					Name: "zero",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 9, Byte: 8},
+				},
+				Remaining: hcl.Traversal{
+					hcl.TraverseAttr{
+						Name: "value",
+						SrcRange: hcl.Range{
+							Start: hcl.Pos{Line: 1, Column: 9, Byte: 8},
+							End:   hcl.Pos{Line: 1, Column: 15, Byte: 14},
+						},
+					},
+				},
+			},
+			``,
+		},
+		{
+			`run`,
+			nil,
+			`The "run" object cannot be accessed directly. Instead, access one of its attributes.`,
+		},
+		{
+			`run["foo"]`,
+			nil,
+			`The "run" object does not support this operation.`,
+		},
+
+		// Sanity check at least one of the others works to verify it does
+		// fall through to the core function.
+		{
+			`count.index`,
+			&Reference{
+				Subject: CountAttr{
+					Name: "index",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 12, Byte: 11},
+				},
+			},
+			``,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.Input, func(t *testing.T) {
+			traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(test.Input), "", hcl.Pos{Line: 1, Column: 1})
+			if travDiags.HasErrors() {
+				t.Fatal(travDiags.Error())
+			}
+
+			got, diags := ParseRefFromTestingScope(traversal)
+
+			switch len(diags) {
+			case 0:
+				if test.WantErr != "" {
+					t.Fatalf("succeeded; want error: %s", test.WantErr)
+				}
+			case 1:
+				if test.WantErr == "" {
+					t.Fatalf("unexpected diagnostics: %s", diags.Err())
+				}
+				if got, want := diags[0].Description().Detail, test.WantErr; got != want {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+			default:
+				t.Fatalf("too many diagnostics: %s", diags.Err())
+			}
+
+			if diags.HasErrors() {
+				return
+			}
+
+			for _, problem := range deep.Equal(got, test.Want) {
+				t.Errorf(problem)
+			}
+		})
+	}
+}
 
 func TestParseRef(t *testing.T) {
 	tests := []struct {
@@ -715,6 +870,53 @@ func TestParseRef(t *testing.T) {
 			`boop_instance`,
 			nil,
 			`A reference to a resource type must be followed by at least one attribute access, specifying the resource name.`,
+		},
+
+		// Should interpret checks, outputs, and runs as resource types.
+		{
+			`output.value`,
+			&Reference{
+				Subject: Resource{
+					Mode: ManagedResourceMode,
+					Type: "output",
+					Name: "value",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 13, Byte: 12},
+				},
+			},
+			``,
+		},
+		{
+			`check.health`,
+			&Reference{
+				Subject: Resource{
+					Mode: ManagedResourceMode,
+					Type: "check",
+					Name: "health",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 13, Byte: 12},
+				},
+			},
+			``,
+		},
+		{
+			`run.zero`,
+			&Reference{
+				Subject: Resource{
+					Mode: ManagedResourceMode,
+					Type: "run",
+					Name: "zero",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 9, Byte: 8},
+				},
+			},
+			``,
 		},
 	}
 

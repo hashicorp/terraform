@@ -19,9 +19,7 @@ on:
   pull_request:
   push:
     branches:
-      - main
-      - 'v[0-9]+.[0-9]+'
-      - checks-workflow-dev/*
+      - '*'
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
 
@@ -38,14 +36,14 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Determine Go version
         id: go
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
         with:
           go-version: ${{ steps.go.outputs.version }}
 
@@ -53,7 +51,7 @@ jobs:
       # identical across the unit-tests, e2e-tests, and consistency-checks
       # jobs, or else weird things could happen.
       - name: Cache Go modules
-        uses: actions/cache@v3
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: "~/go/pkg"
           key: go-mod-${{ hashFiles('go.sum') }}
@@ -62,7 +60,10 @@ jobs:
 
       - name: "Unit tests"
         run: |
-          go test ./...
+          # We run tests for all packages from all modules in this repository.
+          for dir in $(go list -m -f '{{.Dir}}' github.com/hashicorp/terraform/...); do
+              (cd $dir && go test "./...")
+          done
 
   race-tests:
     name: "Race Tests"
@@ -70,14 +71,14 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Determine Go version
         id: go
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
         with:
           go-version: ${{ steps.go.outputs.version }}
 
@@ -85,7 +86,7 @@ jobs:
       # identical across the unit-tests, e2e-tests, and consistency-checks
       # jobs, or else weird things could happen.
       - name: Cache Go modules
-        uses: actions/cache@v3
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: "~/go/pkg"
           key: go-mod-${{ hashFiles('go.sum') }}
@@ -108,14 +109,14 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Determine Go version
         id: go
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
         with:
           go-version: ${{ steps.go.outputs.version }}
 
@@ -123,7 +124,7 @@ jobs:
       # identical across the unit-tests, e2e-tests, and consistency-checks
       # jobs, or else weird things could happen.
       - name: Cache Go modules
-        uses: actions/cache@v3
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: "~/go/pkg"
           key: go-mod-${{ hashFiles('go.sum') }}
@@ -140,7 +141,7 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0 # We need to do comparisons against the main branch.
 
@@ -149,7 +150,7 @@ jobs:
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
         with:
           go-version: ${{ steps.go.outputs.version }}
 
@@ -157,7 +158,7 @@ jobs:
       # identical across the unit-tests, e2e-tests, and consistency-checks
       # jobs, or else weird things could happen.
       - name: Cache Go modules
-        uses: actions/cache@v3
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: "~/go/pkg"
           key: go-mod-${{ hashFiles('go.sum') }}
@@ -166,14 +167,17 @@ jobs:
 
       - name: "go.mod and go.sum consistency check"
         run: |
-          go mod tidy
-          if [[ -n "$(git status --porcelain)" ]]; then
-            echo >&2 "ERROR: go.mod/go.sum are not up-to-date. Run 'go mod tidy' and then commit the updated files."
+          make syncdeps
+          CHANGED="$(git status --porcelain)"
+          if [[ -n "$CHANGED" ]]; then
+            git diff
+            echo >&2 "ERROR: go.mod/go.sum files are not up-to-date. Run 'make syncdeps' and then commit the updated files."
+            echo >&2 $'Affected files:\n'"$CHANGED"
             exit 1
           fi
 
       - name: Cache protobuf tools
-        uses: actions/cache@v3
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: "tools/protobuf-compile/.workdir"
           key: protobuf-tools-${{ hashFiles('tools/protobuf-compile/protobuf-compile.go') }}
@@ -182,7 +186,7 @@ jobs:
 
       - name: "Code consistency checks"
         run: |
-          make fmtcheck importscheck generate staticcheck exhaustive protobuf
+          make fmtcheck importscheck copyright generate staticcheck exhaustive protobuf
           if [[ -n "$(git status --porcelain)" ]]; then
             echo >&2 "ERROR: Generated files are inconsistent. Run 'make generate' and 'make protobuf' locally and then commit the updated files."
             git >&2 status --porcelain

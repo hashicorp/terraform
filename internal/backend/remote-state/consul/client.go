@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
@@ -14,7 +17,7 @@ import (
 	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
-	multierror "github.com/hashicorp/go-multierror"
+
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
@@ -231,7 +234,11 @@ func (c *RemoteClient) Put(data []byte) error {
 		}
 		// transaction was rolled back
 		if !ok {
-			return fmt.Errorf("consul CAS failed with transaction errors: %v", resp.Errors)
+			var resultErr error
+			for _, respError := range resp.Errors {
+				resultErr = errors.Join(resultErr, errors.New(respError.What))
+			}
+			return fmt.Errorf("consul CAS failed with transaction errors: %w", resultErr)
 		}
 
 		if len(resp.Results) != 1 {
@@ -443,7 +450,7 @@ func (c *RemoteClient) lock() (string, error) {
 	err = c.putLockInfo(c.info)
 	if err != nil {
 		if unlockErr := c.unlock(c.info.ID); unlockErr != nil {
-			err = multierror.Append(err, unlockErr)
+			err = errors.Join(err, unlockErr)
 		}
 
 		return "", err
@@ -595,11 +602,11 @@ func (c *RemoteClient) unlock(id string) error {
 	var errs error
 
 	if _, err := kv.Delete(c.lockPath()+lockInfoSuffix, nil); err != nil {
-		errs = multierror.Append(errs, err)
+		errs = errors.Join(errs, err)
 	}
 
 	if err := c.consulLock.Unlock(); err != nil {
-		errs = multierror.Append(errs, err)
+		errs = errors.Join(errs, err)
 	}
 
 	// the monitoring goroutine may be in a select on the lockCh, so we need to
