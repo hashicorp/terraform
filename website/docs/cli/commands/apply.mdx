@@ -50,8 +50,7 @@ The following options change how the apply command executes and reports on the a
 
 - `-auto-approve` - Skips interactive approval of the plan before applying. Terraform ignores this
   option when you pass a previously-saved plan file. This is because
-  Terraform considers you passing the plan file as the approval and so
-  will never prompt in that case.
+  Terraform interprets the act of passing the plan file as the approval.
 
 - `-compact-warnings` - Shows any warning messages in a compact form which
   includes only the summary messages, unless the warnings are accompanied by
