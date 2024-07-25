@@ -72,15 +72,9 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 	plan.Complete = rawPlan.Complete
 	plan.Errored = rawPlan.Errored
 
-	switch rawPlan.UiMode {
-	case planproto.Mode_NORMAL:
-		plan.UIMode = plans.NormalMode
-	case planproto.Mode_DESTROY:
-		plan.UIMode = plans.DestroyMode
-	case planproto.Mode_REFRESH_ONLY:
-		plan.UIMode = plans.RefreshOnlyMode
-	default:
-		return nil, fmt.Errorf("plan has invalid mode %s", rawPlan.UiMode)
+	plan.UIMode, err = planproto.FromMode(rawPlan.UiMode)
+	if err != nil {
+		return nil, err
 	}
 
 	for _, rawOC := range rawPlan.OutputChanges {
@@ -523,15 +517,10 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 	rawPlan.Complete = plan.Complete
 	rawPlan.Errored = plan.Errored
 
-	switch plan.UIMode {
-	case plans.NormalMode:
-		rawPlan.UiMode = planproto.Mode_NORMAL
-	case plans.DestroyMode:
-		rawPlan.UiMode = planproto.Mode_DESTROY
-	case plans.RefreshOnlyMode:
-		rawPlan.UiMode = planproto.Mode_REFRESH_ONLY
-	default:
-		return fmt.Errorf("plan has unsupported mode %s", plan.UIMode)
+	var err error
+	rawPlan.UiMode, err = planproto.NewMode(plan.UIMode)
+	if err != nil {
+		return err
 	}
 
 	for _, oc := range plan.Changes.Outputs {

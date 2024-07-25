@@ -449,13 +449,13 @@ func TestStacksPlanStackChanges(t *testing.T) {
 				PlannedChange: &terraform1.PlannedChange{
 					Raw: []*anypb.Any{
 						mustMarshalAnyPb(&tfstackdata1.PlanApplyable{
-							Applyable: false,
+							Applyable: true,
 						}),
 					},
 					Descriptions: []*terraform1.PlannedChange_ChangeDescription{
 						{
 							Description: &terraform1.PlannedChange_ChangeDescription_PlanApplyable{
-								PlanApplyable: false,
+								PlanApplyable: true,
 							},
 						},
 					},

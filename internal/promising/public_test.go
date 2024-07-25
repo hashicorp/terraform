@@ -54,8 +54,10 @@ func TestPromiseResolveSimple(t *testing.T) {
 
 func TestPromiseUnresolvedMainWithoutGet(t *testing.T) {
 	ctx := context.Background()
+	var promiseID promising.PromiseID
 	gotVal, err := promising.MainTask(ctx, func(ctx context.Context) (string, error) {
-		promising.NewPromise[string](ctx) // ignoring both return values
+		resolver, _ := promising.NewPromise[string](ctx)
+		promiseID = resolver.PromiseID()
 		// Call to PromiseResolver.Resolve intentionally omitted to cause error
 		// Also not calling the getter to prevent this from being classified as
 		// a self-dependency.
@@ -66,8 +68,12 @@ func TestPromiseUnresolvedMainWithoutGet(t *testing.T) {
 		// When unresolved the return value should be the zero value of the type.
 		t.Errorf("wrong result value\ngot:  %q\nwant: %q", gotVal, wantVal)
 	}
-	if err != promising.ErrUnresolved {
-		t.Errorf("wrong error\ngot:  %s\nwant: %s", err, promising.ErrUnresolved)
+	if promiseIDs, ok := err.(promising.ErrUnresolved); !ok {
+		t.Errorf("wrong error\ngot:  %s\nwant: an ErrUnresolved value", err)
+	} else if got, want := len(promiseIDs), 1; got != want {
+		t.Errorf("wrong number of unresolved promises %d; want %d", got, want)
+	} else if promiseIDs[0] != promiseID {
+		t.Error("errored promise ID does not match the one returned during the task")
 	}
 }
 
@@ -103,8 +109,10 @@ func TestPromiseUnresolvedMainWithGet(t *testing.T) {
 
 func TestPromiseUnresolvedAsync(t *testing.T) {
 	ctx := context.Background()
+	var promiseID promising.PromiseID
 	gotVal, err := promising.MainTask(ctx, func(ctx context.Context) (string, error) {
 		resolver, get := promising.NewPromise[string](ctx)
+		promiseID = resolver.PromiseID()
 
 		promising.AsyncTask(
 			ctx, resolver,
@@ -119,8 +127,12 @@ func TestPromiseUnresolvedAsync(t *testing.T) {
 		// When unresolved the return value should be the zero value of the type.
 		t.Errorf("wrong result value\ngot:  %q\nwant: %q", gotVal, wantVal)
 	}
-	if err != promising.ErrUnresolved {
-		t.Errorf("wrong error\ngot:  %s\nwant: %s", err, promising.ErrUnresolved)
+	if promiseIDs, ok := err.(promising.ErrUnresolved); !ok {
+		t.Errorf("wrong error\ngot:  %s\nwant: an ErrUnresolved value", err)
+	} else if got, want := len(promiseIDs), 1; got != want {
+		t.Errorf("wrong number of unresolved promises %d; want %d", got, want)
+	} else if promiseIDs[0] != promiseID {
+		t.Error("errored promise ID does not match the one returned during the task")
 	}
 }
 

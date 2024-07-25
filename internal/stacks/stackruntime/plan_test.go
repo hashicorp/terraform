@@ -359,7 +359,7 @@ func TestPlanWithVariableDefaults(t *testing.T) {
 
 			wantChanges := []stackplan.PlannedChange{
 				&stackplan.PlannedChangeApplyable{
-					Applyable: false,
+					Applyable: true,
 				},
 				&stackplan.PlannedChangeHeader{
 					TerraformVersion: version.SemVer,
@@ -891,7 +891,7 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 
 		wantChanges := []stackplan.PlannedChange{
 			&stackplan.PlannedChangeApplyable{
-				Applyable: false,
+				Applyable: true,
 			},
 			&stackplan.PlannedChangeHeader{
 				TerraformVersion: version.SemVer,
@@ -949,7 +949,7 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 
 		wantChanges := []stackplan.PlannedChange{
 			&stackplan.PlannedChangeApplyable{
-				Applyable: false,
+				Applyable: true,
 			},
 			&stackplan.PlannedChangeHeader{
 				TerraformVersion: version.SemVer,
@@ -1008,7 +1008,7 @@ func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: false,
+			Applyable: true,
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
@@ -1898,8 +1898,8 @@ func TestPlanWithCheckableObjects(t *testing.T) {
 		Detail:  `value must be 'baz'`,
 		Subject: &hcl.Range{
 			Filename: mainBundleSourceAddrStr("checkable-objects/checkable-objects.tf"),
-			Start:    hcl.Pos{Line: 32, Column: 21, Byte: 532},
-			End:      hcl.Pos{Line: 32, Column: 57, Byte: 568},
+			Start:    hcl.Pos{Line: 41, Column: 21, Byte: 716},
+			End:      hcl.Pos{Line: 41, Column: 57, Byte: 752},
 		},
 	})
 
@@ -1938,7 +1938,9 @@ func TestPlanWithCheckableObjects(t *testing.T) {
 				"foo": mustPlanDynamicValueDynamicType(cty.StringVal("bar")),
 			},
 			PlannedInputValueMarks: map[string][]cty.PathValueMarks{"foo": nil},
-			PlannedOutputValues:    make(map[string]cty.Value),
+			PlannedOutputValues: map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+			},
 			PlannedCheckResults: &states.CheckResults{
 				ConfigResults: addrs.MakeMap(
 					addrs.MakeMapElem[addrs.ConfigCheckable](
@@ -1969,6 +1971,24 @@ func TestPlanWithCheckableObjects(t *testing.T) {
 							ObjectResults: addrs.MakeMap(
 								addrs.MakeMapElem[addrs.Checkable](
 									addrs.InputVariable{
+										Name: "foo",
+									}.Absolute(addrs.RootModuleInstance),
+									&states.CheckResultObject{
+										Status: checks.StatusPass,
+									},
+								),
+							),
+						},
+					),
+					addrs.MakeMapElem[addrs.ConfigCheckable](
+						addrs.OutputValue{
+							Name: "foo",
+						}.InModule(addrs.RootModule),
+						&states.CheckResultAggregate{
+							Status: checks.StatusPass,
+							ObjectResults: addrs.MakeMap(
+								addrs.MakeMapElem[addrs.Checkable](
+									addrs.OutputValue{
 										Name: "foo",
 									}.Absolute(addrs.RootModuleInstance),
 									&states.CheckResultObject{
@@ -2125,7 +2145,7 @@ func TestPlanWithDeferredResource(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: false,
+			Applyable: true,
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(
@@ -2767,7 +2787,7 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: false,
+			Applyable: true,
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
@@ -2913,7 +2933,7 @@ func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: false,
+			Applyable: true,
 		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
@@ -3120,7 +3140,7 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 
 	wantChanges := []stackplan.PlannedChange{
 		&stackplan.PlannedChangeApplyable{
-			Applyable: false,
+			Applyable: true,
 		},
 		&stackplan.PlannedChangeComponentInstance{
 			Addr: stackaddrs.Absolute(

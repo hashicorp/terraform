@@ -149,6 +149,11 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 			return fmt.Errorf("decoding plan for %s: %w", addr, err)
 		}
 
+		mode, err := planproto.FromMode(msg.Mode)
+		if err != nil {
+			return fmt.Errorf("decoding mode for %s: %w", addr, err)
+		}
+
 		inputVals := make(map[addrs.InputVariable]plans.DynamicValue)
 		inputValMarks := make(map[addrs.InputVariable][]cty.PathValueMarks)
 		for name, rawVal := range msg.PlannedInputValues {
@@ -186,6 +191,7 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 		if !l.ret.Components.HasKey(addr) {
 			l.ret.Components.Put(addr, &Component{
 				PlannedAction:          plannedAction,
+				Mode:                   mode,
 				PlanApplyable:          msg.PlanApplyable,
 				PlanComplete:           msg.PlanComplete,
 				Dependencies:           dependencies,
