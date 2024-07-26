@@ -101,13 +101,13 @@ var protocSteps = []protocStep{
 	},
 	{
 		"tfplan (plan file serialization)",
-		"internal/plans/planproto",
+		"plans/planproto",
 		[]string{"--go_out=paths=source_relative:.", "planfile.proto"},
 	},
 	{
 		"tfstackdata1 (Internal data formats for Stack state and plan)",
 		"internal/stacks/tfstackdata1",
-		[]string{"--go_out=paths=source_relative:.", "--go_opt=Mtfstackdata1.proto=github.com/hashicorp/terraform/internal/stacks/tfstackdata1", "-I.", "-I../../plans/planproto", "./tfstackdata1.proto"},
+		[]string{"--go_out=paths=source_relative:.", "--go_opt=Mtfstackdata1.proto=github.com/hashicorp/terraform/internal/stacks/tfstackdata1", "-I.", "-I../../../plans/planproto", "./tfstackdata1.proto"},
 	},
 	{
 		"cloudproto1 (cloud protocol version 1)",
