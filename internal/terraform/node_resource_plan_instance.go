@@ -103,19 +103,23 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		checkRuleSeverity = tfdiags.Warning
 	}
 
-	change, state, deferred, repeatData, planDiags := n.planDataSource(ctx, checkRuleSeverity, n.skipPlanChanges)
+	deferrals := ctx.Deferrals()
+	change, state, deferred, repeatData, planDiags := n.planDataSource(ctx, checkRuleSeverity, n.skipPlanChanges, deferrals.ShouldDeferResourceInstanceChanges(addr, n.Dependencies))
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
 	}
 
-	deferrals := ctx.Deferrals()
-	if deferred != nil {
+	// A nil change here indicates that Terraform is deciding NOT to make a
+	// change at all. In which case even if we wanted to try and defer it
+	// (because of a dependency) we can't as there is no change to defer.
+	//
+	// The most common case for this is when the data source is being refreshed
+	// but depends on unknown values or dependencies which means we just skip
+	// refreshing the data source. We maintain that behaviour here.
+	if change != nil && deferred != nil {
 		// Then this data source got deferred by the provider during planning.
 		deferrals.ReportDataSourceInstanceDeferred(addr, deferred.Reason, change)
-	} else if deferrals.ShouldDeferResourceInstanceChanges(addr, n.Dependencies) {
-		// Then this data source is deferred because a dependency is deferred.
-		deferrals.ReportDataSourceInstanceDeferred(addr, providers.DeferredReasonDeferredPrereq, change)
 	} else {
 		// Not deferred; business as usual.
 

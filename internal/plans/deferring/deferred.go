@@ -333,6 +333,14 @@ func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInst
 // instances of a resource will be declared and thus we must defer all planning
 // for that resource.
 func (d *Deferred) ReportResourceExpansionDeferred(addr addrs.PartialExpandedResource, change *plans.ResourceInstanceChange) {
+	if change == nil {
+		// This indicates a bug in Terraform, we shouldn't ever be setting a
+		// null change. Note, if we don't make this check here, then we'll
+		// just crash later anyway. This way the stack trace points to the
+		// source of the problem.
+		panic("change must not be nil")
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -363,6 +371,14 @@ func (d *Deferred) ReportResourceExpansionDeferred(addr addrs.PartialExpandedRes
 // instances of a data source will be declared and thus we must defer all
 // planning for that data source.
 func (d *Deferred) ReportDataSourceExpansionDeferred(addr addrs.PartialExpandedResource, change *plans.ResourceInstanceChange) {
+	if change == nil {
+		// This indicates a bug in Terraform, we shouldn't ever be setting a
+		// null change. Note, if we don't make this check here, then we'll
+		// just crash later anyway. This way the stack trace points to the
+		// source of the problem.
+		panic("change must not be nil")
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -393,6 +409,14 @@ func (d *Deferred) ReportDataSourceExpansionDeferred(addr addrs.PartialExpandedR
 // instance has had its planned action deferred to a future round for a reason
 // other than its address being only partially-decided.
 func (d *Deferred) ReportResourceInstanceDeferred(addr addrs.AbsResourceInstance, reason providers.DeferredReason, change *plans.ResourceInstanceChange) {
+	if change == nil {
+		// This indicates a bug in Terraform, we shouldn't ever be setting a
+		// null change. Note, if we don't make this check here, then we'll
+		// just crash later anyway. This way the stack trace points to the
+		// source of the problem.
+		panic("change must not be nil")
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -414,6 +438,14 @@ func (d *Deferred) ReportResourceInstanceDeferred(addr addrs.AbsResourceInstance
 }
 
 func (d *Deferred) ReportDataSourceInstanceDeferred(addr addrs.AbsResourceInstance, reason providers.DeferredReason, change *plans.ResourceInstanceChange) {
+	if change == nil {
+		// This indicates a bug in Terraform, we shouldn't ever be setting a
+		// null change. Note, if we don't make this check here, then we'll
+		// just crash later anyway. This way the stack trace points to the
+		// source of the problem.
+		panic("change must not be nil")
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
