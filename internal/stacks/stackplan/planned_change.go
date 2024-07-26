@@ -9,12 +9,14 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
@@ -390,13 +392,20 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*terraform1
 		}
 	}
 
+	key := pc.ChangeSrc.Addr.Resource.Key.Value()
+	index, err := DynamicValueToTerraform1(key, key.Type())
+
 	return &terraform1.PlannedChange_ChangeDescription{
 		Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
 			ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
 				Addr:         terraform1.NewResourceInstanceObjectInStackAddr(rioAddr),
+				Name:         pc.ChangeSrc.Addr.Resource.Resource.Name,
+				Index:        index,
+				ModuleAddr:   pc.ChangeSrc.Addr.Module.String(),
 				ResourceMode: stackutils.ResourceModeForProto(pc.ChangeSrc.Addr.Resource.Resource.Mode),
 				ResourceType: pc.ChangeSrc.Addr.Resource.Resource.Type,
 				ProviderAddr: pc.ChangeSrc.ProviderAddr.Provider.String(),
+				ActionReason: pc.ChangeSrc.ActionReason.String(),
 
 				Actions: protoChangeTypes,
 				Values: &terraform1.DynamicValueChange{
@@ -416,6 +425,35 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*terraform1
 		},
 	}, nil
 
+}
+
+func DynamicValueToTerraform1(val cty.Value, ty cty.Type) (*terraform1.DynamicValue, error) {
+	unmarkedVal, markPaths := val.UnmarkDeepWithPaths()
+	sensitivePaths, withOtherMarks := marks.PathsWithMark(markPaths, marks.Sensitive)
+	if len(withOtherMarks) != 0 {
+		return nil, withOtherMarks[0].Path.NewErrorf(
+			"can't serialize value marked with %#v (this is a bug in Terraform)",
+			withOtherMarks[0].Marks,
+		)
+	}
+
+	rawVal, err := msgpack.Marshal(unmarkedVal, ty)
+	if err != nil {
+		return nil, err
+	}
+	ret := &terraform1.DynamicValue{
+		Msgpack: rawVal,
+	}
+
+	if len(markPaths) == 0 {
+		return ret, nil
+	}
+
+	ret.Sensitive = make([]*terraform1.AttributePath, 0, len(markPaths))
+	for _, path := range sensitivePaths {
+		ret.Sensitive = append(ret.Sensitive, terraform1.NewAttributePath(path))
+	}
+	return ret, nil
 }
 
 // PlannedChangeProto implements PlannedChange.
