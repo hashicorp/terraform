@@ -44,3 +44,8 @@ you the proposed destroy changes without executing them.
 -> **Note:** The `-destroy` option to `terraform apply` exists only in
 Terraform v0.15.2 and later. For earlier versions, you _must_ use
 `terraform destroy` to get the effect of `terraform apply -destroy`.
+
+### Target a specific resource
+
+You can use the `-target` option to destroy a particular resource and its dependencies:
+
