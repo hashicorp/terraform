@@ -2178,6 +2178,13 @@ variable "input" {
     }
 }
 
+# In order for the variable to be validated during destroy, it must be required
+# by the destroy plan. This is done by having the test provider require the
+# value in order to destroy the test_object instance.
+provider "test" {
+  test_string = var.input
+}
+
 resource "test_object" "a" {
 	test_string = var.input
 }

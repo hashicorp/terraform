@@ -40,6 +40,7 @@ var _ GraphNodeModulePath = (*nodeVariableValidation)(nil)
 var _ GraphNodeReferenceable = (*nodeVariableValidation)(nil)
 var _ GraphNodeReferencer = (*nodeVariableValidation)(nil)
 var _ GraphNodeExecutable = (*nodeVariableValidation)(nil)
+var _ graphNodeTemporaryValue = (*nodeVariableValidation)(nil)
 
 func (n *nodeVariableValidation) Name() string {
 	return fmt.Sprintf("%s (validation)", n.configAddr.String())
@@ -55,6 +56,15 @@ func (n *nodeVariableValidation) ModulePath() addrs.Module {
 // validating, and must therefore run before any nodes that refer to it.
 func (n *nodeVariableValidation) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.configAddr.Variable}
+}
+
+// nodeVariableValidation must act as if it's part of the associated variable
+// node, and that means mirroring all that node's graph behavior. Root module
+// variable are not temporary however, but because during a destroy we can't
+// ensure that all references can be evaluated, we must skip validation unless
+// absolutely necessary to avoid blocking the destroy from proceeding.
+func (n *nodeVariableValidation) temporaryValue() bool {
+	return true
 }
 
 // References implements [GraphNodeReferencer], announcing anything that
