@@ -1684,11 +1684,22 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 //     (Note that every data source that is DeferredPrereq should also fit this description.)
 //   - We attempted a read request, but the provider says we're deferred.
 //   - It's nested in a check block, and should always read again during apply.
-func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRuleSeverity tfdiags.Severity, skipPlanChanges bool) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, *providers.Deferred, instances.RepetitionData, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRuleSeverity tfdiags.Severity, skipPlanChanges, dependencyDeferred bool) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, *providers.Deferred, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var keyData instances.RepetitionData
 	var configVal cty.Value
+
 	var deferred *providers.Deferred
+	if dependencyDeferred {
+		// If a dependency of this data source was deferred, then we're going
+		// to end up deferring this whatever happens. So, our default status
+		// is deferred. If the provider indicates this resource should be
+		// deferred for another reason, that reason should take priority over
+		// this one.
+		deferred = &providers.Deferred{
+			Reason: providers.DeferredReasonDeferredPrereq,
+		}
+	}
 
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
@@ -1830,6 +1841,9 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	newVal, readDeferred, readDiags := n.readDataSource(ctx, configVal)
 
 	if readDeferred != nil {
+		// This will either be null or a value that indicates we're deferred
+		// because of a dependency. In both cases we're happy to just overwrite
+		// that with the more relevant information directly from the provider.
 		deferred = readDeferred
 	}
 

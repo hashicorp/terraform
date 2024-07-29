@@ -2924,46 +2924,134 @@ import {
 			},
 		},
 	}
+
+	dataSourceDependsOnDeferredResource = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "deferred_resource_change"
+}
+
+data "test" "b" {
+	name = "load_me"
+	depends_on = [test.a]
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				inputs: map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{
+					"deferred_resource_change": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("deferred_resource_change"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					"data.test.b": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Read},
+					"test.a":      {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Create},
+				},
+				complete: false,
+			},
+		},
+	}
+
+	// This is a super rare edge case here. It's very unlikely that a provider
+	// or a resource would get deferred during a refresh operation. Since it
+	// successfully applied whatever is being refreshed previously, it should
+	// not suddenly need to start deferring things. However, it is totally
+	// possible for providers to do this if they wanted so we'll add a test
+	// for it in case.
+	dataSourceDependsOnDeferredResourceDuringRefresh = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "name" {
+	type = string
+}
+
+resource "test" "a" {
+	name = "deferred_resource_change"
+}
+
+data "test" "b" {
+	name = var.name
+	depends_on = [test.a]
+}
+`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(mustResourceInstanceAddr("test.a"), &states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: mustParseJson(map[string]interface{}{
+					"name":   "deferred_read",
+					"output": "a",
+				}),
+			}, addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.RefreshOnlyMode
+				},
+				inputs: map[string]cty.Value{
+					"name": cty.UnknownVal(cty.String),
+				},
+				wantPlanned: make(map[string]cty.Value), // No planned changes, as we are only refreshing
+				wantActions: make(map[string]plans.Action),
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonProviderConfigUnknown, Action: plans.Read},
+				},
+				complete: false,
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
 	tests := map[string]deferredActionsTest{
-		"resource_for_each":                                 resourceForEachTest,
-		"resource_in_module_for_each":                       resourceInModuleForEachTest,
-		"resource_count":                                    resourceCountTest,
-		"create_before_destroy":                             createBeforeDestroyLifecycleTest,
-		"forget_resources":                                  forgetResourcesTest,
-		"import_into_unknown":                               importIntoUnknownInstancesTest,
-		"target_deferred_resource":                          targetDeferredResourceTest,
-		"target_resource_that_depends_on_deferred_resource": targetResourceThatDependsOnDeferredResourceTest,
-		"target_deferred_resource_triggers_dependencies":    targetDeferredResourceTriggersDependenciesTest,
-		"replace_deferred_resource":                         replaceDeferredResourceTest,
-		"custom_conditions":                                 customConditionsTest,
-		"custom_conditions_with_orphans":                    customConditionsWithOrphansTest,
-		"resource_read":                                     resourceReadTest,
-		"data_read":                                         readDataSourceTest,
-		"data_for_each":                                     dataForEachTest,
-		"data_count":                                        dataCountTest,
-		"plan_create_resource_change":                       planCreateResourceChange,
-		"plan_update_resource_change":                       planUpdateResourceChange,
-		"plan_noop_resource_change":                         planNoOpResourceChange,
-		"plan_replace_resource_change":                      planReplaceResourceChange,
-		"plan_force_replace_resource_change":                planForceReplaceResourceChange,
-		"plan_delete_resource_change":                       planDeleteResourceChange,
-		"plan_destroy_resource_change":                      planDestroyResourceChange,
-		"import_deferred":                                   importDeferredTest,
-		"import_deferred_but_forbidden":                     importDeferredButForbiddenTest,
-		"resource_read_but_forbidden":                       resourceReadButForbiddenTest,
-		"data_read_but_forbidden":                           readDataSourceButForbiddenTest,
-		"plan_destroy_resource_change_but_forbidden":        planDestroyResourceChangeButForbidden,
-		"module_deferred_for_each_value":                    moduleDeferredForEachValue,
-		"module_inner_resource_instance_deferred":           moduleInnerResourceInstanceDeferred,
-		"unknown_import_id":                                 unknownImportId,
-		"unknown_import_defers_config_generation":           unknownImportDefersConfigGeneration,
-		"unknown_import_to":                                 unknownImportTo,
-		"unknown_import_to_existing_state":                  unknownImportToExistingState,
-		"unknown_import_to_partial_existing_state":          unknownImportToPartialExistingState,
-		"unknown_import_reports_missing_configuration":      unknownImportReportsMissingConfiguration,
+		"resource_for_each":                                       resourceForEachTest,
+		"resource_in_module_for_each":                             resourceInModuleForEachTest,
+		"resource_count":                                          resourceCountTest,
+		"create_before_destroy":                                   createBeforeDestroyLifecycleTest,
+		"forget_resources":                                        forgetResourcesTest,
+		"import_into_unknown":                                     importIntoUnknownInstancesTest,
+		"target_deferred_resource":                                targetDeferredResourceTest,
+		"target_resource_that_depends_on_deferred_resource":       targetResourceThatDependsOnDeferredResourceTest,
+		"target_deferred_resource_triggers_dependencies":          targetDeferredResourceTriggersDependenciesTest,
+		"replace_deferred_resource":                               replaceDeferredResourceTest,
+		"custom_conditions":                                       customConditionsTest,
+		"custom_conditions_with_orphans":                          customConditionsWithOrphansTest,
+		"resource_read":                                           resourceReadTest,
+		"data_read":                                               readDataSourceTest,
+		"data_for_each":                                           dataForEachTest,
+		"data_count":                                              dataCountTest,
+		"plan_create_resource_change":                             planCreateResourceChange,
+		"plan_update_resource_change":                             planUpdateResourceChange,
+		"plan_noop_resource_change":                               planNoOpResourceChange,
+		"plan_replace_resource_change":                            planReplaceResourceChange,
+		"plan_force_replace_resource_change":                      planForceReplaceResourceChange,
+		"plan_delete_resource_change":                             planDeleteResourceChange,
+		"plan_destroy_resource_change":                            planDestroyResourceChange,
+		"import_deferred":                                         importDeferredTest,
+		"import_deferred_but_forbidden":                           importDeferredButForbiddenTest,
+		"resource_read_but_forbidden":                             resourceReadButForbiddenTest,
+		"data_read_but_forbidden":                                 readDataSourceButForbiddenTest,
+		"plan_destroy_resource_change_but_forbidden":              planDestroyResourceChangeButForbidden,
+		"module_deferred_for_each_value":                          moduleDeferredForEachValue,
+		"module_inner_resource_instance_deferred":                 moduleInnerResourceInstanceDeferred,
+		"unknown_import_id":                                       unknownImportId,
+		"unknown_import_defers_config_generation":                 unknownImportDefersConfigGeneration,
+		"unknown_import_to":                                       unknownImportTo,
+		"unknown_import_to_existing_state":                        unknownImportToExistingState,
+		"unknown_import_to_partial_existing_state":                unknownImportToPartialExistingState,
+		"unknown_import_reports_missing_configuration":            unknownImportReportsMissingConfiguration,
+		"data_source_depends_on_deferred_resource":                dataSourceDependsOnDeferredResource,
+		"data_source_depends_on_deferred_resource_during_refresh": dataSourceDependsOnDeferredResourceDuringRefresh,
 	}
 
 	for name, test := range tests {
