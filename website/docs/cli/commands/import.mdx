@@ -35,7 +35,7 @@ If you import the same object multiple times, Terraform may exhibit unwanted
 behavior. For more information on this assumption, see
 [the State section](/terraform/language/state).
 
--> If you have a need to automate this with CI/CD pipelines, you may want to look at utilizing the [import block](https://developer.hashicorp.com/terraform/language/import#syntax) in a .tf file in your root module instead. This will avoid manual coordination work to update state and potential security issues such endeavors.
+Instead of manually importing resources, you can add the `import` block to your Terraform configurations so that Terraform imports resources when you run the `terraform apply` command. Using Terraform configurations  lets you automate resource imports as part of your CI/CD pipelines. Refer to the [`import` block reference documentation](/terraform/language/import) for additional information.
 
 The command-line flags are all optional. The following flags are available:
 
