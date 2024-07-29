@@ -30,12 +30,13 @@ import (
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/dependencies"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 )
 
 type dependenciesServer struct {
-	terraform1.UnimplementedDependenciesServer
+	dependencies.UnimplementedDependenciesServer
 
 	handles  *handleTable
 	services *disco.Disco
@@ -48,28 +49,28 @@ func newDependenciesServer(handles *handleTable, services *disco.Disco) *depende
 	}
 }
 
-func (s *dependenciesServer) OpenSourceBundle(ctx context.Context, req *terraform1.OpenSourceBundle_Request) (*terraform1.OpenSourceBundle_Response, error) {
+func (s *dependenciesServer) OpenSourceBundle(ctx context.Context, req *dependencies.OpenSourceBundle_Request) (*dependencies.OpenSourceBundle_Response, error) {
 	localDir := filepath.Clean(req.LocalPath)
 	sources, err := sourcebundle.OpenDir(localDir)
 	if err != nil {
 		return nil, status.Error(codes.Unknown, err.Error())
 	}
 	hnd := s.handles.NewSourceBundle(sources)
-	return &terraform1.OpenSourceBundle_Response{
+	return &dependencies.OpenSourceBundle_Response{
 		SourceBundleHandle: hnd.ForProtobuf(),
 	}, err
 }
 
-func (s *dependenciesServer) CloseSourceBundle(ctx context.Context, req *terraform1.CloseSourceBundle_Request) (*terraform1.CloseSourceBundle_Response, error) {
+func (s *dependenciesServer) CloseSourceBundle(ctx context.Context, req *dependencies.CloseSourceBundle_Request) (*dependencies.CloseSourceBundle_Response, error) {
 	hnd := handle[*sourcebundle.Bundle](req.SourceBundleHandle)
 	err := s.handles.CloseSourceBundle(hnd)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	return &terraform1.CloseSourceBundle_Response{}, nil
+	return &dependencies.CloseSourceBundle_Response{}, nil
 }
 
-func (s *dependenciesServer) OpenDependencyLockFile(ctx context.Context, req *terraform1.OpenDependencyLockFile_Request) (*terraform1.OpenDependencyLockFile_Response, error) {
+func (s *dependenciesServer) OpenDependencyLockFile(ctx context.Context, req *dependencies.OpenDependencyLockFile_Request) (*dependencies.OpenDependencyLockFile_Response, error) {
 	sourcesHnd := handle[*sourcebundle.Bundle](req.SourceBundleHandle)
 	sources := s.handles.SourceBundle(sourcesHnd)
 	if sources == nil {
@@ -88,19 +89,19 @@ func (s *dependenciesServer) OpenDependencyLockFile(ctx context.Context, req *te
 
 	locks, diags := depsfile.LoadLocksFromFile(lockFilePath)
 	if diags.HasErrors() {
-		return &terraform1.OpenDependencyLockFile_Response{
+		return &dependencies.OpenDependencyLockFile_Response{
 			Diagnostics: diagnosticsToProto(diags),
 		}, nil
 	}
 
 	locksHnd := s.handles.NewDependencyLocks(locks)
-	return &terraform1.OpenDependencyLockFile_Response{
+	return &dependencies.OpenDependencyLockFile_Response{
 		DependencyLocksHandle: locksHnd.ForProtobuf(),
 		Diagnostics:           diagnosticsToProto(diags),
 	}, nil
 }
 
-func (s *dependenciesServer) CreateDependencyLocks(ctx context.Context, req *terraform1.CreateDependencyLocks_Request) (*terraform1.CreateDependencyLocks_Response, error) {
+func (s *dependenciesServer) CreateDependencyLocks(ctx context.Context, req *dependencies.CreateDependencyLocks_Request) (*dependencies.CreateDependencyLocks_Response, error) {
 	locks := depsfile.NewLocks()
 	for _, provider := range req.ProviderSelections {
 		addr, diags := addrs.ParseProviderSourceString(provider.SourceAddr)
@@ -138,21 +139,21 @@ func (s *dependenciesServer) CreateDependencyLocks(ctx context.Context, req *ter
 	}
 
 	locksHnd := s.handles.NewDependencyLocks(locks)
-	return &terraform1.CreateDependencyLocks_Response{
+	return &dependencies.CreateDependencyLocks_Response{
 		DependencyLocksHandle: locksHnd.ForProtobuf(),
 	}, nil
 }
 
-func (s *dependenciesServer) CloseDependencyLocks(ctx context.Context, req *terraform1.CloseDependencyLocks_Request) (*terraform1.CloseDependencyLocks_Response, error) {
+func (s *dependenciesServer) CloseDependencyLocks(ctx context.Context, req *dependencies.CloseDependencyLocks_Request) (*dependencies.CloseDependencyLocks_Response, error) {
 	hnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
 	err := s.handles.CloseDependencyLocks(hnd)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid dependency locks handle")
 	}
-	return &terraform1.CloseDependencyLocks_Response{}, nil
+	return &dependencies.CloseDependencyLocks_Response{}, nil
 }
 
-func (s *dependenciesServer) GetLockedProviderDependencies(ctx context.Context, req *terraform1.GetLockedProviderDependencies_Request) (*terraform1.GetLockedProviderDependencies_Response, error) {
+func (s *dependenciesServer) GetLockedProviderDependencies(ctx context.Context, req *dependencies.GetLockedProviderDependencies_Request) (*dependencies.GetLockedProviderDependencies_Response, error) {
 	hnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
 	locks := s.handles.DependencyLocks(hnd)
 	if locks == nil {
@@ -183,12 +184,12 @@ func (s *dependenciesServer) GetLockedProviderDependencies(ctx context.Context, 
 		return protoProviders[i].SourceAddr < protoProviders[j].SourceAddr
 	})
 
-	return &terraform1.GetLockedProviderDependencies_Response{
+	return &dependencies.GetLockedProviderDependencies_Response{
 		SelectedProviders: protoProviders,
 	}, nil
 }
 
-func (s *dependenciesServer) BuildProviderPluginCache(req *terraform1.BuildProviderPluginCache_Request, evts terraform1.Dependencies_BuildProviderPluginCacheServer) error {
+func (s *dependenciesServer) BuildProviderPluginCache(req *dependencies.BuildProviderPluginCache_Request, evts dependencies.Dependencies_BuildProviderPluginCacheServer) error {
 	ctx := evts.Context()
 
 	hnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
@@ -201,11 +202,11 @@ func (s *dependenciesServer) BuildProviderPluginCache(req *terraform1.BuildProvi
 	for _, protoMethod := range req.InstallationMethods {
 		var source getproviders.Source
 		switch arg := protoMethod.Source.(type) {
-		case *terraform1.BuildProviderPluginCache_Request_InstallMethod_Direct:
+		case *dependencies.BuildProviderPluginCache_Request_InstallMethod_Direct:
 			source = getproviders.NewRegistrySource(s.services)
-		case *terraform1.BuildProviderPluginCache_Request_InstallMethod_LocalMirrorDir:
+		case *dependencies.BuildProviderPluginCache_Request_InstallMethod_LocalMirrorDir:
 			source = getproviders.NewFilesystemMirrorSource(arg.LocalMirrorDir)
-		case *terraform1.BuildProviderPluginCache_Request_InstallMethod_NetworkMirrorUrl:
+		case *dependencies.BuildProviderPluginCache_Request_InstallMethod_NetworkMirrorUrl:
 			u, err := url.Parse(arg.NetworkMirrorUrl)
 			if err != nil {
 				return status.Errorf(codes.InvalidArgument, "invalid network mirror URL %q", arg.NetworkMirrorUrl)
@@ -263,25 +264,25 @@ func (s *dependenciesServer) BuildProviderPluginCache(req *terraform1.BuildProvi
 			// which could potentially help drive a percentage-based progress
 			// bar or similar in the UI by correlating with the "FetchSuccess"
 			// events.
-			protoConstraints := make([]*terraform1.BuildProviderPluginCache_Event_ProviderConstraints, 0, len(reqs))
+			protoConstraints := make([]*dependencies.BuildProviderPluginCache_Event_ProviderConstraints, 0, len(reqs))
 			for addr, constraints := range reqs {
-				protoConstraints = append(protoConstraints, &terraform1.BuildProviderPluginCache_Event_ProviderConstraints{
+				protoConstraints = append(protoConstraints, &dependencies.BuildProviderPluginCache_Event_ProviderConstraints{
 					SourceAddr: addr.ForDisplay(),
 					Versions:   getproviders.VersionConstraintsString(constraints),
 				})
 			}
-			evts.Send(&terraform1.BuildProviderPluginCache_Event{
-				Event: &terraform1.BuildProviderPluginCache_Event_Pending_{
-					Pending: &terraform1.BuildProviderPluginCache_Event_Pending{
+			evts.Send(&dependencies.BuildProviderPluginCache_Event{
+				Event: &dependencies.BuildProviderPluginCache_Event_Pending_{
+					Pending: &dependencies.BuildProviderPluginCache_Event_Pending{
 						Expected: protoConstraints,
 					},
 				},
 			})
 		},
 		ProviderAlreadyInstalled: func(provider addrs.Provider, selectedVersion getproviders.Version) {
-			evts.Send(&terraform1.BuildProviderPluginCache_Event{
-				Event: &terraform1.BuildProviderPluginCache_Event_AlreadyInstalled{
-					AlreadyInstalled: &terraform1.BuildProviderPluginCache_Event_ProviderVersion{
+			evts.Send(&dependencies.BuildProviderPluginCache_Event{
+				Event: &dependencies.BuildProviderPluginCache_Event_AlreadyInstalled{
+					AlreadyInstalled: &dependencies.BuildProviderPluginCache_Event_ProviderVersion{
 						SourceAddr: provider.ForDisplay(),
 						Version:    selectedVersion.String(),
 					},
@@ -289,17 +290,17 @@ func (s *dependenciesServer) BuildProviderPluginCache(req *terraform1.BuildProvi
 			})
 		},
 		BuiltInProviderAvailable: func(provider addrs.Provider) {
-			evts.Send(&terraform1.BuildProviderPluginCache_Event{
-				Event: &terraform1.BuildProviderPluginCache_Event_BuiltIn{
-					BuiltIn: &terraform1.BuildProviderPluginCache_Event_ProviderVersion{
+			evts.Send(&dependencies.BuildProviderPluginCache_Event{
+				Event: &dependencies.BuildProviderPluginCache_Event_BuiltIn{
+					BuiltIn: &dependencies.BuildProviderPluginCache_Event_ProviderVersion{
 						SourceAddr: provider.ForDisplay(),
 					},
 				},
 			})
 		},
 		BuiltInProviderFailure: func(provider addrs.Provider, err error) {
-			evts.Send(&terraform1.BuildProviderPluginCache_Event{
-				Event: &terraform1.BuildProviderPluginCache_Event_Diagnostic{
+			evts.Send(&dependencies.BuildProviderPluginCache_Event{
+				Event: &dependencies.BuildProviderPluginCache_Event_Diagnostic{
 					Diagnostic: diagnosticToProto(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Built-in provider unavailable",
@@ -313,9 +314,9 @@ func (s *dependenciesServer) BuildProviderPluginCache(req *terraform1.BuildProvi
 			sentErrorDiags = true
 		},
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
-			evts.Send(&terraform1.BuildProviderPluginCache_Event{
-				Event: &terraform1.BuildProviderPluginCache_Event_QueryBegin{
-					QueryBegin: &terraform1.BuildProviderPluginCache_Event_ProviderConstraints{
+			evts.Send(&dependencies.BuildProviderPluginCache_Event{
+				Event: &dependencies.BuildProviderPluginCache_Event_QueryBegin{
+					QueryBegin: &dependencies.BuildProviderPluginCache_Event_ProviderConstraints{
 						SourceAddr: provider.ForDisplay(),
 						Versions:   getproviders.VersionConstraintsString(versionConstraints),
 					},
@@ -323,9 +324,9 @@ func (s *dependenciesServer) BuildProviderPluginCache(req *terraform1.BuildProvi
 			})
 		},
 		QueryPackagesSuccess: func(provider addrs.Provider, selectedVersion getproviders.Version) {
-			evts.Send(&terraform1.BuildProviderPluginCache_Event{
-				Event: &terraform1.BuildProviderPluginCache_Event_QuerySuccess{
-					QuerySuccess: &terraform1.BuildProviderPluginCache_Event_ProviderVersion{
+			evts.Send(&dependencies.BuildProviderPluginCache_Event{
+				Event: &dependencies.BuildProviderPluginCache_Event_QuerySuccess{
+					QuerySuccess: &dependencies.BuildProviderPluginCache_Event_ProviderVersion{
 						SourceAddr: provider.ForDisplay(),
 						Version:    selectedVersion.String(),
 					},
@@ -333,9 +334,9 @@ func (s *dependenciesServer) BuildProviderPluginCache(req *terraform1.BuildProvi
 			})
 		},
 		QueryPackagesWarning: func(provider addrs.Provider, warn []string) {
-			evts.Send(&terraform1.BuildProviderPluginCache_Event{
-				Event: &terraform1.BuildProviderPluginCache_Event_QueryWarnings{
-					QueryWarnings: &terraform1.BuildProviderPluginCache_Event_ProviderWarnings{
+			evts.Send(&dependencies.BuildProviderPluginCache_Event{
+				Event: &dependencies.BuildProviderPluginCache_Event_QueryWarnings{
+					QueryWarnings: &dependencies.BuildProviderPluginCache_Event_ProviderWarnings{
 						SourceAddr: provider.ForDisplay(),
 						Warnings:   warn,
 					},
@@ -343,8 +344,8 @@ func (s *dependenciesServer) BuildProviderPluginCache(req *terraform1.BuildProvi
 			})
 		},
 		QueryPackagesFailure: func(provider addrs.Provider, err error) {
-			evts.Send(&terraform1.BuildProviderPluginCache_Event{
-				Event: &terraform1.BuildProviderPluginCache_Event_Diagnostic{
+			evts.Send(&dependencies.BuildProviderPluginCache_Event{
+				Event: &dependencies.BuildProviderPluginCache_Event_Diagnostic{
 					Diagnostic: diagnosticToProto(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Provider is unavailable",
@@ -359,10 +360,10 @@ func (s *dependenciesServer) BuildProviderPluginCache(req *terraform1.BuildProvi
 			sentErrorDiags = true
 		},
 		FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
-			evts.Send(&terraform1.BuildProviderPluginCache_Event{
-				Event: &terraform1.BuildProviderPluginCache_Event_FetchBegin_{
-					FetchBegin: &terraform1.BuildProviderPluginCache_Event_FetchBegin{
-						ProviderVersion: &terraform1.BuildProviderPluginCache_Event_ProviderVersion{
+			evts.Send(&dependencies.BuildProviderPluginCache_Event{
+				Event: &dependencies.BuildProviderPluginCache_Event_FetchBegin_{
+					FetchBegin: &dependencies.BuildProviderPluginCache_Event_FetchBegin{
+						ProviderVersion: &dependencies.BuildProviderPluginCache_Event_ProviderVersion{
 							SourceAddr: provider.ForDisplay(),
 							Version:    version.String(),
 						},
@@ -372,13 +373,13 @@ func (s *dependenciesServer) BuildProviderPluginCache(req *terraform1.BuildProvi
 			})
 		},
 		FetchPackageSuccess: func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
-			var protoAuthResult terraform1.BuildProviderPluginCache_Event_FetchComplete_AuthResult
+			var protoAuthResult dependencies.BuildProviderPluginCache_Event_FetchComplete_AuthResult
 			var keyID string
 			if authResult != nil {
 				keyID = authResult.KeyID
 				switch {
 				case authResult.SignedByHashiCorp():
-					protoAuthResult = terraform1.BuildProviderPluginCache_Event_FetchComplete_OFFICIAL_SIGNED
+					protoAuthResult = dependencies.BuildProviderPluginCache_Event_FetchComplete_OFFICIAL_SIGNED
 				default:
 					// TODO: The getproviders.PackageAuthenticationResult type
 					// only exposes the full detail of the signing outcome as
@@ -386,13 +387,13 @@ func (s *dependenciesServer) BuildProviderPluginCache(req *terraform1.BuildProvi
 					// means we can't populate this in full detail. For now
 					// we'll treat anything signed by a non-HashiCorp key as
 					// "unknown" and then rationalize this later.
-					protoAuthResult = terraform1.BuildProviderPluginCache_Event_FetchComplete_UNKNOWN
+					protoAuthResult = dependencies.BuildProviderPluginCache_Event_FetchComplete_UNKNOWN
 				}
 			}
-			evts.Send(&terraform1.BuildProviderPluginCache_Event{
-				Event: &terraform1.BuildProviderPluginCache_Event_FetchComplete_{
-					FetchComplete: &terraform1.BuildProviderPluginCache_Event_FetchComplete{
-						ProviderVersion: &terraform1.BuildProviderPluginCache_Event_ProviderVersion{
+			evts.Send(&dependencies.BuildProviderPluginCache_Event{
+				Event: &dependencies.BuildProviderPluginCache_Event_FetchComplete_{
+					FetchComplete: &dependencies.BuildProviderPluginCache_Event_FetchComplete{
+						ProviderVersion: &dependencies.BuildProviderPluginCache_Event_ProviderVersion{
 							SourceAddr: provider.ForDisplay(),
 							Version:    version.String(),
 						},
@@ -403,8 +404,8 @@ func (s *dependenciesServer) BuildProviderPluginCache(req *terraform1.BuildProvi
 			})
 		},
 		FetchPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
-			evts.Send(&terraform1.BuildProviderPluginCache_Event{
-				Event: &terraform1.BuildProviderPluginCache_Event_Diagnostic{
+			evts.Send(&dependencies.BuildProviderPluginCache_Event{
+				Event: &dependencies.BuildProviderPluginCache_Event_Diagnostic{
 					Diagnostic: diagnosticToProto(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Failed to fetch provider package",
@@ -427,8 +428,8 @@ func (s *dependenciesServer) BuildProviderPluginCache(req *terraform1.BuildProvi
 		// err will typically just duplicate them, so we'll skip emitting
 		// another diagnostic in that case.
 		if !sentErrorDiags {
-			evts.Send(&terraform1.BuildProviderPluginCache_Event{
-				Event: &terraform1.BuildProviderPluginCache_Event_Diagnostic{
+			evts.Send(&dependencies.BuildProviderPluginCache_Event{
+				Event: &dependencies.BuildProviderPluginCache_Event_Diagnostic{
 					Diagnostic: diagnosticToProto(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Failed to install providers",
@@ -450,7 +451,7 @@ func (s *dependenciesServer) BuildProviderPluginCache(req *terraform1.BuildProvi
 	return nil
 }
 
-func (s *dependenciesServer) OpenProviderPluginCache(ctx context.Context, req *terraform1.OpenProviderPluginCache_Request) (*terraform1.OpenProviderPluginCache_Response, error) {
+func (s *dependenciesServer) OpenProviderPluginCache(ctx context.Context, req *dependencies.OpenProviderPluginCache_Request) (*dependencies.OpenProviderPluginCache_Response, error) {
 	var cacheDir *providercache.Dir
 	if req.OverridePlatform == "" {
 		cacheDir = providercache.NewDir(req.CacheDir)
@@ -463,21 +464,21 @@ func (s *dependenciesServer) OpenProviderPluginCache(ctx context.Context, req *t
 	}
 
 	hnd := s.handles.NewProviderPluginCache(cacheDir)
-	return &terraform1.OpenProviderPluginCache_Response{
+	return &dependencies.OpenProviderPluginCache_Response{
 		ProviderCacheHandle: hnd.ForProtobuf(),
 	}, nil
 }
 
-func (s *dependenciesServer) CloseProviderPluginCache(ctx context.Context, req *terraform1.CloseProviderPluginCache_Request) (*terraform1.CloseProviderPluginCache_Response, error) {
+func (s *dependenciesServer) CloseProviderPluginCache(ctx context.Context, req *dependencies.CloseProviderPluginCache_Request) (*dependencies.CloseProviderPluginCache_Response, error) {
 	hnd := handle[*providercache.Dir](req.ProviderCacheHandle)
 	err := s.handles.CloseProviderPluginCache(hnd)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid provider plugin cache handle")
 	}
-	return &terraform1.CloseProviderPluginCache_Response{}, nil
+	return &dependencies.CloseProviderPluginCache_Response{}, nil
 }
 
-func (s *dependenciesServer) GetCachedProviders(ctx context.Context, req *terraform1.GetCachedProviders_Request) (*terraform1.GetCachedProviders_Response, error) {
+func (s *dependenciesServer) GetCachedProviders(ctx context.Context, req *dependencies.GetCachedProviders_Request) (*dependencies.GetCachedProviders_Response, error) {
 	hnd := handle[*providercache.Dir](req.ProviderCacheHandle)
 	cacheDir := s.handles.ProviderPluginCache(hnd)
 	if cacheDir == nil {
@@ -507,12 +508,12 @@ func (s *dependenciesServer) GetCachedProviders(ctx context.Context, req *terraf
 		}
 	}
 
-	return &terraform1.GetCachedProviders_Response{
+	return &dependencies.GetCachedProviders_Response{
 		AvailableProviders: ret,
 	}, nil
 }
 
-func (s *dependenciesServer) GetBuiltInProviders(ctx context.Context, req *terraform1.GetBuiltInProviders_Request) (*terraform1.GetBuiltInProviders_Response, error) {
+func (s *dependenciesServer) GetBuiltInProviders(ctx context.Context, req *dependencies.GetBuiltInProviders_Request) (*dependencies.GetBuiltInProviders_Response, error) {
 	ret := make([]*terraform1.ProviderPackage, 0, len(builtinProviders))
 	for typeName := range builtinProviders {
 		ret = append(ret, &terraform1.ProviderPackage{
@@ -522,12 +523,12 @@ func (s *dependenciesServer) GetBuiltInProviders(ctx context.Context, req *terra
 	sort.Slice(ret, func(i, j int) bool {
 		return ret[i].SourceAddr < ret[j].SourceAddr
 	})
-	return &terraform1.GetBuiltInProviders_Response{
+	return &dependencies.GetBuiltInProviders_Response{
 		AvailableProviders: ret,
 	}, nil
 }
 
-func (s *dependenciesServer) GetProviderSchema(ctx context.Context, req *terraform1.GetProviderSchema_Request) (*terraform1.GetProviderSchema_Response, error) {
+func (s *dependenciesServer) GetProviderSchema(ctx context.Context, req *dependencies.GetProviderSchema_Request) (*dependencies.GetProviderSchema_Response, error) {
 	var cacheHnd handle[*providercache.Dir]
 	var cacheDir *providercache.Dir
 	if req.GetProviderCacheHandle() != 0 {
@@ -568,7 +569,7 @@ func (s *dependenciesServer) GetProviderSchema(ctx context.Context, req *terrafo
 		return nil, status.Errorf(codes.Internal, err.Error())
 	}
 
-	return &terraform1.GetProviderSchema_Response{
+	return &dependencies.GetProviderSchema_Response{
 		Schema: providerSchemaToProto(schemaResp),
 	}, nil
 }

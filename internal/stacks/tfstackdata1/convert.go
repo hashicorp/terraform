@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -29,7 +29,7 @@ func ResourceInstanceObjectStateToTFStackData1(objSrc *states.ResourceInstanceOb
 	// attribute paths here just so we don't need to reimplement the
 	// slice-of-paths conversion in yet another place. We don't
 	// actually do anything with the value part of this.
-	protoValue := terraform1.NewDynamicValue(plans.DynamicValue(nil), objSrc.AttrSensitivePaths)
+	protoValue := stacks.NewDynamicValue(plans.DynamicValue(nil), objSrc.AttrSensitivePaths)
 	rawMsg := &StateResourceInstanceObjectV1{
 		SchemaVersion:        objSrc.SchemaVersion,
 		ValueJson:            objSrc.AttrsJSON,
@@ -129,7 +129,7 @@ func DynamicValueFromTFStackData1(protoVal *DynamicValue, ty cty.Type) (cty.Valu
 	return unmarkedV.MarkWithPaths(markses), nil
 }
 
-func Terraform1ToPlanProtoAttributePaths(paths []*terraform1.AttributePath) []*planproto.Path {
+func Terraform1ToPlanProtoAttributePaths(paths []*stacks.AttributePath) []*planproto.Path {
 	if len(paths) == 0 {
 		return nil
 	}
@@ -140,7 +140,7 @@ func Terraform1ToPlanProtoAttributePaths(paths []*terraform1.AttributePath) []*p
 	return ret
 }
 
-func Terraform1ToPlanProtoAttributePath(path *terraform1.AttributePath) *planproto.Path {
+func Terraform1ToPlanProtoAttributePath(path *stacks.AttributePath) *planproto.Path {
 	if path == nil {
 		return nil
 	}
@@ -155,17 +155,17 @@ func Terraform1ToPlanProtoAttributePath(path *terraform1.AttributePath) *planpro
 	return ret
 }
 
-func Terraform1ToPlanProtoAttributePathStep(step *terraform1.AttributePath_Step) *planproto.Path_Step {
+func Terraform1ToPlanProtoAttributePathStep(step *stacks.AttributePath_Step) *planproto.Path_Step {
 	if step == nil {
 		return nil
 	}
 	ret := &planproto.Path_Step{}
 	switch sel := step.Selector.(type) {
-	case *terraform1.AttributePath_Step_AttributeName:
+	case *stacks.AttributePath_Step_AttributeName:
 		ret.Selector = &planproto.Path_Step_AttributeName{
 			AttributeName: sel.AttributeName,
 		}
-	case *terraform1.AttributePath_Step_ElementKeyInt:
+	case *stacks.AttributePath_Step_ElementKeyInt:
 		encInt, err := msgpack.Marshal(cty.NumberIntVal(sel.ElementKeyInt), cty.Number)
 		if err != nil {
 			// This should not be possible because all integers have a cty msgpack encoding
@@ -176,7 +176,7 @@ func Terraform1ToPlanProtoAttributePathStep(step *terraform1.AttributePath_Step)
 				Msgpack: encInt,
 			},
 		}
-	case *terraform1.AttributePath_Step_ElementKeyString:
+	case *stacks.AttributePath_Step_ElementKeyString:
 		encStr, err := msgpack.Marshal(cty.StringVal(sel.ElementKeyString), cty.String)
 		if err != nil {
 			// This should not be possible because all strings have a cty msgpack encoding

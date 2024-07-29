@@ -1,0 +1,379 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+package terraform1.dependencies;
+
+import "terraform1.proto";
+
+service Dependencies {
+  // Opens a source bundle that was already extracted into the filesystem
+  // somewhere, returning an opaque source bundle handle that can be used for
+  // subsequent operations.
+  rpc OpenSourceBundle(OpenSourceBundle.Request) returns (OpenSourceBundle.Response);
+
+  // Closes a previously-opened source bundle, invalidating the given handle
+  // and therefore making it safe to delete or modify the bundle directory
+  // on disk.
+  rpc CloseSourceBundle(CloseSourceBundle.Request) returns (CloseSourceBundle.Response);
+
+  // Reads and parses an existing dependency lock file from the filesystem,
+  // returning a dependency locks handle.
+  //
+  // This function parses a user-provided source file, and so invalid content
+  // in that file is treated as diagnostics in a successful response rather
+  // than as an RPC error. Callers must check whether the dependency locks
+  // handle in the response is set (non-zero) before using it, and treat
+  // an unset handle as indicating a user error which is described in the
+  // accompanying diagnostics. Diagnostics can also be returned along with
+  // a valid handle, e.g. if there are non-blocking warning diagnostics.
+  rpc OpenDependencyLockFile(OpenDependencyLockFile.Request) returns (OpenDependencyLockFile.Response);
+
+  // Creates an in-memory-only dependency locks handle with a fixed set of
+  // dependency selections provided as arguments.
+  rpc CreateDependencyLocks(CreateDependencyLocks.Request) returns (CreateDependencyLocks.Response);
+
+  rpc CloseDependencyLocks(CloseDependencyLocks.Request) returns (CloseDependencyLocks.Response);
+
+  // Returns information about the provider version selections in a
+  // dependency locks object.
+  rpc GetLockedProviderDependencies(GetLockedProviderDependencies.Request) returns (GetLockedProviderDependencies.Response);
+
+  // Populates a new provider plugin cache directory in the local filesystem
+  // based on the provider version selections in a given dependency locks
+  // object.
+  //
+  // This particular RPC can only install already-selected provider packages
+  // recorded in a dependency locks object; it does not support "upgrading"
+  // provider selections to newer versions as a CLI user would do with
+  // "terraform init -upgrade", because there would be no way to then
+  // commit the updated locks to disk as a lock file.
+  rpc BuildProviderPluginCache(BuildProviderPluginCache.Request) returns (stream BuildProviderPluginCache.Event);
+
+  // Opens an existing local filesystem directory as a provider plugin cache
+  // directory, returning a plugin cache handle that can be used with other
+  // RPC operations.
+  rpc OpenProviderPluginCache(OpenProviderPluginCache.Request) returns (OpenProviderPluginCache.Response);
+
+  rpc CloseProviderPluginCache(CloseProviderPluginCache.Request) returns (CloseProviderPluginCache.Response);
+
+  // Returns information about the specific provider packages that are
+  // available in the given provider plugin cache.
+  rpc GetCachedProviders(GetCachedProviders.Request) returns (GetCachedProviders.Response);
+
+  // Returns information about the built-in providers that are compiled in
+  // to this Terraform Core server.
+  rpc GetBuiltInProviders(GetBuiltInProviders.Request) returns (GetBuiltInProviders.Response);
+
+  // Returns a description of the schema for a particular provider in a
+  // given provider plugin cache, or of a particular built-in provider
+  // known to this version of Terraform Core.
+  //
+  // WARNING: This operation requires executing the selected provider plugin,
+  // which therefore allows it to run arbitrary code as a child process of
+  // this Terraform Core server, with access to all of the same resources.
+  // This should typically be used only with providers explicitly selected
+  // in a dependency lock file, so users can control what external code
+  // has the potential to run in a context that probably has access to
+  // private source code and other sensitive information.
+  rpc GetProviderSchema(GetProviderSchema.Request) returns (GetProviderSchema.Response);
+}
+
+
+message OpenSourceBundle {
+  message Request {
+    string local_path = 1;
+  }
+  message Response {
+    int64 source_bundle_handle = 1;
+  }
+}
+
+message CloseSourceBundle {
+  message Request {
+    int64 source_bundle_handle = 1;
+  }
+  message Response {
+  }
+}
+
+message OpenDependencyLockFile {
+  message Request {
+    int64 source_bundle_handle = 1;
+    terraform1.SourceAddress source_address = 2;
+  }
+  message Response {
+    int64 dependency_locks_handle = 1;
+    repeated terraform1.Diagnostic diagnostics = 2;
+  }
+}
+
+message CreateDependencyLocks {
+  message Request {
+    // The provider selections to include in the locks object.
+    //
+    // A typical value would be the result of an earlier call to
+    // GetLockedProviderDependencies on some other locks object,
+    // e.g. if a caller needs to propagate a set of locks from one
+    // Terraform Core RPC server to another.
+    repeated terraform1.ProviderPackage provider_selections = 1;
+  }
+  message Response {
+    int64 dependency_locks_handle = 1;
+  }
+}
+
+message CloseDependencyLocks {
+  message Request {
+    int64 dependency_locks_handle = 1;
+  }
+  message Response {
+  }
+}
+
+message GetLockedProviderDependencies {
+  message Request {
+    int64 dependency_locks_handle = 1;
+  }
+  message Response {
+    repeated terraform1.ProviderPackage selected_providers = 1;
+  }
+}
+
+message BuildProviderPluginCache {
+  message Request {
+    string cache_dir = 1;
+    int64 dependency_locks_handle = 2;
+    repeated InstallMethod installation_methods = 3;
+
+    // If set, this populates the cache with plugins for a different
+    // platform than the one the Terraform Core RPC server is running on.
+    // If unset (empty) then the cache will be populated with packages
+    // for the same platform as Terraform Core was built for, if available.
+    //
+    // If this is set to a different platform than the Terraform Core RPC
+    // server's then the generated cache directory will appear empty to
+    // other operations on this server.
+    string override_platform = 4;
+
+    message InstallMethod {
+      oneof source {
+        bool direct = 1;
+        string local_mirror_dir = 2;
+        string network_mirror_url = 3;
+      }
+      repeated string include = 4;
+      repeated string exclude = 5;
+    }
+  }
+  message Event {
+    oneof event {
+      Pending pending = 1;
+      ProviderVersion already_installed = 2;
+
+      ProviderVersion built_in = 3;
+      ProviderConstraints query_begin = 4;
+      ProviderVersion query_success = 5;
+      ProviderWarnings query_warnings = 6;
+
+      FetchBegin fetch_begin = 7;
+      FetchComplete fetch_complete = 8;
+
+      terraform1.Diagnostic diagnostic = 9;
+    }
+
+    message Pending {
+      repeated ProviderConstraints expected = 1;
+    }
+    message ProviderConstraints {
+      string source_addr = 1;
+      string versions = 2;
+    }
+    message ProviderVersion {
+      string source_addr = 1;
+      string version = 2;
+    }
+    message ProviderWarnings {
+      string source_addr = 1;
+      repeated string warnings = 2;
+    }
+    message FetchBegin {
+      ProviderVersion provider_version = 1;
+      string location = 2;
+    }
+    message FetchComplete {
+      ProviderVersion provider_version = 1;
+      AuthResult auth_result = 2;
+
+      // If auth_result is one of the "_SIGNED" variants then this
+      // might contain a UI-oriented identifier for the key that
+      // signed the package. The exact format of this string is not
+      // guaranteed; do not attempt to parse it or make automated
+      // decisions based on it.
+      string key_id_for_display = 3;
+
+      enum AuthResult {
+        UNKNOWN = 0;
+        VERIFIED_CHECKSUM = 1;
+        OFFICIAL_SIGNED = 2;
+        PARTNER_SIGNED = 3;
+        SELF_SIGNED = 4;
+      }
+    }
+  }
+}
+
+message OpenProviderPluginCache {
+  message Request {
+    string cache_dir = 1;
+
+    // As with the field of the same name in BuildProviderPluginCache.Request.
+    //
+    // If this is set to anything other than this RPC server's native
+    // platform then any operations that require executing the provider
+    // plugin are likely to fail due to executable format errors or
+    // similar. However, it's valid to use the returned handle with
+    // GetCachedProviders, since it only analyzes the cache metadata
+    // and doesn't actually run the plugins inside.
+    string override_platform = 2;
+  }
+  message Response {
+    int64 provider_cache_handle = 1;
+  }
+}
+
+message CloseProviderPluginCache {
+  message Request {
+    int64 provider_cache_handle = 1;
+  }
+  message Response {
+  }
+}
+
+message GetCachedProviders {
+  message Request {
+    int64 provider_cache_handle = 1;
+  }
+  message Response {
+    repeated terraform1.ProviderPackage available_providers = 1;
+  }
+}
+
+message GetBuiltInProviders {
+  message Request {
+  }
+  message Response {
+    // The built-in providers that are compiled in to this Terraform Core
+    // server.
+    //
+    // This uses terraform1.ProviderPackage messages for consistency with the other
+    // operations which list providers, but built-in providers do not
+    // have version numbers nor hashes so those fields will always be
+    // unset in the result.
+    repeated terraform1.ProviderPackage available_providers = 1;
+  }
+}
+
+message GetProviderSchema {
+  message Request {
+    // The address of the provider to retrieve schema for, using the
+    // typical provider source address syntax.
+    //
+    // When requesting schema based on a terraform1.ProviderPackage message, populate
+    // this with its "source_addr" field.
+    string provider_addr = 1;
+    // The version number of the given provider to retrieve the schema
+    // of, which must have already been populated into the cache directory.
+    //
+    // Not supported for built-in providers because we can only access the
+    // single "version" of the provider that's compiled into this Terraform
+    // Core server, and so must be left unset or empty for those.
+    //
+    // When requesting schema based on a terraform1.ProviderPackage message, populate
+    // this with its "version" field.
+    string provider_version = 2;
+
+    // The handle for the previously-opened provider plugin cache to
+    // load the provider plugin from.
+    //
+    // Optional for built-in providers, but can still be specified in that
+    // case if desired so that callers can safely just send the handle they
+    // have in all cases and be naive about which providers are and are
+    // not built in.
+    int64 provider_cache_handle = 3;
+  }
+  message Response {
+    ProviderSchema schema = 1;
+  }
+}
+
+// ProviderSchema describes the full schema for a particular provider.
+message ProviderSchema {
+  Schema provider_config = 1;
+  map<string, Schema> managed_resource_types = 2;
+  map<string, Schema> data_resource_types = 3;
+}
+
+// Schema describes a schema for an instance of a particular object, such as
+// a resource type or a provider's overall configuration.
+message Schema {
+  // Block is the top level configuration block for this schema.
+  Block block = 1;
+
+  message Block {
+    repeated Attribute attributes = 1;
+    repeated NestedBlock block_types = 2;
+    DocString description = 3;
+    bool deprecated = 4;
+  }
+
+  message Attribute {
+    string name = 1;
+    bytes type = 2;
+    Object nested_type = 10;
+    DocString description = 3;
+    bool required = 4;
+    bool optional = 5;
+    bool computed = 6;
+    bool sensitive = 7;
+    bool deprecated = 8;
+  }
+
+  message NestedBlock {
+    enum NestingMode {
+      INVALID = 0;
+      SINGLE = 1;
+      LIST = 2;
+      SET = 3;
+      MAP = 4;
+      GROUP = 5;
+    }
+
+    string type_name = 1;
+    Block block = 2;
+    NestingMode nesting = 3;
+  }
+
+  message Object {
+    enum NestingMode {
+      INVALID = 0;
+      SINGLE = 1;
+      LIST = 2;
+      SET = 3;
+      MAP = 4;
+    }
+
+    repeated Attribute attributes = 1;
+    NestingMode nesting = 3;
+  }
+
+  message DocString {
+    string description = 1;
+    Format format = 2;
+
+    enum Format {
+      PLAIN = 0;
+      MARKDOWN = 1;
+    }
+  }
+}

@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/packages"
 )
 
 func TestPackagesServer_ProviderPackageVersions(t *testing.T) {
@@ -86,7 +87,7 @@ func TestPackagesServer_ProviderPackageVersions(t *testing.T) {
 				providerSourceFn: tc.sourceFn,
 			}
 
-			response, err := service.ProviderPackageVersions(context.Background(), &terraform1.ProviderPackageVersions_Request{
+			response, err := service.ProviderPackageVersions(context.Background(), &packages.ProviderPackageVersions_Request{
 				SourceAddr: tc.source,
 			})
 			if err != nil {
@@ -230,7 +231,7 @@ func TestPackagesServer_FetchProviderPackage(t *testing.T) {
 			}
 
 			cacheDir := t.TempDir()
-			response, err := service.FetchProviderPackage(context.Background(), &terraform1.FetchProviderPackage_Request{
+			response, err := service.FetchProviderPackage(context.Background(), &packages.FetchProviderPackage_Request{
 				CacheDir:   cacheDir,
 				SourceAddr: tc.source,
 				Version:    tc.version,

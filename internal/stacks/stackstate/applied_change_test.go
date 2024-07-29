@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/internal/states"
@@ -27,7 +27,7 @@ import (
 func TestAppliedChangeAsProto(t *testing.T) {
 	tests := map[string]struct {
 		Receiver AppliedChange
-		Want     *terraform1.AppliedChange
+		Want     *stacks.AppliedChange
 	}{
 		"resource instance": {
 			Receiver: &AppliedChangeResourceInstanceObject{
@@ -73,8 +73,8 @@ func TestAppliedChangeAsProto(t *testing.T) {
 					},
 				},
 			},
-			Want: &terraform1.AppliedChange{
-				Raw: []*terraform1.AppliedChange_RawChange{
+			Want: &stacks.AppliedChange{
+				Raw: []*stacks.AppliedChange_RawChange{
 					{
 						Key: `RSRCstack.a["boop"].component.foo["beep"],module.pizza["chicken"].thingy.thingamajig[1],cur`,
 						Value: mustMarshalAnyPb(t, &tfstackdata1.StateResourceInstanceObjectV1{
@@ -90,27 +90,27 @@ func TestAppliedChangeAsProto(t *testing.T) {
 						}),
 					},
 				},
-				Descriptions: []*terraform1.AppliedChange_ChangeDescription{
+				Descriptions: []*stacks.AppliedChange_ChangeDescription{
 					{
 						Key: `RSRCstack.a["boop"].component.foo["beep"],module.pizza["chicken"].thingy.thingamajig[1],cur`,
-						Description: &terraform1.AppliedChange_ChangeDescription_ResourceInstance{
-							ResourceInstance: &terraform1.AppliedChange_ResourceInstance{
-								Addr: &terraform1.ResourceInstanceObjectInStackAddr{
+						Description: &stacks.AppliedChange_ChangeDescription_ResourceInstance{
+							ResourceInstance: &stacks.AppliedChange_ResourceInstance{
+								Addr: &stacks.ResourceInstanceObjectInStackAddr{
 									ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
 									ResourceInstanceAddr:  `module.pizza["chicken"].thingy.thingamajig[1]`,
 								},
-								NewValue: &terraform1.DynamicValue{
+								NewValue: &stacks.DynamicValue{
 									Msgpack: mustMsgpack(t, cty.ObjectVal(map[string]cty.Value{
 										"id":     cty.StringVal("bar"),
 										"secret": cty.StringVal("top"),
 									}), cty.Object(map[string]cty.Type{"id": cty.String, "secret": cty.String})),
-									Sensitive: []*terraform1.AttributePath{{
-										Steps: []*terraform1.AttributePath_Step{{
-											Selector: &terraform1.AttributePath_Step_AttributeName{AttributeName: "secret"},
+									Sensitive: []*stacks.AttributePath{{
+										Steps: []*stacks.AttributePath_Step{{
+											Selector: &stacks.AttributePath_Step_AttributeName{AttributeName: "secret"},
 										}}},
 									},
 								},
-								ResourceMode: terraform1.ResourceMode_MANAGED,
+								ResourceMode: stacks.ResourceMode_MANAGED,
 								ResourceType: "thingy",
 								ProviderAddr: "example.com/thingers/thingy",
 							},
@@ -181,8 +181,8 @@ func TestAppliedChangeAsProto(t *testing.T) {
 					},
 				},
 			},
-			Want: &terraform1.AppliedChange{
-				Raw: []*terraform1.AppliedChange_RawChange{
+			Want: &stacks.AppliedChange{
+				Raw: []*stacks.AppliedChange_RawChange{
 					{
 						Key:   `RSRCstack.a["boop"].component.foo["beep"],module.pizza["chicken"].thingy.previous_thingamajig[1],cur`,
 						Value: nil,
@@ -202,33 +202,33 @@ func TestAppliedChangeAsProto(t *testing.T) {
 						}),
 					},
 				},
-				Descriptions: []*terraform1.AppliedChange_ChangeDescription{
+				Descriptions: []*stacks.AppliedChange_ChangeDescription{
 					{
 						Key: `RSRCstack.a["boop"].component.foo["beep"],module.pizza["chicken"].thingy.previous_thingamajig[1],cur`,
-						Description: &terraform1.AppliedChange_ChangeDescription_Moved{
-							Moved: &terraform1.AppliedChange_Nothing{},
+						Description: &stacks.AppliedChange_ChangeDescription_Moved{
+							Moved: &stacks.AppliedChange_Nothing{},
 						},
 					},
 					{
 						Key: `RSRCstack.a["boop"].component.foo["beep"],module.pizza["chicken"].thingy.thingamajig[1],cur`,
-						Description: &terraform1.AppliedChange_ChangeDescription_ResourceInstance{
-							ResourceInstance: &terraform1.AppliedChange_ResourceInstance{
-								Addr: &terraform1.ResourceInstanceObjectInStackAddr{
+						Description: &stacks.AppliedChange_ChangeDescription_ResourceInstance{
+							ResourceInstance: &stacks.AppliedChange_ResourceInstance{
+								Addr: &stacks.ResourceInstanceObjectInStackAddr{
 									ComponentInstanceAddr: `stack.a["boop"].component.foo["beep"]`,
 									ResourceInstanceAddr:  `module.pizza["chicken"].thingy.thingamajig[1]`,
 								},
-								NewValue: &terraform1.DynamicValue{
+								NewValue: &stacks.DynamicValue{
 									Msgpack: mustMsgpack(t, cty.ObjectVal(map[string]cty.Value{
 										"id":     cty.StringVal("bar"),
 										"secret": cty.StringVal("top"),
 									}), cty.Object(map[string]cty.Type{"id": cty.String, "secret": cty.String})),
-									Sensitive: []*terraform1.AttributePath{{
-										Steps: []*terraform1.AttributePath_Step{{
-											Selector: &terraform1.AttributePath_Step_AttributeName{AttributeName: "secret"},
+									Sensitive: []*stacks.AttributePath{{
+										Steps: []*stacks.AttributePath_Step{{
+											Selector: &stacks.AttributePath_Step_AttributeName{AttributeName: "secret"},
 										}}},
 									},
 								},
-								ResourceMode: terraform1.ResourceMode_MANAGED,
+								ResourceMode: stacks.ResourceMode_MANAGED,
 								ResourceType: "thingy",
 								ProviderAddr: "example.com/thingers/thingy",
 							},
