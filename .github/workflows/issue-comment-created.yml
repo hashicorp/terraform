@@ -4,8 +4,12 @@ on:
   issue_comment:
     types: [created]
 
+permissions: {}
 jobs:
   issue_comment_triage:
+    permissions:
+      issues: write # to remove issue labels (actions-ecosystem/action-remove-labels)
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions-ecosystem/action-remove-labels@2ce5d41b4b6aa8503e285553f75ed56e0a40bae0 # v1.3.0
