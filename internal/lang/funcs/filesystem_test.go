@@ -434,6 +434,7 @@ func TestFileSet(t *testing.T) {
 			cty.SetVal([]cty.Value{
 				cty.StringVal("testdata/hello.tmpl"),
 				cty.StringVal("testdata/hello.txt"),
+				cty.StringVal("testdata/somedir/hello.txt"),
 			}),
 			``,
 		},
@@ -443,6 +444,7 @@ func TestFileSet(t *testing.T) {
 			cty.SetVal([]cty.Value{
 				cty.StringVal("testdata/hello.tmpl"),
 				cty.StringVal("testdata/hello.txt"),
+				cty.StringVal("testdata/somedir/hello.txt"),
 			}),
 			``,
 		},
@@ -514,6 +516,192 @@ func TestFileSet(t *testing.T) {
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("FileSet(\".\", %#v, %#v)", test.Path, test.Pattern), func(t *testing.T) {
 			got, err := FileSet(".", test.Path, test.Pattern)
+
+			if test.Err != "" {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.Err; got != want {
+					t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestDirectoryExists(t *testing.T) {
+	tests := []struct {
+		Path cty.Value
+		Want cty.Value
+		Err  string
+	}{
+		{
+			cty.StringVal("testdata/"),
+			cty.BoolVal(true),
+			``,
+		},
+		{
+			cty.StringVal(""),
+			cty.BoolVal(true),
+			``,
+		},
+		{
+			cty.StringVal("missing"),
+			cty.BoolVal(false),
+			``,
+		},
+		{
+			cty.StringVal("hello.txt"),
+			cty.BoolVal(false),
+			``,
+		},
+		{
+			cty.StringVal("testdata/hello.txt"),
+			cty.BoolVal(false),
+			`"testdata/hello.txt" is not a directory`,
+		},
+		{
+			cty.StringVal("testdata/unreadable/foobar"),
+			cty.BoolVal(false),
+			`failed to stat "testdata/unreadable/foobar"`,
+		},
+		{
+			cty.StringVal("testdata/unreadable/foobar").Mark(marks.Sensitive),
+			cty.BoolVal(false),
+			`failed to stat (sensitive value)`,
+		},
+	}
+
+	// Ensure "unreadable" directory cannot be listed during the test run
+	fi, err := os.Lstat("testdata/unreadable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Chmod("testdata/unreadable", 0000)
+	defer func(mode os.FileMode) {
+		os.Chmod("testdata/unreadable", mode)
+	}(fi.Mode())
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("DirectoryExists(\".\", %#v)", test.Path), func(t *testing.T) {
+			got, err := DirectoryExists(".", test.Path)
+
+			if test.Err != "" {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.Err; got != want {
+					t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestDirectorySet(t *testing.T) {
+	tests := []struct {
+		Path    cty.Value
+		Pattern cty.Value
+		Want    cty.Value
+		Err     string
+	}{
+		{
+			cty.StringVal("."),
+			cty.StringVal("*"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("testdata"),
+			}),
+			``,
+		},
+		{
+			cty.StringVal("."),
+			cty.StringVal("**"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("testdata"),
+				cty.StringVal("testdata/somedir"),
+				cty.StringVal("testdata/somedir/someotherdir"),
+				cty.StringVal("testdata/unreadable"),
+			}),
+			``,
+		},
+		{
+			cty.StringVal("."),
+			cty.StringVal("testdata/somedir/bogus"),
+			cty.SetValEmpty(cty.String),
+			``,
+		},
+		{
+			cty.StringVal("./testdata"),
+			cty.StringVal("**"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("somedir"),
+				cty.StringVal("somedir/someotherdir"),
+				cty.StringVal("unreadable"),
+			}),
+			``,
+		},
+		{
+			cty.StringVal("./testdata"),
+			cty.StringVal("**"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("somedir"),
+				cty.StringVal("somedir/someotherdir"),
+				cty.StringVal("unreadable"),
+			}),
+			``,
+		},
+		{
+			cty.StringVal("."),
+			cty.StringVal("**/someother*"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("testdata/somedir/someotherdir"),
+			}),
+			``,
+		},
+		{
+			cty.StringVal("."),
+			cty.StringVal("**/{somedir,someotherdir}"),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("testdata/somedir"),
+				cty.StringVal("testdata/somedir/someotherdir"),
+			}),
+			``,
+		},
+		{
+			cty.StringVal("./testdata/unreadable"),
+			cty.StringVal("*"),
+			cty.SetValEmpty(cty.String),
+			``,
+		},
+	}
+
+	// Ensure "unreadable" directory cannot be listed during the test run
+	fi, err := os.Lstat("testdata/unreadable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Chmod("testdata/unreadable", 0000)
+	defer func(mode os.FileMode) {
+		os.Chmod("testdata/unreadable", mode)
+	}(fi.Mode())
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("DirectorySet(\".\", %#v, %#v)", test.Path, test.Pattern), func(t *testing.T) {
+			got, err := DirectorySet(".", test.Path, test.Pattern)
 
 			if test.Err != "" {
 				if err == nil {
