@@ -18,12 +18,14 @@ func New() backend.Backend {
 			"storage_account_name": {
 				Type:        schema.TypeString,
 				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_STORAGE_ACCOUNT_NAME", ""),
 				Description: "The name of the storage account.",
 			},
 
 			"container_name": {
 				Type:        schema.TypeString,
 				Required:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_CONTAINER_NAME", ""),
 				Description: "The container name.",
 			},
 
@@ -71,6 +73,7 @@ func New() backend.Backend {
 			"resource_group_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_RESOURCE_GROUP_NAME", ""),
 				Description: "The resource group name.",
 			},
 
