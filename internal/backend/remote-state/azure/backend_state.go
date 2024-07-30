@@ -34,23 +34,41 @@ func (b *Backend) Workspaces() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp, err := client.ListBlobs(ctx, b.armClient.storageAccountName, b.containerName, params)
-	if err != nil {
-		return nil, err
-	}
 
 	envs := map[string]struct{}{}
-	for _, obj := range resp.Blobs.Blobs {
-		key := obj.Name
-		if strings.HasPrefix(key, prefix) {
-			name := strings.TrimPrefix(key, prefix)
-			// we store the state in a key, not a directory
-			if strings.Contains(name, "/") {
-				continue
-			}
-
-			envs[name] = struct{}{}
+	for {
+		resp, err := client.ListBlobs(ctx, b.armClient.storageAccountName, b.containerName, params)
+		if err != nil {
+			return nil, err
 		}
+
+		for _, obj := range resp.Blobs.Blobs {
+			key := obj.Name
+			if strings.HasPrefix(key, prefix) {
+				name := strings.TrimPrefix(key, prefix)
+				// we store the state in a key, not a directory
+				if strings.Contains(name, "/") {
+					continue
+				}
+
+				envs[name] = struct{}{}
+			}
+		}
+
+		// If there is no continuation then we can break
+		if resp.NextMarker == nil || *resp.NextMarker == "" {
+			break
+		}
+
+		// If there was a continuation then we need to continue to query to avoid omitting results
+		//
+		// Azure list-blob will always return a NextMarker continuation when there are more than 5000 results
+		// but it may also return a NextMarker continuation when there are fewer than 5000 results which will
+		// result in more queries being required to fetch the full result set
+		//
+		// See parameter definition of optional parameter "marker"
+		// https://learn.microsoft.com/en-us/rest/api/storageservices/list-blobs?tabs=azure-ad#request
+		params.Marker = resp.NextMarker
 	}
 
 	result := []string{backend.DefaultStateName}
