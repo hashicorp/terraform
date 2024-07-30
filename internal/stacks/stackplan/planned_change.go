@@ -392,8 +392,15 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*terraform1
 		}
 	}
 
-	key := pc.ChangeSrc.Addr.Resource.Key.Value()
-	index, err := DynamicValueToTerraform1(key, key.Type())
+	var index *terraform1.DynamicValue
+	if pc.ChangeSrc.Addr.Resource.Key != nil {
+		var err error
+		key := pc.ChangeSrc.Addr.Resource.Key.Value()
+		index, err = DynamicValueToTerraform1(key, key.Type())
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return &terraform1.PlannedChange_ChangeDescription{
 		Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
