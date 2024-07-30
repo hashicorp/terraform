@@ -399,7 +399,7 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*terraform1
 		Description: &terraform1.PlannedChange_ChangeDescription_ResourceInstancePlanned{
 			ResourceInstancePlanned: &terraform1.PlannedChange_ResourceInstance{
 				Addr:         terraform1.NewResourceInstanceObjectInStackAddr(rioAddr),
-				Name:         pc.ChangeSrc.Addr.Resource.Resource.Name,
+				ResourceName: pc.ChangeSrc.Addr.Resource.Resource.Name,
 				Index:        index,
 				ModuleAddr:   pc.ChangeSrc.Addr.Module.String(),
 				ResourceMode: stackutils.ResourceModeForProto(pc.ChangeSrc.Addr.Resource.Resource.Mode),

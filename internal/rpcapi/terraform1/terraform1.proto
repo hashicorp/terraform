@@ -882,7 +882,7 @@ message PlannedChange {
 
         repeated AttributePath replace_paths = 11;
 
-        string name = 12;
+        string resource_name = 12;
         DynamicValue index = 13;
         string module_addr = 14;
         string action_reason = 15;

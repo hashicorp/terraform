@@ -295,8 +295,8 @@ func TestPlannedChangeAsProto(t *testing.T) {
 									Index: &terraform1.DynamicValue{
 										Msgpack: []byte{'\x01'}, // 1
 									},
-									ModuleAddr: `module.pizza["chicken"]`,
-									Name:       "wotsit",
+									ModuleAddr:   `module.pizza["chicken"]`,
+									ResourceName: "wotsit",
 									Values: &terraform1.DynamicValueChange{
 										Old: &terraform1.DynamicValue{
 											Msgpack: []byte{'\xc0'}, // null
@@ -397,8 +397,8 @@ func TestPlannedChangeAsProto(t *testing.T) {
 								Index: &terraform1.DynamicValue{
 									Msgpack: []byte{'\x01'}, // 1
 								},
-								ModuleAddr: `module.pizza["chicken"]`,
-								Name:       "wotsit",
+								ModuleAddr:   `module.pizza["chicken"]`,
+								ResourceName: "wotsit",
 								Values: &terraform1.DynamicValueChange{
 									Old: &terraform1.DynamicValue{
 										Msgpack: []byte{'\xc0'}, // null
@@ -506,8 +506,8 @@ func TestPlannedChangeAsProto(t *testing.T) {
 								Index: &terraform1.DynamicValue{
 									Msgpack: []byte{'\x01'}, // 1
 								},
-								ModuleAddr: `module.pizza["chicken"]`,
-								Name:       "wotsit",
+								ModuleAddr:   `module.pizza["chicken"]`,
+								ResourceName: "wotsit",
 								Values: &terraform1.DynamicValueChange{
 									Old: &terraform1.DynamicValue{
 										Msgpack: []byte("\x81\xa3foo\xa3bar"),
@@ -616,8 +616,8 @@ func TestPlannedChangeAsProto(t *testing.T) {
 								Index: &terraform1.DynamicValue{
 									Msgpack: []byte{'\x01'}, // 1
 								},
-								ModuleAddr: `module.pizza["chicken"]`,
-								Name:       "wotsit",
+								ModuleAddr:   `module.pizza["chicken"]`,
+								ResourceName: "wotsit",
 								Values: &terraform1.DynamicValueChange{
 									Old: &terraform1.DynamicValue{
 										Msgpack: []byte{'\x80'}, // zero-length mapping
@@ -721,8 +721,8 @@ func TestPlannedChangeAsProto(t *testing.T) {
 								Index: &terraform1.DynamicValue{
 									Msgpack: []byte{'\x01'}, // 1
 								},
-								ModuleAddr: `module.pizza["chicken"]`,
-								Name:       "wotsit",
+								ModuleAddr:   `module.pizza["chicken"]`,
+								ResourceName: "wotsit",
 								Values: &terraform1.DynamicValueChange{
 									Old: &terraform1.DynamicValue{
 										Msgpack: []byte{'\x80'}, // zero-length mapping
