@@ -25,7 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/registry"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 
 	_ "github.com/hashicorp/terraform/internal/logging"
 )

@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/lang/types"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // Session represents the state for a single REPL session.

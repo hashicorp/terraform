@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // OutputValue is a declaration of a result from a stack configuration, which

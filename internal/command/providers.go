@@ -12,7 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ProvidersCommand is a Command implementation that prints out information

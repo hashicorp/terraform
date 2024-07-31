@@ -6,7 +6,7 @@ package views
 import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/hashicorp/terraform/terminal"
 	"github.com/mitchellh/colorstring"
 )

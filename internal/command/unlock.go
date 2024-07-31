@@ -12,7 +12,7 @@ import (
 
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // UnlockCommand is a cli.Command implementation that manually unlocks

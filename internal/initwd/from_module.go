@@ -23,7 +23,7 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/modsdir"
 	"github.com/hashicorp/terraform/internal/registry"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 const initFromModuleRootCallName = "root"

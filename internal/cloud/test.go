@@ -28,7 +28,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/hashicorp/terraform/jsonformat"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/terminal"

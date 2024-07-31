@@ -5,7 +5,7 @@ package stubs
 
 import (
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ErroredProvider is a stub provider that is used in place of a provider that

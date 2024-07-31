@@ -5,7 +5,7 @@ package arguments
 
 import (
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // Test represents the command-line arguments for the test command.

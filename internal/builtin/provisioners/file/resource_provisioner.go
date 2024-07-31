@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/communicator"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/provisioners"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 )

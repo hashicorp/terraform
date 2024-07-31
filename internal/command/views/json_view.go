@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/terraform/internal/command/views/json"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 

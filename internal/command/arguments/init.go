@@ -6,7 +6,7 @@ package arguments
 import (
 	"time"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // Init represents the command-line arguments for the init command.

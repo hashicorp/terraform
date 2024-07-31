@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // AcyclicGraph is a specialization of Graph that cannot have cycles.

@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendbase"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/httpclient"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // Backend implements "backend".Backend for GCS.
