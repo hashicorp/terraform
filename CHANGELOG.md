@@ -1,5 +1,9 @@
 ## 1.9.4 (Unreleased)
 
+BUG FIXES:
+
+* core: Unneeded variable validations were being executed during a destroy plan, which could cause plans starting with incomplete state to fail [GH-35511]
+
 ## 1.9.3 (July 24, 2024)
 
 ENHANCEMENTS:
