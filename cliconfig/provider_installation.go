@@ -12,7 +12,7 @@ import (
 	hclast "github.com/hashicorp/hcl/hcl/ast"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ProviderInstallation is the structure of the "provider_installation"

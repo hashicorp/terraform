@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform/cliconfig"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // providerSource constructs a provider source based on a combination of the

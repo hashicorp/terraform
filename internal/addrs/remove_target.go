@@ -5,7 +5,7 @@ package addrs
 
 import (
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // Like MoveEndpoint, RemoveTarget is a wrapping struct that captures the result

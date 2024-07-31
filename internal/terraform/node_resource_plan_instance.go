@@ -23,7 +23,7 @@ import (
 	"github.com/hashicorp/terraform/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // NodePlannableResourceInstance represents a _single_ resource

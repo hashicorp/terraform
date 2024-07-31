@@ -19,7 +19,7 @@ import (
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // HostAlias describes a list of aliases that should be used when initializing an

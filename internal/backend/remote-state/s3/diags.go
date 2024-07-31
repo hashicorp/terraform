@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	basediag "github.com/hashicorp/aws-sdk-go-base/v2/diag"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func diagnosticString(diag tfdiags.Diagnostic) string {

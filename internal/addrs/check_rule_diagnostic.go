@@ -3,7 +3,7 @@
 
 package addrs
 
-import "github.com/hashicorp/terraform/internal/tfdiags"
+import "github.com/hashicorp/terraform/tfdiags"
 
 // DiagnosticExtraCheckRule provides an interface for diagnostic ExtraInfo to
 // retrieve an embedded CheckRule from within a tfdiags.Diagnostic.

@@ -8,7 +8,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func ShouldWriteConfig(out string) bool {
