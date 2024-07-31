@@ -14,7 +14,7 @@ import (
 
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"github.com/hashicorp/terraform/cliconfig"
 	oauthserver "github.com/hashicorp/terraform/internal/command/testdata/login-oauth-server"
 	tfeserver "github.com/hashicorp/terraform/internal/command/testdata/login-tfe-server"
 	"github.com/hashicorp/terraform/internal/command/webbrowser"
