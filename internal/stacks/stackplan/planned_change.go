@@ -392,13 +392,21 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*terraform1
 		}
 	}
 
-	var index *terraform1.DynamicValue
+	var index *terraform1.PlannedChange_ResourceInstance_Index
 	if pc.ChangeSrc.Addr.Resource.Key != nil {
-		var err error
-		key := pc.ChangeSrc.Addr.Resource.Key.Value()
-		index, err = DynamicValueToTerraform1(key, key.Type())
-		if err != nil {
-			return nil, err
+		key := pc.ChangeSrc.Addr.Resource.Key
+		if key == addrs.WildcardKey {
+			index = &terraform1.PlannedChange_ResourceInstance_Index{
+				Unknown: true,
+			}
+		} else {
+			value, err := DynamicValueToTerraform1(key.Value(), cty.DynamicPseudoType)
+			if err != nil {
+				return nil, err
+			}
+			index = &terraform1.PlannedChange_ResourceInstance_Index{
+				Value: value,
+			}
 		}
 	}
 

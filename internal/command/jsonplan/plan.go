@@ -153,7 +153,7 @@ type Change struct {
 	// during planning as a string.
 	//
 	// If this is populated, then Importing should also be populated but this
-	// might change in the future. However, nNot all Importing changes will
+	// might change in the future. However, not all Importing changes will
 	// contain generated config.
 	GeneratedConfig string `json:"generated_config,omitempty"`
 }
@@ -163,6 +163,11 @@ type Importing struct {
 	// The original ID of this resource used to target it as part of planned
 	// import operation.
 	ID string `json:"id,omitempty"`
+
+	// Unknown indicates the ID was unknown at the time of planning. This
+	// would have led to the overall change being deferred, as such this should
+	// only be true when processing changes from the deferred changes list.
+	Unknown bool `json:"unknown,omitempty"`
 }
 
 type output struct {
@@ -493,7 +498,11 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 
 	var importing *Importing
 	if rc.Importing != nil {
-		importing = &Importing{ID: rc.Importing.ID}
+		if rc.Importing.Unknown {
+			importing = &Importing{Unknown: true}
+		} else {
+			importing = &Importing{ID: rc.Importing.ID}
+		}
 	}
 
 	r.Change = Change{
@@ -514,9 +523,14 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 
 	key := addr.Resource.Key
 	if key != nil {
-		value := key.Value()
-		if r.Index, err = ctyjson.Marshal(value, value.Type()); err != nil {
-			return r, err
+		if key == addrs.WildcardKey {
+			// The wildcard key should only be set for a deferred instance.
+			r.IndexUnknown = true
+		} else {
+			value := key.Value()
+			if r.Index, err = ctyjson.Marshal(value, value.Type()); err != nil {
+				return r, err
+			}
 		}
 	}
 

@@ -292,8 +292,10 @@ func TestPlannedChangeAsProto(t *testing.T) {
 									ProviderAddr: "example.com/thingers/thingy",
 									Actions:      []terraform1.ChangeType{terraform1.ChangeType_CREATE},
 									ActionReason: "ResourceInstanceChangeNoReason",
-									Index: &terraform1.DynamicValue{
-										Msgpack: []byte{'\x01'}, // 1
+									Index: &terraform1.PlannedChange_ResourceInstance_Index{
+										Value: &terraform1.DynamicValue{
+											Msgpack: []byte{0x92, 0xc4, 0x08, 0x22, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x01}, // 1
+										},
 									},
 									ModuleAddr:   `module.pizza["chicken"]`,
 									ResourceName: "wotsit",
@@ -394,8 +396,10 @@ func TestPlannedChangeAsProto(t *testing.T) {
 								ProviderAddr: "example.com/thingers/thingy",
 								Actions:      []terraform1.ChangeType{terraform1.ChangeType_CREATE},
 								ActionReason: "ResourceInstanceChangeNoReason",
-								Index: &terraform1.DynamicValue{
-									Msgpack: []byte{'\x01'}, // 1
+								Index: &terraform1.PlannedChange_ResourceInstance_Index{
+									Value: &terraform1.DynamicValue{
+										Msgpack: []byte{0x92, 0xc4, 0x08, 0x22, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x01}, // 1
+									},
 								},
 								ModuleAddr:   `module.pizza["chicken"]`,
 								ResourceName: "wotsit",
@@ -503,8 +507,10 @@ func TestPlannedChangeAsProto(t *testing.T) {
 								ProviderAddr: "example.com/thingers/thingy",
 								Actions:      []terraform1.ChangeType{terraform1.ChangeType_DELETE, terraform1.ChangeType_CREATE},
 								ActionReason: "ResourceInstanceChangeNoReason",
-								Index: &terraform1.DynamicValue{
-									Msgpack: []byte{'\x01'}, // 1
+								Index: &terraform1.PlannedChange_ResourceInstance_Index{
+									Value: &terraform1.DynamicValue{
+										Msgpack: []byte{0x92, 0xc4, 0x08, 0x22, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x01}, // 1
+									},
 								},
 								ModuleAddr:   `module.pizza["chicken"]`,
 								ResourceName: "wotsit",
@@ -613,8 +619,10 @@ func TestPlannedChangeAsProto(t *testing.T) {
 								ProviderAddr: "example.com/thingers/thingy",
 								Actions:      []terraform1.ChangeType{terraform1.ChangeType_NOOP},
 								ActionReason: "ResourceInstanceChangeNoReason",
-								Index: &terraform1.DynamicValue{
-									Msgpack: []byte{'\x01'}, // 1
+								Index: &terraform1.PlannedChange_ResourceInstance_Index{
+									Value: &terraform1.DynamicValue{
+										Msgpack: []byte{0x92, 0xc4, 0x08, 0x22, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x01}, // 1
+									},
 								},
 								ModuleAddr:   `module.pizza["chicken"]`,
 								ResourceName: "wotsit",
@@ -718,8 +726,10 @@ func TestPlannedChangeAsProto(t *testing.T) {
 								ProviderAddr: "example.com/thingers/thingy",
 								Actions:      []terraform1.ChangeType{terraform1.ChangeType_NOOP},
 								ActionReason: "ResourceInstanceChangeNoReason",
-								Index: &terraform1.DynamicValue{
-									Msgpack: []byte{'\x01'}, // 1
+								Index: &terraform1.PlannedChange_ResourceInstance_Index{
+									Value: &terraform1.DynamicValue{
+										Msgpack: []byte{0x92, 0xc4, 0x08, 0x22, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x01}, // 1
+									},
 								},
 								ModuleAddr:   `module.pizza["chicken"]`,
 								ResourceName: "wotsit",

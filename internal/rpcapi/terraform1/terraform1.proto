@@ -883,9 +883,14 @@ message PlannedChange {
         repeated AttributePath replace_paths = 11;
 
         string resource_name = 12;
-        DynamicValue index = 13;
+        Index index = 13;
         string module_addr = 14;
         string action_reason = 15;
+
+        message Index {
+            DynamicValue value = 1;
+            bool unknown = 2;
+        }
 
         message Moved {
             ResourceInstanceInStackAddr prev_addr = 1;

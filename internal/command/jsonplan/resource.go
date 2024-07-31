@@ -73,6 +73,7 @@ type ResourceChange struct {
 	Type         string          `json:"type,omitempty"`
 	Name         string          `json:"name,omitempty"`
 	Index        json.RawMessage `json:"index,omitempty"`
+	IndexUnknown bool            `json:"index_unknown,omitempty"`
 	ProviderName string          `json:"provider_name,omitempty"`
 
 	// "deposed", if set, indicates that this action applies to a "deposed"
