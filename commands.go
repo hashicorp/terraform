@@ -14,9 +14,9 @@ import (
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
 
+	"github.com/hashicorp/terraform/cliconfig"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command"
-	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/webbrowser"
 	"github.com/hashicorp/terraform/internal/getproviders"

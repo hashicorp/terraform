@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"github.com/hashicorp/terraform/cliconfig"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 

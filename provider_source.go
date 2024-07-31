@@ -13,8 +13,8 @@ import (
 	"github.com/apparentlymart/go-userdirs/userdirs"
 	"github.com/hashicorp/terraform-svchost/disco"
 
+	"github.com/hashicorp/terraform/cliconfig"
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
