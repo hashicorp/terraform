@@ -67,7 +67,7 @@ jobs:
         run: |
           mkdir -p "$LICENSE_DIR" && cp LICENSE "$LICENSE_DIR/LICENSE.txt"
       - if: ${{ inputs.goos == 'linux' }}
-        uses: hashicorp/actions-packaging-linux@0596d94121d44bd00463ac9d245efea64ee282d0 # v1.7
+        uses: hashicorp/actions-packaging-linux@9a9ce398877672719e83026640662f3182931fde # v1.8
         with:
           name: "terraform"
           description: "Terraform enables you to safely and predictably create, change, and improve infrastructure. It is a tool that codifies APIs into declarative configuration files that can be shared amongst team members, treated as code, edited, reviewed, and versioned."
