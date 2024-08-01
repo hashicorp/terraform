@@ -52,8 +52,8 @@ type GraphNodeImportReferencer interface {
 }
 
 type GraphNodeAttachDependencies interface {
-	GraphNodeConfigResource
 	AttachDependencies([]addrs.ConfigResource)
+	Name() string
 }
 
 // graphNodeDependsOn is implemented by resources that need to expose any
@@ -235,7 +235,6 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 		if !ok {
 			continue
 		}
-		selfAddr := attacher.ResourceAddr()
 
 		ans, err := g.Ancestors(v)
 		if err != nil {
@@ -258,9 +257,6 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 				continue
 			}
 
-			if addr.Equal(selfAddr) {
-				continue
-			}
 			depMap[addr.String()] = addr
 		}
 
@@ -272,7 +268,7 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 			return deps[i].String() < deps[j].String()
 		})
 
-		log.Printf("[TRACE] AttachDependenciesTransformer: %s depends on %s", attacher.ResourceAddr(), deps)
+		log.Printf("[TRACE] AttachDependenciesTransformer: %s depends on %s", attacher.Name(), deps)
 		attacher.AttachDependencies(deps)
 	}
 

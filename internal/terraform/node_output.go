@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -43,15 +44,18 @@ type nodeExpandOutput struct {
 	// may need to override the value for this output and if we do the value
 	// comes from here.
 	Overrides *mocking.Overrides
+
+	Dependencies []addrs.ConfigResource
 }
 
 var (
-	_ GraphNodeReferenceable     = (*nodeExpandOutput)(nil)
-	_ GraphNodeReferencer        = (*nodeExpandOutput)(nil)
-	_ GraphNodeReferenceOutside  = (*nodeExpandOutput)(nil)
-	_ GraphNodeDynamicExpandable = (*nodeExpandOutput)(nil)
-	_ graphNodeTemporaryValue    = (*nodeExpandOutput)(nil)
-	_ graphNodeExpandsInstances  = (*nodeExpandOutput)(nil)
+	_ GraphNodeReferenceable      = (*nodeExpandOutput)(nil)
+	_ GraphNodeReferencer         = (*nodeExpandOutput)(nil)
+	_ GraphNodeReferenceOutside   = (*nodeExpandOutput)(nil)
+	_ GraphNodeDynamicExpandable  = (*nodeExpandOutput)(nil)
+	_ graphNodeTemporaryValue     = (*nodeExpandOutput)(nil)
+	_ GraphNodeAttachDependencies = (*nodeExpandOutput)(nil)
+	_ graphNodeExpandsInstances   = (*nodeExpandOutput)(nil)
 )
 
 func (n *nodeExpandOutput) expandsInstances() {}
@@ -59,6 +63,11 @@ func (n *nodeExpandOutput) expandsInstances() {}
 func (n *nodeExpandOutput) temporaryValue() bool {
 	// non root outputs are temporary
 	return !n.Module.IsRoot()
+}
+
+// GraphNodeAttachDependencies
+func (n *nodeExpandOutput) AttachDependencies(resources []addrs.ConfigResource) {
+	n.Dependencies = resources
 }
 
 func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
@@ -126,6 +135,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 					DestroyApply: n.Destroying,
 					Planning:     n.Planning,
 					Override:     n.getOverrideValue(absAddr.Module),
+					Dependencies: n.Dependencies,
 				}
 			}
 
@@ -269,6 +279,10 @@ type NodeApplyableOutput struct {
 	// Override provides the value to use for this output, if any. This can be
 	// set by testing framework when a module is overridden.
 	Override cty.Value
+
+	// Dependencies is the full set of resources that are referenced by this
+	// output.
+	Dependencies []addrs.ConfigResource
 }
 
 var (
@@ -451,7 +465,7 @@ If you do intend to export this data, annotate the output value as sensitive by 
 			// if we're continuing, make sure the output is included, and
 			// marked as unknown. If the evaluator was able to find a type
 			// for the value in spite of the error then we'll use it.
-			n.setValue(ctx.NamedValues(), state, changes, cty.UnknownVal(val.Type()))
+			n.setValue(ctx.NamedValues(), state, changes, ctx.Deferrals(), cty.UnknownVal(val.Type()))
 
 			// Keep existing warnings, while converting errors to warnings.
 			// This is not meant to be the normal path, so there no need to
@@ -498,13 +512,13 @@ If you do intend to export this data, annotate the output value as sensitive by 
 		}
 	}
 
-	n.setValue(ctx.NamedValues(), state, changes, val)
+	n.setValue(ctx.NamedValues(), state, changes, ctx.Deferrals(), val)
 
 	// If we were able to evaluate a new value, we can update that in the
 	// refreshed state as well.
 	if state = ctx.RefreshState(); state != nil && val.IsWhollyKnown() {
 		// we only need to update the state, do not pass in the changes again
-		n.setValue(nil, state, nil, val)
+		n.setValue(nil, state, nil, ctx.Deferrals(), val)
 	}
 
 	return diags
@@ -667,7 +681,7 @@ func (n *NodeDestroyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.Dot
 	}
 }
 
-func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states.SyncState, changes *plans.ChangesSync, val cty.Value) {
+func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states.SyncState, changes *plans.ChangesSync, deferred *deferring.Deferred, val cty.Value) {
 	if changes != nil && n.Planning {
 		// if this is a root module, try to get a before value from the state for
 		// the diff
@@ -781,10 +795,10 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 		// not serialized.
 		if n.Addr.Module.IsRoot() {
 			val, _ = val.UnmarkDeep()
-			if val.IsKnown() && !val.IsWhollyKnown() {
-				// If the value is partially unknown, act like it's fully
-				// unknown and store a null value in state. This can happen if
-				// an output references a deferred value.
+			if deferred.DependenciesDeferred(n.Dependencies) {
+				// If the output is from deferred resources then we return a
+				// simple null value representing that the value is really
+				// unknown as the dependencies were not properly computed.
 				val = cty.NullVal(val.Type())
 			} else {
 				val = cty.UnknownAsNull(val)

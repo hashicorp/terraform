@@ -110,7 +110,14 @@ func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
 
 // GraphNodeAttachDependencies
 func (n *NodeApplyableResourceInstance) AttachDependencies(deps []addrs.ConfigResource) {
-	n.Dependencies = deps
+	n.Dependencies = make([]addrs.ConfigResource, 0)
+	for _, dep := range deps {
+		if dep.Equal(n.ResourceAddr()) {
+			// Don't add yourself.
+			continue
+		}
+		n.Dependencies = append(n.Dependencies, dep)
+	}
 }
 
 // GraphNodeExecutable
