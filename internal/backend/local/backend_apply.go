@@ -483,7 +483,7 @@ func applyTimeInputValues(needVars collections.Set[string], decls map[string]*co
 	}
 
 	// We should now have a non-null value for each of the variables in needVars
-	for _, name := range needVars.Elems() {
+	for name := range needVars.All() {
 		val := cty.NullVal(cty.DynamicPseudoType)
 		if defn, ok := ret[name]; ok {
 			val = defn.Value

@@ -1683,24 +1683,23 @@ func TestApplyWithStateManipulation(t *testing.T) {
 			}
 
 			wantCounts := tc.counts
-			for _, elem := range wantCounts.Elems() {
+			for k, v := range wantCounts.All() {
 				// First, make sure everything we wanted is present.
-				if !gotCounts.HasKey(elem.K) {
-					t.Errorf("wrong counts: wanted %s but didn't get it", elem.K)
+				if !gotCounts.HasKey(k) {
+					t.Errorf("wrong counts: wanted %s but didn't get it", k)
 				}
 
 				// And that the values actually match.
-				got, want := gotCounts.Get(elem.K), elem.V
+				got, want := gotCounts.Get(k), v
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("wrong counts for %s: %s", want.Addr, diff)
 				}
-
 			}
 
-			for _, elem := range gotCounts.Elems() {
+			for k, _ := range gotCounts.All() {
 				// Then, make sure we didn't get anything we didn't want.
-				if !wantCounts.HasKey(elem.K) {
-					t.Errorf("wrong counts: got %s but didn't want it", elem.K)
+				if !wantCounts.HasKey(k) {
+					t.Errorf("wrong counts: got %s but didn't want it", k)
 				}
 			}
 		})
