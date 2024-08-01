@@ -5,7 +5,7 @@ description: The index function finds the element index for a given value in a l
 
 # `index` Function
 
-`index` finds the element index for a given value in a list.
+`index` finds the first element index for a given value in a list.
 
 ```hcl
 index(list, value)
@@ -18,6 +18,13 @@ value is not present in the list.
 
 ```
 > index(["a", "b", "c"], "b")
+1
+```
+
+In this example, the index of the first occurence of `"two"` is returned.
+
+```
+> index(["one", "two", "two"], "two")
 1
 ```
 
