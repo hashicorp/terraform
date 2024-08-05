@@ -34,6 +34,12 @@ type nodeVariableValidation struct {
 	// set from a non-configuration location like an environment variable --
 	// it's acceptable to use the declaration location instead.
 	defnRange hcl.Range
+
+	// validateWalk is set to true during a validation walk, where any input
+	// variables are set to unknown values. Since we may have unknown values
+	// which will be known during plan, we need to be more lenient about what
+	// can be unknown in variable validation expressions.
+	validateWalk bool
 }
 
 var _ GraphNodeModulePath = (*nodeVariableValidation)(nil)
@@ -122,6 +128,7 @@ func (n *nodeVariableValidation) Execute(globalCtx EvalContext, op walkOperation
 			moduleCtx,
 			n.rules,
 			n.defnRange,
+			n.validateWalk,
 		))
 	}
 
