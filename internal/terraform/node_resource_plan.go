@@ -73,14 +73,7 @@ func (n *nodeExpandPlannableResource) expandsInstances() {
 
 // GraphNodeAttachDependencies
 func (n *nodeExpandPlannableResource) AttachDependencies(deps []addrs.ConfigResource) {
-	n.dependencies = make([]addrs.ConfigResource, 0)
-	for _, dep := range deps {
-		if dep.Equal(n.ResourceAddr()) {
-			// Don't add yourself.
-			continue
-		}
-		n.dependencies = append(n.dependencies, dep)
-	}
+	n.dependencies = deps
 }
 
 // GraphNodeDestroyerCBD
