@@ -52,7 +52,6 @@ type GraphNodeImportReferencer interface {
 }
 
 type GraphNodeAttachDependencies interface {
-	GraphNodeConfigResource
 	AttachDependencies([]addrs.ConfigResource)
 }
 
@@ -235,7 +234,25 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 		if !ok {
 			continue
 		}
-		selfAddr := attacher.ResourceAddr()
+
+		// We'll check if the node is a config resource already, in which case
+		// we want to make sure it is not referencing itself.
+
+		// matchesSelf is a function that returns true if the given address
+		// matches the address of the node itself.
+		matchesSelf := func(addrs.ConfigResource) bool {
+			// Default case is to always return false.
+			return false
+		}
+
+		self, ok := v.(GraphNodeConfigResource)
+		if ok {
+			matchesSelf = func(addr addrs.ConfigResource) bool {
+				// If we know the node is a config resource, we can compare
+				// the addresses directly.
+				return addr.Equal(self.ResourceAddr())
+			}
+		}
 
 		ans, err := g.Ancestors(v)
 		if err != nil {
@@ -258,9 +275,10 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 				continue
 			}
 
-			if addr.Equal(selfAddr) {
+			if matchesSelf(addr) {
 				continue
 			}
+
 			depMap[addr.String()] = addr
 		}
 
@@ -272,7 +290,7 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 			return deps[i].String() < deps[j].String()
 		})
 
-		log.Printf("[TRACE] AttachDependenciesTransformer: %s depends on %s", attacher.ResourceAddr(), deps)
+		log.Printf("[TRACE] AttachDependenciesTransformer: %s depends on %s", dag.VertexName(v), deps)
 		attacher.AttachDependencies(deps)
 	}
 

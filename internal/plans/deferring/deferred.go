@@ -220,6 +220,49 @@ func (d *Deferred) GetDeferredResourceInstanceValue(addr addrs.AbsResourceInstan
 	return change.Change.After, true
 }
 
+// GetDeferredResourceInstances returns a map of all the deferred instances of
+// the given resource.
+func (d *Deferred) GetDeferredResourceInstances(addr addrs.AbsResource) map[addrs.InstanceKey]cty.Value {
+	if !d.deferralAllowed {
+		return nil
+	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	configAddr := addr.Config()
+	var instancesMap addrs.Map[addrs.ConfigResource, addrs.Map[addrs.AbsResourceInstance, *plans.DeferredResourceInstanceChange]]
+
+	switch addr.Resource.Mode {
+	case addrs.ManagedResourceMode:
+		instancesMap = d.resourceInstancesDeferred
+	case addrs.DataResourceMode:
+		instancesMap = d.dataSourceInstancesDeferred
+	default:
+		panic(fmt.Sprintf("unexpected resource mode %q for %s", addr.Resource.Mode, addr))
+	}
+
+	instances, ok := instancesMap.GetOk(configAddr)
+	if !ok {
+		return nil
+	}
+
+	result := make(map[addrs.InstanceKey]cty.Value)
+	for _, elem := range instances.Elems {
+		instanceAddr := elem.Key
+		change := elem.Value
+
+		// instances contains all the resources identified by the config address
+		// regardless of the instances of the module they might be in. We need
+		// to filter out the instances that are not part of the module we are
+		// interested in.
+		if addr.Equal(instanceAddr.ContainingResource()) {
+			result[instanceAddr.Resource.Key] = change.Change.After
+		}
+	}
+	return result
+}
+
 // ShouldDeferResourceInstanceChanges returns true if the receiver knows some
 // reason why the resource instance with the given address should have its
 // planned action deferred for a future plan/apply round.
@@ -243,12 +286,39 @@ func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInst
 	if !d.deferralAllowed {
 		return false
 	}
+	configAddr := addr.ConfigResource()
+
+	// Since d.DependenciesDeferred will also acquire the lock we don't use
+	// the normal defer d.mu.Unlock() but handle it manually.
+	d.mu.Lock()
+	if d.resourceInstancesDeferred.Get(configAddr).Has(addr) || d.dataSourceInstancesDeferred.Get(configAddr).Has(addr) {
+		d.mu.Unlock()
+		// Asking for whether a resource instance should be deferred when
+		// it was already reported as deferred suggests a programming error
+		// in the caller, because the test for whether a change should be
+		// deferred should always come before reporting that it has been.
+		panic(fmt.Sprintf("checking whether %s should be deferred when it was already deferred", addr))
+	}
+	d.mu.Unlock()
+
+	return d.DependenciesDeferred(deps)
+}
+
+// DependenciesDeferred returns true if any of the given configuration
+// resources have had their planned actions deferred, either because they
+// themselves were deferred or because they depend on something that was
+// deferred.
+//
+// As
+func (d *Deferred) DependenciesDeferred(deps []addrs.ConfigResource) bool {
+	if !d.deferralAllowed {
+		return false
+	}
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	if d.externalDependencyDeferred {
-		// This is an easy case: _all_ actions must be deferred.
 		return true
 	}
 
@@ -263,19 +333,6 @@ func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInst
 		d.partialExpandedResourcesDeferred.Len() == 0 &&
 		d.partialExpandedDataSourcesDeferred.Len() == 0 {
 		return false
-	}
-
-	// For now, we simply track relationships between static resource
-	// configuration blocks, not their dynamic instances, so we need to start
-	// with the config address that the given instance belongs to.
-	configAddr := addr.ConfigResource()
-
-	if d.resourceInstancesDeferred.Get(configAddr).Has(addr) || d.dataSourceInstancesDeferred.Get(configAddr).Has(addr) {
-		// Asking for whether a resource instance should be deferred when
-		// it was already reported as deferred suggests a programming error
-		// in the caller, because the test for whether a change should be
-		// deferred should always come before reporting that it has been.
-		panic(fmt.Sprintf("checking whether %s should be deferred when it was already deferred", addr))
 	}
 
 	// For this initial implementation we're taking the shortcut of assuming
@@ -306,9 +363,6 @@ func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInst
 			return true
 		}
 		if d.partialExpandedResourcesDeferred.Has(configDep) {
-			// For now we don't consider exactly which partial-expanded
-			// prefixes of that configuration block were deferred; there being
-			// at least one is enough.
 			return true
 		}
 		if d.partialExpandedDataSourcesDeferred.Has(configDep) {
