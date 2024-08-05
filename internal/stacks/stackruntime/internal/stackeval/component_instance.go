@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -179,16 +180,17 @@ func (c *ComponentInstance) inputValuesForModulesRuntime(ctx context.Context, pr
 				continue
 			}
 
-			if equals, _ := plannedValue.Equals(v).Unmark(); !equals.IsKnown() {
-				// We unmark the value as we don't care about the actual value,
-				// only whether it was equal or not.
-				//
-				// An unknown equals value means that the value was unknown
-				// during the planning stage so we'll just accept the apply
-				// value and not raise any diagnostics.
-			} else if !equals.True() {
+			// We're unmarking the value here so that we can compare it to the
+			// planned value. We're only checking for equality from here on out,
+			// so we don't need to worry about the marks.
+			applyValue, _ := v.UnmarkDeep()
+
+			if errs := objchange.AssertValueCompatible(plannedValue, applyValue); len(errs) > 0 {
 				// Then the value has changed between the planning and apply
-				// phases. This is a bug in Terraform.
+				// phases. This is a bug in Terraform. We don't want to expose
+				// the actual values here as they could contain sensitive
+				// information. This should be a rare error message, so we
+				// don't need to be too verbose.
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Planned input variable value changed",
@@ -877,9 +879,6 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		// via another return path.
 		return noOpResult, diags
 	}
-	// TODO: Check that the final input values are consistent with what
-	// we had during planning. If not, that suggests a bug elsewhere.
-	//
 	// UGH: the "modules runtime"'s model of planning was designed around
 	// the goal of producing a traditional Terraform CLI-style saved plan
 	// file and so it has the input variable values already encoded as

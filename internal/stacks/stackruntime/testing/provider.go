@@ -77,6 +77,10 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 								Type:     cty.String,
 								Optional: true,
 							},
+							"ignored": {
+								Type:     cty.String,
+								Optional: true,
+							},
 						},
 					},
 				},
