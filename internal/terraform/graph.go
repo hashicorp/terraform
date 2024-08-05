@@ -51,6 +51,14 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		log.Printf("[TRACE] vertex %q: starting visit (%T)", dag.VertexName(v), v)
 
 		defer func() {
+			if r := recover(); r != nil {
+				// If the walkFn panics, we get confusing logs about how the
+				// visit was complete. To stop this, we'll catch the panic log
+				// that the vertex panicked without finishing and re-panic.
+				log.Printf("[ERROR] vertex %q panicked", dag.VertexName(v))
+				panic(r) // re-panic
+			}
+
 			if diags.HasErrors() {
 				for _, diag := range diags {
 					if diag.Severity() == tfdiags.Error {
