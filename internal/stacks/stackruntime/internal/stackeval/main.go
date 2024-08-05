@@ -443,10 +443,13 @@ func (m *Main) RootVariableValue(ctx context.Context, addr stackaddrs.InputVaria
 			}
 		}
 
-		// This shouldn't happen because we should always have a value for
-		// every declared root input variable in the plan.
+		// If we had nothing set, we'll return a null value. This means the
+		// default value will be applied, if any, or an error will be raised
+		// if no default is available. This should only be possible for an
+		// ephemeral value in which the caller didn't provide a value during
+		// the apply operation.
 		return ExternalInputValue{
-			Value: cty.DynamicVal,
+			Value: cty.NullVal(cty.DynamicPseudoType),
 		}
 
 	case InspectPhase:
