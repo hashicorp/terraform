@@ -2,7 +2,8 @@
 
 BUG FIXES:
 
-* core: Unneeded variable validations were being executed during a destroy plan, which could cause plans starting with incomplete state to fail [GH-35511]
+* core: Unneeded variable validations were being executed during a destroy plan, which could cause plans starting with incomplete state to fail. [GH-35511]
+* init: Don't crash when discovering invalid syntax in duplicate required_providers blocks. [GH-35533]
 
 ## 1.9.3 (July 24, 2024)
 
