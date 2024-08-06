@@ -228,7 +228,7 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 // This must be used only after any side-effects that make the value of the
 // variable available for use in expression evaluation, such as
 // EvalModuleCallArgument for variables in descendent modules.
-func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContext, rules []*configs.CheckRule, valueRng hcl.Range) (diags tfdiags.Diagnostics) {
+func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContext, rules []*configs.CheckRule, valueRng hcl.Range, validateWalk bool) (diags tfdiags.Diagnostics) {
 	if len(rules) == 0 {
 		log.Printf("[TRACE] evalVariableValidations: no validation rules declared for %s, so skipping", addr)
 		return nil
@@ -310,7 +310,7 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContex
 	}
 
 	for ix, validation := range rules {
-		result, ruleDiags := evalVariableValidation(validation, hclCtx, valueRng, addr, ix)
+		result, ruleDiags := evalVariableValidation(validation, hclCtx, valueRng, addr, ix, validateWalk)
 		diags = diags.Append(ruleDiags)
 
 		log.Printf("[TRACE] evalVariableValidations: %s status is now %s", addr, result.Status)
@@ -324,7 +324,7 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, ctx EvalContex
 	return diags
 }
 
-func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalContext, valueRng hcl.Range, addr addrs.AbsInputVariableInstance, ix int) (checkResult, tfdiags.Diagnostics) {
+func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalContext, valueRng hcl.Range, addr addrs.AbsInputVariableInstance, ix int, validateWalk bool) (checkResult, tfdiags.Diagnostics) {
 	const errInvalidCondition = "Invalid variable validation result"
 	const errInvalidValue = "Invalid value for variable"
 	var diags tfdiags.Diagnostics
@@ -428,6 +428,11 @@ func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalConte
 	}
 
 	if !errorValue.IsKnown() {
+		if validateWalk {
+			log.Printf("[DEBUG] evalVariableValidations: %s rule %s error_message value is unknown, so skipping validation for now", addr, validation.DeclRange)
+			return checkResult{Status: checks.StatusUnknown}, diags
+		}
+
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity:    hcl.DiagError,
 			Summary:     "Invalid error message",
