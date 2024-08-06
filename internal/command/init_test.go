@@ -2945,6 +2945,66 @@ hashicorp/test: no available releases match the given constraints 1.0.1,
 	}
 }
 
+func TestInit_testsWithOverriddenInvalidRequiredProviders(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-with-overrides-and-duplicates"), td)
+	defer testChdir(t, td)()
+
+	provider := applyFixtureProvider() // We just want the types from this provider.
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider),
+			Ui:               ui,
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	args := []string{}
+	code := c.Run(args) // just make sure it doesn't crash.
+	if code != 1 {
+		t.Fatalf("expected failure but got: \n%s", done(t).All())
+	}
+}
+
+func TestInit_testsWithInvalidRequiredProviders(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-with-duplicates"), td)
+	defer testChdir(t, td)()
+
+	provider := applyFixtureProvider() // We just want the types from this provider.
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider),
+			Ui:               ui,
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	args := []string{}
+	code := c.Run(args) // just make sure it doesn't crash.
+	if code != 1 {
+		t.Fatalf("expected failure but got: \n%s", done(t).All())
+	}
+}
+
 func TestInit_testsWithModule(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
