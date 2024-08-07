@@ -1,9 +1,9 @@
-## 1.9.4 (Unreleased)
+## 1.9.4 (August 7, 2024)
 
 BUG FIXES:
 
-* core: Unneeded variable validations were being executed during a destroy plan, which could cause plans starting with incomplete state to fail. [GH-35511]
-* init: Don't crash when discovering invalid syntax in duplicate required_providers blocks. [GH-35533]
+* core: Unneeded variable validations were being executed during a destroy plan, which could cause plans starting with incomplete state to fail. ([#35511](https://github.com/hashicorp/terraform/issues/35511))
+* init: Don't crash when discovering invalid syntax in duplicate required_providers blocks. ([#35533](https://github.com/hashicorp/terraform/issues/35533))
 
 ## 1.9.3 (July 24, 2024)
 
