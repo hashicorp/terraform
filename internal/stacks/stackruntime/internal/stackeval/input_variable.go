@@ -12,6 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -120,13 +121,11 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 				wantTy := decl.Type.Constraint
 				extVal := v.main.RootVariableValue(ctx, v.Addr().Item, phase)
 
-				// We treat a null value as equivalent to an unspecified value,
-				// and replace it with the variable's default value. This is
-				// consistent with how embedded stacks handle defaults.
-				if extVal.Value.IsNull() {
-					// A separate code path will validate the default value, so
-					// we don't need to do that here.
-					val := cfg.DefaultValue(ctx)
+				val := extVal.Value
+				if val.IsNull() {
+					// A null value is equivalent to an unspecified value, so
+					// we'll replace it with the variable's default value.
+					val = cfg.DefaultValue(ctx)
 					if val == cty.NilVal {
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagError,
@@ -136,38 +135,17 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 						})
 						return cty.UnknownVal(wantTy), diags
 					}
-
-					// The DefaultValue method already validated the default
-					// value, and applied the defaults, so we don't need to
-					// do that again.
-
-					val, err = convert.Convert(val, wantTy)
-					if err != nil {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Invalid value for root input variable",
-							Detail: fmt.Sprintf(
-								"Cannot use the given value for input variable %q: %s.",
-								v.Addr().Item.Name, err,
-							),
-						})
-						val = cfg.markValue(cty.UnknownVal(wantTy))
-						return val, diags
+				} else {
+					// The DefaultValue function already validated the default
+					// value, and applied the defaults, so we only apply the
+					// defaults to a user supplied value.
+					if defaults := decl.Type.Defaults; defaults != nil {
+						val = defaults.Apply(val)
 					}
-
-					// TODO: check the value against any custom validation rules
-					// declared in the configuration.
-					return cfg.markValue(val), diags
 				}
-
-				// Otherwise, we'll use the provided value.
-				val := extVal.Value
 
 				// First, apply any defaults that are declared in the
 				// configuration.
-				if defaults := decl.Type.Defaults; defaults != nil {
-					val = defaults.Apply(val)
-				}
 
 				// Next, convert the value to the expected type.
 				val, err = convert.Convert(val, wantTy)
@@ -182,6 +160,30 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 					})
 					val = cfg.markValue(cty.UnknownVal(wantTy))
 					return val, diags
+				}
+
+				if phase == ApplyPhase && !cfg.config.Ephemeral {
+					// Now, we're just going to check the apply time value
+					// against the plan time value. It is expected that
+					// ephemeral variables will have different values between
+					// plan and apply time, so these are not checked here.
+					plan := v.main.PlanBeingApplied()
+					planValue := plan.RootInputValues[v.addr.Item]
+					if errs := objchange.AssertValueCompatible(planValue, val); errs != nil {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Inconsistent value for input variable during apply",
+							Detail:   fmt.Sprintf("The value for non-ephemeral input variable %q was set to a different value during apply than was set during plan. Only ephemeral input variables can change between the plan and apply phases.", v.addr.Item.Name),
+							Subject:  cfg.config.DeclRange.ToHCL().Ptr(),
+						})
+						// Return a solidly invalid value to prevent further
+						// processing of this variable. This is a rare case and
+						// a bug in Terraform so it's okay that might cause
+						// additional errors to be raised later. We just want
+						// to make sure we don't continue when something has
+						// gone wrong elsewhere.
+						return cty.NilVal, diags
+					}
 				}
 
 				// TODO: check the value against any custom validation rules

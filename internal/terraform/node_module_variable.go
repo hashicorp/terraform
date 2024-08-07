@@ -68,6 +68,7 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, tfdia
 	forEachModuleInstance(expander, n.Module, false, func(module addrs.ModuleInstance) {
 		addr := n.Addr.Absolute(module)
 		if checkableAddrs != nil {
+			log.Printf("[TRACE] nodeExpandModuleVariable: found checkable object %s", addr)
 			checkableAddrs.Add(addr)
 		}
 

@@ -5847,3 +5847,66 @@ resource "test_object" "a" {
 	}
 
 }
+
+func TestContext2Plan_destroySkipsVariableValidations(t *testing.T) {
+	// this validation cannot block destroy, because we can't be sure arbitrary
+	// expressions can be evaluated at all during destroy.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "input" {
+  type = string
+
+  validation {
+    condition = var.input == "foo"
+    error_message = "bad input"
+  }
+}
+
+resource "test_object" "a" {
+  test_string = var.input
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.BuildState(func(state *states.SyncState) {
+		state.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.a"),
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"test_string":"foo"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	}), &PlanOpts{
+		Mode: plans.DestroyMode,
+		SetVariables: InputValues{
+			"input": {
+				Value:       cty.StringVal("foo"),
+				SourceType:  ValueFromCLIArg,
+				SourceRange: tfdiags.SourceRange{},
+			},
+		},
+	})
+	if diags.HasErrors() {
+		t.Errorf("expected no errors, but got %s", diags)
+	}
+
+	planResult := plan.Checks.GetObjectResult(addrs.AbsInputVariableInstance{
+		Variable: addrs.InputVariable{
+			Name: "input",
+		},
+		Module: addrs.RootModuleInstance,
+	})
+
+	if planResult.Status != checks.StatusUnknown {
+		// checks should not have been evaluated, because the variable is not required for destroy.
+		t.Errorf("expected checks to be pass but was %s", planResult.Status)
+	}
+}

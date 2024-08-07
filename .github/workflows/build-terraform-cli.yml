@@ -39,7 +39,7 @@ jobs:
     name: Terraform ${{ inputs.goos }} ${{ inputs.goarch }} v${{ inputs.product-version }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-      - uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
           go-version: ${{ inputs.go-version }}
       - name: Build Terraform
@@ -67,7 +67,7 @@ jobs:
         run: |
           mkdir -p "$LICENSE_DIR" && cp LICENSE "$LICENSE_DIR/LICENSE.txt"
       - if: ${{ inputs.goos == 'linux' }}
-        uses: hashicorp/actions-packaging-linux@0596d94121d44bd00463ac9d245efea64ee282d0 # v1.7
+        uses: hashicorp/actions-packaging-linux@9a9ce398877672719e83026640662f3182931fde # v1.8
         with:
           name: "terraform"
           description: "Terraform enables you to safely and predictably create, change, and improve infrastructure. It is a tool that codifies APIs into declarative configuration files that can be shared amongst team members, treated as code, edited, reviewed, and versioned."
@@ -86,13 +86,13 @@ jobs:
           echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
           echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
       - if: ${{ inputs.goos == 'linux' }}
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
           name: ${{ env.RPM_PACKAGE }}
           path: out/${{ env.RPM_PACKAGE }}
           if-no-files-found: error
       - if: ${{ inputs.goos == 'linux' }}
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
           name: ${{ env.DEB_PACKAGE }}
           path: out/${{ env.DEB_PACKAGE }}

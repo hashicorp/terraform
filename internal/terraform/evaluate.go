@@ -614,10 +614,27 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		}
 	}
 
-	// Decode all instances in the current state
+	// Now, we're going to build up a value that represents the resource
+	// or resources that are in the state.
 	instances := map[addrs.InstanceKey]cty.Value{}
+
+	// First, we're going to load any instances that we have written into the
+	// deferrals system. A deferred resource overrides anything that might be
+	// in the state for the resource, so we do this first.
+	for key, value := range d.Evaluator.Deferrals.GetDeferredResourceInstances(addr.Absolute(d.ModulePath)) {
+		instances[key] = value
+	}
+
+	// Decode all instances in the current state
 	pendingDestroy := d.Operation == walkDestroy
 	for key, is := range rs.Instances {
+		if _, ok := instances[key]; ok {
+			// Then we've already loaded this instance from the deferrals so
+			// we'll just ignore it being in state.
+			continue
+		}
+		// Otherwise, we'll load the instance from state.
+
 		if is == nil || is.Current == nil {
 			// Assume we're dealing with an instance that hasn't been created yet.
 			instances[key] = cty.UnknownVal(ty)
@@ -625,12 +642,6 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		}
 
 		instAddr := addr.Instance(key).Absolute(d.ModulePath)
-
-		if value, ok := d.Evaluator.Deferrals.GetDeferredResourceInstanceValue(instAddr); ok {
-			instances[key] = value
-			continue
-		}
-
 		change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, addrs.NotDeposed)
 		if change != nil {
 			// Don't take any resources that are yet to be deleted into account.

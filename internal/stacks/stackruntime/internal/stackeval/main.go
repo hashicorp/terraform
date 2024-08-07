@@ -94,10 +94,9 @@ type mainPlanning struct {
 }
 
 type mainApplying struct {
-	opts          ApplyOpts
-	plan          *stackplan.Plan
-	rootInputVals map[stackaddrs.InputVariable]cty.Value
-	results       *ChangeExecResults
+	opts    ApplyOpts
+	plan    *stackplan.Plan
+	results *ChangeExecResults
 }
 
 type mainInspecting struct {
@@ -133,14 +132,13 @@ func NewForPlanning(config *stackconfig.Config, prevState *stackstate.State, opt
 	}
 }
 
-func NewForApplying(config *stackconfig.Config, rootInputs map[stackaddrs.InputVariable]cty.Value, plan *stackplan.Plan, execResults *ChangeExecResults, opts ApplyOpts) *Main {
+func NewForApplying(config *stackconfig.Config, plan *stackplan.Plan, execResults *ChangeExecResults, opts ApplyOpts) *Main {
 	return &Main{
 		config: config,
 		applying: &mainApplying{
-			opts:          opts,
-			plan:          plan,
-			rootInputVals: rootInputs,
-			results:       execResults,
+			opts:    opts,
+			plan:    plan,
+			results: execResults,
 		},
 		providerFactories: opts.ProviderFactories,
 		providerTypes:     make(map[addrs.Provider]*ProviderType),
@@ -430,22 +428,28 @@ func (m *Main) RootVariableValue(ctx context.Context, addr stackaddrs.InputVaria
 		if !m.Applying() {
 			panic("using ApplyPhase input variable values when not configured for applying")
 		}
-		ret, ok := m.applying.rootInputVals[addr]
-		if !ok {
-			// We should not get here if the given plan was created from the
-			// given configuration, since we should always record a value
-			// for every declared root input variable in the plan.
+
+		// First, check the values given to use directly by the caller.
+		if ret, ok := m.applying.opts.InputVariableValues[addr]; ok {
+			return ret
+		}
+
+		// If the caller didn't provide a value, we need to look up the value
+		// that was used during planning.
+
+		if ret, ok := m.applying.plan.RootInputValues[addr]; ok {
 			return ExternalInputValue{
-				Value: cty.DynamicVal,
+				Value: ret,
 			}
 		}
-		return ExternalInputValue{
-			Value: ret,
 
-			// We don't save source location information for variable
-			// definitions in the plan, but that's okay because if we were
-			// going to report any errors for these values then we should've
-			// already done it during the plan phase, and so couldn't get here..
+		// If we had nothing set, we'll return a null value. This means the
+		// default value will be applied, if any, or an error will be raised
+		// if no default is available. This should only be possible for an
+		// ephemeral value in which the caller didn't provide a value during
+		// the apply operation.
+		return ExternalInputValue{
+			Value: cty.NullVal(cty.DynamicPseudoType),
 		}
 
 	case InspectPhase:
