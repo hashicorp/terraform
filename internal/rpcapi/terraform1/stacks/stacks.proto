@@ -1,0 +1,802 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+package terraform1.stacks;
+
+import "google/protobuf/any.proto";
+import "terraform1.proto";
+
+
+service Stacks {
+  // Load and perform initial static validation of a stack configuration
+  // in a previously-opened source bundle. If successful, returns a
+  // stack configuration handle that can be used with other operations.
+  rpc OpenStackConfiguration(OpenStackConfiguration.Request)
+      returns (OpenStackConfiguration.Response);
+  // Close a previously-opened stack configuration using its handle.
+  rpc CloseStackConfiguration(CloseStackConfiguration.Request)
+      returns (CloseStackConfiguration.Response);
+  // Validate an open stack configuration.
+  rpc ValidateStackConfiguration(ValidateStackConfiguration.Request)
+      returns (ValidateStackConfiguration.Response);
+  // Analyze a stack configuration to find all of the components it declares.
+  // This is static analysis only, so it cannot produce dynamic information
+  // such as the number of instances of each component.
+  rpc FindStackConfigurationComponents(FindStackConfigurationComponents.Request)
+      returns (FindStackConfigurationComponents.Response);
+  // Load a stack state by sending a stream of raw state objects that were
+  // streamed from a previous ApplyStackChanges response.
+  rpc OpenState(stream OpenStackState.RequestItem) returns (OpenStackState.Response);
+  // Close a stack state handle, discarding the associated state.
+  rpc CloseState(CloseStackState.Request) returns (CloseStackState.Response);
+  // Calculate a desired state from the given configuration and compare it
+  // with the current state to propose a set of changes to converge the
+  // current state with the desired state, at least in part.
+  rpc PlanStackChanges(PlanStackChanges.Request)
+      returns (stream PlanStackChanges.Event);
+  // Load a previously-created plan by sending a stream of raw change objects
+  // that were streamed from a previous PlanStackChanges response.
+  rpc OpenPlan(stream OpenStackPlan.RequestItem) returns (OpenStackPlan.Response);
+  // Close a saved plan handle, discarding the associated saved plan.
+  rpc ClosePlan(CloseStackPlan.Request) returns (CloseStackPlan.Response);
+  // Execute the changes proposed by an earlier call to PlanStackChanges.
+  rpc ApplyStackChanges(ApplyStackChanges.Request)
+      returns (stream ApplyStackChanges.Event);
+  // OpenStackInspector creates a stack inspector handle that can be used
+  // with subsequent calls to the "Inspect"-prefixed functions.
+  rpc OpenStackInspector(OpenStackInspector.Request)
+      returns (OpenStackInspector.Response);
+  // InspectExpressionResult evaluates an arbitrary expression in the context
+  // of a stack inspector handle.
+  rpc InspectExpressionResult(InspectExpressionResult.Request)
+      returns (InspectExpressionResult.Response);
+}
+
+message OpenStackConfiguration {
+  message Request {
+    int64 source_bundle_handle = 1;
+    terraform1.SourceAddress source_address = 2;
+  }
+  message Response {
+    int64 stack_config_handle = 1;
+    repeated terraform1.Diagnostic diagnostics = 2;
+  }
+}
+
+message CloseStackConfiguration {
+  message Request {
+    int64 stack_config_handle = 1;
+  }
+  message Response {
+  }
+}
+
+message ValidateStackConfiguration {
+  message Request {
+    int64 stack_config_handle = 1;
+    int64 dependency_locks_handle = 2;
+    int64 provider_cache_handle = 3;
+  }
+  message Response {
+    repeated terraform1.Diagnostic diagnostics = 1;
+  }
+}
+
+message FindStackConfigurationComponents {
+  message Request {
+    int64 stack_config_handle = 1;
+  }
+  message Response {
+    StackConfig config = 1;
+  }
+
+  enum Instances {
+    SINGLE = 0;
+    COUNT = 1;
+    FOR_EACH = 2;
+  }
+  message StackConfig {
+    map<string, Component> components = 1;
+    map<string, EmbeddedStack> embedded_stacks = 2;
+    map<string, InputVariable> input_variables = 3;
+    map<string, OutputValue> output_values = 4;
+  }
+  message EmbeddedStack {
+    string source_addr = 1;
+    Instances instances = 2;
+    StackConfig config = 3;
+  }
+  message Component {
+    string source_addr = 1;
+    Instances instances = 2;
+    string component_addr = 3;
+  }
+  message InputVariable {
+    bool optional = 1;
+    bool sensitive = 2;
+    bool ephemeral = 3;
+  }
+  message OutputValue {
+    bool sensitive = 1;
+    bool ephemeral = 2;
+  }
+}
+
+message OpenStackState {
+  message RequestItem {
+    AppliedChange.RawChange raw = 1;
+  }
+  message Response {
+    int64 state_handle = 1;
+  }
+}
+
+message CloseStackState {
+  message Request {
+    int64 state_handle = 1;
+  }
+  message Response {
+  }
+}
+
+message PlanStackChanges {
+  message Request {
+    PlanMode plan_mode = 1;
+    int64 stack_config_handle = 2;
+    int64 previous_state_handle = 7;
+    map<string, google.protobuf.Any> previous_state = 3 [deprecated = true];
+    int64 dependency_locks_handle = 4;
+    int64 provider_cache_handle = 5;
+    map<string, DynamicValueWithSource> input_values = 6;
+    // TODO: Various other planning options
+  }
+  message Event {
+    oneof event {
+      PlannedChange planned_change = 1;
+      terraform1.Diagnostic diagnostic = 2;
+      StackChangeProgress progress = 10;
+    }
+    reserved 3 to 9; // formerly used for individual progress events
+  }
+}
+
+message OpenStackPlan {
+  message RequestItem {
+    google.protobuf.Any raw = 1;
+  }
+  message Response {
+    int64 plan_handle = 1;
+  }
+}
+
+message CloseStackPlan {
+  message Request {
+    int64 plan_handle = 1;
+  }
+  message Response {
+  }
+}
+
+message ApplyStackChanges {
+  message Request {
+    // This must refer to exactly the same configuration that was
+    // passed to PlanStackChanges when creating this plan, or the
+    // results will be unpredictable.
+    int64 stack_config_handle = 1;
+    // The caller should send all of the keys present in the previous
+    // apply's description map. Terraform Core will use this for
+    // situations such as updating existing descriptions to newer
+    // formats even if no change is being made to the corresponding
+    // real objects.
+    repeated string known_description_keys = 3;
+    // The handle for a saved plan previously loaded using the
+    // Stacks.OpenPlan function.
+    // Applying a plan immediately invalidates it, so the handle will
+    // be automatically closed.
+    int64 plan_handle = 8;
+    // This must include all of the "raw" values emitted through
+    // PlannedChange events during the PlanStackChanges operation
+    // that created this plan, concatenated together in the same
+    // order they were written to the PlanStackChanges event stream.
+    //
+    // Use plan_handle instead. This will be removed in future.
+    repeated google.protobuf.Any planned_changes = 4  [deprecated = true];
+    // This must be equivalent to the argument of the same name
+    // passed to PlanStackChanges when creating this plan.
+    int64 dependency_locks_handle = 5;
+    // This must be equivalent to the argument of the same name
+    // passed to PlanStackChanges when creating this plan.
+    int64 provider_cache_handle = 6;
+
+    // Any input variables identified as an "apply-time input variable"
+    // in the plan must have values provided here.
+    //
+    // Callers may also optionally include values for other declared input
+    // variables, but if so their values must exactly match those used when
+    // creating the plan.
+    map<string, DynamicValueWithSource> input_values = 7;
+
+    reserved 2; // (formerly the previous state, but we now propagate that as part of planned_changes as an implementation detail)
+  }
+  message Event {
+    oneof event {
+      AppliedChange applied_change = 1;
+      terraform1.Diagnostic diagnostic = 2;
+      StackChangeProgress progress = 3;
+    }
+  }
+}
+
+message OpenStackInspector {
+  message Request {
+    int64 stack_config_handle = 1;
+    map<string, google.protobuf.Any> state = 2;
+    int64 dependency_locks_handle = 3;
+    int64 provider_cache_handle = 4;
+    map<string, DynamicValueWithSource> input_values = 5;
+  }
+  message Response {
+    int64 stack_inspector_handle = 1;
+    repeated terraform1.Diagnostic diagnostics = 2;
+  }
+}
+
+message InspectExpressionResult {
+  message Request {
+    int64 stack_inspector_handle = 1;
+    bytes expression_src = 2;
+    string stack_addr = 3;
+  }
+  message Response {
+    // The result of evaluating the expression, if successful enough to
+    // produce a result. Unpopulated if the expression was too invalid
+    // to produce a result, with the problem then described in the
+    // associated diagnostics.
+    //
+    // Uses a MessagePack encoding with in-band type information.
+    DynamicValue result = 1;
+    repeated terraform1.Diagnostic diagnostics = 2;
+  }
+}
+
+// Represents dynamically-typed data from within the Terraform language.
+// Typically only one of the available serialization formats will be populated,
+// depending on what serializations are appropriate for a particular context
+// and what capabilities the client and the server negotiated during Handshake.
+message DynamicValue {
+  bytes msgpack = 1; // The default serialization format
+  repeated AttributePath sensitive = 2; // Paths to any sensitive-marked values.
+}
+
+// Represents a change of some object from one dynamic value to another.
+message DynamicValueChange {
+  DynamicValue old = 1;
+  DynamicValue new = 2;
+}
+
+// Represents a DynamicValue accompanied by a source location where it was
+// presumably defined, for values that originated in configuration files for
+// situations such as returning error messages.
+message DynamicValueWithSource {
+  DynamicValue value = 1;
+  terraform1.SourceRange source_range = 2;
+}
+
+message AttributePath {
+  message Step {
+    oneof selector {
+      // Set "attribute_name" to represent looking up an attribute
+      // in the current object value.
+      string attribute_name = 1;
+      // Set "element_key_*" to represent looking up an element in
+      // an indexable collection type.
+      string element_key_string = 2;
+      int64 element_key_int = 3;
+    }
+  }
+  repeated Step steps = 1;
+}
+
+// Represents the address of a specific component instance within a stack.
+message ComponentInstanceInStackAddr {
+  // The address of the static component that this is an instance of.
+  string component_addr = 1;
+  // The address of the instance that's being announced. For
+  // multi-instance components this could have any combination of
+  // instance keys on the component itself or instance keys on any
+  // of the containing embedded stacks.
+  string component_instance_addr = 2;
+}
+
+// Represents the address of a specific resource instance inside a specific
+// component instance within the containing stack.
+message ResourceInstanceInStackAddr {
+  // Unique address of the component instance that this resource instance
+  // belongs to. This is comparable with
+  string component_instance_addr = 1;
+  // Unique address of the resource instance within the given component
+  // instance. Each component instance has a separate namespace of
+  // resource instance addresses, so callers must take both fields together
+  // to produce a key that's unique throughout the entire plan.
+  string resource_instance_addr = 2;
+}
+
+// Represents the address of a specific resource instance object inside a
+// specific component instance within the containing stack.
+message ResourceInstanceObjectInStackAddr {
+  // Unique address of the component instance that this resource instance
+  // belongs to. This is comparable with
+  string component_instance_addr = 1;
+  // Unique address of the resource instance within the given component
+  // instance. Each component instance has a separate namespace of
+  // resource instance addresses, so callers must take both fields together
+  // to produce a key that's unique throughout the entire plan.
+  string resource_instance_addr = 2;
+  // Optional "deposed key" populated only for non-current (deposed) objects,
+  // which can appear for "create before destroy" replacements where the
+  // create succeeds but then the destroy fails, leaving us with two different
+  // objects to track for the same resource instance.
+  string deposed_key = 3;
+}
+
+enum ResourceMode {
+  UNKNOWN = 0;
+  MANAGED = 1;
+  DATA = 2;
+}
+
+enum PlanMode {
+  NORMAL = 0;
+  REFRESH_ONLY = 1;
+  DESTROY = 2;
+}
+
+enum ChangeType {
+  NOOP = 0;
+  READ = 1;
+  CREATE = 2;
+  UPDATE = 3;
+  DELETE = 4;
+  FORGET = 5;
+}
+
+// Describes one item in a stack plan. The overall plan is the concatentation
+// of all messages of this type emitted as events during the plan; splitting
+// this information over multiple messages just allows the individual events
+// to double as progress notifications for an interactive UI.
+message PlannedChange {
+  // Terraform Core's internal representation(s) of this change. Callers
+  // must provide the messages in this field, if any, verbatim to the
+  // ApplyStackChanges RPC in order to apply this change, and must not
+  // attempt to decode or analyze the contents because they are subject
+  // to change in future versions of Terraform Core.
+  //
+  // This might be unpopulated if this message represents only information
+  // for the caller and Terraform Core doesn't actually need to recall this
+  // information during the apply step. Callers must append each raw item
+  // to the raw plan in the order specified, and provide them all together
+  // in the same order to ApplyStackChanges.
+  repeated google.protobuf.Any raw = 1;
+
+  // Caller-facing descriptions of this change, to use for presenting
+  // information to end-users in the UI and for other subsystems such as
+  // imposing policy rules on the resulting plan.
+  //
+  // There can be zero or more description objects associated with each
+  // change. More than one is not common, but should be supported by clients
+  // by treating them the same way as if each description had arrived in
+  // a separate PlannedChange message. Clients should not treat the grouping
+  // or not-grouping of change description objects as meaningful information,
+  // since it's subject to change in future Terraform Core versions.
+  //
+  // DO NOT attempt to use this to surgically filter particular changes
+  // from a larger plan. Although external descriptions often match with
+  // the raw representations in field "raw", that is not guaranteed and
+  // Terraform Core assumes that it will always be provided with the full
+  // set of raw messages -- in the same order they were emitted -- during
+  // the apply step. For example, some raw messages might omit information
+  // that is implied by earlier raw messages and would therefore be
+  // incomplete if isolated.
+  repeated ChangeDescription descriptions = 2;
+  reserved 3 to 6; // formerly used for an inline "oneof description", now factored out into a separate message type
+
+  // Represents a single caller-facing description of a change, to use for
+  // presenting information to end users in the UI and for other subsystems
+  // such as imposing policy rules on the resulting plan.
+  //
+  // New description types might be added in future versions of Terraform
+  // Core, and so clients should tolerate description messages that appear
+  // to have none of the oneof fields set, and should just ignore those
+  // messages entirely.
+  message ChangeDescription {
+    oneof description {
+      ComponentInstance component_instance_planned = 1;
+      ResourceInstance resource_instance_planned = 2;
+      OutputValue output_value_planned = 3;
+      bool plan_applyable = 4;
+      ResourceInstanceDeferred resource_instance_deferred = 5;
+      InputVariableDuringApply apply_time_input_variable = 6;
+    }
+  }
+
+  // Reports the existence of a particular instance of a component,
+  // once Terraform has resolved arguments such as "for_each" that
+  // might make the set of instances dynamic.
+  message ComponentInstance {
+    ComponentInstanceInStackAddr addr = 1;
+    // The changes to the existence of this instance relative to the
+    // prior state. This only considers the component instance directly,
+    // and doesn't take into account what actions are planned for any
+    // resource instances inside.
+    repeated ChangeType actions = 2;
+    // A flag for whether applying this plan is expected to cause the
+    // desired state and actual state to become converged.
+    //
+    // If this field is false, that means Terraform expects that at least
+    // one more plan/apply round will be needed to reach convergence.
+    //
+    // If this field is true then Terraform hopes to be able to converge
+    // after this plan is applied, but callers should ideally still check
+    // anyway by running one more plan to confirm that there aren't any
+    // unexpected differences caused by such situations as contradictory
+    // configuration or provider bugs.
+    bool plan_complete = 3;
+  }
+  message ResourceInstance {
+    ResourceInstanceObjectInStackAddr addr = 1;
+    repeated ChangeType actions = 2;
+    DynamicValueChange values = 3;
+    Moved moved = 4;
+    Imported imported = 5;
+    ResourceMode resource_mode = 6;
+    string resource_type = 7;
+    string provider_addr = 8;
+
+    // previous_run_value is included only if it would be
+    // different from values.old, which typically means that
+    // Terraform detected some changes made outside of Terraform
+    // since the previous run. In that case, this field is
+    // the un-refreshed (but still upgraded) value from
+    // the previous run and values.old is the refreshed version.
+    //
+    // If this isn't set then values.old should be used as the
+    // previous run value, if needed.
+    DynamicValue previous_run_value = 9;
+
+    // This flag is set if Terraform Core considers the difference
+    // between previous_run_value and values.old to be "notable",
+    // which is a heuristic subject to change over time but is
+    // broadly intended to mean that it would be worth mentioning
+    // the difference between the two in the UI as a
+    // "change outside of Terraform". If this isn't set then the
+    // difference is probably not worth mentioning to the user
+    // by default, although it could still be shown behind an
+    // optional disclosure in UI contexts where such things are possible.
+    bool notable_change_outside = 10;
+
+    repeated AttributePath replace_paths = 11;
+
+    string resource_name = 12;
+    Index index = 13;
+    string module_addr = 14;
+    string action_reason = 15;
+
+    message Index {
+      DynamicValue value = 1;
+      bool unknown = 2;
+    }
+
+    message Moved {
+      ResourceInstanceInStackAddr prev_addr = 1;
+    }
+    message Imported {
+      string import_id = 1;
+      bool unknown = 2;
+      string generated_config = 3;
+    }
+  }
+  // Note: this is only for output values from the topmost
+  // stack configuration, because all other output values are
+  // internal to the configuration and not part of its public API.
+  message OutputValue {
+    string name = 1;
+    repeated ChangeType actions = 2;
+    DynamicValueChange values = 3;
+  }
+
+  message ResourceInstanceDeferred {
+    ResourceInstance resource_instance = 1;
+    Deferred deferred = 2;
+  }
+
+  // Describes an input variable that must have a value provided
+  // during the apply phase.
+  //
+  // This currently arises only when the variable was declared
+  // as ephemeral and was set to a non-null value during the planning
+  // phase.
+  message InputVariableDuringApply {
+    string name = 1;
+  }
+}
+
+// Deferred contains all the metadata about a the deferral of a resource
+// instance change.
+message Deferred {
+  // Reason describes the reason why a resource instance change was
+  // deferred.
+  enum Reason {
+    INVALID = 0;
+    INSTANCE_COUNT_UNKNOWN = 1;
+    RESOURCE_CONFIG_UNKNOWN = 2;
+    PROVIDER_CONFIG_UNKNOWN = 3;
+    ABSENT_PREREQ = 4;
+    DEFERRED_PREREQ = 5;
+  }
+  Reason reason = 1;
+}
+
+// Describes a change made during a Stacks.ApplyStackChanges call.
+//
+// All of the events of this type taken together represent a sort of "patch"
+// modifying the two data structures that the caller must maintain: the
+// raw state map, and the description map. Callers must apply these changes
+// in the order of the emission of the messages and then retain the entirety
+// of both data structures to populate fields in the next PlanStackChanges call.
+message AppliedChange {
+  // Terraform Core's internal representation of the change, presented as
+  // a sequence of modifications to the raw state data structure.
+  //
+  // For each element, in order:
+  //   - If both key and value are set and the key matches an element
+  //     already in the raw state map, the new value replaces the existing one.
+  //   - If both key and value are set but the key does not match an
+  //     element in the raw state map, this represents inserting a new element
+  //     into the map.
+  //   - If key is set and value is not, this represents removing any existing
+  //     element from the raw state map which has the given key, or a no-op
+  //     if no such element exists.
+  //   - No other situation is legal.
+  //
+  // This sequence can potentially be zero-length if a particular event only
+  // has a external-facing "description" component and no raw equivalent. In
+  // that case the raw state map is unmodified.
+  repeated RawChange raw = 1;
+
+  // Caller-facing description of this change, to use for presenting
+  // information to end-users in the UI and for other subsystems such as
+  // billing.
+  //
+  // Callers are expected to maintain a map of description objects that
+  // gets updated piecemeal by messages in this field. Callers must treat
+  // the keys as entirely opaque and thus treat the resulting data structure
+  // as if it were an unsorted set of ChangeDescription objects; the keys
+  // exist only to allow patching the data structure over time.
+  //
+  // For each element, in order:
+  //   - If both key and description are set and the key matches an element
+  //     from the previous apply's description map, the new value replaces
+  //     the existing one.
+  //   - If both key and value are set but the key does not match an
+  //     element in the previous apply's description map, this represents
+  //     inserting a new element into the map.
+  //   - If key is set and description is "deleted", this represents removing
+  //     any existing element from the previous apply's description map which
+  //     has the given key, or a no-op if no such element exists.
+  //   - If a description field is set that the caller doesn't understand,
+  //     the caller should still write it to the updated description map
+  //     but ignore it in further processing.
+  //   - No other situation is legal.
+  //
+  // Callers MUST preserve the verbatim description message in the
+  // description map, even if it contains fields that are not present in
+  // the caller's current protobuf stubs. In other words, callers must use
+  // a protocol buffers implementation that is able to preserve unknown
+  // fields and store them so that future versions of the caller might
+  // use an updated set of stubs to interact with the previously-stored
+  // description.
+  //
+  // DO NOT attempt to use this to surgically filter particular raw state
+  // updates from a larger plan. Although external descriptions often match
+  // with the raw representations in field "raw", that is not guaranteed and
+  // Terraform Core assumes that it will always be provided with the full
+  // raw state map during the next plan step.
+  repeated ChangeDescription descriptions = 2;
+
+  message RawChange {
+    string key = 1;
+    google.protobuf.Any value = 2;
+  }
+  message ChangeDescription {
+    string key = 1;
+    oneof description {
+      Nothing deleted = 4; // explicitly represents the absence of a description
+      Nothing moved = 6; // explicitly represents the absence of a description
+      ResourceInstance resource_instance = 2;
+      OutputValue output_value = 3;
+      ComponentInstance component_instance = 5;
+    }
+    // Field number 20000 is reserved as a field number that will
+    // always be unknown to any client, to allow clients to test
+    // whether they correctly preserve unexpected fields.
+    reserved 20000;
+  }
+  message ResourceInstance {
+    ResourceInstanceObjectInStackAddr addr = 1;
+    DynamicValue new_value = 2;
+    ResourceMode resource_mode = 4;
+    string resource_type = 5;
+    string provider_addr = 6;
+
+    // Sometimes Terraform needs to make changes to a resource in
+    // multiple steps during the apply phase, with each step
+    // changing something about the state. This flag will be set
+    // for such interim updates, and left unset for whatever
+    // description Terraform Core considers to be "final", at
+    // which point the new value should be converged with the
+    // desired state.
+    //
+    // The intended use for this is when presenting updated values
+    // to users in the UI, where it might be best to ignore or
+    // present differently interim updates to avoid creating
+    // confusion by showing the not-yet-converged intermediate
+    // states.
+    //
+    // If Terraform encounters a problem during the apply phase
+    // and needs to stop partway through then a "final" change
+    // description might never arrive. In that case, callers
+    // should save the most recent interim object as the final
+    // description, since it would represent the most accurate
+    // description of the state the remote system has been left
+    // in.
+    bool interim = 3;
+  }
+  message ComponentInstance {
+    string component_addr = 3;
+    string component_instance_addr = 1;
+    map<string,DynamicValue> output_values = 2;
+  }
+  message OutputValue {
+    string name = 1;
+    DynamicValue new_value = 2;
+  }
+  message Nothing {}
+}
+
+// A container for "progress report" events in both Stacks.PlanStackChanges
+// and Stacks.ApplyStackChanges, which share this message type to allow
+// clients to share event-handling code between the two phases.
+message StackChangeProgress {
+  // Some event types are relevant only to one of the two operations, while
+  // others are common across both but will include different status codes,
+  // etc in different phases.
+  oneof event {
+    ComponentInstanceStatus component_instance_status = 1;
+    ResourceInstanceStatus resource_instance_status = 2;
+    ResourceInstancePlannedChange resource_instance_planned_change = 3;
+    ProvisionerStatus provisioner_status = 4;
+    ProvisionerOutput provisioner_output = 5;
+    ComponentInstanceChanges component_instance_changes = 6;
+    ComponentInstances component_instances = 7;
+    DeferredResourceInstancePlannedChange deferred_resource_instance_planned_change = 8;
+  }
+
+  // ComponentInstanceStatus describes the current status of a component instance
+  // undergoing a plan or apply operation.
+  message ComponentInstanceStatus {
+    ComponentInstanceInStackAddr addr = 1;
+    Status status = 2;
+
+    enum Status {
+      INVALID = 0;
+      PENDING = 1;
+      PLANNING = 2;
+      PLANNED = 3;
+      APPLYING = 4;
+      APPLIED = 5;
+      ERRORED = 6;
+      DEFERRED = 7;
+    }
+  }
+
+  // ComponentInstanceStatus describes the current status of a resource instance
+  // undergoing a plan or apply operation.
+  message ResourceInstanceStatus {
+    ResourceInstanceObjectInStackAddr addr = 1;
+    Status status = 2;
+    string provider_addr = 3;
+
+    enum Status {
+      INVALID = 0;
+      PENDING = 1;
+      REFRESHING = 2;
+      REFRESHED = 3;
+      PLANNING = 4;
+      PLANNED = 5;
+      APPLYING = 6;
+      APPLIED = 7;
+      ERRORED = 8;
+    }
+  }
+
+  // ResourceInstancePlannedChange describes summary information about a planned
+  // change for a resource instance. This does not include the full object change,
+  // which is described in PlannedChange.ResourceChange. The information in this
+  // message is intended for the event stream and need not include the instance's
+  // full object values.
+  message ResourceInstancePlannedChange {
+    ResourceInstanceObjectInStackAddr addr = 1;
+    repeated ChangeType actions = 2;
+    Moved moved = 3;
+    Imported imported = 4;
+    string provider_addr = 5;
+
+    message Moved {
+      ResourceInstanceInStackAddr prev_addr = 1;
+    }
+    message Imported {
+      string import_id = 1;
+      bool unknown = 2;
+    }
+  }
+
+  // DeferredResourceInstancePlannedChange represents a planned change for a
+  // resource instance that is deferred due to the reason provided.
+  message DeferredResourceInstancePlannedChange {
+    Deferred deferred = 1;
+    ResourceInstancePlannedChange change = 2;
+  }
+
+  // ProvisionerStatus represents the progress of a given provisioner during its
+  // resource instance's apply operation.
+  message ProvisionerStatus {
+    ResourceInstanceObjectInStackAddr addr = 1;
+    string name = 2;
+    ProvisionerStatus status = 3;
+
+    enum Status {
+      INVALID = 0;
+      PROVISIONING = 1;
+      PROVISIONED = 2;
+      ERRORED = 3;
+    }
+  }
+
+  // ProvisionerOutput represents recorded output data emitted by a provisioner
+  // during a resource instance's apply operation.
+  message ProvisionerOutput {
+    ResourceInstanceObjectInStackAddr addr = 1;
+    string name = 2;
+    string output = 3;
+  }
+
+  // ComponentInstanceChanges represents a roll-up of change counts for a
+  // component instance plan or apply operation.
+  message ComponentInstanceChanges {
+    ComponentInstanceInStackAddr addr = 1;
+
+    // total is the sum of all of the other count fields.
+    //
+    // Clients should sum all of the other count fields they know about
+    // and compare to total. If the sum is less than total then the
+    // difference should be treated as an "other change types" category,
+    // for forward-compatibility when the Terraform Core RPC server is
+    // using a newer version of this protocol than the client.
+    int32 total = 2;
+    int32 add = 3;
+    int32 change = 4;
+    int32 import = 5;
+    int32 remove = 6;
+    int32 defer = 7;
+    int32 move = 8;
+    int32 forget = 9;
+  }
+
+  // ComponentInstances represents the result of expanding a component into zero
+  // or more instances.
+  message ComponentInstances {
+    string component_addr = 1;
+    repeated string instance_addrs = 2;
+  }
+}

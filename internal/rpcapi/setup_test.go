@@ -9,23 +9,23 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/setup"
 )
 
 func TestSetupServer_Handshake(t *testing.T) {
 	called := 0
-	server := newSetupServer(func(ctx context.Context, req *terraform1.Handshake_Request, stopper *stopper) (*terraform1.ServerCapabilities, error) {
+	server := newSetupServer(func(ctx context.Context, req *setup.Handshake_Request, stopper *stopper) (*setup.ServerCapabilities, error) {
 		called++
 		if got, want := req.Config.Credentials["localterraform.com"].Token, "boop"; got != want {
 			t.Fatalf("incorrect token. got %q, want %q", got, want)
 		}
-		return &terraform1.ServerCapabilities{}, nil
+		return &setup.ServerCapabilities{}, nil
 	})
 
-	req := &terraform1.Handshake_Request{
-		Capabilities: &terraform1.ClientCapabilities{},
-		Config: &terraform1.Config{
-			Credentials: map[string]*terraform1.HostCredential{
+	req := &setup.Handshake_Request{
+		Capabilities: &setup.ClientCapabilities{},
+		Config: &setup.Config{
+			Credentials: map[string]*setup.HostCredential{
 				"localterraform.com": {
 					Token: "boop",
 				},
@@ -51,9 +51,9 @@ func TestSetupServer_Handshake(t *testing.T) {
 
 func TestSetupServer_Stop(t *testing.T) {
 	var s *stopper
-	server := newSetupServer(func(ctx context.Context, req *terraform1.Handshake_Request, stopper *stopper) (*terraform1.ServerCapabilities, error) {
+	server := newSetupServer(func(ctx context.Context, req *setup.Handshake_Request, stopper *stopper) (*setup.ServerCapabilities, error) {
 		s = stopper
-		return &terraform1.ServerCapabilities{}, nil
+		return &setup.ServerCapabilities{}, nil
 	})
 	_, err := server.Handshake(context.Background(), nil)
 	if err != nil {

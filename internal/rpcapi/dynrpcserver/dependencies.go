@@ -8,21 +8,21 @@ import (
 	"context"
 	"sync"
 
-	tf1 "github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	dependencies "github.com/hashicorp/terraform/internal/rpcapi/terraform1/dependencies"
 )
 
 type Dependencies struct {
-	impl tf1.DependenciesServer
+	impl dependencies.DependenciesServer
 	mu   sync.RWMutex
 }
 
-var _ tf1.DependenciesServer = (*Dependencies)(nil)
+var _ dependencies.DependenciesServer = (*Dependencies)(nil)
 
 func NewDependenciesStub() *Dependencies {
 	return &Dependencies{}
 }
 
-func (s *Dependencies) BuildProviderPluginCache(a0 *tf1.BuildProviderPluginCache_Request, a1 tf1.Dependencies_BuildProviderPluginCacheServer) error {
+func (s *Dependencies) BuildProviderPluginCache(a0 *dependencies.BuildProviderPluginCache_Request, a1 dependencies.Dependencies_BuildProviderPluginCacheServer) error {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return err
@@ -30,7 +30,7 @@ func (s *Dependencies) BuildProviderPluginCache(a0 *tf1.BuildProviderPluginCache
 	return impl.BuildProviderPluginCache(a0, a1)
 }
 
-func (s *Dependencies) CloseDependencyLocks(a0 context.Context, a1 *tf1.CloseDependencyLocks_Request) (*tf1.CloseDependencyLocks_Response, error) {
+func (s *Dependencies) CloseDependencyLocks(a0 context.Context, a1 *dependencies.CloseDependencyLocks_Request) (*dependencies.CloseDependencyLocks_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func (s *Dependencies) CloseDependencyLocks(a0 context.Context, a1 *tf1.CloseDep
 	return impl.CloseDependencyLocks(a0, a1)
 }
 
-func (s *Dependencies) CloseProviderPluginCache(a0 context.Context, a1 *tf1.CloseProviderPluginCache_Request) (*tf1.CloseProviderPluginCache_Response, error) {
+func (s *Dependencies) CloseProviderPluginCache(a0 context.Context, a1 *dependencies.CloseProviderPluginCache_Request) (*dependencies.CloseProviderPluginCache_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func (s *Dependencies) CloseProviderPluginCache(a0 context.Context, a1 *tf1.Clos
 	return impl.CloseProviderPluginCache(a0, a1)
 }
 
-func (s *Dependencies) CloseSourceBundle(a0 context.Context, a1 *tf1.CloseSourceBundle_Request) (*tf1.CloseSourceBundle_Response, error) {
+func (s *Dependencies) CloseSourceBundle(a0 context.Context, a1 *dependencies.CloseSourceBundle_Request) (*dependencies.CloseSourceBundle_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func (s *Dependencies) CloseSourceBundle(a0 context.Context, a1 *tf1.CloseSource
 	return impl.CloseSourceBundle(a0, a1)
 }
 
-func (s *Dependencies) CreateDependencyLocks(a0 context.Context, a1 *tf1.CreateDependencyLocks_Request) (*tf1.CreateDependencyLocks_Response, error) {
+func (s *Dependencies) CreateDependencyLocks(a0 context.Context, a1 *dependencies.CreateDependencyLocks_Request) (*dependencies.CreateDependencyLocks_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func (s *Dependencies) CreateDependencyLocks(a0 context.Context, a1 *tf1.CreateD
 	return impl.CreateDependencyLocks(a0, a1)
 }
 
-func (s *Dependencies) GetBuiltInProviders(a0 context.Context, a1 *tf1.GetBuiltInProviders_Request) (*tf1.GetBuiltInProviders_Response, error) {
+func (s *Dependencies) GetBuiltInProviders(a0 context.Context, a1 *dependencies.GetBuiltInProviders_Request) (*dependencies.GetBuiltInProviders_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func (s *Dependencies) GetBuiltInProviders(a0 context.Context, a1 *tf1.GetBuiltI
 	return impl.GetBuiltInProviders(a0, a1)
 }
 
-func (s *Dependencies) GetCachedProviders(a0 context.Context, a1 *tf1.GetCachedProviders_Request) (*tf1.GetCachedProviders_Response, error) {
+func (s *Dependencies) GetCachedProviders(a0 context.Context, a1 *dependencies.GetCachedProviders_Request) (*dependencies.GetCachedProviders_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func (s *Dependencies) GetCachedProviders(a0 context.Context, a1 *tf1.GetCachedP
 	return impl.GetCachedProviders(a0, a1)
 }
 
-func (s *Dependencies) GetLockedProviderDependencies(a0 context.Context, a1 *tf1.GetLockedProviderDependencies_Request) (*tf1.GetLockedProviderDependencies_Response, error) {
+func (s *Dependencies) GetLockedProviderDependencies(a0 context.Context, a1 *dependencies.GetLockedProviderDependencies_Request) (*dependencies.GetLockedProviderDependencies_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (s *Dependencies) GetLockedProviderDependencies(a0 context.Context, a1 *tf1
 	return impl.GetLockedProviderDependencies(a0, a1)
 }
 
-func (s *Dependencies) GetProviderSchema(a0 context.Context, a1 *tf1.GetProviderSchema_Request) (*tf1.GetProviderSchema_Response, error) {
+func (s *Dependencies) GetProviderSchema(a0 context.Context, a1 *dependencies.GetProviderSchema_Request) (*dependencies.GetProviderSchema_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func (s *Dependencies) GetProviderSchema(a0 context.Context, a1 *tf1.GetProvider
 	return impl.GetProviderSchema(a0, a1)
 }
 
-func (s *Dependencies) OpenDependencyLockFile(a0 context.Context, a1 *tf1.OpenDependencyLockFile_Request) (*tf1.OpenDependencyLockFile_Response, error) {
+func (s *Dependencies) OpenDependencyLockFile(a0 context.Context, a1 *dependencies.OpenDependencyLockFile_Request) (*dependencies.OpenDependencyLockFile_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -102,7 +102,7 @@ func (s *Dependencies) OpenDependencyLockFile(a0 context.Context, a1 *tf1.OpenDe
 	return impl.OpenDependencyLockFile(a0, a1)
 }
 
-func (s *Dependencies) OpenProviderPluginCache(a0 context.Context, a1 *tf1.OpenProviderPluginCache_Request) (*tf1.OpenProviderPluginCache_Response, error) {
+func (s *Dependencies) OpenProviderPluginCache(a0 context.Context, a1 *dependencies.OpenProviderPluginCache_Request) (*dependencies.OpenProviderPluginCache_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func (s *Dependencies) OpenProviderPluginCache(a0 context.Context, a1 *tf1.OpenP
 	return impl.OpenProviderPluginCache(a0, a1)
 }
 
-func (s *Dependencies) OpenSourceBundle(a0 context.Context, a1 *tf1.OpenSourceBundle_Request) (*tf1.OpenSourceBundle_Response, error) {
+func (s *Dependencies) OpenSourceBundle(a0 context.Context, a1 *dependencies.OpenSourceBundle_Request) (*dependencies.OpenSourceBundle_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {
 		return nil, err
@@ -118,13 +118,13 @@ func (s *Dependencies) OpenSourceBundle(a0 context.Context, a1 *tf1.OpenSourceBu
 	return impl.OpenSourceBundle(a0, a1)
 }
 
-func (s *Dependencies) ActivateRPCServer(impl tf1.DependenciesServer) {
+func (s *Dependencies) ActivateRPCServer(impl dependencies.DependenciesServer) {
 	s.mu.Lock()
 	s.impl = impl
 	s.mu.Unlock()
 }
 
-func (s *Dependencies) realRPCServer() (tf1.DependenciesServer, error) {
+func (s *Dependencies) realRPCServer() (dependencies.DependenciesServer, error) {
 	s.mu.RLock()
 	impl := s.impl
 	s.mu.RUnlock()

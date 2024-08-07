@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
@@ -33,7 +33,7 @@ import (
 )
 
 type stacksServer struct {
-	terraform1.UnimplementedStacksServer
+	stacks.UnimplementedStacksServer
 
 	stopper            *stopper
 	handles            *handleTable
@@ -53,7 +53,7 @@ type stacksServer struct {
 	planTimestampOverride *time.Time
 }
 
-var _ terraform1.StacksServer = (*stacksServer)(nil)
+var _ stacks.StacksServer = (*stacksServer)(nil)
 
 func newStacksServer(stopper *stopper, handles *handleTable, opts *serviceOpts) *stacksServer {
 	return &stacksServer{
@@ -63,7 +63,7 @@ func newStacksServer(stopper *stopper, handles *handleTable, opts *serviceOpts) 
 	}
 }
 
-func (s *stacksServer) OpenStackConfiguration(ctx context.Context, req *terraform1.OpenStackConfiguration_Request) (*terraform1.OpenStackConfiguration_Response, error) {
+func (s *stacksServer) OpenStackConfiguration(ctx context.Context, req *stacks.OpenStackConfiguration_Request) (*stacks.OpenStackConfiguration_Response, error) {
 	sourcesHnd := handle[*sourcebundle.Bundle](req.SourceBundleHandle)
 	sources := s.handles.SourceBundle(sourcesHnd)
 	if sources == nil {
@@ -80,7 +80,7 @@ func (s *stacksServer) OpenStackConfiguration(ctx context.Context, req *terrafor
 		// For errors in the configuration itself we treat that as a successful
 		// result from OpenStackConfiguration but with diagnostics in the
 		// response and no source handle.
-		return &terraform1.OpenStackConfiguration_Response{
+		return &stacks.OpenStackConfiguration_Response{
 			Diagnostics: diagnosticsToProto(diags),
 		}, nil
 	}
@@ -102,22 +102,22 @@ func (s *stacksServer) OpenStackConfiguration(ctx context.Context, req *terrafor
 	// handle. (The caller is required to ensure that the source bundle files
 	// on disk are not modified for as long as the source bundle handle remains
 	// open, and its lifetime will necessarily exceed the config handle.)
-	return &terraform1.OpenStackConfiguration_Response{
+	return &stacks.OpenStackConfiguration_Response{
 		StackConfigHandle: configHnd.ForProtobuf(),
 		Diagnostics:       diagnosticsToProto(diags),
 	}, nil
 }
 
-func (s *stacksServer) CloseStackConfiguration(ctx context.Context, req *terraform1.CloseStackConfiguration_Request) (*terraform1.CloseStackConfiguration_Response, error) {
+func (s *stacksServer) CloseStackConfiguration(ctx context.Context, req *stacks.CloseStackConfiguration_Request) (*stacks.CloseStackConfiguration_Response, error) {
 	hnd := handle[*stackconfig.Config](req.StackConfigHandle)
 	err := s.handles.CloseStackConfig(hnd)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	return &terraform1.CloseStackConfiguration_Response{}, nil
+	return &stacks.CloseStackConfiguration_Response{}, nil
 }
 
-func (s *stacksServer) ValidateStackConfiguration(ctx context.Context, req *terraform1.ValidateStackConfiguration_Request) (*terraform1.ValidateStackConfiguration_Response, error) {
+func (s *stacksServer) ValidateStackConfiguration(ctx context.Context, req *stacks.ValidateStackConfiguration_Request) (*stacks.ValidateStackConfiguration_Response, error) {
 	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
 	cfg := s.handles.StackConfig(cfgHnd)
 	if cfg == nil {
@@ -154,62 +154,62 @@ func (s *stacksServer) ValidateStackConfiguration(ctx context.Context, req *terr
 		ProviderFactories:  providerFactories,
 		DependencyLocks:    *deps,
 	})
-	return &terraform1.ValidateStackConfiguration_Response{
+	return &stacks.ValidateStackConfiguration_Response{
 		Diagnostics: diagnosticsToProto(diags),
 	}, nil
 }
 
-func (s *stacksServer) FindStackConfigurationComponents(ctx context.Context, req *terraform1.FindStackConfigurationComponents_Request) (*terraform1.FindStackConfigurationComponents_Response, error) {
+func (s *stacksServer) FindStackConfigurationComponents(ctx context.Context, req *stacks.FindStackConfigurationComponents_Request) (*stacks.FindStackConfigurationComponents_Response, error) {
 	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
 	cfg := s.handles.StackConfig(cfgHnd)
 	if cfg == nil {
 		return nil, status.Error(codes.InvalidArgument, "the given stack configuration handle is invalid")
 	}
 
-	return &terraform1.FindStackConfigurationComponents_Response{
+	return &stacks.FindStackConfigurationComponents_Response{
 		Config: stackConfigMetaforProto(cfg.Root, stackaddrs.RootStack),
 	}, nil
 }
 
-func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackaddrs.Stack) *terraform1.FindStackConfigurationComponents_StackConfig {
-	ret := &terraform1.FindStackConfigurationComponents_StackConfig{
-		Components:     make(map[string]*terraform1.FindStackConfigurationComponents_Component),
-		EmbeddedStacks: make(map[string]*terraform1.FindStackConfigurationComponents_EmbeddedStack),
-		InputVariables: make(map[string]*terraform1.FindStackConfigurationComponents_InputVariable),
-		OutputValues:   make(map[string]*terraform1.FindStackConfigurationComponents_OutputValue),
+func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackaddrs.Stack) *stacks.FindStackConfigurationComponents_StackConfig {
+	ret := &stacks.FindStackConfigurationComponents_StackConfig{
+		Components:     make(map[string]*stacks.FindStackConfigurationComponents_Component),
+		EmbeddedStacks: make(map[string]*stacks.FindStackConfigurationComponents_EmbeddedStack),
+		InputVariables: make(map[string]*stacks.FindStackConfigurationComponents_InputVariable),
+		OutputValues:   make(map[string]*stacks.FindStackConfigurationComponents_OutputValue),
 	}
 
 	for name, cc := range cfgNode.Stack.Components {
-		cProto := &terraform1.FindStackConfigurationComponents_Component{
+		cProto := &stacks.FindStackConfigurationComponents_Component{
 			SourceAddr:    cc.FinalSourceAddr.String(),
 			ComponentAddr: stackaddrs.Config(stackAddr, stackaddrs.Component{Name: cc.Name}).String(),
 		}
 		switch {
 		case cc.ForEach != nil:
-			cProto.Instances = terraform1.FindStackConfigurationComponents_FOR_EACH
+			cProto.Instances = stacks.FindStackConfigurationComponents_FOR_EACH
 		default:
-			cProto.Instances = terraform1.FindStackConfigurationComponents_SINGLE
+			cProto.Instances = stacks.FindStackConfigurationComponents_SINGLE
 		}
 		ret.Components[name] = cProto
 	}
 
 	for name, sn := range cfgNode.Children {
 		sc := cfgNode.Stack.EmbeddedStacks[name]
-		sProto := &terraform1.FindStackConfigurationComponents_EmbeddedStack{
+		sProto := &stacks.FindStackConfigurationComponents_EmbeddedStack{
 			SourceAddr: sn.Stack.SourceAddr.String(),
 			Config:     stackConfigMetaforProto(sn, stackAddr.Child(name)),
 		}
 		switch {
 		case sc.ForEach != nil:
-			sProto.Instances = terraform1.FindStackConfigurationComponents_FOR_EACH
+			sProto.Instances = stacks.FindStackConfigurationComponents_FOR_EACH
 		default:
-			sProto.Instances = terraform1.FindStackConfigurationComponents_SINGLE
+			sProto.Instances = stacks.FindStackConfigurationComponents_SINGLE
 		}
 		ret.EmbeddedStacks[name] = sProto
 	}
 
 	for name, vc := range cfgNode.Stack.InputVariables {
-		vProto := &terraform1.FindStackConfigurationComponents_InputVariable{
+		vProto := &stacks.FindStackConfigurationComponents_InputVariable{
 			Optional:  !vc.DefaultValue.IsNull(),
 			Sensitive: vc.Sensitive,
 			Ephemeral: vc.Ephemeral,
@@ -218,7 +218,7 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 	}
 
 	for name, oc := range cfgNode.Stack.OutputValues {
-		oProto := &terraform1.FindStackConfigurationComponents_OutputValue{
+		oProto := &stacks.FindStackConfigurationComponents_OutputValue{
 			Sensitive: oc.Sensitive,
 			Ephemeral: oc.Ephemeral,
 		}
@@ -228,7 +228,7 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 	return ret
 }
 
-func (s *stacksServer) OpenState(stream terraform1.Stacks_OpenStateServer) error {
+func (s *stacksServer) OpenState(stream stacks.Stacks_OpenStateServer) error {
 	loader := stackstate.NewLoader()
 	for {
 		item, err := stream.Recv()
@@ -244,21 +244,21 @@ func (s *stacksServer) OpenState(stream terraform1.Stacks_OpenStateServer) error
 	}
 
 	hnd := s.handles.NewStackState(loader.State())
-	return stream.SendAndClose(&terraform1.OpenStackState_Response{
+	return stream.SendAndClose(&stacks.OpenStackState_Response{
 		StateHandle: hnd.ForProtobuf(),
 	})
 }
 
-func (s *stacksServer) CloseState(ctx context.Context, req *terraform1.CloseStackState_Request) (*terraform1.CloseStackState_Response, error) {
+func (s *stacksServer) CloseState(ctx context.Context, req *stacks.CloseStackState_Request) (*stacks.CloseStackState_Response, error) {
 	hnd := handle[*stackstate.State](req.StateHandle)
 	err := s.handles.CloseStackState(hnd)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	return &terraform1.CloseStackState_Response{}, nil
+	return &stacks.CloseStackState_Response{}, nil
 }
 
-func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request, evts terraform1.Stacks_PlanStackChangesServer) error {
+func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, evts stacks.Stacks_PlanStackChangesServer) error {
 	ctx := evts.Context()
 	syncEvts := newSyncStreamingRPCSender(evts)
 	evts = nil // Prevent accidental unsynchronized usage of this server
@@ -323,11 +323,11 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 
 	var planMode plans.Mode
 	switch req.PlanMode {
-	case terraform1.PlanMode_NORMAL:
+	case stacks.PlanMode_NORMAL:
 		planMode = plans.NormalMode
-	case terraform1.PlanMode_REFRESH_ONLY:
+	case stacks.PlanMode_REFRESH_ONLY:
 		planMode = plans.RefreshOnlyMode
-	case terraform1.PlanMode_DESTROY:
+	case stacks.PlanMode_DESTROY:
 		planMode = plans.DestroyMode
 	default:
 		return status.Errorf(codes.InvalidArgument, "unsupported planning mode %d", req.PlanMode)
@@ -390,8 +390,8 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 		diags := tfdiags.Diagnostics{diag}
 		protoDiags := diagnosticsToProto(diags)
 		for _, protoDiag := range protoDiags {
-			syncEvts.Send(&terraform1.PlanStackChanges_Event{
-				Event: &terraform1.PlanStackChanges_Event_Diagnostic{
+			syncEvts.Send(&stacks.PlanStackChanges_Event{
+				Event: &stacks.PlanStackChanges_Event_Diagnostic{
 					Diagnostic: protoDiag,
 				},
 			})
@@ -439,8 +439,8 @@ Events:
 				continue
 			}
 
-			syncEvts.Send(&terraform1.PlanStackChanges_Event{
-				Event: &terraform1.PlanStackChanges_Event_PlannedChange{
+			syncEvts.Send(&stacks.PlanStackChanges_Event{
+				Event: &stacks.PlanStackChanges_Event_PlannedChange{
 					PlannedChange: protoChange,
 				},
 			})
@@ -467,7 +467,7 @@ Events:
 	return nil
 }
 
-func (s *stacksServer) OpenPlan(stream terraform1.Stacks_OpenPlanServer) error {
+func (s *stacksServer) OpenPlan(stream stacks.Stacks_OpenPlanServer) error {
 	loader := stackplan.NewLoader()
 	for {
 		item, err := stream.Recv()
@@ -487,21 +487,21 @@ func (s *stacksServer) OpenPlan(stream terraform1.Stacks_OpenPlanServer) error {
 		return status.Errorf(codes.InvalidArgument, "invalid raw plan: %s", err)
 	}
 	hnd := s.handles.NewStackPlan(plan)
-	return stream.SendAndClose(&terraform1.OpenStackPlan_Response{
+	return stream.SendAndClose(&stacks.OpenStackPlan_Response{
 		PlanHandle: hnd.ForProtobuf(),
 	})
 }
 
-func (s *stacksServer) ClosePlan(ctx context.Context, req *terraform1.CloseStackPlan_Request) (*terraform1.CloseStackPlan_Response, error) {
+func (s *stacksServer) ClosePlan(ctx context.Context, req *stacks.CloseStackPlan_Request) (*stacks.CloseStackPlan_Response, error) {
 	hnd := handle[*stackplan.Plan](req.PlanHandle)
 	err := s.handles.CloseStackPlan(hnd)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	return &terraform1.CloseStackPlan_Response{}, nil
+	return &stacks.CloseStackPlan_Response{}, nil
 }
 
-func (s *stacksServer) ApplyStackChanges(req *terraform1.ApplyStackChanges_Request, evts terraform1.Stacks_ApplyStackChangesServer) error {
+func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, evts stacks.Stacks_ApplyStackChangesServer) error {
 	ctx := evts.Context()
 	syncEvts := newSyncStreamingRPCSender(evts)
 	evts = nil // Prevent accidental unsynchronized usage of this server
@@ -612,8 +612,8 @@ func (s *stacksServer) ApplyStackChanges(req *terraform1.ApplyStackChanges_Reque
 		diags := tfdiags.Diagnostics{diag}
 		protoDiags := diagnosticsToProto(diags)
 		for _, protoDiag := range protoDiags {
-			syncEvts.Send(&terraform1.ApplyStackChanges_Event{
-				Event: &terraform1.ApplyStackChanges_Event_Diagnostic{
+			syncEvts.Send(&stacks.ApplyStackChanges_Event{
+				Event: &stacks.ApplyStackChanges_Event_Diagnostic{
 					Diagnostic: protoDiag,
 				},
 			})
@@ -664,8 +664,8 @@ Events:
 				continue
 			}
 
-			syncEvts.Send(&terraform1.ApplyStackChanges_Event{
-				Event: &terraform1.ApplyStackChanges_Event_AppliedChange{
+			syncEvts.Send(&stacks.ApplyStackChanges_Event{
+				Event: &stacks.ApplyStackChanges_Event_AppliedChange{
 					AppliedChange: protoChange,
 				},
 			})
@@ -693,7 +693,7 @@ Events:
 	return nil
 }
 
-func (s *stacksServer) OpenStackInspector(ctx context.Context, req *terraform1.OpenStackInspector_Request) (*terraform1.OpenStackInspector_Response, error) {
+func (s *stacksServer) OpenStackInspector(ctx context.Context, req *stacks.OpenStackInspector_Request) (*stacks.OpenStackInspector_Response, error) {
 	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
 	cfg := s.handles.StackConfig(cfgHnd)
 	if cfg == nil {
@@ -743,14 +743,14 @@ func (s *stacksServer) OpenStackInspector(ctx context.Context, req *terraform1.O
 		ExperimentsAllowed: s.experimentsAllowed,
 	})
 
-	return &terraform1.OpenStackInspector_Response{
+	return &stacks.OpenStackInspector_Response{
 		StackInspectorHandle: hnd.ForProtobuf(),
 		// There are currently no situations that return diagnostics, but
 		// we reserve the right to add some later.
 	}, nil
 }
 
-func (s *stacksServer) InspectExpressionResult(ctx context.Context, req *terraform1.InspectExpressionResult_Request) (*terraform1.InspectExpressionResult_Response, error) {
+func (s *stacksServer) InspectExpressionResult(ctx context.Context, req *stacks.InspectExpressionResult_Request) (*stacks.InspectExpressionResult_Response, error) {
 	hnd := handle[*stacksInspector](req.StackInspectorHandle)
 	insp := s.handles.StackInspector(hnd)
 	if insp == nil {
@@ -761,9 +761,9 @@ func (s *stacksServer) InspectExpressionResult(ctx context.Context, req *terrafo
 
 func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
 	return stackChangeHooks(
-		func(scp *terraform1.StackChangeProgress) error {
-			return evts.Send(&terraform1.PlanStackChanges_Event{
-				Event: &terraform1.PlanStackChanges_Event_Progress{
+		func(scp *stacks.StackChangeProgress) error {
+			return evts.Send(&stacks.PlanStackChanges_Event{
+				Event: &stacks.PlanStackChanges_Event_Progress{
 					Progress: scp,
 				},
 			})
@@ -774,9 +774,9 @@ func stackPlanHooks(evts *syncPlanStackChangesServer, mainStackSource sourceaddr
 
 func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
 	return stackChangeHooks(
-		func(scp *terraform1.StackChangeProgress) error {
-			return evts.Send(&terraform1.ApplyStackChanges_Event{
-				Event: &terraform1.ApplyStackChanges_Event_Progress{
+		func(scp *stacks.StackChangeProgress) error {
+			return evts.Send(&stacks.ApplyStackChanges_Event{
+				Event: &stacks.ApplyStackChanges_Event_Progress{
 					Progress: scp,
 				},
 			})
@@ -788,7 +788,7 @@ func stackApplyHooks(evts *syncApplyStackChangesServer, mainStackSource sourcead
 // stackChangeHooks is the shared hook-handling logic for both [stackPlanHooks]
 // and [stackApplyHooks]. Each phase emits a different subset of the events
 // handled here.
-func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
+func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
 	return &stackruntime.Hooks{
 		// For any BeginFunc-shaped hook that returns an OpenTelemetry tracing
 		// span, we'll wrap it in a context so that the runtime's downstream
@@ -839,9 +839,9 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 			for _, ia := range ce.InstanceAddrs {
 				ias = append(ias, ia.String())
 			}
-			send(&terraform1.StackChangeProgress{
-				Event: &terraform1.StackChangeProgress_ComponentInstances_{
-					ComponentInstances: &terraform1.StackChangeProgress_ComponentInstances{
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ComponentInstances_{
+					ComponentInstances: &stacks.StackChangeProgress_ComponentInstances{
 						ComponentAddr: ce.ComponentAddr.String(),
 						InstanceAddrs: ias,
 					},
@@ -914,10 +914,10 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 			if !rihd.ProviderAddr.IsZero() {
 				providerAddr = rihd.ProviderAddr.String()
 			}
-			send(&terraform1.StackChangeProgress{
-				Event: &terraform1.StackChangeProgress_ResourceInstanceStatus_{
-					ResourceInstanceStatus: &terraform1.StackChangeProgress_ResourceInstanceStatus{
-						Addr:         terraform1.NewResourceInstanceObjectInStackAddr(rihd.Addr),
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ResourceInstanceStatus_{
+					ResourceInstanceStatus: &stacks.StackChangeProgress_ResourceInstanceStatus{
+						Addr:         stacks.NewResourceInstanceObjectInStackAddr(rihd.Addr),
 						Status:       rihd.Status.ForProtobuf(),
 						ProviderAddr: providerAddr,
 					},
@@ -939,8 +939,8 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 				return span
 			}
 
-			send(&terraform1.StackChangeProgress{
-				Event: &terraform1.StackChangeProgress_ResourceInstancePlannedChange_{
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ResourceInstancePlannedChange_{
 					ResourceInstancePlannedChange: ripc,
 				},
 			})
@@ -960,9 +960,9 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 
 			deferred := stackplan.EncodeDeferred(change.Reason)
 
-			send(&terraform1.StackChangeProgress{
-				Event: &terraform1.StackChangeProgress_DeferredResourceInstancePlannedChange_{
-					DeferredResourceInstancePlannedChange: &terraform1.StackChangeProgress_DeferredResourceInstancePlannedChange{
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_DeferredResourceInstancePlannedChange_{
+					DeferredResourceInstancePlannedChange: &stacks.StackChangeProgress_DeferredResourceInstancePlannedChange{
 						Change:   ripc,
 						Deferred: deferred,
 					},
@@ -974,10 +974,10 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 		// We also report a roll-up of planned resource action counts after each
 		// component instance plan or apply completes.
 		ReportComponentInstancePlanned: func(ctx context.Context, span any, cic *hooks.ComponentInstanceChange) any {
-			send(&terraform1.StackChangeProgress{
-				Event: &terraform1.StackChangeProgress_ComponentInstanceChanges_{
-					ComponentInstanceChanges: &terraform1.StackChangeProgress_ComponentInstanceChanges{
-						Addr: &terraform1.ComponentInstanceInStackAddr{
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ComponentInstanceChanges_{
+					ComponentInstanceChanges: &stacks.StackChangeProgress_ComponentInstanceChanges{
+						Addr: &stacks.ComponentInstanceInStackAddr{
 							ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(cic.Addr).String(),
 							ComponentInstanceAddr: cic.Addr.String(),
 						},
@@ -1001,10 +1001,10 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 		// version of the agent than the plan phase which has support for
 		// a different set of possible change types.
 		ReportComponentInstanceApplied: func(ctx context.Context, span any, cic *hooks.ComponentInstanceChange) any {
-			send(&terraform1.StackChangeProgress{
-				Event: &terraform1.StackChangeProgress_ComponentInstanceChanges_{
-					ComponentInstanceChanges: &terraform1.StackChangeProgress_ComponentInstanceChanges{
-						Addr: &terraform1.ComponentInstanceInStackAddr{
+			send(&stacks.StackChangeProgress{
+				Event: &stacks.StackChangeProgress_ComponentInstanceChanges_{
+					ComponentInstanceChanges: &stacks.StackChangeProgress_ComponentInstanceChanges{
+						Addr: &stacks.ComponentInstanceInStackAddr{
 							ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(cic.Addr).String(),
 							ComponentInstanceAddr: cic.Addr.String(),
 						},
@@ -1024,32 +1024,32 @@ func stackChangeHooks(send func(*terraform1.StackChangeProgress) error, mainStac
 	}
 }
 
-func resourceInstancePlanned(ric *hooks.ResourceInstanceChange) (*terraform1.StackChangeProgress_ResourceInstancePlannedChange, error) {
-	actions, err := terraform1.ChangeTypesForPlanAction(ric.Change.Action)
+func resourceInstancePlanned(ric *hooks.ResourceInstanceChange) (*stacks.StackChangeProgress_ResourceInstancePlannedChange, error) {
+	actions, err := stacks.ChangeTypesForPlanAction(ric.Change.Action)
 	if err != nil {
 		return nil, err
 	}
 
-	var moved *terraform1.StackChangeProgress_ResourceInstancePlannedChange_Moved
+	var moved *stacks.StackChangeProgress_ResourceInstancePlannedChange_Moved
 	if !ric.Change.PrevRunAddr.Equal(ric.Change.Addr) {
-		moved = &terraform1.StackChangeProgress_ResourceInstancePlannedChange_Moved{
-			PrevAddr: &terraform1.ResourceInstanceInStackAddr{
+		moved = &stacks.StackChangeProgress_ResourceInstancePlannedChange_Moved{
+			PrevAddr: &stacks.ResourceInstanceInStackAddr{
 				ComponentInstanceAddr: ric.Addr.Component.String(),
 				ResourceInstanceAddr:  ric.Change.PrevRunAddr.String(),
 			},
 		}
 	}
 
-	var imported *terraform1.StackChangeProgress_ResourceInstancePlannedChange_Imported
+	var imported *stacks.StackChangeProgress_ResourceInstancePlannedChange_Imported
 	if ric.Change.Importing != nil {
-		imported = &terraform1.StackChangeProgress_ResourceInstancePlannedChange_Imported{
+		imported = &stacks.StackChangeProgress_ResourceInstancePlannedChange_Imported{
 			ImportId: ric.Change.Importing.ID,
 			Unknown:  ric.Change.Importing.Unknown,
 		}
 	}
 
-	return &terraform1.StackChangeProgress_ResourceInstancePlannedChange{
-		Addr:         terraform1.NewResourceInstanceObjectInStackAddr(ric.Addr),
+	return &stacks.StackChangeProgress_ResourceInstancePlannedChange{
+		Addr:         stacks.NewResourceInstanceObjectInStackAddr(ric.Addr),
 		Actions:      actions,
 		Moved:        moved,
 		Imported:     imported,
@@ -1057,11 +1057,11 @@ func resourceInstancePlanned(ric *hooks.ResourceInstanceChange) (*terraform1.Sta
 	}, nil
 }
 
-func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks.ComponentInstanceStatus) *terraform1.StackChangeProgress {
-	return &terraform1.StackChangeProgress{
-		Event: &terraform1.StackChangeProgress_ComponentInstanceStatus_{
-			ComponentInstanceStatus: &terraform1.StackChangeProgress_ComponentInstanceStatus{
-				Addr: &terraform1.ComponentInstanceInStackAddr{
+func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks.ComponentInstanceStatus) *stacks.StackChangeProgress {
+	return &stacks.StackChangeProgress{
+		Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
+			ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
+				Addr: &stacks.ComponentInstanceInStackAddr{
 					ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(ci).String(),
 					ComponentInstanceAddr: ci.String(),
 				},
@@ -1072,13 +1072,13 @@ func evtComponentInstanceStatus(ci stackaddrs.AbsComponentInstance, status hooks
 }
 
 // syncPlanStackChangesServer is a wrapper around a
-// terraform1.Stacks_PlanStackChangesServer implementation that makes the
+// stacks.Stacks_PlanStackChangesServer implementation that makes the
 // Send method concurrency-safe by holding a mutex throughout the underlying
 // call.
-type syncPlanStackChangesServer = syncStreamingRPCSender[terraform1.Stacks_PlanStackChangesServer, *terraform1.PlanStackChanges_Event]
+type syncPlanStackChangesServer = syncStreamingRPCSender[stacks.Stacks_PlanStackChangesServer, *stacks.PlanStackChanges_Event]
 
 // syncApplyStackChangesServer is a wrapper around a
-// terraform1.Stacks_ApplyStackChangesServer implementation that makes the
+// stacks.Stacks_ApplyStackChangesServer implementation that makes the
 // Send method concurrency-safe by holding a mutex throughout the underlying
 // call.
-type syncApplyStackChangesServer = syncStreamingRPCSender[terraform1.Stacks_ApplyStackChangesServer, *terraform1.ApplyStackChanges_Event]
+type syncApplyStackChangesServer = syncStreamingRPCSender[stacks.Stacks_ApplyStackChangesServer, *stacks.ApplyStackChanges_Event]

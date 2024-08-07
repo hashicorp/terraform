@@ -1,0 +1,91 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+package terraform1.packages;
+
+import "terraform1.proto";
+
+// The Packages service provides helper functions for retrieving Terraform
+// modules and providers.
+//
+// Unlike the Dependencies service, the Packages service does not require any
+// existing configuration or sourcebundle to function.
+//
+// This service is designed for use with a specific command-line tool, and is
+//  currently experimental. It can be changed and removed without warning, even
+// in patch releases.
+service Packages {
+  rpc ProviderPackageVersions(ProviderPackageVersions.Request) returns (ProviderPackageVersions.Response);
+  rpc FetchProviderPackage(FetchProviderPackage.Request) returns (FetchProviderPackage.Response);
+
+  rpc ModulePackageVersions(ModulePackageVersions.Request) returns (ModulePackageVersions.Response);
+  rpc ModulePackageSourceAddr(ModulePackageSourceAddr.Request) returns (ModulePackageSourceAddr.Response);
+  rpc FetchModulePackage(FetchModulePackage.Request) returns (FetchModulePackage.Response);
+}
+
+message ProviderPackageVersions {
+  message Request {
+    string source_addr = 1;
+  }
+  message Response {
+    repeated string versions = 1;
+    repeated terraform1.Diagnostic diagnostics = 2;
+  }
+}
+
+message FetchProviderPackage {
+  message Request {
+    string cache_dir = 1;
+
+    string source_addr = 2;
+    string version = 3;
+    repeated string platforms = 4;
+    repeated string hashes = 5;
+  }
+  message Response {
+    // Each requested platform will return a result in this list. The order
+    // of the returned results will match the order of the requested
+    // platforms. If the binary for a given platform could not be downloaded
+    // there will still be an entry in the results with diagnostics
+    // explaining why.
+    repeated FetchProviderPackage.PlatformResult results = 1;
+    repeated terraform1.Diagnostic diagnostics = 2;
+  }
+  message PlatformResult {
+    terraform1.ProviderPackage provider = 1;
+    repeated terraform1.Diagnostic diagnostics = 2;
+  }
+}
+
+message ModulePackageVersions {
+  message Request {
+    string source_addr = 2;
+  }
+  message Response {
+    repeated string versions = 1;
+    repeated terraform1.Diagnostic diagnostics = 2;
+  }
+}
+
+message ModulePackageSourceAddr {
+  message Request {
+    string source_addr = 1;
+    string version = 2;
+  }
+  message Response {
+    string url = 1;
+    repeated terraform1.Diagnostic diagnostics = 2;
+  }
+}
+
+message FetchModulePackage {
+  message Request {
+    string cache_dir = 1;
+
+    string url = 2;
+  }
+  message Response {
+    repeated terraform1.Diagnostic diagnostics = 1;
+  }
+}
