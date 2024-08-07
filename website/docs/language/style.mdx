@@ -89,23 +89,22 @@ For more information, refer to the [Terraform `validate` documentation](/terrafo
 
 ## File names
 
-We recommend the following file naming conventions:
+We recommend the following file naming conventions for organizing your configuration files:
 
-- A `backend.tf` file that contains your [backend configuration](/terraform/language/settings/backends/configuration). You can define multiple `terraform` blocks in your configuration to separate your backend configuration from your Terraform and provider versioning configuration. 
-- A `main.tf` file that contains all resource and data source blocks.
-- A `outputs.tf` file that contains all output blocks in alphabetical order.
-- A `providers.tf` file that contains all `provider` blocks and configuration.
-- A `terraform.tf` file that contains a single `terraform` block which defines your `required_version` and `required_providers`.
-- A `variables.tf` file that contains all variable blocks in alphabetical order.
-- A `locals.tf` file that contains local values. Refer to [local values](#local-values) for more information.
-- A `override.tf` file that contains override definitions for your configuration. Terraform loads this and all files ending with `_override.tf` last. Use them sparingly and add comments to the original resource definitions, as these overrides make your code harder to reason about. Refer to the [override files](/terraform/language/files/override) documentation for more information.
+- `backend.tf`: Your [backend configuration](/terraform/language/settings/backends/configuration). You can define multiple `terraform` blocks in your configuration to separate your backend configuration from your Terraform and provider versioning configuration. 
+- `main.tf`: Resource and data source blocks.
+- `outputs.tf`: Output blocks in alphabetical order.
+- `providers.tf`: Your `provider` blocks and configuration.
+- `terraform.tf`: A single `terraform` block which defines your `required_version` and `required_providers`.
+- `variables.tf`: Variable blocks in alphabetical order.
+- `locals.tf`: Local values. Refer to [local values](#local-values) for more information.
+- `override.tf`: Override definitions for your configuration. Terraform loads this and all files ending with `_override.tf` last. Use them sparingly and add comments to the original resource definitions, as these overrides make your code harder to reason about. Refer to the [override files](/terraform/language/files/override) documentation for more information.
 
 As your codebase grows, limiting it to just these files can become difficult to maintain. If your code becomes hard to navigate due to its size, we recommend that you organize resources and data sources in separate files by logical groups. For example, if your web application requires networking, storage, and compute resources, you might create the following files:
 
-- A `network.tf` file that contains your VPC, subnets, load balancers, and all other networking resources.
-- A `storage.tf` file that contains your object storage and related permissions configuration.
-- A `compute.tf` file that contains your compute instances.
-
+- A `network.tf`: VPC, subnets, load balancers, and all other networking resources.
+- A `storage.tf`: Object storage and related permissions configuration.
+- A `compute.tf`: Compute instances.
 
 No matter how you decide to split your code, it should be immediately clear where a maintainer can find a specific resource or data source definition.
 
