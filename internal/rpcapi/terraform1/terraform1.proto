@@ -4,8 +4,6 @@
 syntax = "proto3";
 package terraform1;
 
-option go_package = "github.com/hashicorp/terraform/internal/rpcapi/terraform1";
-
 
 // Represents a selected or available version of a provider, from either a
 // dependency lock object (selected) or a provider cache object (available).

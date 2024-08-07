@@ -396,7 +396,7 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*stacks.Pla
 	if pc.ChangeSrc.Addr.Resource.Key != nil {
 		key := pc.ChangeSrc.Addr.Resource.Key
 		if key == addrs.WildcardKey {
-			index = &terraform1.PlannedChange_ResourceInstance_Index{
+			index = &stacks.PlannedChange_ResourceInstance_Index{
 				Unknown: true,
 			}
 		} else {
@@ -404,7 +404,7 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*stacks.Pla
 			if err != nil {
 				return nil, err
 			}
-			index = &terraform1.PlannedChange_ResourceInstance_Index{
+			index = &stacks.PlannedChange_ResourceInstance_Index{
 				Value: value,
 			}
 		}
@@ -442,7 +442,7 @@ func (pc *PlannedChangeResourceInstancePlanned) ChangeDescription() (*stacks.Pla
 
 }
 
-func DynamicValueToTerraform1(val cty.Value, ty cty.Type) (*terraform1.DynamicValue, error) {
+func DynamicValueToTerraform1(val cty.Value, ty cty.Type) (*stacks.DynamicValue, error) {
 	unmarkedVal, markPaths := val.UnmarkDeepWithPaths()
 	sensitivePaths, withOtherMarks := marks.PathsWithMark(markPaths, marks.Sensitive)
 	if len(withOtherMarks) != 0 {
@@ -456,7 +456,7 @@ func DynamicValueToTerraform1(val cty.Value, ty cty.Type) (*terraform1.DynamicVa
 	if err != nil {
 		return nil, err
 	}
-	ret := &terraform1.DynamicValue{
+	ret := &stacks.DynamicValue{
 		Msgpack: rawVal,
 	}
 
@@ -464,9 +464,9 @@ func DynamicValueToTerraform1(val cty.Value, ty cty.Type) (*terraform1.DynamicVa
 		return ret, nil
 	}
 
-	ret.Sensitive = make([]*terraform1.AttributePath, 0, len(markPaths))
+	ret.Sensitive = make([]*stacks.AttributePath, 0, len(markPaths))
 	for _, path := range sensitivePaths {
-		ret.Sensitive = append(ret.Sensitive, terraform1.NewAttributePath(path))
+		ret.Sensitive = append(ret.Sensitive, stacks.NewAttributePath(path))
 	}
 	return ret, nil
 }

@@ -4,8 +4,6 @@
 syntax = "proto3";
 package terraform1.stacks;
 
-option go_package = "github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks";
-
 import "google/protobuf/any.proto";
 import "terraform1.proto";
 
@@ -479,8 +477,15 @@ message PlannedChange {
 
     repeated AttributePath replace_paths = 11;
 
-    // TODO: Everything else we need for feature-parity with the
-    // existing JSON plan export format.
+    string resource_name = 12;
+    Index index = 13;
+    string module_addr = 14;
+    string action_reason = 15;
+
+    message Index {
+      DynamicValue value = 1;
+      bool unknown = 2;
+    }
 
     message Moved {
       ResourceInstanceInStackAddr prev_addr = 1;
@@ -488,6 +493,7 @@ message PlannedChange {
     message Imported {
       string import_id = 1;
       bool unknown = 2;
+      string generated_config = 3;
     }
   }
   // Note: this is only for output values from the topmost

@@ -290,17 +290,17 @@ func TestPlannedChangeAsProto(t *testing.T) {
 									ResourceMode: stacks.ResourceMode_MANAGED,
 									ResourceType: "thingy",
 									ProviderAddr: "example.com/thingers/thingy",
-									Actions:      []terraform1.ChangeType{terraform1.ChangeType_CREATE},
+									Actions:      []stacks.ChangeType{stacks.ChangeType_CREATE},
 									ActionReason: "ResourceInstanceChangeNoReason",
-									Index: &terraform1.PlannedChange_ResourceInstance_Index{
-										Value: &terraform1.DynamicValue{
+									Index: &stacks.PlannedChange_ResourceInstance_Index{
+										Value: &stacks.DynamicValue{
 											Msgpack: []byte{0x92, 0xc4, 0x08, 0x22, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x01}, // 1
 										},
 									},
 									ModuleAddr:   `module.pizza["chicken"]`,
 									ResourceName: "wotsit",
-									Values: &terraform1.DynamicValueChange{
-										Old: &terraform1.DynamicValue{
+									Values: &stacks.DynamicValueChange{
+										Old: &stacks.DynamicValue{
 											Msgpack: []byte{'\xc0'}, // null
 										},
 										New: &stacks.DynamicValue{
@@ -394,17 +394,17 @@ func TestPlannedChangeAsProto(t *testing.T) {
 								ResourceMode: stacks.ResourceMode_MANAGED,
 								ResourceType: "thingy",
 								ProviderAddr: "example.com/thingers/thingy",
-								Actions:      []terraform1.ChangeType{terraform1.ChangeType_CREATE},
+								Actions:      []stacks.ChangeType{stacks.ChangeType_CREATE},
 								ActionReason: "ResourceInstanceChangeNoReason",
-								Index: &terraform1.PlannedChange_ResourceInstance_Index{
-									Value: &terraform1.DynamicValue{
+								Index: &stacks.PlannedChange_ResourceInstance_Index{
+									Value: &stacks.DynamicValue{
 										Msgpack: []byte{0x92, 0xc4, 0x08, 0x22, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x01}, // 1
 									},
 								},
 								ModuleAddr:   `module.pizza["chicken"]`,
 								ResourceName: "wotsit",
-								Values: &terraform1.DynamicValueChange{
-									Old: &terraform1.DynamicValue{
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
 										Msgpack: []byte{'\xc0'}, // null
 									},
 									New: &stacks.DynamicValue{
@@ -505,17 +505,17 @@ func TestPlannedChangeAsProto(t *testing.T) {
 								ResourceMode: stacks.ResourceMode_MANAGED,
 								ResourceType: "thingy",
 								ProviderAddr: "example.com/thingers/thingy",
-								Actions:      []terraform1.ChangeType{terraform1.ChangeType_DELETE, terraform1.ChangeType_CREATE},
+								Actions:      []stacks.ChangeType{stacks.ChangeType_DELETE, stacks.ChangeType_CREATE},
 								ActionReason: "ResourceInstanceChangeNoReason",
-								Index: &terraform1.PlannedChange_ResourceInstance_Index{
-									Value: &terraform1.DynamicValue{
+								Index: &stacks.PlannedChange_ResourceInstance_Index{
+									Value: &stacks.DynamicValue{
 										Msgpack: []byte{0x92, 0xc4, 0x08, 0x22, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x01}, // 1
 									},
 								},
 								ModuleAddr:   `module.pizza["chicken"]`,
 								ResourceName: "wotsit",
-								Values: &terraform1.DynamicValueChange{
-									Old: &terraform1.DynamicValue{
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
 										Msgpack: []byte("\x81\xa3foo\xa3bar"),
 									},
 									New: &stacks.DynamicValue{
@@ -617,17 +617,17 @@ func TestPlannedChangeAsProto(t *testing.T) {
 								ResourceMode: stacks.ResourceMode_MANAGED,
 								ResourceType: "thingy",
 								ProviderAddr: "example.com/thingers/thingy",
-								Actions:      []terraform1.ChangeType{terraform1.ChangeType_NOOP},
+								Actions:      []stacks.ChangeType{stacks.ChangeType_NOOP},
 								ActionReason: "ResourceInstanceChangeNoReason",
-								Index: &terraform1.PlannedChange_ResourceInstance_Index{
-									Value: &terraform1.DynamicValue{
+								Index: &stacks.PlannedChange_ResourceInstance_Index{
+									Value: &stacks.DynamicValue{
 										Msgpack: []byte{0x92, 0xc4, 0x08, 0x22, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x01}, // 1
 									},
 								},
 								ModuleAddr:   `module.pizza["chicken"]`,
 								ResourceName: "wotsit",
-								Values: &terraform1.DynamicValueChange{
-									Old: &terraform1.DynamicValue{
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
 										Msgpack: []byte{'\x80'}, // zero-length mapping
 									},
 									New: &stacks.DynamicValue{
@@ -724,17 +724,17 @@ func TestPlannedChangeAsProto(t *testing.T) {
 								ResourceMode: stacks.ResourceMode_MANAGED,
 								ResourceType: "thingy",
 								ProviderAddr: "example.com/thingers/thingy",
-								Actions:      []terraform1.ChangeType{terraform1.ChangeType_NOOP},
+								Actions:      []stacks.ChangeType{stacks.ChangeType_NOOP},
 								ActionReason: "ResourceInstanceChangeNoReason",
-								Index: &terraform1.PlannedChange_ResourceInstance_Index{
-									Value: &terraform1.DynamicValue{
+								Index: &stacks.PlannedChange_ResourceInstance_Index{
+									Value: &stacks.DynamicValue{
 										Msgpack: []byte{0x92, 0xc4, 0x08, 0x22, 0x6e, 0x75, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x01}, // 1
 									},
 								},
 								ModuleAddr:   `module.pizza["chicken"]`,
 								ResourceName: "wotsit",
-								Values: &terraform1.DynamicValueChange{
-									Old: &terraform1.DynamicValue{
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
 										Msgpack: []byte{'\x80'}, // zero-length mapping
 									},
 									New: &stacks.DynamicValue{
