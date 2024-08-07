@@ -1,4 +1,4 @@
-## 1.10.0-alpha20240807 (August 7, 2024)
+## 1.10.0 (Unreleased)
 
 BUG FIXES:
 
