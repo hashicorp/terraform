@@ -177,7 +177,6 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 		}
 
 		if imp.Config.ForEach == nil {
-
 			traversal, hds := hcl.AbsTraversalForExpr(imp.Config.To)
 			diags = diags.Append(hds)
 			to, tds := addrs.ParseAbsResourceInstance(traversal)
@@ -186,7 +185,7 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 				return knownImports, unknownImports, diags
 			}
 
-			importID, evalDiags := evaluateImportIdExpression(imp.Config.ID, to, ctx, EvalDataForNoInstanceKey, allowUnknown)
+			importID, evalDiags := evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey, allowUnknown)
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
 				return knownImports, unknownImports, diags
@@ -243,7 +242,7 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 				return knownImports, unknownImports, diags
 			}
 
-			importID, evalDiags := evaluateImportIdExpression(imp.Config.ID, res, ctx, keyData, allowUnknown)
+			importID, evalDiags := evaluateImportIdExpression(imp.Config.ID, ctx, keyData, allowUnknown)
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
 				return knownImports, unknownImports, diags

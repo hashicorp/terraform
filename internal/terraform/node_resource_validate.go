@@ -54,6 +54,8 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 
 	diags = diags.Append(n.validateCheckRules(ctx, n.Config))
 
+	diags = diags.Append(n.validateImportTargets(ctx))
+
 	if managed := n.Config.Managed; managed != nil {
 		// Validate all the provisioners
 		for _, p := range managed.Provisioners {
@@ -546,6 +548,134 @@ func (n *NodeValidatableResource) validateCheckRules(ctx EvalContext, config *co
 
 		_, errorMessageDiags := n.evaluateExpr(ctx, cr.ErrorMessage, cty.Bool, selfAddr, keyData)
 		diags = diags.Append(errorMessageDiags)
+	}
+
+	return diags
+}
+
+// validateImportTargets checks that the import block expressions are valid.
+func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if len(n.importTargets) == 0 {
+		return diags
+	}
+
+	// Import blocks are only valid within the root module, and must be
+	// evaluated within that context
+	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
+
+	for _, imp := range n.importTargets {
+		if imp.Config == nil {
+			// if we have a legacy addr, it will be supplied on the command line so
+			// there is nothing to check now and we need to wait for plan.
+			continue
+		}
+
+		diags = diags.Append(validateImportSelfRef(n.Addr.Resource, imp.Config.ID))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		if imp.Config.ForEach != nil {
+			if n.Config.ForEach == nil && n.Config.Count == nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Use of import for_each in an invalid context",
+					Detail:   "Use of for_each in import requires a resource using count or for_each.",
+					// FIXME: minor issue, but this points to the for_each expression rather than for_each itself.
+					Subject: imp.Config.ForEach.Range().Ptr(),
+				})
+			}
+
+			forEachData, _, forEachDiags := newForEachEvaluator(imp.Config.ForEach, ctx, true).ImportValues()
+			diags = diags.Append(forEachDiags)
+			if forEachDiags.HasErrors() {
+				return diags
+			}
+
+			for _, keyData := range forEachData {
+				to, evalDiags := evalImportToExpression(imp.Config.To, keyData)
+				diags = diags.Append(evalDiags)
+				if diags.HasErrors() {
+					return diags
+				}
+				diags = diags.Append(n.validateImportTargetExpansion(to, imp.Config.To))
+				if diags.HasErrors() {
+					return diags
+				}
+				_, evalDiags = evaluateImportIdExpression(imp.Config.ID, ctx, keyData, true)
+				diags = diags.Append(evalDiags)
+				if diags.HasErrors() {
+					return diags
+				}
+			}
+		} else {
+			traversal, hds := hcl.AbsTraversalForExpr(imp.Config.To)
+			diags = diags.Append(hds)
+			to, tds := addrs.ParseAbsResourceInstance(traversal)
+			diags = diags.Append(tds)
+			if diags.HasErrors() {
+				return diags
+			}
+
+			diags = diags.Append(n.validateImportTargetExpansion(to, imp.Config.To))
+			if diags.HasErrors() {
+				return diags
+			}
+
+			_, evalDiags := evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey, true)
+			diags = diags.Append(evalDiags)
+			if diags.HasErrors() {
+				return diags
+			}
+		}
+	}
+
+	return diags
+}
+
+// validateImportTargetExpansion ensures that the To address key and resource expansion mode both agree.
+func (n *NodeValidatableResource) validateImportTargetExpansion(to addrs.AbsResourceInstance, toExpr hcl.Expression) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	switch to.Resource.Key.(type) {
+	case addrs.StringKey:
+		if n.Config.ForEach == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid import 'to' expression",
+				Detail:   fmt.Sprintf("The target resource does not use for_each."),
+				Subject:  toExpr.Range().Ptr(),
+			})
+		}
+	case addrs.IntKey:
+		if n.Config.Count == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid import 'to' expression",
+				Detail:   fmt.Sprintf("The target resource does not use count."),
+				Subject:  toExpr.Range().Ptr(),
+			})
+		}
+	default:
+		if n.Config.Count != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid import 'to' expression",
+				Detail:   fmt.Sprintf("The target resource is using count."),
+				Subject:  toExpr.Range().Ptr(),
+			})
+		}
+
+		if n.Config.ForEach != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid import 'to' expression",
+				Detail:   fmt.Sprintf("The target resource is using for_each."),
+				Subject:  toExpr.Range().Ptr(),
+			})
+		}
 	}
 
 	return diags

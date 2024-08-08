@@ -35,7 +35,6 @@ type ConfigTransformer struct {
 	ModeFilter bool
 	Mode       addrs.ResourceMode
 
-	// Do not apply this transformer.
 	skip bool
 
 	// importTargets specifies a slice of addresses that will have state
@@ -53,6 +52,7 @@ type ConfigTransformer struct {
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
+	// no import ops happen during destroy
 	if t.skip {
 		return nil
 	}
@@ -62,8 +62,12 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	if err := t.validateImportTargets(); err != nil {
-		return err
+	if t.op != walkValidate {
+		// We can't generate config during validate, so we need to accept
+		// missing targets.
+		if err := t.validateImportTargets(); err != nil {
+			return err
+		}
 	}
 
 	// Start the transformation process

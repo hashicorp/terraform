@@ -59,6 +59,11 @@ import {
 		},
 	}
 
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -150,6 +155,11 @@ import {
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -216,6 +226,11 @@ import {
 		},
 	}
 
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -280,6 +295,11 @@ import {
 				}),
 			},
 		},
+	}
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
@@ -358,7 +378,12 @@ import {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
 		ForceReplace: []addrs.AbsResourceInstance{
 			addr,
@@ -410,7 +435,13 @@ import {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	// while the counts are static, the indexes are not fully evaluated during validation
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if !diags.HasErrors() {
 		t.Fatalf("expected error but got none")
 	}
@@ -436,7 +467,12 @@ func TestContext2Plan_importIdVariable(t *testing.T) {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), &PlanOpts{
 		SetVariables: InputValues{
 			"the_id": &InputValue{
 				// let var take its default value
@@ -469,7 +505,12 @@ func TestContext2Plan_importIdFunc(t *testing.T) {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -532,7 +573,12 @@ func TestContext2Plan_importIdDataSource(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -570,7 +616,12 @@ func TestContext2Plan_importIdModule(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -585,7 +636,13 @@ func TestContext2Plan_importIdInvalidNull(t *testing.T) {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	// input variables are not evaluated during validation
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), &PlanOpts{
 		SetVariables: InputValues{
 			"the_id": &InputValue{
 				Value: cty.NullVal(cty.String),
@@ -662,7 +719,12 @@ func TestContext2Plan_importIdInvalidUnknown(t *testing.T) {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
@@ -735,8 +797,13 @@ import {
 		},
 	}
 
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	// Actual plan doesn't matter, just want to make sure there are no errors.
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	_, diags = ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode:               plans.NormalMode,
 		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
 	})
@@ -789,6 +856,11 @@ resource "test_object" "a" {
 				}),
 			},
 		},
+	}
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
@@ -849,6 +921,11 @@ import {
 				}),
 			},
 		},
+	}
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
@@ -933,6 +1010,11 @@ import {
 		},
 	}
 
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode:               plans.NormalMode,
 		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
@@ -1010,7 +1092,12 @@ import {
 		},
 	}
 
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode:               plans.NormalMode,
 		GenerateConfigPath: "generated.tf",
 	})
@@ -1128,6 +1215,11 @@ import {
 		},
 	}
 
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -1241,6 +1333,11 @@ resource "test_object" "a" {
 		},
 	}
 
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -1339,6 +1436,11 @@ import {
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
 
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	if diags.HasErrors() {
@@ -1440,6 +1542,11 @@ import {
 		},
 	}
 
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -1488,6 +1595,11 @@ import {
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode:               plans.NormalMode,
@@ -1555,8 +1667,13 @@ import {
 		},
 	})
 
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
 	// Just don't crash!
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+	_, diags = ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode:               plans.NormalMode,
 		GenerateConfigPath: "generated.tf",
 	})
@@ -1653,7 +1770,7 @@ resource "test_object" "a" {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	diags := ctx.Validate(m, &ValidateOpts{})
 
 	// We're expecting exactly one diag, which is the self-reference error.
 	if len(diags) != 1 {
@@ -1690,7 +1807,7 @@ resource "test_object" "a" {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	diags := ctx.Validate(m, &ValidateOpts{})
 
 	// We're expecting exactly one diag, which is the self-reference error.
 	if len(diags) != 1 {
@@ -1727,7 +1844,7 @@ resource "test_object" "a" {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	diags := ctx.Validate(m, &ValidateOpts{})
 
 	// We're expecting exactly one diag, which is the self-reference error.
 	if len(diags) != 1 {
@@ -1772,7 +1889,7 @@ output "foo" {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	diags := ctx.Validate(m, &ValidateOpts{})
 
 	// We're expecting exactly one diag, which is the self-reference error.
 	if len(diags) != 1 {
@@ -1786,10 +1903,10 @@ output "foo" {
 	if !strings.Contains(got, "Cycle:") {
 		t.Errorf("should have reported a cycle error, but got %s", got)
 	}
-	if !strings.Contains(got, "module.mod.output.foo (expand)") {
+	if !strings.Contains(got, "module.mod.output.foo") {
 		t.Errorf("should have reported the cycle to contain the module output, but got %s", got)
 	}
-	if !strings.Contains(got, "module.mod.test_object.a (expand)") {
+	if !strings.Contains(got, "module.mod.test_object.a") {
 		t.Errorf("should have reported the cycle to contain the target resource, but got %s", got)
 	}
 }
