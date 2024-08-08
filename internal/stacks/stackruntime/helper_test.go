@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/zclconf/go-cty/cty"
@@ -209,6 +210,43 @@ func plannedChangeSortKey(change stackplan.PlannedChange) string {
 	default:
 		// This is only going to happen during tests, so we can panic here.
 		panic(fmt.Errorf("unrecognized planned change type: %T", change))
+	}
+}
+
+func diagnosticSortFunc(diags tfdiags.Diagnostics) func(i, j int) bool {
+	sortDescription := func(i, j tfdiags.Description) bool {
+		if i.Summary != j.Summary {
+			return i.Summary < j.Summary
+		}
+		return i.Detail < j.Detail
+	}
+
+	sortPos := func(i, j tfdiags.SourcePos) bool {
+		if i.Line != j.Line {
+			return i.Line < j.Line
+		}
+		return i.Column < j.Column
+	}
+
+	sortRange := func(i, j *tfdiags.SourceRange) bool {
+		if i.Filename != j.Filename {
+			return i.Filename < j.Filename
+		}
+		if !cmp.Equal(i.Start, j.Start) {
+			return sortPos(i.Start, j.Start)
+		}
+		return sortPos(i.End, j.End)
+	}
+
+	return func(i, j int) bool {
+		id, jd := diags[i], diags[j]
+		if id.Severity() != jd.Severity() {
+			return id.Severity() == tfdiags.Error
+		}
+		if !cmp.Equal(id.Description(), jd.Description()) {
+			return sortDescription(id.Description(), jd.Description())
+		}
+		return sortRange(id.Source().Subject, jd.Source().Subject)
 	}
 }
 

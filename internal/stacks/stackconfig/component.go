@@ -11,7 +11,9 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -70,6 +72,11 @@ type Component struct {
 	// configurations by using the stack configuration's table of local
 	// provider names.
 	ProviderConfigs map[addrs.LocalProviderConfig]hcl.Expression
+
+	// DependsOn forces a dependency between this resource and the list
+	// resources, allowing users to specify ordering of components without
+	// direct references.
+	DependsOn []hcl.Traversal
 
 	DeclRange tfdiags.SourceRange
 }
@@ -197,6 +204,10 @@ func decodeComponentBlock(block *hcl.Block) (*Component, tfdiags.Diagnostics) {
 			}
 		}
 	}
+	if attr, exists := content.Attributes["depends_on"]; exists {
+		ret.DependsOn, hclDiags = configs.DecodeDependsOn(attr)
+		diags = diags.Append(hclDiags)
+	}
 
 	return ret, diags
 }
@@ -277,5 +288,6 @@ var componentBlockSchema = &hcl.BodySchema{
 		{Name: "for_each", Required: false},
 		{Name: "inputs", Required: false},
 		{Name: "providers", Required: false},
+		{Name: "depends_on", Required: false},
 	},
 }

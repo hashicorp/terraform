@@ -273,6 +273,7 @@ func (c *StackCall) References(ctx context.Context) []stackaddrs.AbsReference {
 	var ret []stackaddrs.Reference
 	ret = append(ret, ReferencesInExpr(ctx, cfg.ForEach)...)
 	ret = append(ret, ReferencesInExpr(ctx, cfg.Inputs)...)
+	ret = append(ret, referencesInTraversals(ctx, cfg.DependsOn)...)
 	return makeReferencesAbsolute(ret, c.Addr().Stack)
 }
 

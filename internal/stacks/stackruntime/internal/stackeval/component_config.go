@@ -505,8 +505,13 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 
 		variableDiags := c.CheckInputVariableValues(ctx, phase)
 		diags = diags.Append(variableDiags)
-		// We don't actually exit if we found errors with the input variables,
-		// we can still validate the actual module tree without them.
+
+		dependsOnDiags := ValidateDependsOn(ctx, c.StackConfig(ctx), c.config.DependsOn)
+		diags = diags.Append(dependsOnDiags)
+
+		// We don't actually exit if we found errors with the input variables
+		// or depends_on attribute, we can still validate the actual module tree
+		// without them.
 
 		_, providerDiags := c.CheckProviders(ctx, phase)
 		diags = diags.Append(providerDiags)
