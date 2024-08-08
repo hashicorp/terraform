@@ -2915,7 +2915,7 @@ import {
 				wantDeferred: make(map[string]ExpectedDeferred),
 				wantDiagnostic: func(diags tfdiags.Diagnostics) bool {
 					for _, diag := range diags {
-						if diag.Description().Summary == "Configuration for import target does not exist" {
+						if diag.Description().Summary == "Use of import for_each in an invalid context" {
 							return true
 						}
 					}
@@ -3236,9 +3236,16 @@ func TestContextApply_deferredActions(t *testing.T) {
 
 					var plan *plans.Plan
 					t.Run("plan", func(t *testing.T) {
-
 						var diags tfdiags.Diagnostics
-						plan, diags = ctx.Plan(cfg, state, opts)
+
+						// Validate is run by default for any plan from the CLI
+						diags = diags.Append(ctx.Validate(cfg, &ValidateOpts{}))
+						// Plan won't proceed if validate failed
+						if !diags.HasErrors() {
+							p, pDiags := ctx.Plan(cfg, state, opts)
+							diags = diags.Append(pDiags)
+							plan = p
+						}
 
 						if stage.wantDiagnostic == nil {
 							// We expect the correct planned changes and no diagnostics.
@@ -3249,7 +3256,7 @@ func TestContextApply_deferredActions(t *testing.T) {
 							}
 						} else {
 							if !stage.wantDiagnostic(diags) {
-								t.Fatalf("missing expected diagnostics: %s", diags)
+								t.Fatalf("missing expected diagnostics: %s", diags.ErrWithWarnings())
 							} else {
 								// We don't want to make any further assertions in this case.
 								// If diagnostics are expected it's valid that no plan may be returned.

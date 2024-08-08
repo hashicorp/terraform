@@ -1093,14 +1093,6 @@ import {
 	}
 
 	diags := ctx.Validate(m, &ValidateOpts{})
-	if diags.HasErrors() {
-		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
-	}
-
-	_, diags = ctx.Plan(m, states.NewState(), &PlanOpts{
-		Mode:               plans.NormalMode,
-		GenerateConfigPath: "generated.tf",
-	})
 	if !diags.HasErrors() {
 		t.Fatalf("expected plan to error, but it did not")
 	}
@@ -1597,20 +1589,8 @@ import {
 	})
 
 	diags := ctx.Validate(m, &ValidateOpts{})
-	if diags.HasErrors() {
-		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
-	}
-
-	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
-		Mode:               plans.NormalMode,
-		GenerateConfigPath: "generated.tf",
-	})
-	if diags.HasErrors() {
-		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
-	}
-
-	if len(plan.Changes.Resources) != 0 {
-		t.Fatal("expected no resource changes")
+	if !diags.HasErrors() {
+		t.Fatal("expected errors, got none")
 	}
 }
 

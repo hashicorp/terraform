@@ -46,6 +46,9 @@ func (n *NodeValidatableResource) Path() addrs.ModuleInstance {
 
 // GraphNodeEvalable
 func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	// this is done first since there may not be config if we are generating it
+	diags = diags.Append(n.validateImportTargets(ctx))
+
 	if n.Config == nil {
 		return diags
 	}
@@ -53,8 +56,6 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 	diags = diags.Append(n.validateResource(ctx))
 
 	diags = diags.Append(n.validateCheckRules(ctx, n.Config))
-
-	diags = diags.Append(n.validateImportTargets(ctx))
 
 	if managed := n.Config.Managed; managed != nil {
 		// Validate all the provisioners
@@ -527,6 +528,8 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 		return diags
 	}
 
+	diags = diags.Append(n.validateConfigGen(ctx))
+
 	// Import blocks are only valid within the root module, and must be
 	// evaluated within that context
 	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
@@ -543,8 +546,11 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 			return diags
 		}
 
+		// Resource config might be nil here since we are also validating config generation.
+		expanded := n.Config != nil && (n.Config.ForEach != nil || n.Config.Count != nil)
+
 		if imp.Config.ForEach != nil {
-			if n.Config.ForEach == nil && n.Config.Count == nil {
+			if !expanded {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Use of import for_each in an invalid context",
@@ -605,9 +611,12 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 func (n *NodeValidatableResource) validateImportTargetExpansion(to addrs.AbsResourceInstance, toExpr hcl.Expression) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
+	forEach := n.Config != nil && n.Config.ForEach != nil
+	count := n.Config != nil && n.Config.Count != nil
+
 	switch to.Resource.Key.(type) {
 	case addrs.StringKey:
-		if n.Config.ForEach == nil {
+		if !forEach {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid import 'to' expression",
@@ -616,7 +625,7 @@ func (n *NodeValidatableResource) validateImportTargetExpansion(to addrs.AbsReso
 			})
 		}
 	case addrs.IntKey:
-		if n.Config.Count == nil {
+		if !count {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid import 'to' expression",
@@ -625,16 +634,7 @@ func (n *NodeValidatableResource) validateImportTargetExpansion(to addrs.AbsReso
 			})
 		}
 	default:
-		if n.Config.Count != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid import 'to' expression",
-				Detail:   fmt.Sprintf("The target resource is using count."),
-				Subject:  toExpr.Range().Ptr(),
-			})
-		}
-
-		if n.Config.ForEach != nil {
+		if forEach {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid import 'to' expression",
@@ -642,8 +642,62 @@ func (n *NodeValidatableResource) validateImportTargetExpansion(to addrs.AbsReso
 				Subject:  toExpr.Range().Ptr(),
 			})
 		}
+
+		if count {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid import 'to' expression",
+				Detail:   fmt.Sprintf("The target resource is using count."),
+				Subject:  toExpr.Range().Ptr(),
+			})
+		}
 	}
 
+	return diags
+}
+
+// validate imports with no config for possible config generation
+func (n *NodeValidatableResource) validateConfigGen(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if n.Config != nil {
+		return diags
+	}
+
+	// We won't have the config generation output path during validate, so only
+	// check if generation is at all possible.
+
+	for _, imp := range n.importTargets {
+		if !n.Addr.Module.IsRoot() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Configuration for import target does not exist",
+				Detail:   fmt.Sprintf("Resource %s not found. Only resources within the root module are eligible for config generation.", n.Addr),
+				Subject:  imp.Config.To.Range().Ptr(),
+			})
+			continue
+		}
+
+		var toDiags tfdiags.Diagnostics
+		traversal, hd := hcl.AbsTraversalForExpr(imp.Config.To)
+		toDiags = toDiags.Append(hd)
+		to, td := addrs.ParseAbsResourceInstance(traversal)
+		toDiags = toDiags.Append(td)
+
+		if toDiags.HasErrors() {
+			// these will be caught elsewhere with better context
+			continue
+		}
+
+		if to.Resource.Key != addrs.NoKey || imp.Config.ForEach != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Configuration for import target does not exist",
+				Detail:   "The given import block is not compatible with config generation. The -generate-config-out option cannot be used with import blocks which use for_each, or resources which use for_each or count.",
+				Subject:  imp.Config.To.Range().Ptr(),
+			})
+		}
+	}
 	return diags
 }
 
