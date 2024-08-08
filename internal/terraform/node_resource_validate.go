@@ -620,7 +620,7 @@ func (n *NodeValidatableResource) validateImportTargetExpansion(to addrs.AbsReso
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid import 'to' expression",
-				Detail:   fmt.Sprintf("The target resource does not use for_each."),
+				Detail:   "The target resource does not use for_each.",
 				Subject:  toExpr.Range().Ptr(),
 			})
 		}
@@ -629,7 +629,7 @@ func (n *NodeValidatableResource) validateImportTargetExpansion(to addrs.AbsReso
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid import 'to' expression",
-				Detail:   fmt.Sprintf("The target resource does not use count."),
+				Detail:   "The target resource does not use count.",
 				Subject:  toExpr.Range().Ptr(),
 			})
 		}
@@ -638,7 +638,7 @@ func (n *NodeValidatableResource) validateImportTargetExpansion(to addrs.AbsReso
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid import 'to' expression",
-				Detail:   fmt.Sprintf("The target resource is using for_each."),
+				Detail:   "The target resource is using for_each.",
 				Subject:  toExpr.Range().Ptr(),
 			})
 		}
@@ -647,7 +647,7 @@ func (n *NodeValidatableResource) validateImportTargetExpansion(to addrs.AbsReso
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid import 'to' expression",
-				Detail:   fmt.Sprintf("The target resource is using count."),
+				Detail:   "The target resource is using count.",
 				Subject:  toExpr.Range().Ptr(),
 			})
 		}
