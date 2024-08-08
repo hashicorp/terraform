@@ -121,6 +121,7 @@ jobs:
           - {goos: "solaris", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "windows", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "windows", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "windows", goarch: "arm64", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "darwin", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "darwin", goarch: "arm64", runson: "ubuntu-latest", cgo-enabled: "0"}
       fail-fast: false
