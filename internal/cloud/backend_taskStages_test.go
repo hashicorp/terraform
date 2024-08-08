@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/hashicorp/go-tfe"
 	tfemocks "github.com/hashicorp/go-tfe/mocks"
+	"go.uber.org/mock/gomock"
 )
 
 func MockAllTaskStages(t *testing.T, client *tfe.Client) (RunID string) {
