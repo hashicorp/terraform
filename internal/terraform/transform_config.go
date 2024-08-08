@@ -192,9 +192,14 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 			toDiags = toDiags.Append(hd)
 			to, td := addrs.ParseAbsResourceInstance(traversal)
 			toDiags = toDiags.Append(td)
-			canGenerate := !toDiags.HasErrors() && to.Resource.Key == addrs.NoKey
 
-			if t.generateConfigPathForImportTargets != "" && canGenerate {
+			// Check if we can generate config for this target. During
+			// validation we won't have a valid config path, but we should still
+			// add the Node since it will only be used for further validation.
+			canGenerate := !toDiags.HasErrors() && to.Resource.Key == addrs.NoKey &&
+				(t.op == walkValidate || t.generateConfigPathForImportTargets != "")
+
+			if canGenerate {
 				log.Printf("[DEBUG] ConfigTransformer: adding config generation node for %s", i.Config.ToResource)
 
 				// TODO: if config generation is ever supported for for_each
