@@ -10,6 +10,7 @@ BUG FIXES:
 ENHANCEMENTS:
 
 - The `element` function now accepts negative indices [GH-35501]
+- Import block validation has been improved to provide more useful errors and catch more invalid cases during `terraform validate` [GH-35543]
 
 EXPERIMENTS:
 
