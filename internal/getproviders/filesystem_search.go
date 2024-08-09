@@ -45,8 +45,25 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 		log.Printf("[TRACE] getproviders.SearchLocalDirectory: failed to resolve symlinks for %s: %s", baseDir, err)
 	}
 
-	err := filepath.Walk(baseDir, func(fullPath string, info os.FileInfo, err error) error {
+	err := filepath.Walk(baseDir, func(fullPath string, info os.FileInfo, werr error) error {
+		fsPath, err := filepath.Rel(baseDir, fullPath)
 		if err != nil {
+			// This should never happen because the filepath.Walk contract is
+			// for the paths to include the base path.
+			log.Printf("[TRACE] getproviders.SearchLocalDirectory: ignoring malformed path %q during walk: %s", fullPath, err)
+			return nil
+		}
+
+		if filepath.Base(fsPath)[0] == '.' && fsPath != "." {
+			// Dot-files should not occur in the provider cache at all.
+			// Dot-directories are used by e.g. temporary directories to
+			// unpack the packed providers. These might disappear at any
+			// moment, making the traversal fairly brittle. Just skip them.
+			log.Printf("[TRACE] getproviders.SearchLocalDirectory: skipping dotfile %s", fsPath)
+			return filepath.SkipDir
+		}
+
+		if werr != nil {
 			return fmt.Errorf("cannot search %s: %s", fullPath, err)
 		}
 
@@ -56,13 +73,7 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 		//
 		// Both of these give us enough information to identify the package
 		// metadata.
-		fsPath, err := filepath.Rel(baseDir, fullPath)
-		if err != nil {
-			// This should never happen because the filepath.Walk contract is
-			// for the paths to include the base path.
-			log.Printf("[TRACE] getproviders.SearchLocalDirectory: ignoring malformed path %q during walk: %s", fullPath, err)
-			return nil
-		}
+
 		relPath := filepath.ToSlash(fsPath)
 		parts := strings.Split(relPath, "/")
 
