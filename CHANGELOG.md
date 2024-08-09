@@ -1,5 +1,9 @@
 ## 1.9.5 (Unreleased)
 
+ENHANCEMENTS:
+
+* cloud: The cloud block can now interact with workspaces that have HCP resource IDs. ([#35495](https://github.com/hashicorp/terraform/issues/35495))
+
 ## 1.9.4 (August 7, 2024)
 
 BUG FIXES:
