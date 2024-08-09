@@ -114,7 +114,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 					renderer.Streams.Println("")
 				}
 				renderer.Streams.Print(
-					renderer.Colorize.Color("\n[reset][bold][green]No changes.[reset][bold] This plan requires another plan to be applied first.[reset]\n\n"),
+					renderer.Colorize.Color("\n[reset][bold][green]No current changes.[reset][bold] This plan requires another plan to be applied first.[reset]\n\n"),
 				)
 				return
 			}
@@ -415,20 +415,21 @@ func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, 
 	switch deferred.reason {
 	// TODO: Add other cases
 	case jsonplan.DeferredReasonInstanceCountUnknown:
-		explanation = "The number of resource instances is unknown."
+		explanation = "because the number of resource instances is unknown"
 	case jsonplan.DeferredReasonResourceConfigUnknown:
-		explanation = "The resource configuration is unknown."
+		explanation = "because the resource configuration is unknown"
 	case jsonplan.DeferredReasonProviderConfigUnknown:
-		explanation = "The provider configuration is unknown."
+		explanation = "because the provider configuration is unknown"
 	case jsonplan.DeferredReasonDeferredPrereq:
-		explanation = "A prerequisite for this resource is deferred."
+		explanation = "because a prerequisite for this resource is deferred"
 	case jsonplan.DeferredReasonAbsentPrereq:
-		explanation = "A prerequisite for this resource is absent."
+		explanation = "because a prerequisite for this resource has not yet been created"
 	default:
-		explanation = "Unknown / Not supported by this version of Terraform."
+		explanation = "for an unknown reason"
 	}
 
-	buf.WriteString(renderer.Colorize.Color(fmt.Sprintf("%s was deferred: \nReason: %s\n", deferred.diff.change.Address, explanation)))
+	buf.WriteString(renderer.Colorize.Color(fmt.Sprintf("[bold]  # %s[reset] was deferred\n", deferred.diff.change.Address)))
+	buf.WriteString(renderer.Colorize.Color(fmt.Sprintf("  #[reset] (s)\n", explanation)))
 
 	opts := computed.NewRenderHumanOpts(renderer.Colorize)
 	opts.ShowUnchangedChildren = deferred.diff.Importing()
