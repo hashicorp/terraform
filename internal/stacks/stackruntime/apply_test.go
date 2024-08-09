@@ -1931,36 +1931,16 @@ func TestApplyWithChangedInputValues(t *testing.T) {
 		t.Fatalf("expected exactly two diagnostics, got %s", applyDiags.ErrWithWarnings())
 	}
 
-	gotSeverity, wantSeverity := applyDiags[0].Severity(), tfdiags.Error
-	gotSummary, wantSummary := applyDiags[0].Description().Summary, "Inconsistent value for input variable during apply"
-	gotDetail, wantDetail := applyDiags[0].Description().Detail, "The value for non-ephemeral input variable \"input\" was set to a different value during apply than was set during plan. Only ephemeral input variables can change between the plan and apply phases."
-
-	if gotSeverity != wantSeverity {
-		t.Errorf("expected severity %q, got %q", wantSeverity, gotSeverity)
-	}
-	if gotSummary != wantSummary {
-		t.Errorf("expected summary %q, got %q", wantSummary, gotSummary)
-	}
-	if gotDetail != wantDetail {
-		t.Errorf("expected detail %q, got %q", wantDetail, gotDetail)
-	}
-
-	// We'll also receive a second error message here, since the invalid input
-	// has affected the component as well.
-
-	gotSeverity, wantSeverity = applyDiags[1].Severity(), tfdiags.Error
-	gotSummary, wantSummary = applyDiags[1].Description().Summary, "Planned input variable value changed"
-	gotDetail, wantDetail = applyDiags[1].Description().Detail, "The planned value for input variable \"input\" has changed between the planning and apply phases for component.self. This is a bug in Terraform - please report it."
-
-	if gotSeverity != wantSeverity {
-		t.Errorf("expected severity %q, got %q", wantSeverity, gotSeverity)
-	}
-	if gotSummary != wantSummary {
-		t.Errorf("expected summary %q, got %q", wantSummary, gotSummary)
-	}
-	if gotDetail != wantDetail {
-		t.Errorf("expected detail %q, got %q", wantDetail, gotDetail)
-	}
+	sort.SliceStable(applyDiags, diagnosticSortFunc(applyDiags))
+	expectDiagnosticsForTest(t, applyDiags,
+		expectDiagnostic(
+			tfdiags.Error,
+			"Inconsistent value for input variable during apply",
+			"The value for non-ephemeral input variable \"input\" was set to a different value during apply than was set during plan. Only ephemeral input variables can change between the plan and apply phases."),
+		expectDiagnostic(
+			tfdiags.Error,
+			"Planned input variable value changed",
+			"The planned value for input variable \"input\" has changed between the planning and apply phases for component.self. This is a bug in Terraform - please report it."))
 
 	wantChanges := []stackstate.AppliedChange{
 		&stackstate.AppliedChangeComponentInstance{
