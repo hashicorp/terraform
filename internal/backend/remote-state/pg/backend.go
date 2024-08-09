@@ -4,15 +4,16 @@
 package pg
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
-	"os"
-	"strconv"
+
+	"github.com/lib/pq"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
-	"github.com/lib/pq"
+	"github.com/hashicorp/terraform/internal/backend/backendbase"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const (
@@ -20,94 +21,93 @@ const (
 	statesIndexName = "states_by_name"
 )
 
-func defaultBoolFunc(k string, dv bool) schema.SchemaDefaultFunc {
-	return func() (interface{}, error) {
-		if v := os.Getenv(k); v != "" {
-			return strconv.ParseBool(v)
-		}
-
-		return dv, nil
-	}
-}
-
 // New creates a new backend for Postgres remote state.
 func New() backend.Backend {
-	s := &schema.Backend{
-		Schema: map[string]*schema.Schema{
-			"conn_str": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Postgres connection string; a `postgres://` URL",
-				DefaultFunc: schema.EnvDefaultFunc("PG_CONN_STR", nil),
+	return &Backend{
+		Base: backendbase.Base{
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"conn_str": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "Postgres connection string; a `postgres://` URL",
+					},
+					"schema_name": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "Name of the automatically managed Postgres schema to store state",
+					},
+					"skip_schema_creation": {
+						Type:        cty.Bool,
+						Optional:    true,
+						Description: "If set to `true`, Terraform won't try to create the Postgres schema",
+					},
+					"skip_table_creation": {
+						Type:        cty.Bool,
+						Optional:    true,
+						Description: "If set to `true`, Terraform won't try to create the Postgres table",
+					},
+					"skip_index_creation": {
+						Type:        cty.Bool,
+						Optional:    true,
+						Description: "If set to `true`, Terraform won't try to create the Postgres index",
+					},
+				},
 			},
-
-			"schema_name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Name of the automatically managed Postgres schema to store state",
-				DefaultFunc: schema.EnvDefaultFunc("PG_SCHEMA_NAME", "terraform_remote_state"),
-			},
-
-			"skip_schema_creation": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "If set to `true`, Terraform won't try to create the Postgres schema",
-				DefaultFunc: defaultBoolFunc("PG_SKIP_SCHEMA_CREATION", false),
-			},
-
-			"skip_table_creation": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "If set to `true`, Terraform won't try to create the Postgres table",
-				DefaultFunc: defaultBoolFunc("PG_SKIP_TABLE_CREATION", false),
-			},
-
-			"skip_index_creation": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "If set to `true`, Terraform won't try to create the Postgres index",
-				DefaultFunc: defaultBoolFunc("PG_SKIP_INDEX_CREATION", false),
+			SDKLikeDefaults: backendbase.SDKLikeDefaults{
+				"conn_str": {
+					EnvVars: []string{"PG_CONN_STR"},
+				},
+				"schema_name": {
+					EnvVars:  []string{"PG_SCHEMA_NAME"},
+					Fallback: "terraform_remote_state",
+				},
+				"skip_schema_creation": {
+					EnvVars:  []string{"PG_SKIP_SCHEMA_CREATION"},
+					Fallback: "false",
+				},
+				"skip_table_creation": {
+					EnvVars:  []string{"PG_SKIP_TABLE_CREATION"},
+					Fallback: "false",
+				},
+				"skip_index_creation": {
+					EnvVars:  []string{"PG_SKIP_INDEX_CREATION"},
+					Fallback: "false",
+				},
 			},
 		},
 	}
-
-	result := &Backend{Backend: s}
-	result.Backend.ConfigureFunc = result.configure
-	return result
 }
 
 type Backend struct {
-	*schema.Backend
+	backendbase.Base
 
 	// The fields below are set from configure
 	db         *sql.DB
-	configData *schema.ResourceData
 	connStr    string
 	schemaName string
 }
 
-func (b *Backend) configure(ctx context.Context) error {
-	// Grab the resource data
-	b.configData = schema.FromContextBackendConfig(ctx)
-	data := b.configData
+func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
+	data := backendbase.NewSDKLikeData(configVal)
 
-	b.connStr = data.Get("conn_str").(string)
-	b.schemaName = pq.QuoteIdentifier(data.Get("schema_name").(string))
+	b.connStr = data.String("conn_str")
+	b.schemaName = pq.QuoteIdentifier(data.String("schema_name"))
 
 	db, err := sql.Open("postgres", b.connStr)
 	if err != nil {
-		return err
+		return backendbase.ErrorAsDiagnostics(err)
 	}
 
 	// Prepare database schema, tables, & indexes.
 	var query string
 
-	if !data.Get("skip_schema_creation").(bool) {
+	if !data.Bool("skip_schema_creation") {
 		// list all schemas to see if it exists
 		var count int
 		query = `select count(1) from information_schema.schemata where schema_name = $1`
-		if err := db.QueryRow(query, data.Get("schema_name").(string)).Scan(&count); err != nil {
-			return err
+		if err := db.QueryRow(query, data.String("schema_name")).Scan(&count); err != nil {
+			return backendbase.ErrorAsDiagnostics(err)
 		}
 
 		// skip schema creation if schema already exists
@@ -117,14 +117,14 @@ func (b *Backend) configure(ctx context.Context) error {
 			// tries to create the schema
 			query = `CREATE SCHEMA IF NOT EXISTS %s`
 			if _, err := db.Exec(fmt.Sprintf(query, b.schemaName)); err != nil {
-				return err
+				return backendbase.ErrorAsDiagnostics(err)
 			}
 		}
 	}
 
-	if !data.Get("skip_table_creation").(bool) {
+	if !data.Bool("skip_table_creation") {
 		if _, err := db.Exec("CREATE SEQUENCE IF NOT EXISTS public.global_states_id_seq AS bigint"); err != nil {
-			return err
+			return backendbase.ErrorAsDiagnostics(err)
 		}
 
 		query = `CREATE TABLE IF NOT EXISTS %s.%s (
@@ -133,14 +133,14 @@ func (b *Backend) configure(ctx context.Context) error {
 			data text
 			)`
 		if _, err := db.Exec(fmt.Sprintf(query, b.schemaName, statesTableName)); err != nil {
-			return err
+			return backendbase.ErrorAsDiagnostics(err)
 		}
 	}
 
-	if !data.Get("skip_index_creation").(bool) {
+	if !data.Bool("skip_index_creation") {
 		query = `CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (name)`
 		if _, err := db.Exec(fmt.Sprintf(query, statesIndexName, b.schemaName, statesTableName)); err != nil {
-			return err
+			return backendbase.ErrorAsDiagnostics(err)
 		}
 	}
 
