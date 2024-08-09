@@ -101,8 +101,19 @@ func TestRenderHuman_DeferredPlan(t *testing.T) {
 	plan.renderHuman(renderer, plans.NormalMode)
 
 	want := `
-No changes. This plan requires another plan to be applied first.
+No current changes. This plan requires another plan to be applied first.
 
+
+Note: This is a partial plan, parts can only be known in the next plan / apply cycle.
+
+
+  # aws_instance.foo was deferred
+  # because a prerequisite for this resource is deferred
+  ~ resource "aws_instance" "foo" {
+        id = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+    }
+
+─────────────────────────────────────────────────────────────────────────────
 `
 
 	got := done(t).Stdout()
@@ -7229,8 +7240,8 @@ func TestResourceChange_deferredActions(t *testing.T) {
 					},
 				},
 			},
-			output: `test_instance.instance was deferred: 
-Reason: A prerequisite for this resource is absent.
+			output: `  # test_instance.instance was deferred
+  # because a prerequisite for this resource has not yet been created
   + resource "test_instance" "instance" {
       + ami  = "bar"
       + disk = (known after apply)
@@ -7269,8 +7280,8 @@ Reason: A prerequisite for this resource is absent.
 					},
 				},
 			},
-			output: `test_instance.instance[*] was deferred: 
-Reason: The number of resource instances is unknown.
+			output: `  # test_instance.instance[*] was deferred
+  # because the number of resource instances is unknown
   + resource "test_instance" "instance" {
       + ami  = "bar"
       + disk = (known after apply)
@@ -7319,8 +7330,8 @@ Reason: The number of resource instances is unknown.
 					},
 				},
 			},
-			output: `test_instance.instance was deferred: 
-Reason: The provider configuration is unknown.
+			output: `  # test_instance.instance was deferred
+  # because the provider configuration is unknown
   ~ resource "test_instance" "instance" {
       ~ ami = "bar" -> "baz"
         id  = "foo"
@@ -7366,8 +7377,8 @@ Reason: The provider configuration is unknown.
 					},
 				},
 			},
-			output: `test_instance.instance was deferred: 
-Reason: The resource configuration is unknown.
+			output: `  # test_instance.instance was deferred
+  # because the resource configuration is unknown
   ~ resource "test_instance" "instance" {
       - ami = "bar" -> null
       - id  = "foo" -> null
