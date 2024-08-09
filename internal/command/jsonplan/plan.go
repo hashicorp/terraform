@@ -292,7 +292,7 @@ func Marshal(
 	}
 
 	if p.DeferredResources != nil {
-		output.DeferredChanges, err = marshalDeferredResourceChanges(p.DeferredResources, schemas)
+		output.DeferredChanges, err = MarshalDeferredResourceChanges(p.DeferredResources, schemas)
 		if err != nil {
 			return nil, fmt.Errorf("error in marshaling deferred resource changes: %s", err)
 		}
@@ -583,10 +583,11 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 	return r, nil
 }
 
-// marshalDeferredResourceChanges converts the provided internal representation
+// MarshalDeferredResourceChanges converts the provided internal representation
 // of DeferredResourceInstanceChangeSrc objects into the public structured JSON
 // changes.
-func marshalDeferredResourceChanges(resources []*plans.DeferredResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]DeferredResourceChange, error) {
+// This is public to make testing easier.
+func MarshalDeferredResourceChanges(resources []*plans.DeferredResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]DeferredResourceChange, error) {
 	var ret []DeferredResourceChange
 
 	var sortedResources []*plans.DeferredResourceInstanceChangeSrc
