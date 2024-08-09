@@ -108,7 +108,7 @@ Note: This is a partial plan, parts can only be known in the next plan / apply c
 
 
   # aws_instance.foo was deferred
-  # because a prerequisite for this resource is deferred
+  # (because a prerequisite for this resource is deferred)
   ~ resource "aws_instance" "foo" {
         id = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
     }
@@ -7241,7 +7241,7 @@ func TestResourceChange_deferredActions(t *testing.T) {
 				},
 			},
 			output: `  # test_instance.instance was deferred
-  # because a prerequisite for this resource has not yet been created
+  # (because a prerequisite for this resource has not yet been created)
   + resource "test_instance" "instance" {
       + ami  = "bar"
       + disk = (known after apply)
@@ -7281,7 +7281,7 @@ func TestResourceChange_deferredActions(t *testing.T) {
 				},
 			},
 			output: `  # test_instance.instance[*] was deferred
-  # because the number of resource instances is unknown
+  # (because the number of resource instances is unknown)
   + resource "test_instance" "instance" {
       + ami  = "bar"
       + disk = (known after apply)
@@ -7331,7 +7331,7 @@ func TestResourceChange_deferredActions(t *testing.T) {
 				},
 			},
 			output: `  # test_instance.instance was deferred
-  # because the provider configuration is unknown
+  # (because the provider configuration is unknown)
   ~ resource "test_instance" "instance" {
       ~ ami = "bar" -> "baz"
         id  = "foo"
@@ -7378,7 +7378,7 @@ func TestResourceChange_deferredActions(t *testing.T) {
 				},
 			},
 			output: `  # test_instance.instance was deferred
-  # because the resource configuration is unknown
+  # (because the resource configuration is unknown)
   ~ resource "test_instance" "instance" {
       - ami = "bar" -> null
       - id  = "foo" -> null

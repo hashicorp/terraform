@@ -426,7 +426,7 @@ func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, 
 	}
 
 	buf.WriteString(renderer.Colorize.Color(fmt.Sprintf("[bold]  # %s[reset] was deferred\n", deferred.diff.change.Address)))
-	buf.WriteString(renderer.Colorize.Color(fmt.Sprintf("  #[reset] %s\n", explanation)))
+	buf.WriteString(renderer.Colorize.Color(fmt.Sprintf("  #[reset] (%s)\n", explanation)))
 
 	opts := computed.NewRenderHumanOpts(renderer.Colorize)
 	opts.ShowUnchangedChildren = deferred.diff.Importing()
