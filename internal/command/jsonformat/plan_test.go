@@ -48,6 +48,69 @@ and found no differences, so no changes are needed.
 	}
 }
 
+func TestRenderHuman_DeferredPlan(t *testing.T) {
+	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
+	streams, done := terminal.StreamsForTesting(t)
+
+	plan := Plan{
+		DeferredChanges: []jsonplan.DeferredResourceChange{
+			{
+				Reason: jsonplan.DeferredReasonDeferredPrereq,
+				ResourceChange: jsonplan.ResourceChange{
+					Address:      "aws_instance.foo",
+					Mode:         "managed",
+					Type:         "aws_instance",
+					Name:         "foo",
+					IndexUnknown: true,
+					ProviderName: "aws",
+					Change: jsonplan.Change{
+						Actions: []string{"update"},
+						Before: marshalJson(t, map[string]interface{}{
+							"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+							"value": "Hello, World!",
+						}),
+						After: marshalJson(t, map[string]interface{}{
+							"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+							"value": "Hello, World!",
+						}),
+					},
+				},
+			},
+		},
+		ProviderSchemas: map[string]*jsonprovider.Provider{
+			"aws": {
+				ResourceSchemas: map[string]*jsonprovider.Schema{
+					"aws_instance": {
+						Block: &jsonprovider.Block{
+							Attributes: map[string]*jsonprovider.Attribute{
+								"id": {
+									AttributeType: marshalJson(t, "string"),
+								},
+								"ami": {
+									AttributeType: marshalJson(t, "string"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	renderer := Renderer{Colorize: color, Streams: streams}
+	plan.renderHuman(renderer, plans.NormalMode)
+
+	want := `
+No changes. This plan requires another plan to be applied first.
+
+`
+
+	got := done(t).Stdout()
+	if diff := cmp.Diff(want, got); len(diff) > 0 {
+		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+	}
+}
+
 func TestRenderHuman_EmptyOutputs(t *testing.T) {
 	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
 	streams, done := terminal.StreamsForTesting(t)
