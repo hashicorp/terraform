@@ -6,6 +6,7 @@ package stackruntime
 import (
 	"context"
 	"path/filepath"
+	"sort"
 	"testing"
 	"time"
 
@@ -233,6 +234,63 @@ var (
 				return diags
 			},
 		},
+		filepath.Join("with-single-input", "depends-on-invalid"): {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid depends_on target",
+					Detail:   "The depends_on argument must refer to an embedded stack or component, but this reference refers to \"var.input\".",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/depends-on-invalid/depends-on-invalid.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 22, Column: 17, Byte: 293},
+						End:      hcl.Pos{Line: 22, Column: 26, Byte: 302},
+					},
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid depends_on target",
+					Detail:   "The depends_on argument must refer to an embedded stack or component, but this reference refers to \"var.input\".",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/depends-on-invalid/depends-on-invalid.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 37, Column: 17, Byte: 509},
+						End:      hcl.Pos{Line: 37, Column: 26, Byte: 518},
+					},
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid depends_on target",
+					Detail:   "The depends_on reference \"component.missing\" does not exist.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/depends-on-invalid/depends-on-invalid.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 22, Column: 28, Byte: 304},
+						End:      hcl.Pos{Line: 22, Column: 45, Byte: 321},
+					},
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid depends_on target",
+					Detail:   "The depends_on reference \"stack.missing\" does not exist.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/depends-on-invalid/depends-on-invalid.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 37, Column: 28, Byte: 520},
+						End:      hcl.Pos{Line: 37, Column: 41, Byte: 533},
+					},
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Non-valid depends_on target",
+					Detail: "The depends_on argument should refer directly to an embedded stack or component in configuration, but this reference is too deep.\n\n" +
+						"Terraform Stacks has simplified the reference to the nearest valid target, \"component.first\". To remove this warning, update the configuration to the same target.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/depends-on-invalid/depends-on-invalid.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 52, Column: 17, Byte: 722},
+						End:      hcl.Pos{Line: 52, Column: 32, Byte: 737},
+					},
+				})
+				return diags
+			},
+		},
 	}
 )
 
@@ -339,6 +397,11 @@ func TestValidate_invalid(t *testing.T) {
 				},
 				DependencyLocks: *lock,
 			}).ForRPC()
+
+			// Let's make the returned diagnostics stable so that we can
+			// compare them easily.
+			sort.SliceStable(gotDiags, diagnosticSortFunc(gotDiags))
+
 			wantDiags := tc.diags().ForRPC()
 
 			if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {

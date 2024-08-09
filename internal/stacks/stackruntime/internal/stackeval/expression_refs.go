@@ -5,12 +5,15 @@ package stackeval
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Referrer is implemented by types that have expressions that can refer to
@@ -124,6 +127,56 @@ func (m *Main) requiredComponentsForReferrer(ctx context.Context, obj Referrer, 
 			continue
 		}
 
+		// A stack call reference is also special, as we now want all the
+		// components of this stack call to be added to the queue as well.
+		// This doesn't happen automatically with the references as stack calls
+		// do not have a direct reference to their internal components (it
+		// actually goes the other way).
+		if stackCallAddr, ok := targetAddr.Item.(stackaddrs.StackCall); ok {
+			// We're just adding all the components within the stack to the
+			// queue. We could be a bit clever if, for example, the reference
+			// is to an output of the stack call. We could only add the
+			// components needed by that output. This is an okay compromise for
+			// now, in which the apply will wait for the whole stack to finish
+			// before moving on.
+			currentStack := m.Stack(ctx, targetAddr.Stack, phase)
+			for step, nextStack := range currentStack.childStacks {
+				if step.Name != stackCallAddr.Name {
+					// Then this child stack isn't from the current stack call.
+					continue
+				}
+
+				for _, component := range nextStack.Components(ctx) {
+					ref := stackaddrs.AbsReferenceable{
+						Stack: component.addr.Stack,
+						Item: stackaddrs.Component{
+							Name: component.addr.Item.Name,
+						},
+					}
+					if !queued.Has(ref) {
+						queue = append(queue, ref)
+						queued.Add(ref)
+					}
+				}
+
+				// We'll also include any other stack calls within the embedded
+				// stack.
+				for _, call := range nextStack.EmbeddedStackCalls(ctx) {
+					ref := stackaddrs.AbsReferenceable{
+						Stack: call.addr.Stack,
+						Item:  call.addr.Item,
+					}
+					if !queued.Has(ref) {
+						queue = append(queue, ref)
+						queued.Add(ref)
+					}
+				}
+			}
+
+			// We don't continue here, as we still want to add anything that
+			// the stack call references below.
+		}
+
 		// For all other address types, we need to find the corresponding
 		// object and, if it's also Applyable, ask it for its references.
 		//
@@ -160,3 +213,85 @@ func (m *Main) requiredComponentsForReferrer(ctx context.Context, obj Referrer, 
 
 	return ret
 }
+
+// ValidateDependsOn is a helper function that can be used to validate the
+// DependsOn field of a component or an embedded stack. It returns diagnostics
+// for any invalid references.
+//
+// The StackConfig argument should be the stack that the component or embedded
+// stack is a part of. It is used to validate any references actually exist.
+func ValidateDependsOn(ctx context.Context, source *StackConfig, traversals []hcl.Traversal) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	for _, traversal := range traversals {
+		// We don't actually care about the result here, only that it has no
+		// errors.
+		ref, rest, moreDiags := stackaddrs.ParseReference(traversal)
+		if moreDiags.HasErrors() {
+			diags = diags.Append(moreDiags)
+			continue
+		}
+
+		switch addr := ref.Target.(type) {
+		case stackaddrs.StackCall:
+			// Make sure this stack call exists.
+			if source.StackCall(ctx, addr) == nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid depends_on target",
+					Detail:   fmt.Sprintf("The depends_on reference %q does not exist.", addr),
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+			}
+		case stackaddrs.Component:
+			// Make sure this component exists.
+			if source.Component(ctx, addr) == nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid depends_on target",
+					Detail:   fmt.Sprintf("The depends_on reference %q does not exist.", addr),
+					Subject:  ref.SourceRange.ToHCL().Ptr(),
+				})
+			}
+		default:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid depends_on target",
+				Detail:   fmt.Sprintf("The depends_on argument must refer to an embedded stack or component, but this reference refers to %q.", addr),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+			continue // don't do the rest of the checks
+		}
+
+		if len(rest) > 0 {
+			// for now, we can only reference components and stacks in
+			// configuration, and not instances of them or outputs from them.
+			// eg. component.self is valid, but component.self[0] is not.
+			//
+			// we'll add a warning, as we don't want users thinking the
+			// dependency is more precise than it is. But, we'll allow the
+			// reference as we can still use it just by ignoring the rest.
+			//
+			// FIXME: Allowing more fine grained references requires updating
+			//   the requiredComponentsForReferrer function (above) to support
+			//   AbsComponentInstance instead of AbsComponent. This is a
+			//   potentially large refactor, and so only worth it for good
+			//   reason and this isn't really that.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Non-valid depends_on target",
+				Detail:   fmt.Sprintf(DependsOnDeepReferenceDetail, ref.Target),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+		}
+	}
+
+	return diags
+}
+
+var (
+	DependsOnDeepReferenceDetail = strings.TrimSpace(`
+The depends_on argument should refer directly to an embedded stack or component in configuration, but this reference is too deep.
+
+Terraform Stacks has simplified the reference to the nearest valid target, %q. To remove this warning, update the configuration to the same target.
+`)
+)

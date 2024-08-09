@@ -332,6 +332,7 @@ func (c *Component) References(ctx context.Context) []stackaddrs.AbsReference {
 	for _, expr := range cfg.ProviderConfigs {
 		ret = append(ret, ReferencesInExpr(ctx, expr)...)
 	}
+	ret = append(ret, referencesInTraversals(ctx, cfg.DependsOn)...)
 	return makeReferencesAbsolute(ret, c.Addr().Stack)
 }
 

@@ -354,6 +354,8 @@ func (s *StackCallConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 	diags = diags.Append(moreDiags)
 	_, moreDiags = s.ValidateResultValue(ctx, phase)
 	diags = diags.Append(moreDiags)
+	moreDiags = ValidateDependsOn(ctx, s.CallerConfig(ctx), s.config.DependsOn)
+	diags = diags.Append(moreDiags)
 	return diags
 }
 

@@ -403,7 +403,7 @@ func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostic
 	}
 
 	if attr, exists := content.Attributes["depends_on"]; exists {
-		deps, depsDiags := decodeDependsOn(attr)
+		deps, depsDiags := DecodeDependsOn(attr)
 		diags = append(diags, depsDiags...)
 		o.DependsOn = append(o.DependsOn, deps...)
 	}
