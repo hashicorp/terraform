@@ -185,6 +185,8 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 				return knownImports, unknownImports, diags
 			}
 
+			diags = diags.Append(validateImportTargetExpansion(n.Config, to, imp.Config.To))
+
 			importID, evalDiags := evaluateImportIdExpression(imp.Config.ID, ctx, EvalDataForNoInstanceKey, allowUnknown)
 			diags = diags.Append(evalDiags)
 			if diags.HasErrors() {
@@ -241,6 +243,8 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 			if diags.HasErrors() {
 				return knownImports, unknownImports, diags
 			}
+
+			diags = diags.Append(validateImportTargetExpansion(n.Config, res, imp.Config.To))
 
 			importID, evalDiags := evaluateImportIdExpression(imp.Config.ID, ctx, keyData, allowUnknown)
 			diags = diags.Append(evalDiags)

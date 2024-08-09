@@ -572,7 +572,7 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 				if diags.HasErrors() {
 					return diags
 				}
-				diags = diags.Append(n.validateImportTargetExpansion(to, imp.Config.To))
+				diags = diags.Append(validateImportTargetExpansion(n.Config, to, imp.Config.To))
 				if diags.HasErrors() {
 					return diags
 				}
@@ -591,7 +591,7 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 				return diags
 			}
 
-			diags = diags.Append(n.validateImportTargetExpansion(to, imp.Config.To))
+			diags = diags.Append(validateImportTargetExpansion(n.Config, to, imp.Config.To))
 			if diags.HasErrors() {
 				return diags
 			}
@@ -608,11 +608,11 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 }
 
 // validateImportTargetExpansion ensures that the To address key and resource expansion mode both agree.
-func (n *NodeValidatableResource) validateImportTargetExpansion(to addrs.AbsResourceInstance, toExpr hcl.Expression) tfdiags.Diagnostics {
+func validateImportTargetExpansion(cfg *configs.Resource, to addrs.AbsResourceInstance, toExpr hcl.Expression) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	forEach := n.Config != nil && n.Config.ForEach != nil
-	count := n.Config != nil && n.Config.Count != nil
+	forEach := cfg != nil && cfg.ForEach != nil
+	count := cfg != nil && cfg.Count != nil
 
 	switch to.Resource.Key.(type) {
 	case addrs.StringKey:
