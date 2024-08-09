@@ -106,19 +106,16 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 			renderer.Streams.Print(
 				renderer.Colorize.Color("\n[reset][bold][red]Planning failed.[reset][bold] Terraform encountered an error while generating this plan.[reset]\n\n"),
 			)
-		} else {
-			// We had no changes, but deferred changes
-			if len(diffs.deferred) > 0 {
-				if haveRefreshChanges {
-					renderer.Streams.Print(format.HorizontalRule(renderer.Colorize, renderer.Streams.Stdout.Columns()))
-					renderer.Streams.Println("")
-				}
-				renderer.Streams.Print(
-					renderer.Colorize.Color("\n[reset][bold][green]No current changes.[reset][bold] This plan requires another plan to be applied first.[reset]\n\n"),
-				)
-				return
+		} else if len(diffs.deferred) > 0 {
+			// We had no current changes, but deferred changes
+			if haveRefreshChanges {
+				renderer.Streams.Print(format.HorizontalRule(renderer.Colorize, renderer.Streams.Stdout.Columns()))
+				renderer.Streams.Println("")
 			}
-
+			renderer.Streams.Print(
+				renderer.Colorize.Color("\n[reset][bold][green]No current changes.[reset][bold] This plan requires another plan to be applied first.[reset]\n\n"),
+			)
+		} else {
 			switch mode {
 			case plans.RefreshOnlyMode:
 				if haveRefreshChanges {
