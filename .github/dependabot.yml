@@ -1,5 +1,15 @@
 version: 2
 updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: daily
+    labels:
+      - dependencies
+      - go
+      - security
+    # Disable regular version updates and only use Dependabot for security updates
+    open-pull-requests-limit: 0
   - package-ecosystem: github-actions
     directory: /
     schedule:
