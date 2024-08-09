@@ -61,7 +61,7 @@ jobs:
             go build -ldflags "${{ inputs.ld-flags }}" -o "$BIN_PATH" -trimpath -buildvcs=false
             cp LICENSE "$TARGET_DIR/LICENSE.txt"
       - name: Copy license file to config_dir
-        if: ${{ matrix.goos == 'linux' }}
+        if: ${{ inputs.goos == 'linux' }}
         env:
           LICENSE_DIR: ".release/linux/package/usr/share/doc/${{ inputs.package-name }}"
         run: |
