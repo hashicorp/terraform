@@ -89,7 +89,7 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 
 // testModuleInline takes a map of path -> config strings and yields a config
 // structure with those files loaded from disk
-func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
+func testModuleInline(t testing.TB, sources map[string]string) *configs.Config {
 	t.Helper()
 
 	cfgPath := t.TempDir()

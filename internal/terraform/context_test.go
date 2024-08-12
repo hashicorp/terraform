@@ -299,7 +299,7 @@ func TestContext_preloadedProviderSchemas(t *testing.T) {
 	}
 }
 
-func testContext2(t *testing.T, opts *ContextOpts) *Context {
+func testContext2(t testing.TB, opts *ContextOpts) *Context {
 	t.Helper()
 
 	ctx, diags := NewContext(opts)
