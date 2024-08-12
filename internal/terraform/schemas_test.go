@@ -5,26 +5,10 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/providers/testing"
-	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/schemarepo/loadschemas"
 )
-
-func simpleTestSchemas() *schemarepo.Schemas {
-	provider := simpleMockProvider()
-	provisioner := simpleMockProvisioner()
-
-	return &Schemas{
-		Providers: map[addrs.Provider]providers.ProviderSchema{
-			addrs.NewDefaultProvider("test"): provider.GetProviderSchema(),
-		},
-		Provisioners: map[string]*configschema.Block{
-			"test": provisioner.GetSchemaResponse.Provisioner,
-		},
-	}
-}
 
 // schemaOnlyProvidersForTesting is a testing helper that constructs a
 // plugin library that contains a set of providers that only know how to
