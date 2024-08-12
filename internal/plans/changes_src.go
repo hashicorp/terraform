@@ -143,6 +143,17 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 	return changes, nil
 }
 
+// AppendResourceInstanceChange records the given resource instance change in
+// the set of planned resource changes.
+func (c *ChangesSrc) AppendResourceInstanceChange(change *ResourceInstanceChangeSrc) {
+	if c == nil {
+		panic("AppendResourceInstanceChange on nil ChangesSync")
+	}
+
+	s := change.DeepCopy()
+	c.Resources = append(c.Resources, s)
+}
+
 // ResourceInstanceChangeSrc is a not-yet-decoded ResourceInstanceChange.
 // Pass the associated resource type's schema type to method Decode to
 // obtain a ResourceInstanceChange.

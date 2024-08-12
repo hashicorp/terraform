@@ -195,7 +195,7 @@ func testPlan(t *testing.T) *plans.Plan {
 			Type:   "local",
 			Config: backendConfigRaw,
 		},
-		Changes: plans.NewChanges(),
+		Changes: plans.NewChangesSrc(),
 
 		// We'll default to the fake plan being both applyable and complete,
 		// since that's what most tests expect. Tests can override these

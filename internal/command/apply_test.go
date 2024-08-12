@@ -818,7 +818,7 @@ func TestApply_plan_remoteState(t *testing.T) {
 			Type:   "http",
 			Config: backendConfigRaw,
 		},
-		Changes: plans.NewChanges(),
+		Changes: plans.NewChangesSrc(),
 	})
 
 	p := testProvider()
@@ -2211,7 +2211,7 @@ func applyFixturePlanFileMatchState(t *testing.T, stateMeta statemgr.SnapshotMet
 		t.Fatal(err)
 	}
 	plan := testPlan(t)
-	plan.Changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+	plan.Changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
 		Addr: addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "test_instance",
