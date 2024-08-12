@@ -28,14 +28,14 @@ type ChangesSync struct {
 // The caller must ensure that there are no concurrent writes to the given
 // change while this method is running, but it is safe to resume mutating
 // it after this method returns without affecting the saved change.
-func (cs *ChangesSync) AppendResourceInstanceChange(changeSrc *ResourceInstanceChange) {
+func (cs *ChangesSync) AppendResourceInstanceChange(change *ResourceInstanceChange) {
 	if cs == nil {
 		panic("AppendResourceInstanceChange on nil ChangesSync")
 	}
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
 
-	s := changeSrc.DeepCopy()
+	s := change.DeepCopy()
 	cs.changes.Resources = append(cs.changes.Resources, s)
 }
 

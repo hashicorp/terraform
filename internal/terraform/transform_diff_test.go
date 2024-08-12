@@ -28,18 +28,12 @@ func TestDiffTransformer_nilDiff(t *testing.T) {
 func TestDiffTransformer(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
 
-	beforeVal, err := plans.NewDynamicValue(cty.StringVal(""), cty.String)
-	if err != nil {
-		t.Fatal(err)
-	}
-	afterVal, err := plans.NewDynamicValue(cty.StringVal(""), cty.String)
-	if err != nil {
-		t.Fatal(err)
-	}
+	beforeVal := cty.StringVal("")
+	afterVal := cty.StringVal("")
 
 	tf := &DiffTransformer{
 		Changes: &plans.Changes{
-			Resources: []*plans.ResourceInstanceChangeSrc{
+			Resources: []*plans.ResourceInstanceChange{
 				{
 					Addr: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
@@ -50,7 +44,7 @@ func TestDiffTransformer(t *testing.T) {
 						Provider: addrs.NewDefaultProvider("aws"),
 						Module:   addrs.RootModule,
 					},
-					ChangeSrc: plans.ChangeSrc{
+					Change: plans.Change{
 						Action: plans.Update,
 						Before: beforeVal,
 						After:  afterVal,
@@ -106,15 +100,12 @@ resource "aws_instance" "foo" {
 
 	g := Graph{Path: addrs.RootModuleInstance}
 
-	beforeVal, err := plans.NewDynamicValue(cty.StringVal(""), cty.String)
-	if err != nil {
-		t.Fatal(err)
-	}
+	beforeVal := cty.StringVal("")
 
 	tf := &DiffTransformer{
 		Config: m,
 		Changes: &plans.Changes{
-			Resources: []*plans.ResourceInstanceChangeSrc{
+			Resources: []*plans.ResourceInstanceChange{
 				{
 					Addr: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
@@ -125,7 +116,7 @@ resource "aws_instance" "foo" {
 						Provider: addrs.NewDefaultProvider("aws"),
 						Module:   addrs.RootModule,
 					},
-					ChangeSrc: plans.ChangeSrc{
+					Change: plans.Change{
 						// A "no-op" change has the no-op action and has the
 						// same object as both Before and After.
 						Action: plans.NoOp,
@@ -143,7 +134,7 @@ resource "aws_instance" "foo" {
 						Provider: addrs.NewDefaultProvider("aws"),
 						Module:   addrs.RootModule,
 					},
-					ChangeSrc: plans.ChangeSrc{
+					Change: plans.Change{
 						// A "no-op" change has the no-op action and has the
 						// same object as both Before and After.
 						Action: plans.NoOp,

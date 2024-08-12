@@ -338,14 +338,8 @@ func TestPruneUnusedNodesTransformer_rootModuleOutputValues(t *testing.T) {
 		Module:   addrs.RootModule,
 		Provider: addrs.MustParseProviderSourceString("foo/test"),
 	}
-	emptyObjDynamicVal, err := plans.NewDynamicValue(cty.EmptyObjectVal, cty.EmptyObject)
-	if err != nil {
-		t.Fatal(err)
-	}
-	nullObjDynamicVal, err := plans.NewDynamicValue(cty.NullVal(cty.EmptyObject), cty.EmptyObject)
-	if err != nil {
-		t.Fatal(err)
-	}
+	emptyObjDynamicVal := cty.EmptyObjectVal
+	nullObjDynamicVal := cty.NullVal(cty.EmptyObject)
 
 	config := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -368,11 +362,11 @@ func TestPruneUnusedNodesTransformer_rootModuleOutputValues(t *testing.T) {
 		)
 	})
 	changes := plans.NewChanges()
-	changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+	changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChange{
 		Addr:         resourceInstAddr,
 		PrevRunAddr:  resourceInstAddr,
 		ProviderAddr: providerCfgAddr,
-		ChangeSrc: plans.ChangeSrc{
+		Change: plans.Change{
 			Action: plans.Delete,
 			Before: emptyObjDynamicVal,
 			After:  nullObjDynamicVal,
@@ -488,10 +482,10 @@ func TestDestroyEdgeTransformer_noOp(t *testing.T) {
 		// We only need a minimal object to indicate GraphNodeCreator change is
 		// a NoOp here.
 		Changes: &plans.Changes{
-			Resources: []*plans.ResourceInstanceChangeSrc{
+			Resources: []*plans.ResourceInstanceChange{
 				{
-					Addr:      mustResourceInstanceAddr("test_object.B"),
-					ChangeSrc: plans.ChangeSrc{Action: plans.NoOp},
+					Addr:   mustResourceInstanceAddr("test_object.B"),
+					Change: plans.Change{Action: plans.NoOp},
 				},
 			},
 		},

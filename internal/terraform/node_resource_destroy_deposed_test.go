@@ -79,7 +79,7 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 	}
 
 	change := ctx.Changes().GetResourceInstanceChange(absResource, deposedKey)
-	if got, want := change.ChangeSrc.Action, plans.Delete; got != want {
+	if got, want := change.Change.Action, plans.Delete; got != want {
 		t.Fatalf("wrong planned action\ngot:  %s\nwant: %s", got, want)
 	}
 }

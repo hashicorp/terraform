@@ -78,16 +78,16 @@ func filterInstances(g *Graph) *Graph {
 
 func TestCBDEdgeTransformer(t *testing.T) {
 	changes := &plans.Changes{
-		Resources: []*plans.ResourceInstanceChangeSrc{
+		Resources: []*plans.ResourceInstanceChange{
 			{
 				Addr: mustResourceInstanceAddr("test_object.A"),
-				ChangeSrc: plans.ChangeSrc{
+				Change: plans.Change{
 					Action: plans.CreateThenDelete,
 				},
 			},
 			{
 				Addr: mustResourceInstanceAddr("test_object.B"),
-				ChangeSrc: plans.ChangeSrc{
+				Change: plans.Change{
 					Action: plans.Update,
 				},
 			},
@@ -133,22 +133,22 @@ test_object.B
 
 func TestCBDEdgeTransformerMulti(t *testing.T) {
 	changes := &plans.Changes{
-		Resources: []*plans.ResourceInstanceChangeSrc{
+		Resources: []*plans.ResourceInstanceChange{
 			{
 				Addr: mustResourceInstanceAddr("test_object.A"),
-				ChangeSrc: plans.ChangeSrc{
+				Change: plans.Change{
 					Action: plans.CreateThenDelete,
 				},
 			},
 			{
 				Addr: mustResourceInstanceAddr("test_object.B"),
-				ChangeSrc: plans.ChangeSrc{
+				Change: plans.Change{
 					Action: plans.CreateThenDelete,
 				},
 			},
 			{
 				Addr: mustResourceInstanceAddr("test_object.C"),
-				ChangeSrc: plans.ChangeSrc{
+				Change: plans.Change{
 					Action: plans.Update,
 				},
 			},
@@ -209,22 +209,22 @@ test_object.C
 
 func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
 	changes := &plans.Changes{
-		Resources: []*plans.ResourceInstanceChangeSrc{
+		Resources: []*plans.ResourceInstanceChange{
 			{
 				Addr: mustResourceInstanceAddr("test_object.A"),
-				ChangeSrc: plans.ChangeSrc{
+				Change: plans.Change{
 					Action: plans.CreateThenDelete,
 				},
 			},
 			{
 				Addr: mustResourceInstanceAddr("test_object.B[0]"),
-				ChangeSrc: plans.ChangeSrc{
+				Change: plans.Change{
 					Action: plans.Update,
 				},
 			},
 			{
 				Addr: mustResourceInstanceAddr("test_object.B[1]"),
-				ChangeSrc: plans.ChangeSrc{
+				Change: plans.Change{
 					Action: plans.Update,
 				},
 			},
@@ -280,28 +280,28 @@ test_object.B\[1\]
 
 func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
 	changes := &plans.Changes{
-		Resources: []*plans.ResourceInstanceChangeSrc{
+		Resources: []*plans.ResourceInstanceChange{
 			{
 				Addr: mustResourceInstanceAddr("test_object.A[0]"),
-				ChangeSrc: plans.ChangeSrc{
+				Change: plans.Change{
 					Action: plans.CreateThenDelete,
 				},
 			},
 			{
 				Addr: mustResourceInstanceAddr("test_object.A[1]"),
-				ChangeSrc: plans.ChangeSrc{
+				Change: plans.Change{
 					Action: plans.CreateThenDelete,
 				},
 			},
 			{
 				Addr: mustResourceInstanceAddr("test_object.B[0]"),
-				ChangeSrc: plans.ChangeSrc{
+				Change: plans.Change{
 					Action: plans.Update,
 				},
 			},
 			{
 				Addr: mustResourceInstanceAddr("test_object.B[1]"),
-				ChangeSrc: plans.ChangeSrc{
+				Change: plans.Change{
 					Action: plans.Update,
 				},
 			},

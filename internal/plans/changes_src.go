@@ -13,6 +13,89 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 )
 
+// ChangesSrc describes various actions that Terraform will attempt to take if
+// the corresponding plan is applied.
+//
+// A Changes object can be rendered into a visual diff (by the caller, using
+// code in another package) for display to the user.
+type ChangesSrc struct {
+	// Resources tracks planned changes to resource instance objects.
+	Resources []*ResourceInstanceChangeSrc
+
+	// Outputs tracks planned changes output values.
+	//
+	// Note that although an in-memory plan contains planned changes for
+	// outputs throughout the configuration, a plan serialized
+	// to disk retains only the root outputs because they are
+	// externally-visible, while other outputs are implementation details and
+	// can be easily re-calculated during the apply phase. Therefore only root
+	// module outputs will survive a round-trip through a plan file.
+	Outputs []*OutputChangeSrc
+}
+
+func NewChangesSrc() *ChangesSrc {
+	return &ChangesSrc{}
+}
+
+func (c *ChangesSrc) Empty() bool {
+	for _, res := range c.Resources {
+		if res.Action != NoOp || res.Moved() {
+			return false
+		}
+
+		if res.Importing != nil {
+			return false
+		}
+	}
+
+	for _, out := range c.Outputs {
+		if out.Addr.Module.IsRoot() && out.Action != NoOp {
+			return false
+		}
+	}
+
+	return true
+}
+
+// ResourceInstance returns the planned change for the current object of the
+// resource instance of the given address, if any. Returns nil if no change is
+// planned.
+func (c *ChangesSrc) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInstanceChangeSrc {
+	for _, rc := range c.Resources {
+		if rc.Addr.Equal(addr) && rc.DeposedKey == states.NotDeposed {
+			return rc
+		}
+	}
+
+	return nil
+}
+
+// ResourceInstanceDeposed returns the plan change of a deposed object of
+// the resource instance of the given address, if any. Returns nil if no change
+// is planned.
+func (c *ChangesSrc) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key states.DeposedKey) *ResourceInstanceChangeSrc {
+	for _, rc := range c.Resources {
+		if rc.Addr.Equal(addr) && rc.DeposedKey == key {
+			return rc
+		}
+	}
+
+	return nil
+}
+
+// OutputValue returns the planned change for the output value with the
+//
+//	given address, if any. Returns nil if no change is planned.
+func (c *ChangesSrc) OutputValue(addr addrs.AbsOutputValue) *OutputChangeSrc {
+	for _, oc := range c.Outputs {
+		if oc.Addr.Equal(addr) {
+			return oc
+		}
+	}
+
+	return nil
+}
+
 // ResourceInstanceChangeSrc is a not-yet-decoded ResourceInstanceChange.
 // Pass the associated resource type's schema type to method Decode to
 // obtain a ResourceInstanceChange.
