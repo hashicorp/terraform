@@ -154,7 +154,7 @@ func (c *GraphCommand) Run(args []string) int {
 		// here, though perhaps one day this should be an error.
 		if lr.Plan == nil {
 			plan = &plans.Plan{
-				Changes:      plans.NewChanges(),
+				Changes:      &plans.ChangesSrc{}, //plans.NewChanges(),
 				UIMode:       plans.NormalMode,
 				PriorState:   lr.InputState,
 				PrevRunState: lr.InputState,

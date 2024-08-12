@@ -9,6 +9,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/providers"
 )
 
@@ -22,7 +23,7 @@ func NewProvider() providers.Interface {
 
 // GetSchema returns the complete schema for the provider.
 func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
-	return providers.GetProviderSchemaResponse{
+	resp := providers.GetProviderSchemaResponse{
 		ServerCapabilities: providers.ServerCapabilities{
 			MoveResourceState: true,
 		},
@@ -70,6 +71,8 @@ func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 			},
 		},
 	}
+	providers.SchemaCache.Set(tfaddr.NewProvider(tfaddr.BuiltInProviderHost, tfaddr.BuiltInProviderNamespace, "terraform"), resp)
+	return resp
 }
 
 // ValidateProviderConfig is used to validate the configuration values.

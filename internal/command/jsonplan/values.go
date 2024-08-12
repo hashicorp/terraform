@@ -47,7 +47,7 @@ func marshalAttributeValues(value cty.Value, schema *configschema.Block) attribu
 
 // marshalPlannedOutputs takes a list of changes and returns a map of output
 // values
-func marshalPlannedOutputs(changes *plans.Changes) (map[string]output, error) {
+func marshalPlannedOutputs(changes *plans.ChangesSrc) (map[string]output, error) {
 	if changes.Outputs == nil {
 		// No changes - we're done here!
 		return nil, nil
@@ -93,7 +93,7 @@ func marshalPlannedOutputs(changes *plans.Changes) (map[string]output, error) {
 
 }
 
-func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (module, error) {
+func marshalPlannedValues(changes *plans.ChangesSrc, schemas *terraform.Schemas) (module, error) {
 	var ret module
 
 	// build two maps:
@@ -166,7 +166,7 @@ func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (m
 }
 
 // marshalPlanResources
-func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstance, schemas *terraform.Schemas) ([]resource, error) {
+func marshalPlanResources(changes *plans.ChangesSrc, ris []addrs.AbsResourceInstance, schemas *terraform.Schemas) ([]resource, error) {
 	var ret []resource
 
 	for _, ri := range ris {
@@ -247,7 +247,7 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 // marshalPlanModules iterates over a list of modules to recursively describe
 // the full module tree.
 func marshalPlanModules(
-	changes *plans.Changes,
+	changes *plans.ChangesSrc,
 	schemas *terraform.Schemas,
 	childModules []addrs.ModuleInstance,
 	moduleMap map[string][]addrs.ModuleInstance,

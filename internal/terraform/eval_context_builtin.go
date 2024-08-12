@@ -333,7 +333,7 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 		return nil, false, diags
 	}
 
-	var changes []*plans.ResourceInstanceChangeSrc
+	var changes []*plans.ResourceInstanceChange
 	// store the address once we get it for validation
 	var resourceAddr addrs.Resource
 
@@ -376,7 +376,7 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	// for any change.
 	if len(ref.Remaining) == 0 {
 		for _, c := range changes {
-			switch c.ChangeSrc.Action {
+			switch c.Change.Action {
 			// Only immediate changes to the resource will trigger replacement.
 			case plans.Update, plans.DeleteThenCreate, plans.CreateThenDelete:
 				return ref, true, diags
@@ -393,7 +393,7 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 
 	// Make sure the change is actionable. A create or delete action will have
 	// a change in value, but are not valid for our purposes here.
-	switch change.ChangeSrc.Action {
+	switch change.Change.Action {
 	case plans.Update, plans.DeleteThenCreate, plans.CreateThenDelete:
 		// OK
 	default:
@@ -402,28 +402,29 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 
 	// Since we have a traversal after the resource reference, we will need to
 	// decode the changes, which means we need a schema.
-	providerAddr := change.ProviderAddr
-	schema, err := ctx.ProviderSchema(providerAddr)
-	if err != nil {
-		diags = diags.Append(err)
-		return nil, false, diags
-	}
+	// providerAddr := change.ProviderAddr
+	// schema, err := ctx.ProviderSchema(providerAddr)
+	// if err != nil {
+	// 	diags = diags.Append(err)
+	// 	return nil, false, diags
+	// }
 
-	resAddr := change.Addr.ContainingResource().Resource
-	resSchema, _ := schema.SchemaForResourceType(resAddr.Mode, resAddr.Type)
-	ty := resSchema.ImpliedType()
+	// resAddr := change.Addr.ContainingResource().Resource
+	//resSchema, _ := schema.SchemaForResourceType(resAddr.Mode, resAddr.Type)
+	//ty := resSchema.ImpliedType()
 
-	before, err := change.ChangeSrc.Before.Decode(ty)
-	if err != nil {
-		diags = diags.Append(err)
-		return nil, false, diags
-	}
+	// before, err := change.Change.Before.Decode(ty)
+	// if err != nil {
+	// 	diags = diags.Append(err)
+	// 	return nil, false, diags
+	// }
 
-	after, err := change.ChangeSrc.After.Decode(ty)
-	if err != nil {
-		diags = diags.Append(err)
-		return nil, false, diags
-	}
+	// after, err := change.ChangeSrc.After.Decode(ty)
+	// if err != nil {
+	// 	diags = diags.Append(err)
+	// 	return nil, false, diags
+	// }
+	before, after := change.Before, change.After
 
 	path := traversalToPath(ref.Remaining)
 	attrBefore, _ := path.Apply(before)

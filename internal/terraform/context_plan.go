@@ -395,7 +395,6 @@ func SimplePlanOpts(mode plans.Mode, setVariables InputValues) *PlanOpts {
 
 func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
 	if opts.Mode != plans.NormalMode {
 		panic(fmt.Sprintf("called Context.plan with %s", opts.Mode))
 	}
@@ -772,9 +771,51 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		))
 	}
 
+	changesSrc := &plans.ChangesSrc{}
+	{
+		// FIXME Changes.Decode HACK??
+		// Or is this actually just fine???
+
+		schemas, diags := c.Schemas(config, prevRunState)
+		if diags.HasErrors() {
+			return nil, nil, diags
+		}
+
+		for _, rc := range changes.Resources {
+			p := schemas.Providers[rc.ProviderAddr.Provider]
+			var schema providers.Schema
+			switch rc.Addr.Resource.Resource.Mode {
+			case addrs.ManagedResourceMode:
+				schema = p.ResourceTypes[rc.Addr.Resource.Resource.Type]
+			case addrs.DataResourceMode:
+				schema = p.DataSources[rc.Addr.Resource.Resource.Type]
+			default:
+				panic(fmt.Sprintf("unexpected resource mode %s", rc.Addr.Resource.Resource.Mode))
+			}
+
+			rcs, err := rc.Encode(schema.Block.ImpliedType())
+			if err != nil {
+				diags = diags.Append(err)
+				return nil, nil, diags
+			}
+
+			changesSrc.Resources = append(changesSrc.Resources, rcs)
+		}
+
+		for _, ocs := range changes.Outputs {
+			oc, err := ocs.Encode()
+			if err != nil {
+				diags = diags.Append(err)
+				return nil, nil, diags
+			}
+			changesSrc.Outputs = append(changesSrc.Outputs, oc)
+		}
+
+	}
+
 	plan := &plans.Plan{
 		UIMode:                  opts.Mode,
-		Changes:                 changes,
+		Changes:                 changesSrc,
 		DriftedResources:        driftedResources,
 		DeferredResources:       deferredResources,
 		PrevRunState:            prevRunState,

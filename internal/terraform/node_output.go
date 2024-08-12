@@ -103,8 +103,8 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 			}
 
 			// Find any recorded change for this output
-			var change *plans.OutputChangeSrc
-			var outputChanges []*plans.OutputChangeSrc
+			var change *plans.OutputChange
+			var outputChanges []*plans.OutputChange
 			if module.IsRoot() {
 				outputChanges = changes.GetRootOutputChanges()
 			} else {
@@ -264,7 +264,7 @@ type NodeApplyableOutput struct {
 	Addr   addrs.AbsOutputValue
 	Config *configs.Output // Config is the output in the config
 	// If this is being evaluated during apply, we may have a change recorded already
-	Change *plans.OutputChangeSrc
+	Change *plans.OutputChange
 
 	// Refresh-only mode means that any failing output preconditions are
 	// reported as warnings rather than errors
@@ -391,11 +391,12 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 	// we we have a change recorded, we don't need to re-evaluate if the value
 	// was known
 	if changeRecorded {
-		change, err := n.Change.Decode()
-		diags = diags.Append(err)
-		if err == nil {
-			val = change.After
-		}
+		val = n.Change.After
+		// change, err := n.Change.Decode()
+		// diags = diags.Append(err)
+		// if err == nil {
+		// 	val = change.After
+		// }
 	}
 
 	// Checks are not evaluated during a destroy. The checks may fail, may not
@@ -655,15 +656,15 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 			},
 		}
 
-		cs, err := change.Encode()
-		if err != nil {
-			// Should never happen, since we just constructed this right above
-			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
-		}
-		log.Printf("[TRACE] NodeDestroyableOutput: Saving %s change for %s in changeset", change.Action, n.Addr)
+		// cs, err := change.Encode()
+		// if err != nil {
+		// 	// Should never happen, since we just constructed this right above
+		// 	panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
+		// }
+		// log.Printf("[TRACE] NodeDestroyableOutput: Saving %s change for %s in changeset", change.Action, n.Addr)
 
 		changes.RemoveOutputChange(n.Addr) // remove any existing planned change, if present
-		changes.AppendOutputChange(cs)     // add the new planned change
+		changes.AppendOutputChange(change) // add the new planned change
 	}
 
 	state.RemoveOutputValue(n.Addr)
@@ -747,13 +748,13 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 				},
 			}
 
-			cs, err := change.Encode()
-			if err != nil {
-				// Should never happen, since we just constructed this right above
-				panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
-			}
+			// cs, err := change.Encode()
+			// if err != nil {
+			// 	// Should never happen, since we just constructed this right above
+			// 	panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
+			// }
 			log.Printf("[TRACE] setValue: Saving %s change for %s in changeset", change.Action, n.Addr)
-			changes.AppendOutputChange(cs) // add the new planned change
+			changes.AppendOutputChange(change) // add the new planned change
 		}
 	}
 

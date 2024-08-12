@@ -64,7 +64,7 @@ type Plan struct {
 	VariableMarks      map[string][]cty.PathValueMarks
 	ApplyTimeVariables collections.Set[string]
 
-	Changes           *Changes
+	Changes           *ChangesSrc
 	DriftedResources  []*ResourceInstanceChangeSrc
 	DeferredResources []*DeferredResourceInstanceChangeSrc
 	TargetAddrs       []addrs.Targetable

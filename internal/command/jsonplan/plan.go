@@ -640,7 +640,7 @@ func MarshalDeferredResourceChanges(resources []*plans.DeferredResourceInstanceC
 // This function is referenced directly from the structured renderer tests, to
 // ensure parity between the renderers. It probably shouldn't be used anywhere
 // else.
-func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
+func MarshalOutputChanges(changes *plans.ChangesSrc) (map[string]Change, error) {
 	if changes == nil {
 		// Nothing to do!
 		return nil, nil
@@ -730,7 +730,7 @@ func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
 	return outputChanges, nil
 }
 
-func (p *plan) marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) error {
+func (p *plan) marshalPlannedValues(changes *plans.ChangesSrc, schemas *terraform.Schemas) error {
 	// marshal the planned changes into a module
 	plan, err := marshalPlannedValues(changes, schemas)
 	if err != nil {
