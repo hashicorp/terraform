@@ -392,11 +392,6 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 	// was known
 	if changeRecorded {
 		val = n.Change.After
-		// change, err := n.Change.Decode()
-		// diags = diags.Append(err)
-		// if err == nil {
-		// 	val = change.After
-		// }
 	}
 
 	// Checks are not evaluated during a destroy. The checks may fail, may not
@@ -656,13 +651,6 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 			},
 		}
 
-		// cs, err := change.Encode()
-		// if err != nil {
-		// 	// Should never happen, since we just constructed this right above
-		// 	panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
-		// }
-		// log.Printf("[TRACE] NodeDestroyableOutput: Saving %s change for %s in changeset", change.Action, n.Addr)
-
 		changes.RemoveOutputChange(n.Addr) // remove any existing planned change, if present
 		changes.AppendOutputChange(change) // add the new planned change
 	}
@@ -748,11 +736,6 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 				},
 			}
 
-			// cs, err := change.Encode()
-			// if err != nil {
-			// 	// Should never happen, since we just constructed this right above
-			// 	panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
-			// }
 			log.Printf("[TRACE] setValue: Saving %s change for %s in changeset", change.Action, n.Addr)
 			changes.AppendOutputChange(change) // add the new planned change
 		}

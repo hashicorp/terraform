@@ -400,35 +400,9 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 		return nil, false, diags
 	}
 
-	// Since we have a traversal after the resource reference, we will need to
-	// decode the changes, which means we need a schema.
-	// providerAddr := change.ProviderAddr
-	// schema, err := ctx.ProviderSchema(providerAddr)
-	// if err != nil {
-	// 	diags = diags.Append(err)
-	// 	return nil, false, diags
-	// }
-
-	// resAddr := change.Addr.ContainingResource().Resource
-	//resSchema, _ := schema.SchemaForResourceType(resAddr.Mode, resAddr.Type)
-	//ty := resSchema.ImpliedType()
-
-	// before, err := change.Change.Before.Decode(ty)
-	// if err != nil {
-	// 	diags = diags.Append(err)
-	// 	return nil, false, diags
-	// }
-
-	// after, err := change.ChangeSrc.After.Decode(ty)
-	// if err != nil {
-	// 	diags = diags.Append(err)
-	// 	return nil, false, diags
-	// }
-	before, after := change.Before, change.After
-
 	path := traversalToPath(ref.Remaining)
-	attrBefore, _ := path.Apply(before)
-	attrAfter, _ := path.Apply(after)
+	attrBefore, _ := path.Apply(change.Before)
+	attrAfter, _ := path.Apply(change.After)
 
 	if attrBefore == cty.NilVal || attrAfter == cty.NilVal {
 		replace := attrBefore != attrAfter
