@@ -160,7 +160,7 @@ func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagno
 	}
 
 	if attr, exists := content.Attributes["depends_on"]; exists {
-		deps, depsDiags := decodeDependsOn(attr)
+		deps, depsDiags := DecodeDependsOn(attr)
 		diags = append(diags, depsDiags...)
 		r.DependsOn = append(r.DependsOn, deps...)
 	}
@@ -429,7 +429,7 @@ func decodeDataBlock(block *hcl.Block, override, nested bool) (*Resource, hcl.Di
 	}
 
 	if attr, exists := content.Attributes["depends_on"]; exists {
-		deps, depsDiags := decodeDependsOn(attr)
+		deps, depsDiags := DecodeDependsOn(attr)
 		diags = append(diags, depsDiags...)
 		r.DependsOn = append(r.DependsOn, deps...)
 	}
