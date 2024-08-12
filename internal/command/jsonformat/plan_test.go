@@ -48,6 +48,80 @@ and found no differences, so no changes are needed.
 	}
 }
 
+func TestRenderHuman_DeferredPlan(t *testing.T) {
+	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
+	streams, done := terminal.StreamsForTesting(t)
+
+	plan := Plan{
+		DeferredChanges: []jsonplan.DeferredResourceChange{
+			{
+				Reason: jsonplan.DeferredReasonDeferredPrereq,
+				ResourceChange: jsonplan.ResourceChange{
+					Address:      "aws_instance.foo",
+					Mode:         "managed",
+					Type:         "aws_instance",
+					Name:         "foo",
+					IndexUnknown: true,
+					ProviderName: "aws",
+					Change: jsonplan.Change{
+						Actions: []string{"update"},
+						Before: marshalJson(t, map[string]interface{}{
+							"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+							"value": "Hello, World!",
+						}),
+						After: marshalJson(t, map[string]interface{}{
+							"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+							"value": "Hello, World!",
+						}),
+					},
+				},
+			},
+		},
+		ProviderSchemas: map[string]*jsonprovider.Provider{
+			"aws": {
+				ResourceSchemas: map[string]*jsonprovider.Schema{
+					"aws_instance": {
+						Block: &jsonprovider.Block{
+							Attributes: map[string]*jsonprovider.Attribute{
+								"id": {
+									AttributeType: marshalJson(t, "string"),
+								},
+								"ami": {
+									AttributeType: marshalJson(t, "string"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	renderer := Renderer{Colorize: color, Streams: streams}
+	plan.renderHuman(renderer, plans.NormalMode)
+
+	want := `
+No current changes. This plan requires another plan to be applied first.
+
+
+Note: This is a partial plan, parts can only be known in the next plan / apply cycle.
+
+
+  # aws_instance.foo was deferred
+  # (because a prerequisite for this resource is deferred)
+  ~ resource "aws_instance" "foo" {
+        id = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+    }
+
+─────────────────────────────────────────────────────────────────────────────
+`
+
+	got := done(t).Stdout()
+	if diff := cmp.Diff(want, got); len(diff) > 0 {
+		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+	}
+}
+
 func TestRenderHuman_EmptyOutputs(t *testing.T) {
 	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
 	streams, done := terminal.StreamsForTesting(t)
@@ -7122,6 +7196,236 @@ func TestOutputChanges(t *testing.T) {
 			output := renderHumanDiffOutputs(renderer, diffs.outputs)
 			if output != tc.output {
 				t.Errorf("Unexpected diff.\ngot:\n%s\nwant:\n%s\n", output, tc.output)
+			}
+		})
+	}
+}
+
+func TestResourceChange_deferredActions(t *testing.T) {
+	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
+	providerAddr := addrs.AbsProviderConfig{
+		Provider: addrs.NewDefaultProvider("test"),
+		Module:   addrs.RootModule,
+	}
+	testCases := map[string]struct {
+		changes []*plans.DeferredResourceInstanceChange
+		output  string
+	}{
+		"deferred create action": {
+			changes: []*plans.DeferredResourceInstanceChange{
+				{
+					DeferredReason: providers.DeferredReasonAbsentPrereq,
+					Change: &plans.ResourceInstanceChange{
+						Addr: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_instance",
+							Name: "instance",
+						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+						ProviderAddr: providerAddr,
+						Change: plans.Change{
+							Action: plans.Create,
+							Before: cty.NullVal(cty.DynamicPseudoType),
+							After: cty.ObjectVal(map[string]cty.Value{
+								"id":  cty.UnknownVal(cty.String),
+								"ami": cty.StringVal("bar"),
+								"disk": cty.UnknownVal(cty.Object(map[string]cty.Type{
+									"mount_point": cty.String,
+									"size":        cty.Number,
+								})),
+								"root_block_device": cty.UnknownVal(cty.Object(map[string]cty.Type{
+									"volume_type": cty.String,
+								})),
+							}),
+						},
+					},
+				},
+			},
+			output: `  # test_instance.instance was deferred
+  # (because a prerequisite for this resource has not yet been created)
+  + resource "test_instance" "instance" {
+      + ami  = "bar"
+      + disk = (known after apply)
+      + id   = (known after apply)
+
+      + root_block_device (known after apply)
+    }`,
+		},
+
+		"deferred create action unknown for_each": {
+			changes: []*plans.DeferredResourceInstanceChange{
+				{
+					DeferredReason: providers.DeferredReasonInstanceCountUnknown,
+					Change: &plans.ResourceInstanceChange{
+						Addr: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_instance",
+							Name: "instance",
+						}.Instance(addrs.WildcardKey).Absolute(addrs.RootModuleInstance),
+						ProviderAddr: providerAddr,
+						Change: plans.Change{
+							Action: plans.Create,
+							Before: cty.NullVal(cty.DynamicPseudoType),
+							After: cty.ObjectVal(map[string]cty.Value{
+								"id":  cty.UnknownVal(cty.String),
+								"ami": cty.StringVal("bar"),
+								"disk": cty.UnknownVal(cty.Object(map[string]cty.Type{
+									"mount_point": cty.String,
+									"size":        cty.Number,
+								})),
+								"root_block_device": cty.UnknownVal(cty.Object(map[string]cty.Type{
+									"volume_type": cty.String,
+								})),
+							}),
+						},
+					},
+				},
+			},
+			output: `  # test_instance.instance[*] was deferred
+  # (because the number of resource instances is unknown)
+  + resource "test_instance" "instance" {
+      + ami  = "bar"
+      + disk = (known after apply)
+      + id   = (known after apply)
+
+      + root_block_device (known after apply)
+    }`,
+		},
+
+		"deferred update action": {
+			changes: []*plans.DeferredResourceInstanceChange{
+				{
+					DeferredReason: providers.DeferredReasonProviderConfigUnknown,
+					Change: &plans.ResourceInstanceChange{
+						Addr: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_instance",
+							Name: "instance",
+						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+						ProviderAddr: providerAddr,
+						Change: plans.Change{
+							Action: plans.Update,
+							Before: cty.ObjectVal(map[string]cty.Value{
+								"id":  cty.StringVal("foo"),
+								"ami": cty.StringVal("bar"),
+								"disk": cty.NullVal(cty.Object(map[string]cty.Type{
+									"mount_point": cty.String,
+									"size":        cty.Number,
+								})),
+								"root_block_device": cty.NullVal(cty.Object(map[string]cty.Type{
+									"volume_type": cty.String,
+								})),
+							}),
+							After: cty.ObjectVal(map[string]cty.Value{
+								"id":  cty.StringVal("foo"),
+								"ami": cty.StringVal("baz"),
+								"disk": cty.NullVal(cty.Object(map[string]cty.Type{
+									"mount_point": cty.String,
+									"size":        cty.Number,
+								})),
+								"root_block_device": cty.NullVal(cty.Object(map[string]cty.Type{
+									"volume_type": cty.String,
+								})),
+							}),
+						},
+					},
+				},
+			},
+			output: `  # test_instance.instance was deferred
+  # (because the provider configuration is unknown)
+  ~ resource "test_instance" "instance" {
+      ~ ami = "bar" -> "baz"
+        id  = "foo"
+    }`,
+		},
+
+		"deferred destroy action": {
+			changes: []*plans.DeferredResourceInstanceChange{
+				{
+					DeferredReason: providers.DeferredReasonResourceConfigUnknown,
+					Change: &plans.ResourceInstanceChange{
+						Addr: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_instance",
+							Name: "instance",
+						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+						ProviderAddr: providerAddr,
+						Change: plans.Change{
+							Action: plans.Update,
+							Before: cty.ObjectVal(map[string]cty.Value{
+								"id":  cty.StringVal("foo"),
+								"ami": cty.StringVal("bar"),
+								"disk": cty.NullVal(cty.Object(map[string]cty.Type{
+									"mount_point": cty.String,
+									"size":        cty.Number,
+								})),
+								"root_block_device": cty.NullVal(cty.Object(map[string]cty.Type{
+									"volume_type": cty.String,
+								})),
+							}),
+							After: cty.NullVal(cty.Object(map[string]cty.Type{
+								"id":  cty.String,
+								"ami": cty.String,
+								"disk": cty.Object(map[string]cty.Type{
+									"mount_point": cty.String,
+									"size":        cty.Number,
+								}),
+								"root_block_device": cty.Object(map[string]cty.Type{
+									"volume_type": cty.String,
+								}),
+							})),
+						},
+					},
+				},
+			},
+			output: `  # test_instance.instance was deferred
+  # (because the resource configuration is unknown)
+  ~ resource "test_instance" "instance" {
+      - ami = "bar" -> null
+      - id  = "foo" -> null
+    }`,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			blockSchema := testSchema(configschema.NestingSingle)
+			fullSchema := &terraform.Schemas{
+				Providers: map[addrs.Provider]providers.ProviderSchema{
+					providerAddr.Provider: {
+						ResourceTypes: map[string]providers.Schema{
+							"test_instance": {
+								Block: blockSchema,
+							},
+						},
+					},
+				},
+			}
+			var changes []*plans.DeferredResourceInstanceChangeSrc
+			for _, change := range tc.changes {
+				changeSrc, err := change.Encode(blockSchema.ImpliedType())
+				if err != nil {
+					t.Fatalf("Failed to encode change: %s", err)
+				}
+				changes = append(changes, changeSrc)
+			}
+
+			deferredChanges, err := jsonplan.MarshalDeferredResourceChanges(changes, fullSchema)
+			if err != nil {
+				t.Fatalf("failed to marshal deferred changes: %s", err)
+			}
+
+			renderer := Renderer{Colorize: color}
+			jsonschemas := jsonprovider.MarshalForRenderer(fullSchema)
+			diffs := precomputeDiffs(Plan{
+				DeferredChanges: deferredChanges,
+				ProviderSchemas: jsonschemas,
+			}, plans.NormalMode)
+
+			// TODO: Add diffing for outputs
+			// TODO: Make sure it's true and either make it a single entity in the test case or deal with a list here
+			output, _ := renderHumanDeferredDiff(renderer, diffs.deferred[0])
+			if diff := cmp.Diff(tc.output, output); len(diff) > 0 {
+				t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s\ndiff:\n%s", output, tc.output, diff)
 			}
 		})
 	}

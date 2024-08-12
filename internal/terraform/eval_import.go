@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func evaluateImportIdExpression(expr hcl.Expression, target addrs.AbsResourceInstance, ctx EvalContext, keyData instances.RepetitionData, allowUnknown bool) (cty.Value, tfdiags.Diagnostics) {
+func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData instances.RepetitionData, allowUnknown bool) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if expr == nil {
@@ -26,11 +26,6 @@ func evaluateImportIdExpression(expr hcl.Expression, target addrs.AbsResourceIns
 			Detail:   "The import ID cannot be null.",
 			Subject:  expr.Range().Ptr(),
 		})
-	}
-
-	diags = diags.Append(validateImportSelfRef(target.Resource.Resource, expr))
-	if diags.HasErrors() {
-		return cty.NilVal, diags
 	}
 
 	// import blocks only exist in the root module, and must be evaluated in

@@ -1,16 +1,20 @@
 ---
 name: Backport Assistant Runner
-    
+
 on:
   pull_request_target:
     types:
       - closed
-    
+
+permissions:
+  contents: write # to push to a new branch
+  pull-requests: write # to create a new PR
+
 jobs:
   backport:
     if: github.event.pull_request.merged
     runs-on: ubuntu-latest
-    container: hashicorpdev/backport-assistant:0.4.3@sha256:2381806dd059c14515463b87e8a923d57734bd484beea6a561e411e25628e010
+    container: hashicorpdev/backport-assistant:0.4.6@sha256:4216e0662085278a6e5b8fd8fbc84fc5e55e598b08a3608b54ba96e81decebcd
     steps:
       - name: Run Backport Assistant
         run: |
@@ -18,4 +22,4 @@ jobs:
         env:
           BACKPORT_LABEL_REGEXP: "(?P<target>\\d+\\.\\d+)-backport"
           BACKPORT_TARGET_TEMPLATE: "v{{.target}}"
-          GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}

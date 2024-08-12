@@ -25,11 +25,12 @@ const (
 )
 
 type Plan struct {
-	PlanFormatVersion  string                     `json:"plan_format_version"`
-	OutputChanges      map[string]jsonplan.Change `json:"output_changes,omitempty"`
-	ResourceChanges    []jsonplan.ResourceChange  `json:"resource_changes,omitempty"`
-	ResourceDrift      []jsonplan.ResourceChange  `json:"resource_drift,omitempty"`
-	RelevantAttributes []jsonplan.ResourceAttr    `json:"relevant_attributes,omitempty"`
+	PlanFormatVersion  string                            `json:"plan_format_version"`
+	OutputChanges      map[string]jsonplan.Change        `json:"output_changes,omitempty"`
+	ResourceChanges    []jsonplan.ResourceChange         `json:"resource_changes,omitempty"`
+	ResourceDrift      []jsonplan.ResourceChange         `json:"resource_drift,omitempty"`
+	RelevantAttributes []jsonplan.ResourceAttr           `json:"relevant_attributes,omitempty"`
+	DeferredChanges    []jsonplan.DeferredResourceChange `json:"deferred_changes,omitempty"`
 
 	ProviderFormatVersion string                            `json:"provider_format_version"`
 	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas,omitempty"`
@@ -105,6 +106,15 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 			renderer.Streams.Print(
 				renderer.Colorize.Color("\n[reset][bold][red]Planning failed.[reset][bold] Terraform encountered an error while generating this plan.[reset]\n\n"),
 			)
+		} else if len(diffs.deferred) > 0 {
+			// We had no current changes, but deferred changes
+			if haveRefreshChanges {
+				renderer.Streams.Print(format.HorizontalRule(renderer.Colorize, renderer.Streams.Stdout.Columns()))
+				renderer.Streams.Println("")
+			}
+			renderer.Streams.Print(
+				renderer.Colorize.Color("\n[reset][bold][green]No current changes.[reset][bold] This plan requires another plan to be applied first.[reset]\n\n"),
+			)
 		} else {
 			switch mode {
 			case plans.RefreshOnlyMode:
@@ -176,6 +186,12 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 	}
 
 	if haveRefreshChanges {
+		renderer.Streams.Print(format.HorizontalRule(renderer.Colorize, renderer.Streams.Stdout.Columns()))
+		renderer.Streams.Println()
+	}
+
+	haveDeferredChanges := renderHumanDeferredChanges(renderer, diffs, mode)
+	if haveDeferredChanges {
 		renderer.Streams.Print(format.HorizontalRule(renderer.Colorize, renderer.Streams.Stdout.Columns()))
 		renderer.Streams.Println()
 	}
@@ -334,6 +350,24 @@ func renderHumanDiffDrift(renderer Renderer, diffs diffs, mode plans.Mode) bool 
 	return true
 }
 
+func renderHumanDeferredChanges(renderer Renderer, diffs diffs, mode plans.Mode) bool {
+	if len(diffs.deferred) == 0 {
+		return false
+	}
+
+	renderer.Streams.Print(renderer.Colorize.Color("\n[bold][cyan]Note:[reset][bold] This is a partial plan, parts can only be known in the next plan / apply cycle.\n"))
+	renderer.Streams.Println()
+
+	for _, deferred := range diffs.deferred {
+		diff, render := renderHumanDeferredDiff(renderer, deferred)
+		if render {
+			renderer.Streams.Println()
+			renderer.Streams.Println(diff)
+		}
+	}
+	return true
+}
+
 func renderHumanDiff(renderer Renderer, diff diff, cause string) (string, bool) {
 
 	// Internally, our computed diffs can't tell the difference between a
@@ -356,6 +390,48 @@ func renderHumanDiff(renderer Renderer, diff diff, cause string) (string, bool) 
 	opts.ShowUnchangedChildren = diff.Importing()
 
 	buf.WriteString(fmt.Sprintf("%s %s %s", renderer.Colorize.Color(format.DiffActionSymbol(action)), resourceChangeHeader(diff.change), diff.diff.RenderHuman(0, opts)))
+	return buf.String(), true
+}
+
+func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, bool) {
+
+	// Internally, our computed diffs can't tell the difference between a
+	// replace action (eg. CreateThenDestroy, DestroyThenCreate) and a simple
+	// update action. So, at the top most level we rely on the action provided
+	// by the plan itself instead of what we compute. Nested attributes and
+	// blocks however don't have the replace type of actions, so we can trust
+	// the computed actions of these.
+	action := jsonplan.UnmarshalActions(deferred.diff.change.Change.Actions)
+	if action == plans.NoOp && !deferred.diff.Moved() && !deferred.diff.Importing() {
+		// Skip resource changes that have nothing interesting to say.
+		return "", false
+	}
+
+	var buf bytes.Buffer
+	var explanation string
+	switch deferred.reason {
+	// TODO: Add other cases
+	case jsonplan.DeferredReasonInstanceCountUnknown:
+		explanation = "because the number of resource instances is unknown"
+	case jsonplan.DeferredReasonResourceConfigUnknown:
+		explanation = "because the resource configuration is unknown"
+	case jsonplan.DeferredReasonProviderConfigUnknown:
+		explanation = "because the provider configuration is unknown"
+	case jsonplan.DeferredReasonDeferredPrereq:
+		explanation = "because a prerequisite for this resource is deferred"
+	case jsonplan.DeferredReasonAbsentPrereq:
+		explanation = "because a prerequisite for this resource has not yet been created"
+	default:
+		explanation = "for an unknown reason"
+	}
+
+	buf.WriteString(renderer.Colorize.Color(fmt.Sprintf("[bold]  # %s[reset] was deferred\n", deferred.diff.change.Address)))
+	buf.WriteString(renderer.Colorize.Color(fmt.Sprintf("  #[reset] (%s)\n", explanation)))
+
+	opts := computed.NewRenderHumanOpts(renderer.Colorize)
+	opts.ShowUnchangedChildren = deferred.diff.Importing()
+
+	buf.WriteString(fmt.Sprintf("%s %s %s", renderer.Colorize.Color(format.DiffActionSymbol(action)), resourceChangeHeader(deferred.diff.change), deferred.diff.diff.RenderHuman(0, opts)))
 	return buf.String(), true
 }
 
