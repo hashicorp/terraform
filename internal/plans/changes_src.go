@@ -10,6 +10,8 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -94,6 +96,51 @@ func (c *ChangesSrc) OutputValue(addr addrs.AbsOutputValue) *OutputChangeSrc {
 	}
 
 	return nil
+}
+
+// Decode decodes all the stored resource and output changes into a new *Changes value.
+func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
+	changes := NewChanges()
+
+	for _, rcs := range c.Resources {
+		p, ok := schemas.Providers[rcs.ProviderAddr.Provider]
+		if !ok {
+			return nil, fmt.Errorf("ChangesSrc.Decode: missing provider %s for %s", rcs.ProviderAddr, rcs.Addr)
+		}
+
+		var schema providers.Schema
+		switch rcs.Addr.Resource.Resource.Mode {
+		case addrs.ManagedResourceMode:
+			schema = p.ResourceTypes[rcs.Addr.Resource.Resource.Type]
+		case addrs.DataResourceMode:
+			schema = p.DataSources[rcs.Addr.Resource.Resource.Type]
+		default:
+			panic(fmt.Sprintf("unexpected resource mode %s", rcs.Addr.Resource.Resource.Mode))
+		}
+
+		if schema.Block == nil {
+			return nil, fmt.Errorf("ChangesSrc.Decode: missing schema for %s", rcs.Addr)
+		}
+
+		rc, err := rcs.Decode(schema.Block.ImpliedType())
+		if err != nil {
+			return nil, err
+		}
+
+		rc.Before = marks.MarkPaths(rc.Before, marks.Sensitive, rcs.BeforeSensitivePaths)
+		rc.After = marks.MarkPaths(rc.After, marks.Sensitive, rcs.AfterSensitivePaths)
+
+		changes.Resources = append(changes.Resources, rc)
+	}
+
+	for _, ocs := range c.Outputs {
+		oc, err := ocs.Decode()
+		if err != nil {
+			return nil, err
+		}
+		changes.Outputs = append(changes.Outputs, oc)
+	}
+	return changes, nil
 }
 
 // ResourceInstanceChangeSrc is a not-yet-decoded ResourceInstanceChange.

@@ -770,47 +770,15 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 			fmt.Sprintf("If you apply this plan, Terraform will discard its tracking information for the following objects, but it will not delete them:\n%s\n\nAfter applying this plan, Terraform will no longer manage these objects. You will need to import them into Terraform to manage them again.", strings.Join(forgottenResources, "\n")),
 		))
 	}
-
-	changesSrc := &plans.ChangesSrc{}
-	{
-		// FIXME Changes.Decode HACK??
-		// Or is this actually just fine???
-
-		schemas, diags := c.Schemas(config, prevRunState)
-		if diags.HasErrors() {
-			return nil, nil, diags
+	schemas, schemaDiags := c.Schemas(config, prevRunState)
+	// We must finish building a plan object, and cannot return early here.
+	var changesSrc *plans.ChangesSrc
+	var err error
+	if !schemaDiags.HasErrors() {
+		changesSrc, err = changes.Encode(schemas)
+		if err != nil {
+			diags = diags.Append(err)
 		}
-
-		for _, rc := range changes.Resources {
-			p := schemas.Providers[rc.ProviderAddr.Provider]
-			var schema providers.Schema
-			switch rc.Addr.Resource.Resource.Mode {
-			case addrs.ManagedResourceMode:
-				schema = p.ResourceTypes[rc.Addr.Resource.Resource.Type]
-			case addrs.DataResourceMode:
-				schema = p.DataSources[rc.Addr.Resource.Resource.Type]
-			default:
-				panic(fmt.Sprintf("unexpected resource mode %s", rc.Addr.Resource.Resource.Mode))
-			}
-
-			rcs, err := rc.Encode(schema.Block.ImpliedType())
-			if err != nil {
-				diags = diags.Append(err)
-				return nil, nil, diags
-			}
-
-			changesSrc.Resources = append(changesSrc.Resources, rcs)
-		}
-
-		for _, ocs := range changes.Outputs {
-			oc, err := ocs.Encode()
-			if err != nil {
-				diags = diags.Append(err)
-				return nil, nil, diags
-			}
-			changesSrc.Outputs = append(changesSrc.Outputs, oc)
-		}
-
 	}
 
 	plan := &plans.Plan{

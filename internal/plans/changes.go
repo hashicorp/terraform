@@ -10,6 +10,8 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -54,6 +56,49 @@ func (c *Changes) Empty() bool {
 	}
 
 	return true
+}
+
+// Encode encodes all the stored resource and output changes into a new *ChangeSrc value
+func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
+	changesSrc := NewChangesSrc()
+
+	for _, rc := range c.Resources {
+		p, ok := schemas.Providers[rc.ProviderAddr.Provider]
+		if !ok {
+			return nil, fmt.Errorf("Changes.Encode: missing provider %s for %s", rc.ProviderAddr, rc.Addr)
+		}
+
+		var schema providers.Schema
+		switch rc.Addr.Resource.Resource.Mode {
+		case addrs.ManagedResourceMode:
+			schema = p.ResourceTypes[rc.Addr.Resource.Resource.Type]
+		case addrs.DataResourceMode:
+			schema = p.DataSources[rc.Addr.Resource.Resource.Type]
+		default:
+			panic(fmt.Sprintf("unexpected resource mode %s", rc.Addr.Resource.Resource.Mode))
+		}
+
+		if schema.Block == nil {
+			return nil, fmt.Errorf("Changes.Encode: missing schema for %s", rc.Addr)
+		}
+
+		rcs, err := rc.Encode(schema.Block.ImpliedType())
+		if err != nil {
+			return nil, err
+		}
+
+		changesSrc.Resources = append(changesSrc.Resources, rcs)
+	}
+
+	for _, ocs := range c.Outputs {
+		oc, err := ocs.Encode()
+		if err != nil {
+			return nil, err
+		}
+		changesSrc.Outputs = append(changesSrc.Outputs, oc)
+	}
+
+	return changesSrc, nil
 }
 
 // ResourceInstance returns the planned change for the current object of the

@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -169,48 +168,16 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		return nil, nil, diags
 	}
 
-	changes := plans.NewChanges()
+	schemas, schemaDiags := c.Schemas(config, plan.PriorState)
+	diags = diags.Append(schemaDiags)
+	if diags.HasErrors() {
+		return nil, nil, diags
+	}
 
-	{
-		// FIXME Changes.Decode HACK??
-		// Or is this actually just fine???
-
-		schemas, diags := c.Schemas(config, plan.PriorState)
-		if diags.HasErrors() {
-			return nil, nil, diags
-		}
-
-		for _, rcs := range plan.Changes.Resources {
-			p := schemas.Providers[rcs.ProviderAddr.Provider]
-			var schema providers.Schema
-			switch rcs.Addr.Resource.Resource.Mode {
-			case addrs.ManagedResourceMode:
-				schema = p.ResourceTypes[rcs.Addr.Resource.Resource.Type]
-			case addrs.DataResourceMode:
-				schema = p.DataSources[rcs.Addr.Resource.Resource.Type]
-			default:
-				panic(fmt.Sprintf("unexpected resource mode %s", rcs.Addr.Resource.Resource.Mode))
-			}
-
-			rc, err := rcs.Decode(schema.Block.ImpliedType())
-			if err != nil {
-				diags = diags.Append(err)
-				return nil, nil, diags
-			}
-			rc.Before = marks.MarkPaths(rc.Before, marks.Sensitive, rcs.BeforeSensitivePaths)
-			rc.After = marks.MarkPaths(rc.After, marks.Sensitive, rcs.AfterSensitivePaths)
-			changes.Resources = append(changes.Resources, rc)
-		}
-
-		for _, ocs := range plan.Changes.Outputs {
-			oc, err := ocs.Decode()
-			if err != nil {
-				diags = diags.Append(err)
-				return nil, nil, diags
-			}
-			changes.Outputs = append(changes.Outputs, oc)
-		}
-
+	changes, err := plan.Changes.Decode(schemas)
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, nil, diags
 	}
 
 	workingState := plan.PriorState.DeepCopy()
@@ -390,48 +357,16 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 		externalProviderConfigs = opts.ExternalProviders
 	}
 
-	changes := plans.NewChanges()
-	{
-		// FIXME Changes.Decode HACK??
-		// Or is this actually just fine???
+	schemas, schemaDiags := c.Schemas(config, plan.PriorState)
+	diags = diags.Append(schemaDiags)
+	if diags.HasErrors() {
+		return nil, walkApply, diags
+	}
 
-		schemas, diags := c.Schemas(config, plan.PriorState)
-		if diags.HasErrors() {
-			return nil, walkApply, diags
-		}
-
-		for _, rcs := range plan.Changes.Resources {
-			p := schemas.Providers[rcs.ProviderAddr.Provider]
-			var schema providers.Schema
-			switch rcs.Addr.Resource.Resource.Mode {
-			case addrs.ManagedResourceMode:
-				schema = p.ResourceTypes[rcs.Addr.Resource.Resource.Type]
-			case addrs.DataResourceMode:
-				schema = p.DataSources[rcs.Addr.Resource.Resource.Type]
-			default:
-				panic(fmt.Sprintf("unexpected resource mode %s", rcs.Addr.Resource.Resource.Mode))
-			}
-			rc, err := rcs.Decode(schema.Block.ImpliedType())
-			if err != nil {
-				diags = diags.Append(err)
-				return nil, walkApply, diags
-			}
-			// FIXME mark on decode!
-			rc.Before = marks.MarkPaths(rc.Before, marks.Sensitive, rcs.BeforeSensitivePaths)
-			rc.After = marks.MarkPaths(rc.After, marks.Sensitive, rcs.AfterSensitivePaths)
-
-			changes.Resources = append(changes.Resources, rc)
-		}
-
-		for _, ocs := range plan.Changes.Outputs {
-			oc, err := ocs.Decode()
-			if err != nil {
-				diags = diags.Append(err)
-				return nil, walkApply, diags
-			}
-			changes.Outputs = append(changes.Outputs, oc)
-		}
-
+	changes, err := plan.Changes.Decode(schemas)
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, walkApply, diags
 	}
 
 	graph, moreDiags := (&ApplyGraphBuilder{

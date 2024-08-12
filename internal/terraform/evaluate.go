@@ -671,23 +671,6 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				continue
 			}
 			instances[key] = change.After
-			// val, err := change.After.Decode(ty)
-			// if err != nil {
-			// 	diags = diags.Append(&hcl.Diagnostic{
-			// 		Severity: hcl.DiagError,
-			// 		Summary:  "Invalid resource instance data in plan",
-			// 		Detail:   fmt.Sprintf("Instance %s data could not be decoded from the plan: %s.", instAddr, err),
-			// 		Subject:  &config.DeclRange,
-			// 	})
-			// 	continue
-			// }
-
-			// Unlike decoding state, decoding a change does not automatically
-			// mark values.
-			// FIXME: Correct that inconsistency by moving this logic into
-			// the decoder function in the plans package, so that we can
-			// test that behavior being implemented in only one place.
-			//instances[key] = marks.MarkPaths(val, marks.Sensitive, change.AfterSensitivePaths)
 			continue
 		}
 
