@@ -33,7 +33,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 			"foo": mustNewDynamicValueStr("foo value"),
 		},
 		ApplyTimeVariables: applyTimeVariables,
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Outputs: []*plans.OutputChangeSrc{
 				{
 					Addr: addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
@@ -382,7 +382,7 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 	})
 
 	plan := &plans.Plan{
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Outputs: []*plans.OutputChangeSrc{
 				{
 					Addr: addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
