@@ -3350,9 +3350,10 @@ func TestPlanInvalidProvidersFailGracefully(t *testing.T) {
 	go Plan(ctx, &req, &resp)
 	changes, diags := collectPlanOutput(changesCh, diagsCh)
 
+	sort.SliceStable(diags, diagnosticSortFunc(diags))
 	expectDiagnosticsForTest(t, diags,
-		expectDiagnostic(tfdiags.Error, "invalid configuration", "configure_error attribute was set"),
-		expectDiagnostic(tfdiags.Error, "Provider configuration is invalid", "Cannot plan changes for this resource because its associated provider configuration is invalid."))
+		expectDiagnostic(tfdiags.Error, "Provider configuration is invalid", "Cannot plan changes for this resource because its associated provider configuration is invalid."),
+		expectDiagnostic(tfdiags.Error, "invalid configuration", "configure_error attribute was set"))
 
 	sort.SliceStable(changes, func(i, j int) bool {
 		return plannedChangeSortKey(changes[i]) < plannedChangeSortKey(changes[j])
