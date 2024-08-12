@@ -23,7 +23,7 @@ func TestChangesEmpty(t *testing.T) {
 		},
 		"resource change": {
 			&Changes{
-				Resources: []*ResourceInstanceChangeSrc{
+				Resources: []*ResourceInstanceChange{
 					{
 						Addr: addrs.Resource{
 							Mode: addrs.ManagedResourceMode,
@@ -35,7 +35,7 @@ func TestChangesEmpty(t *testing.T) {
 							Type: "test_thing",
 							Name: "woot",
 						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-						ChangeSrc: ChangeSrc{
+						Change: Change{
 							Action: Update,
 						},
 					},
@@ -45,7 +45,7 @@ func TestChangesEmpty(t *testing.T) {
 		},
 		"resource change with no-op action": {
 			&Changes{
-				Resources: []*ResourceInstanceChangeSrc{
+				Resources: []*ResourceInstanceChange{
 					{
 						Addr: addrs.Resource{
 							Mode: addrs.ManagedResourceMode,
@@ -57,7 +57,7 @@ func TestChangesEmpty(t *testing.T) {
 							Type: "test_thing",
 							Name: "woot",
 						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-						ChangeSrc: ChangeSrc{
+						Change: Change{
 							Action: NoOp,
 						},
 					},
@@ -67,7 +67,7 @@ func TestChangesEmpty(t *testing.T) {
 		},
 		"resource moved with no-op change": {
 			&Changes{
-				Resources: []*ResourceInstanceChangeSrc{
+				Resources: []*ResourceInstanceChange{
 					{
 						Addr: addrs.Resource{
 							Mode: addrs.ManagedResourceMode,
@@ -79,7 +79,7 @@ func TestChangesEmpty(t *testing.T) {
 							Type: "test_thing",
 							Name: "toot",
 						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-						ChangeSrc: ChangeSrc{
+						Change: Change{
 							Action: NoOp,
 						},
 					},
@@ -89,12 +89,12 @@ func TestChangesEmpty(t *testing.T) {
 		},
 		"output change": {
 			&Changes{
-				Outputs: []*OutputChangeSrc{
+				Outputs: []*OutputChange{
 					{
 						Addr: addrs.OutputValue{
 							Name: "result",
 						}.Absolute(addrs.RootModuleInstance),
-						ChangeSrc: ChangeSrc{
+						Change: Change{
 							Action: Update,
 						},
 					},
@@ -104,12 +104,12 @@ func TestChangesEmpty(t *testing.T) {
 		},
 		"output change no-op": {
 			&Changes{
-				Outputs: []*OutputChangeSrc{
+				Outputs: []*OutputChange{
 					{
 						Addr: addrs.OutputValue{
 							Name: "result",
 						}.Absolute(addrs.RootModuleInstance),
-						ChangeSrc: ChangeSrc{
+						Change: Change{
 							Action: NoOp,
 						},
 					},
