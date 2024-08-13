@@ -64,7 +64,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		_, isSensitiveActual := marksA[marks.Sensitive]
 		_, isSensitivePlanned := marksP[marks.Sensitive]
 
-		moreErrs := assertValueCompatible(unmarkedPlannedV, unmarkedActualV, path)
+		moreErrs := assertValueCompatible(unmarkedPlannedV, unmarkedActualV, path, false)
 		if attrS.Sensitive || isSensitiveActual || isSensitivePlanned {
 			if len(moreErrs) > 0 {
 				// Use a vague placeholder message instead, to avoid disclosing
@@ -199,11 +199,25 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 // AssertValueCompatible matches the behavior of AssertObjectCompatible but
 // for a single value rather than a whole object. This is used by the stacks
 // package to compare before and after values of inputs.
+//
+// Note, this function considers null strings and empty strings as compatible
+// to maintain support for the legacy SDK.
 func AssertValueCompatible(planned, actual cty.Value) []error {
-	return assertValueCompatible(planned, actual, nil)
+	return assertValueCompatible(planned, actual, nil, true)
 }
 
-func assertValueCompatible(planned, actual cty.Value, path cty.Path) []error {
+// assertValueCompatible checks whether the given "actual" value is a valid
+// completion of the possibly-partially-unknown "planned" value.
+//
+// When allowLegacyStrings is true, this function will consider an empty string
+// and a null string to be equal. This is due to the fact that the legacy SDK
+// does not differentiate between the two, and so we must treat them as equal.
+//
+// This does mean that we will miss potential errors from non-legacy providers
+// that do differentiate between the two, but we have no way to know if a
+// provider is legacy or not at this point in the code and without this legacy
+// providers become unusable.
+func assertValueCompatible(planned, actual cty.Value, path cty.Path, allowLegacyStrings bool) []error {
 	// NOTE: We don't normally use the GoString rendering of cty.Value in
 	// user-facing error messages as a rule, but we make an exception
 	// for this function because we expect the user to pass this message on
@@ -230,6 +244,17 @@ func assertValueCompatible(planned, actual cty.Value, path cty.Path) []error {
 			errs = append(errs, path.NewErrorf("final value %#v does not conform to planning placeholder %#v", actual, planned))
 		}
 		return errs
+	}
+
+	if allowLegacyStrings && planned.Type() == cty.String {
+		// The legacy SDK can't differentiate between a null string and
+		// an empty string, so we'll normalise empty strings to null here.
+		if !planned.IsNull() && planned.IsKnown() && planned.AsString() == "" {
+			planned = cty.NullVal(cty.String)
+		}
+		if !actual.IsNull() && actual.IsKnown() && actual.AsString() == "" {
+			actual = cty.NullVal(cty.String)
+		}
 	}
 
 	if actual.IsNull() {
@@ -264,7 +289,7 @@ func assertValueCompatible(planned, actual cty.Value, path cty.Path) []error {
 			}
 
 			actualV := actual.Index(k)
-			moreErrs := assertValueCompatible(plannedV, actualV, append(path, cty.IndexStep{Key: k}))
+			moreErrs := assertValueCompatible(plannedV, actualV, append(path, cty.IndexStep{Key: k}), allowLegacyStrings)
 			errs = append(errs, moreErrs...)
 		}
 
@@ -283,7 +308,7 @@ func assertValueCompatible(planned, actual cty.Value, path cty.Path) []error {
 			// focus just on testing their values.
 			plannedV := planned.GetAttr(name)
 			actualV := actual.GetAttr(name)
-			moreErrs := assertValueCompatible(plannedV, actualV, append(path, cty.GetAttrStep{Name: name}))
+			moreErrs := assertValueCompatible(plannedV, actualV, append(path, cty.GetAttrStep{Name: name}), allowLegacyStrings)
 			errs = append(errs, moreErrs...)
 		}
 
@@ -296,7 +321,7 @@ func assertValueCompatible(planned, actual cty.Value, path cty.Path) []error {
 		if planned.IsKnown() && !planned.IsNull() && !actual.IsNull() {
 
 			setErrs := assertSetValuesCompatible(planned, actual, path, func(plannedV, actualV cty.Value) bool {
-				errs := assertValueCompatible(plannedV, actualV, append(path, cty.IndexStep{Key: actualV}))
+				errs := assertValueCompatible(plannedV, actualV, append(path, cty.IndexStep{Key: actualV}), allowLegacyStrings)
 				return len(errs) == 0
 			})
 			errs = append(errs, setErrs...)

@@ -1436,3 +1436,56 @@ func TestAssertObjectCompatible(t *testing.T) {
 		})
 	}
 }
+
+func TestAssertValueCompatible(t *testing.T) {
+	tests := map[string]struct {
+		planned  cty.Value
+		actual   cty.Value
+		wantErrs []string
+	}{
+		"empty string equal": {
+			// AssertValueCompatible should consider these equal.
+			planned: cty.NullVal(cty.String),
+			actual:  cty.StringVal(""),
+		},
+		"empty string equal (reversed)": {
+			planned: cty.StringVal(""),
+			actual:  cty.NullVal(cty.String),
+		},
+		"nested empty string equal": {
+			planned: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.String),
+			}),
+			actual: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal(""),
+			}),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			errs := AssertValueCompatible(test.planned, test.actual)
+
+			wantErrs := make(map[string]struct{})
+			gotErrs := make(map[string]struct{})
+			for _, err := range errs {
+				gotErrs[tfdiags.FormatError(err)] = struct{}{}
+			}
+			for _, err := range test.wantErrs {
+				wantErrs[err] = struct{}{}
+			}
+
+			t.Logf("\nplanned: %sactual:  %s", ctydebug.ValueString(test.planned), ctydebug.ValueString(test.actual))
+			for msg := range wantErrs {
+				if _, ok := gotErrs[msg]; !ok {
+					t.Errorf("missing expected error: %s", msg)
+				}
+			}
+			for msg := range gotErrs {
+				if _, ok := wantErrs[msg]; !ok {
+					t.Errorf("unexpected extra error: %s", msg)
+				}
+			}
+		})
+	}
+}
