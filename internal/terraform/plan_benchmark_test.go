@@ -72,3 +72,72 @@ output "out" {
 		}
 	}
 }
+
+func BenchmarkApplyLargeCountRefs(b *testing.B) {
+	m := testModuleInline(b, map[string]string{
+		"main.tf": `
+resource "test_resource" "a" {
+  count = 512
+  input = "ok"
+}
+
+resource "test_resource" "b" {
+  count = length(test_resource.a)
+  input = test_resource.a
+}
+
+module "mod" {
+  count = length(test_resource.a)
+  source = "./mod"
+  in = [test_resource.a[count.index].id, test_resource.b[count.index].id]
+}
+
+output out {
+  value = module.mod
+}`,
+		"./mod/main.tf": `
+variable "in" {
+}
+
+output "out" {
+  value = var.in
+}
+`})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":    {Type: cty.String, Computed: true},
+					"input": {Type: cty.DynamicPseudoType, Optional: true},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(b, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if diags.HasErrors() {
+		b.Fatal(diags.Err())
+	}
+
+	b.ResetTimer()
+	for range b.N {
+		ctx := testContext2(b, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+		_, diags := ctx.Apply(plan, m, nil)
+		if diags.HasErrors() {
+			b.Fatal(diags.Err())
+		}
+	}
+
+}
