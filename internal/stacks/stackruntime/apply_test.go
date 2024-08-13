@@ -1707,132 +1707,6 @@ func TestApplyWithStateManipulation(t *testing.T) {
 	}
 }
 
-func TestApplyWithChangedComponentValues(t *testing.T) {
-	ctx := context.Background()
-	cfg := loadMainBundleConfigForTest(t, filepath.Join("with-single-input", "valid"))
-
-	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	changesCh := make(chan stackplan.PlannedChange)
-	diagsCh := make(chan tfdiags.Diagnostic)
-	lock := depsfile.NewLocks()
-	lock.SetProvider(
-		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
-		providerreqs.PreferredHashes([]providerreqs.Hash{}),
-	)
-	req := PlanRequest{
-		Config: cfg,
-		ProviderFactories: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
-			},
-		},
-		DependencyLocks: *lock,
-
-		ForcePlanTimestamp: &fakePlanTimestamp,
-
-		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
-			stackaddrs.InputVariable{Name: "input"}: {
-				Value: cty.StringVal("hello"),
-			},
-		},
-	}
-	resp := PlanResponse{
-		PlannedChanges: changesCh,
-		Diagnostics:    diagsCh,
-	}
-
-	go Plan(ctx, &req, &resp)
-	planChanges, diags := collectPlanOutput(changesCh, diagsCh)
-	if len(diags) > 0 {
-		t.Fatalf("expected no diagnostics, got %s", diags.ErrWithWarnings())
-	}
-
-	planLoader := stackplan.NewLoader()
-	for _, change := range planChanges {
-		proto, err := change.PlannedChangeProto()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		for _, rawMsg := range proto.Raw {
-			err = planLoader.AddRaw(rawMsg)
-			if err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
-	plan, err := planLoader.Plan()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Now deliberately edit the plan so that it'll produce different outputs.
-	plan.RootInputValues[stackaddrs.InputVariable{Name: "input"}] = cty.StringVal("world")
-
-	applyReq := ApplyRequest{
-		Config: cfg,
-		Plan:   plan,
-		ProviderFactories: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
-			},
-		},
-		DependencyLocks: *lock,
-	}
-
-	applyChangesCh := make(chan stackstate.AppliedChange)
-	diagsCh = make(chan tfdiags.Diagnostic)
-
-	applyResp := ApplyResponse{
-		AppliedChanges: applyChangesCh,
-		Diagnostics:    diagsCh,
-	}
-
-	go Apply(ctx, &applyReq, &applyResp)
-	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, diagsCh)
-	if len(applyDiags) != 1 {
-		t.Fatalf("expected exactly one diagnostic, got %s", applyDiags.ErrWithWarnings())
-	}
-
-	gotSeverity, wantSeverity := applyDiags[0].Severity(), tfdiags.Error
-	gotSummary, wantSummary := applyDiags[0].Description().Summary, "Planned input variable value changed"
-	gotDetail, wantDetail := applyDiags[0].Description().Detail, "The planned value for input variable \"input\" has changed between the planning and apply phases for component.self. This is a bug in Terraform - please report it."
-
-	if gotSeverity != wantSeverity {
-		t.Errorf("expected severity %q, got %q", wantSeverity, gotSeverity)
-	}
-	if gotSummary != wantSummary {
-		t.Errorf("expected summary %q, got %q", wantSummary, gotSummary)
-	}
-	if gotDetail != wantDetail {
-		t.Errorf("expected detail %q, got %q", wantDetail, gotDetail)
-	}
-
-	wantChanges := []stackstate.AppliedChange{
-		&stackstate.AppliedChangeComponentInstance{
-			ComponentAddr:         mustAbsComponent("component.self"),
-			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
-		},
-		// no resources should have been created because the input variable was
-		// invalid.
-	}
-
-	sort.SliceStable(applyChanges, func(i, j int) bool {
-		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
-	})
-
-	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
-		t.Errorf("wrong changes\n%s", diff)
-	}
-}
-
 func TestApplyWithChangedInputValues(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, filepath.Join("with-single-input", "valid"))
@@ -1927,7 +1801,7 @@ func TestApplyWithChangedInputValues(t *testing.T) {
 
 	go Apply(ctx, &applyReq, &applyResp)
 	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, diagsCh)
-	if len(applyDiags) != 2 {
+	if len(applyDiags) != 1 {
 		t.Fatalf("expected exactly two diagnostics, got %s", applyDiags.ErrWithWarnings())
 	}
 
@@ -1937,10 +1811,7 @@ func TestApplyWithChangedInputValues(t *testing.T) {
 			tfdiags.Error,
 			"Inconsistent value for input variable during apply",
 			"The value for non-ephemeral input variable \"input\" was set to a different value during apply than was set during plan. Only ephemeral input variables can change between the plan and apply phases."),
-		expectDiagnostic(
-			tfdiags.Error,
-			"Planned input variable value changed",
-			"The planned value for input variable \"input\" has changed between the planning and apply phases for component.self. This is a bug in Terraform - please report it."))
+	)
 
 	wantChanges := []stackstate.AppliedChange{
 		&stackstate.AppliedChangeComponentInstance{

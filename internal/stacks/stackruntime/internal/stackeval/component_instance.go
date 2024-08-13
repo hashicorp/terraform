@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -91,7 +90,20 @@ func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase 
 
 	// We actually checked the errors statically already, so we only care about
 	// the value here.
-	return EvalComponentInputVariables(ctx, varDecls, wantTy, defs, decl, phase, c)
+	val, diags := EvalComponentInputVariables(ctx, varDecls, wantTy, defs, decl, phase, c)
+	if phase == ApplyPhase {
+		if !val.IsWhollyKnown() {
+			// We can't apply a configuration that has unknown values in it.
+			// This means an error has occured somewhere else, while gathering
+			// the input variables. We return a nil value here, whatever caused
+			// the error should have raised an error diagnostic separately.
+			return cty.NilVal, diags
+		}
+
+		// Note, that unknown values during the planning phase are totally fine.
+	}
+
+	return val, diags
 }
 
 // inputValuesForModulesRuntime adapts the result of
@@ -104,16 +116,11 @@ func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase 
 //
 // During the planning phase, the expectedValues should be nil, as they will
 // only be checked during the apply phase.
-func (c *ComponentInstance) inputValuesForModulesRuntime(ctx context.Context, previousValues map[string]plans.DynamicValue, phase EvalPhase) (terraform.InputValues, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
+func (c *ComponentInstance) inputValuesForModulesRuntime(ctx context.Context, phase EvalPhase) terraform.InputValues {
 	valsObj := c.InputVariableValues(ctx, phase)
 	if valsObj == cty.NilVal {
-		return nil, diags
+		return nil
 	}
-
-	// module is the configuration for the root module of this component.
-	module := c.call.Config(ctx).ModuleTree(ctx).Module
 
 	// valsObj might be an unknown value during the planning phase, in which
 	// case we'll return an InputValues with all of the expected variables
@@ -124,7 +131,7 @@ func (c *ComponentInstance) inputValuesForModulesRuntime(ctx context.Context, pr
 	if wantTy == cty.NilType {
 		// The configuration is too invalid for us to know what type we're
 		// expecting, so we'll just bail.
-		return nil, diags
+		return nil
 	}
 	wantAttrs := wantTy.AttributeTypes()
 	ret := make(terraform.InputValues, len(wantAttrs))
@@ -139,71 +146,8 @@ func (c *ComponentInstance) inputValuesForModulesRuntime(ctx context.Context, pr
 			Value:      v,
 			SourceType: terraform.ValueFromCaller,
 		}
-
-		// While we're here, we'll just add a diagnostic if the value has
-		// somehow changed between the planning and apply phases. All of these
-		// diagnostics acknowledge that the root cause here is a bug in
-		// Terraform.
-		if phase == ApplyPhase {
-			config := module.Variables[name]
-			if config.Ephemeral {
-				// Ephemeral variables are allowed to change between the plan
-				// and apply stages, so we won't bother checking them.
-				continue
-			}
-
-			raw, ok := previousValues[name]
-			if !ok {
-				// This shouldn't happen because we should have a value for
-				// every input variable that we have a value for in the plan.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Missing input variable value",
-					Detail: fmt.Sprintf(
-						"The input variable %q is required but was not set in the plan for %s. This is a bug in Terraform - please report it.",
-						name, c.Addr(),
-					),
-					Subject: c.call.Declaration(ctx).DeclRange.ToHCL().Ptr(),
-				})
-				continue
-			}
-
-			plannedValue, err := raw.Decode(cty.DynamicPseudoType)
-			if err != nil {
-				// Then something has gone wrong when decoding the value.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid planned input variable value",
-					Detail:   fmt.Sprintf("Failed to decode the planned value for input variable %q: %s. This is a bug in Terraform - please report it.", name, err),
-					Subject:  c.call.Declaration(ctx).DeclRange.ToHCL().Ptr(),
-				})
-				continue
-			}
-
-			// We're unmarking the value here so that we can compare it to the
-			// planned value. We're only checking for equality from here on out,
-			// so we don't need to worry about the marks.
-			applyValue, _ := v.UnmarkDeep()
-
-			if errs := objchange.AssertValueCompatible(plannedValue, applyValue); len(errs) > 0 {
-				// Then the value has changed between the planning and apply
-				// phases. This is a bug in Terraform. We don't want to expose
-				// the actual values here as they could contain sensitive
-				// information. This should be a rare error message, so we
-				// don't need to be too verbose.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Planned input variable value changed",
-					Detail: fmt.Sprintf(
-						"The planned value for input variable %q has changed between the planning and apply phases for %s. This is a bug in Terraform - please report it.",
-						name, c.Addr(),
-					),
-					Subject: c.call.Declaration(ctx).DeclRange.ToHCL().Ptr(),
-				})
-			}
-		}
 	}
-	return ret, diags
+	return ret
 }
 
 // Providers evaluates the "providers" argument from the component
@@ -615,8 +559,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			}
 
 			stackPlanOpts := c.main.PlanningOpts()
-			inputValues, inputValueDiags := c.inputValuesForModulesRuntime(ctx, nil, PlanPhase)
-			diags = diags.Append(inputValueDiags)
+			inputValues := c.inputValuesForModulesRuntime(ctx, PlanPhase)
 			if inputValues == nil || diags.HasErrors() {
 				return nil, diags
 			}
@@ -868,9 +811,8 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 	// shallow-copy it. This is NOT a deep copy, so don't modify anything
 	// that's reachable through any pointers without copying those first too.
 	modifiedPlan := *plan
-	inputValues, inputValueDiags := c.inputValuesForModulesRuntime(ctx, plan.VariableValues, ApplyPhase)
-	diags = diags.Append(inputValueDiags)
-	if inputValues == nil || inputValueDiags.HasErrors() {
+	inputValues := c.inputValuesForModulesRuntime(ctx, ApplyPhase)
+	if inputValues == nil {
 		// inputValuesForModulesRuntime uses nil (as opposed to a
 		// non-nil zerolen map) to represent that the definition of
 		// the input variables was so invalid that we cannot do
