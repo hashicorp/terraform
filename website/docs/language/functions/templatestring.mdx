@@ -4,41 +4,41 @@ description: |-
   The templatestring function takes a string from elsewhere in the module and renders its content as a template using a supplied set of template variables.
 ---
 
-# `templatestring` Function
+# `templatestring` function reference
 
--> **Note:** The `templatestring` function is intended for advanced use cases. Most use cases require only a [string template expression](/terraform/language/expressions/strings#string-templates). To render a template from a file, use the [`templatefile` function](/terraform/language/functions/templatefile).
+This topic provides reference information about the `templatestring` function. The `templatestring` function renders a string defined elsewhere in the module as a template using a set of variables.
 
-`templatestring` renders a template given as a string value, using a supplied set of template variables.
+## Introduction
+
+The primary use case for the `templatestring` function is to render templates fetched as a single string from remote locations. The function enables advanced use cases where a [string template expression](/terraform/language/expressions/strings#string-templates) is insufficient, such as when the template is available from a named object declared in the current module. Refer to [Dynamic template construction](#dynamic-template-construction) for additional information. 
+
+To render a template from a file, use the [`templatefile` function](/terraform/language/functions/templatefile).
+
+## Syntax
+
+Write `templatestring` functions using the following syntax:
 
 ```hcl
-templatestring(ref, vars)
+templatestring(ARG1, ARG2, . . .)
 ```
 
-The first parameter must be a direct reference to string value containing the template: for example, `data.aws_s3_object.example.body` or `local.inline_template`.
+Specify the following arguments:
 
-It is **not** valid to supply the template expression directly as the first argument:
+- The first argument is always a reference to an object defined in the module. You cannot supply the template expression directly as the first argument.
+- The second argument is an object that specifies a variable to use for rendering the template.
+- You can specify additional arguments to use multiple variables for the template.  
+
+In the following example, the function renders the string value located at `data.aws_s3_object.example.body` as the template:
 
 ```hcl
-# The following is not allowed
-templatestring("Hello, $${name}", {
+templatestring(data.aws_s3_object.example.body, {
   name = var.name
 })
 ```
 
-Instead of the above, you should use a normal string template expression:
+For information about the syntax you can use for the variables arguments, refer to [Strings and Templates](/terraform/language/expressions/strings).
 
-```hcl
-"Hello, ${var.name}"
-```
-
-The `templatestring` function is needed only when the template is available from a named object, such as a data resource, declared in the current module.
-
-The template syntax is the same as for
-[string templates](/terraform/language/expressions/strings#string-templates)
-in the main Terraform language, including interpolation sequences delimited with
-`${` ... `}`.
-
-## Example
+## Example use case
 
 The following example retrieves a template from S3 and dynamically renders it:
 
@@ -57,15 +57,11 @@ output "example" {
 
 For more examples of how to use templates, refer to the documentation for [the `templatefile` function](/terraform/language/functions/templatefile#Examples).
 
-## Dynamic Template Construction
+## Dynamic template construction
 
-This function is primarily intended for rendering templates fetched as a single string from remote locations, often using data resources.
+You can write an expression that builds a template dynamically and then assigns it to a [local value](/terraform/language/values/locals). You can then use a reference to that local value as the first argument to the `templatestring` function.
 
-You can also use this as a way to construct a template dynamically and then render it, but we recommend treating that only as a last resort because the result tends to be hard to understand, hard to maintain, and fragile to unexpected input.
-
-The restrictions on what kind of syntax is allowed in the first argument are a guardrail to help avoid those new to Terraform thinking that this function is the primary way to render templates in Terraform, but you can bypass those restrictions if you wish by writing an expression that builds a template dynamically and then assigning that expression to a [local value](/terraform/language/values/locals). You can then use a reference to that local value as the first argument to `templatestring`.
-
-If you _do_ choose to construct templates from parts dynamically, be mindful that Terraform has built-in functions that can interact with the local filesystem, and so maliciously-crafted input might produce a template whose result includes data from arbitrary files on the system where Terraform is running.
+Note that you should only dynamically construct templates in this way when no other alternative is feasible. This is because the result can be difficult to understand and maintain and is susceptible to unexpected inputs. Built-in Terraform functions may interact with the local filesystem. As a result, the inputs may produce a template that includes data from arbitrary files on the system where Terraform is running.
 
 ## Related Functions
 
