@@ -535,6 +535,33 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				return nil, diags
 			}
 
+			// We're actually going to provide two sets of providers to Core
+			// for Stacks operations.
+			//
+			// First, we provide the basic set of factories here. These are used
+			// by Terraform Core to handle operations that require an
+			// unconfigured provider, such as cross-provider move operations and
+			// provider functions. The provider factories return the shared
+			// unconfigured client that stacks holds for the same reasons. The
+			// factories will lazily request the unconfigured clients here as
+			// they are requested by Terraform.
+			//
+			// Second, we provide provider clients that are already configured
+			// for any operations that require configured clients. This is
+			// because we want to provide the clients built using the provider
+			// configurations from the stack that exist outside of Terraform's
+			// concerns. These are provided below in the `providerClients`
+			// variable.
+
+			providerFactories := make(map[addrs.Provider]providers.Factory, len(providerSchemas))
+			for addr := range providerSchemas {
+				providerFactories[addr] = func() (providers.Interface, error) {
+					// Lazily fetch the unconfigured client for the provider
+					// as and when we need it.
+					return c.main.ProviderType(ctx, addr).UnconfiguredClient(ctx)
+				}
+			}
+
 			tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
 				Hooks: []terraform.Hook{
 					&componentInstanceTerraformHook{
@@ -544,6 +571,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 						addr:  c.Addr(),
 					},
 				},
+				Providers:                providerFactories,
 				PreloadedProviderSchemas: providerSchemas,
 				Provisioners:             c.main.availableProvisioners(),
 			})

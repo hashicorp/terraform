@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/go-uuid"
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -99,6 +100,9 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 					"testing_data_source": {
 						Block: TestingDataSourceSchema,
 					},
+				},
+				ServerCapabilities: providers.ServerCapabilities{
+					MoveResourceState: true,
 				},
 			},
 			ConfigureProviderFn: func(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
@@ -249,6 +253,40 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 							State:    value,
 						},
 					},
+				}
+			},
+			MoveResourceStateFn: func(request providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
+				if request.SourceTypeName != "testing_resource" && request.TargetTypeName != "testing_deferred_resource" {
+					return providers.MoveResourceStateResponse{
+						Diagnostics: tfdiags.Diagnostics{
+							tfdiags.Sourceless(tfdiags.Error, "unsupported", "unsupported move"),
+						},
+					}
+				}
+				// So, we know we're moving from `testing_resource` to
+				// `testing_deferred_resource`.
+
+				source, err := ctyjson.Unmarshal(request.SourceStateJSON, cty.Object(map[string]cty.Type{
+					"id":    cty.String,
+					"value": cty.String,
+				}))
+				if err != nil {
+					return providers.MoveResourceStateResponse{
+						Diagnostics: tfdiags.Diagnostics{
+							tfdiags.Sourceless(tfdiags.Error, "invalid source state", err.Error()),
+						},
+					}
+				}
+
+				target := cty.ObjectVal(map[string]cty.Value{
+					"id":       source.GetAttr("id"),
+					"value":    source.GetAttr("value"),
+					"deferred": cty.False,
+				})
+				store.Set(source.GetAttr("id").AsString(), target)
+
+				return providers.MoveResourceStateResponse{
+					TargetState: target,
 				}
 			},
 		},
