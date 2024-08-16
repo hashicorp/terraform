@@ -2487,6 +2487,133 @@ func TestApply_DependsOnComponentWithNoInstances(t *testing.T) {
 	// reference to a component with zero instances doesn't break anything
 }
 
+func TestApply_WithProviderFunctions(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, filepath.Join("with-provider-functions"))
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+
+	planRequest := PlanRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+		DependencyLocks:    *lock,
+		ForcePlanTimestamp: &fakePlanTimestamp,
+		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
+			{Name: "input"}: {
+				Value: cty.StringVal("hello, world!"),
+			},
+		},
+	}
+
+	planResponse := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &planRequest, &planResponse)
+	planChanges, planDiags := collectPlanOutput(changesCh, diagsCh)
+
+	reportDiagnosticsForTest(t, planDiags)
+	if len(planDiags) != 0 {
+		t.FailNow()
+	}
+
+	planLoader := stackplan.NewLoader()
+	for _, change := range planChanges {
+		proto, err := change.PlannedChangeProto()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	applyReq := ApplyRequest{
+		Config: cfg,
+		Plan:   plan,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+		DependencyLocks: *lock,
+	}
+
+	applyChangesCh := make(chan stackstate.AppliedChange)
+	diagsCh = make(chan tfdiags.Diagnostic)
+
+	applyResp := ApplyResponse{
+		AppliedChanges: applyChangesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Apply(ctx, &applyReq, &applyResp)
+	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, diagsCh)
+	reportDiagnosticsForTest(t, applyDiags)
+	if len(applyDiags) != 0 {
+		t.FailNow()
+	}
+
+	sort.SliceStable(applyChanges, func(i, j int) bool {
+		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
+	})
+
+	wantChanges := []stackstate.AppliedChange{
+		&stackstate.AppliedChangeComponentInstance{
+			ComponentAddr:         mustAbsComponent("component.self"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+			OutputValues: map[addrs.OutputValue]cty.Value{
+				{Name: "value"}: cty.StringVal("hello, world!"),
+			},
+		},
+		&stackstate.AppliedChangeResourceInstanceObject{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+			NewStateSrc: &states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+					"id":    "2f9f3b84",
+					"value": "hello, world!",
+				}),
+				Status:       states.ObjectReady,
+				Dependencies: make([]addrs.ConfigResource, 0),
+			},
+			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+			Schema:             stacks_testing_provider.TestingResourceSchema,
+		},
+	}
+
+	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+}
+
 func collectApplyOutput(changesCh <-chan stackstate.AppliedChange, diagsCh <-chan tfdiags.Diagnostic) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	var changes []stackstate.AppliedChange
 	var diags tfdiags.Diagnostics

@@ -808,6 +808,15 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		return noOpResult, diags
 	}
 
+	providerFactories := make(map[addrs.Provider]providers.Factory, len(providerSchemas))
+	for addr := range providerSchemas {
+		providerFactories[addr] = func() (providers.Interface, error) {
+			// Lazily fetch the unconfigured client for the provider
+			// as and when we need it.
+			return c.main.ProviderType(ctx, addr).UnconfiguredClient(ctx)
+		}
+	}
+
 	tfHook := &componentInstanceTerraformHook{
 		ctx:   ctx,
 		seq:   seq,
@@ -818,6 +827,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		Hooks: []terraform.Hook{
 			tfHook,
 		},
+		Providers:                providerFactories,
 		PreloadedProviderSchemas: providerSchemas,
 		Provisioners:             c.main.availableProvisioners(),
 	})

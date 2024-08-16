@@ -101,6 +101,14 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 						Block: TestingDataSourceSchema,
 					},
 				},
+				Functions: map[string]providers.FunctionDecl{
+					"echo": {
+						Parameters: []providers.FunctionParam{
+							{Name: "value", Type: cty.DynamicPseudoType},
+						},
+						ReturnType: cty.DynamicPseudoType,
+					},
+				},
 				ServerCapabilities: providers.ServerCapabilities{
 					MoveResourceState: true,
 				},
@@ -287,6 +295,12 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 
 				return providers.MoveResourceStateResponse{
 					TargetState: target,
+				}
+			},
+			CallFunctionFn: func(request providers.CallFunctionRequest) providers.CallFunctionResponse {
+				// Just echo the first argument back as the result.
+				return providers.CallFunctionResponse{
+					Result: request.Arguments[0],
 				}
 			},
 		},
