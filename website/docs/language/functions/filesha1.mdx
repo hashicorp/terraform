@@ -22,18 +22,18 @@ Use the filesha1 function with the following syntax:
 filesha1(path) 
 ```
 
-The `path` is the file path (relative or absolute) to the file whose SHA-1 hash you want to compute.
+The `path` is the relative or absolute file path to the file whose SHA-1 hash you want to compute.
 
 In the following example, the function returns the SHA-1 value.
 
 ```hcl
-> filesha1("example.txt")
+$ filesha1("example.txt")
 d3486ae9136e7856bc42212385ea797094475802
 ```
 
 ## Example use case
 
-In the following example the `filesha1` function computes the SHA-1 hash of the file `example.txt` located in the current module's directory. The result will be a 40-character hexadecimal string representing the SHA-1 hash.
+In the following example the `filesha1` function computes the SHA-1 hash of the file `example.txt` located in the current module's directory. The result is a 40-character hexadecimal string representing the SHA-1 hash.
 
 ```hcl
 output "file_hash" { 
