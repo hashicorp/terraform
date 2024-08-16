@@ -68,11 +68,11 @@ lb_address = "my-app-alb-1657023003.us-east-1.elb.amazonaws.com"
 password = <sensitive>
 ```
 
-Note that outputs with the `sensitive` attribute will be redacted:
+Note that Terraform does not redact the value when you specify the output by name:
 
 ```shellsession
 $ terraform output password
-password = <sensitive>
+password = notasecurepassword
 ```
 
 To query for the DNS address of the load balancer:
