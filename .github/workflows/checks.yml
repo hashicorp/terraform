@@ -16,6 +16,12 @@
 name: Quick Checks
 
 on:
+  pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
   push:
 
 # This workflow runs for not-yet-reviewed external contributions and so it
