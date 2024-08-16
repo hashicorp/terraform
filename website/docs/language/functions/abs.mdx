@@ -4,6 +4,7 @@ description: The abs function returns the absolute value of the given number.
 ---
 
 # `abs` function reference
+
 This topic provides reference information about the `abs` function. The `abs` function returns the absolute value of the given number.
 
 ## Introduction
@@ -20,20 +21,20 @@ abs(number)
 
 The `number` argument is the number you want the absolute value of.
 
-In the following example, the function returns the absolute value of 23, 0, and -12.4.
+In the following example, the function returns the absolute value of `23`, `0`, and `-12.4`.
 
-```hcl
-> abs(23)
+```hcl hideClipboard
+$ abs(23)
 23
-> abs(0)
+$ abs(0)
 0
-> abs(-12.4)
+$ abs(-12.4)
 12.4
 ```
 
 ## Example use case
 
-The following example defines a variable `num` that is negative. The function outputs the absolute value of `num`, which is 10.
+The following example defines a variable `num` that is negative. The function outputs the absolute value of `num`, which is `10`.
 
 ```hcl
 variable "num" {
@@ -47,4 +48,4 @@ output "absolute_value" {
 
 ## Related Functions
 
-- [signum](/terraform/language/functions/signum) determines the sign of a number, returning a number between -1 and 1 to represent the sign
+- [`signum`](/terraform/language/functions/signum) determines the sign of a number, returning a number between -1 and 1 to represent the sign
