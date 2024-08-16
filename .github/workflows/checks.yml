@@ -17,6 +17,11 @@ name: Quick Checks
 
 on:
   pull_request:
+    types:
+      - opened
+      - ready_for_review
+      - reopened
+      - synchronize
   push:
     branches:
       - '*'
