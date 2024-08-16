@@ -921,7 +921,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 			cic.CountNewAction(action)
 		}
 
-		// The state management actions (create, import, forget) don't emit
+		// The state management actions (move, import, forget) don't emit
 		// actions during an apply so they're not being counted by looking
 		// at the ResourceInstanceObjectAppliedAction above.
 		//
