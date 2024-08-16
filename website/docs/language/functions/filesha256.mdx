@@ -6,16 +6,15 @@ description: |-
 ---
 
 # `filesha256` function reference
+
 This topic provides reference information about the `filesha256` function, which calculates the SHA-256 hash of a file's contents. 
 
 ## Introduction
 
-`filesha256` is a variant of [`sha256`](/terraform/language/functions/sha256)
+The `filesha256` is a variant of [`sha256`](/terraform/language/functions/sha256)
 that hashes the contents of a given file rather than a literal string.
 
-This is similar to `sha256(file(filename))`, but
-because [`file`](/terraform/language/functions/file) accepts only UTF-8 text it cannot be used to
-create hashes for binary files.
+Use the `filesha1` function instead of wrapping the `file` function in a `sha1` function, for example `sha1(file(filename))`, because [`file`](/terraform/language/functions/file) accepts only UTF-8 text. As a result, you cannot use `sha1(file(filename))`  to create hashes for binary files.
 
 ## Syntax
 
