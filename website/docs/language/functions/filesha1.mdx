@@ -10,7 +10,7 @@ This topic provides reference information about the `filesha1` function, which c
 
 The `filesha1` is a variant of [`sha1`](/terraform/language/functions/sha1) that hashes the contents of a given file rather than a literal string. 
 
-Use the `filesha1` function instead of wrapping the `file` function in a `sha1` function, for example `sha1(file(filename))`, because [`file`](/terraform/language/functions/file) accepts only UTF-8 text. As a result, you cannot use `sha1(file(filename))`  to create hashes for binary files.
+Use the `filesha1` function instead of wrapping the `file` function in a `sha1` function, for example `sha1(file(filename))`, because [`file`](/terraform/language/functions/file) accepts only UTF-8 text. As a result, you cannot use `sha1(file(filename))` to create hashes for binary files.
 
 !> **Security warning**: This hashing function is susceptible to collision attacks. Before using this function for anything security-sensitive, review relevant literature to understand the security implications.
 
