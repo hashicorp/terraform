@@ -19,36 +19,28 @@ create hashes for binary files.
 
 ## Syntax
 
-Use the `abs` function with the following syntax:
+Use the `filesha512` function with the following syntax:
 
 ```hcl
-abs(number) 
+filesha512(path)
 ```
 
-The `number` argument is the number you want the absolute value of.
+The `path` is the file path (relative or absolute) to the file whose SHA-512 hash you want to compute.
 
-In the following example, the function returns the absolute value of 23, 0, and -12.4.
+In the following example, the function returns the SHA-512 value of `example.txt`.
 
 ```hcl
-> abs(23)
-23
-> abs(0)
-0
-> abs(-12.4)
-12.4
+> abs("example.txt")
+861844d6704e8573fec34d967e20bcfe6e061b3348b3b0c7e9b7c6a482f6f15a48bffd0fb928fd8c9f9196f7a8596d5e32b45d5a25488a8499396a67442c1d76
 ```
 
 ## Example use case
 
-The following example defines a variable `num` that is negative. The function outputs the absolute value of num, which is 10.
+In the following example the `filesha512` function computes the SHA-512 hash of the file example.txt located in the current module's directory.
 
 ```hcl
-variable "num" {
-  default = -10
-}
-
-output "absolute_value" {
-  value = abs(var.num)
+output "file_hash" {
+  value = filesha512("example.txt")
 }
 ```
 
