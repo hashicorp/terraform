@@ -167,16 +167,6 @@ The `TF_PLUGIN_CACHE_DIR` environment variable is an alternative way to set [the
 
 You can also use `TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE` to activate [the transitional compatibility setting `plugin_cache_may_break_dependency_lock_file`](/terraform/cli/config/config-file#allowing-the-provider-plugin-cache-to-break-the-dependency-lock-file).
 
-## TF_IGNORE
-
-If `TF_IGNORE` is set to "trace", Terraform will output debug messages to display ignored files and folders. This is useful when debugging large repositories with `.terraformignore` files.
-
-```shell
-export TF_IGNORE=trace
-```
-
-For more details on `.terraformignore`, please see [Excluding Files from Upload with .terraformignore](/terraform/language/settings/backends/remote#excluding-files-from-upload-with-terraformignore).
-
 ## HCP Terraform CLI Integration
 
 The CLI integration with HCP Terraform lets you use HCP Terraform and Terraform Enterprise on the command line. The integration requires including a `cloud` block in your Terraform configuration. You can define its arguments directly in your configuration file or supply them through environment variables, which can be useful for non-interactive workflows like Continuous Integration (CI).
