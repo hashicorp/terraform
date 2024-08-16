@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -285,6 +286,11 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 func (p *ProviderInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	stack := p.provider.Stack(ctx)
 	return stack.resolveExpressionReference(ctx, ref, nil, p.repetition)
+}
+
+// ExternalFunctions implements ExpressionScope.
+func (p *ProviderInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, func(), tfdiags.Diagnostics) {
+	return p.main.ProviderFunctions(ctx, p.main.StackConfig(ctx, p.Addr().Stack.ConfigAddr()))
 }
 
 // PlanTimestamp implements ExpressionScope, providing the timestamp at which

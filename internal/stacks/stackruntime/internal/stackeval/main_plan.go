@@ -146,6 +146,17 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 		outp.AnnounceDiagnostics(ctx, diags)
 	}
 
+	// Now, that we've finished walking the graph. We'll announce the
+	// provider function results so that they can be used during the apply
+	// phase.
+	hashes := m.providerFunctionResults.GetHashes()
+	if len(hashes) > 0 {
+		// Only add this planned change if we actually have any results.
+		outp.AnnouncePlannedChange(ctx, &stackplan.PlannedChangeProviderFunctionResults{
+			Results: m.providerFunctionResults.GetHashes(),
+		})
+	}
+
 	// The caller (in stackruntime) is responsible for generating the final
 	// stackplan.PlannedChangeApplyable message, just in case it detects
 	// problems of its own before finally returning.

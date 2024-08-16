@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -65,6 +66,11 @@ type Component struct {
 	// be destroyed.
 	Dependents collections.Set[stackaddrs.AbsComponent]
 
+	// PlannedFunctionResults is a shared table of results from calling
+	// provider functions. This is stored and loaded from during the planning
+	// stage to use during apply operations.
+	PlannedFunctionResults []providers.FunctionHash
+
 	// PlannedInputValues and PlannedInputValueMarks are the values that
 	// Terraform has planned to use for input variables in this component.
 	PlannedInputValues     map[addrs.InputVariable]plans.DynamicValue
@@ -92,12 +98,13 @@ type Component struct {
 func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 	changes := plans.NewChanges()
 	plan := &plans.Plan{
-		UIMode:    c.Mode,
-		Changes:   changes,
-		Timestamp: c.PlanTimestamp,
-		Applyable: c.PlanApplyable,
-		Complete:  c.PlanComplete,
-		Checks:    c.PlannedChecks,
+		UIMode:                  c.Mode,
+		Changes:                 changes,
+		Timestamp:               c.PlanTimestamp,
+		Applyable:               c.PlanApplyable,
+		Complete:                c.PlanComplete,
+		Checks:                  c.PlannedChecks,
+		ProviderFunctionResults: c.PlannedFunctionResults,
 	}
 
 	sc := changes.SyncWrapper()

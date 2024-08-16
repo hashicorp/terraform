@@ -13,6 +13,7 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -338,6 +339,11 @@ func (s *StackCallConfig) ResolveExpressionReference(ctx context.Context, ref st
 	}
 
 	return ret, diags
+}
+
+// ExternalFunctions implements ExpressionScope.
+func (s *StackCallConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, func(), tfdiags.Diagnostics) {
+	return s.main.ProviderFunctions(ctx, s.main.StackConfig(ctx, s.Addr().Stack))
 }
 
 // PlanTimestamp implements ExpressionScope, providing the timestamp at which

@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
@@ -117,6 +118,14 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 			l.ret.ApplyTimeInputVariables.Add(addr)
 		}
 
+	case *tfstackdata1.ProviderFunctionResults:
+		for _, hash := range msg.ProviderFunctionResults {
+			l.ret.ProviderFunctionResults = append(l.ret.ProviderFunctionResults, providers.FunctionHash{
+				Key:    hash.Key,
+				Result: hash.Result,
+			})
+		}
+
 	case *tfstackdata1.PlanComponentInstance:
 		addr, diags := stackaddrs.ParseAbsComponentInstanceStr(msg.ComponentInstanceAddr)
 		if diags.HasErrors() {
@@ -188,6 +197,14 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 			return fmt.Errorf("decoding check results: %w", err)
 		}
 
+		var functionResults []providers.FunctionHash
+		for _, hash := range msg.ProviderFunctionResults {
+			functionResults = append(functionResults, providers.FunctionHash{
+				Key:    hash.Key,
+				Result: hash.Result,
+			})
+		}
+
 		if !l.ret.Components.HasKey(addr) {
 			l.ret.Components.Put(addr, &Component{
 				PlannedAction:          plannedAction,
@@ -200,6 +217,7 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 				PlannedInputValueMarks: inputValMarks,
 				PlannedOutputValues:    outputVals,
 				PlannedChecks:          checkResults,
+				PlannedFunctionResults: functionResults,
 
 				ResourceInstancePlanned:         addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.ResourceInstanceChangeSrc](),
 				ResourceInstancePriorState:      addrs.MakeMap[addrs.AbsResourceInstanceObject, *states.ResourceInstanceObjectSrc](),

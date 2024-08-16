@@ -6,18 +6,22 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	fileProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/file"
 	remoteExecProvisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -75,11 +79,13 @@ type Main struct {
 
 	// The remaining fields memoize other objects we might create in response
 	// to method calls. Must lock "mu" before interacting with them.
-	mu              sync.Mutex
-	mainStackConfig *StackConfig
-	mainStack       *Stack
-	providerTypes   map[addrs.Provider]*ProviderType
-	cleanupFuncs    []func(context.Context) tfdiags.Diagnostics
+	mu                      sync.Mutex
+	mainStackConfig         *StackConfig
+	mainStack               *Stack
+	providerTypes           map[addrs.Provider]*ProviderType
+	providerFunctionResults *providers.FunctionResults
+	externalFuncs           lang.ExternalFuncs
+	cleanupFuncs            []func(context.Context) tfdiags.Diagnostics
 }
 
 var _ namedPromiseReporter = (*Main)(nil)
@@ -110,8 +116,9 @@ func NewForValidating(config *stackconfig.Config, opts ValidateOpts) *Main {
 		validating: &mainValidating{
 			opts: opts,
 		},
-		providerFactories: opts.ProviderFactories,
-		providerTypes:     make(map[addrs.Provider]*ProviderType),
+		providerFactories:       opts.ProviderFactories,
+		providerTypes:           make(map[addrs.Provider]*ProviderType),
+		providerFunctionResults: providers.NewFunctionResultsTable(nil),
 	}
 }
 
@@ -127,8 +134,9 @@ func NewForPlanning(config *stackconfig.Config, prevState *stackstate.State, opt
 			opts:      opts,
 			prevState: prevState,
 		},
-		providerFactories: opts.ProviderFactories,
-		providerTypes:     make(map[addrs.Provider]*ProviderType),
+		providerFactories:       opts.ProviderFactories,
+		providerTypes:           make(map[addrs.Provider]*ProviderType),
+		providerFunctionResults: providers.NewFunctionResultsTable(nil),
 	}
 }
 
@@ -140,8 +148,9 @@ func NewForApplying(config *stackconfig.Config, plan *stackplan.Plan, execResult
 			plan:    plan,
 			results: execResults,
 		},
-		providerFactories: opts.ProviderFactories,
-		providerTypes:     make(map[addrs.Provider]*ProviderType),
+		providerFactories:       opts.ProviderFactories,
+		providerTypes:           make(map[addrs.Provider]*ProviderType),
+		providerFunctionResults: providers.NewFunctionResultsTable(plan.ProviderFunctionResults),
 	}
 }
 
@@ -152,9 +161,10 @@ func NewForInspecting(config *stackconfig.Config, state *stackstate.State, opts 
 			state: state,
 			opts:  opts,
 		},
-		providerFactories: opts.ProviderFactories,
-		providerTypes:     make(map[addrs.Provider]*ProviderType),
-		testOnlyGlobals:   opts.TestOnlyGlobals,
+		providerFactories:       opts.ProviderFactories,
+		providerTypes:           make(map[addrs.Provider]*ProviderType),
+		providerFunctionResults: providers.NewFunctionResultsTable(nil),
+		testOnlyGlobals:         opts.TestOnlyGlobals,
 	}
 }
 
@@ -359,6 +369,64 @@ func (m *Main) Stack(ctx context.Context, addr stackaddrs.StackInstance, phase E
 // that are available to this instance of the evaluation runtime.
 func (m *Main) ProviderFactories() ProviderFactories {
 	return m.providerFactories
+}
+
+// ProviderFunctions returns the collection of externally defined provider
+// functions available to the current stack.
+func (m *Main) ProviderFunctions(ctx context.Context, config *StackConfig) (lang.ExternalFuncs, func(), tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	fns := make(map[string]map[string]function.Function, len(m.providerFactories))
+
+	var clients []providers.Interface
+	for addr := range m.providerFactories {
+		provider := m.ProviderType(ctx, addr)
+		client, err := provider.UnconfiguredClient(ctx)
+		if err != nil {
+			// We should have started these providers before we got here, so
+			// this error shouldn't ever occur.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Failed to create provider client",
+				Detail:   fmt.Sprintf("Failed to create client for provider %s while gathering provider functions: %s. This is a bug in Terraform, please report it!", addr, err),
+			})
+			continue // just skip this provider and keep going
+		}
+
+		// keep track of the client as we need to close it later
+		clients = append(clients, client)
+
+		local, ok := config.ProviderLocalName(ctx, addr)
+		if !ok {
+			log.Printf("[ERROR] Provider %s is not in the required providers block", addr)
+			// This also shouldn't happen, as every provider should be
+			// in the required providers block and that should have been
+			// validated - but we can recover from this by just using the
+			// default local name.
+			local = addr.Type
+		}
+
+		// Now, we can initialise the functions.
+		schema := client.GetProviderSchema()
+		fns[local] = make(map[string]function.Function, len(schema.Functions))
+		for name, fn := range schema.Functions {
+			fns[local][name] = fn.BuildFunction(addr, name, m.providerFunctionResults, func() (providers.Interface, error) {
+				return client, nil
+			})
+		}
+	}
+
+	return lang.ExternalFuncs{Provider: fns}, func() {
+		// Tidy up after the functions aren't being used any more.
+		for _, client := range clients {
+			// This shouldn't actually stop and start the underlying provider
+			// plugin. The UnconfiguredClient method actually borrows and shares
+			// the client that was already started by the provider type, so
+			// stopping it here should just release that borrowed client.
+			client.Stop()
+		}
+	}, diags
+
 }
 
 // ProviderType returns the [ProviderType] object representing the given

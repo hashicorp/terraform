@@ -81,6 +81,13 @@ message PlanRootInputValue {
     bool required_on_apply = 3;
 }
 
+// ProviderFunctionResults stores a record of the results of provider functions
+// that were called during the planning phase. This is used to ensure that the
+// same results are returned during the apply phase.
+message ProviderFunctionResults {
+    repeated tfplan.ProviderFunctionCallHash provider_function_results = 1;
+}
+
 // Represents the existence of a particular component instance, and so must
 // always appear before any messages representing objects that belong to that
 // component instance.
@@ -188,6 +195,11 @@ message PlanComponentInstance {
     // update check results which were unknown during planning to reflect
     // the actual results from the apply phase.
     repeated tfplan.CheckResults planned_check_results = 9;
+
+    // The set of provider function results that were produced during the
+    // planning phase for this component instance. These results are used
+    // to ensure that the same results are returned during the apply phase.
+    repeated tfplan.ProviderFunctionCallHash provider_function_results = 11;
 }
 
 // Represents a planned change to a particular resource instance within a
