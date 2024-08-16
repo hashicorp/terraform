@@ -39,7 +39,7 @@ The following arguments are supported:
 
 * `command` - (Required) This is the command to execute. It can be provided
   as a relative path to the current working directory or as an absolute path.
-  The `command` is is evaluated in a shell and can use environment variables for
+  The `command` is evaluated in a shell and can use environment variables for
   variable substitution. We do not recommend using Terraform variables for variable
   substitution because doing so can lead to shell injection vulnerabilities. Instead, you should pass Terraform variables to a command
   through the `environment` parameter and use environment variable substitution
