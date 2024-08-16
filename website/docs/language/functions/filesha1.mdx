@@ -33,7 +33,7 @@ d3486ae9136e7856bc42212385ea797094475802
 
 ## Example use case
 
-In the following example the `filesha1` function computes the SHA-1 hash of the file example.txt located in the current module's directory. The result will be a 40-character hexadecimal string representing the SHA-1 hash.
+In the following example the `filesha1` function computes the SHA-1 hash of the file `example.txt` located in the current module's directory. The result will be a 40-character hexadecimal string representing the SHA-1 hash.
 
 ```hcl
 output "file_hash" { value = filesha1("${path.module}/example.txt") }
