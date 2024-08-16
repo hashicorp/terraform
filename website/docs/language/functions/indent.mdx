@@ -23,14 +23,13 @@ Use the `indent` function with the following syntax:
 indent(num_spaces, string)
 ```
 
-- The first argument is numeric.
-It specifies the number of spaces you want to add to each line except the first.
-- The second argument is a string.
-It specifies the multi-line string to which you want to add spaces.
+- The first argument is numeric. It specifies the number of spaces you want to add to each line except the first.
+- The second argument is a string. It specifies the multi-line string to which you want to add spaces.
 
-In the following example, the `indent` function adds two spaces to the beginning of each line of the `json_config` variable to make it easier to read:
+In the following example, the `indent` function adds two spaces to the beginning of each line of the `description` variable to make it easier to read:
 
 ```hcl
-output "formatted_json" {
-  value = indent(2,var.json_config)
+output "formatted_description" {
+  value = indent(2, var.description)
 }
+```
