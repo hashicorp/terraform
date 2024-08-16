@@ -79,6 +79,35 @@ comma-separated sequence of values, like `["a", 15, true]`.
 List literals can be split into multiple lines for readability, but always
 require a comma between values. A comma after the final value is allowed,
 but not required. Values in a list can be arbitrary expressions.
+### Sets
+
+Accessing elements of a set directly by index is not supported because sets are unordered collections. However, you can convert a set to a list to access elements by index.
+
+Example: Accessing Elements of a Set
+
+1. Define a Set:
+```hcl
+variable "example_set" {
+type    = set(string)
+default = ["foo", "bar"]
+}
+```
+3. Convert Set to List: 
+```hcl
+locals {
+  example_list = tolist(var.example_set)
+}
+```
+
+5. Access Elements by Index:
+```hcl
+output "first_element" {
+  value = local.example_list[0]
+}
+output "second_element" {
+  value = local.example_list[1]
+}
+```
 
 ### Maps/Objects
 
