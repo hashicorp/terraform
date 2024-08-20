@@ -274,10 +274,10 @@ incompatibilities, and let the root module manage the maximum version.
 ## Built-in Providers
 
 Most Terraform providers are distributed separately as plugins, but there
-is one provider that is built into Terraform itself. This provider enables the
+is one provider that is built into Terraform itself. This provider enables
 [the `terraform_remote_state` data source](/terraform/language/state/remote-state-data).
 
-Because this provider is built in to Terraform, you don't need to declare it
+Because this provider is built into Terraform, you don't need to declare it
 in the `required_providers` block in order to use its features. However, for
 consistency it _does_ have a special provider source address, which is
 `terraform.io/builtin/terraform`. This address may sometimes appear in
