@@ -1,3 +1,5 @@
+## 1.9.6 (Unreleased)
+
 ## 1.9.5 (August 20, 2024)
 
 ENHANCEMENTS:
