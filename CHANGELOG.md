@@ -4,6 +4,10 @@ ENHANCEMENTS:
 
 * cloud: The cloud block can now interact with workspaces that have HCP resource IDs. ([#35495](https://github.com/hashicorp/terraform/issues/35495))
 
+BUG FIXES:
+
+* core: `removed` blocks with provisioners were not executed when the resource was in a nested module. [GH-35611]
+
 ## 1.9.4 (August 7, 2024)
 
 BUG FIXES:
