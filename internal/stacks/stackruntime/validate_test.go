@@ -486,7 +486,7 @@ func TestValidate_missing_provider_from_lockfile(t *testing.T) {
 		t.Fatalf("expected diagnostic summary 'Provider missing from lockfile', got %q", diag.Description().Summary)
 	}
 
-	if diag.Description().Detail != "Provider \"registry.terraform.io/hashicorp/testing\" is not in the lockfile. This provider must be in the lockfile to be used in the configuration. Please run `tfstacks provider lock` to update the lockfile and run this operation again with an updated configuration." {
+	if diag.Description().Detail != "Provider \"registry.terraform.io/hashicorp/testing\" is not in the lockfile. This provider must be in the lockfile to be used in the configuration. Please run `tfstacks providers lock` to update the lockfile and run this operation again with an updated configuration." {
 		t.Fatalf("expected diagnostic detail to be a specific message, got %q", diag.Description().Detail)
 	}
 }
