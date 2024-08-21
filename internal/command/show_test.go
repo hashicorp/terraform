@@ -696,6 +696,7 @@ func TestShow_json_output_sensitive(t *testing.T) {
 	}
 	code := pc.Run(args)
 	planOutput := planDone(t)
+	panic(planOutput.Stdout())
 
 	if code != 0 {
 		t.Fatalf("unexpected exit status %d; want 0\ngot: %s", code, planOutput.Stderr())
@@ -1035,8 +1036,8 @@ func showFixtureSchema() *providers.GetProviderSchemaResponse {
 }
 
 // showFixtureSensitiveSchema returns a schema suitable for processing the configuration
-// in testdata/show. This schema should be assigned to a mock provider
-// named "test". It includes a sensitive attribute.
+// in testdata/show-json-sensitive. This schema should be assigned to a mock
+// provider named "test". It includes a sensitive attribute.
 func showFixtureSensitiveSchema() *providers.GetProviderSchemaResponse {
 	return &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
@@ -1124,10 +1125,11 @@ func showFixtureProvider() *testing_provider.MockProvider {
 }
 
 // showFixtureSensitiveProvider returns a mock provider that is configured for basic
-// operation with the configuration in testdata/show. This mock has
-// GetSchemaResponse, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
-// with the plan/apply steps just passing through the data determined by
-// Terraform Core. It also has a sensitive attribute in the provider schema.
+// operation with the configuration in testdata/show-json-sensitive. This mock
+// has GetSchemaResponse, PlanResourceChangeFn, and
+// ApplyResourceChangeFn populated, with the plan/apply steps just passing
+// through the data determined by Terraform Core. It also has a sensitive
+// attribute in the provider schema.
 func showFixtureSensitiveProvider() *testing_provider.MockProvider {
 	p := testProvider()
 	p.GetProviderSchemaResponse = showFixtureSensitiveSchema()

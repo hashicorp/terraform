@@ -7076,6 +7076,17 @@ func TestOutputChanges(t *testing.T) {
         # (1 unchanged element hidden)
     ]`,
 		},
+		"change in sensitivity only": {
+			[]*plans.OutputChangeSrc{
+				outputChange(
+					"a",
+					cty.NumberIntVal(1),
+					cty.NumberIntVal(1),
+					true,
+				),
+			},
+			` blah`,
+		},
 		"multiple outputs changed, one sensitive": {
 			[]*plans.OutputChangeSrc{
 				outputChange(
@@ -7127,17 +7138,20 @@ func TestOutputChanges(t *testing.T) {
 	}
 }
 
-func outputChange(name string, before, after cty.Value, sensitive bool) *plans.OutputChangeSrc {
+func outputChange(name string, before, after cty.Value, beforeSensitive bool) *plans.OutputChangeSrc {
 	addr := addrs.AbsOutputValue{
 		OutputValue: addrs.OutputValue{Name: name},
 	}
 
+	var afterSensitive bool
 	change := &plans.OutputChange{
 		Addr: addr, Change: plans.Change{
 			Before: before,
 			After:  after,
 		},
-		Sensitive: sensitive,
+		Sensitive:       beforeSensitive || afterSensitive,
+		BeforeSensitive: beforeSensitive,
+		AfterSensitive:  afterSensitive,
 	}
 
 	changeSrc, err := change.Encode()

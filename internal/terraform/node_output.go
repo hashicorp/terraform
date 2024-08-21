@@ -632,8 +632,10 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 	changes := ctx.Changes()
 	if changes != nil && n.Planning {
 		change := &plans.OutputChange{
-			Addr:      n.Addr,
-			Sensitive: sensitiveBefore,
+			Addr:            n.Addr,
+			Sensitive:       sensitiveBefore,
+			BeforeSensitive: sensitiveBefore,
+			AfterSensitive:  false,
 			Change: plans.Change{
 				Action: plans.Delete,
 				Before: before,
@@ -692,11 +694,6 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 			state.Unlock()
 		}
 
-		// We will not show the value if either the before or after are marked
-		// as sensitive. We can show the value again once sensitivity is
-		// removed from both the config and the state.
-		sensitiveChange := sensitiveBefore || n.Config.Sensitive
-
 		// strip any marks here just to be sure we don't panic on the True comparison
 		unmarkedVal, _ := val.UnmarkDeep()
 
@@ -721,11 +718,18 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 			action = plans.NoOp
 		}
 
+		// OutputChange has a legacy Sensitive field which used to be used in
+		// rendering prior to the more detailed BeforeSensitive and
+		// AfterSensitive.
+		sensitiveChange := sensitiveBefore || n.Config.Sensitive
+
 		// Non-ephemeral output values get their changes recorded in the plan
 		if !n.Config.Ephemeral {
 			change := &plans.OutputChange{
-				Addr:      n.Addr,
-				Sensitive: sensitiveChange,
+				Addr:            n.Addr,
+				Sensitive:       sensitiveChange,
+				BeforeSensitive: sensitiveBefore,
+				AfterSensitive:  n.Config.Sensitive,
 				Change: plans.Change{
 					Action: action,
 					Before: before,

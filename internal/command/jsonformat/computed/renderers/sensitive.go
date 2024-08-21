@@ -28,6 +28,15 @@ type sensitiveRenderer struct {
 }
 
 func (renderer sensitiveRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
+	if renderer.beforeSensitive {
+		renderer.inner.
+	return fmt.Sprintf("(sensitive value)%s%s", nullSuffix(diff.Action, opts), forcesReplacement(diff.Replace, opts))
+	} else if renderer.afterSensitive {
+	return fmt.Sprintf("(sensitive value)%s%s", nullSuffix(diff.Action, opts), forcesReplacement(diff.Replace, opts))
+	}
+
+	// This should never happen: either beforeSensitive or afterSensitive
+	// should be true. Fail safe anyway by not rendering any value.
 	return fmt.Sprintf("(sensitive value)%s%s", nullSuffix(diff.Action, opts), forcesReplacement(diff.Replace, opts))
 }
 

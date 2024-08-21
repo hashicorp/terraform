@@ -173,10 +173,11 @@ func FromJsonViewsOutput(output viewsjson.Output) Change {
 		Before: unmarshalGeneric(output.Value),
 		After:  unmarshalGeneric(output.Value),
 
-		// We have some sensitive values, but we don't have any unknown values.
+		// We might have some sensitive values, but we don't have any unknown
+		// values.
 		Unknown:         false,
-		BeforeSensitive: output.Sensitive,
-		AfterSensitive:  output.Sensitive,
+		BeforeSensitive: output.BeforeSensitive,
+		AfterSensitive:  output.AfterSensitive,
 
 		// We don't display replacement data for resources, and all attributes
 		// are relevant.

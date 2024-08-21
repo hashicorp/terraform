@@ -283,10 +283,17 @@ message OutputChange {
     // "update" and "delete" actions.
     Change change = 2;
 
-    // Sensitive, if true, indicates that one or more of the values given
+    // sensitive, if true, indicates that one or more of the values given
     // in "change" is sensitive and should not be shown directly in any
     // rendered plan.
+    //
+    // Deprecated: the before_sensitive and after_sensitive fields should be
+    // used instead.
     bool sensitive = 3;
+
+    bool before_sensitive = 4;
+
+    bool after_sensitive = 5;
 }
 
 message CheckResults {

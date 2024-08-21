@@ -117,8 +117,7 @@ func (c *Changes) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key st
 }
 
 // OutputValue returns the planned change for the output value with the
-//
-//	given address, if any. Returns nil if no change is planned.
+// given address, if any. Returns nil if no change is planned.
 func (c *Changes) OutputValue(addr addrs.AbsOutputValue) *OutputChangeSrc {
 	for _, oc := range c.Outputs {
 		if oc.Addr.Equal(addr) {
@@ -488,6 +487,10 @@ type OutputChange struct {
 	// should elide the actual values while still indicating the action of the
 	// change.
 	Sensitive bool
+
+	BeforeSensitive bool
+
+	AfterSensitive bool
 }
 
 // Encode produces a variant of the reciever that has its change values
@@ -498,9 +501,11 @@ func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
 		return nil, err
 	}
 	return &OutputChangeSrc{
-		Addr:      oc.Addr,
-		ChangeSrc: *cs,
-		Sensitive: oc.Sensitive,
+		Addr:            oc.Addr,
+		ChangeSrc:       *cs,
+		Sensitive:       oc.Sensitive,
+		BeforeSensitive: oc.BeforeSensitive,
+		AfterSensitive:  oc.AfterSensitive,
 	}, err
 }
 

@@ -47,6 +47,8 @@ type stateValues struct {
 }
 
 type Output struct {
+	// BeforeSensitive bool            `json:"before_sensitive"`
+	// AfterSensitive  bool            `json:"after_sensitive"`
 	Sensitive bool            `json:"sensitive"`
 	Value     json.RawMessage `json:"value,omitempty"`
 	Type      json.RawMessage `json:"type,omitempty"`

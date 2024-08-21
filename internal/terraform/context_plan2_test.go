@@ -5847,3 +5847,105 @@ resource "test_object" "a" {
 	}
 
 }
+
+// Test that changing an output from nonsensitive to sensitive produces an
+// Update change with the Sensitive fields correctly populated.
+func TestContext2Plan_nonsensitiveToSensitiveOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+output "planned" {
+  value = "one"
+  sensitive = true
+}
+`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "planned"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("one"), false,
+		)
+	})
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, c := range plan.Changes.Outputs {
+		if c.Action != plans.Update {
+			t.Fatalf("expected update change, got %s for %q", c.Action, c.Addr)
+		}
+		if c.BeforeSensitive != false || c.AfterSensitive != true || c.Sensitive != true {
+			t.Fatal("got wrong values for Sensitive fields in change")
+		}
+	}
+}
+
+// Test that changing an output from sensitive to nonsensitive produces an
+// Update change with the Sensitive fields correctly populated.
+func TestContext2Plan_sensitiveToNonsensitiveOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+output "planned" {
+  value = "one"
+  sensitive = false
+}
+`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "planned"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("one"), true,
+		)
+	})
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, c := range plan.Changes.Outputs {
+		if c.Action != plans.Update {
+			t.Fatalf("expected update change, got %s for %q", c.Action, c.Addr)
+		}
+		if c.BeforeSensitive != true || c.AfterSensitive != false || c.Sensitive != true {
+			t.Fatal("got wrong values for Sensitive fields in change")
+		}
+	}
+}
+
+// Test that changing the value of a sensitive output produces an
+// Update change with the Sensitive fields correctly populated.
+func TestContext2Plan_sensitiveOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+output "planned" {
+  value = "one"
+  sensitive = true
+}
+`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "planned"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("two"), true,
+		)
+	})
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, c := range plan.Changes.Outputs {
+		if c.Action != plans.Update {
+			t.Fatalf("expected update change, got %s for %q", c.Action, c.Addr)
+		}
+		if c.BeforeSensitive != true || c.AfterSensitive != true || c.Sensitive != true {
+			t.Fatal("got wrong values for Sensitive fields in change")
+		}
+	}
+}

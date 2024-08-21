@@ -621,10 +621,6 @@ func marshalDeferredResourceChanges(resources []*plans.DeferredResourceInstanceC
 
 // MarshalOutputChanges converts the provided internal representation of
 // Changes objects into the structured JSON representation.
-//
-// This function is referenced directly from the structured renderer tests, to
-// ensure parity between the renderers. It probably shouldn't be used anywhere
-// else.
 func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
 	if changes == nil {
 		// Nothing to do!
@@ -681,15 +677,20 @@ func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
 			}
 		}
 
-		// The only information we have in the plan about output sensitivity is
-		// a boolean which is true if the output was or is marked sensitive. As
-		// a result, BeforeSensitive and AfterSensitive will be identical, and
-		// either false or true.
-		outputSensitive := cty.False
-		if oc.Sensitive {
-			outputSensitive = cty.True
+		outputBeforeSensitive := cty.False
+		if oc.BeforeSensitive {
+			outputBeforeSensitive = cty.True
 		}
-		sensitive, err := ctyjson.Marshal(outputSensitive, outputSensitive.Type())
+		beforeSensitive, err := ctyjson.Marshal(outputBeforeSensitive, outputBeforeSensitive.Type())
+		if err != nil {
+			return nil, err
+		}
+
+		outputAfterSensitive := cty.False
+		if oc.AfterSensitive {
+			outputAfterSensitive = cty.True
+		}
+		afterSensitive, err := ctyjson.Marshal(outputAfterSensitive, outputAfterSensitive.Type())
 		if err != nil {
 			return nil, err
 		}
@@ -701,8 +702,8 @@ func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
 			Before:          json.RawMessage(before),
 			After:           json.RawMessage(after),
 			AfterUnknown:    a,
-			BeforeSensitive: json.RawMessage(sensitive),
-			AfterSensitive:  json.RawMessage(sensitive),
+			BeforeSensitive: beforeSensitive,
+			AfterSensitive:  afterSensitive,
 
 			// Just to be explicit, outputs cannot be imported so this is always
 			// nil.

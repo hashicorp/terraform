@@ -226,8 +226,8 @@ Changes to Outputs:
   + added            = "after"
   ~ changed          = "before" -> "after"
   - removed          = "before" -> null
-  ~ sensitive_after  = (sensitive value)
-  ~ sensitive_before = (sensitive value)
+  ~ sensitive_after  = "before" -> (sensitive value)
+  ~ sensitive_before = (sensitive value) -> "after"
 
 You can apply this plan to save these new output values to the Terraform
 state, without changing any real infrastructure.

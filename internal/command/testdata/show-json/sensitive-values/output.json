@@ -67,7 +67,7 @@
             "before": null,
             "after": "boop",
             "after_unknown": false,
-            "before_sensitive": true,
+            "before_sensitive": false,
             "after_sensitive": true
         }
     },

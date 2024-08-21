@@ -15,10 +15,12 @@ import (
 )
 
 type Output struct {
-	Sensitive bool            `json:"sensitive"`
-	Type      json.RawMessage `json:"type,omitempty"`
-	Value     json.RawMessage `json:"value,omitempty"`
-	Action    ChangeAction    `json:"action,omitempty"`
+	BeforeSensitive bool            `json:"before_sensitive"`
+	AfterSensitive  bool            `json:"after_sensitive"`
+	Sensitive       bool            `json:"sensitive"`
+	Type            json.RawMessage `json:"type,omitempty"`
+	Value           json.RawMessage `json:"value,omitempty"`
+	Action          ChangeAction    `json:"action,omitempty"`
 }
 
 type Outputs map[string]Output
@@ -51,6 +53,8 @@ func OutputsFromMap(outputValues map[string]*states.OutputValue) (Outputs, tfdia
 		}
 
 		outputs[name] = Output{
+			// BeforeSensitive: ov.BeforeSensitive,
+			// AfterSensitive:  ov.AfterSensitive,
 			Sensitive: ov.Sensitive,
 			Type:      json.RawMessage(valueType),
 			Value:     redactedValue,
@@ -65,8 +69,10 @@ func OutputsFromChanges(changes []*plans.OutputChangeSrc) Outputs {
 
 	for _, change := range changes {
 		outputs[change.Addr.OutputValue.Name] = Output{
-			Sensitive: change.Sensitive,
-			Action:    changeAction(change.Action),
+			Sensitive:       change.Sensitive,
+			BeforeSensitive: change.BeforeSensitive,
+			AfterSensitive:  change.AfterSensitive,
+			Action:          changeAction(change.Action),
 		}
 	}
 

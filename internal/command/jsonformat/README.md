@@ -31,8 +31,8 @@ concerned with the complex diff calculations.
 
 The `differ` package operates on `Change` objects. These are produced from
 `jsonplan.Change` objects (which are produced by the `terraform show` command).
-Each `jsonplan.Change` object represents a single resource within the overall
-Terraform configuration.
+Each `jsonplan.Change` object represents a single resource or output within the
+overall Terraform configuration.
 
 The `differ` package will iterate through the `Change` objects and produce a 
 single `Diff` that represents a processed summary of the changes described by 
