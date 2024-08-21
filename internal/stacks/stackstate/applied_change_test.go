@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 	ctymsgpack "github.com/zclconf/go-cty/cty/msgpack"
@@ -245,7 +244,7 @@ func TestAppliedChangeAsProto(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			spew.Dump(got)
+
 			if diff := cmp.Diff(test.Want, got, protocmp.Transform()); diff != "" {
 				t.Errorf("wrong result\n%s", diff)
 			}

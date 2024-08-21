@@ -1627,7 +1627,7 @@ func TestApply_backup(t *testing.T) {
 
 	actual := backupState.RootModule().Resources["test_instance.foo"]
 	expected := originalState.RootModule().Resources["test_instance.foo"]
-	if !cmp.Equal(actual, expected, cmpopts.EquateEmpty()) {
+	if !cmp.Equal(actual, expected, cmpopts.EquateEmpty(), cmpopts.IgnoreUnexported(states.ResourceInstanceObjectSrc{})) {
 		t.Fatalf(
 			"wrong aws_instance.foo state\n%s",
 			cmp.Diff(expected, actual, cmp.Transformer("bytesAsString", func(b []byte) string {
