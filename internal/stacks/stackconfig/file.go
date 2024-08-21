@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	hcljson "github.com/hashicorp/hcl/v2/json"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -136,6 +137,13 @@ func DecodeFileBody(body hcl.Body, fileAddr sourceaddrs.FinalSource) (*File, tfd
 				ret.Declarations.addRequiredProviders(decl),
 			)
 
+		case "removed":
+			decl, moreDiags := decodeRemovedBlock(block)
+			diags = diags.Append(moreDiags)
+			diags = diags.Append(
+				ret.Declarations.addRemoved(decl),
+			)
+
 		default:
 			// Should not get here because the cases above should be exhaustive
 			// for everything declared in rootConfigSchema.
@@ -220,5 +228,6 @@ var rootConfigSchema = &hcl.BodySchema{
 		{Type: "output", LabelNames: []string{"name"}},
 		{Type: "provider", LabelNames: []string{"type", "name"}},
 		{Type: "required_providers"},
+		{Type: "removed"},
 	},
 }
