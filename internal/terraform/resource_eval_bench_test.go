@@ -14,7 +14,10 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// Benchmark that stresses resource instance evaluation during plan
+// Benchmark that stresses resource instance evaluation during plan. The
+// references to resources with large count values force the evaluator to
+// repeated return all instances, so accessing those changes should be made as
+// efficient as possible.
 func BenchmarkPlanLargeCountRefs(b *testing.B) {
 	m := testModuleInline(b, map[string]string{
 		"main.tf": `
@@ -73,6 +76,8 @@ output "out" {
 	}
 }
 
+// Similar to PlanLargeCountRefs, this runs through Apply to benchmark the
+// caching of decoded state values.
 func BenchmarkApplyLargeCountRefs(b *testing.B) {
 	m := testModuleInline(b, map[string]string{
 		"main.tf": `
@@ -139,5 +144,4 @@ output "out" {
 			b.Fatal(diags.Err())
 		}
 	}
-
 }
