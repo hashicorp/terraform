@@ -38,26 +38,6 @@ func NewChanges() *Changes {
 	return &Changes{}
 }
 
-func (c *Changes) Empty() bool {
-	for _, res := range c.Resources {
-		if res.Action != NoOp || res.Moved() {
-			return false
-		}
-
-		if res.Importing != nil {
-			return false
-		}
-	}
-
-	for _, out := range c.Outputs {
-		if out.Addr.Module.IsRoot() && out.Action != NoOp {
-			return false
-		}
-	}
-
-	return true
-}
-
 // Encode encodes all the stored resource and output changes into a new *ChangeSrc value
 func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 	changesSrc := NewChangesSrc()
@@ -84,7 +64,7 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 
 		rcs, err := rc.Encode(schema.Block.ImpliedType())
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Changes.Encode: %w", err)
 		}
 
 		changesSrc.Resources = append(changesSrc.Resources, rcs)
