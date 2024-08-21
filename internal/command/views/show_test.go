@@ -169,7 +169,7 @@ func TestShowJSON(t *testing.T) {
 		},
 	}
 
-	config, _, configCleanup := initwd.MustLoadConfigForTests(t, "./testdata/show", "tests")
+	config, _, configCleanup := initwd.MustLoadConfigForTests(t, "./testdata/show", "tests", false)
 	defer configCleanup()
 
 	for name, testCase := range testCases {

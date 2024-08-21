@@ -187,7 +187,7 @@ func TestRemoteContextWithVars(t *testing.T) {
 			b, bCleanup := testBackendDefault(t)
 			defer bCleanup()
 
-			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests", false)
 			defer configCleanup()
 
 			workspaceID, err := b.getRemoteWorkspaceID(context.Background(), backend.DefaultStateName)
@@ -410,7 +410,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 			b, bCleanup := testBackendDefault(t)
 			defer bCleanup()
 
-			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests", false)
 			defer configCleanup()
 
 			workspaceID, err := b.getRemoteWorkspaceID(context.Background(), backend.DefaultStateName)

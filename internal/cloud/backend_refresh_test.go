@@ -30,7 +30,7 @@ func testOperationRefresh(t *testing.T, configDir string) (*backendrun.Operation
 func testOperationRefreshWithTimeout(t *testing.T, configDir string, timeout time.Duration) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests", false)
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)

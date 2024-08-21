@@ -39,7 +39,7 @@ func TestLocal_applyBasic(t *testing.T) {
 		"ami": cty.StringVal("bar"),
 	})}
 
-	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply", false)
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -74,6 +74,7 @@ test_instance.foo:
 		t.Fatalf("unexpected error output:\n%s", errOutput)
 	}
 }
+
 func TestLocal_applyCheck(t *testing.T) {
 	b := TestLocal(t)
 
@@ -83,7 +84,7 @@ func TestLocal_applyCheck(t *testing.T) {
 		"ami": cty.StringVal("bar"),
 	})}
 
-	op, configCleanup, done := testOperationApply(t, "./testdata/apply-check")
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply-check", false)
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -125,7 +126,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 	p := TestLocalProvider(t, b, "test", providers.ProviderSchema{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
 
-	op, configCleanup, done := testOperationApply(t, "./testdata/empty")
+	op, configCleanup, done := testOperationApply(t, "./testdata/empty", false)
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -159,7 +160,7 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 	p := TestLocalProvider(t, b, "test", providers.ProviderSchema{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{}
 
-	op, configCleanup, done := testOperationApply(t, "./testdata/empty")
+	op, configCleanup, done := testOperationApply(t, "./testdata/empty", false)
 	defer configCleanup()
 	op.PlanMode = plans.DestroyMode
 
@@ -226,7 +227,7 @@ func TestLocal_applyError(t *testing.T) {
 		}
 	}
 
-	op, configCleanup, done := testOperationApply(t, "./testdata/apply-error")
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply-error", false)
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -276,7 +277,7 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	}
 	defer os.Chdir(wd)
 
-	op, configCleanup, done := testOperationApply(t, wd+"/testdata/apply")
+	op, configCleanup, done := testOperationApply(t, wd+"/testdata/apply", false)
 	defer configCleanup()
 
 	b.Backend = &backendWithFailingState{}
@@ -322,7 +323,7 @@ func TestLocal_applyRefreshFalse(t *testing.T) {
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())
 
-	op, configCleanup, done := testOperationApply(t, "./testdata/plan")
+	op, configCleanup, done := testOperationApply(t, "./testdata/plan", false)
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -361,10 +362,10 @@ func (s failingState) WriteState(state *states.State) error {
 	return errors.New("fake failure")
 }
 
-func testOperationApply(t *testing.T, configDir string) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
+func testOperationApply(t *testing.T, configDir string, allowExp bool) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests", allowExp)
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
@@ -407,7 +408,7 @@ func TestApply_applyCanceledAutoApprove(t *testing.T) {
 
 	TestLocalProvider(t, b, "test", applyFixtureSchema())
 
-	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply", false)
 	op.AutoApprove = true
 	defer configCleanup()
 	defer func() {

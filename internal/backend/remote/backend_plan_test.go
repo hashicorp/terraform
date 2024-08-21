@@ -41,7 +41,7 @@ func testOperationPlan(t *testing.T, configDir string) (*backendrun.Operation, f
 func testOperationPlanWithTimeout(t *testing.T, configDir string, timeout time.Duration) (*backendrun.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests", false)
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)

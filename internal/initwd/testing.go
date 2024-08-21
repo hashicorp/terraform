@@ -31,12 +31,14 @@ import (
 // As with NewLoaderForTests, a cleanup function is returned which must be
 // called before the test completes in order to remove the temporary
 // modules directory.
-func LoadConfigForTests(t *testing.T, rootDir string, testsDir string) (*configs.Config, *configload.Loader, func(), tfdiags.Diagnostics) {
+func LoadConfigForTests(t *testing.T, rootDir string, testsDir string, allowExp bool) (*configs.Config, *configload.Loader, func(), tfdiags.Diagnostics) {
 	t.Helper()
 
 	var diags tfdiags.Diagnostics
 
 	loader, cleanup := configload.NewLoaderForTests(t)
+	loader.AllowLanguageExperiments(allowExp)
+
 	inst := NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
 
 	_, moreDiags := inst.InstallModules(context.Background(), rootDir, testsDir, true, false, ModuleInstallHooksImpl{})
@@ -65,10 +67,10 @@ func LoadConfigForTests(t *testing.T, rootDir string, testsDir string) (*configs
 // This is useful for concisely writing tests that don't expect errors at
 // all. For tests that expect errors and need to assert against them, use
 // LoadConfigForTests instead.
-func MustLoadConfigForTests(t *testing.T, rootDir, testsDir string) (*configs.Config, *configload.Loader, func()) {
+func MustLoadConfigForTests(t *testing.T, rootDir, testsDir string, allowExp bool) (*configs.Config, *configload.Loader, func()) {
 	t.Helper()
 
-	config, loader, cleanup, diags := LoadConfigForTests(t, rootDir, testsDir)
+	config, loader, cleanup, diags := LoadConfigForTests(t, rootDir, testsDir, allowExp)
 	if diags.HasErrors() {
 		cleanup()
 		t.Fatal(diags.Err())
