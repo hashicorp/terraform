@@ -197,7 +197,7 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 					),
 					Subject: decl.DeclRange.ToHCL().Ptr(),
 				})
-				return &stubs.ErroredProvider{}, diags
+				return stubs.ErroredProvider(), diags
 			}
 
 			// If the context we recieved gets cancelled then we want providers
@@ -265,7 +265,7 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 				// stub instead. (The real provider stays running until it
 				// gets cleaned up by the cleanup function above, despite being
 				// inaccessible to the caller.)
-				return &stubs.ErroredProvider{}, diags
+				return stubs.ErroredProvider(), diags
 			}
 
 			return providerClose{
