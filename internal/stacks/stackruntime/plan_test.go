@@ -3494,6 +3494,88 @@ func TestPlanWithStateManipulation(t *testing.T) {
 					},
 				}),
 		},
+		"cross-type-moved": {
+			state: stackstate.NewStateBuilder().
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self.testing_resource.before")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "moved",
+							"value": "moved",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("moved", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("moved"),
+					"value": cty.StringVal("moved"),
+				})).
+				Build(),
+			changes: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeApplyable{
+					Applyable: true,
+				},
+				&stackplan.PlannedChangeComponentInstance{
+					Addr:                mustAbsComponentInstance("component.self"),
+					PlanApplyable:       true,
+					PlanComplete:        true,
+					Action:              plans.Update,
+					PlannedInputValues:  make(map[string]plans.DynamicValue),
+					PlannedOutputValues: make(map[string]cty.Value),
+					PlannedCheckResults: &states.CheckResults{},
+					RequiredComponents:  collections.NewSet[stackaddrs.AbsComponent](),
+					PlanTimestamp:       fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeResourceInstancePlanned{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_deferred_resource.after"),
+					ChangeSrc: &plans.ResourceInstanceChangeSrc{
+						Addr:         mustAbsResourceInstance("testing_deferred_resource.after"),
+						PrevRunAddr:  mustAbsResourceInstance("testing_resource.before"),
+						ProviderAddr: mustDefaultRootProvider("testing"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.NoOp,
+							Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+								"id":       cty.StringVal("moved"),
+								"value":    cty.StringVal("moved"),
+								"deferred": cty.False,
+							})),
+							After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+								"id":       cty.StringVal("moved"),
+								"value":    cty.StringVal("moved"),
+								"deferred": cty.False,
+							})),
+						},
+					},
+					PriorStateSrc: &states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":       "moved",
+							"value":    "moved",
+							"deferred": false,
+						}),
+						Dependencies: make([]addrs.ConfigResource, 0),
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.DeferredResourceSchema,
+				},
+				&stackplan.PlannedChangeHeader{
+					TerraformVersion: version.SemVer,
+				},
+				&stackplan.PlannedChangePlannedTimestamp{
+					PlannedTimestamp: fakePlanTimestamp,
+				},
+			},
+			counts: collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange](
+				collections.MapElem[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]{
+					K: mustAbsComponentInstance("component.self"),
+					V: &hooks.ComponentInstanceChange{
+						Addr: mustAbsComponentInstance("component.self"),
+						Move: 1,
+					},
+				}),
+		},
 		"import": {
 			state: stackstate.NewStateBuilder().Build(), // We start with an empty state for this.
 			store: stacks_testing_provider.NewResourceStoreBuilder().

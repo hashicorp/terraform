@@ -532,7 +532,17 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			return diags, nil
 		}
 
+		providerFactories := make(map[addrs.Provider]providers.Factory, len(providerSchemas))
+		for addr := range providerSchemas {
+			providerFactories[addr] = func() (providers.Interface, error) {
+				// Lazily fetch the unconfigured client for the provider
+				// as and when we need it.
+				return c.main.ProviderType(ctx, addr).UnconfiguredClient(ctx)
+			}
+		}
+
 		tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
+			Providers:                providerFactories,
 			PreloadedProviderSchemas: providerSchemas,
 			Provisioners:             c.main.availableProvisioners(),
 		})
