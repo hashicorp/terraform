@@ -22,7 +22,7 @@ var _ providers.Interface = (*unknownProvider)(nil)
 // An unknownProvider is only returned in the context of a provider that should
 // have been configured by Stacks. This provider should not be configured again,
 // or used for any dedicated offline functionality (such as moving resources and
-// .
+// provider functions).
 type unknownProvider struct {
 	unconfiguredClient providers.Interface
 }
@@ -186,7 +186,7 @@ func (u *unknownProvider) MoveResourceState(request providers.MoveResourceStateR
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
-		"Called MoveResourceState on a configured provider",
+		"Called MoveResourceState on an unknown provider",
 		"Terraform called MoveResourceState on an unknown provider. This is a bug in Terraform - please report this error.",
 		nil, // nil attribute path means the overall configuration block
 	))

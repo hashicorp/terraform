@@ -79,7 +79,7 @@ func (p *erroredProvider) MoveResourceState(req providers.MoveResourceStateReque
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
-		"Called MoveResourceState on a configured provider",
+		"Called MoveResourceState on an errored provider",
 		"Terraform called MoveResourceState on an errored provider. This is a bug in Terraform - please report this error.",
 		nil, // nil attribute path means the overall configuration block
 	))
