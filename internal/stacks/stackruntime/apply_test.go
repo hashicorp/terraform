@@ -35,6 +35,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/version"
 )
 
 func TestApplyWithRemovedResource(t *testing.T) {
@@ -2698,6 +2699,89 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 		t.FailNow()
 	}
 
+	sort.SliceStable(planChanges, func(i, j int) bool {
+		return plannedChangeSortKey(planChanges[i]) < plannedChangeSortKey(planChanges[j])
+	})
+	wantPlanChanges := []stackplan.PlannedChange{
+		&stackplan.PlannedChangeApplyable{
+			Applyable: true,
+		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr:               mustAbsComponentInstance("component.self"),
+			PlanApplyable:      true,
+			PlanComplete:       true,
+			Action:             plans.Create,
+			RequiredComponents: collections.NewSet[stackaddrs.AbsComponent](),
+			PlannedInputValues: map[string]plans.DynamicValue{
+				"id":    mustPlanDynamicValueDynamicType(cty.StringVal("2f9f3b84")),
+				"input": mustPlanDynamicValueDynamicType(cty.StringVal("hello, world!")),
+			},
+			PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+				"id":    nil,
+				"input": nil,
+			},
+			PlannedOutputValues: map[string]cty.Value{
+				"value": cty.StringVal("hello, world!"),
+			},
+			PlannedCheckResults: &states.CheckResults{},
+			PlannedProviderFunctionResults: []providers.FunctionHash{
+				{
+					Key:    providerFunctionHashArgs(mustDefaultRootProvider("testing").Provider, "echo", cty.StringVal("hello, world!")),
+					Result: providerFunctionHashResult(cty.StringVal("hello, world!")),
+				},
+			},
+			PlanTimestamp: fakePlanTimestamp,
+		},
+		&stackplan.PlannedChangeResourceInstancePlanned{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+			ChangeSrc: &plans.ResourceInstanceChangeSrc{
+				Addr:         mustAbsResourceInstance("testing_resource.data"),
+				PrevRunAddr:  mustAbsResourceInstance("testing_resource.data"),
+				ProviderAddr: mustDefaultRootProvider("testing"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+					Before: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+						"id":    cty.String,
+						"value": cty.String,
+					}))),
+					After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("2f9f3b84"),
+						"value": cty.StringVal("hello, world!"),
+					})),
+				},
+			},
+			ProviderConfigAddr: mustDefaultRootProvider("testing"),
+			Schema:             stacks_testing_provider.TestingResourceSchema,
+		},
+		&stackplan.PlannedChangeProviderFunctionResults{
+			Results: []providers.FunctionHash{
+				{
+					Key:    providerFunctionHashArgs(mustDefaultRootProvider("testing").Provider, "echo", cty.StringVal("hello, world!")),
+					Result: providerFunctionHashResult(cty.StringVal("hello, world!")),
+				},
+			},
+		},
+		&stackplan.PlannedChangeHeader{
+			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangeOutputValue{
+			Addr:     stackaddrs.OutputValue{Name: "value"},
+			Action:   plans.Create,
+			OldValue: mustPlanDynamicValue(cty.NullVal(cty.String)),
+			NewValue: mustPlanDynamicValue(cty.StringVal("hello, world!")),
+		},
+		&stackplan.PlannedChangePlannedTimestamp{
+			PlannedTimestamp: fakePlanTimestamp,
+		},
+		&stackplan.PlannedChangeRootInputValue{
+			Addr:  stackaddrs.InputVariable{Name: "input"},
+			Value: cty.StringVal("hello, world!"),
+		},
+	}
+	if diff := cmp.Diff(wantPlanChanges, planChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+
 	planLoader := stackplan.NewLoader()
 	for _, change := range planChanges {
 		proto, err := change.PlannedChangeProto()
@@ -2716,6 +2800,16 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 	plan, err := planLoader.Plan()
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	// just verify the plan is correctly loading the provider function results
+	// as well
+	if len(plan.ProviderFunctionResults) == 0 {
+		t.Errorf("expected provider function results, got none")
+
+		if len(plan.Components.Get(mustAbsComponentInstance("component.self")).PlannedFunctionResults) == 0 {
+			t.Errorf("expected component function results, got none")
+		}
 	}
 
 	applyReq := ApplyRequest{
@@ -2748,7 +2842,7 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
 	})
 
-	wantChanges := []stackstate.AppliedChange{
+	wantApplyChanges := []stackstate.AppliedChange{
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
@@ -2771,7 +2865,7 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantApplyChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }

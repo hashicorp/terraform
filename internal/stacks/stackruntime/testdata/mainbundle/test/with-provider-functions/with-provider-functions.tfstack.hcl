@@ -20,11 +20,11 @@ component "self" {
 
   inputs = {
     id    = "2f9f3b84"
-    input = var.input
+    input = provider::testing::echo(var.input)
   }
 }
 
 output "value" {
   type = string
-  value = component.self.value
+  value = provider::testing::echo(component.self.value)
 }

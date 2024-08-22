@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -439,6 +440,11 @@ func (s *Stack) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
 // plan and apply phases.
 func (s *Stack) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	return s.resolveExpressionReference(ctx, ref, nil, instances.RepetitionData{})
+}
+
+// ExternalFunctions implements ExpressionScope.
+func (s *Stack) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, func(), tfdiags.Diagnostics) {
+	return s.main.ProviderFunctions(ctx, s.StackConfig(ctx))
 }
 
 // PlanTimestamp implements ExpressionScope, providing the timestamp at which

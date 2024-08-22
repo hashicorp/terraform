@@ -6,7 +6,6 @@ package stackruntime
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"path"
 	"sort"
@@ -3321,7 +3320,7 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 
 func TestPlanInvalidProvidersFailGracefully(t *testing.T) {
 	ctx := context.Background()
-	cfg := loadMainBundleConfigForTest(t, path.Join("multiple-providers"))
+	cfg := loadMainBundleConfigForTest(t, path.Join("invalid-providers"))
 
 	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
 	if err != nil {
@@ -3340,9 +3339,6 @@ func TestPlanInvalidProvidersFailGracefully(t *testing.T) {
 	req := PlanRequest{
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("invalid"): func() (providers.Interface, error) {
-				return nil, errors.New("provider not found")
-			},
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
 				return stacks_testing_provider.NewProvider(), nil
 			},

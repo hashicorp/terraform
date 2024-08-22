@@ -175,6 +175,8 @@ type PlannedChangeComponentInstance struct {
 
 	PlannedCheckResults *states.CheckResults
 
+	PlannedProviderFunctionResults []providers.FunctionHash
+
 	// PlanTimestamp is the timestamp that would be returned from the
 	// "plantimestamp" function in modules inside this component. We
 	// must preserve this in the raw plan data to ensure that we can
@@ -234,6 +236,14 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*stacks.PlannedC
 		return nil, fmt.Errorf("failed to encode check results: %s", err)
 	}
 
+	var plannedFunctionResults []*planproto.ProviderFunctionCallHash
+	for _, result := range pc.PlannedProviderFunctionResults {
+		plannedFunctionResults = append(plannedFunctionResults, &planproto.ProviderFunctionCallHash{
+			Key:    result.Key,
+			Result: result.Result,
+		})
+	}
+
 	mode, err := planproto.NewMode(pc.Mode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode mode: %s", err)
@@ -251,6 +261,7 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*stacks.PlannedC
 		DependsOnComponentAddrs: componentAddrsRaw,
 		PlannedOutputValues:     plannedOutputValues,
 		PlannedCheckResults:     plannedCheckResults,
+		ProviderFunctionResults: plannedFunctionResults,
 	}, proto.MarshalOptions{})
 	if err != nil {
 		return nil, err
@@ -754,5 +765,31 @@ func (pc *PlannedChangeApplyable) PlannedChangeProto() (*stacks.PlannedChange, e
 				},
 			},
 		},
+	}, nil
+}
+
+type PlannedChangeProviderFunctionResults struct {
+	Results []providers.FunctionHash
+}
+
+var _ PlannedChange = (*PlannedChangeProviderFunctionResults)(nil)
+
+func (pc *PlannedChangeProviderFunctionResults) PlannedChangeProto() (*stacks.PlannedChange, error) {
+	var results tfstackdata1.ProviderFunctionResults
+	for _, result := range pc.Results {
+		results.ProviderFunctionResults = append(results.ProviderFunctionResults, &planproto.ProviderFunctionCallHash{
+			Key:    result.Key,
+			Result: result.Result,
+		})
+	}
+
+	var raw anypb.Any
+	err := anypb.MarshalFrom(&raw, &results, proto.MarshalOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return &stacks.PlannedChange{
+		Raw: []*anypb.Any{&raw},
 	}, nil
 }

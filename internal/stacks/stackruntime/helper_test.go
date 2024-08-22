@@ -4,6 +4,7 @@
 package stackruntime
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -207,6 +208,10 @@ func plannedChangeSortKey(change stackplan.PlannedChange) string {
 		// There should only be a single timestamp in a plan, so we can
 		// just return a static string here.
 		return "planned-timestamp"
+	case *stackplan.PlannedChangeProviderFunctionResults:
+		// There should only be a single timestamp in a plan, so we can just
+		// return a simple string.
+		return "function-results"
 	default:
 		// This is only going to happen during tests, so we can panic here.
 		panic(fmt.Errorf("unrecognized planned change type: %T", change))
@@ -337,4 +342,23 @@ func mustMarshalJSONAttrs(attrs map[string]interface{}) []byte {
 		panic(err)
 	}
 	return jsonAttrs
+}
+
+func providerFunctionHashArgs(provider addrs.Provider, name string, args ...cty.Value) []byte {
+	sum := sha256.New()
+
+	sum.Write([]byte(provider.String()))
+	sum.Write([]byte("|"))
+	sum.Write([]byte(name))
+	for _, arg := range args {
+		sum.Write([]byte("|"))
+		sum.Write([]byte(arg.GoString()))
+	}
+
+	return sum.Sum(nil)
+}
+
+func providerFunctionHashResult(value cty.Value) []byte {
+	bytes := sha256.Sum256([]byte(value.GoString()))
+	return bytes[:]
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -1325,6 +1326,11 @@ func (c *ComponentInstance) ResolveExpressionReference(ctx context.Context, ref 
 	return stack.resolveExpressionReference(ctx, ref, nil, c.repetition)
 }
 
+// ExternalFunctions implements ExpressionScope.
+func (c *ComponentInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, func(), tfdiags.Diagnostics) {
+	return c.main.ProviderFunctions(ctx, c.call.Config(ctx).StackConfig(ctx))
+}
+
 // PlanTimestamp implements ExpressionScope, providing the timestamp at which
 // the current plan is being run.
 func (c *ComponentInstance) PlanTimestamp() time.Time {
@@ -1383,15 +1389,16 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 		changes = append(changes, &stackplan.PlannedChangeComponentInstance{
 			Addr: c.Addr(),
 
-			Action:                 action,
-			Mode:                   corePlan.UIMode,
-			PlanApplyable:          corePlan.Applyable,
-			PlanComplete:           corePlan.Complete,
-			RequiredComponents:     c.RequiredComponents(ctx),
-			PlannedInputValues:     corePlan.VariableValues,
-			PlannedInputValueMarks: corePlan.VariableMarks,
-			PlannedOutputValues:    outputVals,
-			PlannedCheckResults:    corePlan.Checks,
+			Action:                         action,
+			Mode:                           corePlan.UIMode,
+			PlanApplyable:                  corePlan.Applyable,
+			PlanComplete:                   corePlan.Complete,
+			RequiredComponents:             c.RequiredComponents(ctx),
+			PlannedInputValues:             corePlan.VariableValues,
+			PlannedInputValueMarks:         corePlan.VariableMarks,
+			PlannedOutputValues:            outputVals,
+			PlannedCheckResults:            corePlan.Checks,
+			PlannedProviderFunctionResults: corePlan.ProviderFunctionResults,
 
 			// We must remember the plan timestamp so that the plantimestamp
 			// function can return a consistent result during a later apply phase.
