@@ -107,12 +107,10 @@ func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 		ProviderFunctionResults: c.PlannedFunctionResults,
 	}
 
-	// sc := changes.SyncWrapper()
 	for _, elem := range c.ResourceInstancePlanned.Elems {
 		changeSrc := elem.Value
 		if changeSrc != nil {
 			changes.Resources = append(changes.Resources, changeSrc)
-			// sc.AppendResourceInstanceChange(changeSrc)
 		}
 	}
 
