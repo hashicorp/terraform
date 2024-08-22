@@ -8,6 +8,8 @@ We assume some familiarity with user-facing Terraform concepts like
 configuration, state, CLI workflow, etc. The Terraform website has
 documentation on these ideas.
 
+**Links to Go documentation assume you are running [`pkgsite`](https://pkg.go.dev/golang.org/x/pkgsite/cmd/pkgsite) locally, with the default URL of localhost:8080.**
+
 ## Terraform Request Flow
 
 The following diagram shows an approximation of how a user command is
