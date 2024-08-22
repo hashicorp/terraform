@@ -357,21 +357,9 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 		externalProviderConfigs = opts.ExternalProviders
 	}
 
-	schemas, schemaDiags := c.Schemas(config, plan.PriorState)
-	diags = diags.Append(schemaDiags)
-	if diags.HasErrors() {
-		return nil, walkApply, diags
-	}
-
-	changes, err := plan.Changes.Decode(schemas)
-	if err != nil {
-		diags = diags.Append(err)
-		return nil, walkApply, diags
-	}
-
 	graph, moreDiags := (&ApplyGraphBuilder{
 		Config:                  config,
-		Changes:                 changes,
+		Changes:                 plan.Changes,
 		DeferredChanges:         plan.DeferredResources,
 		State:                   plan.PriorState,
 		RootVariableValues:      variables,

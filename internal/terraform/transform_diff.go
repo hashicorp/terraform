@@ -20,7 +20,7 @@ import (
 type DiffTransformer struct {
 	Concrete ConcreteResourceInstanceNodeFunc
 	State    *states.State
-	Changes  *plans.Changes
+	Changes  *plans.ChangesSrc
 	Config   *configs.Config
 }
 

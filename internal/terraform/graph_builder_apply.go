@@ -26,7 +26,7 @@ type ApplyGraphBuilder struct {
 	Config *configs.Config
 
 	// Changes describes the changes that we need apply.
-	Changes *plans.Changes
+	Changes *plans.ChangesSrc
 
 	// DeferredChanges describes the changes that were deferred during the plan
 	// and should not be applied.

@@ -28,12 +28,18 @@ func TestDiffTransformer_nilDiff(t *testing.T) {
 func TestDiffTransformer(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
 
-	beforeVal := cty.StringVal("")
-	afterVal := cty.StringVal("")
+	beforeVal, err := plans.NewDynamicValue(cty.StringVal(""), cty.String)
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterVal, err := plans.NewDynamicValue(cty.StringVal(""), cty.String)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	tf := &DiffTransformer{
-		Changes: &plans.Changes{
-			Resources: []*plans.ResourceInstanceChange{
+		Changes: &plans.ChangesSrc{
+			Resources: []*plans.ResourceInstanceChangeSrc{
 				{
 					Addr: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
@@ -44,7 +50,7 @@ func TestDiffTransformer(t *testing.T) {
 						Provider: addrs.NewDefaultProvider("aws"),
 						Module:   addrs.RootModule,
 					},
-					Change: plans.Change{
+					ChangeSrc: plans.ChangeSrc{
 						Action: plans.Update,
 						Before: beforeVal,
 						After:  afterVal,
@@ -100,12 +106,15 @@ resource "aws_instance" "foo" {
 
 	g := Graph{Path: addrs.RootModuleInstance}
 
-	beforeVal := cty.StringVal("")
+	beforeVal, err := plans.NewDynamicValue(cty.StringVal(""), cty.String)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	tf := &DiffTransformer{
 		Config: m,
-		Changes: &plans.Changes{
-			Resources: []*plans.ResourceInstanceChange{
+		Changes: &plans.ChangesSrc{
+			Resources: []*plans.ResourceInstanceChangeSrc{
 				{
 					Addr: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
@@ -116,7 +125,7 @@ resource "aws_instance" "foo" {
 						Provider: addrs.NewDefaultProvider("aws"),
 						Module:   addrs.RootModule,
 					},
-					Change: plans.Change{
+					ChangeSrc: plans.ChangeSrc{
 						// A "no-op" change has the no-op action and has the
 						// same object as both Before and After.
 						Action: plans.NoOp,
@@ -134,7 +143,7 @@ resource "aws_instance" "foo" {
 						Provider: addrs.NewDefaultProvider("aws"),
 						Module:   addrs.RootModule,
 					},
-					Change: plans.Change{
+					ChangeSrc: plans.ChangeSrc{
 						// A "no-op" change has the no-op action and has the
 						// same object as both Before and After.
 						Action: plans.NoOp,
