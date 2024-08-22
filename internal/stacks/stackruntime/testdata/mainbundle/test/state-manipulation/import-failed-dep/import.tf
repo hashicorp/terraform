@@ -11,6 +11,10 @@ variable "id" {
   type = string
 }
 
+resource "testing_failed_resource" "resource" {
+  fail_apply = true
+}
+
 import {
   to = testing_resource.data
   id = var.id
@@ -19,4 +23,6 @@ import {
 resource "testing_resource" "data" {
   id = var.id
   value = "imported"
+
+  depends_on = [testing_failed_resource.resource]
 }
