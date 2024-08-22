@@ -2873,7 +2873,7 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantApplyChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantApplyChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
