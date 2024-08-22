@@ -8,6 +8,8 @@ We assume some familiarity with user-facing Terraform concepts like
 configuration, state, CLI workflow, etc. The Terraform website has
 documentation on these ideas.
 
+**Links to Go documentation assume you are running [`pkgsite`](https://pkg.go.dev/golang.org/x/pkgsite/cmd/pkgsite) locally, with the default URL of localhost:8080.**
+
 ## Terraform Request Flow
 
 The following diagram shows an approximation of how a user command is
@@ -23,7 +25,7 @@ in more detail in a corresponding section below.
 Each time a user runs the `terraform` program, aside from some initial
 bootstrapping in the root package (not shown in the diagram) execution
 transfers immediately into one of the "command" implementations in
-[the `command` package](https://pkg.go.dev/github.com/hashicorp/terraform/internal/command).
+[the `command` package](http://localhost:8080/github.com/hashicorp/terraform/internal/command).
 The mapping between the user-facing command names and
 their corresponding `command` package types can be found in the `commands.go`
 file in the root of the repository.
@@ -35,7 +37,7 @@ but it applies to the main Terraform workflow commands `terraform plan` and
 For these commands, the role of the command implementation is to read and parse
 any command line arguments, command line options, and environment variables
 that are needed for the given command and use them to produce a
-[`backend.Operation`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/backend#Operation)
+[`backend.Operation`](http://localhost:8080/github.com/hashicorp/terraform/internal/backend#Operation)
 object that describes an action to be taken.
 
 An _operation_ consists of:
@@ -52,12 +54,12 @@ An _operation_ consists of:
 The operation is then passed to the currently-selected
 [backend](https://www.terraform.io/docs/backends/index.html). Each backend name
 corresponds to an implementation of
-[`backend.Backend`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/backend#Backend), using a
+[`backend.Backend`](http://localhost:8080/github.com/hashicorp/terraform/internal/backend#Backend), using a
 mapping table in
-[the `backend/init` package](https://pkg.go.dev/github.com/hashicorp/terraform/internal/backend/init).
+[the `backend/init` package](http://localhost:8080/github.com/hashicorp/terraform/internal/backend/init).
 
 Backends that are able to execute operations additionally implement
-[`backend.Enhanced`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/backend#Enhanced);
+[`backend.Enhanced`](http://localhost:8080/github.com/hashicorp/terraform/internal/backend#Enhanced);
 the command-handling code calls `Operation` with the operation it has
 constructed, and then the backend is responsible for executing that action.
 
@@ -68,7 +70,7 @@ backend and HCP Terraform's backends (`remote`, `cloud`) perform operations.
 
 Thus, most backends do _not_ implement this interface, and so the `command` package wraps these
 backends in an instance of
-[`local.Local`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/backend/local#Local),
+[`local.Local`](http://localhost:8080/github.com/hashicorp/terraform/internal/backend/local#Local),
 causing the operation to be executed locally within the `terraform` process itself.
 
 ## Backends
@@ -78,19 +80,19 @@ A _backend_ determines where Terraform should store its state snapshots.
 As described above, the `local` backend also executes operations on behalf of most other
 backends. It uses a _state manager_
 (either
-[`statemgr.Filesystem`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/states/statemgr#Filesystem) if the
+[`statemgr.Filesystem`](http://localhost:8080/github.com/hashicorp/terraform/internal/states/statemgr#Filesystem) if the
 local backend is being used directly, or an implementation provided by whatever
 backend is being wrapped) to retrieve the current state for the workspace
 specified in the operation, then uses the _config loader_ to load and do
 initial processing/validation of the configuration specified in the
 operation. It then uses these, along with the other settings given in the
 operation, to construct a
-[`terraform.Context`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#Context),
+[`terraform.Context`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#Context),
 which is the main object that actually performs Terraform operations.
 
 The `local` backend finally calls an appropriate method on that context to
 begin execution of the relevant command, such as
-[`Plan`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#Context.Plan)
+[`Plan`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#Context.Plan)
 or
 [`Apply`](), which in turn constructs a graph using a _graph builder_,
 described in a later section.
@@ -98,21 +100,21 @@ described in a later section.
 ## Configuration Loader
 
 The top-level configuration structure is represented by model types in
-[package `configs`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/configs).
+[package `configs`](http://localhost:8080/github.com/hashicorp/terraform/internal/configs).
 A whole configuration (the root module plus all of its descendent modules)
 is represented by
-[`configs.Config`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/configs#Config).
+[`configs.Config`](http://localhost:8080/github.com/hashicorp/terraform/internal/configs#Config).
 
 The `configs` package contains some low-level functionality for constructing
 configuration objects, but the main entry point is in the sub-package
-[`configload`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/configs/configload]),
+[`configload`](http://localhost:8080/github.com/hashicorp/terraform/internal/configs/configload]),
 via
-[`configload.Loader`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/configs/configload#Loader).
+[`configload.Loader`](http://localhost:8080/github.com/hashicorp/terraform/internal/configs/configload#Loader).
 A loader deals with all of the details of installing child modules
 (during `terraform init`) and then locating those modules again when a
 configuration is loaded by a backend. It takes the path to a root module
 and recursively loads all of the child modules to produce a single
-[`configs.Config`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/configs#Config)
+[`configs.Config`](http://localhost:8080/github.com/hashicorp/terraform/internal/configs#Config)
 representing the entire configuration.
 
 Terraform expects configuration files written in the Terraform language, which
@@ -121,9 +123,9 @@ is a DSL built on top of
 cannot be interpreted until we build and walk the graph, since they depend
 on the outcome of other parts of the configuration, and so these parts of
 the configuration remain represented as the low-level HCL types
-[`hcl.Body`](https://pkg.go.dev/github.com/hashicorp/hcl/v2/#Body)
+[`hcl.Body`](http://localhost:8080/github.com/hashicorp/hcl/v2/#Body)
 and
-[`hcl.Expression`](https://pkg.go.dev/github.com/hashicorp/hcl/v2/#Expression),
+[`hcl.Expression`](http://localhost:8080/github.com/hashicorp/hcl/v2/#Expression),
 allowing Terraform to interpret them at a more appropriate time.
 
 ## State Manager
@@ -132,17 +134,17 @@ A _state manager_ is responsible for storing and retrieving snapshots of the
 [Terraform state](https://www.terraform.io/docs/language/state/index.html)
 for a particular workspace. Each manager is an implementation of
 some combination of interfaces in
-[the `statemgr` package](https://pkg.go.dev/github.com/hashicorp/terraform/internal/states/statemgr),
+[the `statemgr` package](http://localhost:8080/github.com/hashicorp/terraform/internal/states/statemgr),
 with most practical managers implementing the full set of operations
 described by
-[`statemgr.Full`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/states/statemgr#Full)
+[`statemgr.Full`](http://localhost:8080/github.com/hashicorp/terraform/internal/states/statemgr#Full)
 provided by a _backend_. The smaller interfaces exist primarily for use in
 other function signatures to be explicit about what actions the function might
 take on the state manager; there is little reason to write a state manager
 that does not implement all of `statemgr.Full`.
 
 The implementation
-[`statemgr.Filesystem`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/states/statemgr#Filesystem) is used
+[`statemgr.Filesystem`](http://localhost:8080/github.com/hashicorp/terraform/internal/states/statemgr#Filesystem) is used
 by default (by the `local` backend) and is responsible for the familiar
 `terraform.tfstate` local file that most Terraform users start with, before
 they switch to [remote state](https://www.terraform.io/docs/language/state/remote.html).
@@ -151,7 +153,7 @@ Each of these saves and retrieves state via a remote network service
 appropriate to the backend that creates it.
 
 A state manager accepts and returns a state snapshot as a
-[`states.State`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/states#State)
+[`states.State`](http://localhost:8080/github.com/hashicorp/terraform/internal/states#State)
 object. The state manager is responsible for exactly how that object is
 serialized and stored, but all state managers at the time of writing use
 the same JSON serialization format, storing the resulting JSON bytes in some
@@ -160,7 +162,7 @@ kind of arbitrary blob store.
 ## Graph Builder
 
 A _graph builder_ is called by a
-[`terraform.Context`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#Context)
+[`terraform.Context`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#Context)
 method (e.g. `Plan` or `Apply`) to produce the graph that will be used
 to represent the necessary steps for that operation and the dependency
 relationships between them.
@@ -170,7 +172,7 @@ In most cases, the
 graphs each represent a specific object in the configuration, or something
 derived from those configuration objects. For example, each `resource` block
 in the configuration has one corresponding
-[`GraphNodeConfigResource`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#GraphNodeConfigResource)
+[`GraphNodeConfigResource`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#GraphNodeConfigResource)
 vertex representing it in the "plan" graph. (Terraform Core uses terminology
 inconsistently, describing graph _vertices_ also as graph _nodes_ in various
 places. These both describe the same concept.)
@@ -187,23 +189,23 @@ graph from the set of changes described in the plan that is being applied.
 
 The graph builders all work in terms of a sequence of _transforms_, which
 are implementations of
-[`terraform.GraphTransformer`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#GraphTransformer).
+[`terraform.GraphTransformer`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#GraphTransformer).
 Implementations of this interface just take a graph and mutate it in any
 way needed, and so the set of available transforms is quite varied. Some
 important examples include:
 
-* [`ConfigTransformer`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#ConfigTransformer),
+* [`ConfigTransformer`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#ConfigTransformer),
   which creates a graph vertex for each `resource` block in the configuration.
 
-* [`StateTransformer`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#StateTransformer),
+* [`StateTransformer`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#StateTransformer),
   which creates a graph vertex for each resource instance currently tracked
   in the state.
 
-* [`ReferenceTransformer`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#ReferenceTransformer),
+* [`ReferenceTransformer`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#ReferenceTransformer),
   which analyses the configuration to find dependencies between resources and
   other objects and creates any necessary "happens after" edges for these.
 
-* [`ProviderTransformer`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#ProviderTransformer),
+* [`ProviderTransformer`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#ProviderTransformer),
   which associates each resource or resource instance with exactly one
   provider configuration (implementing
   [the inheritance rules](https://www.terraform.io/docs/language/modules/develop/providers.html))
@@ -217,7 +219,7 @@ builder uses a different subset of these depending on the needs of the
 operation that is being performed.
 
 The result of graph building is a
-[`terraform.Graph`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#Graph), which
+[`terraform.Graph`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#Graph), which
 can then be processed using a _graph walker_.
 
 ## Graph Walk
@@ -225,17 +227,17 @@ can then be processed using a _graph walker_.
 The process of walking the graph visits each vertex of that graph in a way
 which respects the "happens after" edges in the graph. The walk algorithm
 itself is implemented in
-[the low-level `dag` package](https://pkg.go.dev/github.com/hashicorp/terraform/internal/dag#AcyclicGraph.Walk)
+[the low-level `dag` package](http://localhost:8080/github.com/hashicorp/terraform/internal/dag#AcyclicGraph.Walk)
 (where "DAG" is short for [_Directed Acyclic Graph_](https://en.wikipedia.org/wiki/Directed_acyclic_graph)), in
-[`AcyclicGraph.Walk`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/dag#AcyclicGraph.Walk).
+[`AcyclicGraph.Walk`](http://localhost:8080/github.com/hashicorp/terraform/internal/dag#AcyclicGraph.Walk).
 However, the "interesting" Terraform walk functionality is implemented in
-[`terraform.ContextGraphWalker`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#ContextGraphWalker),
+[`terraform.ContextGraphWalker`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#ContextGraphWalker),
 which implements a small set of higher-level operations that are performed
 during the graph walk:
 
 * `EnterPath` is called once for each module in the configuration, taking a
   module address and returning a
-  [`terraform.EvalContext`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#EvalContext)
+  [`terraform.EvalContext`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#EvalContext)
   that tracks objects within that module. `terraform.Context` is the _global_
   context for the entire operation, while `terraform.EvalContext` is a
   context for processing within a single module, and is the primary means
@@ -247,7 +249,7 @@ will evaluate multiple vertices concurrently. Vertex evaluation code must
 therefore make careful use of concurrency primitives such as mutexes in order
 to coordinate access to shared objects such as the `states.State` object.
 In most cases, we use the helper wrapper
-[`states.SyncState`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/states#SyncState)
+[`states.SyncState`](http://localhost:8080/github.com/hashicorp/terraform/internal/states#SyncState)
 to safely implement concurrent reads and writes from the shared state.
 
 ## Vertex Evaluation
@@ -280,27 +282,27 @@ a plan operation would include the following high-level steps:
   this operation.
 
 Each execution step for a vertex is an implementation of
-[`terraform.Execute`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#Execute).
+[`terraform.Execute`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#Execute).
 As with graph transforms, the behavior of these implementations varies widely:
 whereas graph transforms can take any action against the graph, an `Execute`
 implementation can take any action against the `EvalContext`.
 
 The implementation of `terraform.EvalContext` used in real processing
 (as opposed to testing) is
-[`terraform.BuiltinEvalContext`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#BuiltinEvalContext).
+[`terraform.BuiltinEvalContext`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#BuiltinEvalContext).
 It provides coordinated access to plugins, the current state, and the current
 plan via the `EvalContext` interface methods.
 
 In order to be executed, a vertex must implement
-[`terraform.GraphNodeExecutable`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#GraphNodeExecutable),
+[`terraform.GraphNodeExecutable`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#GraphNodeExecutable),
 which has a single `Execute` method that handles. There are numerous `Execute`
 implementations with different behaviors, but some prominent examples are:
 
-* [NodePlannableResource.Execute](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#NodePlannableResourceInstance.Execute), which handles the `plan` operation.
+* [NodePlannableResource.Execute](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#NodePlannableResourceInstance.Execute), which handles the `plan` operation.
 
-* [`NodeApplyableResourceInstance.Execute`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#NodeApplyableResourceInstance.Execute), which handles the main `apply` operation.
+* [`NodeApplyableResourceInstance.Execute`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#NodeApplyableResourceInstance.Execute), which handles the main `apply` operation.
 
-* [`NodeDestroyResourceInstance.Execute`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#EvalWriteState), which handles the main `destroy` operation.
+* [`NodeDestroyResourceInstance.Execute`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#EvalWriteState), which handles the main `destroy` operation.
 
 A vertex must complete successfully before the graph walk will begin evaluation
 for other vertices that have "happens after" edges. Evaluation can fail with one
@@ -320,11 +322,11 @@ The high-level process for expression evaluation is:
   to. For example, the expression `aws_instance.example[1]` refers to one of
   the instances created by a `resource "aws_instance" "example"` block in
   configuration. This analysis is performed by
-  [`lang.References`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/lang#References),
+  [`lang.References`](http://localhost:8080/github.com/hashicorp/terraform/internal/lang#References),
   or more often one of the helper wrappers around it:
-  [`lang.ReferencesInBlock`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/lang#ReferencesInBlock)
+  [`lang.ReferencesInBlock`](http://localhost:8080/github.com/hashicorp/terraform/internal/lang#ReferencesInBlock)
   or
-  [`lang.ReferencesInExpr`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/lang#ReferencesInExpr)
+  [`lang.ReferencesInExpr`](http://localhost:8080/github.com/hashicorp/terraform/internal/lang#ReferencesInExpr)
 
 1. Retrieve from the state the data for the objects that are referred to and
   create a lookup table of the values from these objects that the
@@ -334,18 +336,18 @@ The high-level process for expression evaluation is:
   them.
 
 1. Ask HCL to evaluate each attribute's expression (a
-  [`hcl.Expression`](https://pkg.go.dev/github.com/hashicorp/hcl/v2/#Expression)
+  [`hcl.Expression`](http://localhost:8080/github.com/hashicorp/hcl/v2/#Expression)
   object) against the data and function lookup tables.
 
 In practice, steps 2 through 4 are usually run all together using one
-of the methods on [`lang.Scope`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/lang#Scope);
+of the methods on [`lang.Scope`](http://localhost:8080/github.com/hashicorp/terraform/internal/lang#Scope);
 most commonly,
-[`lang.EvalBlock`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/lang#Scope.EvalBlock)
+[`lang.EvalBlock`](http://localhost:8080/github.com/hashicorp/terraform/internal/lang#Scope.EvalBlock)
 or
-[`lang.EvalExpr`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/lang#Scope.EvalExpr).
+[`lang.EvalExpr`](http://localhost:8080/github.com/hashicorp/terraform/internal/lang#Scope.EvalExpr).
 
 Expression evaluation produces a dynamic value represented as a
-[`cty.Value`](https://pkg.go.dev/github.com/zclconf/go-cty/cty#Value).
+[`cty.Value`](http://localhost:8080/github.com/zclconf/go-cty/cty#Value).
 This Go type represents values from the Terraform language and such values
 are eventually passed to provider plugins.
 
@@ -367,7 +369,7 @@ known when the main graph is constructed, but become known while evaluating
 other vertices in the main graph.
 
 This special behavior applies to vertex objects that implement
-[`terraform.GraphNodeDynamicExpandable`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/terraform#GraphNodeDynamicExpandable).
+[`terraform.GraphNodeDynamicExpandable`](http://localhost:8080/github.com/hashicorp/terraform/internal/terraform#GraphNodeDynamicExpandable).
 Such vertices have their own nested _graph builder_, _graph walk_,
 and _vertex evaluation_ steps, with the same behaviors as described in these
 sections for the main graph. The difference is in which graph transforms
