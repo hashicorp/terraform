@@ -96,7 +96,7 @@ type Component struct {
 // with the given previous run state, which should not happen if the caller
 // is using Terraform Core correctly.
 func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
-	changes := plans.NewChanges()
+	changes := &plans.ChangesSrc{}
 	plan := &plans.Plan{
 		UIMode:                  c.Mode,
 		Changes:                 changes,
@@ -107,11 +107,10 @@ func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 		ProviderFunctionResults: c.PlannedFunctionResults,
 	}
 
-	sc := changes.SyncWrapper()
 	for _, elem := range c.ResourceInstancePlanned.Elems {
 		changeSrc := elem.Value
 		if changeSrc != nil {
-			sc.AppendResourceInstanceChange(changeSrc)
+			changes.Resources = append(changes.Resources, changeSrc)
 		}
 	}
 

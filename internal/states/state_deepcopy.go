@@ -171,6 +171,7 @@ func (os *ResourceInstanceObjectSrc) DeepCopy() *ResourceInstanceObjectSrc {
 		AttrSensitivePaths:  attrPaths,
 		Dependencies:        dependencies,
 		CreateBeforeDestroy: os.CreateBeforeDestroy,
+		decodeValueCache:    os.decodeValueCache,
 	}
 }
 

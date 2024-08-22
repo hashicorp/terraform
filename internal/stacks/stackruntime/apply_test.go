@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
@@ -37,6 +38,13 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 )
+
+var changesCmpOpts = cmp.Options{
+	ctydebug.CmpOptions,
+	cmpCollectionsSet,
+	cmpopts.IgnoreUnexported(addrs.InputVariable{}),
+	cmpopts.IgnoreUnexported(states.ResourceInstanceObjectSrc{}),
+}
 
 func TestApplyWithRemovedResource(t *testing.T) {
 	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1994-09-05T08:50:00Z")
@@ -219,7 +227,7 @@ func TestApplyWithRemovedResource(t *testing.T) {
 		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
 	})
 
-	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -423,7 +431,7 @@ func TestApplyWithMovedResource(t *testing.T) {
 		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
 	})
 
-	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -594,7 +602,7 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
 	})
 
-	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -762,7 +770,7 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
 	})
 
-	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 
@@ -888,7 +896,7 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
 	})
 
-	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -1025,7 +1033,7 @@ func TestApplyWithForcePlanTimestamp(t *testing.T) {
 		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
 	})
 
-	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -1252,7 +1260,7 @@ func TestApplyWithFailedComponent(t *testing.T) {
 		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
 	})
 
-	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 
@@ -1362,7 +1370,7 @@ func TestApplyWithFailedProviderLinkedComponent(t *testing.T) {
 		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
 	})
 
-	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 
@@ -1841,7 +1849,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
 			})
 
-			if diff := cmp.Diff(tc.changes, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+			if diff := cmp.Diff(tc.changes, applyChanges, changesCmpOpts); diff != "" {
 				t.Errorf("wrong changes\n%s", diff)
 			}
 
@@ -1990,7 +1998,7 @@ func TestApplyWithChangedInputValues(t *testing.T) {
 		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
 	})
 
-	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -2146,7 +2154,7 @@ func TestApplyAutomaticInputConversion(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -2279,7 +2287,7 @@ func TestApplyEphemeralInput(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -2422,7 +2430,7 @@ func TestApplyMissingEphemeralInput(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -2548,7 +2556,7 @@ func TestApplyEphemeralInputWithDefault(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -2865,7 +2873,7 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantApplyChanges, applyChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantApplyChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }

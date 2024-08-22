@@ -9533,7 +9533,7 @@ func TestContext2Apply_moduleReplaceCycle(t *testing.T) {
 			},
 		})
 
-		changes := &plans.Changes{
+		changes := &plans.ChangesSrc{
 			Resources: []*plans.ResourceInstanceChangeSrc{
 				{
 					Addr: addrs.Resource{

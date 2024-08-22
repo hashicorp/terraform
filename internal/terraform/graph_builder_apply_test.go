@@ -22,7 +22,7 @@ func TestApplyGraphBuilder_impl(t *testing.T) {
 }
 
 func TestApplyGraphBuilder(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.create"),
@@ -76,7 +76,7 @@ func TestApplyGraphBuilder(t *testing.T) {
 // This tests the ordering of two resources where a non-CBD depends
 // on a CBD. GH-11349.
 func TestApplyGraphBuilder_depCbd(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.A"),
@@ -169,7 +169,7 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 // This tests the ordering of two resources that are both CBD that
 // require destroy/create.
 func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.A"),
@@ -241,7 +241,7 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 // This tests the ordering of two resources being destroyed that depend
 // on each other from only state. GH-11749
 func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("module.child.test_object.A"),
@@ -303,7 +303,7 @@ func TestApplyGraphBuilder_destroyStateOnly(t *testing.T) {
 
 // This tests the ordering of destroying a single count of a resource.
 func TestApplyGraphBuilder_destroyCount(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.A[1]"),
@@ -365,7 +365,7 @@ func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 }
 
 func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("module.A.test_object.foo"),
@@ -423,7 +423,7 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 }
 
 func TestApplyGraphBuilder_targetModule(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.foo"),
@@ -474,7 +474,7 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 			"test_string": cty.StringVal("changed"),
 		}), instanceSchema.Block.ImpliedType())
 
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.a"),
@@ -579,7 +579,7 @@ func TestApplyGraphBuilder_updateFromCBDOrphan(t *testing.T) {
 			"test_string": cty.StringVal("changed"),
 		}), instanceSchema.Block.ImpliedType())
 
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.a"),
@@ -664,7 +664,7 @@ test_object.b
 
 // The orphan clean up node should not be connected to a provider
 func TestApplyGraphBuilder_orphanedWithProvider(t *testing.T) {
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("test_object.A"),
@@ -706,7 +706,7 @@ func TestApplyGraphBuilder_orphanedWithProvider(t *testing.T) {
 func TestApplyGraphBuilder_withChecks(t *testing.T) {
 	awsProvider := mockProviderWithResourceTypeSchema("aws_instance", simpleTestSchema())
 
-	changes := &plans.Changes{
+	changes := &plans.ChangesSrc{
 		Resources: []*plans.ResourceInstanceChangeSrc{
 			{
 				Addr: mustResourceInstanceAddr("aws_instance.foo"),

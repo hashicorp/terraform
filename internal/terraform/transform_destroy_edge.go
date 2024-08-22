@@ -48,7 +48,7 @@ type DestroyEdgeTransformer struct {
 	// action type, but perhaps this should be indicated somehow by the
 	// DiffTransformer which was intended to be the only transformer operating
 	// from the change set.
-	Changes *plans.Changes
+	Changes *plans.ChangesSrc
 
 	// FIXME: Operation will not be needed here one we can better track
 	// inter-provider dependencies and remove the cycle checks in

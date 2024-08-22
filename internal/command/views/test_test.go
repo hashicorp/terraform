@@ -570,7 +570,7 @@ something bad happened during this test
 				},
 				Verbose: &moduletest.Verbose{
 					Plan: &plans.Plan{
-						Changes: &plans.Changes{
+						Changes: &plans.ChangesSrc{
 							Resources: []*plans.ResourceInstanceChangeSrc{
 								{
 									Addr: addrs.AbsResourceInstance{
@@ -2687,7 +2687,7 @@ func TestTestJSON_Run(t *testing.T) {
 				},
 				Verbose: &moduletest.Verbose{
 					Plan: &plans.Plan{
-						Changes: &plans.Changes{
+						Changes: &plans.ChangesSrc{
 							Resources: []*plans.ResourceInstanceChangeSrc{
 								{
 									Addr: addrs.AbsResourceInstance{

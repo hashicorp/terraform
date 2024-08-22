@@ -395,7 +395,6 @@ func SimplePlanOpts(mode plans.Mode, setVariables InputValues) *PlanOpts {
 
 func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
 	if opts.Mode != plans.NormalMode {
 		panic(fmt.Sprintf("called Context.plan with %s", opts.Mode))
 	}
@@ -771,10 +770,20 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 			fmt.Sprintf("If you apply this plan, Terraform will discard its tracking information for the following objects, but it will not delete them:\n%s\n\nAfter applying this plan, Terraform will no longer manage these objects. You will need to import them into Terraform to manage them again.", strings.Join(forgottenResources, "\n")),
 		))
 	}
+	schemas, schemaDiags := c.Schemas(config, prevRunState)
+	// We must finish building a plan object, and cannot return early here.
+	var changesSrc *plans.ChangesSrc
+	var err error
+	if !schemaDiags.HasErrors() {
+		changesSrc, err = changes.Encode(schemas)
+		if err != nil {
+			diags = diags.Append(err)
+		}
+	}
 
 	plan := &plans.Plan{
 		UIMode:                  opts.Mode,
-		Changes:                 changes,
+		Changes:                 changesSrc,
 		DriftedResources:        driftedResources,
 		DeferredResources:       deferredResources,
 		PrevRunState:            prevRunState,

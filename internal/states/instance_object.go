@@ -139,6 +139,8 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 		Status:              o.Status,
 		Dependencies:        dependencies,
 		CreateBeforeDestroy: o.CreateBeforeDestroy,
+		// The cached value must have all its marks since it bypasses decoding.
+		decodeValueCache: o.Value,
 	}, nil
 }
 

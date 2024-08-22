@@ -176,8 +176,18 @@ digraph G {
 func TestGraph_applyPhaseSavedPlan(t *testing.T) {
 	testCwd(t)
 
+	emptyObj, err := plans.NewDynamicValue(cty.EmptyObjectVal, cty.EmptyObject)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nullEmptyObj, err := plans.NewDynamicValue(cty.NullVal((cty.EmptyObject)), cty.EmptyObject)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	plan := &plans.Plan{
-		Changes: plans.NewChanges(),
+		Changes: plans.NewChangesSrc(),
 	}
 	plan.Changes.Resources = append(plan.Changes.Resources, &plans.ResourceInstanceChangeSrc{
 		Addr: addrs.Resource{
@@ -187,24 +197,21 @@ func TestGraph_applyPhaseSavedPlan(t *testing.T) {
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 		ChangeSrc: plans.ChangeSrc{
 			Action: plans.Delete,
-			Before: plans.DynamicValue(`{}`),
-			After:  plans.DynamicValue(`null`),
+			Before: emptyObj,
+			After:  nullEmptyObj,
 		},
 		ProviderAddr: addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	})
-	emptyConfig, err := plans.NewDynamicValue(cty.EmptyObjectVal, cty.EmptyObject)
-	if err != nil {
-		t.Fatal(err)
-	}
+
 	plan.Backend = plans.Backend{
 		// Doesn't actually matter since we aren't going to activate the backend
 		// for this command anyway, but we need something here for the plan
 		// file writer to succeed.
 		Type:   "placeholder",
-		Config: emptyConfig,
+		Config: emptyObj,
 	}
 	_, configSnap := testModuleWithSnapshot(t, "graph")
 

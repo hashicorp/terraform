@@ -59,7 +59,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 
 	plan := &plans.Plan{
 		VariableValues: map[string]plans.DynamicValue{},
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Outputs:   []*plans.OutputChangeSrc{},
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 		},

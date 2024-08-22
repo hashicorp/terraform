@@ -3304,6 +3304,10 @@ func TestContextApply_deferredActions(t *testing.T) {
 					}
 
 					t.Run("apply", func(t *testing.T) {
+						if plan == nil {
+							// if the previous step failed we won't know because it was another subtest
+							t.Fatal("cannot apply a nil plan")
+						}
 
 						updatedState, diags := ctx.Apply(plan, cfg, nil)
 

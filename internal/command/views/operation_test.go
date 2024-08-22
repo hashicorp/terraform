@@ -88,7 +88,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 			func(schemas *terraform.Schemas) *plans.Plan {
 				return &plans.Plan{
 					UIMode:  plans.NormalMode,
-					Changes: plans.NewChanges(),
+					Changes: plans.NewChangesSrc(),
 				}
 			},
 			"no differences, so no changes are needed.",
@@ -97,7 +97,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 			func(schemas *terraform.Schemas) *plans.Plan {
 				return &plans.Plan{
 					UIMode:  plans.RefreshOnlyMode,
-					Changes: plans.NewChanges(),
+					Changes: plans.NewChangesSrc(),
 				}
 			},
 			"Terraform has checked that the real remote objects still match",
@@ -106,7 +106,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 			func(schemas *terraform.Schemas) *plans.Plan {
 				return &plans.Plan{
 					UIMode:  plans.DestroyMode,
-					Changes: plans.NewChanges(),
+					Changes: plans.NewChangesSrc(),
 				}
 			},
 			"No objects need to be destroyed.",
@@ -146,7 +146,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 				drs := []*plans.ResourceInstanceChangeSrc{rcs}
 				return &plans.Plan{
 					UIMode:           plans.NormalMode,
-					Changes:          plans.NewChanges(),
+					Changes:          plans.NewChangesSrc(),
 					DriftedResources: drs,
 				}
 			},
@@ -185,7 +185,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 					panic(err)
 				}
 				drs := []*plans.ResourceInstanceChangeSrc{rcs}
-				changes := plans.NewChanges()
+				changes := plans.NewChangesSrc()
 				changes.Resources = drs
 				return &plans.Plan{
 					UIMode:           plans.NormalMode,
@@ -234,7 +234,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 				drs := []*plans.ResourceInstanceChangeSrc{rcs}
 				return &plans.Plan{
 					UIMode:           plans.RefreshOnlyMode,
-					Changes:          plans.NewChanges(),
+					Changes:          plans.NewChangesSrc(),
 					DriftedResources: drs,
 				}
 			},
@@ -283,7 +283,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 				drs := []*plans.ResourceInstanceChangeSrc{rcs}
 				return &plans.Plan{
 					UIMode:           plans.RefreshOnlyMode,
-					Changes:          plans.NewChanges(),
+					Changes:          plans.NewChangesSrc(),
 					DriftedResources: drs,
 				}
 			},
@@ -293,7 +293,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 			func(schemas *terraform.Schemas) *plans.Plan {
 				return &plans.Plan{
 					UIMode:  plans.DestroyMode,
-					Changes: plans.NewChanges(),
+					Changes: plans.NewChangesSrc(),
 					PrevRunState: states.BuildState(func(state *states.SyncState) {
 						state.SetResourceInstanceCurrent(
 							addrs.Resource{
@@ -563,7 +563,7 @@ func TestOperationJSON_planNoChanges(t *testing.T) {
 	v := &OperationJSON{view: NewJSONView(NewView(streams))}
 
 	plan := &plans.Plan{
-		Changes: plans.NewChanges(),
+		Changes: plans.NewChangesSrc(),
 	}
 	v.Plan(plan, nil)
 
@@ -600,7 +600,7 @@ func TestOperationJSON_plan(t *testing.T) {
 	derp := addrs.Resource{Mode: addrs.DataResourceMode, Type: "test_source", Name: "derp"}
 
 	plan := &plans.Plan{
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Resources: []*plans.ResourceInstanceChangeSrc{
 				{
 					Addr:        boop.Instance(addrs.IntKey(0)).Absolute(root),
@@ -767,7 +767,7 @@ func TestOperationJSON_planWithImport(t *testing.T) {
 	beep := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "beep"}
 
 	plan := &plans.Plan{
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Resources: []*plans.ResourceInstanceChangeSrc{
 				{
 					Addr:        boop.Instance(addrs.IntKey(0)).Absolute(vpc),
@@ -913,7 +913,7 @@ func TestOperationJSON_planDriftWithMove(t *testing.T) {
 
 	plan := &plans.Plan{
 		UIMode: plans.NormalMode,
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Resources: []*plans.ResourceInstanceChangeSrc{
 				{
 					Addr:        honk.Instance(addrs.StringKey("bonk")).Absolute(root),
@@ -1050,7 +1050,7 @@ func TestOperationJSON_planDriftWithMoveRefreshOnly(t *testing.T) {
 
 	plan := &plans.Plan{
 		UIMode: plans.RefreshOnlyMode,
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 		},
 		DriftedResources: []*plans.ResourceInstanceChangeSrc{
@@ -1176,7 +1176,7 @@ func TestOperationJSON_planOutputChanges(t *testing.T) {
 	root := addrs.RootModuleInstance
 
 	plan := &plans.Plan{
-		Changes: &plans.Changes{
+		Changes: &plans.ChangesSrc{
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 			Outputs: []*plans.OutputChangeSrc{
 				{

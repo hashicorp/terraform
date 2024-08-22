@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
@@ -87,7 +88,7 @@ func TestLoader_basic(t *testing.T) {
 		Status:             states.ObjectReady,
 	}
 
-	if diff := cmp.Diff(got, want); diff != "" {
+	if diff := cmp.Diff(got, want, cmpopts.IgnoreUnexported(states.ResourceInstanceObjectSrc{})); diff != "" {
 		t.Errorf("unexpected resource instance object\ndiff: %s", diff)
 	}
 }

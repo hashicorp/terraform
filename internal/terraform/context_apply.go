@@ -168,11 +168,23 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		return nil, nil, diags
 	}
 
+	schemas, schemaDiags := c.Schemas(config, plan.PriorState)
+	diags = diags.Append(schemaDiags)
+	if diags.HasErrors() {
+		return nil, nil, diags
+	}
+
+	changes, err := plan.Changes.Decode(schemas)
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, nil, diags
+	}
+
 	workingState := plan.PriorState.DeepCopy()
 	walker, walkDiags := c.walk(graph, operation, &graphWalkOpts{
 		Config:                  config,
 		InputState:              workingState,
-		Changes:                 plan.Changes,
+		Changes:                 changes,
 		Overrides:               plan.Overrides,
 		ExternalProviderConfigs: opts.ExternalProviders,
 

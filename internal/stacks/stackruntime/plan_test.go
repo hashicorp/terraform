@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
@@ -697,7 +696,7 @@ func TestPlanWithComplexVariableDefaults(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantChanges, changes, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, changes, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 
@@ -859,11 +858,7 @@ func TestPlanWithSingleResource(t *testing.T) {
 		},
 	}
 
-	cmpOptions := cmp.Options{
-		ctydebug.CmpOptions,
-		collections.CmpOptions,
-	}
-	if diff := cmp.Diff(wantChanges, gotChanges, cmpOptions); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -927,7 +922,7 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 			return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
 		})
 
-		if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions); diff != "" {
+		if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 			t.Errorf("wrong changes\n%s", diff)
 		}
 	})
@@ -985,7 +980,7 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 			return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
 		})
 
-		if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions); diff != "" {
+		if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 			t.Errorf("wrong changes\n%s", diff)
 		}
 	})
@@ -1044,7 +1039,7 @@ func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
 	})
 
-	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -1117,7 +1112,7 @@ func TestPlanSensitiveOutput(t *testing.T) {
 		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
 	})
 
-	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -1190,7 +1185,7 @@ func TestPlanSensitiveOutputNested(t *testing.T) {
 		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
 	})
 
-	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -1292,7 +1287,7 @@ func TestPlanSensitiveOutputAsInput(t *testing.T) {
 		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
 	})
 
-	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -1652,7 +1647,7 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
 	})
 
-	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -1813,7 +1808,7 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 		return plannedChangeSortKey(gotChanges[i]) < plannedChangeSortKey(gotChanges[j])
 	})
 
-	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -2096,14 +2091,7 @@ func TestPlanWithCheckableObjects(t *testing.T) {
 		},
 	}
 
-	cmpOptions := cmp.Options{
-		ctydebug.CmpOptions,
-		collections.CmpOptions,
-		cmp.Options{
-			cmpopts.IgnoreUnexported(addrs.InputVariable{}),
-		},
-	}
-	if diff := cmp.Diff(wantChanges, gotChanges, cmpOptions); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -2253,7 +2241,7 @@ func TestPlanWithDeferredResource(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -2490,7 +2478,7 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -2744,7 +2732,7 @@ func TestPlanWithDeferredComponentReferences(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -2890,7 +2878,7 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -3038,7 +3026,7 @@ func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -3313,7 +3301,7 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -3385,7 +3373,7 @@ func TestPlanInvalidProvidersFailGracefully(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantChanges, changes, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, changes, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -3800,7 +3788,7 @@ func TestPlanWithStateManipulation(t *testing.T) {
 				return plannedChangeSortKey(changes[i]) < plannedChangeSortKey(changes[j])
 			})
 
-			if diff := cmp.Diff(tc.changes, changes, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+			if diff := cmp.Diff(tc.changes, changes, changesCmpOpts); diff != "" {
 				t.Errorf("wrong changes\n%s", diff)
 			}
 
@@ -3946,11 +3934,7 @@ func TestPlan_plantimestamp_force_timestamp(t *testing.T) {
 		&stackplan.PlannedChangePlannedTimestamp{PlannedTimestamp: fakePlanTimestamp},
 	}
 
-	cmpOptions := cmp.Options{
-		ctydebug.CmpOptions,
-		collections.CmpOptions,
-	}
-	if diff := cmp.Diff(wantChanges, gotChanges, cmpOptions); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }
@@ -4259,7 +4243,7 @@ func TestPlan_DependsOnUpdatesRequirements(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(wantChanges, gotChanges, ctydebug.CmpOptions, cmpCollectionsSet); diff != "" {
+	if diff := cmp.Diff(wantChanges, gotChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
 }

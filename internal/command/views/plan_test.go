@@ -67,14 +67,14 @@ func testPlan(t *testing.T) *plans.Plan {
 		t.Fatal(err)
 	}
 
-	changes := plans.NewChanges()
+	changes := plans.NewChangesSrc()
 	addr := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
 		Type: "test_resource",
 		Name: "foo",
 	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 
-	changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+	changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
 		Addr:        addr,
 		PrevRunAddr: addr,
 		ProviderAddr: addrs.AbsProviderConfig{
@@ -117,7 +117,7 @@ func testPlanWithDatasource(t *testing.T) *plans.Plan {
 		t.Fatal(err)
 	}
 
-	plan.Changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+	plan.Changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
 		Addr:        addr,
 		PrevRunAddr: addr,
 		ProviderAddr: addrs.AbsProviderConfig{

@@ -10,18 +10,17 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Changes describes various actions that Terraform will attempt to take if
 // the corresponding plan is applied.
-//
-// A Changes object can be rendered into a visual diff (by the caller, using
-// code in another package) for display to the user.
 type Changes struct {
 	// Resources tracks planned changes to resource instance objects.
-	Resources []*ResourceInstanceChangeSrc
+	Resources []*ResourceInstanceChange
 
 	// Outputs tracks planned changes output values.
 	//
@@ -31,7 +30,7 @@ type Changes struct {
 	// externally-visible, while other outputs are implementation details and
 	// can be easily re-calculated during the apply phase. Therefore only root
 	// module outputs will survive a round-trip through a plan file.
-	Outputs []*OutputChangeSrc
+	Outputs []*OutputChange
 }
 
 // NewChanges returns a valid Changes object that describes no changes.
@@ -39,30 +38,53 @@ func NewChanges() *Changes {
 	return &Changes{}
 }
 
-func (c *Changes) Empty() bool {
-	for _, res := range c.Resources {
-		if res.Action != NoOp || res.Moved() {
-			return false
+// Encode encodes all the stored resource and output changes into a new *ChangeSrc value
+func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
+	changesSrc := NewChangesSrc()
+
+	for _, rc := range c.Resources {
+		p, ok := schemas.Providers[rc.ProviderAddr.Provider]
+		if !ok {
+			return nil, fmt.Errorf("Changes.Encode: missing provider %s for %s", rc.ProviderAddr, rc.Addr)
 		}
 
-		if res.Importing != nil {
-			return false
+		var schema providers.Schema
+		switch rc.Addr.Resource.Resource.Mode {
+		case addrs.ManagedResourceMode:
+			schema = p.ResourceTypes[rc.Addr.Resource.Resource.Type]
+		case addrs.DataResourceMode:
+			schema = p.DataSources[rc.Addr.Resource.Resource.Type]
+		default:
+			panic(fmt.Sprintf("unexpected resource mode %s", rc.Addr.Resource.Resource.Mode))
 		}
+
+		if schema.Block == nil {
+			return nil, fmt.Errorf("Changes.Encode: missing schema for %s", rc.Addr)
+		}
+
+		rcs, err := rc.Encode(schema.Block.ImpliedType())
+		if err != nil {
+			return nil, fmt.Errorf("Changes.Encode: %w", err)
+		}
+
+		changesSrc.Resources = append(changesSrc.Resources, rcs)
 	}
 
-	for _, out := range c.Outputs {
-		if out.Addr.Module.IsRoot() && out.Action != NoOp {
-			return false
+	for _, ocs := range c.Outputs {
+		oc, err := ocs.Encode()
+		if err != nil {
+			return nil, err
 		}
+		changesSrc.Outputs = append(changesSrc.Outputs, oc)
 	}
 
-	return true
+	return changesSrc, nil
 }
 
 // ResourceInstance returns the planned change for the current object of the
 // resource instance of the given address, if any. Returns nil if no change is
 // planned.
-func (c *Changes) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInstanceChangeSrc {
+func (c *Changes) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInstanceChange {
 	for _, rc := range c.Resources {
 		if rc.Addr.Equal(addr) && rc.DeposedKey == states.NotDeposed {
 			return rc
@@ -76,8 +98,8 @@ func (c *Changes) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInst
 // InstancesForAbsResource returns the planned change for the current objects
 // of the resource instances of the given address, if any. Returns nil if no
 // changes are planned.
-func (c *Changes) InstancesForAbsResource(addr addrs.AbsResource) []*ResourceInstanceChangeSrc {
-	var changes []*ResourceInstanceChangeSrc
+func (c *Changes) InstancesForAbsResource(addr addrs.AbsResource) []*ResourceInstanceChange {
+	var changes []*ResourceInstanceChange
 	for _, rc := range c.Resources {
 		resAddr := rc.Addr.ContainingResource()
 		if resAddr.Equal(addr) && rc.DeposedKey == states.NotDeposed {
@@ -91,8 +113,8 @@ func (c *Changes) InstancesForAbsResource(addr addrs.AbsResource) []*ResourceIns
 // InstancesForConfigResource returns the planned change for the current objects
 // of the resource instances of the given address, if any. Returns nil if no
 // changes are planned.
-func (c *Changes) InstancesForConfigResource(addr addrs.ConfigResource) []*ResourceInstanceChangeSrc {
-	var changes []*ResourceInstanceChangeSrc
+func (c *Changes) InstancesForConfigResource(addr addrs.ConfigResource) []*ResourceInstanceChange {
+	var changes []*ResourceInstanceChange
 	for _, rc := range c.Resources {
 		resAddr := rc.Addr.ContainingResource().Config()
 		if resAddr.Equal(addr) && rc.DeposedKey == states.NotDeposed {
@@ -106,7 +128,7 @@ func (c *Changes) InstancesForConfigResource(addr addrs.ConfigResource) []*Resou
 // ResourceInstanceDeposed returns the plan change of a deposed object of
 // the resource instance of the given address, if any. Returns nil if no change
 // is planned.
-func (c *Changes) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key states.DeposedKey) *ResourceInstanceChangeSrc {
+func (c *Changes) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key states.DeposedKey) *ResourceInstanceChange {
 	for _, rc := range c.Resources {
 		if rc.Addr.Equal(addr) && rc.DeposedKey == key {
 			return rc
@@ -119,7 +141,7 @@ func (c *Changes) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key st
 // OutputValue returns the planned change for the output value with the
 //
 //	given address, if any. Returns nil if no change is planned.
-func (c *Changes) OutputValue(addr addrs.AbsOutputValue) *OutputChangeSrc {
+func (c *Changes) OutputValue(addr addrs.AbsOutputValue) *OutputChange {
 	for _, oc := range c.Outputs {
 		if oc.Addr.Equal(addr) {
 			return oc
@@ -130,8 +152,8 @@ func (c *Changes) OutputValue(addr addrs.AbsOutputValue) *OutputChangeSrc {
 }
 
 // RootOutputValues returns planned changes for all outputs of the root module.
-func (c *Changes) RootOutputValues() []*OutputChangeSrc {
-	var res []*OutputChangeSrc
+func (c *Changes) RootOutputValues() []*OutputChange {
+	var res []*OutputChange
 
 	for _, oc := range c.Outputs {
 		// we can't evaluate root module outputs
@@ -149,8 +171,8 @@ func (c *Changes) RootOutputValues() []*OutputChangeSrc {
 // OutputValues returns planned changes for all outputs for all module
 // instances that reside in the parent path.  Returns nil if no changes are
 // planned.
-func (c *Changes) OutputValues(parent addrs.ModuleInstance, module addrs.ModuleCall) []*OutputChangeSrc {
-	var res []*OutputChangeSrc
+func (c *Changes) OutputValues(parent addrs.ModuleInstance, module addrs.ModuleCall) []*OutputChange {
+	var res []*OutputChange
 
 	for _, oc := range c.Outputs {
 		// we can't evaluate root module outputs
@@ -277,6 +299,15 @@ func (rc *ResourceInstanceChange) Encode(ty cty.Type) (*ResourceInstanceChangeSr
 		RequiredReplace: rc.RequiredReplace,
 		Private:         rc.Private,
 	}, err
+}
+
+func (rc *ResourceInstanceChange) DeepCopy() *ResourceInstanceChange {
+	if rc == nil {
+		return rc
+	}
+
+	ret := *rc
+	return &ret
 }
 
 func (rc *ResourceInstanceChange) Moved() bool {

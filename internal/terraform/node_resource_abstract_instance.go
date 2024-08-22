@@ -171,16 +171,7 @@ func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema 
 		return nil, fmt.Errorf("provider does not support resource type %q", addr.Resource.Resource.Type)
 	}
 
-	csrc := changes.GetResourceInstanceChange(addr, addrs.NotDeposed)
-	if csrc == nil {
-		log.Printf("[TRACE] readDiff: No planned change recorded for %s", n.Addr)
-		return nil, nil
-	}
-
-	change, err := csrc.Decode(schema.ImpliedType())
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode planned changes for %s: %s", n.Addr, err)
-	}
+	change := changes.GetResourceInstanceChange(addr, addrs.NotDeposed)
 
 	log.Printf("[TRACE] readDiff: Read %s change from plan for %s", change.Action, n.Addr)
 
@@ -556,11 +547,6 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 		return nil
 	}
 
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
-	}
-
 	if change.Addr.String() != n.Addr.String() || change.DeposedKey != deposedKey {
 		// Should never happen, and indicates a bug in the caller.
 		panic("inconsistent address and/or deposed key in writeChange")
@@ -576,19 +562,7 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 		panic("unpopulated ResourceInstanceChange.PrevRunAddr in writeChange")
 	}
 
-	ri := n.Addr.Resource
-	schema, _ := providerSchema.SchemaForResourceAddr(ri.Resource)
-	if schema == nil {
-		// Should be caught during validation, so we don't bother with a pretty error here
-		return fmt.Errorf("provider does not support resource type %q", ri.Resource.Type)
-	}
-
-	csrc, err := change.Encode(schema.ImpliedType())
-	if err != nil {
-		return fmt.Errorf("failed to encode planned changes for %s: %s", n.Addr, err)
-	}
-
-	changes.AppendResourceInstanceChange(csrc)
+	changes.AppendResourceInstanceChange(change)
 	if deposedKey == states.NotDeposed {
 		log.Printf("[TRACE] writeChange: recorded %s change for %s", change.Action, n.Addr)
 	} else {

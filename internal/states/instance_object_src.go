@@ -63,6 +63,9 @@ type ResourceInstanceObjectSrc struct {
 	Status              ObjectStatus
 	Dependencies        []addrs.ConfigResource
 	CreateBeforeDestroy bool
+
+	// decodeValueCache stored the decoded value for repeated decodings.
+	decodeValueCache cty.Value
 }
 
 // Decode unmarshals the raw representation of the object attributes. Pass the
@@ -78,13 +81,19 @@ type ResourceInstanceObjectSrc struct {
 func (os *ResourceInstanceObjectSrc) Decode(ty cty.Type) (*ResourceInstanceObject, error) {
 	var val cty.Value
 	var err error
-	if os.AttrsFlat != nil {
+
+	switch {
+	case os.decodeValueCache != cty.NilVal:
+		val = os.decodeValueCache
+
+	case os.AttrsFlat != nil:
 		// Legacy mode. We'll do our best to unpick this from the flatmap.
 		val, err = hcl2shim.HCL2ValueFromFlatmap(os.AttrsFlat, ty)
 		if err != nil {
 			return nil, err
 		}
-	} else {
+
+	default:
 		val, err = ctyjson.Unmarshal(os.AttrsJSON, ty)
 		val = marks.MarkPaths(val, marks.Sensitive, os.AttrSensitivePaths)
 		if err != nil {
