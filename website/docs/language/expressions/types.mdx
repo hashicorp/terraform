@@ -80,6 +80,39 @@ List literals can be split into multiple lines for readability, but always
 require a comma between values. A comma after the final value is allowed,
 but not required. Values in a list can be arbitrary expressions.
 
+### Sets
+
+Terraform does not support directly accessing elements of a set by index because sets are unordered collections. To access elements in a set by index, first convert the set to a list.
+
+
+1. Define a set. The following example specifies a set name `example_set`:
+
+    ```hcl
+    variable "example_set" {
+      type    = set(string)
+      default = ["foo", "bar"]
+    }
+    ```
+
+1. Use the `tolist` function to convert the set to a list. The following example stores the converted list as a local variable called `example_list`: 
+
+    ```hcl
+    locals {
+      example_list = tolist(var.example_set)
+    }
+    ```
+
+1. You can then reference an element in the list:
+
+    ```hcl
+    output "first_element" {
+      value = local.example_list[0]
+    }
+    output "second_element" {
+      value = local.example_list[1]
+    }
+    ```
+
 ### Maps/Objects
 
 Maps/objects are represented by a pair of curly braces containing a series of
