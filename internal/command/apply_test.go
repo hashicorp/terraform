@@ -22,6 +22,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -900,8 +901,8 @@ func TestApply_planWithVarFile(t *testing.T) {
 }
 
 func TestApply_planVars(t *testing.T) {
-	// This test ensures that it isn't allowed to set input variables
-	// when applying from a saved plan file, since in that case the
+	// This test ensures that it isn't allowed to set non-ephemeral input
+	// variables when applying from a saved plan file, since in that case the
 	// variable values come from the saved plan file.
 	//
 	// This situation was originally checked by the apply command itself,
@@ -929,6 +930,124 @@ func TestApply_planVars(t *testing.T) {
 	}
 	code := c.Run(args)
 	output := done(t)
+	if code == 0 {
+		t.Fatal("should've failed: ", output.Stdout())
+	}
+}
+
+// A saved plan includes a list of "apply-time variables", i.e. ephemeral
+// input variables that were set during the plan, and must therefore be set
+// during apply. No other variables may be set during apply.
+//
+// Test that an apply supplying all apply-time variables succeeds, and then test
+// that supplying a declared ephemeral input variable that is *not* in the list
+// of apply-time variables fails.
+func TestApply_planVarsEphemeral_applyTime(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("apply-ephemeral-variable"), td)
+	defer testChdir(t, td)()
+
+	_, snap := testModuleWithSnapshot(t, "apply-ephemeral-variable")
+	plannedVal := cty.ObjectVal(map[string]cty.Value{
+		"id":  cty.UnknownVal(cty.String),
+		"ami": cty.StringVal("bar"),
+	})
+	priorValRaw, err := plans.NewDynamicValue(cty.NullVal(plannedVal.Type()), plannedVal.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	plannedValRaw, err := plans.NewDynamicValue(plannedVal, plannedVal.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan := testPlan(t)
+	plan.Changes.AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+		Addr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+		ProviderAddr: addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.Create,
+			Before: priorValRaw,
+			After:  plannedValRaw,
+		},
+	})
+	applyTimeVariables := collections.NewSetCmp[string]()
+	applyTimeVariables.Add("foo")
+	plan.ApplyTimeVariables = applyTimeVariables
+
+	planPath := testPlanFileMatchState(
+		t,
+		snap,
+		states.NewState(),
+		plan,
+		statemgr.SnapshotMeta{},
+	)
+
+	statePath := testTempFile(t)
+
+	p := applyFixtureProvider()
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	// Test first that an apply supplying only the apply-time variable "foo"
+	// succeeds.
+	args := []string{
+		"-state", statePath,
+		"-var", "foo=bar",
+		planPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatal("should've succeeded: ", output.Stderr())
+	}
+
+	// Now test that supplying "bar", which is not an apply-time variable, fails.
+	view, done = testView(t)
+	c = &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+	args = []string{
+		"-state", statePath,
+		"-var", "foo=bar",
+		"-var", "bar=bar",
+		planPath,
+	}
+	code = c.Run(args)
+	output = done(t)
+	if code == 0 {
+		t.Fatal("should've failed: ", output.Stdout())
+	}
+
+	// Finally, test that the apply also fails if we do *not* supply a value for
+	// the apply-time variable foo.
+	view, done = testView(t)
+	c = &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+	args = []string{
+		"-state", statePath,
+		planPath,
+	}
+	code = c.Run(args)
+	output = done(t)
 	if code == 0 {
 		t.Fatal("should've failed: ", output.Stdout())
 	}
