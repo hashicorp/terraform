@@ -248,6 +248,7 @@ func (b *Local) opApply(
 			plan.ApplyTimeVariables,
 			lr.Config.Module.Variables,
 			op.Variables,
+			lr.PlanOpts.SetVariables,
 			combinedPlanApply,
 		)
 		diags = diags.Append(applyVarDiags)
@@ -394,7 +395,10 @@ func (b *Local) backupStateForError(stateFile *statefile.File, err error, view v
 	return diags
 }
 
-func applyTimeInputValues(needVars collections.Set[string], decls map[string]*configs.Variable, given map[string]backendrun.UnparsedVariableValue, ignoreExtras bool) (terraform.InputValues, tfdiags.Diagnostics) {
+func applyTimeInputValues(needVars collections.Set[string], decls map[string]*configs.Variable,
+	unparsedVars map[string]backendrun.UnparsedVariableValue,
+	setVars terraform.InputValues,
+	ignoreExtras bool) (terraform.InputValues, tfdiags.Diagnostics) {
 	// TEMP: This function is here to deal with the currently-experimental
 	// possibility of certain input variables being required during an apply
 	// phase because they were set during planning but declared as being
@@ -418,8 +422,12 @@ func applyTimeInputValues(needVars collections.Set[string], decls map[string]*co
 			filteredDecls[name] = config
 		}
 	}
-	ret, diags := backendrun.ParseDeclaredVariableValues(given, filteredDecls)
-	undeclared, _ := backendrun.ParseUndeclaredVariableValues(given, filteredDecls)
+	ret, diags := backendrun.ParseDeclaredVariableValues(unparsedVars, filteredDecls)
+
+	// reflect any user-set values
+	ret = ret.Override(setVars)
+
+	undeclared, _ := backendrun.ParseUndeclaredVariableValues(unparsedVars, filteredDecls)
 	// The diagnostics returned by ParseUndeclaredVariableValues are written
 	// to make sense for the plan phase, so we'll ignore them and produce
 	// our own diagnostics here.
