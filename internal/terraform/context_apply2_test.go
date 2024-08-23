@@ -3019,11 +3019,6 @@ func TestContext2Apply_applyingFlag(t *testing.T) {
 						source = "terraform.io/builtin/test"
 					}
 				}
-
-				# If this experimental feature becomes stablized and this test
-				# is still relevant, consider just removing this opt-in while
-				# retaining the rest.
-				experiments = [ephemeral_values]
 			}
 
 			provider "test" {
@@ -3102,13 +3097,6 @@ func TestContext2Apply_applyingFlag(t *testing.T) {
 func TestContext2Apply_applyTimeVariables(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-			# If this experimental feature becomes stablized and this test
-			# is still relevant, consider just removing this opt-in while
-			# retaining the rest.
-			terraform {
-				experiments = [ephemeral_values]
-			}
-
 			variable "e" {
 				type      = string
 				default   = null
