@@ -559,7 +559,12 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				providerFactories[addr] = func() (providers.Interface, error) {
 					// Lazily fetch the unconfigured client for the provider
 					// as and when we need it.
-					return c.main.ProviderType(ctx, addr).UnconfiguredClient(ctx)
+					provider, err := c.main.ProviderType(ctx, addr).UnconfiguredClient(ctx)
+					if err != nil {
+						return nil, err
+					}
+					// this provider should only be used for selected operations
+					return stubs.OfflineProvider(provider), nil
 				}
 			}
 
@@ -814,7 +819,12 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		providerFactories[addr] = func() (providers.Interface, error) {
 			// Lazily fetch the unconfigured client for the provider
 			// as and when we need it.
-			return c.main.ProviderType(ctx, addr).UnconfiguredClient(ctx)
+			provider, err := c.main.ProviderType(ctx, addr).UnconfiguredClient(ctx)
+			if err != nil {
+				return nil, err
+			}
+			// this provider should only be used for selected operations
+			return stubs.OfflineProvider(provider), nil
 		}
 	}
 

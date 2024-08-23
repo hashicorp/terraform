@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // ProviderFactories is a collection of factory functions for starting new
@@ -174,4 +175,20 @@ var _ providers.Interface = providerClose{}
 
 func (p providerClose) Close() error {
 	return p.close()
+}
+
+func (p providerClose) ConfigureProvider(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+	// the real provider should either already have been configured by the time
+	// we get here or should never get configured, so we should never see this
+	// method called.
+	return providers.ConfigureProviderResponse{
+		Diagnostics: tfdiags.Diagnostics{
+			tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Called ConfigureProvider on an unconfigurable provider",
+				"This provider should have already been configured, or should never be configured. This is a bug in Terraform - please report it.",
+				nil, // nil attribute path means the overall configuration block
+			),
+		},
+	}
 }

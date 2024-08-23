@@ -4,6 +4,8 @@
 package stubs
 
 import (
+	"fmt"
+
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
@@ -17,8 +19,10 @@ var _ providers.Interface = (*unknownProvider)(nil)
 // unknown to the current Terraform configuration. This is used when a reference
 // to a provider is unknown, or the provider itself has unknown instances.
 //
-// This provider wraps an unconfigured provider client, which is used to handle
-// offline functionality.
+// An unknownProvider is only returned in the context of a provider that should
+// have been configured by Stacks. This provider should not be configured again,
+// or used for any dedicated offline functionality (such as moving resources and
+// provider functions).
 type unknownProvider struct {
 	unconfiguredClient providers.Interface
 }
@@ -179,9 +183,16 @@ func (u *unknownProvider) ImportResourceState(request providers.ImportResourceSt
 }
 
 func (u *unknownProvider) MoveResourceState(request providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
-	// This is offline functionality, so we can hand it off to the unconfigured
-	// client.
-	return u.unconfiguredClient.MoveResourceState(request)
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called MoveResourceState on an unknown provider",
+		"Terraform called MoveResourceState on an unknown provider. This is a bug in Terraform - please report this error.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.MoveResourceStateResponse{
+		Diagnostics: diags,
+	}
 }
 
 func (u *unknownProvider) ReadDataSource(request providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
@@ -223,9 +234,9 @@ func (u *unknownProvider) ReadDataSource(request providers.ReadDataSourceRequest
 }
 
 func (u *unknownProvider) CallFunction(request providers.CallFunctionRequest) providers.CallFunctionResponse {
-	// This is offline functionality, so we can hand it off to the unconfigured
-	// client.
-	return u.unconfiguredClient.CallFunction(request)
+	return providers.CallFunctionResponse{
+		Err: fmt.Errorf("CallFunction shouldn't be called on an unknown provider; this is a bug in Terraform - please report this error"),
+	}
 }
 
 func (u *unknownProvider) Close() error {

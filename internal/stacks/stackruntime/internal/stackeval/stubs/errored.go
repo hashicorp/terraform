@@ -4,22 +4,26 @@
 package stubs
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// ErroredProvider is a stub provider that is used in place of a provider that
-// failed the configuration step. This provider will return an error for all
-// operations that would have otherwise caused side-effects or modified the
-// plan.
-type ErroredProvider struct {
-	failedProvider providers.Interface
+// erroredProvider is a stub provider that is used in place of a provider that
+// failed the configuration step. Within the context of Stacks, an errored
+// provider would have been configured by Stacks, and therefore should not be
+// configured again, or used for any offline functionality.
+type erroredProvider struct{}
+
+var _ providers.Interface = &erroredProvider{}
+
+func ErroredProvider() providers.Interface {
+	return &erroredProvider{}
 }
 
-var _ providers.Interface = &ErroredProvider{}
-
 // ApplyResourceChange implements providers.Interface.
-func (p *ErroredProvider) ApplyResourceChange(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+func (p *erroredProvider) ApplyResourceChange(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -32,19 +36,19 @@ func (p *ErroredProvider) ApplyResourceChange(req providers.ApplyResourceChangeR
 	}
 }
 
-func (p *ErroredProvider) CallFunction(request providers.CallFunctionRequest) providers.CallFunctionResponse {
-	// this is an offline operation, so we can just use the unconfigured
-	// provider.
-	return p.failedProvider.CallFunction(request)
+func (p *erroredProvider) CallFunction(request providers.CallFunctionRequest) providers.CallFunctionResponse {
+	return providers.CallFunctionResponse{
+		Err: fmt.Errorf("CallFunction shouldn't be called on an errored provider; this is a bug in Terraform - please report this error"),
+	}
 }
 
 // Close implements providers.Interface.
-func (p *ErroredProvider) Close() error {
+func (p *erroredProvider) Close() error {
 	return nil
 }
 
 // ConfigureProvider implements providers.Interface.
-func (p *ErroredProvider) ConfigureProvider(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+func (p *erroredProvider) ConfigureProvider(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 	// This provider is used only in situations where ConfigureProvider on
 	// a real provider fails and the recipient was expecting a configured
 	// provider, so it doesn't make sense to configure it.
@@ -52,12 +56,12 @@ func (p *ErroredProvider) ConfigureProvider(req providers.ConfigureProviderReque
 }
 
 // GetProviderSchema implements providers.Interface.
-func (p *ErroredProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
+func (p *erroredProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return providers.GetProviderSchemaResponse{}
 }
 
 // ImportResourceState implements providers.Interface.
-func (p *ErroredProvider) ImportResourceState(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+func (p *erroredProvider) ImportResourceState(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -71,12 +75,12 @@ func (p *ErroredProvider) ImportResourceState(req providers.ImportResourceStateR
 }
 
 // MoveResourceState implements providers.Interface.
-func (p *ErroredProvider) MoveResourceState(req providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
+func (p *erroredProvider) MoveResourceState(req providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
-		"Provider configuration is invalid",
-		"Cannot move an existing object to this resource because its associated provider configuration is invalid.",
+		"Called MoveResourceState on an errored provider",
+		"Terraform called MoveResourceState on an errored provider. This is a bug in Terraform - please report this error.",
 		nil, // nil attribute path means the overall configuration block
 	))
 	return providers.MoveResourceStateResponse{
@@ -85,7 +89,7 @@ func (p *ErroredProvider) MoveResourceState(req providers.MoveResourceStateReque
 }
 
 // PlanResourceChange implements providers.Interface.
-func (p *ErroredProvider) PlanResourceChange(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+func (p *erroredProvider) PlanResourceChange(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -99,7 +103,7 @@ func (p *ErroredProvider) PlanResourceChange(req providers.PlanResourceChangeReq
 }
 
 // ReadDataSource implements providers.Interface.
-func (p *ErroredProvider) ReadDataSource(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+func (p *erroredProvider) ReadDataSource(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
 		tfdiags.Error,
@@ -113,7 +117,7 @@ func (p *ErroredProvider) ReadDataSource(req providers.ReadDataSourceRequest) pr
 }
 
 // ReadResource implements providers.Interface.
-func (p *ErroredProvider) ReadResource(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+func (p *erroredProvider) ReadResource(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 	// For this one we'll just optimistically assume that the remote object
 	// hasn't changed. In many cases we'll fail calling PlanResourceChange
 	// right afterwards anyway, and even if not we'll get another opportunity
@@ -125,14 +129,14 @@ func (p *ErroredProvider) ReadResource(req providers.ReadResourceRequest) provid
 }
 
 // Stop implements providers.Interface.
-func (p *ErroredProvider) Stop() error {
+func (p *erroredProvider) Stop() error {
 	// This stub provider never actually does any real work, so there's nothing
 	// for us to stop.
 	return nil
 }
 
 // UpgradeResourceState implements providers.Interface.
-func (p *ErroredProvider) UpgradeResourceState(req providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
+func (p *erroredProvider) UpgradeResourceState(req providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
 	// Ideally we'd just skip this altogether and echo back what the caller
 	// provided, but the request is in a different serialization format than
 	// the response and so only the real provider can deal with this one.
@@ -149,7 +153,7 @@ func (p *ErroredProvider) UpgradeResourceState(req providers.UpgradeResourceStat
 }
 
 // ValidateDataResourceConfig implements providers.Interface.
-func (p *ErroredProvider) ValidateDataResourceConfig(req providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
+func (p *erroredProvider) ValidateDataResourceConfig(req providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
 	// We'll just optimistically assume the configuration is valid, so that
 	// we can progress to planning and return an error there instead.
 	return providers.ValidateDataResourceConfigResponse{
@@ -158,7 +162,7 @@ func (p *ErroredProvider) ValidateDataResourceConfig(req providers.ValidateDataR
 }
 
 // ValidateProviderConfig implements providers.Interface.
-func (p *ErroredProvider) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
+func (p *erroredProvider) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
 	// It doesn't make sense to call this one on stubProvider, because
 	// we only use stubProvider for situations where ConfigureProvider failed
 	// on a real provider and we should already have called
@@ -170,7 +174,7 @@ func (p *ErroredProvider) ValidateProviderConfig(req providers.ValidateProviderC
 }
 
 // ValidateResourceConfig implements providers.Interface.
-func (p *ErroredProvider) ValidateResourceConfig(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
+func (p *erroredProvider) ValidateResourceConfig(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 	// We'll just optimistically assume the configuration is valid, so that
 	// we can progress to reading and return an error there instead.
 	return providers.ValidateResourceConfigResponse{

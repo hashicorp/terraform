@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval/stubs"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -544,7 +545,12 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			providerFactories[addr] = func() (providers.Interface, error) {
 				// Lazily fetch the unconfigured client for the provider
 				// as and when we need it.
-				return c.main.ProviderType(ctx, addr).UnconfiguredClient(ctx)
+				provider, err := c.main.ProviderType(ctx, addr).UnconfiguredClient(ctx)
+				if err != nil {
+					return nil, err
+				}
+				// this provider should only be used for selected operations
+				return stubs.OfflineProvider(provider), nil
 			}
 		}
 
