@@ -6,14 +6,18 @@ package stackeval
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
+	"google.golang.org/protobuf/encoding/prototext"
 )
 
 func TestInputVariableValue(t *testing.T) {
@@ -21,7 +25,7 @@ func TestInputVariableValue(t *testing.T) {
 	cfg := testStackConfig(t, "input_variable", "basics")
 
 	// NOTE: This also indirectly tests the propagation of input values
-	// from a parent stack into one of itschildren, even though that's
+	// from a parent stack into one of its children, even though that's
 	// technically the responsibility of [StackCall] rather than [InputVariable],
 	// because propagating downward into child stacks is a major purpose
 	// of input variables that must keep working.
@@ -250,6 +254,103 @@ func TestInputVariableEphemeral(t *testing.T) {
 				}
 				return struct{}{}, nil
 			})
+		})
+	}
+}
+
+func TestInputVariablePlanApply(t *testing.T) {
+	ctx := context.Background()
+	cfg := testStackConfig(t, "input_variable", "basics")
+
+	tests := map[string]struct {
+		PlanVal  cty.Value
+		ApplyVal cty.Value
+		WantErr  bool
+	}{
+		"unmarked": {
+			PlanVal:  cty.StringVal("alisdair"),
+			ApplyVal: cty.StringVal("alisdair"),
+		},
+		"sensitive": {
+			PlanVal:  cty.StringVal("alisdair").Mark(marks.Sensitive),
+			ApplyVal: cty.StringVal("alisdair").Mark(marks.Sensitive),
+		},
+		"changed": {
+			PlanVal:  cty.StringVal("alice"),
+			ApplyVal: cty.StringVal("bob"),
+			WantErr:  true,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			planOutput, err := promising.MainTask(ctx, func(ctx context.Context) (*planOutputTester, error) {
+				main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
+					PlanningMode:  plans.NormalMode,
+					PlanTimestamp: time.Now().UTC(),
+					InputVariableValues: map[stackaddrs.InputVariable]ExternalInputValue{
+						{Name: "name"}: {
+							Value: test.PlanVal,
+						},
+					},
+				})
+
+				outp, outpTester := testPlanOutput(t)
+				main.PlanAll(ctx, outp)
+
+				return outpTester, nil
+			})
+			if err != nil {
+				t.Fatalf("planning failed: %s", err)
+			}
+
+			rawPlan := planOutput.RawChanges(t)
+			plan, diags := planOutput.Close(t)
+			assertNoDiagnostics(t, diags)
+
+			if !plan.Applyable {
+				m := prototext.MarshalOptions{
+					Multiline: true,
+					Indent:    "  ",
+				}
+				for _, raw := range rawPlan {
+					t.Log(m.Format(raw))
+				}
+				t.Fatalf("plan is not applyable")
+			}
+
+			_, err = promising.MainTask(ctx, func(ctx context.Context) (struct{}, error) {
+				main := NewForApplying(cfg, plan, nil, ApplyOpts{
+					InputVariableValues: map[stackaddrs.InputVariable]ExternalInputValue{
+						{Name: "name"}: {
+							Value: test.ApplyVal,
+						},
+					},
+				})
+				mainStack := main.MainStack(ctx)
+				rootVar := mainStack.InputVariable(ctx, stackaddrs.InputVariable{Name: "name"})
+				got, diags := rootVar.CheckValue(ctx, ApplyPhase)
+
+				if test.WantErr {
+					if !diags.HasErrors() {
+						t.Errorf("succeeded; want error\ngot: %#v", got)
+					}
+					return struct{}{}, nil
+				}
+
+				if diags.HasErrors() {
+					t.Errorf("unexpected errors\n%s", diags.Err().Error())
+				}
+				want := test.ApplyVal
+				if !want.RawEquals(got) {
+					t.Errorf("wrong value\ngot:  %#v\nwant: %#v", got, want)
+				}
+
+				return struct{}{}, nil
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
 		})
 	}
 }
