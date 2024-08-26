@@ -776,12 +776,15 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 	// changed at all.
 	noOpResult := c.PlaceholderApplyResultForSkippedApply(ctx, plan)
 
+	// stackPlan is the stack representation of this component's plan.
+	stackPlan := c.main.PlanBeingApplied().Components.Get(c.Addr())
+
 	// We'll gather up our set of potentially-affected objects before we do
 	// anything else, because the modules runtime tends to mutate the objects
 	// accessible through the given plan pointer while it does its work and
 	// so we're likely to get a different/incomplete answer if we ask after
 	// work has already been done.
-	affectedResourceInstanceObjects := resourceInstanceObjectsAffectedByPlan(plan)
+	affectedResourceInstanceObjects := resourceInstanceObjectsAffectedByStackPlan(stackPlan)
 
 	h := hooksFromContext(ctx)
 	hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstanceApply, c.Addr())
@@ -955,9 +958,10 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 			Move:   0,
 			Forget: 0,
 
-			// Defer changes will always be 0 during the apply as we don't
-			// actually apply them.
-			Defer: 0,
+			// The defer changes amount is a bit funny - we just copy over the
+			// count of deferred changes from the plan, but we're not actually
+			// making changes for this so the "true" count is zero.
+			Defer: stackPlan.DeferredResourceInstanceChanges.Len(),
 		}
 
 		// We need to report what changes were applied, which is mostly just
@@ -975,14 +979,13 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		// at the ResourceInstanceObjectAppliedAction above.
 		//
 		// Instead, we'll recheck the planned actions here to count them.
-		plan := c.main.PlanBeingApplied().Components.Get(c.Addr())
 		for _, rioAddr := range affectedResourceInstanceObjects {
 			if applied.Has(rioAddr) {
 				// Then we processed this above.
 				continue
 			}
 
-			change, exists := plan.ResourceInstancePlanned.GetOk(rioAddr)
+			change, exists := stackPlan.ResourceInstancePlanned.GetOk(rioAddr)
 			if !exists {
 				// This is a bit weird, but not something we should prevent
 				// the apply from continuing for. We'll just ignore it and
@@ -1008,7 +1011,6 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 				cic.Forget++
 			}
 		}
-		cic.Defer = plan.DeferredResourceInstanceChanges.Len()
 
 		hookMore(ctx, seq, h.ReportComponentInstanceApplied, cic)
 	}

@@ -7,17 +7,16 @@ required_providers {
 
 provider "testing" "default" {}
 
-variable "input" {
+variable "id" {
   type = string
 }
 
-variable "id" {
+variable "resource" {
   type = string
-  default = null
 }
 
 component "self" {
-  source = "../"
+  source = "./"
 
   providers = {
     testing = provider.testing.default
@@ -25,6 +24,6 @@ component "self" {
 
   inputs = {
     id = var.id
-    input = var.input
+    resource = var.resource
   }
 }
