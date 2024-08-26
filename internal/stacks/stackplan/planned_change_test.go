@@ -15,6 +15,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -53,6 +54,7 @@ func TestPlannedChangeAsProto(t *testing.T) {
 	tests := map[string]struct {
 		Receiver PlannedChange
 		Want     *stacks.PlannedChange
+		WantErr  string
 	}{
 		"header": {
 			Receiver: &PlannedChangeHeader{
@@ -788,6 +790,36 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				},
 			},
 		},
+		"sensitive root input variable": {
+			Receiver: &PlannedChangeRootInputValue{
+				Addr:  stackaddrs.InputVariable{Name: "thingy_id"},
+				Value: cty.StringVal("boop").Mark(marks.Sensitive),
+			},
+			Want: &stacks.PlannedChange{
+				Raw: []*anypb.Any{
+					mustMarshalAnyPb(&tfstackdata1.PlanRootInputValue{
+						Name: "thingy_id",
+						Value: &tfstackdata1.DynamicValue{
+							Value: &planproto.DynamicValue{
+								Msgpack: []byte("\x92\xc4\b\"string\"\xa4boop"),
+							},
+							SensitivePaths: []*planproto.Path{
+								{
+									Steps: make([]*planproto.Path_Step, 0), // no steps as it is the root value
+								},
+							},
+						},
+					}),
+				},
+			},
+		},
+		"ephemeral root input variable": {
+			Receiver: &PlannedChangeRootInputValue{
+				Addr:  stackaddrs.InputVariable{Name: "thingy_id"},
+				Value: cty.StringVal("boop").Mark(marks.Ephemeral),
+			},
+			WantErr: "unexpected marks found on path: Ephemeral", // Ephemeral values should never make it this far.
+		},
 		"root input variable": {
 			Receiver: &PlannedChangeRootInputValue{
 				Addr:  stackaddrs.InputVariable{Name: "thingy_id"},
@@ -797,8 +829,10 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				Raw: []*anypb.Any{
 					mustMarshalAnyPb(&tfstackdata1.PlanRootInputValue{
 						Name: "thingy_id",
-						Value: &planproto.DynamicValue{
-							Msgpack: []byte("\x92\xc4\b\"string\"\xa4boop"),
+						Value: &tfstackdata1.DynamicValue{
+							Value: &planproto.DynamicValue{
+								Msgpack: []byte("\x92\xc4\b\"string\"\xa4boop"),
+							},
 						},
 					}),
 				},
@@ -834,6 +868,16 @@ func TestPlannedChangeAsProto(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			got, err := test.Receiver.PlannedChangeProto()
+			if len(test.WantErr) > 0 {
+				if diff := cmp.Diff(test.WantErr, err.Error()); diff != "" {
+					t.Errorf("wrong error\n%s", diff)
+				}
+				if got != nil {
+					t.Errorf("unexpected result: %v", got)
+				}
+				return
+			}
+
 			if err != nil {
 				// All errors this can generate are caused by bugs in Terraform
 				// because we're serializing content that we created, and so

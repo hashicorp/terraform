@@ -103,12 +103,29 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 			Name: msg.Name,
 		}
 		if msg.Value != nil {
-			dv := plans.DynamicValue(msg.Value.Msgpack)
+			dv := plans.DynamicValue(msg.Value.Value.Msgpack)
 			val, err := dv.Decode(cty.DynamicPseudoType)
 			if err != nil {
 				return fmt.Errorf("invalid stored value for %s: %w", addr, err)
 			}
-			l.ret.RootInputValues[addr] = val
+
+			if len(msg.Value.SensitivePaths) > 0 {
+				var ms []cty.PathValueMarks
+				for _, path := range msg.Value.SensitivePaths {
+					path, err := planfile.PathFromProto(path)
+					if err != nil {
+						return fmt.Errorf("decoding sensitive path %q for %s: %w", addr, path, err)
+					}
+					ms = append(ms, cty.PathValueMarks{
+						Path:  path,
+						Marks: cty.NewValueMarks(marks.Sensitive),
+					})
+				}
+				l.ret.RootInputValues[addr] = val.MarkWithPaths(ms)
+			} else {
+				l.ret.RootInputValues[addr] = val
+			}
+
 		}
 		if msg.RequiredOnApply {
 			if msg.Value != nil {
