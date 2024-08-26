@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/didyoumean"
-	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -101,68 +100,34 @@ func (d *evaluationData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRang
 // GetTerraformAttr implements lang.Data.
 func (d *evaluationData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	switch addr.Name {
 
-	// terraform.applying is an ephemeral boolean value that's set to true
-	// during an apply walk or false in any other situation. This is
-	// intended to allow, for example, using a more privileged auth role
-	// in a provider configuration during the apply phase but a more
-	// constrained role for other situations.
-	//
-	// Since this produces an ephemeral value, and ephemeral values are
-	// currently experimental, this is available only in modules that
-	// have opted in to the experiment. If this experiment gets stabilized,
-	// it'll probably be best to incorporate this into the normal codepath
-	// below, but it's currently handled separately up here so it'll be easier
-	// to remove if the experiment is unsuccessful.
-	if addr.Name == "applying" {
-		modCfg := d.Evaluator.Config.Descendent(d.Module)
-		if modCfg != nil && modCfg.Module.ActiveExperiments.Has(experiments.EphemeralValues) {
-			return cty.BoolVal(d.Evaluator.Operation == walkApply).Mark(marks.Ephemeral), nil
-		}
-		// If the experiment isn't active then we just fall out to the other
-		// code below, which will treat this situation just like any other
-		// invalid attribute name.
-		//
-		// If you're here to stabilize the experiment, note also that some
-		// of the error messages below assume that terraform.workspace is
-		// the only currently-valid attribute and so will probably need revising
-		// once terraform.applying is also valid.
-	}
-
-	if d.Evaluator.Meta == nil || d.Evaluator.Meta.Env == "" {
-		// The absense of an "env" (really: workspace) name suggests that
+	case "workspace":
+		// The absence of an "env" (really: workspace) name suggests that
 		// we're running in a non-workspace context, such as in a component
 		// of a stack. terraform.workspace is a legacy thing from workspaces
 		// mode that isn't carried forward to stacks, because stack
 		// configurations can instead vary their behavior based on input
 		// variables provided in the deployment configuration.
-		switch addr.Name {
-		case "workspace":
+		if d.Evaluator.Meta == nil || d.Evaluator.Meta.Env == "" {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `Invalid reference`,
 				Detail:   `The terraform.workspace attribute is only available for modules used in Terraform workspaces. Use input variables instead to create variations between different instances of this module.`,
 				Subject:  rng.ToHCL().Ptr(),
 			})
-		default:
-			// A more generic error for any other attribute name, since no
-			// others are valid anyway but it would be confusing to mention
-			// terraform.workspace here.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  `Invalid reference`,
-				Detail:   `The "terraform" object is only available for modules used in Terraform workspaces.`,
-				Subject:  rng.ToHCL().Ptr(),
-			})
+			return cty.DynamicVal, diags
 		}
-		return cty.DynamicVal, diags
-	}
-
-	switch addr.Name {
-
-	case "workspace":
 		workspaceName := d.Evaluator.Meta.Env
 		return cty.StringVal(workspaceName), diags
+
+	// terraform.applying is an ephemeral boolean value that's set to true
+	// during an apply walk or false in any other situation. This is
+	// intended to allow, for example, using a more privileged auth role
+	// in a provider configuration during the apply phase but a more
+	// constrained role for other situations.
+	case "applying":
+		return cty.BoolVal(d.Evaluator.Operation == walkApply).Mark(marks.Ephemeral), nil
 
 	case "env":
 		// Prior to Terraform 0.12 there was an attribute "env", which was
@@ -180,7 +145,7 @@ func (d *evaluationData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Invalid "terraform" attribute`,
-			Detail:   fmt.Sprintf(`The "terraform" object does not have an attribute named %q. The only supported attribute is terraform.workspace, the name of the currently-selected workspace.`, addr.Name),
+			Detail:   fmt.Sprintf(`The "terraform" object does not have an attribute named %q. The only supported attributes are terraform.workspace, the name of the currently-selected workspace, and terraform.applying, a boolean which is true only during apply.`, addr.Name),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.DynamicVal, diags

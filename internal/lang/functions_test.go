@@ -1242,7 +1242,6 @@ func TestFunctions(t *testing.T) {
 	}
 
 	experimentalFuncs := map[string]experiments.Experiment{}
-	experimentalFuncs["ephemeralasnull"] = experiments.EphemeralValues
 
 	// We'll also register a few "external functions" so that we can
 	// verify that registering these works. The functions actually

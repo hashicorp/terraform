@@ -5499,11 +5499,6 @@ func TestContext2Plan_ephemeralInResource(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 			terraform {
-				# Ephemeral values are currently experimental. Remove this
-				# argument if the feature gets stablized and this test otherwise
-				# still makes sense for what was stabilized.
-				experiments = [ephemeral_values]
-
 				required_providers {
 					beep = {
 						source = "terraform.io/builtin/beep"
@@ -5555,10 +5550,10 @@ func TestContext2Plan_ephemeralInResource(t *testing.T) {
 		Subject: &hcl.Range{
 			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 			Start: hcl.Pos{
-				Line: 21, Column: 10, Byte: 442,
+				Line: 16, Column: 10, Byte: 223,
 			},
 			End: hcl.Pos{
-				Line: 21, Column: 16, Byte: 448,
+				Line: 16, Column: 16, Byte: 229,
 			},
 		},
 	})
@@ -5569,10 +5564,10 @@ func TestContext2Plan_ephemeralInResource(t *testing.T) {
 		Subject: &hcl.Range{
 			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
 			Start: hcl.Pos{
-				Line: 25, Column: 10, Byte: 488,
+				Line: 20, Column: 10, Byte: 269,
 			},
 			End: hcl.Pos{
-				Line: 25, Column: 16, Byte: 494,
+				Line: 20, Column: 16, Byte: 275,
 			},
 		},
 	})
@@ -5602,11 +5597,6 @@ func TestContext2Plan_ephemeralInProviderConfig(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 			terraform {
-				# Ephemeral values are currently experimental. Remove this
-				# argument if the feature gets stablized and this test otherwise
-				# still makes sense for what was stabilized.
-				experiments = [ephemeral_values]
-
 				required_providers {
 					beep = {
 						source = "terraform.io/builtin/beep"
