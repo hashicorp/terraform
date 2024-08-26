@@ -1,33 +1,56 @@
 ---
-page_title: Overview - Configuration Language
+page_title: Overview - Write Terraform configuration
 description: >-
   Use the Terraform configuration language to describe the infrastructure that Terraform manages.
 ---
 
-# Terraform Language Documentation
+# Write Terraform configuration
 
-This is the documentation for Terraform's configuration language. It is relevant
-to users of [Terraform CLI](/terraform/cli),
-[HCP Terraform](https://cloud.hashicorp.com/products/terraform), and
-[Terraform Enterprise](/terraform/enterprise). Terraform's language is
-its primary user interface. Configuration files you write in Terraform
-language tell Terraform what plugins to install, what infrastructure to create,
-and what data to fetch. Terraform language also lets you define dependencies
-between resources and create multiple similar resources from a single
-configuration block.
+Rewrite so this page is more general to writing Terraform configuration. This page should have a high level overview of the Terraform workflow (write configuration, plan/apply configuration).
+
+This page should then be an overview page for this entire content as a whole. As a result, it should have a sections for:
+
+- High level information
+  - Syntax (HCL, JSON, CDKTF)
+  - File structure
+  - Style guide
+- The fundamentals of Terraform configurations
+  - Resources, data sources, providers
+  - Variables, locals, outputs
+  - Modules
+- Advanced Terraform configuration
+  - Meta-arguments (`depends_on`, `count`, `for_each`, `provider`, `lifecycle`)
+  - Functions and expressions
+  - Import existing resources
+  - Version configuration
+    - Dependency lock file
+  - Validate configuration
+    - Checks and tests
+  - Refactor configuration
+  - Troubleshoot configuration
+  - Provisioners
+- Reference
+  - Files
+    - Override
+    - Dependency lock
+    - Test
+
+The goal of this layout is that:
+
+- **Fundamentals**: give you the tools necessary to write and define ~90% of the Terraform configuration out there. It might not be the most efficient way to write configuration, but it just works (TM).
+- **Advanced**: will let you level up from the fundamentals. These should be high level pages (most of these should be single pages overview and usage docs). Once users read this, we expect them to go to the respective reference docs for more information.
+
+---
+
+This is the documentation for Terraform's configuration language. It is relevant to users of [Terraform CLI](/terraform/cli), [HCP Terraform](https://cloud.hashicorp.com/products/terraform), and [Terraform Enterprise](/terraform/enterprise). Terraform's language is its primary user interface. Configuration files you write in Terraform language tell Terraform what plugins to install, what infrastructure to create, and what data to fetch. Terraform language also lets you define dependencies between resources and create multiple similar resources from a single configuration block.
 
 > **Hands-on:** Try the [Write Terraform Configuration](/terraform/tutorials/configuration-language) tutorials.
 
 ## About the Terraform Language
 
-The main purpose of the Terraform language is declaring
-[resources](/terraform/language/resources), which represent infrastructure objects. All other
-language features exist only to make the definition of resources more flexible
-and convenient.
+The main purpose of the Terraform language is declaring [resources](/terraform/language/resources), which represent infrastructure objects. All other language features exist only to make the definition of resources more flexible and convenient.
 
-A _Terraform configuration_ is a complete document in the Terraform language
-that tells Terraform how to manage a given collection of infrastructure. A
-configuration can consist of multiple files and directories.
+A _Terraform configuration_ is a complete document in the Terraform language that tells Terraform how to manage a given collection of infrastructure. A configuration can consist of multiple files and directories.
 
 The syntax of the Terraform language consists of only a few basic elements:
 
@@ -42,30 +65,15 @@ resource "aws_vpc" "main" {
 }
 ```
 
-- _Blocks_ are containers for other content and usually represent the
-  configuration of some kind of object, like a resource. Blocks have a
-  _block type,_ can have zero or more _labels,_ and have a _body_ that contains
-  any number of arguments and nested blocks. Most of Terraform's features are
-  controlled by top-level blocks in a configuration file.
+- _Blocks_ are containers for other content and usually represent the configuration of some kind of object, like a resource. Blocks have a _block type,_ can have zero or more _labels,_ and have a _body_ that contains any number of arguments and nested blocks. Most of Terraform's features are controlled by top-level blocks in a configuration file.
 - _Arguments_ assign a value to a name. They appear within blocks.
-- _Expressions_ represent a value, either literally or by referencing and
-  combining other values. They appear as values for arguments, or within other
-  expressions.
+- _Expressions_ represent a value, either literally or by referencing and combining other values. They appear as values for arguments, or within other expressions.
 
-The Terraform language is declarative, describing an intended goal rather than
-the steps to reach that goal. The ordering of blocks and the files they are
-organized into are generally not significant; Terraform only considers implicit
-and explicit relationships between resources when determining an order of
-operations.
+The Terraform language is declarative, describing an intended goal rather than the steps to reach that goal. The ordering of blocks and the files they are organized into are generally not significant; Terraform only considers implicit and explicit relationships between resources when determining an order of operations.
 
 ### Example
 
-The following example describes a simple network topology for Amazon Web
-Services, just to give a sense of the overall structure and syntax of the
-Terraform language. Similar configurations can be created for other virtual
-network services, using resource types defined by other providers, and a
-practical network configuration will often contain additional elements not
-shown here.
+The following example describes a simple network topology for Amazon Web Services, just to give a sense of the overall structure and syntax of the Terraform language. Similar configurations can be created for other virtual network services, using resource types defined by other providers, and a practical network configuration will often contain additional elements not shown here.
 
 ```hcl
 terraform {

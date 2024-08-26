@@ -1,0 +1,40 @@
+---
+page_title: Variable definition precedence
+description: >-
+  Input variables allow you to customize modules without altering their source
+  code. Learn how to declare, define, and reference variables in configurations.
+---
+
+# Variable definition precedence
+
+The above mechanisms for setting variables can be used together in any
+combination. If the same variable is assigned multiple values, Terraform uses
+the _last_ value it finds, overriding any previous values. Note that the same
+variable cannot be assigned multiple values within a single source.
+
+Terraform loads variables in the following order, with later sources taking
+precedence over earlier ones:
+
+* Environment variables
+* The `terraform.tfvars` file, if present.
+* The `terraform.tfvars.json` file, if present.
+* Any `*.auto.tfvars` or `*.auto.tfvars.json` files, processed in lexical order
+  of their filenames.
+* Any `-var` and `-var-file` options on the command line, in the order they
+  are provided. (This includes variables set by an HCP Terraform
+  workspace.)
+
+~> **Important:** In Terraform 0.12 and later, variables with map and object
+values behave the same way as other variables: the last value found overrides
+the previous values. This is a change from previous versions of Terraform, which
+would _merge_ map values instead of overriding them.
+
+## Variable precedence within Terraform tests
+
+Within Terraform test files, you can specify variable values within
+`variables` blocks, either nested within `run` blocks or defined directly within
+the file.
+
+Variables defined in this way take precedence over all other mechanisms during
+test execution, with variables defined within `run` blocks taking precedence
+over those defined within the file.

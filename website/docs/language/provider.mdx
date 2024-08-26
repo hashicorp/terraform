@@ -1,11 +1,13 @@
 ---
-page_title: Provider Requirements - Configuration Language
+page_title: Define provider block
 description: >-
   Providers are plugins that allow Terraform to interact with services, cloud
   providers, and other APIs. Learn how to declare providers in a configuration.
 ---
 
-# Provider Requirements
+# Define provider block
+
+This used to be the [Providers requirements](https://developer.hashicorp.com/terraform/language/providers/requirements) page. I heavily recommend we move the original [`langauge/provider/index`](https://developer.hashicorp.com/terraform/language/providers) to the `/terraform/intro` docs as part of "Concepts", since it covers more what providers are. These pages should be specific to defining Terraform provider blocks. Any deep dive to what providers are should be linked out to a more general provider page.
 
 Terraform relies on plugins called "providers" to interact with remote systems.
 Terraform configurations must declare which providers they require, so that
@@ -48,10 +50,10 @@ Each argument in the `required_providers` block enables one provider. The key
 determines the provider's [local name](#local-names) (its unique identifier
 within this module), and the value is an object with the following elements:
 
-* `source` - the global [source address](#source-addresses) for the
+- `source` - the global [source address](#source-addresses) for the
   provider you intend to use, such as `hashicorp/aws`.
 
-* `version` - a [version constraint](#version-constraints) specifying
+- `version` - a [version constraint](#version-constraints) specifying
   which subset of available provider versions the module is compatible with.
 
 -> **Note:** The `name = { source, version }` syntax for `required_providers`
@@ -65,8 +67,8 @@ Requirements](#v0-12-compatible-provider-requirements) below.
 
 Each provider has two identifiers:
 
-* A unique _source address,_ which is only used when requiring a provider.
-* A _local name,_ which is used everywhere else in a Terraform module.
+- A unique _source address,_ which is only used when requiring a provider.
+- A _local name,_ which is used everywhere else in a Terraform module.
 
 -> **Note:** Prior to Terraform 0.13, providers only had local names, since
 Terraform could only automatically download providers distributed by HashiCorp.
@@ -118,6 +120,7 @@ follows:
 `[<HOSTNAME>/]<NAMESPACE>/<TYPE>`
 
 Examples of valid provider source address formats include:
+
 - `NAMESPACE/TYPE`
 - `HOSTNAME/NAMESPACE/TYPE`
 
@@ -402,21 +405,21 @@ When writing a module that is compatible with both Terraform v0.12.26 and
 Terraform v0.13.0 or later, you must follow the following additional rules so
 that both versions will select the same provider to install:
 
-* Use only providers that can be automatically installed by Terraform v0.12.
+- Use only providers that can be automatically installed by Terraform v0.12.
   Third-party providers, such as community providers in the Terraform Registry,
   cannot be selected by Terraform v0.12 because it does not support the
   hierarchical source address namespace.
 
-* Ensure that your chosen local name exactly matches the "type" portion of the
+- Ensure that your chosen local name exactly matches the "type" portion of the
   source address given in the `source` argument, such as both being "aws" in
   the examples above, because Terraform v0.12 will use the local name to
   determine which provider plugin to download and install.
 
-* If the provider belongs to the `hashicorp` namespace, as with the
+- If the provider belongs to the `hashicorp` namespace, as with the
   `hashicorp/aws` provider shown above, omit the `source` argument and allow
   Terraform v0.13 to select the `hashicorp` namespace by default.
 
-* Provider type names must always be written in lowercase. Terraform v0.13
+- Provider type names must always be written in lowercase. Terraform v0.13
   treats provider source addresses as case-insensitive, but Terraform v0.12
   considers its legacy-style provider names to be case-sensitive. Using
   lowercase will ensure that the name is selectable by both Terraform major
