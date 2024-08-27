@@ -5,6 +5,7 @@ package stackplan
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-version"
@@ -79,15 +80,50 @@ func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*stacks.PlannedChan
 	// We use cty.DynamicPseudoType here so that we'll save both the
 	// value _and_ its dynamic type in the plan, so we can recover
 	// exactly the same value later.
-	var ppdv *planproto.DynamicValue
+	var ppdv *tfstackdata1.DynamicValue
 	if pc.Value != cty.NilVal {
-		dv, err := plans.NewDynamicValue(pc.Value, cty.DynamicPseudoType)
+
+		value, paths := pc.Value.UnmarkDeepWithPaths()
+		var ps []*planproto.Path
+		for _, path := range paths {
+			var unknownMarks []string
+			for mark := range path.Marks {
+				if mark == marks.Sensitive {
+					path, err := planproto.NewPath(path.Path)
+					if err != nil {
+						return nil, err
+					}
+					ps = append(ps, path)
+					continue
+				}
+
+				// otherwise, we found a mark we shouldn't have
+				unknownMarks = append(unknownMarks, fmt.Sprintf("%v", mark))
+			}
+
+			if len(unknownMarks) > 0 {
+				// This shouldn't really happen, because the only marks
+				// we should have found are the sensitive mark, but we
+				// check just in case.
+				//
+				// The only other mark we support is ephemeral, but we shouldn't
+				// have any ephemeral values here as they shouldn't be exposed
+				// via the plan anyway.
+				return nil, fmt.Errorf("unexpected marks found on path: %v", strings.Join(unknownMarks, ", "))
+			}
+		}
+
+		dv, err := plans.NewDynamicValue(value, cty.DynamicPseudoType)
 		if err != nil {
 			return nil, fmt.Errorf("can't encode value for %s: %w", pc.Addr, err)
 		}
-		ppdv = &planproto.DynamicValue{
-			Msgpack: dv,
+		ppdv = &tfstackdata1.DynamicValue{
+			Value: &planproto.DynamicValue{
+				Msgpack: dv,
+			},
+			SensitivePaths: ps,
 		}
+
 	}
 
 	var raw anypb.Any

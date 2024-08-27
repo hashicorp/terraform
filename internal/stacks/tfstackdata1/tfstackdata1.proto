@@ -77,7 +77,7 @@ message PlanTimestamp {
 // use identical values when subsequently applying the plan.
 message PlanRootInputValue {
     string name = 1;
-    tfplan.DynamicValue value = 2;
+    DynamicValue value = 2;
     bool required_on_apply = 3;
 }
 
