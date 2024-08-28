@@ -397,39 +397,39 @@
             "routes": [
               {
                 "title": "<code>abs</code>",
-                "href": "/language/functions/abs"
+                "href": "reference/functions/abs"
               },
               {
                 "title": "<code>ceil</code>",
-                "href": "/language/functions/ceil"
+                "href": "reference/functions/ceil"
               },
               {
                 "title": "<code>floor</code>",
-                "href": "/language/functions/floor"
+                "href": "reference/functions/floor"
               },
               {
                 "title": "<code>log</code>",
-                "href": "/language/functions/log"
+                "href": "reference/functions/log"
               },
               {
                 "title": "<code>max</code>",
-                "href": "/language/functions/max"
+                "href": "reference/functions/max"
               },
               {
                 "title": "<code>min</code>",
-                "href": "/language/functions/min"
+                "href": "reference/functions/min"
               },
               {
                 "title": "<code>parseint</code>",
-                "href": "/language/functions/parseint"
+                "href": "reference/functions/parseint"
               },
               {
                 "title": "<code>pow</code>",
-                "href": "/language/functions/pow"
+                "href": "reference/functions/pow"
               },
               {
                 "title": "<code>signum</code>",
-                "href": "/language/functions/signum"
+                "href": "reference/functions/signum"
               }
             ]
           },
@@ -438,91 +438,91 @@
             "routes": [
               {
                 "title": "<code>chomp</code>",
-                "href": "/language/functions/chomp"
+                "href": "reference/functions/chomp"
               },
               {
                 "title": "<code>endswith</code>",
-                "href": "/language/functions/endswith"
+                "href": "reference/functions/endswith"
               },
               {
                 "title": "<code>format</code>",
-                "href": "/language/functions/format"
+                "href": "reference/functions/format"
               },
               {
                 "title": "<code>formatlist</code>",
-                "href": "/language/functions/formatlist"
+                "href": "reference/functions/formatlist"
               },
               {
                 "title": "<code>indent</code>",
-                "href": "/language/functions/indent"
+                "href": "reference/functions/indent"
               },
               {
                 "title": "<code>join</code>",
-                "href": "/language/functions/join"
+                "href": "reference/functions/join"
               },
               {
                 "title": "<code>lower</code>",
-                "href": "/language/functions/lower"
+                "href": "reference/functions/lower"
               },
               {
                 "title": "<code>regex</code>",
-                "href": "/language/functions/regex"
+                "href": "reference/functions/regex"
               },
               {
                 "title": "<code>regexall</code>",
-                "href": "/language/functions/regexall"
+                "href": "reference/functions/regexall"
               },
               {
                 "title": "<code>replace</code>",
-                "href": "/language/functions/replace"
+                "href": "reference/functions/replace"
               },
               {
                 "title": "<code>split</code>",
-                "href": "/language/functions/split"
+                "href": "reference/functions/split"
               },
               {
                 "title": "<code>startswith</code>",
-                "href": "/language/functions/startswith"
+                "href": "reference/functions/startswith"
               },
               {
                 "title": "<code>strcontains</code>",
-                "href": "/language/functions/strcontains"
+                "href": "reference/functions/strcontains"
               },
               {
                 "title": "<code>strrev</code>",
-                "href": "/language/functions/strrev"
+                "href": "reference/functions/strrev"
               },
               {
                 "title": "<code>substr</code>",
-                "href": "/language/functions/substr"
+                "href": "reference/functions/substr"
               },
               {
                 "title": "<code>templatestring</code>",
-                "href": "/language/functions/templatestring"
+                "href": "reference/functions/templatestring"
               },
               {
                 "title": "<code>title</code>",
-                "href": "/language/functions/title"
+                "href": "reference/functions/title"
               },
               {
                 "title": "<code>trim</code>",
-                "href": "/language/functions/trim"
+                "href": "reference/functions/trim"
               },
               {
                 "title": "<code>trimprefix</code>",
-                "href": "/language/functions/trimprefix"
+                "href": "reference/functions/trimprefix"
               },
               {
                 "title": "<code>trimsuffix</code>",
-                "href": "/language/functions/trimsuffix"
+                "href": "reference/functions/trimsuffix"
               },
               {
                 "title": "<code>trimspace</code>",
-                "href": "/language/functions/trimspace"
+                "href": "reference/functions/trimspace"
               },
               {
                 "title": "<code>upper</code>",
-                "href": "/language/functions/upper"
+                "href": "reference/functions/upper"
               }
             ]
           },
@@ -531,131 +531,131 @@
             "routes": [
               {
                 "title": "<code>alltrue</code>",
-                "href": "/language/functions/alltrue"
+                "href": "reference/functions/alltrue"
               },
               {
                 "title": "<code>anytrue</code>",
-                "href": "/language/functions/anytrue"
+                "href": "reference/functions/anytrue"
               },
               {
                 "title": "<code>chunklist</code>",
-                "href": "/language/functions/chunklist"
+                "href": "reference/functions/chunklist"
               },
               {
                 "title": "<code>coalesce</code>",
-                "href": "/language/functions/coalesce"
+                "href": "reference/functions/coalesce"
               },
               {
                 "title": "<code>coalescelist</code>",
-                "href": "/language/functions/coalescelist"
+                "href": "reference/functions/coalescelist"
               },
               {
                 "title": "<code>compact</code>",
-                "href": "/language/functions/compact"
+                "href": "reference/functions/compact"
               },
               {
                 "title": "<code>concat</code>",
-                "href": "/language/functions/concat"
+                "href": "reference/functions/concat"
               },
               {
                 "title": "<code>contains</code>",
-                "href": "/language/functions/contains"
+                "href": "reference/functions/contains"
               },
               {
                 "title": "<code>distinct</code>",
-                "href": "/language/functions/distinct"
+                "href": "reference/functions/distinct"
               },
               {
                 "title": "<code>element</code>",
-                "href": "/language/functions/element"
+                "href": "reference/functions/element"
               },
               {
                 "title": "<code>flatten</code>",
-                "href": "/language/functions/flatten"
+                "href": "reference/functions/flatten"
               },
               {
                 "title": "<code>index</code>",
-                "href": "/language/functions/index_function"
+                "href": "reference/functions/index_function"
               },
               {
                 "title": "<code>keys</code>",
-                "href": "/language/functions/keys"
+                "href": "reference/functions/keys"
               },
               {
                 "title": "<code>length</code>",
-                "href": "/language/functions/length"
+                "href": "reference/functions/length"
               },
               {
                 "title": "<code>list</code>",
-                "href": "/language/functions/list"
+                "href": "reference/functions/list"
               },
               {
                 "title": "<code>lookup</code>",
-                "href": "/language/functions/lookup"
+                "href": "reference/functions/lookup"
               },
               {
                 "title": "<code>map</code>",
-                "href": "/language/functions/map"
+                "href": "reference/functions/map"
               },
               {
                 "title": "<code>matchkeys</code>",
-                "href": "/language/functions/matchkeys"
+                "href": "reference/functions/matchkeys"
               },
               {
                 "title": "<code>merge</code>",
-                "href": "/language/functions/merge"
+                "href": "reference/functions/merge"
               },
               {
                 "title": "<code>one</code>",
-                "href": "/language/functions/one"
+                "href": "reference/functions/one"
               },
               {
                 "title": "<code>range</code>",
-                "href": "/language/functions/range"
+                "href": "reference/functions/range"
               },
               {
                 "title": "<code>reverse</code>",
-                "href": "/language/functions/reverse"
+                "href": "reference/functions/reverse"
               },
               {
                 "title": "<code>setintersection</code>",
-                "href": "/language/functions/setintersection"
+                "href": "reference/functions/setintersection"
               },
               {
                 "title": "<code>setproduct</code>",
-                "href": "/language/functions/setproduct"
+                "href": "reference/functions/setproduct"
               },
               {
                 "title": "<code>setsubtract</code>",
-                "href": "/language/functions/setsubtract"
+                "href": "reference/functions/setsubtract"
               },
               {
                 "title": "<code>setunion</code>",
-                "href": "/language/functions/setunion"
+                "href": "reference/functions/setunion"
               },
               {
                 "title": "<code>slice</code>",
-                "href": "/language/functions/slice"
+                "href": "reference/functions/slice"
               },
               {
                 "title": "<code>sort</code>",
-                "href": "/language/functions/sort"
+                "href": "reference/functions/sort"
               },
               {
                 "title": "<code>sum</code>",
-                "href": "/language/functions/sum"
+                "href": "reference/functions/sum"
               },
               {
                 "title": "<code>transpose</code>",
-                "href": "/language/functions/transpose"
+                "href": "reference/functions/transpose"
               },
               {
                 "title": "<code>values</code>",
-                "href": "/language/functions/values"
+                "href": "reference/functions/values"
               },
               {
                 "title": "<code>zipmap</code>",
-                "href": "/language/functions/zipmap"
+                "href": "reference/functions/zipmap"
               }
             ]
           },
@@ -664,47 +664,47 @@
             "routes": [
               {
                 "title": "<code>base64decode</code>",
-                "href": "/language/functions/base64decode"
+                "href": "reference/functions/base64decode"
               },
               {
                 "title": "<code>base64encode</code>",
-                "href": "/language/functions/base64encode"
+                "href": "reference/functions/base64encode"
               },
               {
                 "title": "<code>base64gzip</code>",
-                "href": "/language/functions/base64gzip"
+                "href": "reference/functions/base64gzip"
               },
               {
                 "title": "<code>csvdecode</code>",
-                "href": "/language/functions/csvdecode"
+                "href": "reference/functions/csvdecode"
               },
               {
                 "title": "<code>jsondecode</code>",
-                "href": "/language/functions/jsondecode"
+                "href": "reference/functions/jsondecode"
               },
               {
                 "title": "<code>jsonencode</code>",
-                "href": "/language/functions/jsonencode"
+                "href": "reference/functions/jsonencode"
               },
               {
                 "title": "<code>textdecodebase64</code>",
-                "href": "/language/functions/textdecodebase64"
+                "href": "reference/functions/textdecodebase64"
               },
               {
                 "title": "<code>textencodebase64</code>",
-                "href": "/language/functions/textencodebase64"
+                "href": "reference/functions/textencodebase64"
               },
               {
                 "title": "<code>urlencode</code>",
-                "href": "/language/functions/urlencode"
+                "href": "reference/functions/urlencode"
               },
               {
                 "title": "<code>yamldecode</code>",
-                "href": "/language/functions/yamldecode"
+                "href": "reference/functions/yamldecode"
               },
               {
                 "title": "<code>yamlencode</code>",
-                "href": "/language/functions/yamlencode"
+                "href": "reference/functions/yamlencode"
               }
             ]
           },
@@ -713,39 +713,39 @@
             "routes": [
               {
                 "title": "<code>abspath</code>",
-                "href": "/language/functions/abspath"
+                "href": "reference/functions/abspath"
               },
               {
                 "title": "<code>dirname</code>",
-                "href": "/language/functions/dirname"
+                "href": "reference/functions/dirname"
               },
               {
                 "title": "<code>pathexpand</code>",
-                "href": "/language/functions/pathexpand"
+                "href": "reference/functions/pathexpand"
               },
               {
                 "title": "<code>basename</code>",
-                "href": "/language/functions/basename"
+                "href": "reference/functions/basename"
               },
               {
                 "title": "<code>file</code>",
-                "href": "/language/functions/file"
+                "href": "reference/functions/file"
               },
               {
                 "title": "<code>fileexists</code>",
-                "href": "/language/functions/fileexists"
+                "href": "reference/functions/fileexists"
               },
               {
                 "title": "<code>fileset</code>",
-                "href": "/language/functions/fileset"
+                "href": "reference/functions/fileset"
               },
               {
                 "title": "<code>filebase64</code>",
-                "href": "/language/functions/filebase64"
+                "href": "reference/functions/filebase64"
               },
               {
                 "title": "<code>templatefile</code>",
-                "href": "/language/functions/templatefile"
+                "href": "reference/functions/templatefile"
               }
             ]
           },
@@ -754,23 +754,23 @@
             "routes": [
               {
                 "title": "<code>formatdate</code>",
-                "href": "/language/functions/formatdate"
+                "href": "reference/functions/formatdate"
               },
               {
                 "title": "<code>plantimestamp</code>",
-                "href": "/language/functions/plantimestamp"
+                "href": "reference/functions/plantimestamp"
               },
               {
                 "title": "<code>timeadd</code>",
-                "href": "/language/functions/timeadd"
+                "href": "reference/functions/timeadd"
               },
               {
                 "title": "<code>timecmp</code>",
-                "href": "/language/functions/timecmp"
+                "href": "reference/functions/timecmp"
               },
               {
                 "title": "<code>timestamp</code>",
-                "href": "/language/functions/timestamp"
+                "href": "reference/functions/timestamp"
               }
             ]
           },
@@ -779,67 +779,67 @@
             "routes": [
               {
                 "title": "<code>base64sha256</code>",
-                "href": "/language/functions/base64sha256"
+                "href": "reference/functions/base64sha256"
               },
               {
                 "title": "<code>base64sha512</code>",
-                "href": "/language/functions/base64sha512"
+                "href": "reference/functions/base64sha512"
               },
               {
                 "title": "<code>bcrypt</code>",
-                "href": "/language/functions/bcrypt"
+                "href": "reference/functions/bcrypt"
               },
               {
                 "title": "<code>filebase64sha256</code>",
-                "href": "/language/functions/filebase64sha256"
+                "href": "reference/functions/filebase64sha256"
               },
               {
                 "title": "<code>filebase64sha512</code>",
-                "href": "/language/functions/filebase64sha512"
+                "href": "reference/functions/filebase64sha512"
               },
               {
                 "title": "<code>filemd5</code>",
-                "href": "/language/functions/filemd5"
+                "href": "reference/functions/filemd5"
               },
               {
                 "title": "<code>filesha1</code>",
-                "href": "/language/functions/filesha1"
+                "href": "reference/functions/filesha1"
               },
               {
                 "title": "<code>filesha256</code>",
-                "href": "/language/functions/filesha256"
+                "href": "reference/functions/filesha256"
               },
               {
                 "title": "<code>filesha512</code>",
-                "href": "/language/functions/filesha512"
+                "href": "reference/functions/filesha512"
               },
               {
                 "title": "<code>md5</code>",
-                "href": "/language/functions/md5"
+                "href": "reference/functions/md5"
               },
               {
                 "title": "<code>rsadecrypt</code>",
-                "href": "/language/functions/rsadecrypt"
+                "href": "reference/functions/rsadecrypt"
               },
               {
                 "title": "<code>sha1</code>",
-                "href": "/language/functions/sha1"
+                "href": "reference/functions/sha1"
               },
               {
                 "title": "<code>sha256</code>",
-                "href": "/language/functions/sha256"
+                "href": "reference/functions/sha256"
               },
               {
                 "title": "<code>sha512</code>",
-                "href": "/language/functions/sha512"
+                "href": "reference/functions/sha512"
               },
               {
                 "title": "<code>uuid</code>",
-                "href": "/language/functions/uuid"
+                "href": "reference/functions/uuid"
               },
               {
                 "title": "<code>uuidv5</code>",
-                "href": "/language/functions/uuidv5"
+                "href": "reference/functions/uuidv5"
               }
             ]
           },
@@ -848,19 +848,19 @@
             "routes": [
               {
                 "title": "<code>cidrhost</code>",
-                "href": "/language/functions/cidrhost"
+                "href": "reference/functions/cidrhost"
               },
               {
                 "title": "<code>cidrnetmask</code>",
-                "href": "/language/functions/cidrnetmask"
+                "href": "reference/functions/cidrnetmask"
               },
               {
                 "title": "<code>cidrsubnet</code>",
-                "href": "/language/functions/cidrsubnet"
+                "href": "reference/functions/cidrsubnet"
               },
               {
                 "title": "<code>cidrsubnets</code>",
-                "href": "/language/functions/cidrsubnets"
+                "href": "reference/functions/cidrsubnets"
               }
             ]
           },
@@ -869,51 +869,51 @@
             "routes": [
               {
                 "title": "<code>can</code>",
-                "href": "/language/functions/can"
+                "href": "reference/functions/can"
               },
               {
                 "title": "<code>issensitive</code>",
-                "href": "/language/functions/issensitive"
+                "href": "reference/functions/issensitive"
               },
               {
                 "title": "<code>nonsensitive</code>",
-                "href": "/language/functions/nonsensitive"
+                "href": "reference/functions/nonsensitive"
               },
               {
                 "title": "<code>sensitive</code>",
-                "href": "/language/functions/sensitive"
+                "href": "reference/functions/sensitive"
               },
               {
                 "title": "<code>tobool</code>",
-                "href": "/language/functions/tobool"
+                "href": "reference/functions/tobool"
               },
               {
                 "title": "<code>tolist</code>",
-                "href": "/language/functions/tolist"
+                "href": "reference/functions/tolist"
               },
               {
                 "title": "<code>tomap</code>",
-                "href": "/language/functions/tomap"
+                "href": "reference/functions/tomap"
               },
               {
                 "title": "<code>tonumber</code>",
-                "href": "/language/functions/tonumber"
+                "href": "reference/functions/tonumber"
               },
               {
                 "title": "<code>toset</code>",
-                "href": "/language/functions/toset"
+                "href": "reference/functions/toset"
               },
               {
                 "title": "<code>tostring</code>",
-                "href": "/language/functions/tostring"
+                "href": "reference/functions/tostring"
               },
               {
                 "title": "<code>try</code>",
-                "href": "/language/functions/try"
+                "href": "reference/functions/try"
               },
               {
                 "title": "<code>type</code>",
-                "href": "/language/functions/type"
+                "href": "reference/functions/type"
               }
             ]
           },
@@ -922,15 +922,15 @@
             "routes": [
               {
                 "title": "<code>provider::terraform::encode_tfvars</code>",
-                "href": "/language/functions/terraform-encode_tfvars"
+                "href": "reference/functions/terraform-encode_tfvars"
               },
               {
                 "title": "<code>provider::terraform::decode_tfvars</code>",
-                "href": "/language/functions/terraform-decode_tfvars"
+                "href": "reference/functions/terraform-decode_tfvars"
               },
               {
                 "title": "<code>provider::terraform::encode_expr</code>",
-                "href": "/language/functions/terraform-encode_expr"
+                "href": "reference/functions/terraform-encode_expr"
               }
             ]
           },
@@ -1553,7 +1553,6 @@
       },
       {
         "title": "Meta-Arguments",
-        "hidden": true,
         "routes": [
           {
             "title": "<code>count</code>",
