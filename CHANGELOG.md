@@ -1,4 +1,4 @@
-## 1.10.0 (Unreleased)
+## 1.10.0-alpha20240828 (Aug 28, 2024)
 
 BUG FIXES:
 
@@ -12,7 +12,7 @@ ENHANCEMENTS:
 
 - The `element` function now accepts negative indices ([#35501](https://github.com/hashicorp/terraform/issues/35501))
 - Import block validation has been improved to provide more useful errors and catch more invalid cases during `terraform validate` ([#35543](https://github.com/hashicorp/terraform/issues/35543))
-* Performance enhancements for resource evaluation, especially when large numbers of resource instances are involved [GH-35558]
+* Performance enhancements for resource evaluation, especially when large numbers of resource instances are involved ([#35558](https://github.com/hashicorp/terraform/issues/35558))
 
 EXPERIMENTS:
 
