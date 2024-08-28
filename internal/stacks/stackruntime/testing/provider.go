@@ -224,7 +224,18 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 				id := request.PriorState.GetAttr("id").AsString()
 				value, exists := store.Get(id)
 				if !exists {
-					diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "not found", fmt.Sprintf("%q not found", id)))
+					// Then we'll just behave as if the resource was destroyed
+					// externally.
+					switch request.TypeName {
+					case "testing_failed_resource":
+						value = cty.NullVal(FailedResourceSchema.ImpliedType())
+					case "testing_deferred_resource":
+						value = cty.NullVal(DeferredResourceSchema.ImpliedType())
+					case "testing_resource":
+						value = cty.NullVal(TestingResourceSchema.ImpliedType())
+					default:
+						panic(fmt.Sprintf("unknown resource type %q", request.TypeName))
+					}
 				}
 				return providers.ReadResourceResponse{
 					NewState:    value,

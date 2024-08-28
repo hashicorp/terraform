@@ -2878,6 +2878,316 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 	}
 }
 
+func TestApplyFailedDependencyWithResourceInState(t *testing.T) {
+
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "failed-dependency")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "2021-01-01T00:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	store := stacks_testing_provider.NewResourceStoreBuilder().
+		AddResource("resource", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("resource"),
+			"value": cty.NullVal(cty.String),
+		})).
+		Build()
+
+	planReq := PlanRequest{
+		PlanMode: plans.NormalMode,
+
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(store), nil
+			},
+		},
+		DependencyLocks:    *lock,
+		ForcePlanTimestamp: &fakePlanTimestamp,
+		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
+			stackaddrs.InputVariable{Name: "fail_apply"}: {
+				Value: cty.True,
+			},
+		},
+
+		// We have a resource in the state from a previous run. We shouldn't
+		// emit any state changes to this resource as a result of the dependency
+		// failing.
+		PrevState: stackstate.NewStateBuilder().
+			AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+				SetAddr(mustAbsResourceInstanceObject("component.self.testing_resource.data")).
+				SetProviderAddr(mustDefaultRootProvider("testing")).
+				SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+					SchemaVersion: 0,
+					AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+						"id":    "resource",
+						"value": nil,
+					}),
+					Status: states.ObjectReady,
+				})).
+			Build(),
+	}
+
+	planChangesCh := make(chan stackplan.PlannedChange)
+	planDiagsCh := make(chan tfdiags.Diagnostic)
+	planResp := PlanResponse{
+		PlannedChanges: planChangesCh,
+		Diagnostics:    planDiagsCh,
+	}
+
+	go Plan(ctx, &planReq, &planResp)
+	planChanges, planDiags := collectPlanOutput(planChangesCh, planDiagsCh)
+	if len(planDiags) > 0 {
+		t.Fatalf("unexpected diagnostics during planning: %s", planDiags)
+	}
+
+	planLoader := stackplan.NewLoader()
+	for _, change := range planChanges {
+		proto, err := change.PlannedChangeProto()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	applyReq := ApplyRequest{
+		Config: cfg,
+		Plan:   plan,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(store), nil
+			},
+		},
+		DependencyLocks: *lock,
+	}
+
+	applyChangesCh := make(chan stackstate.AppliedChange)
+	applyDiagsCh := make(chan tfdiags.Diagnostic)
+	applyResp := ApplyResponse{
+		AppliedChanges: applyChangesCh,
+		Diagnostics:    applyDiagsCh,
+	}
+
+	go Apply(ctx, &applyReq, &applyResp)
+	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, applyDiagsCh)
+
+	expectDiagnosticsForTest(t, applyDiags, expectDiagnostic(tfdiags.Error, "planned failure", "apply failure"))
+
+	wantChanges := []stackstate.AppliedChange{
+		&stackstate.AppliedChangeComponentInstance{
+			ComponentAddr:         mustAbsComponent("component.self"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+		},
+		&stackstate.AppliedChangeResourceInstanceObject{
+			// This has no state as the apply operation failed and it wasn't
+			// in the state before.
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_failed_resource.data"),
+			ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+		},
+		&stackstate.AppliedChangeResourceInstanceObject{
+			// This emits the state from the previous run, as it was not
+			// changed during this run.
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+			ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+			NewStateSrc: &states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+					"id":    "resource",
+					"value": nil,
+				}),
+				AttrSensitivePaths: make([]cty.Path, 0),
+				Status:             states.ObjectReady,
+				Dependencies:       []addrs.ConfigResource{mustAbsResourceInstance("testing_failed_resource.data").ConfigResource()},
+			},
+			Schema: stacks_testing_provider.TestingResourceSchema,
+		},
+	}
+
+	sort.SliceStable(applyChanges, func(i, j int) bool {
+		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
+	})
+
+	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+
+}
+
+func TestApplyManuallyRemovedResource(t *testing.T) {
+
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, filepath.Join("with-single-input", "valid"))
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "2021-01-01T00:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	planReq := PlanRequest{
+		PlanMode: plans.NormalMode,
+
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+		DependencyLocks:    *lock,
+		ForcePlanTimestamp: &fakePlanTimestamp,
+		InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
+			stackaddrs.InputVariable{Name: "id"}: {
+				Value: cty.StringVal("foo"),
+			},
+			stackaddrs.InputVariable{Name: "input"}: {
+				Value: cty.StringVal("hello"),
+			},
+		},
+
+		// We have in the previous state a resource that is not in our
+		// underlying data store. This simulates the case where someone went
+		// in and manually deleted a resource that Terraform is managing.
+		//
+		// Some providers will return an error in this case, but some will
+		// not. We need to ensure that we handle the second case gracefully.
+		PrevState: stackstate.NewStateBuilder().
+			AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+				SetAddr(mustAbsResourceInstanceObject("component.self.testing_resource.missing")).
+				SetProviderAddr(mustDefaultRootProvider("testing")).
+				SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+					SchemaVersion: 0,
+					AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+						"id":    "e84b59f2",
+						"value": "hello",
+					}),
+					Status: states.ObjectReady,
+				})).
+			Build(),
+	}
+
+	planChangesCh := make(chan stackplan.PlannedChange)
+	planDiagsCh := make(chan tfdiags.Diagnostic)
+	planResp := PlanResponse{
+		PlannedChanges: planChangesCh,
+		Diagnostics:    planDiagsCh,
+	}
+
+	go Plan(ctx, &planReq, &planResp)
+	planChanges, planDiags := collectPlanOutput(planChangesCh, planDiagsCh)
+	if len(planDiags) > 0 {
+		t.Fatalf("unexpected diagnostics during planning: %s", planDiags)
+	}
+
+	planLoader := stackplan.NewLoader()
+	for _, change := range planChanges {
+		proto, err := change.PlannedChangeProto()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	applyReq := ApplyRequest{
+		Config: cfg,
+		Plan:   plan,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(), nil
+			},
+		},
+		DependencyLocks: *lock,
+	}
+
+	applyChangesCh := make(chan stackstate.AppliedChange)
+	applyDiagsCh := make(chan tfdiags.Diagnostic)
+	applyResp := ApplyResponse{
+		AppliedChanges: applyChangesCh,
+		Diagnostics:    applyDiagsCh,
+	}
+
+	go Apply(ctx, &applyReq, &applyResp)
+	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, applyDiagsCh)
+	if len(applyDiags) > 0 {
+		t.Fatalf("unexpected diagnostics during apply: %s", applyDiags)
+	}
+
+	wantChanges := []stackstate.AppliedChange{
+		&stackstate.AppliedChangeComponentInstance{
+			ComponentAddr:         mustAbsComponent("component.self"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+		},
+		// The resource in our configuration has been updated, so that is
+		// present as normal.
+		&stackstate.AppliedChangeResourceInstanceObject{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+			ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+			NewStateSrc: &states.ResourceInstanceObjectSrc{
+				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+					"id":    "foo",
+					"value": "hello",
+				}),
+				Status:       states.ObjectReady,
+				Dependencies: make([]addrs.ConfigResource, 0),
+			},
+			Schema: stacks_testing_provider.TestingResourceSchema,
+		},
+		// The resource that was in state but not in the configuration should
+		// be removed from state.
+		&stackstate.AppliedChangeResourceInstanceObject{
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.missing"),
+			ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+			NewStateSrc:                nil, // We should be removing this from the state file.
+			Schema:                     nil,
+		},
+	}
+
+	sort.SliceStable(applyChanges, func(i, j int) bool {
+		return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
+	})
+
+	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
+		t.Errorf("wrong changes\n%s", diff)
+	}
+}
+
 func collectApplyOutput(changesCh <-chan stackstate.AppliedChange, diagsCh <-chan tfdiags.Diagnostic) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	var changes []stackstate.AppliedChange
 	var diags tfdiags.Diagnostics
