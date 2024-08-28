@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/version"
@@ -269,7 +268,7 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 		}
 
 		if msg.PriorState != nil {
-			stateSrc, err := stackstate.DecodeProtoResourceInstanceObject(msg.PriorState)
+			stateSrc, err := tfstackdata1.DecodeProtoResourceInstanceObject(msg.PriorState)
 			if err != nil {
 				return fmt.Errorf("invalid prior state for %s: %w", fullAddr, err)
 			}

@@ -24,11 +24,17 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
-	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval/stubs"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+)
+
+var (
+	_ Validatable                                                = (*ComponentConfig)(nil)
+	_ Plannable                                                  = (*ComponentConfig)(nil)
+	_ ExpressionScope                                            = (*ComponentConfig)(nil)
+	_ ConfigComponentExpressionScope[stackaddrs.ConfigComponent] = (*ComponentConfig)(nil)
 )
 
 type ComponentConfig struct {
@@ -55,6 +61,10 @@ func (c *ComponentConfig) Addr() stackaddrs.ConfigComponent {
 
 func (c *ComponentConfig) Declaration(ctx context.Context) *stackconfig.Component {
 	return c.config
+}
+
+func (c *ComponentConfig) DeclRange(_ context.Context) *hcl.Range {
+	return c.config.DeclRange.ToHCL().Ptr()
 }
 
 func (c *ComponentConfig) StackConfig(ctx context.Context) *StackConfig {
@@ -120,7 +130,7 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 
 			// We also have a small selection of additional static validation
 			// rules that apply only to modules used within stack components.
-			diags = diags.Append(c.validateModuleTreeForStacks(configRoot))
+			diags = diags.Append(validateModuleTreeForStacks(configRoot))
 
 			return configRoot, diags
 		},
@@ -137,16 +147,16 @@ func (c *ComponentConfig) CheckModuleTree(ctx context.Context) (*configs.Config,
 // to handle the simpler concerns and allows us to return error messages that
 // talk specifically about stacks, which would be harder to achieve if these
 // exceptions were made at a different layer.
-func (c *ComponentConfig) validateModuleTreeForStacks(startNode *configs.Config) tfdiags.Diagnostics {
+func validateModuleTreeForStacks(startNode *configs.Config) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	diags = diags.Append(c.validateModuleForStacks(startNode.Path, startNode.Module))
+	diags = diags.Append(validateModuleForStacks(startNode.Path, startNode.Module))
 	for _, childNode := range startNode.Children {
-		diags = diags.Append(c.validateModuleTreeForStacks(childNode))
+		diags = diags.Append(validateModuleTreeForStacks(childNode))
 	}
 	return diags
 }
 
-func (c *ComponentConfig) validateModuleForStacks(moduleAddr addrs.Module, module *configs.Module) tfdiags.Diagnostics {
+func validateModuleForStacks(moduleAddr addrs.Module, module *configs.Module) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// Inline provider configurations are not allowed when running under stacks,
@@ -240,233 +250,6 @@ func (c *ComponentConfig) CheckInputVariableValues(ctx context.Context, phase Ev
 	return diags
 }
 
-// RequiredProviderInstances returns a description of all of the provider
-// instance slots ("provider configurations" in main Terraform language
-// terminology) that are either explicitly declared or implied by the
-// root module of the component's module tree.
-//
-// The component configuration must include a "providers" argument that
-// binds each of these slots to a real provider instance in the stack
-// configuration, by referring to dynamic values of the appropriate
-// provider instance reference type.
-//
-// In the returned map the keys describe provider configurations from
-// the perspective of an object inside the root module, and so the LocalName
-// field values are an implementation detail that must not be exposed into
-// the calling stack and are included here only so that we can potentially
-// return error messages referring to declarations inside the module.
-//
-// If any modules in the component's root module tree are invalid then this
-// result could under-promise or over-promise depending on the kind of
-// invalidity.
-func (c *ComponentConfig) RequiredProviderInstances(ctx context.Context) addrs.Map[addrs.RootProviderConfig, configs.RequiredProviderConfig] {
-	moduleTree := c.ModuleTree(ctx)
-	if moduleTree == nil || moduleTree.Root == nil {
-		// If we get here then we presumably failed to load the module, and
-		// so we'll just unwind quickly so a different return path can return
-		// the error diagnostics.
-		return addrs.MakeMap[addrs.RootProviderConfig, configs.RequiredProviderConfig]()
-	}
-	return moduleTree.Root.EffectiveRequiredProviderConfigs()
-}
-
-func (c *ComponentConfig) CheckProviders(ctx context.Context, phase EvalPhase) (addrs.Set[addrs.RootProviderConfig], tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	stackConfig := c.StackConfig(ctx)
-	declConfigs := c.Declaration(ctx).ProviderConfigs
-	neededProviders := c.RequiredProviderInstances(ctx)
-
-	ret := addrs.MakeSet[addrs.RootProviderConfig]()
-	for _, elem := range neededProviders.Elems {
-
-		// sourceAddr is the addrs.RootProviderConfig that should be used to
-		// set this provider in the component later.
-		sourceAddr := elem.Key
-
-		// componentAddr is the addrs.LocalProviderConfig that specifies the
-		// local name and (optional) alias of the provider in the component.
-		componentAddr := elem.Value.Local
-
-		// typeAddr is the absolute address of the provider type itself.
-		typeAddr := sourceAddr.Provider
-
-		expr, exists := declConfigs[componentAddr]
-		if !exists {
-			// Then this provider isn't listed in the `providers` block of this
-			// component. Which is bad!
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Missing required provider configuration",
-				Detail: fmt.Sprintf(
-					"The root module for %s requires a provider configuration named %q for provider %q, which is not assigned in the component's \"providers\" argument.",
-					c.Addr(), componentAddr.StringCompact(), typeAddr.ForDisplay(),
-				),
-				Subject: c.Declaration(ctx).DeclRange.ToHCL().Ptr(),
-			})
-			continue
-		}
-
-		// At the validation stage, it's really likely the result here is
-		// unknown. But, we can still check the returned type to make sure it
-		// matches everything expected.
-		result, hclDiags := EvalExprAndEvalContext(ctx, expr, phase, c)
-		diags = diags.Append(hclDiags)
-		if hclDiags.HasErrors() {
-			continue
-		}
-
-		// Next, we want to make sure the linked providers are actually of the
-		// same type.
-
-		const errSummary = "Invalid provider configuration"
-		if actualTy := result.Value.Type(); stackconfigtypes.IsProviderConfigType(actualTy) {
-			// Then we at least got a provider reference of some kind.
-			actualTypeAddr := stackconfigtypes.ProviderForProviderConfigType(actualTy)
-			if actualTypeAddr != typeAddr {
-				var errorDetail string
-
-				stackName, matchingTypeExists := stackConfig.ProviderLocalName(ctx, typeAddr)
-				_, matchingNameExists := stackConfig.ProviderForLocalName(ctx, componentAddr.LocalName)
-				moduleProviderTypeExplicit := elem.Value.Explicit
-				if !matchingTypeExists && !matchingNameExists {
-					// Then the user just hasn't declared the target provider
-					// type or name at all. We'll return a generic error message
-					// asking the user to update the required_providers list.
-					errorDetail = "\n\nDeclare the required provider in the stack's required_providers block, and then assign a configuration for that provider in this component's \"providers\" argument."
-				} else if !matchingNameExists {
-					// Then we have a type that matches, but the name doesn't.
-					errorDetail = fmt.Sprintf("\n\nThis stack has a configured provider of the correct type under the name %q. Update this component's \"providers\" argument to reference this provider.", stackName)
-				} else if !matchingTypeExists {
-					// Then we have a name that matches, but the type doesn't.
-
-					// If the types don't match and the names do, then maybe
-					// the user hasn't properly filled in the required types
-					// within the module.
-					if !moduleProviderTypeExplicit {
-						// Yes! The provider type within the module has been
-						// implied by Terraform and not explicitly set within
-						// the required_providers block. We'll suggest the user
-						// to update the required_providers block of the module.
-						errorDetail = fmt.Sprintf("\n\nThe module does not declare a source address for %q in its required_providers block, so Terraform assumed %q for backward-compatibility with older versions of Terraform", componentAddr.LocalName, elem.Key.Provider.ForDisplay())
-					}
-
-					// Otherwise the user has explicitly set the provider type
-					// within the module, but it doesn't match the provider type
-					// within the stack configuration. The generic error message
-					// should be sufficient.
-				}
-
-				// But, unfortunately, the underlying types of the providers
-				// do not match up.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  errSummary,
-					Detail: fmt.Sprintf(
-						"The provider configuration slot %q requires a configuration for provider %q, not for provider %q.%s",
-						componentAddr.StringCompact(), typeAddr, actualTypeAddr, errorDetail,
-					),
-					Subject: result.Expression.Range().Ptr(),
-				})
-				continue
-			}
-		} else if result.Value == cty.DynamicVal {
-			// Then we don't know the concrete type of this reference at this
-			// time, so we'll just have to accept it. This is somewhat expected
-			// during the validation phase, and even during the planning phase
-			// if we have deferred attributes. We'll get an error later (ie.
-			// during the plan phase) if the type doesn't match up then.
-		} else {
-			// We got something that isn't a provider reference at all.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  errSummary,
-				Detail: fmt.Sprintf(
-					"The provider configuration slot %s requires a configuration for provider %q.",
-					componentAddr.StringCompact(), typeAddr,
-				),
-				Subject: result.Expression.Range().Ptr(),
-			})
-			continue
-		}
-
-		// If we made it here, the types all matched up so we've done everything
-		// we can. component_instance.go will do additional checks to make sure
-		// the result is known and not null when it comes time to actually
-		// check the plan.
-
-		ret.Add(sourceAddr)
-	}
-	return ret, diags
-}
-
-func (c *ComponentConfig) neededProviderClients(ctx context.Context, phase EvalPhase) (map[addrs.RootProviderConfig]providers.Interface, bool) {
-	insts := make(map[addrs.RootProviderConfig]providers.Interface)
-	valid := true
-
-	providers, _ := c.CheckProviders(ctx, phase)
-	for _, provider := range providers {
-		pTy := c.main.ProviderType(ctx, provider.Provider)
-		if pTy == nil {
-			valid = false
-			continue // not our job to report a missing provider
-		}
-
-		// We don't need to configure the client for validate functionality.
-		inst, err := pTy.UnconfiguredClient(ctx)
-		if err != nil {
-			valid = false
-			continue
-		}
-		insts[provider] = inst
-	}
-
-	return insts, valid
-}
-
-func (c *ComponentConfig) neededProviderSchemas(ctx context.Context, phase EvalPhase) (map[addrs.Provider]providers.ProviderSchema, tfdiags.Diagnostics, bool) {
-	var diags tfdiags.Diagnostics
-	skipFutherValidation := false
-
-	config := c.ModuleTree(ctx)
-	decl := c.Declaration(ctx)
-
-	providerSchemas := make(map[addrs.Provider]providers.ProviderSchema)
-	for _, sourceAddr := range config.ProviderTypes() {
-		pTy := c.main.ProviderType(ctx, sourceAddr)
-		if pTy == nil {
-			continue // not our job to report a missing provider
-		}
-
-		// If this phase has a dependency lockfile, check if the provider is in it.
-		depLocks := c.main.DependencyLocks(phase)
-		if depLocks != nil {
-			// Check if the provider is in the lockfile,
-			// if it is not we can not read the provider schema
-			providerLockfileDiags := CheckProviderInLockfile(*depLocks, pTy, decl.DeclRange)
-
-			// We report these diagnostics in a different place
-			if providerLockfileDiags.HasErrors() {
-				skipFutherValidation = true
-				continue
-			}
-		}
-
-		schema, err := pTy.Schema(ctx)
-		if err != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Provider initialization error",
-				Detail:   fmt.Sprintf("Failed to fetch the provider schema for %s: %s.", sourceAddr, err),
-				Subject:  decl.DeclRange.ToHCL().Ptr(),
-			})
-			continue
-		}
-		providerSchemas[sourceAddr] = schema
-	}
-	return providerSchemas, diags, skipFutherValidation
-}
-
 // ExprReferenceValue implements Referenceable.
 func (c *ComponentConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
 	// Currently we don't say anything at all about component results during
@@ -521,7 +304,7 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 		// or depends_on attribute, we can still validate the actual module tree
 		// without them.
 
-		_, providerDiags := c.CheckProviders(ctx, phase)
+		providerTypes, providerDiags := EvalProviderTypes(ctx, c.StackConfig(ctx), c.config.ProviderConfigs, phase, c)
 		diags = diags.Append(providerDiags)
 		if providerDiags.HasErrors() {
 			// If there's invalid provider configuration, we can't actually go
@@ -531,7 +314,7 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			return diags, nil
 		}
 
-		providerSchemas, moreDiags, skipFurtherValidation := c.neededProviderSchemas(ctx, phase)
+		providerSchemas, moreDiags, skipFurtherValidation := neededProviderSchemas(ctx, c.main, phase, c)
 		if skipFurtherValidation {
 			return diags.Append(moreDiags), nil
 		}
@@ -570,7 +353,7 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			return diags, nil
 		}
 
-		providerClients, valid := c.neededProviderClients(ctx, phase)
+		providerClients, valid := unconfiguredProviderClients(ctx, c.main, providerTypes)
 		if !valid {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -582,7 +365,7 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 		}
 		defer func() {
 			// Close the unconfigured provider clients that we opened in
-			// neededProviderClients.
+			// unconfiguredProviderClients.
 			for _, client := range providerClients {
 				client.Close()
 			}

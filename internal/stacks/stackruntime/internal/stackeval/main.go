@@ -84,7 +84,6 @@ type Main struct {
 	mainStack               *Stack
 	providerTypes           map[addrs.Provider]*ProviderType
 	providerFunctionResults *providers.FunctionResults
-	externalFuncs           lang.ExternalFuncs
 	cleanupFuncs            []func(context.Context) tfdiags.Diagnostics
 }
 
