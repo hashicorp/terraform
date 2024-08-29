@@ -252,14 +252,32 @@ func handleProtoMsg(key statekeys.Key, msg protoreflect.ProtoMessage, state *Sta
 }
 
 func handleComponentInstanceMsg(key statekeys.ComponentInstance, msg protoreflect.ProtoMessage, state *State) error {
-	// For this particular object type all of the information is in the key,
-	// for now at least.
-	_, ok := msg.(*tfstackdata1.StateComponentInstanceV1)
+	component, ok := msg.(*tfstackdata1.StateComponentInstanceV1)
 	if !ok {
 		return fmt.Errorf("unsupported message type %T for %s state", msg, key.ComponentInstanceAddr)
 	}
 
-	state.ensureComponentInstanceState(key.ComponentInstanceAddr)
+	componentState := state.ensureComponentInstanceState(key.ComponentInstanceAddr)
+
+	for _, addr := range component.RequiredComponentAddrs {
+		stackaddr, diags := stackaddrs.ParseAbsComponentInstanceStr(addr)
+		if diags.HasErrors() {
+			return fmt.Errorf("invalid required component address %q for %s", addr, key.ComponentInstanceAddr)
+		}
+		componentState.requiredComponents.Add(stackaddrs.AbsComponent{
+			Stack: stackaddr.Stack,
+			Item:  stackaddr.Item.Component,
+		})
+	}
+
+	for name, value := range component.InputValues {
+		v, err := tfstackdata1.DynamicValueFromTFStackData1(value, cty.DynamicPseudoType)
+		if err != nil {
+			return fmt.Errorf("decoding input value %s: %w", name, err)
+		}
+		componentState.lastInputValues[addrs.InputVariable{Name: name}] = v
+	}
+
 	return nil
 }
 

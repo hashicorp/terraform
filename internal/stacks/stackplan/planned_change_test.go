@@ -818,7 +818,8 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				Addr:  stackaddrs.InputVariable{Name: "thingy_id"},
 				Value: cty.StringVal("boop").Mark(marks.Ephemeral),
 			},
-			WantErr: "unexpected marks found on path: Ephemeral", // Ephemeral values should never make it this far.
+			// Ephemeral values should never make it this far.
+			WantErr: "encoding value for var.thingy_id: can't serialize value marked with cty.NewValueMarks(marks.Ephemeral) (this is a bug in Terraform)",
 		},
 		"root input variable": {
 			Receiver: &PlannedChangeRootInputValue{

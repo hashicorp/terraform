@@ -4,6 +4,7 @@
 package stackstate
 
 import (
+	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -65,6 +66,28 @@ func (s *State) AllComponentInstances() collections.Set[stackaddrs.AbsComponentI
 		ret.Add(elem.K)
 	}
 	return ret
+}
+
+// RequiredComponentsForComponent returns the list of components that are
+// required by the given component instance, or an empty set if no such
+// component instance is tracked in the state.
+func (s *State) RequiredComponentsForComponent(addr stackaddrs.AbsComponentInstance) collections.Set[stackaddrs.AbsComponent] {
+	cs := s.componentInstanceState(addr)
+	if cs == nil {
+		return collections.NewSet[stackaddrs.AbsComponent]()
+	}
+	return cs.requiredComponents
+}
+
+// LastInputValuesForComponent returns the last input values that were set for
+// the given component instance, or nil if no such component instance is tracked
+// in the state.
+func (s *State) LastInputValuesForComponent(addr stackaddrs.AbsComponentInstance) map[addrs.InputVariable]cty.Value {
+	cs := s.componentInstanceState(addr)
+	if cs == nil {
+		return nil
+	}
+	return cs.lastInputValues
 }
 
 func (s *State) componentInstanceState(addr stackaddrs.AbsComponentInstance) *componentInstanceState {
@@ -202,6 +225,8 @@ func (s *State) ensureComponentInstanceState(addr stackaddrs.AbsComponentInstanc
 		return existing
 	}
 	s.componentInstances.Put(addr, &componentInstanceState{
+		requiredComponents:      collections.NewSet[stackaddrs.AbsComponent](),
+		lastInputValues:         make(map[addrs.InputVariable]cty.Value),
 		resourceInstanceObjects: addrs.MakeMap[addrs.AbsResourceInstanceObject, *resourceInstanceObjectState](),
 	})
 	return s.componentInstances.Get(addr)
@@ -217,6 +242,8 @@ func (s *State) addResourceInstanceObject(addr stackaddrs.AbsResourceInstanceObj
 }
 
 type componentInstanceState struct {
+	requiredComponents      collections.Set[stackaddrs.AbsComponent]
+	lastInputValues         map[addrs.InputVariable]cty.Value
 	resourceInstanceObjects addrs.Map[addrs.AbsResourceInstanceObject, *resourceInstanceObjectState]
 }
 

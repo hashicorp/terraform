@@ -295,6 +295,14 @@ message PlanDiscardStateMapKeys {
 // message of this type with a matching component instance address and with
 // all other fields unset.
 message StateComponentInstanceV1 {
+    // The component instance's required components, as absolute addresses.
+    repeated string required_component_addrs = 3;
+
+    // The component instance's input values as used in the most recent apply
+    // action. These are the values that were used to determine the desired
+    // state of the component instance.
+    map<string, DynamicValue> input_values = 2;
+
     // The component instance's output values as reported from the most recent
     // apply action. We retain this only so that we have some values to use
     // in cases where the values in the configuration are unavailable or

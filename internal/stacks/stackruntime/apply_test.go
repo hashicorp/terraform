@@ -189,6 +189,7 @@ func TestApplyWithRemovedResource(t *testing.T) {
 					},
 				},
 			},
+			InputValues:  make(map[addrs.InputVariable]cty.Value),
 			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
@@ -388,6 +389,7 @@ func TestApplyWithMovedResource(t *testing.T) {
 					},
 				},
 			},
+			InputValues:  make(map[addrs.InputVariable]cty.Value),
 			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
@@ -540,6 +542,11 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 					},
 				},
 			},
+			RequiredComponents: collections.NewSet(mustAbsComponent("component.sensitive")),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "id"}:    cty.StringVal("bb5cf32312ec"),
+				addrs.InputVariable{Name: "input"}: cty.StringVal("secret").Mark(marks.Sensitive),
+			},
 			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
@@ -592,6 +599,7 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 					},
 				},
 			},
+			InputValues: make(map[addrs.InputVariable]cty.Value),
 			OutputValues: map[addrs.OutputValue]cty.Value{
 				addrs.OutputValue{Name: "out"}: cty.StringVal("secret").Mark(marks.Sensitive),
 			},
@@ -725,6 +733,9 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 						Name: "single",
 					},
 				},
+			},
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "foo"}: cty.StringVal("bar"),
 			},
 			OutputValues: map[addrs.OutputValue]cty.Value{
 				addrs.OutputValue{Name: "foo"}: cty.StringVal("bar"),
@@ -884,7 +895,10 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.single"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.single"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "foo"}: cty.StringVal("bar"),
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.single.testing_resource.main"),
@@ -1000,6 +1014,9 @@ func TestApplyWithForcePlanTimestamp(t *testing.T) {
 					},
 				},
 			},
+			InputValues: map[addrs.InputVariable]cty.Value{
+				{Name: "value"}: cty.StringVal(forcedPlanTimestamp),
+			},
 			OutputValues: map[addrs.OutputValue]cty.Value{
 				// We want to make sure the plantimestamp is set correctly
 				{Name: "input"}: cty.StringVal(forcedPlanTimestamp),
@@ -1019,6 +1036,9 @@ func TestApplyWithForcePlanTimestamp(t *testing.T) {
 						Name: "self",
 					},
 				},
+			},
+			InputValues: map[addrs.InputVariable]cty.Value{
+				{Name: "value"}: cty.StringVal(forcedPlanTimestamp),
 			},
 			OutputValues: map[addrs.OutputValue]cty.Value{
 				// We want to make sure the plantimestamp is set correctly
@@ -1243,7 +1263,13 @@ func TestApplyWithFailedComponent(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.parent"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.parent"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "input"}:      cty.StringVal("Hello, world!"),
+				addrs.InputVariable{Name: "id"}:         cty.NullVal(cty.String),
+				addrs.InputVariable{Name: "fail_plan"}:  cty.NullVal(cty.Bool),
+				addrs.InputVariable{Name: "fail_apply"}: cty.True,
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_failed_resource.data"),
@@ -1252,6 +1278,8 @@ func TestApplyWithFailedComponent(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+			RequiredComponents:    collections.NewSet(mustAbsComponent("component.parent")),
+			InputValues:           make(map[addrs.InputVariable]cty.Value),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
 		},
 	}
@@ -1353,7 +1381,13 @@ func TestApplyWithFailedProviderLinkedComponent(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.parent"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.parent"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "input"}:      cty.NullVal(cty.String),
+				addrs.InputVariable{Name: "id"}:         cty.NullVal(cty.String),
+				addrs.InputVariable{Name: "fail_plan"}:  cty.NullVal(cty.Bool),
+				addrs.InputVariable{Name: "fail_apply"}: cty.True,
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_failed_resource.data"),
@@ -1362,7 +1396,12 @@ func TestApplyWithFailedProviderLinkedComponent(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			RequiredComponents:    collections.NewSet(mustAbsComponent("component.parent")),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "input"}: cty.StringVal("Hello, world!"),
+				addrs.InputVariable{Name: "id"}:    cty.NullVal(cty.String),
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 	}
 
@@ -1422,6 +1461,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				&stackstate.AppliedChangeComponentInstance{
 					ComponentAddr:         mustAbsComponent("component.self"),
 					ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+					InputValues:           make(map[addrs.InputVariable]cty.Value),
 					OutputValues:          make(map[addrs.OutputValue]cty.Value),
 				},
 				&stackstate.AppliedChangeResourceInstanceObject{
@@ -1471,6 +1511,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				&stackstate.AppliedChangeComponentInstance{
 					ComponentAddr:         mustAbsComponent("component.self"),
 					ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+					InputValues:           make(map[addrs.InputVariable]cty.Value),
 					OutputValues:          make(map[addrs.OutputValue]cty.Value),
 				},
 				&stackstate.AppliedChangeResourceInstanceObject{
@@ -1529,7 +1570,10 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				&stackstate.AppliedChangeComponentInstance{
 					ComponentAddr:         mustAbsComponent("component.self"),
 					ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+					InputValues: map[addrs.InputVariable]cty.Value{
+						addrs.InputVariable{Name: "id"}: cty.StringVal("imported"),
+					},
+					OutputValues: make(map[addrs.OutputValue]cty.Value),
 				},
 				&stackstate.AppliedChangeResourceInstanceObject{
 					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
@@ -1569,7 +1613,10 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				&stackstate.AppliedChangeComponentInstance{
 					ComponentAddr:         mustAbsComponent("component.self"),
 					ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+					InputValues: map[addrs.InputVariable]cty.Value{
+						addrs.InputVariable{Name: "id"}: cty.StringVal("imported"),
+					},
+					OutputValues: make(map[addrs.OutputValue]cty.Value),
 				},
 				&stackstate.AppliedChangeResourceInstanceObject{
 					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_failed_resource.resource"),
@@ -1634,6 +1681,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				&stackstate.AppliedChangeComponentInstance{
 					ComponentAddr:         mustAbsComponent("component.self"),
 					ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+					InputValues:           make(map[addrs.InputVariable]cty.Value),
 					OutputValues:          make(map[addrs.OutputValue]cty.Value),
 				},
 				&stackstate.AppliedChangeResourceInstanceObject{
@@ -1677,6 +1725,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				&stackstate.AppliedChangeComponentInstance{
 					ComponentAddr:         mustAbsComponent("component.self"),
 					ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+					InputValues:           make(map[addrs.InputVariable]cty.Value),
 					OutputValues:          make(map[addrs.OutputValue]cty.Value),
 				},
 				&stackstate.AppliedChangeResourceInstanceObject{
@@ -1716,11 +1765,13 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				&stackstate.AppliedChangeComponentInstance{
 					ComponentAddr:         mustAbsComponent("component.deferred"),
 					ComponentInstanceAddr: mustAbsComponentInstance("component.deferred"),
+					InputValues:           make(map[addrs.InputVariable]cty.Value),
 					OutputValues:          make(map[addrs.OutputValue]cty.Value),
 				},
 				&stackstate.AppliedChangeComponentInstance{
 					ComponentAddr:         mustAbsComponent("component.ok"),
 					ComponentInstanceAddr: mustAbsComponentInstance("component.ok"),
+					InputValues:           make(map[addrs.InputVariable]cty.Value),
 					OutputValues:          make(map[addrs.OutputValue]cty.Value),
 				},
 				&stackstate.AppliedChangeResourceInstanceObject{
@@ -1988,6 +2039,7 @@ func TestApplyWithChangedInputValues(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+			InputValues:           make(map[addrs.InputVariable]cty.Value),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
 		},
 		// no resources should have been created because the input variable was
@@ -2119,7 +2171,11 @@ func TestApplyAutomaticInputConversion(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self[\"hello\"]"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "input"}: cty.StringVal("hello"),
+				addrs.InputVariable{Name: "id"}:    cty.StringVal("hello"),
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"hello\"].testing_resource.data"),
@@ -2137,7 +2193,11 @@ func TestApplyAutomaticInputConversion(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self[\"world\"]"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "input"}: cty.StringVal("world"),
+				addrs.InputVariable{Name: "id"}:    cty.StringVal("world"),
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"world\"].testing_resource.data"),
@@ -2270,7 +2330,11 @@ func TestApplyEphemeralInput(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "id"}:    cty.StringVal("2f9f3b84"),
+				addrs.InputVariable{Name: "input"}: cty.StringVal("hello"),
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
@@ -2413,7 +2477,11 @@ func TestApplyMissingEphemeralInput(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "id"}:    cty.StringVal("2f9f3b84"),
+				addrs.InputVariable{Name: "input"}: cty.StringVal("hello"),
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
@@ -2539,7 +2607,11 @@ func TestApplyEphemeralInputWithDefault(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "id"}:    cty.StringVal("2f9f3b84"),
+				addrs.InputVariable{Name: "input"}: cty.StringVal("hello"),
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
@@ -2854,6 +2926,10 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "id"}:    cty.StringVal("2f9f3b84"),
+				addrs.InputVariable{Name: "input"}: cty.StringVal("hello, world!"),
+			},
 			OutputValues: map[addrs.OutputValue]cty.Value{
 				{Name: "value"}: cty.StringVal("hello, world!"),
 			},
@@ -2997,7 +3073,14 @@ func TestApplyFailedDependencyWithResourceInState(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "fail_apply"}:  cty.True,
+				addrs.InputVariable{Name: "fail_plan"}:   cty.False,
+				addrs.InputVariable{Name: "failed_id"}:   cty.StringVal("failed"),
+				addrs.InputVariable{Name: "resource_id"}: cty.StringVal("resource"),
+				addrs.InputVariable{Name: "input"}:       cty.NullVal(cty.String),
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			// This has no state as the apply operation failed and it wasn't
@@ -3152,7 +3235,11 @@ func TestApplyManuallyRemovedResource(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "id"}:    cty.StringVal("foo"),
+				addrs.InputVariable{Name: "input"}: cty.StringVal("hello"),
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		// The resource in our configuration has been updated, so that is
 		// present as normal.

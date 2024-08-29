@@ -215,6 +215,19 @@ type AppliedChangeComponentInstance struct {
 	ComponentAddr         stackaddrs.AbsComponent
 	ComponentInstanceAddr stackaddrs.AbsComponentInstance
 
+	// RequiredComponents "remembers" the set of component instances that
+	// were required by the most recent apply of this component instance.
+	//
+	// This will be used by the stacks runtime to determine the order in
+	// which components should be destroyed when the original component block
+	// is no longer available.
+	RequiredComponents collections.Set[stackaddrs.AbsComponent]
+
+	// InputValues "remembers" the input values from the most recent apply
+	// of the component instance. We store this primarily to aid with destroying
+	// components where the original configuration is no longer available.
+	InputValues map[addrs.InputVariable]cty.Value
+
 	// OutputValues "remembers" the output values from the most recent
 	// apply of the component instance. We store this primarily for external
 	// consumption, since the stacks runtime is able to recalculate the
@@ -239,7 +252,12 @@ func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*stacks.AppliedC
 		ComponentInstanceAddr: ac.ComponentInstanceAddr,
 	}
 
-	rawMsg, err := tfstackdata1.ComponentInstanceResultsToTFStackData1(ac.OutputValues)
+	var requiredComponents []stackaddrs.AbsComponent
+	for _, addr := range ac.RequiredComponents.Elems() {
+		requiredComponents = append(requiredComponents, addr)
+	}
+
+	rawMsg, err := tfstackdata1.ComponentInstanceResultsToTFStackData1(requiredComponents, ac.InputValues, ac.OutputValues)
 	if err != nil {
 		return nil, fmt.Errorf("encoding raw state for %s: %w", ac.ComponentInstanceAddr, err)
 	}

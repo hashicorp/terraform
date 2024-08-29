@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -55,18 +56,29 @@ func ResourceInstanceObjectStateToTFStackData1(objSrc *states.ResourceInstanceOb
 	return rawMsg
 }
 
-func ComponentInstanceResultsToTFStackData1(outputValues map[addrs.OutputValue]cty.Value) (*StateComponentInstanceV1, error) {
-	protoOutputs := make(map[string]*DynamicValue, len(outputValues))
+func ComponentInstanceResultsToTFStackData1(requiredComponents []stackaddrs.AbsComponent, inputValues map[addrs.InputVariable]cty.Value, outputValues map[addrs.OutputValue]cty.Value) (*StateComponentInstanceV1, error) {
+	output := StateComponentInstanceV1{
+		InputValues:  make(map[string]*DynamicValue, len(inputValues)),
+		OutputValues: make(map[string]*DynamicValue, len(outputValues)),
+	}
+	for _, addr := range requiredComponents {
+		output.RequiredComponentAddrs = append(output.RequiredComponentAddrs, addr.String())
+	}
+	for addr, val := range inputValues {
+		protoVal, err := DynamicValueToTFStackData1(val, cty.DynamicPseudoType)
+		if err != nil {
+			return nil, fmt.Errorf("encoding %s: %w", addr, err)
+		}
+		output.InputValues[addr.Name] = protoVal
+	}
 	for addr, val := range outputValues {
 		protoVal, err := DynamicValueToTFStackData1(val, cty.DynamicPseudoType)
 		if err != nil {
 			return nil, fmt.Errorf("encoding %s: %w", addr, err)
 		}
-		protoOutputs[addr.Name] = protoVal
+		output.OutputValues[addr.Name] = protoVal
 	}
-	return &StateComponentInstanceV1{
-		OutputValues: protoOutputs,
-	}, nil
+	return &output, nil
 }
 
 func DynamicValueToTFStackData1(val cty.Value, ty cty.Type) (*DynamicValue, error) {

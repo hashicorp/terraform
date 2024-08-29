@@ -1609,8 +1609,14 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 	// the plan, so that the effect of refreshing will still get committed
 	// to the state even if other downstream changes don't succeed.
 
-	_, moreDiags := c.CheckInputVariableValues(ctx, ApplyPhase)
+	inputValuesObj, moreDiags := c.CheckInputVariableValues(ctx, ApplyPhase)
 	diags = diags.Append(moreDiags)
+	inputValues := make(map[addrs.InputVariable]cty.Value)
+	if inputValuesObj != cty.NilVal {
+		for name := range inputValuesObj.Type().AttributeTypes() {
+			inputValues[addrs.InputVariable{Name: name}] = inputValuesObj.GetAttr(name)
+		}
+	}
 
 	_, _, moreDiags = c.CheckProviders(ctx, ApplyPhase)
 	diags = diags.Append(moreDiags)
@@ -1624,6 +1630,8 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 		ourChange := &stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         c.call.Addr(),
 			ComponentInstanceAddr: c.Addr(),
+			RequiredComponents:    c.call.RequiredComponents(ctx),
+			InputValues:           inputValues,
 			OutputValues:          make(map[addrs.OutputValue]cty.Value, len(newState.RootOutputValues)),
 		}
 		for name, os := range newState.RootOutputValues {

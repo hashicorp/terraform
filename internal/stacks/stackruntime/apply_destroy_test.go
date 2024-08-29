@@ -142,7 +142,11 @@ func TestApplyDestroyMissingResource(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "input"}: cty.StringVal("hello"),
+				addrs.InputVariable{Name: "id"}:    cty.NullVal(cty.String),
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		// The resource that was in state but not in the data store should still
 		// be included to be destroyed.
@@ -285,7 +289,11 @@ func TestApplyDestroyWithDataSourceInState(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "id"}:       cty.StringVal("foo"),
+				addrs.InputVariable{Name: "resource"}: cty.StringVal("bar"),
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 
 		// This is a bit of a quirk of the system, this wasn't in the state
@@ -442,7 +450,11 @@ func TestApplyDestroyWithDataSource(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "id"}:       cty.StringVal("foo"),
+				addrs.InputVariable{Name: "resource"}: cty.StringVal("bar"),
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.data.testing_data_source.data"),
@@ -595,7 +607,11 @@ func TestApplyDestroyWithDataSource(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
-			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputValues: map[addrs.InputVariable]cty.Value{
+				addrs.InputVariable{Name: "id"}:       cty.StringVal("foo"),
+				addrs.InputVariable{Name: "resource"}: cty.StringVal("bar"),
+			},
+			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.data.testing_data_source.data"),
