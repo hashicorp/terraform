@@ -207,6 +207,103 @@ func TestTo(t *testing.T) {
 	}
 }
 
+func TestEphemeral(t *testing.T) {
+	tests := []struct {
+		Input cty.Value
+		Want  cty.Value
+	}{
+		{
+			cty.StringVal("eph"),
+			cty.StringVal("eph").Mark(marks.Ephemeral),
+		},
+		{
+			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String).Mark(marks.Ephemeral),
+		},
+		{
+			cty.StringVal("eph").Mark(marks.Sensitive),
+			cty.StringVal("eph").Mark(marks.Sensitive).Mark(marks.Ephemeral),
+		},
+		{
+			cty.StringVal("eph").Mark(marks.Ephemeral),
+			cty.StringVal("eph").Mark(marks.Ephemeral),
+		},
+		{
+			cty.NullVal(cty.String),
+			cty.NullVal(cty.String).Mark(marks.Ephemeral),
+		},
+
+		// Nested ephemeral values
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("eph"),
+				cty.StringVal("hello"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("eph").Mark(marks.Ephemeral),
+				cty.StringVal("hello").Mark(marks.Ephemeral),
+			}).Mark(marks.Ephemeral),
+		},
+		{
+			cty.TupleVal([]cty.Value{
+				cty.True,
+				cty.StringVal("eph"),
+				cty.StringVal("hello"),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.True.Mark(marks.Ephemeral),
+				cty.StringVal("eph").Mark(marks.Ephemeral),
+				cty.StringVal("hello").Mark(marks.Ephemeral),
+			}).Mark(marks.Ephemeral),
+		},
+		{
+			cty.SetVal([]cty.Value{
+				cty.StringVal("eph"),
+				cty.StringVal("hello"),
+			}),
+			cty.SetVal([]cty.Value{
+				cty.StringVal("eph"),
+				cty.StringVal("hello"),
+			}).Mark(marks.Ephemeral),
+		},
+		{
+			cty.MapVal(map[string]cty.Value{
+				"addr":  cty.StringVal("eph"),
+				"greet": cty.StringVal("hello"),
+			}),
+			cty.MapVal(map[string]cty.Value{
+				"addr":  cty.StringVal("eph").Mark(marks.Ephemeral),
+				"greet": cty.StringVal("hello").Mark(marks.Ephemeral),
+			}).Mark(marks.Ephemeral),
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"addr":  cty.StringVal("eph"),
+				"greet": cty.StringVal("hello"),
+				"happy": cty.True,
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"addr":  cty.StringVal("eph").Mark(marks.Ephemeral),
+				"greet": cty.StringVal("hello").Mark(marks.Ephemeral),
+				"happy": cty.True.Mark(marks.Ephemeral),
+			}).Mark(marks.Ephemeral),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Input.GoString(), func(t *testing.T) {
+			got, err := Ephemeral(test.Input)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if diff := cmp.Diff(test.Want, got, ctydebug.CmpOptions); diff != "" {
+				t.Errorf("wrong result\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestEphemeralAsNull(t *testing.T) {
 	tests := []struct {
 		Input cty.Value

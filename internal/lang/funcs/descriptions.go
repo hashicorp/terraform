@@ -162,6 +162,10 @@ var DescriptionList = map[string]descriptionEntry{
 		Description:      "`endswith` takes two values: a string to check and a suffix string. The function returns true if the first string ends with that exact suffix.",
 		ParamDescription: []string{"", ""},
 	},
+	"ephemeral": {
+		Description:      "`ephemeral` takes a value of any type and marks it as ephemeral.",
+		ParamDescription: []string{""},
+	},
 	"ephemeralasnull": {
 		Description:      "`ephemeralasnull` takes a value of any type and returns a similar value of the same type with any ephemeral values replaced with non-ephemeral null values and all non-ephemeral values preserved.",
 		ParamDescription: []string{""},

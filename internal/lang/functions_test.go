@@ -363,6 +363,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"ephemeral": {
+			{
+				`ephemeral("ephemeral")`,
+				cty.StringVal("ephemeral").Mark(marks.Ephemeral),
+			},
+		},
+
 		"ephemeralasnull": {
 			{
 				`ephemeralasnull(local.ephemeral)`,

@@ -99,6 +99,39 @@ func MakeToFunc(wantTy cty.Type) function.Function {
 	})
 }
 
+// EphemeralFunc is a cty function that takes a value of any type and
+// returns the same value marked as ephemeral.
+var EphemeralFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name:             "value",
+			Type:             cty.DynamicPseudoType,
+			AllowDynamicType: true,
+			AllowUnknown:     true,
+			AllowNull:        true,
+			AllowMarked:      true,
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		// This function always preserves the type of the given argument.
+		return args[0].Type(), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		return cty.Transform(args[0], func(p cty.Path, v cty.Value) (cty.Value, error) {
+			if marks.Has(v, marks.Ephemeral) {
+				// value is already ephemeral
+				return v, nil
+			}
+
+			return v.Mark(marks.Ephemeral), nil
+		})
+	},
+})
+
+func Ephemeral(input cty.Value) (cty.Value, error) {
+	return EphemeralFunc.Call([]cty.Value{input})
+}
+
 // EphemeralAsNullFunc is a cty function that takes a value of any type and
 // returns a similar value with any ephemeral-marked values anywhere in the
 // structure replaced with a null value of the same type that is not marked
