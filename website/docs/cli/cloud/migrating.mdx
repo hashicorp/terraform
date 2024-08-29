@@ -1,10 +1,10 @@
 ---
-page_title: Initializing and Migrating to HCP Terraform - Terraform CLI
+page_title: Initialize and migrate to HCP Terraform - Terraform CLI
 description: >-
   Learn how to use the Terraform CLI to migrate local or remote state to HCP Terraform.
 ---
 
-# Initializing and Migrating
+# Initialize and migrate to HCP Terraform
 
 After [configuring HCP Terraform settings](/terraform/cli/cloud/settings) for a working directory, you must run `terraform init` to finish setting up. If the working directory has no existing Terraform state, you can start using Terraform with HCP Terraform right away. Refer to [CLI-driven run workflow](/terraform/cloud-docs/run/cli) for more details.
 
@@ -14,7 +14,7 @@ When you run `terraform init` in the following scenarios, Terraform will ask you
 
 1. [**Migrating from the `remote` backend:**](#migrating-from-the-remote-backend) If the working directory was already connected to HCP Terraform with the `remote` backend, Terraform can continue using the same HCP Terraform workspaces. You will need to switch the `remote` backend block to the `cloud` block.
 
-## Migrating from Local State or State Backends
+## Migrating from local state or state backends
 
 > **Hands On:** Try the [Migrate State to HCP Terraform](/terraform/tutorials/cloud/cloud-migrate) tutorial.
 
@@ -35,19 +35,19 @@ according to a pattern relative to their existing names. This can indicate the f
 `networking-staging-us-east`). Refer to [Workspace
 Naming](/terraform/cloud-docs/workspaces/naming) in the HCP Terraform documentation for more detail.
 
-## Migrating from the `remote` Backend
+## Migrating from the `remote` backend
 
 If the working directory was already connected to HCP Terraform with the `remote` backend, Terraform can continue using the same HCP Terraform workspaces. The local names shown for those workspaces will change to match their remote names.
 
 The [`remote` backend](/terraform/language/settings/backends/remote) was the primary implementation of HCP Terraform's [CLI-driven run workflow](/terraform/cloud-docs/run/cli) for Terraform versions 0.11.13 through 1.0.x. We recommend using the native `cloud` integration for Terraform versions 1.1 or later, as it provides an improved user experience and various enhancements.
 
-### Block Replacement
+### Block replacement
 
 When switching from the `remote` backend to a `cloud` block, Terraform will continue using the same
 set of HCP Terraform workspaces. Replace your `backend "remote"` block with an equivalent `cloud`
 block.
 
-#### Single Workspace
+#### Single workspace
 
 If you were using a single workspace with the `name` argument, change the block
 label to `cloud`.
@@ -65,7 +65,7 @@ terraform {
  }
 ```
 
-#### Multiple Workspaces
+#### Multiple workspaces
 
 If you were using multiple workspaces with the `prefix` argument, replace it with a `cloud` block that uses the `tags` argument. You may specify any number of tags to distinguish the workspaces for your working directory, but a good starting point may be to use whatever the prefix was before.
 
@@ -85,4 +85,8 @@ terraform {
  }
 ```
 
-~> **Warning**: Because the `cloud` block does not support the `prefix` argument, once you migrate, you must refer to workspaces by their full name when using the Terraform CLI. For example, rather than `terraform workspace select prod`, you must run the command `terraform workspace select my-app-prod`.
+<Warning>
+  
+Because the `cloud` block does not support the `prefix` argument, once you migrate, you must refer to workspaces by their full name when using the Terraform CLI. For example, rather than `terraform workspace select prod`, you must run the command `terraform workspace select my-app-prod`.
+
+</Warning>

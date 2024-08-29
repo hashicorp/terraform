@@ -22,8 +22,8 @@ Usage: `terraform destroy [options]`
 
 This command is just a convenience alias for the following command:
 
-```
-terraform apply -destroy
+```shell-session
+$ terraform apply -destroy
 ```
 
 For that reason, this command accepts most of the options that
@@ -34,16 +34,20 @@ planning mode.
 You can also create a speculative destroy plan, to see what the effect of
 destroying would be, by running the following command:
 
-```
-terraform plan -destroy
+```shell-session
+$ terraform plan -destroy
 ```
 
 This will run [`terraform plan`](/terraform/cli/commands/plan) in _destroy_ mode, showing
 you the proposed destroy changes without executing them.
 
--> **Note:** The `-destroy` option to `terraform apply` exists only in
+<Note> 
+  
+The `-destroy` option to `terraform apply` exists only in
 Terraform v0.15.2 and later. For earlier versions, you _must_ use
 `terraform destroy` to get the effect of `terraform apply -destroy`.
+
+</Note>
 
 ### Target a specific resource
 

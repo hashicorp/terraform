@@ -27,13 +27,17 @@ it is the zone ID (`Z12ABC4UGMOZ2N`). Please reference the provider documentatio
 on the ID format. If you're unsure, feel free to just try an ID. If the ID
 is invalid, you'll just receive an error message.
 
-~> Warning: Terraform expects that each remote object it is managing will be
+<Warning>
+  
+Terraform expects that each remote object it is managing will be
 bound to only one resource address, which is normally guaranteed by Terraform
 itself having created all objects. If you import existing objects into Terraform,
 be careful to import each remote object to only one Terraform resource address.
 If you import the same object multiple times, Terraform may exhibit unwanted
 behavior. For more information on this assumption, see
 [the State section](/terraform/language/state).
+
+</Warning>
 
 Instead of manually importing resources, you can add the `import` block to your Terraform configurations so that Terraform imports resources when you run the `terraform apply` command. Using Terraform configurations  lets you automate resource imports as part of your CI/CD pipelines. Refer to the [`import` block reference documentation](/terraform/language/import) for additional information.
 
@@ -86,7 +90,7 @@ For configurations using
 `terraform import` also accepts the legacy options
 [`-state`, `-state-out`, and `-backup`](/terraform/language/settings/backends/local#command-line-arguments).
 
-## Provider Configuration
+## Provider configuration
 
 Terraform will attempt to load configuration files that configure the
 provider being used for import. If no configuration files are present or
@@ -113,50 +117,50 @@ provider "aws" {
 }
 ```
 
-## Example: Import into Resource
+## Example: Import into resource
 
 This example will import an AWS instance into the `aws_instance` resource named `foo`:
 
-```shell
+```shell-session
 $ terraform import aws_instance.foo i-abcd1234
 ```
 
-## Example: Import into Module
+## Example: Import into module
 
 The example below will import an AWS instance into the `aws_instance` resource named `bar` into a module named `foo`:
 
-```shell
+```shell-session
 $ terraform import module.foo.aws_instance.bar i-abcd1234
 ```
 
-## Example: Import into Resource configured with count
+## Example: Import into resource configured with count
 
 The example below will import an AWS instance into the first instance of the `aws_instance` resource named `baz` configured with
 [`count`](/terraform/language/meta-arguments/count):
 
-```shell
+```shell-session
 $ terraform import 'aws_instance.baz[0]' i-abcd1234
 ```
 
-## Example: Import into Resource configured with for_each
+## Example: Import into resource configured with for_each
 
 The example below will import an AWS instance into the `"example"` instance of the `aws_instance` resource named `baz` configured with
 [`for_each`](/terraform/language/meta-arguments/for_each):
 
 Linux, Mac OS, and UNIX:
 
-```shell
+```shell-session
 $ terraform import 'aws_instance.baz["example"]' i-abcd1234
 ```
 
 PowerShell:
 
-```shell
+```shell-session
 $ terraform import 'aws_instance.baz[\"example\"]' i-abcd1234
 ```
 
 Windows `cmd.exe`:
 
-```shell
+```shell-session
 $ terraform import aws_instance.baz[\"example\"] i-abcd1234
 ```

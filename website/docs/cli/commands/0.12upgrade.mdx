@@ -11,7 +11,11 @@ The `terraform 0.12upgrade` command applies several automatic upgrade rules to
 help prepare a module that was written for Terraform v0.11 to be used
 with Terraform v0.12.
 
--> **This command is available only in Terraform v0.12 releases.** For more information, see [the Terraform v0.12 upgrade guide](/terraform/language/v1.1.x/upgrade-guides/0-12).
+<Note>
+
+**This command is available only in Terraform v0.12 releases.** For more information, see [the Terraform v0.12 upgrade guide](/terraform/language/v1.1.x/upgrade-guides/0-12).
+
+</Note>
 
 ## Usage
 
@@ -25,7 +29,7 @@ the same repository.
 When run with no other options, the command will first explain what it is
 going to do and prompt for confirmation:
 
-```
+```shell-session
 $ terraform 0.12upgrade
 
 This command will rewrite the configuration files in the given directory so
@@ -89,7 +93,7 @@ The command-line options are all optional. The available options are:
   this command are not idempotent, so re-running against the same module may
   change the meanings of some expressions in the module.
 
-## Batch Usage
+## Batch usage
 
 After you've experimented with the `0.12upgrade` command in some confined
 situations, if you have a repository containing multiple modules you may
@@ -97,14 +101,14 @@ wish to batch-upgrade them all and review them together. Recursive upgrades
 are not supported by the tool itself, but if you are on a Unix-style system
 you can achieve this using the `find` command as follows:
 
-```
-find . -name '*.tf' -printf "%h\n" | uniq | xargs -n1 terraform 0.12upgrade -yes
+```shell-session
+$ find . -name '*.tf' -printf "%h\n" | uniq | xargs -n1 terraform 0.12upgrade -yes
 ```
 
 On Mac OS X, the `find` included with the system does not support the `-printf` argument. You can install GNU find using Homebrew in order to use that argument:
 
-```
-brew install findutils
+```shell-session
+$ brew install findutils
 ```
 
 Once installed, run the above command line using `gfind` instead of `find`.

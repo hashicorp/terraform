@@ -44,13 +44,17 @@ object and create a new object at the new address, and so `terraform state mv`
 allows you to override that interpretation by pre-emptively attaching the
 existing object to the new address in Terraform.
 
-~> _Warning:_ If you are using Terraform in a collaborative environment, you
+<Warning>
+  
+If you are using Terraform in a collaborative environment, you
 must ensure that when you are using `terraform state mv` for a code refactoring
 purpose you communicate carefully with your coworkers to ensure that nobody
 makes any other changes between your configuration change and your
 `terraform state mv` command, because otherwise they might inadvertently create
 a plan that will destroy the old object and create a new object at the new
 address.
+
+</Warning>
 
 This command also accepts the following options:
 
@@ -83,7 +87,7 @@ For configurations using
 `terraform state mv` also accepts the legacy options
 [`-state`, `-state-out`, `-backup`, and `-backup-out`](/terraform/language/settings/backends/local#command-line-arguments).
 
-## Example: Rename a Resource
+## Example: Rename a resource
 
 Renaming a resource means making a configuration change like the following:
 
@@ -98,47 +102,47 @@ To tell Terraform that it should treat the new "helper" resource as a rename
 of the old "worker" resource, you can pair the above configuration change
 with the following command:
 
-```shell
-terraform state mv packet_device.worker packet_device.helper
+```shell-session
+$ terraform state mv packet_device.worker packet_device.helper
 ```
 
-## Example: Move a Resource Into a Module
+## Example: Move a resource into a module
 
 If you originally wrote a resource in your root module but now wish to refactor
 it into a child module, you can move the `resource` block into the child
 module configuration, removing the original in the root module, and then
 run the following command to tell Terraform to treat it as a move:
 
-```shell
-terraform state mv packet_device.worker module.worker.packet_device.worker
+```shell-session
+$ terraform state mv packet_device.worker module.worker.packet_device.worker
 ```
 
 In the above example the new resource has the same name but a different module
 address. You could also change the resource name at the same time, if the new
 module organization suggests a different naming scheme:
 
-```shell
-terraform state mv packet_device.worker module.worker.packet_device.main
+```shell-session
+$ terraform state mv packet_device.worker module.worker.packet_device.main
 ```
 
-## Example: Move a Module Into a Module
+## Example: Move a module into a module
 
 You can also refactor an entire module into a child module. In the
 configuration, move the `module` block representing the module into a different
 module and then pair that change with a command like the following:
 
-```shell
-terraform state mv module.app module.parent.module.app
+```shell-session
+$ terraform state mv module.app module.parent.module.app
 ```
 
-## Example: Move a Particular Instance of a Resource using `count`
+## Example: Move a particular instance of a resource using `count`
 
 A resource defined with [the `count` meta-argument](/terraform/language/meta-arguments/count)
 has multiple instances that are each identified by an integer. You can
 select a particular instance by including an explicit index in your given
 address:
 
-```shell
+```shell-session
 $ terraform state mv 'packet_device.worker[0]' 'packet_device.helper[0]'
 ```
 
@@ -148,7 +152,7 @@ move from an address not containing an index to an address containing an index,
 or the opposite, as long as the address type you use matches whether and how
 each resource is configured:
 
-```shell
+```shell-session
 $ terraform state mv 'packet_device.main' 'packet_device.all[0]'
 ```
 
@@ -156,7 +160,7 @@ Brackets (`[`, `]`) have a special meaning in some shells, so you may need to
 quote or escape the address in order to pass it literally to Terraform.
 The above examples show the typical quoting syntax for Unix-style shells.
 
-## Example: Move a Resource configured with for_each
+## Example: Move a resource configured with for_each
 
 A resource defined with [the `for_each` meta-argument](/terraform/language/meta-arguments/for_each)
 has multiple instances that are each identified by an string. You can
@@ -169,20 +173,20 @@ quoting and/or escaping syntax for the shell you are using. For example:
 
 Unix-style shells, such as on Linux or macOS:
 
-```shell
-terraform state mv 'packet_device.worker["example123"]' 'packet_device.helper["example456"]'
+```shell-session
+$ terraform state mv 'packet_device.worker["example123"]' 'packet_device.helper["example456"]'
 ```
 
 Windows Command Prompt (`cmd.exe`):
 
-```shell
-terraform state mv packet_device.worker[\"example123\"] packet_device.helper[\"example456\"]
+```shell-session
+$ terraform state mv packet_device.worker[\"example123\"] packet_device.helper[\"example456\"]
 ```
 
 PowerShell:
 
-```shell
-terraform state mv 'packet_device.worker[\"example123\"]' 'packet_device.helper[\"example456\"]'
+```shell-session
+$ terraform state mv 'packet_device.worker[\"example123\"]' 'packet_device.helper[\"example456\"]'
 ```
 
 Aside from the use of strings instead of integers for instance keys, the

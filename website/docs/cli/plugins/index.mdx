@@ -1,19 +1,23 @@
 ---
-page_title: Managing Plugins - Terraform CLI
+page_title: Managing providers - Terraform CLI
 description: >-
   Commands to install, configure, and show information about providers. Also
   commands to reduce install effort in air-gapped environments.
 ---
 
-# Managing Plugins
+# Manage providers
 
 Terraform relies on plugins called providers to manage various types
 of resources. For more information about providers, refer to
 [Providers](/terraform/language/providers) in the Terraform
 language docs.
 
--> **Note:** Providers are the only plugin type most Terraform users interact with. Terraform also supports third-party provisioner plugins, but
+<Note>
+
+Providers are the only plugin type most Terraform users interact with. Terraform also supports third-party provisioner plugins, but
 we discourage their use.
+
+</Note>
 
 Terraform installs any providers
 [required](/terraform/language/providers/requirements) by a configuration
@@ -27,13 +31,13 @@ networked source. Terraform also includes some commands to show information
 about providers and to reduce the effort of installing providers in air-gapped
 environments.
 
-## Configuring Plugin Installation
+## Configure plugin installation
 
 Terraform's configuration file includes options for caching downloaded plugins,
 or explicitly specifying a local or HTTPS mirror to install plugins from. For
 more information, see [CLI Config File](/terraform/cli/config/config-file).
 
-## Getting Plugin Information
+## Get plugin information
 
 Use the [`terraform providers`](/terraform/cli/commands/providers) command to get information
 about the providers required by the current working directory's configuration.
@@ -46,7 +50,7 @@ Use the [`terraform providers schema`](/terraform/cli/commands/providers/schema)
 get machine-readable information about the resources and configuration options
 offered by each provider.
 
-## Managing Plugin Installation
+## Manage plugin installation
 
 Use the [`terraform providers mirror`](/terraform/cli/commands/providers/mirror) command to
 download local copies of every provider required by the current working

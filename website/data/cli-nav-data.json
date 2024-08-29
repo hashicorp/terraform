@@ -1,9 +1,21 @@
 [
   { "heading": "Terraform CLI" },
   { "title": "Overview", "path": "" },
-  { "title": "Basic CLI Features", "href": "/cli/commands" },
+  { "title": "Basic CLI features", "href": "/cli/commands" },
   {
-    "title": "Initializing Working Directories",
+    "title": "Configure CLI",
+    "routes": [
+      { "title": "Overview", "path": "config" },
+      { "title": "CLI configuration", "path": "config/config-file" },
+      {
+        "title": "Environment variables",
+        "path": "config/environment-variables"
+      }
+    ]
+  },
+  { "heading": "Fundamentals" },
+  {
+    "title": "Initialize working directories",
     "routes": [
       { "title": "Overview", "path": "init" },
       { "title": "<code>init</code>", "href": "/cli/commands/init" },
@@ -11,7 +23,7 @@
     ]
   },
   {
-    "title": "Provisioning Infrastructure",
+    "title": "Provision infrastructure",
     "routes": [
       { "title": "Overview", "path": "run" },
       { "title": "<code>plan</code>", "href": "/cli/commands/plan" },
@@ -20,15 +32,7 @@
     ]
   },
   {
-    "title": "Authenticating",
-    "routes": [
-      { "title": "Overview", "path": "auth" },
-      { "title": "<code>login</code>", "href": "/cli/commands/login" },
-      { "title": "<code>logout</code>", "href": "/cli/commands/logout" }
-    ]
-  },
-  {
-    "title": "Writing and Modifying Code",
+    "title": "Write and modify configuration",
     "routes": [
       { "title": "Overview", "path": "code" },
       { "title": "<code>console</code>", "href": "/cli/commands/console" },
@@ -44,8 +48,34 @@
       }
     ]
   },
+
+  { "heading": "HCP Terraform" },
   {
-    "title": "Inspecting Infrastructure",
+    "title": "Use HCP Terraform",
+    "routes": [
+      { "title": "Overview", "path": "cloud" },
+      { "title": "HCP Terraform Settings", "path": "cloud/settings" },
+      {
+        "title": "Initialize and migrate",
+        "path": "cloud/migrating"
+      },
+      {
+        "title": "Command line arguments",
+        "path": "cloud/command-line-arguments"
+      }
+    ]
+  },
+  {
+    "title": "Authenticate to HCP Terraform",
+    "routes": [
+      { "title": "Overview", "path": "auth" },
+      { "title": "<code>login</code>", "href": "/cli/commands/login" },
+      { "title": "<code>logout</code>", "href": "/cli/commands/logout" }
+    ]
+  },
+  { "heading": "Advanced" },
+  {
+    "title": "Inspect resources",
     "routes": [
       { "title": "Overview", "path": "inspect" },
       { "title": "<code>graph</code>", "href": "/cli/commands/graph" },
@@ -62,14 +92,14 @@
     ]
   },
   {
-    "title": "Importing Infrastructure",
+    "title": "Import resources",
     "routes": [
       { "title": "Overview", "path": "import" },
       {
         "title": "<code>import</code>",
         "href": "/cli/commands/import"
       },
-      { "title": "Usage Tips", "path": "import/usage" },
+      { "title": "Usage tips", "path": "import/usage" },
       {
         "title": "Resource Importability",
         "path": "import/importability"
@@ -77,16 +107,51 @@
     ]
   },
   {
-    "title": "Manipulating State",
+    "title": "Test configuration",
+    "routes": [
+      { "title": "Overview", "path": "test" },
+      { "title":  "<code>test<code>", "href": "/cli/commands/test"}
+    ]
+  },
+
+  {
+    "title": "Manage providers",
+    "routes": [
+      { "title": "Overview", "path": "plugins" },
+      { "title": "Plugin signing", "path": "plugins/signing" },
+      {
+        "title": "<code>providers</code>",
+        "href": "/cli/commands/providers"
+      },
+      {
+        "title": "<code>version</code>",
+        "href": "/cli/commands/version"
+      },
+      {
+        "title": "<code>providers lock</code>",
+        "href": "/cli/commands/providers/lock"
+      },
+      {
+        "title": "<code>providers mirror</code>",
+        "href": "/cli/commands/providers/mirror"
+      },
+      {
+        "title": "<code>providers schema</code>",
+        "href": "/cli/commands/providers/schema"
+      }
+    ]
+  },
+  {
+    "title": "Manipulate state",
     "routes": [
       { "title": "Overview", "path": "state" },
       {
-        "title": "Resource Addressing",
+        "title": "Resource addressing",
         "path": "state/resource-addressing"
       },
       { "title": "<code>state</code>", "href": "/cli/commands/state" },
       {
-        "title": "Inspecting State",
+        "title": "Inspect state",
         "routes": [
           { "title": "Overview", "path": "state/inspect" },
           {
@@ -104,7 +169,7 @@
         ]
       },
       {
-        "title": "Forcing Re-creation (Tainting)",
+        "title": "Forcing re-creation (tainting)",
         "routes": [
           { "title": "Overview", "path": "state/taint" },
           {
@@ -118,7 +183,7 @@
         ]
       },
       {
-        "title": "Moving Resources",
+        "title": "Move resources",
         "routes": [
           { "title": "Overview", "path": "state/move" },
           {
@@ -136,7 +201,7 @@
         ]
       },
       {
-        "title": "Disaster Recovery",
+        "title": "Disaster recovery",
         "routes": [
           {
             "title": "Overview",
@@ -159,7 +224,20 @@
     ]
   },
   {
-    "title": "Managing Workspaces",
+    "title": "Automate Terraform",
+    "routes": [
+      {
+        "title": "Run Terraform in automation",
+        "href": "/terraform/tutorials/automation/automate-terraform"
+      },
+      {
+        "title": "GitHub Actions",
+        "href": "/terraform/tutorials/automation/github-actions"
+      }
+    ]
+  },
+  {
+    "title": "Manage workspaces",
     "routes": [
       { "title": "Overview", "path": "workspaces" },
       {
@@ -190,81 +268,9 @@
       }
     ]
   },
+  { "divider": true },
   {
-    "title": "Managing Plugins",
-    "routes": [
-      { "title": "Overview", "path": "plugins" },
-      { "title": "Plugin Signing", "path": "plugins/signing" },
-      {
-        "title": "<code>providers</code>",
-        "href": "/cli/commands/providers"
-      },
-      {
-        "title": "<code>version</code>",
-        "href": "/cli/commands/version"
-      },
-      {
-        "title": "<code>providers lock</code>",
-        "href": "/cli/commands/providers/lock"
-      },
-      {
-        "title": "<code>providers mirror</code>",
-        "href": "/cli/commands/providers/mirror"
-      },
-      {
-        "title": "<code>providers schema</code>",
-        "href": "/cli/commands/providers/schema"
-      }
-    ]
-  },
-  {
-    "title": "CLI Configuration",
-    "routes": [
-      { "title": "Overview", "path": "config" },
-      { "title": "CLI Configuration", "path": "config/config-file" },
-      {
-        "title": "Environment Variables",
-        "path": "config/environment-variables"
-      }
-    ]
-  },
-  {
-    "title": "Using HCP Terraform",
-    "routes": [
-      { "title": "Overview", "path": "cloud" },
-      { "title": "HCP Terraform Settings", "path": "cloud/settings" },
-      {
-        "title": "Initializing and Migrating",
-        "path": "cloud/migrating"
-      },
-      {
-        "title": "Command Line Arguments",
-        "path": "cloud/command-line-arguments"
-      }
-    ]
-  },
-  {
-    "title": "Testing Terraform",
-    "routes": [
-      { "title": "Overview", "path": "test" },
-      { "title":  "<code>test<code>", "href": "/cli/commands/test"}
-    ]
-  },
-  {
-    "title": "Automating Terraform",
-    "routes": [
-      {
-        "title": "Running Terraform in Automation",
-        "href": "https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS"
-      },
-      {
-        "title": "GitHub Actions",
-        "href": "https://learn.hashicorp.com/tutorials/terraform/github-actions?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS"
-      }
-    ]
-  },
-  {
-    "title": "Alphabetical List of Commands",
+    "title": "Alphabetical list of commands",
     "routes": [
       { "title": "Overview", "href": "/cli/commands" },
       { "title": "<code>apply</code>", "href": "/cli/commands/apply" },

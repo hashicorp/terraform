@@ -67,19 +67,19 @@ additional options for routine work.
 
 The remaining sections on this page describe the various options:
 
-* **[Planning Modes](#planning-modes)**: There are some special alternative
+* **[Planning modes](#planning-modes)**: There are some special alternative
   planning modes that you can use for some special situations where your goal
   is not just to change the remote system to match your configuration.
-* **[Planning Options](#planning-options)**: Alongside the special planning
+* **[Planning options](#planning-options)**: Alongside the special planning
   modes, there are also some options you can set in order to customize the
   planning process for unusual needs.
-  * **[Resource Targeting](#resource-targeting)** is one particular
+  * **[Resource targeting](#resource-targeting)** is one particular
     special planning option that has some important caveats associated
     with it.
-* **[Other Options](#other-options)**: These change the behavior of the planning
+* **[Other options](#other-options)**: These change the behavior of the planning
   command itself, rather than customizing the content of the generated plan.
 
-## Planning Modes
+## Planning modes
 
 The previous section describes Terraform's default planning behavior, which
 changes the remote system to match the changes you make to
@@ -109,17 +109,20 @@ The planning modes are all mutually-exclusive, so activating any non-default
 planning mode disables the "normal" planning mode, and you can't use more than
 one alternative mode at the same time.
 
--> **Note:** In Terraform v0.15 and earlier, the `-destroy` option is
+<Note> 
+  
+In Terraform v0.15 and earlier, the `-destroy` option is
 supported only by the `terraform plan` command, and not by the
 `terraform apply` command. To create and apply a plan in destroy mode in
 earlier versions you must run [`terraform destroy`](/terraform/cli/commands/destroy).
 
--> **Note:** The `-refresh-only` option is available only in Terraform v0.15.4
-and later.
+</Note>
+
+The `-refresh-only` option is available only in Terraform v0.15.4 and later.
 
 > **Hands-on:** Try the [Use Refresh-Only Mode to Sync Terraform State](/terraform/tutorials/state/refresh) tutorial.
 
-## Planning Options
+## Planning options
 
 In addition to alternate [planning modes](#planning-modes), there are several options that can modify planning behavior. These options are available for  both `terraform plan` and [`terraform apply`](/terraform/cli/commands/apply).
 
@@ -133,7 +136,11 @@ In addition to alternate [planning modes](#planning-modes), there are several op
   on resource instances which match the given address and on any objects that
   those instances depend on.
 
-  -> **Note:** Use `-target=ADDRESS` in exceptional circumstances only, such as recovering from mistakes or working around Terraform limitations. Refer to [Resource Targeting](#resource-targeting) for more details.
+  <Note>
+    
+    Use `-target=ADDRESS` in exceptional circumstances only, such as recovering from mistakes or working around Terraform limitations. Refer to [Resource Targeting](#resource-targeting) for more details.
+
+  </Note>
 
 - `-var 'NAME=VALUE'` - Sets a value for a single
   [input variable](/terraform/language/values/variables) declared in the
@@ -151,7 +158,7 @@ There are several other ways to set values for input variables in the root
 module, aside from the `-var` and `-var-file` options. Refer to
 [Assigning Values to Root Module Variables](/terraform/language/values/variables#assigning-values-to-root-module-variables) for more information.
 
-### Input Variables on the Command Line
+### Input variables on the command line
 
 You can use the `-var` command line option to specify values for
 [input variables](/terraform/language/values/variables) declared in your
@@ -164,14 +171,18 @@ we recommend using the `-var-file` option instead, and write your actual values
 in a separate file so that Terraform can parse them directly, rather than
 interpreting the result of your shell's parsing.
 
-~> **Warning:** Terraform will error if you include a space before or after the equals sign (e.g., `-var "length = 2"`).
+<Warning>
+  
+Terraform will error if you include a space before or after the equals sign (for example, `-var "length = 2"`).
+
+</Warning>
 
 To use `-var` on a Unix-style shell on a system like Linux or macOS we
 recommend writing the option argument in single quotes `'` to ensure the
 shell will interpret the value literally:
 
-```
-terraform plan -var 'name=value'
+```shell-session
+$ terraform plan -var 'name=value'
 ```
 
 If your intended value also includes a single quote then you'll still need to
@@ -179,23 +190,23 @@ escape that for correct interpretation by your shell, which also requires
 temporarily ending the quoted sequence so that the backslash escape character
 will be significant:
 
-```
-terraform plan -var 'name=va'\''lue'
+```shell-session
+$ terraform plan -var 'name=va'\''lue'
 ```
 
 When using Terraform on Windows, we recommend using the Windows Command Prompt
 (`cmd.exe`). When you pass a variable value to Terraform from the Windows
 Command Prompt, use double quotes `"` around the argument:
 
-```
-terraform plan -var "name=value"
+```shell-session
+$ terraform plan -var "name=value"
 ```
 
 If your intended value includes literal double quotes then you'll need to
 escape those with a backslash:
 
-```
-terraform plan -var "name=va\"lue"
+```shell-session
+$ terraform plan -var "name=va\"lue"
 ```
 
 PowerShell on Windows cannot correctly pass literal quotes to external programs,
@@ -212,12 +223,12 @@ Terraform language expression representing the value, and write any necessary
 quoting or escape characters to ensure it will pass through your shell
 literally to Terraform. For example, for a `list(string)` type constraint:
 
-```
+```shell-session hideClipboard
 # Unix-style shell
-terraform plan -var 'name=["a", "b", "c"]'
+$ terraform plan -var 'name=["a", "b", "c"]'
 
 # Windows Command Prompt (do not use PowerShell on Windows)
-terraform plan -var "name=[\"a\", \"b\", \"c\"]"
+$ terraform plan -var "name=[\"a\", \"b\", \"c\"]"
 ```
 
 Similar constraints apply when setting input variables using environment
@@ -225,7 +236,7 @@ variables. For more information on the various methods for setting root module
 input variables, see
 [Assigning Values to Root Module Variables](/terraform/language/values/variables#assigning-values-to-root-module-variables).
 
-### Resource Targeting
+### Resource targeting
 
 > **Hands-on:** Try the [Target resources](/terraform/tutorials/state/resource-targeting?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
@@ -268,7 +279,7 @@ information about resources created in other configurations, allowing
 a complex system architecture to be broken down into more manageable parts
 that can be updated independently.
 
-## Other Options
+## Other options
 
 The `terraform plan` command also has some other options that are related to
 the input and output of the planning command, rather than customizing what
@@ -344,7 +355,7 @@ For configurations using
 `terraform plan` accepts the legacy command line option
 [`-state`](/terraform/language/settings/backends/local#command-line-arguments).
 
-### Passing a Different Configuration Directory
+### Pass a different configuration directory
 
 Terraform v0.13 and earlier accepted an additional positional argument giving
 a directory path, in which case Terraform would use that directory as the root

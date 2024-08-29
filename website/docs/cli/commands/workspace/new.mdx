@@ -27,7 +27,7 @@ The command-line flags are all optional. The supported flags are:
 
 ## Example: Create
 
-```
+```shell-session
 $ terraform workspace new example
 Created and switched to workspace "example"!
 
@@ -36,11 +36,11 @@ so if you run "terraform plan" Terraform will not see any existing state
 for this configuration.
 ```
 
-## Example: Create from State
+## Example: Create from state
 
 To create a new workspace from a pre-existing local state file:
 
-```
+```shell-session
 $ terraform workspace new -state=old.terraform.tfstate example
 Created and switched to workspace "example".
 

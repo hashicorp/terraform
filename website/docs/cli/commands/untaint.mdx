@@ -30,8 +30,8 @@ If you remove the taint marker from an object but then later discover that it
 was degraded after all, you can create and apply a plan to replace it without
 first re-tainting the object, by using a command like the following:
 
-```
-terraform apply -replace="aws_instance.example[0]"
+```shell-session
+$ terraform apply -replace="aws_instance.example[0]"
 ```
 
 ## Usage

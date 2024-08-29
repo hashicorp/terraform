@@ -1,4 +1,4 @@
----
+r--
 page_title: 'Command: state show'
 description: >-
   The `terraform state show` command is used to show the attributes of a single
@@ -32,7 +32,7 @@ programmatic consumption. To extract state data for use in other software, use
 [`terraform show -json`](/terraform/cli/commands/show#json-output) and decode the result
 using the documented structure.
 
-## Example: Show a Resource
+## Example: Show a resource
 
 The example below shows a `packet_device` resource named `worker`:
 
@@ -49,41 +49,41 @@ resource "packet_device" "worker" {
 }
 ```
 
-## Example: Show a Module Resource
+## Example: Show a module resource
 
 The example below shows a `packet_device` resource named `worker` inside a module named `foo`:
 
-```shell
+```shell-session
 $ terraform state show 'module.foo.packet_device.worker'
 ```
 
-## Example: Show a Resource configured with count
+## Example: Show a resource configured with count
 
 The example below shows the first instance of a `packet_device` resource named `worker` configured with
 [`count`](/terraform/language/meta-arguments/count):
 
-```shell
+```shell-session
 $ terraform state show 'packet_device.worker[0]'
 ```
 
-## Example: Show a Resource configured with for_each
+## Example: Show a resource configured with for_each
 
 The following example shows the `"example"` instance of a `packet_device` resource named `worker` configured with the [`for_each`](/terraform/language/meta-arguments/for_each) meta-argument. You must place the resource name in single quotes when it contains special characters like double quotes.
 
 Linux, Mac OS, and UNIX:
 
-```shell
+```shell-session
 $ terraform state show 'packet_device.worker["example"]'
 ```
 
 PowerShell:
 
-```shell
+```shell-session
 $ terraform state show 'packet_device.worker[\"example\"]'
 ```
 
 Windows `cmd.exe`:
 
-```shell
+```shell-session
 $ terraform state show packet_device.worker[\"example\"]
 ```

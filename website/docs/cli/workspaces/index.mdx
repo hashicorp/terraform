@@ -1,11 +1,11 @@
 ---
-page_title: Managing Workspaces - Terraform CLI
+page_title: Manage workspaces - Terraform CLI
 description: >-
   Commands to list, select, create, and output workspaces. Workspaces help
   manage different groups of resources with one configuration.
 ---
 
-# Managing Workspaces
+# Manage workspaces
 
 Workspaces in the Terraform CLI refer to separate instances of [state data](/terraform/language/state) inside the same Terraform working directory. They are distinctly different from [workspaces in HCP Terraform](/terraform/cloud-docs/workspaces), which each have their own Terraform configuration and function as separate working directories.
 
@@ -13,8 +13,7 @@ Terraform relies on state to associate resources with real-world objects. When y
 
 Workspaces can be helpful for specific [use cases](#use-cases), but they are not required to use the Terraform CLI. We recommend using [alternative approaches](#alternatives-to-workspaces) for complex deployments requiring separate credentials and access controls.
 
-
-## Managing CLI Workspaces
+## Manage CLI workspaces
 
 Every [initialized working directory](/terraform/cli/init) starts with one workspace named `default`.
 
@@ -24,8 +23,7 @@ Use [the `terraform workspace select` command](/terraform/cli/commands/workspace
 
 When you provision infrastructure in each workspace, you usually need to manually specify different [input variables](/terraform/language/values/variables) to differentiate each collection. For example, you might deploy test infrastructure to a different region.
 
-
-## Use Cases
+## Use cases
 
 You can create multiple [working directories](/terraform/cli/init) to maintain multiple instances of a configuration with completely separate state data. However, Terraform installs a separate cache of plugins and modules for each working directory, so maintaining multiple directories can waste bandwidth and disk space. This approach also requires extra tasks like updating configuration from version control for each directory separately and reinitializing each directory when you change the configuration. Workspaces are convenient because they let you create different sets of infrastructure with the same working copy of your configuration and the same plugin and module caches.
 
@@ -35,8 +33,7 @@ a set of infrastructure to test a set of changes before modifying production inf
 Non-default workspaces are often related to feature branches in version control.
 The default workspace might correspond to the `main` or `trunk` branch, which describes the intended state of production infrastructure. When a developer creates a feature branch for a change, they might also create a corresponding workspace and deploy into it a temporary copy of the main infrastructure. They can then test changes on the copy without affecting the production infrastructure. Once the change is merged and deployed to the default workspace, they destroy the test infrastructure and delete the temporary workspace.
 
-
-### When Not to Use Multiple Workspaces
+### When not to use multiple workspaces
 
 Workspaces let you quickly switch between multiple instances of a **single configuration** within its **single backend**. They are not designed to solve all problems.
 
@@ -46,7 +43,7 @@ In particular, organizations commonly want to create a strong separation
 between multiple deployments of the same infrastructure serving different
 development stages or different internal teams. In this case, the backend for each deployment often has different credentials and access controls. CLI workspaces within a working directory use the same backend, so they are not a suitable isolation mechanism for this scenario.
 
-## Alternatives to Workspaces
+## Alternatives to workspaces
 
 Instead of creating CLI workspaces, you can use one or more [re-usable modules](/terraform/language/modules/develop) to represent the common elements and then represent each instance as a separate configuration that instantiates those common elements in the context of a different [backend](/terraform/language/settings/backends/configuration). The root module of each configuration consists only of a backend configuration and a small number of `module` blocks with arguments describing any small differences between the deployments.
 
@@ -61,7 +58,7 @@ When multiple configurations represent distinct system components rather than mu
 - If you store a Terraform state for one configuration in a remote backend that other configurations can access, then the other configurations can use [`terraform_remote_state`](/terraform/language/state/remote-state-data) to directly consume its root module outputs. This setup creates a tighter coupling between configurations, and the root configuration does not need to publish its results in a separate system.
 
 
-## Interactions with HCP Terraform Workspaces
+## Interactions with HCP Terraform workspaces
 
 HCP Terraform organizes infrastructure using workspaces, but its workspaces
 act more like completely separate working directories. Each HCP Terraform

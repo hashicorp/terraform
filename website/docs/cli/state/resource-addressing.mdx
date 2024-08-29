@@ -5,14 +5,14 @@ description: |-
   instances in your overall configuration.
 ---
 
-# Resource Addressing
+# Resource addressing
 
 A _resource address_ is a string that identifies zero or more resource
 instances in your overall configuration.
 
 An address is made up of two parts:
 
-```
+```text hideClipboard
 [module path][resource spec]
 ```
 
@@ -26,7 +26,7 @@ are using which parses resource addresses.
 
 A module path addresses a module within the tree of modules. It takes the form:
 
-```
+```text hideClipboard
 module.module_name[module index]
 ```
 
@@ -46,11 +46,11 @@ If the module path is omitted, the address applies to the root module.
 
 An example of the `module` keyword delineating between two modules that have multiple instances:
 
-```
+```text hideClipboard
 module.foo[0].module.bar["a"]
 ```
 
--> Module index only applies to modules in Terraform v0.13 or later. In earlier
+Module index only applies to modules in Terraform v0.13 or later. In earlier
 versions of Terraform, a module could not have multiple instances.
 
 ## Resource spec
@@ -58,7 +58,7 @@ versions of Terraform, a module could not have multiple instances.
 A resource spec addresses a specific resource instance in the selected module.
 It has the following syntax:
 
-```
+```text hideClipboard
 resource_type.resource_name[instance index]
 ```
 
@@ -86,7 +86,7 @@ The following specifications apply to index values on modules and resources with
 
 ## Examples
 
-### count Example
+### count example
 
 Given a Terraform config that includes:
 
@@ -99,13 +99,13 @@ resource "aws_instance" "web" {
 
 An address like this:
 
-```
+```text hideClipboard
 aws_instance.web[3]
 ```
 
 Refers to only the last instance in the config, and an address like this:
 
-```
+```text hideClipboard
 aws_instance.web
 ```
 
@@ -129,7 +129,7 @@ resource "aws_instance" "web" {
 
 An address like this:
 
-```
+```text hideClipboard
 aws_instance.web["example"]
 ```
 

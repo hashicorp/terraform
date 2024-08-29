@@ -1,11 +1,11 @@
 ---
-page_title: CLI Configuration
+page_title: CLI configuration file
 description: >-
   Learn to use the CLI configuration file to customize your CLI settings,
   including credentials, plugin caching, provider installation methods, etc.
 ---
 
-# CLI Configuration File (`.terraformrc` or `terraform.rc`)
+# CLI configuration file (`.terraformrc` or `terraform.rc`)
 
 The CLI configuration file configures per-user settings for CLI behaviors,
 which apply across all Terraform working directories. This is separate from
@@ -34,7 +34,7 @@ The location of the Terraform CLI configuration file can also be specified
 using the `TF_CLI_CONFIG_FILE` [environment variable](/terraform/cli/config/environment-variables).
 Any such file should follow the naming pattern `*.tfrc`.
 
-## Configuration File Syntax
+## Configuration file syntax
 
 The configuration file uses the same _HCL_ syntax as `.tf` files, but with
 different attributes and blocks. The following example illustrates the
@@ -46,7 +46,7 @@ plugin_cache_dir   = "$HOME/.terraform.d/plugin-cache"
 disable_checkpoint = true
 ```
 
-## Available Settings
+## Available settings
 
 The following settings can be set in the CLI configuration file:
 
@@ -109,15 +109,23 @@ or a
 [team token](/terraform/cloud-docs/users-teams-organizations/api-tokens#team-api-tokens);
 organization tokens cannot be used for command-line Terraform actions.
 
--> **Note:** The credentials hostname must match the hostname in your module
+<Note>
+  
+The credentials hostname must match the hostname in your module
 sources and/or backend configuration. If your Terraform Enterprise instance
 is available at multiple hostnames, use only one of them consistently.
 HCP Terraform responds to API calls at both its current hostname
 `app.terraform.io`, and its historical hostname `atlas.hashicorp.com`.
 
-### Environment Variable Credentials
+</Note>
 
--> **Note:** Environment variable credentials are supported in Terraform v1.2.0 and later.
+### Environment variable credentials
+
+<Note>
+
+Environment variable credentials are supported in Terraform v1.2.0 and later.
+
+</Note>
 
 If you would prefer not to store your API tokens directly in the CLI configuration, you may use
 a host-specific environment variable. Environment variable names should have the prefix
@@ -135,7 +143,7 @@ may be encoded as double underscores. For example, you can set a token for the d
 If multiple variables evaluate to the same hostname, Terraform will choose the one defined last
 in the operating system's variable table.
 
-### Credentials Helpers
+### Credentials helpers
 
 You can configure a `credentials_helper` to instruct Terraform to use a different credentials storage mechanism.
 
@@ -163,17 +171,21 @@ To learn how to write and install your own credentials helpers to integrate
 with existing in-house credentials management systems, see
 [the guide to Credentials Helper internals](/terraform/internals/credentials-helpers).
 
-### Credentials Source Priority Order
+### Credentials source priority order
 
 Credentials found in an environment variable for a particular service host
 as described above will be preferred over those in CLI config as set by `terraform login`.
 If neither are set, any configured credentials helper will be consulted.
 
-~> **Note:** For users of [terraform-credentials-helper](https://github.com/apparentlymart/terraform-credentials-env), this priority has been effectively reversed following the
+<Note>
+  
+For users of [terraform-credentials-helper](https://github.com/apparentlymart/terraform-credentials-env), this priority has been effectively reversed following the
 release of Terraform 1.2. Previously, credentials found within CLI config or set by
 `terraform login` were preferred to `TF_TOKEN_*` variables.
 
-## Provider Installation
+</Note>
+
+## Install provider
 
 The default way to install provider plugins is from a provider registry. The
 origin registry for a provider is encoded in the provider's source address,
@@ -191,7 +203,7 @@ To allow using Terraform providers in these situations, there are some
 alternative options for making provider plugins available to Terraform which
 we'll describe in the following sections.
 
-### Explicit Installation Method Configuration
+### Configure explicit installation method
 
 A `provider_installation` block in the CLI configuration allows overriding
 Terraform's default installation behaviors, so you can force Terraform to use
@@ -274,10 +286,14 @@ The following are the two supported installation method types:
   which is designed to be relatively easy to implement using typical static
   website hosting mechanisms.
 
-~> **Warning:** Don't configure `network_mirror` URLs that you do not trust.
+<Warning>
+  
+Don't configure `network_mirror` URLs that you do not trust.
 Provider mirror servers are subject to TLS certificate checks to verify
 identity, but a network mirror with a TLS certificate can potentially serve
 modified copies of upstream providers with malicious content.
+
+</Warning>
 
 Terraform will try all of the specified methods whose include and exclude
 patterns match a given provider, and select the newest version available across
@@ -287,7 +303,7 @@ and intend Terraform to use that local mirror exclusively, you must either
 remove the `direct` installation method altogether or use its `exclude`
 argument to disable its use for specific providers.
 
-### Implied Local Mirror Directories
+### Implied local mirror directories
 
 If your CLI configuration does not include a `provider_installation` block at
 all, Terraform produces an _implied_ configuration. The implied configuration
@@ -326,7 +342,7 @@ automatically exclude all of those providers from the implied `direct` block.
 if you use explicit `provider_installation` you will need to write the intended
 exclusions out yourself.)
 
-### Provider Plugin Cache
+### Provider plugin cache
 
 By default, `terraform init` downloads plugins into a subdirectory of the
 working directory so that each working directory is self-contained. As a
@@ -358,8 +374,8 @@ persistent setting. Alternatively, the `TF_PLUGIN_CACHE_DIR` environment
 variable can be used to enable caching or to override an existing cache
 directory within a particular shell session:
 
-```bash
-export TF_PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
+```shell-session
+$ export TF_PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
 ```
 
 When a plugin cache directory is enabled, the `terraform init` command will
@@ -383,15 +399,23 @@ Terraform will never itself delete a plugin from the plugin cache once it has
 been placed there. Over time, as plugins are upgraded, the cache directory may
 grow to contain several unused versions which you must delete manually.
 
--> **Note:** The plugin cache directory is not guaranteed to be concurrency
+<Note>
+  
+The plugin cache directory is not guaranteed to be concurrency
 safe. The provider installer's behavior in environments with multiple `terraform
 init` calls is undefined.
 
+</Note>
+
 ### Allowing the Provider Plugin Cache to break the dependency lock file
 
-~> **Note:** The option described in is for unusual and exceptional situations
+<Note>
+  
+The option described in is for unusual and exceptional situations
 only. Do not set this option unless you are sure you need it and you fully
 understand the consequences of enabling it.
+
+</Note>
 
 By default Terraform will use packages from the global cache directory only
 if they match at least one of the checksums recorded in the
@@ -431,18 +455,26 @@ will always install a provider from upstream the first time you use it with
 a particular configuration, but can then re-use the cache entry on later runs
 once the dependency lock file records valid checksums for the provider package.
 
-~> **Note:** The Terraform team intends to improve the dependency lock file
+<Note>
+  
+The Terraform team intends to improve the dependency lock file
 mechanism in future versions so that it will be usable in more situations. At
 that time this option will become silently ignored. If your workflow relies on
 the use of this option, please open a GitHub issue to share details about your
 situation so that we can consider how to support it without breaking the
 dependency lock file.
 
-### Development Overrides for Provider Developers
+</Note>
 
--> **Note:** Development overrides work only in Terraform v0.14 and later.
+### Development overrides for provider developers
+
+<Note>
+  
+Development overrides work only in Terraform v0.14 and later.
 Using a `dev_overrides` block in your CLI configuration will cause Terraform
 v0.13 to reject the configuration as invalid.
+
+</Note>
 
 Normally Terraform verifies version selections and checksums for providers
 in order to help ensure that all operations are made with the intended version
@@ -502,8 +534,8 @@ directory, perhaps called `dev.tfrc` for the sake of example, and then use the
 `TF_CLI_CONFIG_FILE` environment variable to instruct Terraform to use that
 localized CLI configuration instead of the default one:
 
-```
-export TF_CLI_CONFIG_FILE=/home/developer/tmp/dev.tfrc
+```shell-session
+$ export TF_CLI_CONFIG_FILE=/home/developer/tmp/dev.tfrc
 ```
 
 Development overrides are not intended for general use as a way to have
@@ -521,7 +553,7 @@ in future Terraform releases, including possible breaking changes. We therefore
 recommend using development overrides only temporarily during provider
 development work.
 
-## Removed Settings
+## Removed settings
 
 The following settings are supported in Terraform 0.12 and earlier but are
 no longer recommended for use:

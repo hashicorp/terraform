@@ -1,11 +1,11 @@
 ---
-page_title: Environment Variables
+page_title: Environment variables
 description: >-
   Learn to use environment variables to change Terraform's default behavior.
   Configure log content and output, set variables, and more.
 ---
 
-# Environment Variables
+# Environment variables
 
 Terraform refers to a number of environment variables to customize various
 aspects of its behavior. None of these environment variables are required
@@ -17,14 +17,14 @@ for debugging.
 
 Enables detailed logs to appear on stderr which is useful for debugging. For example:
 
-```shell
-export TF_LOG=trace
+```shell-session
+$ export TF_LOG=trace
 ```
 
 To disable, either unset it, or set it to `off`. For example:
 
-```shell
-export TF_LOG=off
+```shell-session
+$ export TF_LOG=off
 ```
 
 For more on debugging Terraform, check out the section on [Debugging](/terraform/internals/debugging).
@@ -33,8 +33,8 @@ For more on debugging Terraform, check out the section on [Debugging](/terraform
 
 This specifies where the log should persist its output to. Note that even when `TF_LOG_PATH` is set, `TF_LOG` must be set in order for any logging to be enabled. For example, to always write the log to the directory you're currently running terraform from:
 
-```shell
-export TF_LOG_PATH=./terraform.log
+```shell-session
+$ export TF_LOG_PATH=./terraform.log
 ```
 
 For more on debugging Terraform, check out the section on [Debugging](/terraform/internals/debugging).
@@ -43,19 +43,19 @@ For more on debugging Terraform, check out the section on [Debugging](/terraform
 
 If set to "false" or "0", causes terraform commands to behave as if the `-input=false` flag was specified. This is used when you want to disable prompts for variables that haven't had their values specified. For example:
 
-```shell
-export TF_INPUT=0
+```shell-session
+$ export TF_INPUT=0
 ```
 
 ## TF_VAR_name
 
 Environment variables can be used to set variables. The environment variables must be in the format `TF_VAR_name` and this will be checked last for a value. For example:
 
-```shell
-export TF_VAR_region=us-west-1
-export TF_VAR_ami=ami-049d8641
-export TF_VAR_alist='[1,2,3]'
-export TF_VAR_amap='{ foo = "bar", baz = "qux" }'
+```shell-session
+$ export TF_VAR_region=us-west-1 && \
+  export TF_VAR_ami=ami-049d8641  && \
+  export TF_VAR_alist='[1,2,3]'  && \
+  export TF_VAR_amap='{ foo = "bar", baz = "qux" }'
 ```
 
 For more on how to use `TF_VAR_name` in context, check out the section on [Variable Configuration](/terraform/language/values/variables).
@@ -108,8 +108,8 @@ For multi-environment deployment, in order to select a workspace, instead of doi
 
 For example:
 
-```shell
-export TF_WORKSPACE=your_workspace
+```shell-session
+$ export TF_WORKSPACE=your_workspace
 ```
 
 Using this environment variable is recommended only for non-interactive usage, since in a local shell environment it can be easy to forget the variable is set and apply changes to the wrong state.
@@ -127,7 +127,7 @@ applications.
 This is a purely cosmetic change to Terraform's human-readable output, and the
 exact output differences can change between minor Terraform versions.
 
-For more details, see [Running Terraform in Automation](/terraform/tutorials/automation/automate-terraform?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
+For more details, refer to [Running Terraform in automation](/terraform/tutorials/automation/automate-terraform?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
 
 ## TF_REGISTRY_DISCOVERY_RETRY
 
@@ -139,24 +139,24 @@ the remote registry client will attempt for client connection errors or
 
 The default client timeout for requests to the remote registry is 10s. `TF_REGISTRY_CLIENT_TIMEOUT` can be configured and increased during exceptional circumstances.
 
-```shell
-export TF_REGISTRY_CLIENT_TIMEOUT=15
+```shell-session
+$ export TF_REGISTRY_CLIENT_TIMEOUT=15
 ```
 
 ## TF_STATE_PERSIST_INTERVAL
 
 The interval in seconds that Terraform attempts to persist state to a remote backend during an apply operation. The default minimum interval for all remote backends is 20 seconds. Backends may override the default minimum value. If the value of `TF_STATE_PERSIST_INTERVAL` is lower than the default interval specified by a remote backend, the default interval will be used.
 
-```shell
-export TF_STATE_PERSIST_INTERVAL=100
+```shell-session
+$ export TF_STATE_PERSIST_INTERVAL=100
 ```
 
 ## TF_CLI_CONFIG_FILE
 
 The location of the [Terraform CLI configuration file](/terraform/cli/config/config-file).
 
-```shell
-export TF_CLI_CONFIG_FILE="$HOME/.terraformrc-custom"
+```shell-session
+$ export TF_CLI_CONFIG_FILE="$HOME/.terraformrc-custom"
 ```
 
 Note that `TERRAFORM_CONFIG` is a deprecated alias for the `TF_CLI_CONFIG_FILE` variable. We recommend using `TF_CLI_CONFIG_FILE` instead of the deprecated `TERRAFORM_CONFIG` variable.
@@ -171,4 +171,4 @@ You can also use `TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE` to activate [t
 
 The CLI integration with HCP Terraform lets you use HCP Terraform and Terraform Enterprise on the command line. The integration requires including a `cloud` block in your Terraform configuration. You can define its arguments directly in your configuration file or supply them through environment variables, which can be useful for non-interactive workflows like Continuous Integration (CI).
 
-Refer to [HCP Terraform Settings](/terraform/cli/cloud/settings#environment-variables) for a full list of `cloud` block environment variables.
+Refer to [HCP Terraform settings](/terraform/cli/cloud/settings#environment-variables) for a full list of `cloud` block environment variables.

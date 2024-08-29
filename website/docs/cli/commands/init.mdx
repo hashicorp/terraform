@@ -46,7 +46,7 @@ The following options apply to all of (or several of) the initialization steps:
 * `-upgrade` Opt to upgrade modules and plugins as part of their respective
   installation steps. See the sections below for more details.
 
-## Copy a Source Module
+## Copy a source module
 
 By default, `terraform init` assumes that the working directory already
 contains a configuration and will attempt to initialize that configuration.
@@ -71,7 +71,7 @@ it is possible to pass extra flags to the version control system when necessary,
 and to perform other preparation steps (such as configuration generation, or
 activating credentials) before running `terraform init`.
 
-## Backend Initialization
+## Initialize Backend
 
 During init, the root configuration directory is consulted for
 [backend configuration](/terraform/language/settings/backends/configuration) and the chosen backend
@@ -100,7 +100,7 @@ The `-backend-config=...` option can be used for
 in situations where the backend settings are dynamic or sensitive and so cannot
 be statically specified in the configuration file.
 
-## Child Module Installation
+## Install child module
 
 During init, the configuration is searched for `module` blocks, and the source
 code for referenced [modules](/terraform/language/modules/develop) is retrieved from the locations
@@ -116,7 +116,7 @@ steps can complete only when the module tree is complete, so it's recommended
 to use this flag only when the working directory was already previously
 initialized with its child modules.
 
-## Plugin Installation
+## Install plugin
 
 Most Terraform providers are published separately from Terraform as plugins.
 During init, Terraform searches the configuration for both direct and indirect
@@ -149,11 +149,16 @@ You can modify `terraform init`'s plugin behavior with the following options:
   version constraints.
 * `-get-plugins=false` — Skip plugin installation.
 
-  -> Note: Since Terraform 0.13, this option has been superseded by the
+  <Note>
+  
+  Since Terraform 0.13, this option has been superseded by the
   [`provider_installation`](/terraform/cli/config/config-file#provider-installation) and
   [`plugin_cache_dir`](/terraform/cli/config/config-file#plugin_cache_dir) settings.
   It should not be used in Terraform versions 0.13+, and this option
   was removed in Terraform 0.15.
+
+  </Note>
+
 * `-plugin-dir=PATH` — Force plugin installation to read plugins _only_ from
   the specified directory, as if it had been configured as a `filesystem_mirror`
   in the CLI configuration. If you intend to routinely use a particular
@@ -183,7 +188,7 @@ including optionally making plugins available locally to avoid repeated
 re-installation. For more information, see
 the [Running Terraform in Automation](/terraform/tutorials/automation/automate-terraform?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
-## Passing a Different Configuration Directory
+## Pass a different configuration directory
 
 Terraform v0.13 and earlier also accepted a directory path in place of the
 plan file argument to `terraform apply`, in which case Terraform would use

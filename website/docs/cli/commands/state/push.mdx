@@ -23,7 +23,11 @@ If PATH is "-" then the state data to push is read from stdin. This data
 is loaded completely into memory and verified prior to being written to
 the destination state.
 
--> **Note:** Terraform state files must be in UTF-8 format without a byte order mark (BOM). For PowerShell on Windows, use `Set-Content` to automatically encode files in UTF-8 format. For example, run `terraform state push | sc terraform.tfstate`.
+<Note>
+  
+Terraform state files must be in UTF-8 format without a byte order mark (BOM). For PowerShell on Windows, use `Set-Content` to automatically encode files in UTF-8 format. For example, run `terraform state push | sc terraform.tfstate`.
+
+</Note>
 
 Terraform will perform a number of safety checks to prevent you from
 making changes that appear to be unsafe:
@@ -39,7 +43,7 @@ making changes that appear to be unsafe:
   accounted for in the local state being pushed.
 
 Both of these safety checks can be disabled with the `-force` flag.
-**This is not recommended.** If you disable the safety checks and are
+**We do not recommend this.** If you disable the safety checks and are
 pushing state, the destination state will be overwritten.
 
 For configurations using the [HCP Terraform CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/settings/backends/remote)

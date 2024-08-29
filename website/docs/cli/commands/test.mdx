@@ -18,9 +18,13 @@ This command searches the current directory and the specified testing directory 
 
 Terraform then executes a series of Terraform plan or apply commands according to the test files' specifications, and also validates the relevant plan and state files according to the test files' specifications.
 
-!> **Warning:** The Terraform test command can create real infrastructure than can cost you money. Refer to the [Terraform Test Cleanup](#terraform-test-cleanup) section for best practices on ensuring created infrastructure is destroyed.
+<Warning>
+  
+The Terraform test command can create real infrastructure than can cost you money. Refer to the [Terraform test cleanup](#terraform-test-cleanup) section for best practices on ensuring created infrastructure is destroyed.
 
-## General Options
+</Warning>
+
+## General options
 
 The following options apply to the Terraform `test` command:
 
@@ -34,11 +38,11 @@ The following options apply to the Terraform `test` command:
 
 * `-verbose` - Prints out the plan or state for each `run` block within a test file, based on the `command` attribute of each `run` block.
 
-## State Management
+## State management
 
 Each Terraform test file will maintain all Terraform state it requires within memory as it executes, starting empty. This state is entirely separate from any existing state for the configuration under test, so you can safely execute Terraform test commands without affecting any live infrastructure.
 
-### Terraform Test Cleanup
+### Terraform test cleanup
 
 The Terraform `test` command creates _real_ infrastructure. Once Terraform fully executes each test file, Terraform attempts to destroy any remaining infrastructure. If it cannot do this, Terraform reports a list of resources it created but could not destroy.
 
@@ -56,11 +60,11 @@ You must provide a module from a _private_ registry, not the public Terraform re
 
 You must execute [`terraform login`](/terraform/cli/commands/login) before using this option, and ensure that your `hostname` argument matches the private registry hostname of your target module.
 
-## Example: Test Directory Structure and Commands
+## Example: Test directory structure and commands
 
 The following directory structure represents an example directory tree for a Terraform module with tests and a setup module.
 
-```
+```text hideClipboard
 project/
 |-- main.tf
 |-- outputs.tf
@@ -87,27 +91,27 @@ Specific test files can be executed using the `-filter` option.
 
 Linux, Mac OS, and UNIX:
 
-```shell
-terraform test -filter=tests/validations.tftest.hcl
+```shell-session
+$ terraform test -filter=tests/validations.tftest.hcl
 ```
 
 PowerShell:
 
-```shell
-terraform test -filter='tests\validations.tftest.hcl'
+```shell-session
+$ terraform test -filter='tests\validations.tftest.hcl'
 ```
 
 Windows `cmd.exe`:
 
-```shell
-terraform test -filter=tests\validations.tftest.hcl
+```shell-session
+$ terraform test -filter=tests\validations.tftest.hcl
 ```
 
-### Alternate Test Directories
+### Alternate test directories
 
 In the above example the tests are in the default testing directory of `tests`. Test files can also be included directly within the main configuration directory:
 
-```
+```text hideClipboard
 project/
 |-- main.tf
 |-- outputs.tf
@@ -129,6 +133,10 @@ You can also use the `-test-directory` argument to change the location of the te
 
 The testing directory must be beneath the main configuration directory, but it can be nested many times.
 
-> Note: Test files within the root configuration directory are always loaded, regardless of the `-test-directory` value.
+<Note>
+  
+Test files within the root configuration directory are always loaded, regardless of the `-test-directory` value.
+
+</Note>
 
 We do not recommend changing the default test directory. The option for customization is included for configuration authors who may have included a `tests` submodule in their configuration before the `terraform test` command was released. In general, the default test directory of `tests` should always be used.

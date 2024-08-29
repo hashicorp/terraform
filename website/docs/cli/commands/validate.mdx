@@ -22,7 +22,7 @@ system.
 
 Validation requires an initialized working directory with any referenced plugins and modules installed. To initialize a working directory for validation without accessing any configured backend, use:
 
-```
+```shell-session
 $ terraform init -backend=false
 ```
 
@@ -42,7 +42,7 @@ This command accepts the following options:
 
 * `-no-color` - If specified, output won't contain any color.
 
-## JSON Output Format
+## JSON output format
 
 When you use the `-json` option, Terraform will produce validation results
 in JSON format to allow using the validation result for tool integrations, such
@@ -178,7 +178,7 @@ The nested objects in `diagnostics` have the following properties:
     which may be useful in understanding the source of a diagnostic in a
     complex expression. These expression value objects are described below.
 
-### Source Position
+### Source position
 
 A source position object, as used in the `range` property of a diagnostic
 object, has the following properties:
@@ -195,7 +195,7 @@ A `start` position is inclusive while an `end` position is exclusive. The
 exact positions used for particular error messages are intended for human
 interpretation only.
 
-### Expression Value
+### Expression value
 
 An expression value object gives additional information about a value that is
 part of the expression which triggered the diagnostic. This is especially

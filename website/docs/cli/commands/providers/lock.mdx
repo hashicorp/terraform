@@ -51,13 +51,17 @@ providers from their origin registries and then update
 include a selected version for each provider and all of the package checksums
 that are covered by the provider developer's cryptographic signature.
 
-~> **Warning:** The `terraform providers lock` command prints information
+<Warning> 
+  
+The `terraform providers lock` command prints information
 about what it has fetched and whether each package was signed using a
 cryptographic signature, but it cannot automatically verify that the
 providers are trustworthy and that they comply with your local system
 policies or relevant regulations. Review the signing key information
 in the output to confirm that you trust all of the signers before committing
 the updated lock file to your version control system.
+
+</Warning>
 
 If you list one or more provider source addresses on the command line then
 `terraform providers lock` will restrict its work only to those providers,
@@ -95,7 +99,7 @@ You can customize the default behavior using the following additional option:
   versions can be used installing the plugins from the cache is considered risky.
 
 
-## Specifying Target Platforms
+## Specify target platforms
 
 In your environment you may, for example, have both developers who work with
 your Terraform configuration on their Windows or macOS workstations _and_
@@ -106,8 +110,8 @@ all of those platforms, and to pre-populate the lock file with the necessary
 checksums, by running `terraform providers lock` and specifying those three
 platforms:
 
-```
-terraform providers lock \
+```shell-session
+$ terraform providers lock \
   -platform=windows_amd64 \ # 64-bit Windows
   -platform=darwin_amd64 \  # 64-bit macOS
   -platform=linux_amd64     # 64-bit Linux
@@ -117,7 +121,7 @@ terraform providers lock \
 you are running the command on Windows then you will need to put all of the
 arguments on a single line, and remove the backslashes and comments.)
 
-## Lock Entries for In-house Providers
+## Lock entries for in-house providers
 
 An _in-house provider_ is one that isn't published on a real Terraform provider
 registry because it's developed and used only within a particular organization and
@@ -133,8 +137,8 @@ local mirror, you can use either the `-fs-mirror` or `-net-mirror` command
 line options to override the default behavior of consulting the provider's
 origin registry:
 
-```
-terraform providers lock \
+```shell-session
+$ terraform providers lock \
   -fs-mirror=/usr/local/terraform/providers
   -platform=windows_amd64 \
   -platform=darwin_amd64 \

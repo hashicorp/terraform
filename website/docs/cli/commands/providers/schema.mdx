@@ -11,7 +11,11 @@ description: >-
 
 The `terraform providers schema` command is used to print detailed schemas for the providers used in the current configuration.
 
--> `terraform providers schema` requires **Terraform v0.12 or later**.
+<Tip>
+  
+`terraform providers schema` requires **Terraform v0.12 or later**.
+
+</Tip>
 
 ## Usage
 
@@ -36,7 +40,7 @@ value `"1.0"`. The semantics of this version are:
 We will introduce new major versions only within the bounds of
 [the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
 
-## Format Summary
+## Format summary
 
 The following sections describe the JSON output format by example, using a pseudo-JSON notation.
 Important elements are described with comments, which are prefixed with //.
@@ -50,7 +54,7 @@ The JSON output format consists of the following objects and sub-objects:
 - [Function Representation](#function-representation) - a sub-object of functions that describes parameters, the return, and additional documentation
 - [Parameter Representation](#parameter-representation) - a sub-object of function signatures that describes their type and additional documentation
 
-## Providers Schema Representation
+## Providers schema representation
 
 ```javascript
 {
@@ -85,7 +89,7 @@ The JSON output format consists of the following objects and sub-objects:
 }
 ```
 
-## Schema Representation
+## Schema representation
 
 A schema representation pairs a provider or resource schema (in a "block") with that schema's version.
 
@@ -97,7 +101,7 @@ A schema representation pairs a provider or resource schema (in a "block") with 
 }
 ```
 
-## Block Representation
+## Block representation
 
 A block representation contains "attributes" and "block_types" (which represent nested blocks).
 
@@ -158,7 +162,7 @@ A block representation contains "attributes" and "block_types" (which represent 
 }
 ```
 
-## Function Representation
+## Function representation
 
 A function representation describes the definition of a function.
 
@@ -194,7 +198,7 @@ A function representation describes the definition of a function.
 }
 ```
 
-## Parameter Representation
+## Parameter representation
 
 A parameter representation describes a parameter to a function.
 

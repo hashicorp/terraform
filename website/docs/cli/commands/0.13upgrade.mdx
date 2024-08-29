@@ -11,7 +11,11 @@ The `terraform 0.13upgrade` command updates existing configuration to add an
 explicit `source` attribute for each provider used in a given module. The
 provider source settings are stored in a `required_providers` block.
 
--> **This command is available only in Terraform v0.13 releases.** For more information, see [the Terraform v0.13 upgrade guide](/terraform/language/v1.1.x/upgrade-guides/0-13).
+<Note>
+
+**This command is available only in Terraform v0.13 releases.** For more information, see [the Terraform v0.13 upgrade guide](/terraform/language/v1.1.x/upgrade-guides/0-13).
+
+</Note>
 
 ## Usage
 
@@ -24,7 +28,11 @@ providers where possible, and record this information in a
 
 [required-providers]: /terraform/language/providers/requirements
 
-~> Note: the command ignores `.tf.json` files and override files in the module.
+<Note>
+  
+The command ignores `.tf.json` files and override files in the module.
+
+</Note>
 
 If the module already has a `required_providers` block, the command updates it
 in-place. Otherwise, a new block is added to the `versions.tf` file.
@@ -37,7 +45,7 @@ the same repository.
 When run with no other options, the command will first explain what it is
 going to do and prompt for confirmation:
 
-```
+```shell-session
 $ terraform 0.13upgrade
 
 This command will update the configuration files in the given directory to use
@@ -74,13 +82,13 @@ wish to batch-upgrade them all and review them together. Recursive upgrades
 are not supported by the tool itself, but if you are on a Unix-style system
 you can achieve this using the `find` command as follows:
 
-```
+```shell-session
 $ find . -name '*.tf' | xargs -n1 dirname | uniq | xargs -n1 terraform 0.13upgrade -yes
 ```
 
 On a Windows system with PowerShell, you can use this command:
 
-```
+```shell
 Get-Childitem -Recurse -Include *.tf | Split-Path | `
 Select-Object -Unique | ForEach-Object { terraform 0.13upgrade -yes $_.FullName }
 ```

@@ -1,9 +1,9 @@
 ---
-page_title: Basic CLI Features
+page_title: Basic CLI features
 description: An introduction to the terraform command and its available subcommands.
 ---
 
-# Basic CLI Features
+# Basic CLI features
 
 > **Hands-on:** Try the [Terraform: Get Started](/terraform/tutorials/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials.
 
@@ -72,7 +72,7 @@ The inline help built in to Terraform CLI describes the most important
 characteristics of each command. For more detailed information, refer to each
 command's page for details.
 
-## Switching working directory with `-chdir`
+## Switch working directory with `-chdir`
 
 The usual way to run Terraform is to first switch to the directory containing
 the `.tf` files for your root module (for example, using the `cd` command), so
@@ -84,8 +84,8 @@ the root module directory. To allow that, Terraform supports a global option
 `-chdir=...` which you can include before the name of the subcommand you intend
 to run:
 
-```
-terraform -chdir=environments/production apply
+```shell-session
+$ terraform -chdir=environments/production apply
 ```
 
 The `chdir` option instructs Terraform to change its working directory to the
@@ -105,15 +105,15 @@ even when you specify `-chdir=...`:
   produce the original working directory instead of the overridden working
   directory. Use `path.root` to get the root module directory.
 
-## Shell Tab-completion
+## Shell tab-completion
 
 If you use either `bash` or `zsh` as your command shell, Terraform can provide
 tab-completion support for all command names and some command arguments.
 
 To add the necessary commands to your shell profile, run the following command:
 
-```bash
-terraform -install-autocomplete
+```shell-session
+$ terraform -install-autocomplete
 ```
 
 After installation, it is necessary to restart your shell or to re-read its
@@ -122,11 +122,11 @@ profile script before completion will be activated.
 To uninstall the completion hook, assuming that it has not been modified
 manually in the shell profile, run the following command:
 
-```bash
-terraform -uninstall-autocomplete
+```shell-session
+$ terraform -uninstall-autocomplete
 ```
 
-## Upgrade and Security Bulletin Checks
+## Upgrade and security bulletin checks
 
 The Terraform CLI commands interact with the HashiCorp service
 [Checkpoint](https://checkpoint.hashicorp.com/) to check for the availability

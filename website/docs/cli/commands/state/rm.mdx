@@ -18,7 +18,11 @@ to remove a binding to an existing remote object without first destroying it,
 which will effectively make Terraform "forget" the object while it continues
 to exist in the remote system.
 
--> **Note:** Terraform v1.7.0 and later supports `removed` blocks. Unlike the `terraform state rm` command, you can use `removed` blocks to remove more than one resource at a time, and you can review removals as part of your normal plan and apply workflow. [Learn more about using `removed` blocks with resources](/terraform/language/resources/syntax#removing-resources) and [using `removed` blocks with modules](/terraform/language/modules/syntax#removing-modules).
+<Note>
+  
+Terraform v1.7.0 and later supports `removed` blocks. Unlike the `terraform state rm` command, you can use `removed` blocks to remove more than one resource at a time, and you can review removals as part of your normal plan and apply workflow. [Learn more about using `removed` blocks with resources](/terraform/language/resources/syntax#removing-resources) and [using `removed` blocks with modules](/terraform/language/modules/syntax#removing-modules).
+
+</Note>
 
 ## Usage
 
@@ -61,45 +65,45 @@ For configurations using
 `terraform state rm` also accepts the legacy options
 [`-state`, `-state-out`, and `-backup`](/terraform/language/settings/backends/local#command-line-arguments).
 
-## Example: Remove all Instances of a Resource
+## Example: Remove all instances of a resource
 
 The following example will cause Terraform to "forget" all of the instances
 of the `packet_device` resource named "worker".
 
-```shell
+```shell-session
 $ terraform state rm 'packet_device.worker'
 ```
 
 A resource that doesn't use `count` or `for_each` has only one instance, so
 this is also the appropriate syntax to select that single instance.
 
-## Example: Remove all Instances of a Resource in a Module
+## Example: Remove all instances of a resource in a module
 
 To select a resource that you've defined in a child module you must specify
 the path of that module as part of the resource address:
 
-```shell
+```shell-session
 $ terraform state rm 'module.foo.packet_device.worker'
 ```
 
-## Example: Remove all Instances of all Resources in a Module
+## Example: Remove all instances of all resources in a module
 
 The following example will cause Terraform to "forget" all of the instances
 associated with all resources defined in all instances of the module named
 `foo`:
 
-```shell
+```shell-session
 $ terraform state rm 'module.foo'
 ```
 
-## Example: Remove a Particular Instance of a Resource using `count`
+## Example: Remove a particular instance of a resource using `count`
 
 A resource defined with [the `count` meta-argument](/terraform/language/meta-arguments/count)
 has multiple instances that are each identified by an integer. You can
 select a particular instance by including an explicit index in your given
 address:
 
-```shell
+```shell-session
 $ terraform state rm 'packet_device.worker[0]'
 ```
 
@@ -107,7 +111,7 @@ Brackets (`[`, `]`) have a special meaning in some shells, so you may need to
 quote or escape the address in order to pass it literally to Terraform.
 The above shows the typical quoting syntax for Unix-style shells.
 
-## Example: Remove a Particular Instance of a Resource using `for_each`
+## Example: Remove a particular instance of a resource using `for_each`
 
 A resource defined with [the `for_each` meta-argument](/terraform/language/meta-arguments/for_each)
 has multiple instances that are each identified by an string. You can
@@ -120,18 +124,18 @@ quoting and/or escaping syntax for the shell you are using. For example:
 
 Unix-style shells, such as on Linux or macOS:
 
-```shell
+```shell-session
 $ terraform state rm 'packet_device.worker["example"]'
 ```
 
 Windows Command Prompt (`cmd.exe`):
 
-```shell
+```shell-session
 $ terraform state rm packet_device.worker[\"example\"]
 ```
 
 PowerShell:
 
-```shell
+```shell-session
 $ terraform state rm 'packet_device.worker[\"example\"]'
 ```

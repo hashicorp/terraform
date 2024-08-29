@@ -12,9 +12,13 @@ description: |-
 The `terraform refresh` command reads the current settings from all managed
 remote objects and updates the Terraform state to match.
 
-~> _Warning:_ This command is deprecated, because its default behavior is
+<Warning>
+
+This command is deprecated, because its default behavior is
 unsafe if you have misconfigured credentials for any of your providers.
 See below for more information and recommended alternatives.
+
+</Warning>
 
 This won't modify your real remote objects, but it will modify the
 [Terraform state](/terraform/language/state).
@@ -35,8 +39,8 @@ Usage: `terraform refresh [options]`
 
 This command is effectively an alias for the following command:
 
-```
-terraform apply -refresh-only -auto-approve
+```shell-session
+$ terraform apply -refresh-only -auto-approve
 ```
 
 Consequently, it supports all of the same options as
@@ -53,8 +57,8 @@ Instead, we recommend using the following command in order to get the same
 effect but with the opportunity to review the changes that Terraform has
 detected before committing them to the state:
 
-```
-terraform apply -refresh-only
+```shell-session
+$ terraform apply -refresh-only
 ```
 
 This alternative command will present an interactive prompt for you to confirm

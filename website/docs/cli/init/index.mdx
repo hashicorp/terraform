@@ -1,12 +1,12 @@
 ---
-page_title: Initializing Working Directories - Terraform CLI
+page_title: Initialize working directories - Terraform CLI
 description: >-
   Working directories contain configurations, settings, cached plugins and
   modules, and state data. Learn how to initialize and manage working
   directories.
 ---
 
-# Initializing Working Directories
+# Initialize working directories
 
 Terraform expects to be invoked from a working directory that contains
 configuration files written in
@@ -17,7 +17,7 @@ settings, cached plugins and modules, and sometimes state data.
 A working directory must be initialized before Terraform can perform any
 operations in it (like provisioning infrastructure or modifying state).
 
-## Working Directory Contents
+## Working directory contents
 
 A Terraform working directory typically contains:
 
@@ -66,7 +66,7 @@ effect if no changes are required.
 If reinitialization is required, any commands that rely on initialization will
 fail with an error and tell you so.
 
-## Reinitializing Only Modules
+## Reinitializing only modules
 
 The `terraform get` command will download modules referenced in the
 configuration, but will not perform the other required initialization tasks.

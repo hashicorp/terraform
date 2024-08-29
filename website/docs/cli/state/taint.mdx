@@ -1,9 +1,9 @@
 ---
-page_title: Forcing Re-creation of Resources - Terraform CLI
+page_title: Force re-creation of resources - Terraform CLI
 description: Commands that allow you to destroy and re-create resources manually.
 ---
 
-# Forcing Re-creation of Resources
+# Force re-creation of resources (taint)
 
 During planning, by default Terraform retrieves the latest state of each
 existing object and compares it with the current configuration, planning
@@ -21,7 +21,7 @@ replace it for any other reason, you can override Terraform's default behavior
 using [the `-replace=...` planning option](/terraform/cli/commands/plan#replace-address)
 when you run either `terraform plan` or `terraform apply`:
 
-```shellsession
+```shell-session
 $ terraform apply -replace="aws_instance.example"
 # ...
 
@@ -44,7 +44,7 @@ Terraform represents this situation by marking an object in the state as
 replacing that object in a similar way to if you had specified that object's
 address using `-replace=...` as described above.
 
-```
+```text hideClipboard
   # aws_instance.example is tainted, so must be replaced
 -/+ resource "aws_instance" "example" {
       # ...

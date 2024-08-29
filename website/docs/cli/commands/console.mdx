@@ -37,7 +37,7 @@ final command is printed unless an error occurs earlier.
 
 For example:
 
-```shell
+```shell-session
 $ echo 'split(",", "foo,bar,baz")' | terraform console
 tolist([
   "foo",
@@ -46,13 +46,13 @@ tolist([
 ])
 ```
 
-## Remote State
+## Remote state
 
 If [remote state](/terraform/language/state/remote) is used by the current backend,
 Terraform will read the state for the current workspace from the backend
 before evaluating any expressions.
 
-## Evaluation against a Plan
+## Evaluation against a plan
 
 By default, `terraform console` evaluates expressions against the current
 Terraform state, and so the results are typically very limited for resource
@@ -112,8 +112,8 @@ can test interpolations to:
 
 Print a value from a map:
 
-```
-> var.apps.foo
+```shell-session
+$ var.apps.foo
 {
   "region" = "us-east-1"
 }
@@ -121,8 +121,8 @@ Print a value from a map:
 
 Filter a map based on a specific value:
 
-```
-> { for key, value in var.apps : key => value if value.region == "us-east-1" }
+```shell-session
+$ { for key, value in var.apps : key => value if value.region == "us-east-1" }
 {
   "foo" = {
     "region" = "us-east-1"
@@ -132,14 +132,14 @@ Filter a map based on a specific value:
 
 Check if certain values may not be known until apply:
 
-```
-> random_pet.example
+```shell-session
+$ random_pet.example
 (known after apply)
 ```
 
 Test various functions:
 
-```
-> cidrnetmask("172.16.0.0/12")
+```shell-session
+$ cidrnetmask("172.16.0.0/12")
 "255.240.0.0"
 ```

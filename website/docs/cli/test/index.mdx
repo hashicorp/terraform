@@ -1,18 +1,18 @@
 ---
-page_title: Testing Terraform - Terraform CLI
+page_title: Test Terraform configuration - Terraform CLI
 description: >-
   Write structured tests and validations for your configuration to ensure
   correctness in your infrastructure.
 ---
 
-# Testing Terraform
+# Test Terraform configuration
 
 Terraform provides numerous testing capabilities to validate your infrastructure.
 
 These testing capabilities fit into two main categories:
 
-1. Validating your configuration and infrastructure as part of your regular Terraform operations.
-2. Performing traditional unit and integration testing on your configuration.
+1. Validate your configuration and infrastructure as part of your regular Terraform operations.
+2. Perform traditional unit and integration testing on your configuration.
 
 Refer to [Custom Conditions](/terraform/language/expressions/custom-conditions) and [Checks](/terraform/language/checks) to learn more about the first testing capability. Terraform's [`test`](/terraform/cli/commands/test) command provides the second capability.
 
@@ -49,7 +49,7 @@ Validations allow you to verify aspects of your configuration and infrastructure
 
 The Terraform `test` command also executes any validations within your configuration as part of the tests it executes. For more information on the available validation, refer to [Checks](/terraform/language/checks) and [Custom Conditions](/terraform/language/expressions/custom-conditions).
 
-## Tests or Validations
+## Tests or validations
 
 You can write many validations as test assertions, but there are specific use cases for both.
 
