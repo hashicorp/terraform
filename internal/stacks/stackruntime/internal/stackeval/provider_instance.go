@@ -13,7 +13,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -317,11 +316,6 @@ func (p *ProviderInstance) checkValid(ctx context.Context, phase EvalPhase) tfdi
 // PlanChanges implements Plannable.
 func (p *ProviderInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	return nil, p.checkValid(ctx, PlanPhase)
-}
-
-// RequiredComponents implements Applyable
-func (p *ProviderInstance) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
-	return p.provider.RequiredComponents(ctx)
 }
 
 // CheckApply implements Applyable.

@@ -10,7 +10,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -255,11 +254,6 @@ func (p *Provider) References(ctx context.Context) []stackaddrs.AbsReference {
 		ret = append(ret, ReferencesInBody(ctx, cfg.Config, schema.Provider.Block.DecoderSpec())...)
 	}
 	return makeReferencesAbsolute(ret, p.Addr().Stack)
-}
-
-// RequiredComponents implements Applyable
-func (p *Provider) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
-	return p.main.requiredComponentsForReferrer(ctx, p, PlanPhase)
 }
 
 // CheckApply implements ApplyChecker.
