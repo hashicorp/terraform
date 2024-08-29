@@ -41,6 +41,14 @@ var (
 		},
 	}
 
+	BlockedResourceSchema = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id":                 {Type: cty.String, Optional: true, Computed: true},
+			"value":              {Type: cty.String, Optional: true},
+			"required_resources": {Type: cty.Set(cty.String), Optional: true},
+		},
+	}
+
 	TestingDataSourceSchema = &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
 			"id":    {Type: cty.String, Required: true},
@@ -95,6 +103,9 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 					"testing_failed_resource": {
 						Block: FailedResourceSchema,
 					},
+					"testing_blocked_resource": {
+						Block: BlockedResourceSchema,
+					},
 				},
 				DataSources: map[string]providers.Schema{
 					"testing_data_source": {
@@ -126,121 +137,13 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 				return providers.ConfigureProviderResponse{}
 			},
 			PlanResourceChangeFn: func(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
-				if request.ProposedNewState.IsNull() {
-					// Deleting, so just return the proposed change.
-					return providers.PlanResourceChangeResponse{
-						PlannedState: request.ProposedNewState,
-					}
-				}
-
-				// We're creating or updating, so we need to return the new
-				// state with any computed values filled in.
-
-				value := request.ProposedNewState
-				if id := value.GetAttr("id"); id.IsNull() {
-					vals := value.AsValueMap()
-					vals["id"] = cty.UnknownVal(cty.String)
-					value = cty.ObjectVal(vals)
-				}
-
-				if request.TypeName == "testing_deferred_resource" {
-					if value.GetAttr("deferred").True() {
-						return providers.PlanResourceChangeResponse{
-							PlannedState: value,
-							Deferred: &providers.Deferred{
-								Reason: providers.DeferredReasonResourceConfigUnknown,
-							},
-						}
-					}
-				}
-
-				if request.TypeName == "testing_failed_resource" {
-					// First, populate the fail attributes with null if they are
-					// null
-					if value.GetAttr("fail_apply").IsNull() {
-						vals := value.AsValueMap()
-						vals["fail_apply"] = cty.False
-						value = cty.ObjectVal(vals)
-					}
-					if value.GetAttr("fail_plan").IsNull() {
-						vals := value.AsValueMap()
-						vals["fail_plan"] = cty.False
-						value = cty.ObjectVal(vals)
-					}
-
-					// If fail_plan is set, return a planned failure.
-					if value.GetAttr("fail_plan").True() {
-						return providers.PlanResourceChangeResponse{
-							PlannedState: value,
-							Diagnostics: tfdiags.Diagnostics{
-								tfdiags.Sourceless(tfdiags.Error, "planned failure", "plan failure"),
-							},
-						}
-					}
-				}
-
-				return providers.PlanResourceChangeResponse{
-					PlannedState: value,
-				}
+				return getResource(request.TypeName).Plan(request, store)
 			},
 			ApplyResourceChangeFn: func(request providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
-				if request.PlannedState.IsNull() {
-					// Deleting, so just update the store and return.
-					store.Delete(request.PriorState.GetAttr("id").AsString())
-					return providers.ApplyResourceChangeResponse{
-						NewState: request.PlannedState,
-					}
-				}
-
-				// Creating or updating, so update the store and return.
-
-				// First, populate the computed value if we have to.
-				value := request.PlannedState
-				if id := value.GetAttr("id"); !id.IsKnown() {
-					vals := value.AsValueMap()
-					vals["id"] = cty.StringVal(mustGenerateUUID())
-					value = cty.ObjectVal(vals)
-				}
-
-				if request.TypeName == "testing_failed_resource" {
-					if value.GetAttr("fail_apply").True() {
-						return providers.ApplyResourceChangeResponse{
-							Diagnostics: tfdiags.Diagnostics{
-								tfdiags.Sourceless(tfdiags.Error, "planned failure", "apply failure"),
-							},
-						}
-					}
-				}
-
-				// Finally, update the store and return.
-				store.Set(value.GetAttr("id").AsString(), value)
-				return providers.ApplyResourceChangeResponse{
-					NewState: value,
-				}
+				return getResource(request.TypeName).Apply(request, store)
 			},
 			ReadResourceFn: func(request providers.ReadResourceRequest) providers.ReadResourceResponse {
-				var diags tfdiags.Diagnostics
-
-				id := request.PriorState.GetAttr("id").AsString()
-				value, exists := store.Get(id)
-				if !exists {
-					// Then we'll just behave as if the resource was destroyed
-					// externally.
-					switch request.TypeName {
-					case "testing_failed_resource":
-						value = cty.NullVal(FailedResourceSchema.ImpliedType())
-					case "testing_deferred_resource":
-						value = cty.NullVal(DeferredResourceSchema.ImpliedType())
-					case "testing_resource":
-						value = cty.NullVal(TestingResourceSchema.ImpliedType())
-					default:
-						panic(fmt.Sprintf("unknown resource type %q", request.TypeName))
-					}
-				}
-				return providers.ReadResourceResponse{
-					NewState:    value,
-					Diagnostics: diags,
-				}
+				return getResource(request.TypeName).Read(request, store)
 			},
 			ReadDataSourceFn: func(request providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 				var diags tfdiags.Diagnostics

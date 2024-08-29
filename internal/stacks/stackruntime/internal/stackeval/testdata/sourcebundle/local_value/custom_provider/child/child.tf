@@ -17,12 +17,12 @@ variable "map" {
 }
 
 resource "testing_resource" "resource" {
-  id = "foo"
+  id = var.name
   value = "foo"
 }
 
 data "testing_data_source" "data_source" {
-  id = "foo"
+  id = var.name
   depends_on = [testing_resource.resource]
 }
 
