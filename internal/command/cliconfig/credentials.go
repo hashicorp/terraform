@@ -170,6 +170,69 @@ func collectCredentialsFromEnv() map[svchost.Hostname]string {
 	return ret
 }
 
+func collectMTLSCredentialsFromEnv() map[svchost.Hostname]*svcauth.HostCredentialsMTLS {
+	// Prefixes for environment variables
+	const (
+		prefixCert   = "TF_CLIENT_CERT_"
+		prefixKey    = "TF_CLIENT_KEY_"
+		prefixCACert = "TF_CA_CERT_"
+	)
+
+	ret := make(map[svchost.Hostname]*svcauth.HostCredentialsMTLS)
+
+	for _, ev := range os.Environ() {
+		eqIdx := strings.Index(ev, "=")
+		if eqIdx < 0 {
+			continue
+		}
+		name := ev[:eqIdx]
+		value := ev[eqIdx+1:]
+
+		var rawHost, cert, key, caCert string
+
+		// Determine the type of credential and parse accordingly
+		if strings.HasPrefix(name, prefixCert) {
+			rawHost = name[len(prefixCert):]
+			cert = value
+		} else if strings.HasPrefix(name, prefixKey) {
+			rawHost = name[len(prefixKey):]
+			key = value
+		} else if strings.HasPrefix(name, prefixCACert) {
+			rawHost = name[len(prefixCACert):]
+			caCert = value
+		} else {
+			continue
+		}
+
+		// Normalize the hostname
+		rawHost = strings.ReplaceAll(rawHost, "__", "-")
+		rawHost = strings.ReplaceAll(rawHost, "_", ".")
+		dispHost := svchost.ForDisplay(rawHost)
+		hostname, err := svchost.ForComparison(dispHost)
+		if err != nil {
+			continue
+		}
+
+		// Retrieve or create the entry in the map
+		if ret[hostname] == nil {
+			ret[hostname] = &svcauth.HostCredentialsMTLS{}
+		}
+
+		// Update the corresponding fields
+		if cert != "" {
+			ret[hostname].ClientCert = cert
+		}
+		if key != "" {
+			ret[hostname].ClientKey = key
+		}
+		if caCert != "" {
+			ret[hostname].CACertificate = caCert
+		}
+	}
+
+	return ret
+}
+
 // hostCredentialsFromEnv returns a token credential by searching for a hostname-specific
 // environment variable. The host parameter is expected to be in the "comparison" form,
 // for example, hostnames containing non-ASCII characters like "café.fr"
@@ -183,11 +246,26 @@ func collectCredentialsFromEnv() map[svchost.Hostname]string {
 // For the example "café.fr", you may use the variable names "TF_TOKEN_xn____caf__dma_fr",
 // "TF_TOKEN_xn--caf-dma_fr", or "TF_TOKEN_xn--caf-dma.fr"
 func hostCredentialsFromEnv(host svchost.Hostname) svcauth.HostCredentials {
-	token, ok := collectCredentialsFromEnv()[host]
-	if !ok {
-		return nil
+	token, tokenOk := collectCredentialsFromEnv()[host]
+	mtlsCreds, mtlsOk := collectMTLSCredentialsFromEnv()[host]
+
+	// If both mTLS and token are found, combine them
+	if mtlsOk && tokenOk {
+		mtlsCreds.TokenValue = token
+		return mtlsCreds
 	}
-	return svcauth.HostCredentialsToken(token)
+
+	// If only mTLS credentials are found
+	if mtlsOk {
+		return mtlsCreds
+	}
+
+	// If only token credentials are found
+	if tokenOk {
+		return svcauth.HostCredentialsToken(token)
+	}
+
+	return nil
 }
 
 // CredentialsSource is an implementation of svcauth.CredentialsSource
@@ -230,20 +308,45 @@ type CredentialsSource struct {
 var _ svcauth.CredentialsSource = (*CredentialsSource)(nil)
 
 func (s *CredentialsSource) ForHost(host svchost.Hostname) (svcauth.HostCredentials, error) {
+	var token string
+
 	// The first order of precedence for credentials is a host-specific environment variable
 	if envCreds := hostCredentialsFromEnv(host); envCreds != nil {
-		return envCreds, nil
+		token = envCreds.Token()
+		if mtls, ok := envCreds.(svcauth.HostCredentialsExtended); ok {
+			mtls.SetToken(token)
+			return mtls, nil
+		}
+		return svcauth.HostCredentialsToken(token), nil
 	}
 
 	// Then, any credentials block present in the CLI config
-	v, ok := s.configured[host]
-	if ok {
-		return svcauth.HostCredentialsFromObject(v), nil
+	if v, ok := s.configured[host]; ok {
+		creds := svcauth.HostCredentialsFromObject(v)
+		if creds != nil {
+			token = creds.Token()
+			if mtls, ok := creds.(svcauth.HostCredentialsExtended); ok {
+				mtls.SetToken(token)
+				return mtls, nil
+			}
+			return svcauth.HostCredentialsToken(token), nil
+		}
 	}
 
 	// And finally, the credentials helper
 	if s.helper != nil {
-		return s.helper.ForHost(host)
+		creds, err := s.helper.ForHost(host)
+		if err != nil {
+			return nil, err
+		}
+		if creds != nil {
+			token = creds.Token()
+			if mtls, ok := creds.(svcauth.HostCredentialsExtended); ok {
+				mtls.SetToken(token)
+				return mtls, nil
+			}
+			return svcauth.HostCredentialsToken(token), nil
+		}
 	}
 
 	return nil, nil
