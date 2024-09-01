@@ -45,6 +45,7 @@ type Backend struct {
 	acl                   string
 	kmsKeyID              string
 	ddbTable              string
+	useLockFile           bool
 	workspaceKeyPrefix    string
 	skipS3Checksum        bool
 }
@@ -150,6 +151,11 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "DynamoDB table for state locking and consistency",
+			},
+			"use_lockfile": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "(Experimental) Whether to use a lockfile for locking the state file.",
 			},
 			"profile": {
 				Type:        cty.String,
@@ -930,6 +936,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.serverSideEncryption = boolAttr(obj, "encrypt")
 	b.kmsKeyID = stringAttr(obj, "kms_key_id")
 	b.ddbTable = stringAttr(obj, "dynamodb_table")
+	b.useLockFile = boolAttr(obj, "use_lockfile")
 	b.skipS3Checksum = boolAttr(obj, "skip_s3_checksum")
 
 	if _, ok := stringAttrOk(obj, "kms_key_id"); ok {

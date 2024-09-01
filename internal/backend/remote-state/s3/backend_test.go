@@ -157,6 +157,162 @@ func TestBackendConfig_original(t *testing.T) {
 	}
 }
 
+func TestBackendConfig_withLockfile(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	region := "us-west-1"
+
+	config := map[string]interface{}{
+		"region":       region,
+		"bucket":       "tf-test",
+		"key":          "state",
+		"encrypt":      true,
+		"use_lockfile": true,
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	if b.awsConfig.Region != region {
+		t.Fatalf("Incorrect region was populated")
+	}
+	if b.awsConfig.RetryMaxAttempts != 5 {
+		t.Fatalf("Default max_retries was not set")
+	}
+	if b.bucketName != "tf-test" {
+		t.Fatalf("Incorrect bucketName was populated")
+	}
+	if b.keyName != "state" {
+		t.Fatalf("Incorrect keyName was populated")
+	}
+
+	if b.useLockFile != true {
+		t.Fatalf("Expected useLockFile to be true")
+	}
+
+	credentials, err := b.awsConfig.Credentials.Retrieve(ctx)
+	if err != nil {
+		t.Fatalf("Error when requesting credentials")
+	}
+	if credentials.AccessKeyID == "" {
+		t.Fatalf("No Access Key Id was populated")
+	}
+	if credentials.SecretAccessKey == "" {
+		t.Fatalf("No Secret Access Key was populated")
+	}
+
+	// Check S3 Endpoint
+	expectedS3Endpoint := defaultEndpointS3(region)
+	var s3Endpoint string
+	_, err = b.s3Client.ListBuckets(ctx, &s3.ListBucketsInput{},
+		func(opts *s3.Options) {
+			opts.APIOptions = append(opts.APIOptions,
+				addRetrieveEndpointURLMiddleware(t, &s3Endpoint),
+				addCancelRequestMiddleware(),
+			)
+		},
+	)
+	if err == nil {
+		t.Fatal("Checking S3 Endpoint: Expected an error, got none")
+	} else if !errors.Is(err, errCancelOperation) {
+		t.Fatalf("Checking S3 Endpoint: Unexpected error: %s", err)
+	}
+
+	if s3Endpoint != expectedS3Endpoint {
+		t.Errorf("Checking S3 Endpoint: expected endpoint %q, got %q", expectedS3Endpoint, s3Endpoint)
+	}
+}
+
+func TestBackendConfig_multiLock(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	region := "us-west-1"
+
+	config := map[string]interface{}{
+		"region":         region,
+		"bucket":         "tf-test",
+		"key":            "state",
+		"encrypt":        true,
+		"use_lockfile":   true,
+		"dynamodb_table": "dynamoTable",
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	if b.awsConfig.Region != region {
+		t.Fatalf("Incorrect region was populated")
+	}
+	if b.awsConfig.RetryMaxAttempts != 5 {
+		t.Fatalf("Default max_retries was not set")
+	}
+	if b.bucketName != "tf-test" {
+		t.Fatalf("Incorrect bucketName was populated")
+	}
+	if b.keyName != "state" {
+		t.Fatalf("Incorrect keyName was populated")
+	}
+
+	if b.useLockFile != true {
+		t.Fatalf("Expected useLockFile to be true")
+	}
+
+	credentials, err := b.awsConfig.Credentials.Retrieve(ctx)
+	if err != nil {
+		t.Fatalf("Error when requesting credentials")
+	}
+	if credentials.AccessKeyID == "" {
+		t.Fatalf("No Access Key Id was populated")
+	}
+	if credentials.SecretAccessKey == "" {
+		t.Fatalf("No Secret Access Key was populated")
+	}
+
+	// Check S3 Endpoint
+	expectedS3Endpoint := defaultEndpointS3(region)
+	var s3Endpoint string
+	_, err = b.s3Client.ListBuckets(ctx, &s3.ListBucketsInput{},
+		func(opts *s3.Options) {
+			opts.APIOptions = append(opts.APIOptions,
+				addRetrieveEndpointURLMiddleware(t, &s3Endpoint),
+				addCancelRequestMiddleware(),
+			)
+		},
+	)
+	if err == nil {
+		t.Fatal("Checking S3 Endpoint: Expected an error, got none")
+	} else if !errors.Is(err, errCancelOperation) {
+		t.Fatalf("Checking S3 Endpoint: Unexpected error: %s", err)
+	}
+
+	if s3Endpoint != expectedS3Endpoint {
+		t.Errorf("Checking S3 Endpoint: expected endpoint %q, got %q", expectedS3Endpoint, s3Endpoint)
+	}
+
+	// Check DynamoDB Endpoint
+	expectedDynamoDBEndpoint := defaultEndpointDynamo(region)
+	var dynamoDBEndpoint string
+	_, err = b.dynClient.ListTables(ctx, &dynamodb.ListTablesInput{},
+		func(opts *dynamodb.Options) {
+			opts.APIOptions = append(opts.APIOptions,
+				addRetrieveEndpointURLMiddleware(t, &dynamoDBEndpoint),
+				addCancelRequestMiddleware(),
+			)
+		},
+	)
+	if err == nil {
+		t.Fatal("Checking DynamoDB Endpoint: Expected an error, got none")
+	} else if !errors.Is(err, errCancelOperation) {
+		t.Fatalf("Checking DynamoDB Endpoint: Unexpected error: %s", err)
+	}
+
+	if dynamoDBEndpoint != expectedDynamoDBEndpoint {
+		t.Errorf("Checking DynamoDB Endpoint: expected endpoint %q, got %q", expectedDynamoDBEndpoint, dynamoDBEndpoint)
+	}
+}
+
 func TestBackendConfig_InvalidRegion(t *testing.T) {
 	testACC(t)
 
@@ -1847,6 +2003,106 @@ func TestBackendLocked(t *testing.T) {
 		"encrypt":        true,
 		"dynamodb_table": bucketName,
 		"region":         "us-west-1",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
+}
+
+func TestBackendLockedWithFile(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-1",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-1",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
+}
+
+func TestBackendLockedWithFileAndDynamoDB(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   true,
+		"dynamodb_table": bucketName,
+		"region":         "us-west-1",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   true,
+		"dynamodb_table": bucketName,
+		"region":         "us-west-1",
+	})).(*Backend)
+
+	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	defer deleteS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
+	createDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+	defer deleteDynamoDBTable(ctx, t, b1.dynClient, bucketName)
+
+	backend.TestBackendStateLocks(t, b1, b2)
+	backend.TestBackendStateForceUnlock(t, b1, b2)
+}
+
+func TestBackendLockedMixedFileAndDynamoDB(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "test/state"
+
+	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"use_lockfile":   true,
+		"dynamodb_table": bucketName,
+		"region":         "us-west-1",
+	})).(*Backend)
+
+	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":       bucketName,
+		"key":          keyName,
+		"encrypt":      true,
+		"use_lockfile": true,
+		"region":       "us-west-1",
 	})).(*Backend)
 
 	createS3Bucket(ctx, t, b1.s3Client, bucketName, b1.awsConfig.Region)
