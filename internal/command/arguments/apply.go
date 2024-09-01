@@ -43,6 +43,9 @@ func ParseApply(args []string) (*Apply, tfdiags.Diagnostics) {
 	}
 
 	cmdFlags := extendedFlagSet("apply", apply.State, apply.Operation, apply.Vars)
+	if apply.State != nil {
+		diags = append(diags, tfdiags.SimpleWarning("state is deprecated"))
+	}
 	cmdFlags.BoolVar(&apply.AutoApprove, "auto-approve", false, "auto-approve")
 	cmdFlags.BoolVar(&apply.InputEnabled, "input", true, "input")
 

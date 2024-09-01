@@ -4,60 +4,88 @@
 package arguments
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func TestParseRefresh_basicValid(t *testing.T) {
+func TestParsePlan_basicValid(t *testing.T) {
 	testCases := map[string]struct {
 		args []string
-		want *Refresh
+		want *Plan
 	}{
 		"defaults": {
 			nil,
-			&Refresh{
-				InputEnabled: true,
-				ViewType:     ViewHuman,
+			&Plan{
+				DetailedExitCode: false,
+				InputEnabled:     true,
+				OutPath:          "",
+				ViewType:         ViewHuman,
+				State:            &State{Lock: true},
+				Vars:             &Vars{},
+				Operation: &Operation{
+					PlanMode:    plans.NormalMode,
+					Parallelism: 10,
+					Refresh:     true,
+				},
 			},
 		},
-		"input=false": {
-			[]string{"-input=false"},
-			&Refresh{
-				InputEnabled: false,
-				ViewType:     ViewHuman,
+		"setting all options": {
+			[]string{"-destroy", "-detailed-exitcode", "-input=false", "-out=saved.tfplan"},
+			&Plan{
+				DetailedExitCode: true,
+				InputEnabled:     false,
+				OutPath:          "saved.tfplan",
+				ViewType:         ViewHuman,
+				State:            &State{Lock: true},
+				Vars:             &Vars{},
+				Operation: &Operation{
+					PlanMode:    plans.DestroyMode,
+					Parallelism: 10,
+					Refresh:     true,
+				},
 			},
 		},
 		"JSON view disables input": {
 			[]string{"-json"},
-			&Refresh{
-				InputEnabled: false,
-				ViewType:     ViewJSON,
+			&Plan{
+				DetailedExitCode: false,
+				InputEnabled:     false,
+				OutPath:          "",
+				ViewType:         ViewJSON,
+				State:            &State{Lock: true},
+				Vars:             &Vars{},
+				Operation: &Operation{
+					PlanMode:    plans.NormalMode,
+					Parallelism: 10,
+					Refresh:     true,
+				},
 			},
 		},
 	}
 
+	cmpOpts := cmpopts.IgnoreUnexported(Operation{}, Vars{}, State{})
+
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, diags := ParseRefresh(tc.args)
+			got, diags := ParsePlan(tc.args)
 			if len(diags) > 0 && diags.HasErrors() {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
-			// Ignore the extended arguments for simplicity
-			got.State = nil
-			got.Operation = nil
-			got.Vars = nil
-			if *got != *tc.want {
-				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
+			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
+				t.Errorf("unexpected result\n%s", diff)
 			}
 		})
 	}
 }
 
-func TestParseRefresh_invalid(t *testing.T) {
-	got, diags := ParseRefresh([]string{"-frob"})
+func TestParsePlan_invalid(t *testing.T) {
+	got, diags := ParsePlan([]string{"-frob"})
 	if len(diags) == 0 {
 		t.Fatal("expected diags but got none")
 	}
@@ -69,8 +97,8 @@ func TestParseRefresh_invalid(t *testing.T) {
 	}
 }
 
-func TestParseRefresh_tooManyArguments(t *testing.T) {
-	got, diags := ParseRefresh([]string{"saved.tfplan"})
+func TestParsePlan_tooManyArguments(t *testing.T) {
+	got, diags := ParsePlan([]string{"saved.tfplan"})
 	if len(diags) == 0 {
 		t.Fatal("expected diags but got none")
 	}
@@ -82,7 +110,7 @@ func TestParseRefresh_tooManyArguments(t *testing.T) {
 	}
 }
 
-func TestParseRefresh_targets(t *testing.T) {
+func TestParsePlan_targets(t *testing.T) {
 	foobarbaz, _ := addrs.ParseTargetStr("foo_bar.baz")
 	boop, _ := addrs.ParseTargetStr("module.boop")
 	testCases := map[string]struct {
@@ -116,9 +144,9 @@ func TestParseRefresh_targets(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, diags := ParseRefresh(tc.args)
-			if len(diags) > 0 && diags.HasErrors() {
-				if tc.wantErr == "" {
+			got, diags := ParsePlan(tc.args)
+			if len(diags) > 0 {
+				if tc.wantErr == "" && diags.HasErrors() {
 					t.Fatalf("unexpected diags: %v", diags)
 				} else if got := diags.Err().Error(); !strings.Contains(got, tc.wantErr) {
 					t.Fatalf("wrong diags\n got: %s\nwant: %s", got, tc.wantErr)
@@ -131,7 +159,7 @@ func TestParseRefresh_targets(t *testing.T) {
 	}
 }
 
-func TestParseRefresh_vars(t *testing.T) {
+func TestParsePlan_vars(t *testing.T) {
 	testCases := map[string]struct {
 		args []string
 		want []FlagNameValue
@@ -168,7 +196,7 @@ func TestParseRefresh_vars(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, diags := ParseRefresh(tc.args)
+			got, diags := ParsePlan(tc.args)
 			if len(diags) > 0 && diags.HasErrors() {
 				t.Fatalf("unexpected diags: %v", diags)
 			}

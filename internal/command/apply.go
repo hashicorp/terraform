@@ -56,6 +56,11 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
+  if diags.HasWarnings() {
+    view.Diagnostics(diags)
+    diags = nil
+  }
+
 	// Check for user-supplied plugin path
 	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
