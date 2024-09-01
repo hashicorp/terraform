@@ -7,7 +7,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.21.0
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
 	github.com/hashicorp/terraform/internal/legacy v0.0.0-00010101000000-000000000000
-	github.com/lib/pq v1.10.3
+	github.com/lib/pq v1.10.4
 )
 
 require (
