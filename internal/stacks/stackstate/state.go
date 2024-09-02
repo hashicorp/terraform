@@ -4,6 +4,7 @@
 package stackstate
 
 import (
+	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -69,6 +70,38 @@ func (s *State) AllComponentInstances() collections.Set[stackaddrs.AbsComponentI
 
 func (s *State) componentInstanceState(addr stackaddrs.AbsComponentInstance) *componentInstanceState {
 	return s.componentInstances.Get(addr)
+}
+
+// DependenciesForComponent returns the list of components that are required by
+// the given component instance, or an empty set if no such component instance
+// is tracked in the state.
+func (s *State) DependenciesForComponent(addr stackaddrs.AbsComponentInstance) collections.Set[stackaddrs.AbsComponent] {
+	cs := s.componentInstanceState(addr)
+	if cs == nil {
+		return collections.NewSet[stackaddrs.AbsComponent]()
+	}
+	return cs.dependencies
+}
+
+// DependentsForComponent returns the list of components that are require the
+// given component instance, or an empty set if no such component instance is
+// tracked in the state.
+func (s *State) DependentsForComponent(addr stackaddrs.AbsComponentInstance) collections.Set[stackaddrs.AbsComponent] {
+	cs := s.componentInstanceState(addr)
+	if cs == nil {
+		return collections.NewSet[stackaddrs.AbsComponent]()
+	}
+	return cs.dependents
+}
+
+// ResultsForComponent returns the output values for the given component
+// instance, or nil if no such component instance is tracked in the state.
+func (s *State) ResultsForComponent(addr stackaddrs.AbsComponentInstance) map[addrs.OutputValue]cty.Value {
+	cs := s.componentInstanceState(addr)
+	if cs == nil {
+		return nil
+	}
+	return cs.outputValues
 }
 
 // ComponentInstanceResourceInstanceObjects returns a set of addresses for
@@ -202,6 +235,9 @@ func (s *State) ensureComponentInstanceState(addr stackaddrs.AbsComponentInstanc
 		return existing
 	}
 	s.componentInstances.Put(addr, &componentInstanceState{
+		dependencies:            collections.NewSet[stackaddrs.AbsComponent](),
+		dependents:              collections.NewSet[stackaddrs.AbsComponent](),
+		outputValues:            make(map[addrs.OutputValue]cty.Value),
 		resourceInstanceObjects: addrs.MakeMap[addrs.AbsResourceInstanceObject, *resourceInstanceObjectState](),
 	})
 	return s.componentInstances.Get(addr)
@@ -217,6 +253,20 @@ func (s *State) addResourceInstanceObject(addr stackaddrs.AbsResourceInstanceObj
 }
 
 type componentInstanceState struct {
+	// dependencies is the set of component instances that this component
+	// depended on the last time it was updated.
+	dependencies collections.Set[stackaddrs.AbsComponent]
+
+	// dependents is a set of component instances that depended on this
+	// component the last time it was updated.
+	dependents collections.Set[stackaddrs.AbsComponent]
+
+	// outputValues is a map from output value addresses to their values at
+	// completion of the last apply operation.
+	outputValues map[addrs.OutputValue]cty.Value
+
+	// resourceInstanceObjects is a map from resource instance object addresses
+	// to their state.
 	resourceInstanceObjects addrs.Map[addrs.AbsResourceInstanceObject, *resourceInstanceObjectState]
 }
 

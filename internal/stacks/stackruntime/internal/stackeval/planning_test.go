@@ -102,17 +102,19 @@ func TestPlanning_DestroyMode(t *testing.T) {
 		statekeys.String(statekeys.ComponentInstance{
 			ComponentInstanceAddr: aComponentInstAddr,
 		}): &tfstackdata1.StateComponentInstanceV1{
-			// Intentionally unpopulated because this operation doesn't
-			// actually depend on anything other than knowing that the
-			// component instance used to exist.
+			DependentAddrs: []string{"component.b"},
+			OutputValues: map[string]*tfstackdata1.DynamicValue{
+				"result": mustPlanDynamicValue(t, cty.StringVal(`result for "a" from prior state`)),
+			},
 		},
 
 		statekeys.String(statekeys.ComponentInstance{
 			ComponentInstanceAddr: bComponentInstAddr,
 		}): &tfstackdata1.StateComponentInstanceV1{
-			// Intentionally unpopulated because this operation doesn't
-			// actually depend on anything other than knowing that the
-			// component instance used to exist.
+			DependencyAddrs: []string{"component.a"},
+			OutputValues: map[string]*tfstackdata1.DynamicValue{
+				"result": mustPlanDynamicValue(t, cty.StringVal(`result for "b" from prior state`)),
+			},
 		},
 
 		statekeys.String(statekeys.ResourceInstanceObject{
@@ -1045,4 +1047,12 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func mustPlanDynamicValue(t *testing.T, v cty.Value) *tfstackdata1.DynamicValue {
+	ret, err := tfstackdata1.DynamicValueToTFStackData1(v, cty.DynamicPseudoType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ret
 }

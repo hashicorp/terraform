@@ -10,11 +10,13 @@ import (
 	"github.com/zclconf/go-cty/cty/msgpack"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/plans/planproto"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -55,18 +57,24 @@ func ResourceInstanceObjectStateToTFStackData1(objSrc *states.ResourceInstanceOb
 	return rawMsg
 }
 
-func ComponentInstanceResultsToTFStackData1(outputValues map[addrs.OutputValue]cty.Value) (*StateComponentInstanceV1, error) {
-	protoOutputs := make(map[string]*DynamicValue, len(outputValues))
+func ComponentInstanceResultsToTFStackData1(dependencies collections.Set[stackaddrs.AbsComponent], dependents collections.Set[stackaddrs.AbsComponent], outputValues map[addrs.OutputValue]cty.Value) (*StateComponentInstanceV1, error) {
+	state := StateComponentInstanceV1{
+		OutputValues: make(map[string]*DynamicValue, len(outputValues)),
+	}
+	for _, addr := range dependencies.Elems() {
+		state.DependencyAddrs = append(state.DependencyAddrs, addr.String())
+	}
+	for _, addr := range dependents.Elems() {
+		state.DependentAddrs = append(state.DependentAddrs, addr.String())
+	}
 	for addr, val := range outputValues {
 		protoVal, err := DynamicValueToTFStackData1(val, cty.DynamicPseudoType)
 		if err != nil {
 			return nil, fmt.Errorf("encoding %s: %w", addr, err)
 		}
-		protoOutputs[addr.Name] = protoVal
+		state.OutputValues[addr.Name] = protoVal
 	}
-	return &StateComponentInstanceV1{
-		OutputValues: protoOutputs,
-	}, nil
+	return &state, nil
 }
 
 func DynamicValueToTFStackData1(val cty.Value, ty cty.Type) (*DynamicValue, error) {

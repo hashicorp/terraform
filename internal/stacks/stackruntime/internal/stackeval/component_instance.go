@@ -12,6 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -613,20 +614,49 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			// we need to force treating everything in this component as
 			// deferred so we can preserve the correct dependency ordering.
 			deferred := false
-			for _, depAddr := range c.call.RequiredComponents(ctx).Elems() {
-				depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
-				if depStack == nil {
-					deferred = true // to be conservative
-					break
+			if stackPlanOpts.PlanningMode == plans.DestroyMode {
+				// If we're destroying this instance, then the dependencies
+				// should be reversed. Unfortunately, we can't compute that
+				// easily so instead we'll use the dependents computed at the
+				// last apply operation.
+				for _, depAddr := range c.PlanPrevDependents(ctx).Elems() {
+					depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
+					if depStack == nil {
+						// something weird has happened, but this means that
+						// whatever thing we're depending on being deleted first
+						// doesn't exist so it's fine.
+						break
+					}
+					depComponent := depStack.Component(ctx, depAddr.Item)
+					if depComponent == nil {
+						// again, the thing we need to wait to be deleted
+						// doesn't exist so it's fine.
+						break
+					}
+					if !depComponent.PlanIsComplete(ctx) {
+						// The other component couldn't be deleted in a single
+						// go, so to be safe we'll defer our deletions until
+						// the other one is complete.
+						deferred = true
+						break
+					}
 				}
-				depComponent := depStack.Component(ctx, depAddr.Item)
-				if depComponent == nil {
-					deferred = true // to be conservative
-					break
-				}
-				if !depComponent.PlanIsComplete(ctx) {
-					deferred = true
-					break
+			} else {
+				for _, depAddr := range c.call.RequiredComponents(ctx).Elems() {
+					depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
+					if depStack == nil {
+						deferred = true // to be conservative
+						break
+					}
+					depComponent := depStack.Component(ctx, depAddr.Item)
+					if depComponent == nil {
+						deferred = true // to be conservative
+						break
+					}
+					if !depComponent.PlanIsComplete(ctx) {
+						deferred = true
+						break
+					}
 				}
 			}
 
@@ -1052,6 +1082,15 @@ func (c *ComponentInstance) PlanPrevState(ctx context.Context) *states.State {
 	return ret
 }
 
+// PlanPrevDependents returns the set of dependents based on the state.
+func (c *ComponentInstance) PlanPrevDependents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
+	return c.main.PlanPrevState().DependentsForComponent(c.Addr())
+}
+
+func (c *ComponentInstance) PlanPrevResult(ctx context.Context) map[addrs.OutputValue]cty.Value {
+	return c.main.PlanPrevState().ResultsForComponent(c.Addr())
+}
+
 // ApplyResult returns the result from applying a plan for this object using
 // [ApplyModuleTreePlan].
 //
@@ -1132,6 +1171,39 @@ func (c *ComponentInstance) InspectingState(ctx context.Context) *states.State {
 func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
 	switch phase {
 	case PlanPhase:
+
+		if c.main.PlanningOpts().PlanningMode == plans.DestroyMode {
+			// If we are running a destroy plan, we should return the prior
+			// state's output values, as the new planned state will have nothing
+			// since it's been destroyed.
+			prevResult := c.PlanPrevResult(ctx)
+			obj := make(map[string]cty.Value, len(prevResult))
+			for k, v := range prevResult {
+				obj[k.Name] = v
+			}
+
+			moduleTree := c.call.Config(ctx).ModuleTree(ctx)
+			if moduleTree == nil {
+				return cty.DynamicVal
+			}
+
+			// This shouldn't matter as callers should use the configuration
+			// that was last applied when destroying, but just in case we'll
+			// add in any output values that were declared in the configuration
+			// but not yet present in the state.
+			for name := range moduleTree.Module.Outputs {
+				if _, exists := obj[name]; exists {
+					continue
+				}
+				// We can't do any better than DynamicVal here because
+				// output values in the modules language don't have static
+				// type constraints.
+				obj[name] = cty.DynamicVal
+			}
+
+			return cty.ObjectVal(obj)
+		}
+
 		plan := c.ModuleTreePlan(ctx)
 		if plan == nil {
 			// Planning seems to have failed so we cannot decide a result value yet.
@@ -1466,6 +1538,53 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 			seenObjects.Add(objAddr)
 		}
 
+		// We need to keep track of the deferred changes as well
+		for _, dr := range corePlan.DeferredResources {
+			rsrcChange := dr.ChangeSrc
+			objAddr := addrs.AbsResourceInstanceObject{
+				ResourceInstance: rsrcChange.Addr,
+				DeposedKey:       rsrcChange.DeposedKey,
+			}
+			var priorStateSrc *states.ResourceInstanceObjectSrc
+			if corePlan.PriorState != nil {
+				priorStateSrc = corePlan.PriorState.ResourceInstanceObjectSrc(objAddr)
+			}
+
+			schema, err := c.resourceTypeSchema(
+				ctx,
+				rsrcChange.ProviderAddr.Provider,
+				rsrcChange.Addr.Resource.Resource.Mode,
+				rsrcChange.Addr.Resource.Resource.Type,
+			)
+			if err != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Can't fetch provider schema to save plan",
+					fmt.Sprintf(
+						"Failed to retrieve the schema for %s from provider %s: %s. This is a bug in Terraform.",
+						rsrcChange.Addr, rsrcChange.ProviderAddr.Provider, err,
+					),
+				))
+				continue
+			}
+
+			plannedChangeResourceInstance := stackplan.PlannedChangeResourceInstancePlanned{
+				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
+					Component: c.Addr(),
+					Item:      objAddr,
+				},
+				ChangeSrc:          rsrcChange,
+				Schema:             schema,
+				PriorStateSrc:      priorStateSrc,
+				ProviderConfigAddr: rsrcChange.ProviderAddr,
+			}
+			changes = append(changes, &stackplan.PlannedChangeDeferredResourceInstancePlanned{
+				DeferredReason:          dr.DeferredReason,
+				ResourceInstancePlanned: plannedChangeResourceInstance,
+			})
+			seenObjects.Add(objAddr)
+		}
+
 		// We also need to catch any objects that exist in the "prior state"
 		// but don't have any actions planned, since we still need to capture
 		// the prior state part in case it was updated by refreshing during
@@ -1547,52 +1666,6 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 				seenObjects.Add(addr)
 			}
 		}
-
-		// We need to keep track of the deferred changes as well
-		for _, dr := range corePlan.DeferredResources {
-			rsrcChange := dr.ChangeSrc
-			objAddr := addrs.AbsResourceInstanceObject{
-				ResourceInstance: rsrcChange.Addr,
-				DeposedKey:       rsrcChange.DeposedKey,
-			}
-			var priorStateSrc *states.ResourceInstanceObjectSrc
-			if corePlan.PriorState != nil {
-				priorStateSrc = corePlan.PriorState.ResourceInstanceObjectSrc(objAddr)
-			}
-
-			schema, err := c.resourceTypeSchema(
-				ctx,
-				rsrcChange.ProviderAddr.Provider,
-				rsrcChange.Addr.Resource.Resource.Mode,
-				rsrcChange.Addr.Resource.Resource.Type,
-			)
-			if err != nil {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Can't fetch provider schema to save plan",
-					fmt.Sprintf(
-						"Failed to retrieve the schema for %s from provider %s: %s. This is a bug in Terraform.",
-						rsrcChange.Addr, rsrcChange.ProviderAddr.Provider, err,
-					),
-				))
-				continue
-			}
-
-			plannedChangeResourceInstance := stackplan.PlannedChangeResourceInstancePlanned{
-				ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
-					Component: c.Addr(),
-					Item:      objAddr,
-				},
-				ChangeSrc:          rsrcChange,
-				Schema:             schema,
-				PriorStateSrc:      priorStateSrc,
-				ProviderConfigAddr: rsrcChange.ProviderAddr,
-			}
-			changes = append(changes, &stackplan.PlannedChangeDeferredResourceInstancePlanned{
-				DeferredReason:          dr.DeferredReason,
-				ResourceInstancePlanned: plannedChangeResourceInstance,
-			})
-		}
 	}
 
 	return changes, diags
@@ -1621,9 +1694,12 @@ func (c *ComponentInstance) CheckApply(ctx context.Context) ([]stackstate.Applie
 	if applyResult != nil {
 		newState := applyResult.FinalState
 
+		planBeingApplied := c.main.PlanBeingApplied().Components.Get(c.Addr())
 		ourChange := &stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         c.call.Addr(),
 			ComponentInstanceAddr: c.Addr(),
+			Dependents:            planBeingApplied.Dependents,
+			Dependencies:          planBeingApplied.Dependencies,
 			OutputValues:          make(map[addrs.OutputValue]cty.Value, len(newState.RootOutputValues)),
 		}
 		for name, os := range newState.RootOutputValues {
