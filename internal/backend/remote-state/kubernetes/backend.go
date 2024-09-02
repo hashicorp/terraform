@@ -54,7 +54,7 @@ func New() backend.Backend {
 				Description: "Suffix used when creating the secret. The secret will be named in the format: `tfstate-{workspace}-{secret_suffix}`. Note that the backend may append its own numeric index to the secret name when chunking large state files into multiple secrets. In this case, there will be multiple secrets named in the format: `tfstate-{workspace}-{secret_suffix}-{index}`.",
 				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
 					value := v.(string)
-					// Split the suffix by '-' and check the last part
+					// Split the suffix by '-' and check the last segment.
 					parts := strings.Split(value, "-")
 					if len(parts) > 1 {
 						lastPart := parts[len(parts)-1]
