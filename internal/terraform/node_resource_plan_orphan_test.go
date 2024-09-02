@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -51,6 +52,7 @@ func TestNodeResourcePlanOrphanExecute(t *testing.T) {
 			},
 		},
 		ChangesChanges: plans.NewChanges().SyncWrapper(),
+		DeferralsState: deferring.NewDeferred(false),
 	}
 
 	node := NodePlannableResourceInstanceOrphan{
@@ -117,6 +119,7 @@ func TestNodeResourcePlanOrphanExecute_alreadyDeleted(t *testing.T) {
 			},
 		},
 		ChangesChanges: changes.SyncWrapper(),
+		DeferralsState: deferring.NewDeferred(false),
 	}
 
 	node := NodePlannableResourceInstanceOrphan{
@@ -199,6 +202,7 @@ func TestNodeResourcePlanOrphanExecute_deposed(t *testing.T) {
 			},
 		},
 		ChangesChanges: changes.SyncWrapper(),
+		DeferralsState: deferring.NewDeferred(false),
 	}
 
 	node := NodePlannableResourceInstanceOrphan{
