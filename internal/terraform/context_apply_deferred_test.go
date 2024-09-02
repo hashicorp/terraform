@@ -3011,6 +3011,9 @@ data "test" "b" {
 		},
 	}
 
+	// The following tests execute from the perspective of Stacks, where an
+	// external factor means everything in the plan should be deferred.
+
 	resourceReferencesDeferredDataSource = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
@@ -3133,6 +3136,167 @@ resource "test" "b" {
 			},
 		},
 	}
+
+	planCreateExternalDeferral = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "foo"
+}
+		`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					// This means everything should be deferred.
+					opts.ExternalDependencyDeferred = true
+				},
+				complete:    false,
+				wantActions: map[string]plans.Action{},
+				wantPlanned: map[string]cty.Value{
+					"foo": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("foo"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Create},
+				},
+			},
+		},
+	}
+
+	planUpdateExternalDeferral = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "foo"
+}
+		`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name":   "bar",
+						"output": "computed_output",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					// This means everything should be deferred.
+					opts.ExternalDependencyDeferred = true
+				},
+				complete:    false,
+				wantActions: map[string]plans.Action{},
+				wantPlanned: map[string]cty.Value{
+					"foo": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("foo"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("computed_output"),
+					}),
+				},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Update},
+				},
+			},
+		},
+	}
+
+	planDeleteExternalDeferral = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+# empty, should delete the resource
+		`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name":   "bar",
+						"output": "computed_output",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					// This means everything should be deferred.
+					opts.ExternalDependencyDeferred = true
+				},
+				complete:    false,
+				wantActions: map[string]plans.Action{},
+				wantPlanned: map[string]cty.Value{},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Delete},
+				},
+			},
+		},
+	}
+
+	// planDeleteExternalDeferral tests to ensure that we still defer to-be
+	// deleted resources when the plan asks for everything to be deferred.
+	planDeleteModeExternalDeferral = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "foo"
+}
+		`,
+		},
+		state: states.BuildState(func(state *states.SyncState) {
+			state.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr("test.a"),
+				&states.ResourceInstanceObjectSrc{
+					Status: states.ObjectReady,
+					AttrsJSON: mustParseJson(map[string]interface{}{
+						"name":   "foo",
+						"output": "computed_output",
+					}),
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				})
+		}),
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.DestroyMode
+
+					// This means everything should be deferred.
+					opts.ExternalDependencyDeferred = true
+				},
+				complete:    false,
+				wantActions: map[string]plans.Action{},
+				wantPlanned: map[string]cty.Value{
+					"foo": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("foo"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("computed_output"),
+					}),
+				},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.a": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Delete},
+				},
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
@@ -3178,6 +3342,10 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"resource_references_deferred_data_source":                resourceReferencesDeferredDataSource,
 		"resource_references_unknown_and_deferred_data_source":    resourceReferencesUnknownAndDeferredDataSource,
 		"create_and_reference_resource_in_deferred_component":     createAndReferenceResourceInDeferredComponent,
+		"plan_create_external_deferral":                           planCreateExternalDeferral,
+		"plan_update_external_deferral":                           planUpdateExternalDeferral,
+		"plan_delete_external_deferral":                           planDeleteExternalDeferral,
+		"plan_delete_mode_external_deferral":                      planDeleteModeExternalDeferral,
 	}
 
 	for name, test := range tests {
@@ -3289,6 +3457,14 @@ func TestContextApply_deferredActions(t *testing.T) {
 						}
 						if diff := cmp.Diff(stage.wantDeferred, gotDeferred); diff != "" {
 							t.Errorf("wrong deferred reasons or actions in plan\n%s", diff)
+						}
+
+						// all the deferred changes should include a valid
+						// provider.
+						for _, change := range plan.DeferredResources {
+							if diff := cmp.Diff("provider[\"registry.terraform.io/hashicorp/test\"]", change.ChangeSrc.ProviderAddr.String()); diff != "" {
+								t.Errorf("wrong provider address in plan\n%s", diff)
+							}
 						}
 
 					})

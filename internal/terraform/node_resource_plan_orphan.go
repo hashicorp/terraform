@@ -121,6 +121,9 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 			forget = true
 		}
 	}
+
+	shouldDefer := ctx.Deferrals().ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies)
+
 	var change *plans.ResourceInstanceChange
 	var pDiags tfdiags.Diagnostics
 	var deferred *providers.Deferred
@@ -130,14 +133,6 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	} else {
 		change, deferred, pDiags = n.planDestroy(ctx, oldState, "")
 		diags = diags.Append(pDiags)
-
-		if deferred != nil {
-			ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, &plans.ResourceInstanceChange{
-				Addr:   n.Addr,
-				Change: change.Change,
-			})
-			return diags
-		}
 	}
 	if diags.HasErrors() {
 		return diags
@@ -150,31 +145,39 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		// plan before apply, and may not handle a missing resource during
 		// Delete correctly.  If this is a simple refresh, Terraform is
 		// expected to remove the missing resource from the state entirely
-		refreshedState, deferred, refreshDiags := n.refresh(ctx, states.NotDeposed, oldState, ctx.Deferrals().DeferralAllowed())
+		refreshedState, refreshDeferred, refreshDiags := n.refresh(ctx, states.NotDeposed, oldState, ctx.Deferrals().DeferralAllowed())
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
 		}
 
-		diags = diags.Append(n.writeResourceInstanceState(ctx, refreshedState, refreshState))
-		if diags.HasErrors() {
-			return diags
+		oldState = refreshedState
+
+		if deferred == nil {
+			// set the overall deferred status if it wasn't already set.
+			deferred = refreshDeferred
 		}
 
-		// If we refreshed then our subsequent planning should be in terms of
-		// the new object, not the original object.
-		if deferred == nil {
-			oldState = refreshedState
-		} else {
-			ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, &plans.ResourceInstanceChange{
-				Addr: n.Addr,
-				Change: plans.Change{
-					Action: plans.Read,
-					Before: oldState.Value,
-					After:  refreshedState.Value,
-				},
-			})
+		if deferred == nil && !shouldDefer {
+			// only update the state if we're not deferring the change
+			diags = diags.Append(n.writeResourceInstanceState(ctx, refreshedState, refreshState))
+			if diags.HasErrors() {
+				return diags
+			}
 		}
+	}
+
+	// We might be able to offer an approximate reason for why we are
+	// planning to delete this object. (This is best-effort; we might
+	// sometimes not have a reason.)
+	change.ActionReason = n.deleteActionReason(ctx)
+
+	if deferred != nil {
+		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, change)
+		return diags
+	} else if shouldDefer {
+		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
+		return diags
 	}
 
 	// If we're skipping planning, all we need to do is write the state. If the
@@ -184,11 +187,6 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	if n.skipPlanChanges || oldState == nil || oldState.Value.IsNull() {
 		return diags.Append(n.writeResourceInstanceState(ctx, oldState, workingState))
 	}
-
-	// We might be able to offer an approximate reason for why we are
-	// planning to delete this object. (This is best-effort; we might
-	// sometimes not have a reason.)
-	change.ActionReason = n.deleteActionReason(ctx)
 
 	// We intentionally write the change before the subsequent checks, because
 	// all of the checks below this point are for problems caused by the
