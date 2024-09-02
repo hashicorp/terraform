@@ -10,6 +10,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
@@ -50,6 +52,21 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Suffix used when creating the secret. The secret will be named in the format: `tfstate-{workspace}-{secret_suffix}`.",
+				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
+					value := v.(string)
+					// Split the suffix by '-' and check the last part
+					parts := strings.Split(value, "-")
+					if len(parts) > 1 {
+						lastPart := parts[len(parts)-1]
+						if _, err := strconv.Atoi(lastPart); err == nil {
+							// If the last segment is a number, it's considered invalid.
+							// The backend automatically appends its own numeric suffix when chunking large state files into multiple secrets.
+							// Allowing a user-defined numeric suffix could cause conflicts with this mechanism.
+							return nil, []error{fmt.Errorf("secret_suffix must not end with '-<number>', got '%s'", value)}
+						}
+					}
+					return nil, nil
+				},
 			},
 			"labels": {
 				Type:        schema.TypeMap,
