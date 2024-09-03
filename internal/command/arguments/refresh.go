@@ -34,9 +34,6 @@ func ParseRefresh(args []string) (*Refresh, tfdiags.Diagnostics) {
 	}
 
 	cmdFlags := extendedFlagSet("refresh", refresh.State, refresh.Operation, refresh.Vars)
-	if refresh.State != nil {
-		diags = append(diags, tfdiags.SimpleWarning("state is deprecated"))
-	}
 	cmdFlags.BoolVar(&refresh.InputEnabled, "input", true, "input")
 
 	var json bool
@@ -48,6 +45,10 @@ func ParseRefresh(args []string) (*Refresh, tfdiags.Diagnostics) {
 			"Failed to parse command-line flags",
 			err.Error(),
 		))
+	}
+
+	if refresh.State.StatePath != "" {
+		diags = append(diags, tfdiags.SimpleWarning("state is deprecated"))
 	}
 
 	args = cmdFlags.Args()

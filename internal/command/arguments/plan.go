@@ -46,9 +46,6 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 	}
 
 	cmdFlags := extendedFlagSet("plan", plan.State, plan.Operation, plan.Vars)
-	if plan.State != nil {
-		diags = append(diags, tfdiags.SimpleWarning("state is deprecated"))
-	}
 	cmdFlags.BoolVar(&plan.DetailedExitCode, "detailed-exitcode", false, "detailed-exitcode")
 	cmdFlags.BoolVar(&plan.InputEnabled, "input", true, "input")
 	cmdFlags.StringVar(&plan.OutPath, "out", "", "out")
@@ -63,6 +60,10 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 			"Failed to parse command-line flags",
 			err.Error(),
 		))
+	}
+
+	if plan.State.StatePath != "" {
+		diags = append(diags, tfdiags.SimpleWarning("state is deprecated"))
 	}
 
 	args = cmdFlags.Args()

@@ -43,9 +43,6 @@ func ParseApply(args []string) (*Apply, tfdiags.Diagnostics) {
 	}
 
 	cmdFlags := extendedFlagSet("apply", apply.State, apply.Operation, apply.Vars)
-	if apply.State != nil {
-		diags = append(diags, tfdiags.SimpleWarning("state is deprecated"))
-	}
 	cmdFlags.BoolVar(&apply.AutoApprove, "auto-approve", false, "auto-approve")
 	cmdFlags.BoolVar(&apply.InputEnabled, "input", true, "input")
 
@@ -58,6 +55,10 @@ func ParseApply(args []string) (*Apply, tfdiags.Diagnostics) {
 			"Failed to parse command-line flags",
 			err.Error(),
 		))
+	}
+
+	if apply.State.StatePath != "" {
+		diags = append(diags, tfdiags.SimpleWarning("state is deprecated"))
 	}
 
 	args = cmdFlags.Args()

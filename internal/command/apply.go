@@ -56,11 +56,6 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-  if diags.HasWarnings() {
-    view.Diagnostics(diags)
-    diags = nil
-  }
-
 	// Check for user-supplied plugin path
 	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
@@ -70,7 +65,8 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	// Attempt to load the plan file, if specified
-	planFile, diags := c.LoadPlanFile(args.PlanPath)
+	planFile, loadPlanFileDiags := c.LoadPlanFile(args.PlanPath)
+	diags = diags.Append(loadPlanFileDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
