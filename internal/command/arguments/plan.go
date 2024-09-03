@@ -4,6 +4,8 @@
 package arguments
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -63,7 +65,11 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 	}
 
 	if plan.State.StatePath != "" {
-		diags = append(diags, tfdiags.SimpleWarning("state is deprecated"))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"state is deprecated",
+			fmt.Sprintf("use path variable of local backend instead : https://developer.hashicorp.com/terraform/language/settings/backends/local\n"),
+		))
 	}
 
 	args = cmdFlags.Args()
