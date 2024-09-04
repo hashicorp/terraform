@@ -232,11 +232,7 @@
     "title": "Using HCP Terraform",
     "routes": [
       { "title": "Overview", "path": "cloud" },
-      { "title": "HCP Terraform Settings", "path": "cloud/settings" },
-      {
-        "title": "Initializing and Migrating",
-        "path": "cloud/migrating"
-      },
+      { "title": "Connect to HCP Terraform", "path": "cloud/settings" },
       {
         "title": "Command Line Arguments",
         "path": "cloud/command-line-arguments"
