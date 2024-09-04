@@ -487,25 +487,25 @@ If you do intend to export this data, annotate the output value as sensitive by 
 	// more recently than the historical change to treat invalid output values
 	// as errors rather than warnings.
 
-	if n.Config.Ephemeral {
-		// An ephemeral output value always produces an ephemeral result,
-		// even if the value assigned to it internally is not. This is
-		// a useful simplification so that module authors can be
-		// explicit about what guarantees they are intending to make
-		// (regardless of current implementation details). Marking an
-		// output value as ephemeral when it wasn't before is always a
-		// breaking change to a module's API.
-		val = val.Mark(marks.Ephemeral)
-	} else {
-		if marks.Contains(val, marks.Ephemeral) {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Ephemeral value not allowed",
-				Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
-				Subject:  n.Config.Expr.Range().Ptr(),
-			})
-			return diags
-		}
+	if n.Config.Ephemeral && !marks.Has(val, marks.Ephemeral) {
+		// An ephemeral output value must always be ephemeral
+		// This is to prevent accidental persistence upstream
+		// from here.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Value not allowed in ephemeral output",
+			Detail:   "This output value is declared as returning an ephemeral value, so it can only be set to an ephemeral value.",
+			Subject:  n.Config.Expr.Range().Ptr(),
+		})
+		return diags
+	} else if !n.Config.Ephemeral && marks.Contains(val, marks.Ephemeral) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Ephemeral value not allowed",
+			Detail:   "This output value is not declared as returning an ephemeral value, so it cannot be set to a result derived from an ephemeral value.",
+			Subject:  n.Config.Expr.Range().Ptr(),
+		})
+		return diags
 	}
 
 	n.setValue(ctx.NamedValues(), state, changes, ctx.Deferrals(), val)
