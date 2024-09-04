@@ -13,7 +13,7 @@ This topic provides reference information about the `terraform` block. The `terr
 The following list outlines attribute hierarchy, data types, and requirements in the `terraform` block. Click on an attribute for details.
 
 - [`terraform`](#terraform)
-  - [`required_version`](#terraform-required_version): string | defaults to the latest version
+  - [`required_version`](#terraform-required_version): string 
   - [`required_providers`](#terraform-required_providers): map
   - [`provider_meta "<LABEL>"`](#terraform-provider_meta): map
   - [`backend "<BACKEND_TYPE>"`](#terraform-backend): map
@@ -24,7 +24,7 @@ The following list outlines attribute hierarchy, data types, and requirements in
       - [`name`](#terraform-cloud-workspaces): string
       - [`project`](#terraform-cloud-workspaces): string
     - [`hostname`](#terraform-cloud-workspaces): string | `app.terraform.io`
-    - [`token`](#terraform-cloud-token):
+    - [`token`](#terraform-cloud-token): string
   - [`experiments`](#terraform-experiments): list of strings
 
 ## Specification
