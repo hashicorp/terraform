@@ -45,7 +45,7 @@ terraform {
 The `cloud` block also has some special restrictions:
 
 - A configuration can only provide one `cloud` block.
-- A `cloud` block cannot be used with [state backends](/terraform/language/settings/backends/configuration).
+- A `cloud` block cannot be used with [state backends](/terraform/language/backend).
   A configuration can use one or the other, but not both.
 - A `cloud` block cannot refer to named values (like input variables, locals, or
   data source attributes).

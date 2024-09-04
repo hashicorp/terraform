@@ -19,7 +19,7 @@ When you run `terraform init` in the following scenarios, Terraform will ask you
 > **Hands On:** Try the [Migrate State to HCP Terraform](/terraform/tutorials/cloud/cloud-migrate) tutorial.
 
 If the working directory already has state data available (using either local state or a [state
-backend](/terraform/language/settings/backends/configuration)), Terraform asks your approval to migrate
+backend](/terraform/language/backend)), Terraform asks your approval to migrate
 that state to HCP Terraform. You will need permission to manage workspaces in the destination HCP Terraform organization. This process is interactive and self-documenting, and resembles
 moving between state backends.
 
@@ -39,7 +39,7 @@ Naming](/terraform/cloud-docs/workspaces/naming) in the HCP Terraform documentat
 
 If the working directory was already connected to HCP Terraform with the `remote` backend, Terraform can continue using the same HCP Terraform workspaces. The local names shown for those workspaces will change to match their remote names.
 
-The [`remote` backend](/terraform/language/settings/backends/remote) was the primary implementation of HCP Terraform's [CLI-driven run workflow](/terraform/cloud-docs/run/cli) for Terraform versions 0.11.13 through 1.0.x. We recommend using the native `cloud` integration for Terraform versions 1.1 or later, as it provides an improved user experience and various enhancements.
+The [`remote` backend](/terraform/language/backend/remote) was the primary implementation of HCP Terraform's [CLI-driven run workflow](/terraform/cloud-docs/run/cli) for Terraform versions 0.11.13 through 1.0.x. We recommend using the native `cloud` integration for Terraform versions 1.1 or later, as it provides an improved user experience and various enhancements.
 
 ### Block Replacement
 
