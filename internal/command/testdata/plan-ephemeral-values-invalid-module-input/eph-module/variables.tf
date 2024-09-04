@@ -1,0 +1,3 @@
+variable "eph" {
+  type = string
+}
