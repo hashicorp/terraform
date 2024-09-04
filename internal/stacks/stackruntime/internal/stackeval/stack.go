@@ -48,6 +48,7 @@ type Stack struct {
 	stackCalls     map[stackaddrs.StackCall]*StackCall
 	outputValues   map[stackaddrs.OutputValue]*OutputValue
 	components     map[stackaddrs.Component]*Component
+	removed        map[stackaddrs.Component]*Removed
 	providers      map[stackaddrs.ProviderConfigRef]*Provider
 }
 
@@ -318,6 +319,37 @@ func (s *Stack) Components(ctx context.Context) map[stackaddrs.Component]*Compon
 
 func (s *Stack) Component(ctx context.Context, addr stackaddrs.Component) *Component {
 	return s.Components(ctx)[addr]
+}
+
+func (s *Stack) Removeds(ctx context.Context) map[stackaddrs.Component]*Removed {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.removed != nil {
+		return s.removed
+	}
+
+	decls := s.ConfigDeclarations(ctx)
+	ret := make(map[stackaddrs.Component]*Removed, len(decls.Removed))
+	for _, r := range decls.Removed {
+		absAddr := stackaddrs.AbsComponent{
+			Stack: s.Addr(),
+			Item:  r.FromComponent,
+		}
+		ret[absAddr.Item] = newRemoved(s.main, absAddr)
+	}
+	s.removed = ret
+	return ret
+}
+
+func (s *Stack) Removed(ctx context.Context, addr stackaddrs.Component) *Removed {
+	return s.Removeds(ctx)[addr]
+}
+
+// ApplyableComponents returns the combination of removed blocks and declared
+// components for a given component address.
+func (s *Stack) ApplyableComponents(ctx context.Context, addr stackaddrs.Component) (*Component, *Removed) {
+	return s.Component(ctx, addr), s.Removed(ctx, addr)
 }
 
 func (s *Stack) ProviderByLocalAddr(ctx context.Context, localAddr stackaddrs.ProviderConfigRef) *Provider {

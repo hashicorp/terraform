@@ -304,6 +304,13 @@ message StateComponentInstanceV1 {
     // and applying other component instances that refer to this one.
     map<string, DynamicValue> output_values = 1;
 
+    // The input variables for this component instance as reported from the
+    // most recent apply action. We retain this only for usage within removed
+    // blocks, where we need to know the input variables to be able to plan
+    // and apply the destroy action without asking the user to resupply or
+    // remember them.
+    map<string, DynamicValue> input_variables = 2;
+
     // The absolute configuration addresses of components that this component
     // instance depended on when it was created. We preserve this information
     // to help with plan and apply ordering during destroy plans or for removed

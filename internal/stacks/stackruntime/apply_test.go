@@ -177,42 +177,14 @@ func TestApplyWithRemovedResource(t *testing.T) {
 
 	wantChanges := []stackstate.AppliedChange{
 		&stackstate.AppliedChangeComponentInstance{
-			ComponentAddr: stackaddrs.AbsComponent{
-				Item: stackaddrs.Component{
-					Name: "self",
-				},
-			},
-			ComponentInstanceAddr: stackaddrs.AbsComponentInstance{
-				Item: stackaddrs.ComponentInstance{
-					Component: stackaddrs.Component{
-						Name: "self",
-					},
-				},
-			},
-			OutputValues: make(map[addrs.OutputValue]cty.Value),
+			ComponentAddr:         mustAbsComponent("component.self"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputVariables:        make(map[addrs.InputVariable]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
-			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
-				Component: stackaddrs.AbsComponentInstance{
-					Item: stackaddrs.ComponentInstance{
-						Component: stackaddrs.Component{
-							Name: "self",
-						},
-					},
-				},
-				Item: addrs.AbsResourceInstanceObject{
-					ResourceInstance: addrs.AbsResourceInstance{
-						Resource: addrs.ResourceInstance{
-							Resource: addrs.Resource{
-								Mode: addrs.ManagedResourceMode,
-								Type: "terraform_data",
-								Name: "main",
-							},
-						},
-					},
-				},
-			},
-			NewStateSrc: nil, // Deleted, so is nil.
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.terraform_data.main"),
+			NewStateSrc:                nil, // Deleted, so is nil.
 			ProviderConfigAddr: addrs.AbsProviderConfig{
 				Provider: addrs.Provider{
 					Type:      "terraform",
@@ -376,41 +348,13 @@ func TestApplyWithMovedResource(t *testing.T) {
 
 	wantChanges := []stackstate.AppliedChange{
 		&stackstate.AppliedChangeComponentInstance{
-			ComponentAddr: stackaddrs.AbsComponent{
-				Item: stackaddrs.Component{
-					Name: "self",
-				},
-			},
-			ComponentInstanceAddr: stackaddrs.AbsComponentInstance{
-				Item: stackaddrs.ComponentInstance{
-					Component: stackaddrs.Component{
-						Name: "self",
-					},
-				},
-			},
-			OutputValues: make(map[addrs.OutputValue]cty.Value),
+			ComponentAddr:         mustAbsComponent("component.self"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputVariables:        make(map[addrs.InputVariable]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
-			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
-				Component: stackaddrs.AbsComponentInstance{
-					Item: stackaddrs.ComponentInstance{
-						Component: stackaddrs.Component{
-							Name: "self",
-						},
-					},
-				},
-				Item: addrs.AbsResourceInstanceObject{
-					ResourceInstance: addrs.AbsResourceInstance{
-						Resource: addrs.ResourceInstance{
-							Resource: addrs.Resource{
-								Mode: addrs.ManagedResourceMode,
-								Type: "testing_resource",
-								Name: "after",
-							},
-						},
-					},
-				},
-			},
+			ResourceInstanceObjectAddr:         mustAbsResourceInstanceObject("component.self.testing_resource.after"),
 			PreviousResourceInstanceObjectAddr: &expectedPreviousAddr,
 			NewStateSrc: &states.ResourceInstanceObjectSrc{
 				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
@@ -528,42 +472,17 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 
 	wantChanges := []stackstate.AppliedChange{
 		&stackstate.AppliedChangeComponentInstance{
-			ComponentAddr: stackaddrs.AbsComponent{
-				Item: stackaddrs.Component{
-					Name: "self",
-				},
+			ComponentAddr:         mustAbsComponent("component.self"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+			Dependencies:          collections.NewSet(mustAbsComponent("component.sensitive")),
+			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("id"):    cty.StringVal("bb5cf32312ec"),
+				mustInputVariable("input"): cty.StringVal("secret").Mark(marks.Sensitive),
 			},
-			ComponentInstanceAddr: stackaddrs.AbsComponentInstance{
-				Item: stackaddrs.ComponentInstance{
-					Component: stackaddrs.Component{
-						Name: "self",
-					},
-				},
-			},
-			Dependencies: collections.NewSet(mustAbsComponent("component.sensitive")),
-			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
-			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
-				Component: stackaddrs.AbsComponentInstance{
-					Item: stackaddrs.ComponentInstance{
-						Component: stackaddrs.Component{
-							Name: "self",
-						},
-					},
-				},
-				Item: addrs.AbsResourceInstanceObject{
-					ResourceInstance: addrs.AbsResourceInstance{
-						Resource: addrs.ResourceInstance{
-							Resource: addrs.Resource{
-								Mode: addrs.ManagedResourceMode,
-								Type: "testing_resource",
-								Name: "data",
-							},
-						},
-					},
-				},
-			},
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
 			NewStateSrc: &states.ResourceInstanceObjectSrc{
 				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
 					"id":    "bb5cf32312ec",
@@ -581,22 +500,13 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 			Schema: stacks_testing_provider.TestingResourceSchema,
 		},
 		&stackstate.AppliedChangeComponentInstance{
-			ComponentAddr: stackaddrs.AbsComponent{
-				Item: stackaddrs.Component{
-					Name: "sensitive",
-				},
-			},
-			ComponentInstanceAddr: stackaddrs.AbsComponentInstance{
-				Item: stackaddrs.ComponentInstance{
-					Component: stackaddrs.Component{
-						Name: "sensitive",
-					},
-				},
-			},
-			Dependents: collections.NewSet(mustAbsComponent("component.self")),
+			ComponentAddr:         mustAbsComponent("component.sensitive"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.sensitive"),
+			Dependents:            collections.NewSet(mustAbsComponent("component.self")),
 			OutputValues: map[addrs.OutputValue]cty.Value{
 				addrs.OutputValue{Name: "out"}: cty.StringVal("secret").Mark(marks.Sensitive),
 			},
+			InputVariables: make(map[addrs.InputVariable]cty.Value),
 		},
 	}
 
@@ -716,43 +626,17 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 
 	wantChanges := []stackstate.AppliedChange{
 		&stackstate.AppliedChangeComponentInstance{
-			ComponentAddr: stackaddrs.AbsComponent{
-				Item: stackaddrs.Component{
-					Name: "single",
-				},
-			},
-			ComponentInstanceAddr: stackaddrs.AbsComponentInstance{
-				Item: stackaddrs.ComponentInstance{
-					Component: stackaddrs.Component{
-						Name: "single",
-					},
-				},
-			},
+			ComponentAddr:         mustAbsComponent("component.single"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.single"),
 			OutputValues: map[addrs.OutputValue]cty.Value{
 				addrs.OutputValue{Name: "foo"}: cty.StringVal("bar"),
 			},
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("foo"): cty.StringVal("bar"),
+			},
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
-			ResourceInstanceObjectAddr: stackaddrs.AbsResourceInstanceObject{
-				Component: stackaddrs.AbsComponentInstance{
-					Item: stackaddrs.ComponentInstance{
-						Component: stackaddrs.Component{
-							Name: "single",
-						},
-					},
-				},
-				Item: addrs.AbsResourceInstanceObject{
-					ResourceInstance: addrs.AbsResourceInstance{
-						Resource: addrs.ResourceInstance{
-							Resource: addrs.Resource{
-								Mode: addrs.ManagedResourceMode,
-								Type: "testing_resource",
-								Name: "main",
-							},
-						},
-					},
-				},
-			},
+			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.single.testing_resource.main"),
 			NewStateSrc: &states.ResourceInstanceObjectSrc{
 				AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
 					"id":    "test",
@@ -887,6 +771,9 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 			ComponentAddr:         mustAbsComponent("component.single"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.single"),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("foo"): cty.StringVal("bar"),
+			},
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.single.testing_resource.main"),
@@ -990,43 +877,29 @@ func TestApplyWithForcePlanTimestamp(t *testing.T) {
 
 	wantChanges := []stackstate.AppliedChange{
 		&stackstate.AppliedChangeComponentInstance{
-			ComponentAddr: stackaddrs.AbsComponent{
-				Item: stackaddrs.Component{
-					Name: "second-self",
-				},
-			},
-			ComponentInstanceAddr: stackaddrs.AbsComponentInstance{
-				Item: stackaddrs.ComponentInstance{
-					Component: stackaddrs.Component{
-						Name: "second-self",
-					},
-				},
-			},
+			ComponentAddr:         mustAbsComponent("component.second-self"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.second-self"),
 			OutputValues: map[addrs.OutputValue]cty.Value{
 				// We want to make sure the plantimestamp is set correctly
 				{Name: "input"}: cty.StringVal(forcedPlanTimestamp),
 				// plantimestamp should also be set for the module runtime used in the components
 				{Name: "out"}: cty.StringVal(fmt.Sprintf("module-output-%s", forcedPlanTimestamp)),
+			},
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("value"): cty.StringVal(forcedPlanTimestamp),
 			},
 		},
 		&stackstate.AppliedChangeComponentInstance{
-			ComponentAddr: stackaddrs.AbsComponent{
-				Item: stackaddrs.Component{
-					Name: "self",
-				},
-			},
-			ComponentInstanceAddr: stackaddrs.AbsComponentInstance{
-				Item: stackaddrs.ComponentInstance{
-					Component: stackaddrs.Component{
-						Name: "self",
-					},
-				},
-			},
+			ComponentAddr:         mustAbsComponent("component.self"),
+			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
 			OutputValues: map[addrs.OutputValue]cty.Value{
 				// We want to make sure the plantimestamp is set correctly
 				{Name: "input"}: cty.StringVal(forcedPlanTimestamp),
 				// plantimestamp should also be set for the module runtime used in the components
 				{Name: "out"}: cty.StringVal(fmt.Sprintf("module-output-%s", forcedPlanTimestamp)),
+			},
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("value"): cty.StringVal(forcedPlanTimestamp),
 			},
 		},
 	}
@@ -1247,6 +1120,12 @@ func TestApplyWithFailedComponent(t *testing.T) {
 			ComponentInstanceAddr: mustAbsComponentInstance("component.parent"),
 			Dependents:            collections.NewSet(mustAbsComponent("component.self")),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("input"):      cty.StringVal("Hello, world!"),
+				mustInputVariable("id"):         cty.NullVal(cty.String),
+				mustInputVariable("fail_plan"):  cty.NullVal(cty.Bool),
+				mustInputVariable("fail_apply"): cty.BoolVal(true),
+			},
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_failed_resource.data"),
@@ -1257,6 +1136,7 @@ func TestApplyWithFailedComponent(t *testing.T) {
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
 			Dependencies:          collections.NewSet(mustAbsComponent("component.parent")),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputVariables:        make(map[addrs.InputVariable]cty.Value),
 		},
 	}
 
@@ -1359,6 +1239,12 @@ func TestApplyWithFailedProviderLinkedComponent(t *testing.T) {
 			ComponentInstanceAddr: mustAbsComponentInstance("component.parent"),
 			Dependents:            collections.NewSet(mustAbsComponent("component.self")),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("input"):      cty.NullVal(cty.String),
+				mustInputVariable("id"):         cty.NullVal(cty.String),
+				mustInputVariable("fail_plan"):  cty.NullVal(cty.Bool),
+				mustInputVariable("fail_apply"): cty.BoolVal(true),
+			},
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.parent.testing_failed_resource.data"),
@@ -1369,6 +1255,10 @@ func TestApplyWithFailedProviderLinkedComponent(t *testing.T) {
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
 			Dependencies:          collections.NewSet(mustAbsComponent("component.parent")),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("id"):    cty.NullVal(cty.String),
+				mustInputVariable("input"): cty.StringVal("Hello, world!"),
+			},
 		},
 	}
 
@@ -1429,6 +1319,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 					ComponentAddr:         mustAbsComponent("component.self"),
 					ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
 					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+					InputVariables:        make(map[addrs.InputVariable]cty.Value),
 				},
 				&stackstate.AppliedChangeResourceInstanceObject{
 					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.after"),
@@ -1478,6 +1369,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 					ComponentAddr:         mustAbsComponent("component.self"),
 					ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
 					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+					InputVariables:        make(map[addrs.InputVariable]cty.Value),
 				},
 				&stackstate.AppliedChangeResourceInstanceObject{
 					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_failed_resource.resource"),
@@ -1536,6 +1428,9 @@ func TestApplyWithStateManipulation(t *testing.T) {
 					ComponentAddr:         mustAbsComponent("component.self"),
 					ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
 					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+					InputVariables: map[addrs.InputVariable]cty.Value{
+						mustInputVariable("id"): cty.StringVal("imported"),
+					},
 				},
 				&stackstate.AppliedChangeResourceInstanceObject{
 					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
@@ -1576,6 +1471,9 @@ func TestApplyWithStateManipulation(t *testing.T) {
 					ComponentAddr:         mustAbsComponent("component.self"),
 					ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
 					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+					InputVariables: map[addrs.InputVariable]cty.Value{
+						mustInputVariable("id"): cty.StringVal("imported"),
+					},
 				},
 				&stackstate.AppliedChangeResourceInstanceObject{
 					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_failed_resource.resource"),
@@ -1641,6 +1539,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 					ComponentAddr:         mustAbsComponent("component.self"),
 					ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
 					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+					InputVariables:        make(map[addrs.InputVariable]cty.Value),
 				},
 				&stackstate.AppliedChangeResourceInstanceObject{
 					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.resource"),
@@ -1684,6 +1583,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 					ComponentAddr:         mustAbsComponent("component.self"),
 					ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
 					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+					InputVariables:        make(map[addrs.InputVariable]cty.Value),
 				},
 				&stackstate.AppliedChangeResourceInstanceObject{
 					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_failed_resource.resource"),
@@ -1723,11 +1623,13 @@ func TestApplyWithStateManipulation(t *testing.T) {
 					ComponentAddr:         mustAbsComponent("component.deferred"),
 					ComponentInstanceAddr: mustAbsComponentInstance("component.deferred"),
 					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+					InputVariables:        make(map[addrs.InputVariable]cty.Value),
 				},
 				&stackstate.AppliedChangeComponentInstance{
 					ComponentAddr:         mustAbsComponent("component.ok"),
 					ComponentInstanceAddr: mustAbsComponentInstance("component.ok"),
 					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+					InputVariables:        make(map[addrs.InputVariable]cty.Value),
 				},
 				&stackstate.AppliedChangeResourceInstanceObject{
 					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.ok.testing_resource.self"),
@@ -1995,6 +1897,7 @@ func TestApplyWithChangedInputValues(t *testing.T) {
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputVariables:        make(map[addrs.InputVariable]cty.Value),
 		},
 		// no resources should have been created because the input variable was
 		// invalid.
@@ -2126,6 +2029,10 @@ func TestApplyAutomaticInputConversion(t *testing.T) {
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self[\"hello\"]"),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("id"):    cty.StringVal("hello"),
+				mustInputVariable("input"): cty.StringVal("hello"),
+			},
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"hello\"].testing_resource.data"),
@@ -2144,6 +2051,10 @@ func TestApplyAutomaticInputConversion(t *testing.T) {
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self[\"world\"]"),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("id"):    cty.StringVal("world"),
+				mustInputVariable("input"): cty.StringVal("world"),
+			},
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"world\"].testing_resource.data"),
@@ -2277,6 +2188,10 @@ func TestApplyEphemeralInput(t *testing.T) {
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("id"):    cty.StringVal("2f9f3b84"),
+				mustInputVariable("input"): cty.StringVal("hello"),
+			},
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
@@ -2420,6 +2335,10 @@ func TestApplyMissingEphemeralInput(t *testing.T) {
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("id"):    cty.StringVal("2f9f3b84"),
+				mustInputVariable("input"): cty.StringVal("hello"),
+			},
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
@@ -2546,6 +2465,10 @@ func TestApplyEphemeralInputWithDefault(t *testing.T) {
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("id"):    cty.StringVal("2f9f3b84"),
+				mustInputVariable("input"): cty.StringVal("hello"),
+			},
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
@@ -2863,6 +2786,10 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 			OutputValues: map[addrs.OutputValue]cty.Value{
 				{Name: "value"}: cty.StringVal("hello, world!"),
 			},
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("id"):    cty.StringVal("2f9f3b84"),
+				mustInputVariable("input"): cty.StringVal("hello, world!"),
+			},
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
@@ -3004,6 +2931,13 @@ func TestApplyFailedDependencyWithResourceInState(t *testing.T) {
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("resource_id"): cty.StringVal("resource"),
+				mustInputVariable("failed_id"):   cty.StringVal("failed"),
+				mustInputVariable("fail_apply"):  cty.True,
+				mustInputVariable("fail_plan"):   cty.False,
+				mustInputVariable("input"):       cty.NullVal(cty.String),
+			},
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
 			// This has no state as the apply operation failed and it wasn't
@@ -3159,6 +3093,10 @@ func TestApplyManuallyRemovedResource(t *testing.T) {
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
+			InputVariables: map[addrs.InputVariable]cty.Value{
+				mustInputVariable("id"):    cty.StringVal("foo"),
+				mustInputVariable("input"): cty.StringVal("hello"),
+			},
 		},
 		// The resource in our configuration has been updated, so that is
 		// present as normal.
@@ -3192,6 +3130,427 @@ func TestApplyManuallyRemovedResource(t *testing.T) {
 	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
+}
+
+func TestApply_RemovedBlocks(t *testing.T) {
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.0.0"),
+		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	// TODO: Add tests for and implement the following cases:
+	//   - Removed and component blocks that target the same instance.
+	//   - Edge cases around missing providers and type mismatches.
+	//   - Make sure all instances in state are targeted by a component or a
+	//     removed block.
+	//   - Validate what happens when a removed block foreach evaluates to
+	//     unknown.
+	//   - Add a test for a removed block in an embedded stack.
+	//   - Add a test for a removed block targeting state that has already been
+	//     removed.
+	//   - Add a test for a removed block that forgets instead of destroys.
+
+	tcs := map[string]struct {
+		source           string
+		initialState     *stackstate.State
+		store            *stacks_testing_provider.ResourceStore
+		inputs           map[string]cty.Value
+		wantPlanChanges  []stackplan.PlannedChange
+		wantPlanDiags    []expectedDiagnostic
+		wantApplyChanges []stackstate.AppliedChange
+		wantApplyDiags   []expectedDiagnostic
+	}{
+		"removed component": {
+			source: filepath.Join("with-single-input", "removed-component"),
+			initialState: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.self")).
+					AddInputVariable("id", cty.StringVal("removed")).
+					AddInputVariable("input", cty.StringVal("removed"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self.testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "removed",
+							"value": "removed",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("removed", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("removed"),
+					"value": cty.StringVal("removed"),
+				})).
+				Build(),
+			inputs: map[string]cty.Value{},
+			wantPlanChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeApplyable{
+					Applyable: true,
+				},
+				&stackplan.PlannedChangeComponentInstance{
+					Addr:          mustAbsComponentInstance("component.self"),
+					PlanComplete:  true,
+					PlanApplyable: true,
+					Mode:          plans.DestroyMode,
+					Action:        plans.Delete,
+					PlannedInputValues: map[string]plans.DynamicValue{
+						"id":    mustPlanDynamicValueDynamicType(cty.StringVal("removed")),
+						"input": mustPlanDynamicValueDynamicType(cty.StringVal("removed")),
+					},
+					PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+						"input": nil,
+						"id":    nil,
+					},
+					PlannedOutputValues: make(map[string]cty.Value),
+					PlannedCheckResults: &states.CheckResults{},
+					PlanTimestamp:       fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeResourceInstancePlanned{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+					ChangeSrc: &plans.ResourceInstanceChangeSrc{
+						Addr:        mustAbsResourceInstance("testing_resource.data"),
+						PrevRunAddr: mustAbsResourceInstance("testing_resource.data"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.Delete,
+							Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+								"id":    cty.StringVal("removed"),
+								"value": cty.StringVal("removed"),
+							})),
+							After: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+								"id":    cty.String,
+								"value": cty.String,
+							}))),
+						},
+						ProviderAddr: mustDefaultRootProvider("testing"),
+					},
+					PriorStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "removed",
+							"value": "removed",
+						}),
+						Dependencies: make([]addrs.ConfigResource, 0),
+						Status:       states.ObjectReady,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+				&stackplan.PlannedChangeHeader{
+					TerraformVersion: version.SemVer,
+				},
+				&stackplan.PlannedChangePlannedTimestamp{
+					PlannedTimestamp: fakePlanTimestamp,
+				},
+			},
+			wantPlanDiags: []expectedDiagnostic{},
+			wantApplyChanges: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent("component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+					InputVariables: map[addrs.InputVariable]cty.Value{
+						mustInputVariable("id"):    cty.StringVal("removed"),
+						mustInputVariable("input"): cty.StringVal("removed"),
+					},
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+					ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+					NewStateSrc:                nil,
+					Schema:                     nil,
+				},
+			},
+			wantApplyDiags: []expectedDiagnostic{},
+		},
+		"removed component instance": {
+			source: filepath.Join("with-single-input", "removed-component-instance"),
+			initialState: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.self[\"removed\"]")).
+					AddInputVariable("id", cty.StringVal("removed")).
+					AddInputVariable("input", cty.StringVal("removed"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self[\"removed\"].testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "removed",
+							"value": "removed",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("removed", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("removed"),
+					"value": cty.StringVal("removed"),
+				})).
+				Build(),
+			inputs: map[string]cty.Value{
+				"input": cty.SetVal([]cty.Value{
+					cty.StringVal("added"),
+				}),
+				"removed": cty.SetVal([]cty.Value{
+					cty.StringVal("removed"),
+				}),
+			},
+			wantPlanChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeApplyable{
+					Applyable: true,
+				},
+				// we're expecting the new component to be created
+				&stackplan.PlannedChangeComponentInstance{
+					Addr:          mustAbsComponentInstance("component.self[\"added\"]"),
+					PlanComplete:  true,
+					PlanApplyable: true,
+					Action:        plans.Create,
+					PlannedInputValues: map[string]plans.DynamicValue{
+						"id":    mustPlanDynamicValueDynamicType(cty.StringVal("added")),
+						"input": mustPlanDynamicValueDynamicType(cty.StringVal("added")),
+					},
+					PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+						"input": nil,
+						"id":    nil,
+					},
+					PlannedOutputValues: make(map[string]cty.Value),
+					PlannedCheckResults: &states.CheckResults{},
+					PlanTimestamp:       fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeResourceInstancePlanned{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"added\"].testing_resource.data"),
+					ChangeSrc: &plans.ResourceInstanceChangeSrc{
+						Addr:        mustAbsResourceInstance("testing_resource.data"),
+						PrevRunAddr: mustAbsResourceInstance("testing_resource.data"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.Create,
+							Before: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+								"id":    cty.String,
+								"value": cty.String,
+							}))),
+							After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+								"id":    cty.StringVal("added"),
+								"value": cty.StringVal("added"),
+							})),
+						},
+						ProviderAddr: mustDefaultRootProvider("testing"),
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+				&stackplan.PlannedChangeComponentInstance{
+					Addr:          mustAbsComponentInstance("component.self[\"removed\"]"),
+					PlanComplete:  true,
+					PlanApplyable: true,
+					Mode:          plans.DestroyMode,
+					Action:        plans.Delete,
+					PlannedInputValues: map[string]plans.DynamicValue{
+						"id":    mustPlanDynamicValueDynamicType(cty.StringVal("removed")),
+						"input": mustPlanDynamicValueDynamicType(cty.StringVal("removed")),
+					},
+					PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+						"input": nil,
+						"id":    nil,
+					},
+					PlannedOutputValues: make(map[string]cty.Value),
+					PlannedCheckResults: &states.CheckResults{},
+					PlanTimestamp:       fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeResourceInstancePlanned{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"removed\"].testing_resource.data"),
+					ChangeSrc: &plans.ResourceInstanceChangeSrc{
+						Addr:        mustAbsResourceInstance("testing_resource.data"),
+						PrevRunAddr: mustAbsResourceInstance("testing_resource.data"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.Delete,
+							Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+								"id":    cty.StringVal("removed"),
+								"value": cty.StringVal("removed"),
+							})),
+							After: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+								"id":    cty.String,
+								"value": cty.String,
+							}))),
+						},
+						ProviderAddr: mustDefaultRootProvider("testing"),
+					},
+					PriorStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "removed",
+							"value": "removed",
+						}),
+						Dependencies: make([]addrs.ConfigResource, 0),
+						Status:       states.ObjectReady,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+				&stackplan.PlannedChangeHeader{
+					TerraformVersion: version.SemVer,
+				},
+				&stackplan.PlannedChangePlannedTimestamp{
+					PlannedTimestamp: fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeRootInputValue{
+					Addr: stackaddrs.InputVariable{Name: "input"},
+					Value: cty.SetVal([]cty.Value{
+						cty.StringVal("added"),
+					}),
+				},
+				&stackplan.PlannedChangeRootInputValue{
+					Addr: stackaddrs.InputVariable{Name: "removed"},
+					Value: cty.SetVal([]cty.Value{
+						cty.StringVal("removed"),
+					}),
+				},
+			},
+			wantPlanDiags: []expectedDiagnostic{},
+			wantApplyChanges: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent("component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance("component.self[\"added\"]"),
+					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+					InputVariables: map[addrs.InputVariable]cty.Value{
+						mustInputVariable("id"):    cty.StringVal("added"),
+						mustInputVariable("input"): cty.StringVal("added"),
+					},
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"added\"].testing_resource.data"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "added",
+							"value": "added",
+						}),
+						Status:       states.ObjectReady,
+						Dependencies: make([]addrs.ConfigResource, 0),
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent("component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance("component.self[\"removed\"]"),
+					OutputValues:          make(map[addrs.OutputValue]cty.Value),
+					InputVariables: map[addrs.InputVariable]cty.Value{
+						mustInputVariable("id"):    cty.StringVal("removed"),
+						mustInputVariable("input"): cty.StringVal("removed"),
+					},
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"removed\"].testing_resource.data"),
+					ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+					NewStateSrc:                nil,
+					Schema:                     nil,
+				},
+			},
+			wantApplyDiags: []expectedDiagnostic{},
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			cfg := loadMainBundleConfigForTest(t, tc.source)
+
+			inputs := make(map[stackaddrs.InputVariable]ExternalInputValue, len(tc.inputs))
+			for name, input := range tc.inputs {
+				inputs[stackaddrs.InputVariable{Name: name}] = ExternalInputValue{
+					Value: input,
+				}
+			}
+
+			providers := map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+					return stacks_testing_provider.NewProviderWithData(tc.store), nil
+				},
+			}
+
+			planChangesCh := make(chan stackplan.PlannedChange)
+			planDiagsCh := make(chan tfdiags.Diagnostic)
+			planReq := PlanRequest{
+				Config:             cfg,
+				ProviderFactories:  providers,
+				InputValues:        inputs,
+				ForcePlanTimestamp: &fakePlanTimestamp,
+				PrevState:          tc.initialState,
+				DependencyLocks:    *lock,
+			}
+			planResp := PlanResponse{
+				PlannedChanges: planChangesCh,
+				Diagnostics:    planDiagsCh,
+			}
+			go Plan(ctx, &planReq, &planResp)
+			gotPlanChanges, gotPlanDiags := collectPlanOutput(planChangesCh, planDiagsCh)
+
+			sort.SliceStable(gotPlanChanges, func(i, j int) bool {
+				return plannedChangeSortKey(gotPlanChanges[i]) < plannedChangeSortKey(gotPlanChanges[j])
+			})
+			sort.SliceStable(gotPlanDiags, diagnosticSortFunc(gotPlanDiags))
+
+			expectDiagnosticsForTest(t, gotPlanDiags, tc.wantPlanDiags...)
+			if diff := cmp.Diff(tc.wantPlanChanges, gotPlanChanges, ctydebug.CmpOptions, cmpCollectionsSet, cmpopts.IgnoreUnexported(states.ResourceInstanceObjectSrc{})); diff != "" {
+				t.Errorf("wrong changes\n%s", diff)
+			}
+
+			if t.Failed() {
+				// don't bother with the apply operation if the plan failed
+				return
+			}
+
+			planLoader := stackplan.NewLoader()
+			for _, change := range gotPlanChanges {
+				proto, err := change.PlannedChangeProto()
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				for _, rawMsg := range proto.Raw {
+					err = planLoader.AddRaw(rawMsg)
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			plan, err := planLoader.Plan()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			applyChangesCh := make(chan stackstate.AppliedChange)
+			applyDiagsCh := make(chan tfdiags.Diagnostic)
+			applyReq := ApplyRequest{
+				Config:            cfg,
+				Plan:              plan,
+				ProviderFactories: providers,
+				DependencyLocks:   *lock,
+			}
+			applyResp := ApplyResponse{
+				AppliedChanges: applyChangesCh,
+				Diagnostics:    applyDiagsCh,
+			}
+
+			go Apply(ctx, &applyReq, &applyResp)
+			gotApplyChanges, gotApplyDiags := collectApplyOutput(applyChangesCh, applyDiagsCh)
+
+			sort.SliceStable(gotApplyChanges, func(i, j int) bool {
+				return appliedChangeSortKey(gotApplyChanges[i]) < appliedChangeSortKey(gotApplyChanges[j])
+			})
+			sort.SliceStable(gotApplyDiags, diagnosticSortFunc(gotApplyDiags))
+
+			expectDiagnosticsForTest(t, gotApplyDiags, tc.wantApplyDiags...)
+			if diff := cmp.Diff(tc.wantApplyChanges, gotApplyChanges, ctydebug.CmpOptions, cmpCollectionsSet, cmpopts.IgnoreUnexported(states.ResourceInstanceObjectSrc{})); diff != "" {
+				t.Errorf("wrong changes\n%s", diff)
+			}
+		})
+	}
+
 }
 
 func collectApplyOutput(changesCh <-chan stackstate.AppliedChange, diagsCh <-chan tfdiags.Diagnostic) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {

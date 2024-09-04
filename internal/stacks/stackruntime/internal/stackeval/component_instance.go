@@ -237,6 +237,26 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 						break
 					}
 				}
+
+				// We're also going to look through any upstream components
+				// that are being removed to make sure they are removed first.
+				for _, depAddr := range c.PlanPrevDependents(ctx).Elems() {
+					depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
+					if depStack == nil {
+						break
+					}
+					depRemoved := depStack.Removed(ctx, depAddr.Item)
+					if depRemoved == nil {
+						break
+					}
+					if !depRemoved.PlanIsComplete(ctx) {
+						// The other component couldn't be deleted in a single
+						// go, so to be safe we'll defer our deletions until
+						// the other one is complete.
+						deferred = true
+						break
+					}
+				}
 			}
 
 			// The instance is also upstream deferred if the for_each value for

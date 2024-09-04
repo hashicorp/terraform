@@ -336,6 +336,10 @@ func mustPlanDynamicValueSchema(v cty.Value, block *configschema.Block) plans.Dy
 	return ret
 }
 
+func mustInputVariable(name string) addrs.InputVariable {
+	return addrs.InputVariable{Name: name}
+}
+
 func mustMarshalJSONAttrs(attrs map[string]interface{}) []byte {
 	jsonAttrs, err := json.Marshal(attrs)
 	if err != nil {
