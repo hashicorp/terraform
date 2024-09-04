@@ -35,7 +35,7 @@ This section provides details about the fields you can configure in the `terrafo
 
 Parent block that contains configurations that define Terraform behavior. You can only use constant values in the `terraform` block. Arguments in the `terraform` block cannot refer to named objects, such as resources and input variables. Additionally, you cannot use built-in Terraform language functions in the block.
 
-### `terraform{}. required_version`
+### `terraform{}.required_version`
 
 Specifies which version of the Terraform CLI is allowed to run the configuration. Refer to [Version constraints](/terraform/language/expressions/version-constraints) for details about the supported syntax for specifying version constraints.
 
@@ -76,7 +76,7 @@ Specifies a set of configurations that allow the Terraform configuration to conn
 
 You can only provide one `cloud` block per configuration.
 
-You cannot configure a `cloud` block when the configuration also contains a [`backend` configuration](#terraform-backend-backend_type) for storing state data.
+You cannot configure a `cloud` block when the configuration also contains a [`backend` configuration](#terraform-backend) for storing state data.
 
 The `cloud` block cannot refer to named values, such as input variables, locals, or data source attributes.
 

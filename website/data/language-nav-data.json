@@ -221,6 +221,63 @@
     "title": "Moved block",
     "path": "moved"
   },
+  {
+    "title": "Terraform block",
+    "path": "terraform"
+  },
+  {
+    "title": "Backend block",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "backend"
+      },
+      {
+        "title": "local",
+        "path": "backend/local"
+      },
+      {
+        "title": "remote",
+        "path": "backend/remote"
+      },
+      {
+        "title": "azurerm",
+        "path": "backend/azurerm"
+      },
+      {
+        "title": "consul",
+        "path": "backend/consul"
+      },
+      {
+        "title": "cos",
+        "path": "backend/cos"
+      },
+      {
+        "title": "gcs",
+        "path": "backend/gcs"
+      },
+      {
+        "title": "http",
+        "path": "backend/http"
+      },
+      {
+        "title": "Kubernetes",
+        "path": "backend/kubernetes"
+      },
+      {
+        "title": "oss",
+        "path": "backend/oss"
+      },
+      {
+        "title": "pg",
+        "path": "backend/pg"
+      },
+      {
+        "title": "s3",
+        "path": "backend/s3"
+      }
+    ]
+  },
   { "title": "Checks", "path": "checks" },
   {
       "title": "Import",
@@ -940,132 +997,6 @@
       { "title": "yamldecode", "path": "functions/yamldecode", "hidden": true },
       { "title": "yamlencode", "path": "functions/yamlencode", "hidden": true },
       { "title": "zipmap", "path": "functions/zipmap", "hidden": true }
-    ]
-  },
-  {
-    "title": "Terraform block",
-    "path": "terraform"
-  },
-  {
-    "title": "Settings",
-    "routes": [
-      {
-        "title": "HCP Terraform",
-        "path": "settings/cloud"
-      },
-      {
-        "title": "Backends",
-        "routes": [
-          {
-            "title": "Backend Configuration",
-            "path": "settings/backends/configuration"
-          },
-          {
-            "title": "Available Backends",
-            "routes": [
-              {
-                "title": "local",
-                "href": "/language/settings/backends/local"
-              },
-              {
-                "title": "remote",
-                "href": "/language/settings/backends/remote"
-              },
-              {
-                "title": "azurerm",
-                "href": "/language/settings/backends/azurerm"
-              },
-              {
-                "title": "consul",
-                "href": "/language/settings/backends/consul"
-              },
-              {
-                "title": "cos",
-                "href": "/language/settings/backends/cos"
-              },
-              {
-                "title": "gcs",
-                "href": "/language/settings/backends/gcs"
-              },
-              {
-                "title": "http",
-                "href": "/language/settings/backends/http"
-              },
-              {
-                "title": "Kubernetes",
-                "href": "/language/settings/backends/kubernetes"
-              },
-              {
-                "title": "oss",
-                "href": "/language/settings/backends/oss"
-              },
-              {
-                "title": "pg",
-                "href": "/language/settings/backends/pg"
-              },
-              {
-                "title": "s3",
-                "href": "/language/settings/backends/s3"
-              }
-            ]
-          },
-          {
-            "title": "local",
-            "hidden": true,
-            "path": "settings/backends/local"
-          },
-          {
-            "title": "remote",
-            "hidden": true,
-            "path": "settings/backends/remote"
-          },
-          {
-            "title": "azurerm",
-            "hidden": true,
-            "path": "settings/backends/azurerm"
-          },
-          {
-            "title": "consul",
-            "hidden": true,
-            "path": "settings/backends/consul"
-          },
-          {
-            "title": "cos",
-            "hidden": true,
-            "path": "settings/backends/cos"
-          },
-          {
-            "title": "gcs",
-            "hidden": true,
-            "path": "settings/backends/gcs"
-          },
-          {
-            "title": "http",
-            "hidden": true,
-            "path": "settings/backends/http"
-          },
-          {
-            "title": "Kubernetes",
-            "hidden": true,
-            "path": "settings/backends/kubernetes"
-          },
-          {
-            "title": "oss",
-            "hidden": true,
-            "path": "settings/backends/oss"
-          },
-          {
-            "title": "pg",
-            "hidden": true,
-            "path": "settings/backends/pg"
-          },
-          {
-            "title": "s3",
-            "hidden": true,
-            "path": "settings/backends/s3"
-          }
-        ]
-      }
     ]
   },
   {
