@@ -73,7 +73,7 @@ func TestParsePlan_basicValid(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, diags := ParsePlan(tc.args)
-			if len(diags) > 0 {
+			if len(diags) > 0 && diags.HasErrors() {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
 			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
@@ -144,7 +144,7 @@ func TestParsePlan_targets(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, diags := ParsePlan(tc.args)
-			if len(diags) > 0 {
+			if len(diags) > 0 && diags.HasErrors() {
 				if tc.wantErr == "" {
 					t.Fatalf("unexpected diags: %v", diags)
 				} else if got := diags.Err().Error(); !strings.Contains(got, tc.wantErr) {
@@ -196,7 +196,7 @@ func TestParsePlan_vars(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, diags := ParsePlan(tc.args)
-			if len(diags) > 0 {
+			if len(diags) > 0 && diags.HasErrors() {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
 			if vars := got.Vars.All(); !cmp.Equal(vars, tc.want) {

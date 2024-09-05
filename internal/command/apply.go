@@ -65,7 +65,8 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	// Attempt to load the plan file, if specified
-	planFile, diags := c.LoadPlanFile(args.PlanPath)
+	planFile, loadPlanFileDiags := c.LoadPlanFile(args.PlanPath)
+	diags = diags.Append(loadPlanFileDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
