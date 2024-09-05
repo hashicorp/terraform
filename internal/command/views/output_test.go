@@ -149,6 +149,7 @@ foo = <sensitive>
 			arguments.ViewJSON,
 			`{
   "bar": {
+    "ephemeral": false,
     "sensitive": false,
     "type": [
       "list",
@@ -161,6 +162,7 @@ foo = <sensitive>
     ]
   },
   "baz": {
+    "ephemeral": false,
     "sensitive": false,
     "type": [
       "object",
@@ -175,6 +177,7 @@ foo = <sensitive>
     }
   },
   "foo": {
+    "ephemeral": false,
     "sensitive": true,
     "type": "string",
     "value": "secret"

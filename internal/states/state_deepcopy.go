@@ -35,10 +35,15 @@ func (s *State) DeepCopy() *State {
 	for k, v := range s.RootOutputValues {
 		outputValues[k] = v.DeepCopy()
 	}
+	ephemeralOutputValues := make(map[string]*OutputValue, len(s.EphemeralRootOutputValues))
+	for k, v := range s.EphemeralRootOutputValues {
+		ephemeralOutputValues[k] = v.DeepCopy()
+	}
 	return &State{
-		Modules:          modules,
-		RootOutputValues: outputValues,
-		CheckResults:     s.CheckResults.DeepCopy(),
+		Modules:                   modules,
+		RootOutputValues:          outputValues,
+		EphemeralRootOutputValues: ephemeralOutputValues,
+		CheckResults:              s.CheckResults.DeepCopy(),
 	}
 }
 
@@ -228,5 +233,6 @@ func (os *OutputValue) DeepCopy() *OutputValue {
 		Addr:      os.Addr,
 		Value:     os.Value,
 		Sensitive: os.Sensitive,
+		Ephemeral: os.Ephemeral,
 	}
 }

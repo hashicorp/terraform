@@ -817,6 +817,7 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 			Addr:      addr.Absolute(d.ModulePath),
 			Value:     cty.NilVal,
 			Sensitive: config.Sensitive,
+			Ephemeral: config.Ephemeral,
 		}
 	} else if output.Value == cty.NilVal || output.Value.IsNull() {
 		// Then we did get a value but Terraform itself thought it was NilVal
@@ -827,6 +828,9 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 	val := output.Value
 	if output.Sensitive {
 		val = val.Mark(marks.Sensitive)
+	}
+	if output.Ephemeral {
+		val = val.Mark(marks.Ephemeral)
 	}
 
 	return val, diags

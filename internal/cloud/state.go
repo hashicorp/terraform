@@ -598,6 +598,11 @@ func (s *State) GetRootOutputValues(ctx context.Context) (map[string]*states.Out
 	return result, nil
 }
 
+func (s *State) GetEphemeralRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
+	// NOTE Ephemeral output values are not yet supported by the cloud backend.
+	return nil, nil
+}
+
 func clamp(val, min, max int64) int64 {
 	if val < min {
 		return min

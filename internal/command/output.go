@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 
+	"maps"
+
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states"
@@ -89,12 +91,17 @@ func (c *OutputCommand) Outputs(statePath string) (map[string]*states.OutputValu
 		return nil, diags
 	}
 
-	output, err := stateStore.GetRootOutputValues(ctx)
+	outputs, err := stateStore.GetRootOutputValues(ctx)
 	if err != nil {
 		return nil, diags.Append(err)
 	}
+	ephemeralOutputs, err := stateStore.GetEphemeralRootOutputValues(ctx)
+	if err != nil {
+		return nil, diags.Append(err)
+	}
+	maps.Copy(outputs, ephemeralOutputs)
 
-	return output, diags
+	return outputs, diags
 }
 
 func (c *OutputCommand) Help() string {
