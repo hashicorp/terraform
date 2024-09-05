@@ -24,6 +24,19 @@ component "a" {
   }
 }
 
+removed {
+  from = component.b
+
+  source = "../"
+  providers = {
+    null = var.provider
+  }
+
+  lifecycle {
+    destroy = true
+  }
+}
+
 output "greeting" {
   type  = string
   value = component.a.greeting

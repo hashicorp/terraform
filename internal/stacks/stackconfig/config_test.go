@@ -4,12 +4,72 @@
 package stackconfig
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
+
+func TestLoadConfigDirErrors(t *testing.T) {
+	bundle, err := sourcebundle.OpenDir("testdata/basics-bundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rootAddr := sourceaddrs.MustParseSource("git::https://example.com/errored.git").(sourceaddrs.RemoteSource)
+	_, gotDiags := LoadConfigDir(rootAddr, bundle)
+
+	sort.SliceStable(gotDiags, func(i, j int) bool {
+		if gotDiags[i].Severity() != gotDiags[j].Severity() {
+			return gotDiags[i].Severity() < gotDiags[j].Severity()
+		}
+
+		if gotDiags[i].Description().Summary != gotDiags[j].Description().Summary {
+			return gotDiags[i].Description().Summary < gotDiags[j].Description().Summary
+		}
+
+		return gotDiags[i].Description().Detail < gotDiags[j].Description().Detail
+	})
+
+	wantDiags := tfdiags.Diagnostics{
+		tfdiags.Sourceless(tfdiags.Error, "Component exists for removed block", "A removed block for component \"a\" was declared without an index, but a component block with the same name was declared at git::https://example.com/errored.git//main.tfstack.hcl:10,1-14.\n\nA removed block without an index indicates that the component and all instances were removed from the configuration, and this is not the case."),
+	}
+
+	count := len(wantDiags)
+	if len(gotDiags) > count {
+		count = len(gotDiags)
+	}
+
+	for i := 0; i < count; i++ {
+		if i >= len(wantDiags) {
+			t.Errorf("unexpected diagnostic:\n%s", gotDiags[i])
+			continue
+		}
+
+		if i >= len(gotDiags) {
+			t.Errorf("missing diagnostic:\n%s", wantDiags[i])
+			continue
+		}
+
+		got, want := gotDiags[i], wantDiags[i]
+
+		if got, want := got.Severity(), want.Severity(); got != want {
+			t.Errorf("diagnostics[%d] severity\ngot:  %s\nwant: %s", i, got, want)
+		}
+
+		if got, want := got.Description().Summary, want.Description().Summary; got != want {
+			t.Errorf("diagnostics[%d] summary\ngot:  %s\nwant: %s", i, got, want)
+		}
+
+		if got, want := got.Description().Detail, want.Description().Detail; got != want {
+			t.Errorf("diagnostics[%d] detail\ngot:  %s\nwant: %s", i, got, want)
+		}
+	}
+}
 
 func TestLoadConfigDirBasics(t *testing.T) {
 	bundle, err := sourcebundle.OpenDir("testdata/basics-bundle")
