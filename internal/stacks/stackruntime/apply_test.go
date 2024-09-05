@@ -1237,7 +1237,7 @@ func TestApplyWithFailedComponent(t *testing.T) {
 
 	expectDiagnosticsForTest(t, applyDiags,
 		// This is the expected failure, from our testing_failed_resource.
-		expectDiagnostic(tfdiags.Error, "planned failure", "apply failure"))
+		expectDiagnostic(tfdiags.Error, "failedResource error", "failed during apply"))
 
 	wantChanges := []stackstate.AppliedChange{
 		&stackstate.AppliedChangeComponentInstance{
@@ -1347,7 +1347,7 @@ func TestApplyWithFailedProviderLinkedComponent(t *testing.T) {
 
 	expectDiagnosticsForTest(t, applyDiags,
 		// This is the expected failure, from our testing_failed_resource.
-		expectDiagnostic(tfdiags.Error, "planned failure", "apply failure"))
+		expectDiagnostic(tfdiags.Error, "failedResource error", "failed during apply"))
 
 	wantChanges := []stackstate.AppliedChange{
 		&stackstate.AppliedChangeComponentInstance{
@@ -1511,7 +1511,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				}),
 			applyDiags: []expectedDiagnostic{
 				// This error comes from the testing_failed_resource
-				expectDiagnostic(tfdiags.Error, "planned failure", "apply failure"),
+				expectDiagnostic(tfdiags.Error, "failedResource error", "failed during apply"),
 			},
 		},
 		"import": {
@@ -1608,7 +1608,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 				}),
 			applyDiags: []expectedDiagnostic{
 				// This error comes from the testing_failed_resource
-				expectDiagnostic(tfdiags.Error, "planned failure", "apply failure"),
+				expectDiagnostic(tfdiags.Error, "failedResource error", "failed during apply"),
 			},
 		},
 		"removed": {
@@ -1702,7 +1702,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 			},
 			applyDiags: []expectedDiagnostic{
 				// This error comes from the testing_failed_resource
-				expectDiagnostic(tfdiags.Error, "planned failure", "apply failure"),
+				expectDiagnostic(tfdiags.Error, "failedResource error", "failed during apply"),
 			},
 		},
 		"deferred": {
@@ -2991,7 +2991,7 @@ func TestApplyFailedDependencyWithResourceInState(t *testing.T) {
 	go Apply(ctx, &applyReq, &applyResp)
 	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, applyDiagsCh)
 
-	expectDiagnosticsForTest(t, applyDiags, expectDiagnostic(tfdiags.Error, "planned failure", "apply failure"))
+	expectDiagnosticsForTest(t, applyDiags, expectDiagnostic(tfdiags.Error, "failedResource error", "failed during apply"))
 
 	wantChanges := []stackstate.AppliedChange{
 		&stackstate.AppliedChangeComponentInstance{
