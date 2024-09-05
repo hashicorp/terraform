@@ -805,7 +805,7 @@ func TestApplyDestroy(t *testing.T) {
 					Config: cfg,
 					ProviderFactories: map[addrs.Provider]providers.Factory{
 						addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-							return stacks_testing_provider.NewProviderWithData(store), nil
+							return stacks_testing_provider.NewProviderWithData(t, store), nil
 						},
 					},
 					DependencyLocks:    *lock,
@@ -866,7 +866,7 @@ func TestApplyDestroy(t *testing.T) {
 					Plan:   plan,
 					ProviderFactories: map[addrs.Provider]providers.Factory{
 						addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-							return stacks_testing_provider.NewProviderWithData(store), nil
+							return stacks_testing_provider.NewProviderWithData(t, store), nil
 						},
 					},
 					DependencyLocks: *lock,

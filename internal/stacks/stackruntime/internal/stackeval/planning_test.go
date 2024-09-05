@@ -940,7 +940,7 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 	cfg := testStackConfig(t, "local_value", "custom_provider")
 	providerFactories := map[addrs.Provider]providers.Factory{
 		addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-			provider := stacks_testing_provider.NewProvider()
+			provider := stacks_testing_provider.NewProvider(t)
 			return provider, nil
 		},
 	}

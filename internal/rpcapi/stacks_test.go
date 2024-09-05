@@ -818,7 +818,7 @@ func TestStackChangeProgress(t *testing.T) {
 			// use the providerCacheOverride to side-load the testing provider.
 			stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
 			stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(tc.store), nil
+				return stacks_testing_provider.NewProviderWithData(t, tc.store), nil
 			}
 			lock := depsfile.NewLocks()
 			lock.SetProvider(

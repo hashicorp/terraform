@@ -333,15 +333,15 @@ func TestValidate_valid(t *testing.T) {
 					// test the provider aliasing feature. Both providers
 					// support the same set of resources and data sources.
 					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-						return stacks_testing_provider.NewProvider(), nil
+						return stacks_testing_provider.NewProvider(t), nil
 					},
 					addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
-						return stacks_testing_provider.NewProvider(), nil
+						return stacks_testing_provider.NewProvider(t), nil
 					},
 					// We also support an "other" provider out of the box to
 					// test the provider aliasing feature.
 					addrs.NewDefaultProvider("other"): func() (providers.Interface, error) {
-						return stacks_testing_provider.NewProvider(), nil
+						return stacks_testing_provider.NewProvider(t), nil
 					},
 				},
 				DependencyLocks: *lock,
@@ -389,10 +389,10 @@ func TestValidate_invalid(t *testing.T) {
 					// test the provider aliasing feature. Both providers
 					// support the same set of resources and data sources.
 					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-						return stacks_testing_provider.NewProvider(), nil
+						return stacks_testing_provider.NewProvider(t), nil
 					},
 					addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
-						return stacks_testing_provider.NewProvider(), nil
+						return stacks_testing_provider.NewProvider(t), nil
 					},
 				},
 				DependencyLocks: *lock,
@@ -464,10 +464,10 @@ func TestValidate_missing_provider_from_lockfile(t *testing.T) {
 			// test the provider aliasing feature. Both providers
 			// support the same set of resources and data sources.
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 			addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -502,7 +502,7 @@ func TestValidate_impliedProviderTypes(t *testing.T) {
 			directory: "with-hashicorp-provider",
 			providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-					return stacks_testing_provider.NewProvider(), nil
+					return stacks_testing_provider.NewProvider(t), nil
 				},
 			},
 		},
@@ -510,7 +510,7 @@ func TestValidate_impliedProviderTypes(t *testing.T) {
 			directory: "with-non-hashicorp-provider",
 			providers: map[addrs.Provider]providers.Factory{
 				addrs.NewProvider(addrs.DefaultProviderRegistryHost, "other", "testing"): func() (providers.Interface, error) {
-					return stacks_testing_provider.NewProvider(), nil
+					return stacks_testing_provider.NewProvider(t), nil
 				},
 			},
 			wantDiags: func() tfdiags.Diagnostics {
