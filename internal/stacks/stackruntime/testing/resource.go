@@ -242,9 +242,10 @@ func (f *failedResource) Apply(request providers.ApplyResourceChangeRequest, sto
 	return
 }
 
-// blockedResources accept a list of required resource ids and will fail to
-// apply if those resources don't exist. They will also fail to destroy if
-// the resources do exist.
+// blockedResource is a resource that accepts a list of required resource ids
+// and will fail to apply if those resources don't exist. They will also fail to
+// destroy if the resources do not exist - this ensures they have to be created
+// and destroyed in the correct order.
 type blockedResource struct{}
 
 func (b *blockedResource) Read(request providers.ReadResourceRequest, store *ResourceStore) (response providers.ReadResourceResponse) {
@@ -279,8 +280,8 @@ func (b *blockedResource) Apply(request providers.ApplyResourceChangeRequest, st
 	if request.PlannedState.IsNull() {
 		if required := request.PriorState.GetAttr("required_resources"); !required.IsNull() && required.IsKnown() {
 			for _, id := range required.AsValueSlice() {
-				if _, exists := store.Get(id.AsString()); exists {
-					response.Diagnostics = append(response.Diagnostics, tfdiags.Sourceless(tfdiags.Error, "blockedResource error", fmt.Sprintf("required resource %q still exists, so can't destroy self", id.AsString())))
+				if _, exists := store.Get(id.AsString()); !exists {
+					response.Diagnostics = append(response.Diagnostics, tfdiags.Sourceless(tfdiags.Error, "blockedResource error", fmt.Sprintf("required resource %q does not exists, so can't destroy self", id.AsString())))
 					return
 				}
 			}

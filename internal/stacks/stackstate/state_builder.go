@@ -4,7 +4,10 @@
 package stackstate
 
 import (
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -42,6 +45,19 @@ func (s *StateBuilder) AddResourceInstance(builder *ResourceInstanceBuilder) *St
 	return s
 }
 
+func (s *StateBuilder) AddComponentInstance(builder *ComponentInstanceBuilder) *StateBuilder {
+	component := s.state.ensureComponentInstanceState(builder.addr)
+	component.outputValues = builder.outputValues
+
+	for _, dep := range builder.dependencies.Elems() {
+		component.dependencies.Add(dep)
+	}
+	for _, dep := range builder.dependents.Elems() {
+		component.dependents.Add(dep)
+	}
+	return s
+}
+
 type ResourceInstanceBuilder struct {
 	addr         *stackaddrs.AbsResourceInstanceObject
 	src          *states.ResourceInstanceObjectSrc
@@ -64,5 +80,36 @@ func (b *ResourceInstanceBuilder) SetResourceInstanceObjectSrc(src states.Resour
 
 func (b *ResourceInstanceBuilder) SetProviderAddr(addr addrs.AbsProviderConfig) *ResourceInstanceBuilder {
 	b.providerAddr = &addr
+	return b
+}
+
+type ComponentInstanceBuilder struct {
+	addr         stackaddrs.AbsComponentInstance
+	dependencies collections.Set[stackaddrs.AbsComponent]
+	dependents   collections.Set[stackaddrs.AbsComponent]
+	outputValues map[addrs.OutputValue]cty.Value
+}
+
+func NewComponentInstanceBuilder(instance stackaddrs.AbsComponentInstance) *ComponentInstanceBuilder {
+	return &ComponentInstanceBuilder{
+		addr:         instance,
+		dependencies: collections.NewSet[stackaddrs.AbsComponent](),
+		dependents:   collections.NewSet[stackaddrs.AbsComponent](),
+		outputValues: make(map[addrs.OutputValue]cty.Value),
+	}
+}
+
+func (b *ComponentInstanceBuilder) AddDependency(addr stackaddrs.AbsComponent) *ComponentInstanceBuilder {
+	b.dependencies.Add(addr)
+	return b
+}
+
+func (b *ComponentInstanceBuilder) AddDependent(addr stackaddrs.AbsComponent) *ComponentInstanceBuilder {
+	b.dependents.Add(addr)
+	return b
+}
+
+func (b *ComponentInstanceBuilder) AddOutputValue(name string, value cty.Value) *ComponentInstanceBuilder {
+	b.outputValues[addrs.OutputValue{Name: name}] = value
 	return b
 }

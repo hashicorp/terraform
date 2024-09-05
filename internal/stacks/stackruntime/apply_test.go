@@ -540,6 +540,7 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 					},
 				},
 			},
+			Dependencies: collections.NewSet(mustAbsComponent("component.sensitive")),
 			OutputValues: make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
@@ -592,6 +593,7 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 					},
 				},
 			},
+			Dependents: collections.NewSet(mustAbsComponent("component.self")),
 			OutputValues: map[addrs.OutputValue]cty.Value{
 				addrs.OutputValue{Name: "out"}: cty.StringVal("secret").Mark(marks.Sensitive),
 			},
@@ -1243,6 +1245,7 @@ func TestApplyWithFailedComponent(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.parent"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.parent"),
+			Dependents:            collections.NewSet(mustAbsComponent("component.self")),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
@@ -1252,6 +1255,7 @@ func TestApplyWithFailedComponent(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+			Dependencies:          collections.NewSet(mustAbsComponent("component.parent")),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
 		},
 	}
@@ -1353,6 +1357,7 @@ func TestApplyWithFailedProviderLinkedComponent(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.parent"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.parent"),
+			Dependents:            collections.NewSet(mustAbsComponent("component.self")),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
 		},
 		&stackstate.AppliedChangeResourceInstanceObject{
@@ -1362,6 +1367,7 @@ func TestApplyWithFailedProviderLinkedComponent(t *testing.T) {
 		&stackstate.AppliedChangeComponentInstance{
 			ComponentAddr:         mustAbsComponent("component.self"),
 			ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+			Dependencies:          collections.NewSet(mustAbsComponent("component.parent")),
 			OutputValues:          make(map[addrs.OutputValue]cty.Value),
 		},
 	}
