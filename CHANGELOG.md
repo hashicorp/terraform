@@ -12,7 +12,8 @@ ENHANCEMENTS:
 
 - The `element` function now accepts negative indices ([#35501](https://github.com/hashicorp/terraform/issues/35501))
 - Import block validation has been improved to provide more useful errors and catch more invalid cases during `terraform validate` ([#35543](https://github.com/hashicorp/terraform/issues/35543))
-* Performance enhancements for resource evaluation, especially when large numbers of resource instances are involved ([#35558](https://github.com/hashicorp/terraform/issues/35558))
+- Performance enhancements for resource evaluation, especially when large numbers of resource instances are involved ([#35558](https://github.com/hashicorp/terraform/issues/35558))
+- The `plan`, `apply`, and `refresh` commands now produce a deprecated warning when using the `-state` flag. Instead use the `path` attribute within the `local` backend to modify the state file. ([#35660](https://github.com/hashicorp/terraform/issues/35660))
 
 EXPERIMENTS:
 
