@@ -202,3 +202,50 @@ func Terraform1ToPlanProtoAttributePathStep(step *stacks.AttributePath_Step) *pl
 	}
 	return ret
 }
+
+func DecodeProtoResourceInstanceObject(protoObj *StateResourceInstanceObjectV1) (*states.ResourceInstanceObjectSrc, error) {
+	objSrc := &states.ResourceInstanceObjectSrc{
+		SchemaVersion:       protoObj.SchemaVersion,
+		AttrsJSON:           protoObj.ValueJson,
+		CreateBeforeDestroy: protoObj.CreateBeforeDestroy,
+		Private:             protoObj.ProviderSpecificData,
+	}
+
+	switch protoObj.Status {
+	case StateResourceInstanceObjectV1_READY:
+		objSrc.Status = states.ObjectReady
+	case StateResourceInstanceObjectV1_DAMAGED:
+		objSrc.Status = states.ObjectTainted
+	default:
+		return nil, fmt.Errorf("unsupported status %s", protoObj.Status.String())
+	}
+
+	paths := make([]cty.Path, 0, len(protoObj.SensitivePaths))
+	for _, p := range protoObj.SensitivePaths {
+		path, err := planfile.PathFromProto(p)
+		if err != nil {
+			return nil, err
+		}
+		paths = append(paths, path)
+	}
+	objSrc.AttrSensitivePaths = paths
+
+	if len(protoObj.Dependencies) != 0 {
+		objSrc.Dependencies = make([]addrs.ConfigResource, len(protoObj.Dependencies))
+		for i, raw := range protoObj.Dependencies {
+			instAddr, diags := addrs.ParseAbsResourceInstanceStr(raw)
+			if diags.HasErrors() {
+				return nil, fmt.Errorf("invalid dependency %q", raw)
+			}
+			// We used the resource instance address parser here but we
+			// actually want the "config resource" subset of that syntax only.
+			configAddr := instAddr.ConfigResource()
+			if configAddr.String() != instAddr.String() {
+				return nil, fmt.Errorf("invalid dependency %q", raw)
+			}
+			objSrc.Dependencies[i] = configAddr
+		}
+	}
+
+	return objSrc, nil
+}

@@ -32,6 +32,7 @@ type Component struct {
 }
 
 var _ Plannable = (*Component)(nil)
+var _ Applyable = (*Component)(nil)
 var _ Referenceable = (*Component)(nil)
 
 func newComponent(main *Main, addr stackaddrs.AbsComponent) *Component {
@@ -189,7 +190,7 @@ func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 }
 
 func (c *Component) UnknownInstance(ctx context.Context, phase EvalPhase) *ComponentInstance {
-	inst, err := c.unknownInstance.For(PlanPhase).Do(ctx, func(ctx context.Context) (*ComponentInstance, error) {
+	inst, err := c.unknownInstance.For(phase).Do(ctx, func(ctx context.Context) (*ComponentInstance, error) {
 		return newComponentInstance(c, addrs.WildcardKey, instances.UnknownForEachRepetitionData(c.ForEachValue(ctx, phase).Type())), nil
 	})
 	if err != nil {
@@ -341,7 +342,7 @@ func (c *Component) RequiredComponents(ctx context.Context) collections.Set[stac
 	return c.main.requiredComponentsForReferrer(ctx, c, PlanPhase)
 }
 
-// CheckApply implements ApplyChecker.
+// CheckApply implements Applyable.
 func (c *Component) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	return nil, c.checkValid(ctx, ApplyPhase)
 }
