@@ -336,7 +336,7 @@ func (c *Component) References(ctx context.Context) []stackaddrs.AbsReference {
 	return makeReferencesAbsolute(ret, c.Addr().Stack)
 }
 
-// RequiredComponents implements Applyable
+// RequiredComponents returns the set of required components for this component.
 func (c *Component) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
 	return c.main.requiredComponentsForReferrer(ctx, c, PlanPhase)
 }

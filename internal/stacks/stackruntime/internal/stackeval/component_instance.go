@@ -12,7 +12,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -1405,7 +1404,7 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 			Mode:                           corePlan.UIMode,
 			PlanApplyable:                  corePlan.Applyable,
 			PlanComplete:                   corePlan.Complete,
-			RequiredComponents:             c.RequiredComponents(ctx),
+			RequiredComponents:             c.call.RequiredComponents(ctx),
 			PlannedInputValues:             corePlan.VariableValues,
 			PlannedInputValueMarks:         corePlan.VariableMarks,
 			PlannedOutputValues:            outputVals,
@@ -1597,11 +1596,6 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 	}
 
 	return changes, diags
-}
-
-// RequiredComponents implements Applyable
-func (c *ComponentInstance) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
-	return c.call.RequiredComponents(ctx)
 }
 
 // CheckApply implements Applyable.

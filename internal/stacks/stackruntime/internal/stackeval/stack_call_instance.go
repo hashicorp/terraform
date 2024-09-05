@@ -13,7 +13,6 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
@@ -256,11 +255,6 @@ func (c *StackCallInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 	// This is really just a "plan-time validation" behavior, since stack
 	// calls never contribute directly to the planned changes.
 	return nil, c.checkValid(ctx, PlanPhase)
-}
-
-// RequiredComponents implements Applyable
-func (c *StackCallInstance) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
-	return c.call.RequiredComponents(ctx)
 }
 
 // CheckApply implements Applyable by confirming that the input variable

@@ -11,7 +11,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -285,11 +284,6 @@ func (v *InputVariable) References(ctx context.Context) []stackaddrs.AbsReferenc
 		return nil
 	}
 	return call.References(ctx)
-}
-
-// RequiredComponents implements Applyable
-func (v *InputVariable) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
-	return v.main.requiredComponentsForReferrer(ctx, v, PlanPhase)
 }
 
 // CheckApply implements Applyable.

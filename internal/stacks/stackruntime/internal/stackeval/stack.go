@@ -13,7 +13,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
@@ -684,13 +683,6 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 		})
 	}
 	return changes, nil
-}
-
-func (s *Stack) RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent] {
-	// The stack itself doesn't refer to anything and so cannot require
-	// components. Its _call_ might, but that's handled over in
-	// [StackCall.RequiredComponents].
-	return collections.NewSet[stackaddrs.AbsComponent]()
 }
 
 // CheckApply implements Applyable.

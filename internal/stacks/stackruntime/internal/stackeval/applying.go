@@ -49,18 +49,6 @@ type ApplyOpts struct {
 // the [ChangeExec] function (see [ApplyPlan]) and then we collect up any
 // reports to send to the caller separately using this interface.
 type Applyable interface {
-	// RequiredComponents returns the set of components that this applyable
-	// object requires, directly or indirectly, for its functionality.
-	//
-	// We use this during the planning phase to understand the dependency
-	// relationships between components, so that the apply phase can enforce
-	// the following invariants for all pairs of components A and B:
-	//  - If A depends on B then any create or update actions for A must
-	//    happen before create or update actions for B.
-	//  - If A depends on B then any destroy actions for A must happen only
-	//    after B is destroyed.
-	RequiredComponents(ctx context.Context) collections.Set[stackaddrs.AbsComponent]
-
 	// CheckApply checks the receiver's apply-time result and returns zero
 	// or more applied change descriptions and zero or more diagnostics
 	// describing any problems that occured for this specific object during
