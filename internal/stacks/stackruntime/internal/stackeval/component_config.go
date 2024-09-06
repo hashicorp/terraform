@@ -273,7 +273,7 @@ func (c *ComponentConfig) ResolveExpressionReference(ctx context.Context, ref st
 }
 
 // ExternalFunctions implements ExpressionScope.
-func (c *ComponentConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, func(), tfdiags.Diagnostics) {
+func (c *ComponentConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
 	return c.main.ProviderFunctions(ctx, c.StackConfig(ctx))
 }
 
@@ -328,7 +328,7 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			providerFactories[addr] = func() (providers.Interface, error) {
 				// Lazily fetch the unconfigured client for the provider
 				// as and when we need it.
-				provider, err := c.main.ProviderType(ctx, addr).UnconfiguredClient(ctx)
+				provider, err := c.main.ProviderType(ctx, addr).UnconfiguredClient()
 				if err != nil {
 					return nil, err
 				}
@@ -363,13 +363,6 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 			})
 			return diags, nil
 		}
-		defer func() {
-			// Close the unconfigured provider clients that we opened in
-			// unconfiguredProviderClients.
-			for _, client := range providerClients {
-				client.Close()
-			}
-		}()
 
 		// When our given context is cancelled, we want to instruct the
 		// modules runtime to stop the running operation. We use this

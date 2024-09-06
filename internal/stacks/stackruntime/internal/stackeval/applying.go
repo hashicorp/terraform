@@ -159,7 +159,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		providerFactories[addr] = func() (providers.Interface, error) {
 			// Lazily fetch the unconfigured client for the provider
 			// as and when we need it.
-			provider, err := main.ProviderType(ctx, addr).UnconfiguredClient(ctx)
+			provider, err := main.ProviderType(ctx, addr).UnconfiguredClient()
 			if err != nil {
 				return nil, err
 			}
@@ -206,8 +206,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		return nil, diags
 	}
 
-	providerClients, closer := configuredProviderClients(ctx, main, known, unknown, ApplyPhase)
-	defer closer()
+	providerClients := configuredProviderClients(ctx, main, known, unknown, ApplyPhase)
 
 	var newState *states.State
 	if plan.Applyable {

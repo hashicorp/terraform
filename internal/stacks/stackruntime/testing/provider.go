@@ -5,6 +5,7 @@ package testing
 
 import (
 	"fmt"
+	"runtime/debug"
 	"testing"
 
 	"github.com/hashicorp/go-uuid"
@@ -77,6 +78,10 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 	if store == nil {
 		store = NewResourceStore()
 	}
+
+	// grab the current stack trace so we know where the provider was created
+	// in case it isn't being cleaned up properly
+	currentStackTrace := debug.Stack()
 
 	provider := &MockProvider{
 		MockProvider: &testing_provider.MockProvider{
@@ -226,6 +231,7 @@ func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 	t.Cleanup(func() {
 		// Fail the test if this provider is not closed.
 		if !provider.CloseCalled {
+			t.Log(string(currentStackTrace))
 			t.Fatalf("provider.Close was not called")
 		}
 	})

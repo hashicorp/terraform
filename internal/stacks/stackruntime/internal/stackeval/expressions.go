@@ -75,7 +75,7 @@ type ExpressionScope interface {
 	// ExternalFunctions should return the set of external functions that are
 	// available to the current scope. The returned function should be called
 	// when the returned functions are no longer needed.
-	ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, func(), tfdiags.Diagnostics)
+	ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics)
 }
 
 // EvalContextForExpr produces an HCL expression evaluation context for the
@@ -355,8 +355,7 @@ func EvalComponentInputVariables(ctx context.Context, decls map[string]*configs.
 // the caller will need the HCL evaluation context in order to construct
 // a fully-annotated diagnostic object.
 func EvalExprAndEvalContext(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope ExpressionScope) (ExprResultValue, tfdiags.Diagnostics) {
-	functions, cleanup, diags := scope.ExternalFunctions(ctx)
-	defer cleanup()
+	functions, diags := scope.ExternalFunctions(ctx)
 
 	hclCtx, evalDiags := EvalContextForExpr(ctx, expr, functions, phase, scope)
 	diags = diags.Append(evalDiags)
@@ -394,8 +393,7 @@ func EvalExpr(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope E
 // EvalBody evaluates the expressions in the given body using hcldec with
 // the given schema, returning the resulting value.
 func EvalBody(ctx context.Context, body hcl.Body, spec hcldec.Spec, phase EvalPhase, scope ExpressionScope) (cty.Value, tfdiags.Diagnostics) {
-	functions, cleanup, diags := scope.ExternalFunctions(ctx)
-	defer cleanup()
+	functions, diags := scope.ExternalFunctions(ctx)
 
 	hclCtx, moreDiags := EvalContextForBody(ctx, body, spec, functions, phase, scope)
 	diags = diags.Append(moreDiags)
