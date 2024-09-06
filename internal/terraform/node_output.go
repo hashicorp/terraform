@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
+	"maps"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -627,6 +629,7 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 	if n.Addr.Module.IsRoot() && mod != nil {
 		s := state.Lock()
 		rootOutputs := s.RootOutputValues
+		maps.Copy(rootOutputs, s.EphemeralRootOutputValues)
 		if o, ok := rootOutputs[n.Addr.OutputValue.Name]; ok {
 			sensitiveBefore = o.Sensitive
 			before = o.Value
@@ -750,7 +753,10 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 	// Null outputs must be saved for modules so that they can still be
 	// evaluated. Null root outputs are removed entirely, which is always fine
 	// because they can't be referenced by anything else in the configuration.
-	if n.Addr.Module.IsRoot() && val.IsNull() {
+	//
+	// This does not apply to ephemeral outputs, which always have a value of
+	// null in the state file.
+	if n.Addr.Module.IsRoot() && val.IsNull() && !n.Config.Ephemeral {
 		log.Printf("[TRACE] setValue: Removing %s from state (it is now null)", n.Addr)
 		state.RemoveOutputValue(n.Addr)
 		return
@@ -770,24 +776,26 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 	}
 
 	// Non-ephemeral output values get saved in the state too
-	if !n.Config.Ephemeral {
-		// The state itself doesn't represent unknown values, so we null them
-		// out here and then we'll save the real unknown value in the planned
-		// changeset, if we have one on this graph walk.
-		log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
-		// non-root outputs need to keep sensitive marks for evaluation, but are
-		// not serialized.
-		if n.Addr.Module.IsRoot() {
-			val, _ = val.UnmarkDeep()
-			if deferred.DependenciesDeferred(n.Dependencies) {
-				// If the output is from deferred resources then we return a
-				// simple null value representing that the value is really
-				// unknown as the dependencies were not properly computed.
-				val = cty.NullVal(val.Type())
-			} else {
-				val = cty.UnknownAsNull(val)
-			}
+	// The state itself doesn't represent unknown values, so we null them
+	// out here and then we'll save the real unknown value in the planned
+	// changeset, if we have one on this graph walk.
+	log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
+	// non-root outputs need to keep sensitive marks for evaluation, but are
+	// not serialized.
+	if n.Addr.Module.IsRoot() {
+		val, _ = val.UnmarkDeep()
+		if deferred.DependenciesDeferred(n.Dependencies) {
+			// If the output is from deferred resources then we return a
+			// simple null value representing that the value is really
+			// unknown as the dependencies were not properly computed.
+			val = cty.NullVal(val.Type())
+		} else {
+			val = cty.UnknownAsNull(val)
 		}
+	}
+	if n.Config.Ephemeral {
+		state.SetEphemeralOutputValue(n.Addr, val, n.Config.Sensitive)
+	} else {
 		state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
 	}
 }
