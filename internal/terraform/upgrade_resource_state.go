@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -136,8 +137,12 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 // stripRemovedStateAttributes deletes any attributes no longer present in the
 // schema, so that the json can be correctly decoded.
 func stripRemovedStateAttributes(state []byte, ty cty.Type) []byte {
+	// we must use json.Number to avoid changing the precision of cty.Number values
+	decoder := json.NewDecoder(bytes.NewReader(state))
+	decoder.UseNumber()
+
 	jsonMap := map[string]interface{}{}
-	err := json.Unmarshal(state, &jsonMap)
+	err := decoder.Decode(&jsonMap)
 	if err != nil {
 		// we just log any errors here, and let the normal decode process catch
 		// invalid JSON.
