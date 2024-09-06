@@ -3148,7 +3148,6 @@ func TestApply_RemovedBlocks(t *testing.T) {
 
 	// TODO: Add tests for and implement the following cases:
 	//   - Removed and component blocks that target the same instance.
-	//   - Edge cases around missing providers and type mismatches.
 	//   - Make sure all instances in state are targeted by a component or a
 	//     removed block.
 	//   - Validate what happens when a removed block foreach evaluates to
