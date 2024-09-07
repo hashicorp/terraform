@@ -21,3 +21,12 @@ component "self" {
     input = var.input
   }
 }
+
+removed {
+  from = component.removed
+
+  source = "../"
+
+  # We do actually require a provider here, Validate() should warn us.
+  providers = {}
+}
