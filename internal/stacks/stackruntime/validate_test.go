@@ -119,12 +119,32 @@ var (
 						End:      hcl.Pos{Line: 10, Column: 39, Byte: 187},
 					},
 				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to undeclared provider configuration",
+					Detail:   "There is no provider \"testing\" \"default\" block declared in this stack.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/undeclared-provider/undeclared-provider.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 25, Column: 15, Byte: 379},
+						End:      hcl.Pos{Line: 25, Column: 39, Byte: 403},
+					},
+				})
 				return diags
 			},
 		},
 		filepath.Join("with-single-input", "missing-provider"): {
 			diags: func() tfdiags.Diagnostics {
 				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Missing required provider configuration",
+					Detail:   "The root module for component.removed requires a provider configuration named \"testing\" for provider \"hashicorp/testing\", which is not assigned in the block's \"providers\" argument.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/missing-provider/missing-provider.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 25, Column: 1, Byte: 337},
+						End:      hcl.Pos{Line: 25, Column: 8, Byte: 344},
+					},
+				})
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Missing required provider configuration",
@@ -149,6 +169,16 @@ var (
 						Filename: mainBundleSourceAddrStr("with-single-input/invalid-provider-type/invalid-provider-type.tfstack.hcl"),
 						Start:    hcl.Pos{Line: 22, Column: 15, Byte: 378},
 						End:      hcl.Pos{Line: 22, Column: 39, Byte: 402},
+					},
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid provider configuration",
+					Detail:   "The provider configuration slot \"testing\" requires a configuration for provider \"registry.terraform.io/hashicorp/testing\", not for provider \"terraform.io/builtin/testing\".",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("with-single-input/invalid-provider-type/invalid-provider-type.tfstack.hcl"),
+						Start:    hcl.Pos{Line: 37, Column: 15, Byte: 614},
+						End:      hcl.Pos{Line: 37, Column: 39, Byte: 638},
 					},
 				})
 				return diags

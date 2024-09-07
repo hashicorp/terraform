@@ -449,11 +449,11 @@ func (s *StackConfig) Removed(ctx context.Context, addr stackaddrs.Component) *R
 // Removeds returns a map of the objects representing all of the
 // removed calls declared inside this stack configuration.
 func (s *StackConfig) Removeds(ctx context.Context) map[stackaddrs.Component]*RemovedConfig {
-	if len(s.config.Stack.Components) == 0 {
+	if len(s.config.Stack.Removed) == 0 {
 		return nil
 	}
 	ret := make(map[stackaddrs.Component]*RemovedConfig, len(s.config.Stack.Removed))
-	for name := range s.config.Stack.Components {
+	for name := range s.config.Stack.Removed {
 		addr := stackaddrs.Component{Name: name}
 		ret[addr] = s.Removed(ctx, addr)
 	}
