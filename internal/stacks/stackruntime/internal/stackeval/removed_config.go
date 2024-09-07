@@ -241,6 +241,6 @@ func (r *RemovedConfig) PlanTimestamp() time.Time {
 }
 
 // ExternalFunctions implements ExpressionScope.
-func (r *RemovedConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, func(), tfdiags.Diagnostics) {
+func (r *RemovedConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
 	return r.main.ProviderFunctions(ctx, r.StackConfig(ctx))
 }

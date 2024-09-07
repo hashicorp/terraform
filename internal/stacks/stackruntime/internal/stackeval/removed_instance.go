@@ -89,8 +89,7 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 			return nil, diags
 		}
 
-		providerClients, closer := configuredProviderClients(ctx, r.main, known, unknown, PlanPhase)
-		defer closer()
+		providerClients := configuredProviderClients(ctx, r.main, known, unknown, PlanPhase)
 
 		deferred := false
 		for _, depAddr := range r.PlanPrevDependents(ctx).Elems() {
@@ -276,7 +275,7 @@ func (r *RemovedInstance) PlanTimestamp() time.Time {
 }
 
 // ExternalFunctions implements ExpressionScope.
-func (r *RemovedInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, func(), tfdiags.Diagnostics) {
+func (r *RemovedInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
 	return r.main.ProviderFunctions(ctx, r.call.Config(ctx).StackConfig(ctx))
 }
 
