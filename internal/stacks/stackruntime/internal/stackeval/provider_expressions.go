@@ -466,7 +466,7 @@ func unconfiguredProviderClients(ctx context.Context, main *Main, ps addrs.Set[a
 		}
 
 		// We don't need to configure the client for validate functionality.
-		inst, err := pTy.UnconfiguredClient(ctx)
+		inst, err := pTy.UnconfiguredClient()
 		if err != nil {
 			valid = false
 			continue
@@ -478,9 +478,8 @@ func unconfiguredProviderClients(ctx context.Context, main *Main, ps addrs.Set[a
 }
 
 // configuredProviderClients return s
-func configuredProviderClients(ctx context.Context, main *Main, known map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance, unknown map[addrs.RootProviderConfig]addrs.Provider, phase EvalPhase) (map[addrs.RootProviderConfig]providers.Interface, func()) {
+func configuredProviderClients(ctx context.Context, main *Main, known map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance, unknown map[addrs.RootProviderConfig]addrs.Provider, phase EvalPhase) map[addrs.RootProviderConfig]providers.Interface {
 	providerInsts := make(map[addrs.RootProviderConfig]providers.Interface)
-	var closeableInsts []providers.Interface
 	for calleeAddr, callerAddr := range known {
 		providerInstStack := main.Stack(ctx, callerAddr.Stack, phase)
 		if providerInstStack == nil {
@@ -508,20 +507,11 @@ func configuredProviderClients(ctx context.Context, main *Main, known map[addrs.
 	}
 	for calleeAddr, provider := range unknown {
 		pTy := main.ProviderType(ctx, provider)
-		client, err := pTy.UnconfiguredClient(ctx)
+		client, err := pTy.UnconfiguredClient()
 		if err != nil {
 			continue
 		}
-		closeableInsts = append(closeableInsts, client)
 		providerInsts[calleeAddr] = stubs.UnknownProvider(client)
 	}
-	return providerInsts, func() {
-		// We need to close the unconfigured clients we took for the unknown
-		// providers.
-		for _, inst := range closeableInsts {
-			// Nothing we can really do if the close fails, so just ignore
-			// the errors.
-			inst.Close()
-		}
-	}
+	return providerInsts
 }

@@ -88,15 +88,15 @@ func TestPlan_valid(t *testing.T) {
 					// test the provider aliasing feature. Both providers
 					// support the same set of resources and data sources.
 					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-						return stacks_testing_provider.NewProvider(), nil
+						return stacks_testing_provider.NewProvider(t), nil
 					},
 					addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
-						return stacks_testing_provider.NewProvider(), nil
+						return stacks_testing_provider.NewProvider(t), nil
 					},
 					// We also support an "other" provider out of the box to
 					// test the provider aliasing feature.
 					addrs.NewDefaultProvider("other"): func() (providers.Interface, error) {
-						return stacks_testing_provider.NewProvider(), nil
+						return stacks_testing_provider.NewProvider(t), nil
 					},
 				},
 				DependencyLocks: *lock,
@@ -182,10 +182,10 @@ func TestPlan_invalid(t *testing.T) {
 					// test the provider aliasing feature. Both providers
 					// support the same set of resources and data sources.
 					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-						return stacks_testing_provider.NewProvider(), nil
+						return stacks_testing_provider.NewProvider(t), nil
 					},
 					addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
-						return stacks_testing_provider.NewProvider(), nil
+						return stacks_testing_provider.NewProvider(t), nil
 					},
 				},
 				DependencyLocks: *lock,
@@ -435,7 +435,7 @@ func TestPlanWithComplexVariableDefaults(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -1511,7 +1511,7 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks:    *lock,
@@ -1674,7 +1674,7 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -1835,7 +1835,7 @@ func TestPlanWithForEach(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -1885,7 +1885,7 @@ func TestPlanWithCheckableObjects(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -2118,7 +2118,7 @@ func TestPlanWithDeferredResource(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks:    *lock,
@@ -2268,7 +2268,7 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks:    *lock,
@@ -2505,7 +2505,7 @@ func TestPlanWithDeferredComponentReferences(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks:    *lock,
@@ -2762,7 +2762,7 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks:    *lock,
@@ -2908,7 +2908,7 @@ func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks:    *lock,
@@ -3053,7 +3053,7 @@ func TestPlanWithDeferredComponentForEachOfInvalidType(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -3115,7 +3115,7 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks:    *lock,
@@ -3328,7 +3328,7 @@ func TestPlanInvalidProvidersFailGracefully(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks:    *lock,
@@ -3759,7 +3759,7 @@ func TestPlanWithStateManipulation(t *testing.T) {
 				Config: cfg,
 				ProviderFactories: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-						return stacks_testing_provider.NewProviderWithData(tc.store), nil
+						return stacks_testing_provider.NewProviderWithData(t, tc.store), nil
 					},
 				},
 				DependencyLocks:    *lock,
@@ -3837,10 +3837,10 @@ func TestPlan_plantimestamp_force_timestamp(t *testing.T) {
 			// test the provider aliasing feature. Both providers
 			// support the same set of resources and data sources.
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 			addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		InputValues: func() map[stackaddrs.InputVariable]ExternalInputValue {
@@ -3959,10 +3959,10 @@ func TestPlan_plantimestamp_later_than_when_writing_this_test(t *testing.T) {
 			// test the provider aliasing feature. Both providers
 			// support the same set of resources and data sources.
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 			addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		InputValues: func() map[stackaddrs.InputVariable]ExternalInputValue {
@@ -4029,7 +4029,7 @@ func TestPlan_DependsOnUpdatesRequirements(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks:    *lock,

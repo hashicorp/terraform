@@ -226,7 +226,7 @@ func (c *StackCallInstance) ResolveExpressionReference(ctx context.Context, ref 
 }
 
 // ExternalFunctions implements ExpressionScope.
-func (c *StackCallInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, func(), tfdiags.Diagnostics) {
+func (c *StackCallInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
 	return c.main.ProviderFunctions(ctx, c.main.StackConfig(ctx, c.call.Addr().Stack.ConfigAddr()))
 }
 

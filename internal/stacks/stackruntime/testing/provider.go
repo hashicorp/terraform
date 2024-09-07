@@ -5,6 +5,8 @@ package testing
 
 import (
 	"fmt"
+	"runtime/debug"
+	"testing"
 
 	"github.com/hashicorp/go-uuid"
 	"github.com/zclconf/go-cty/cty"
@@ -66,17 +68,22 @@ type MockProvider struct {
 }
 
 // NewProvider returns a new MockProvider with an empty data store.
-func NewProvider() *MockProvider {
-	return NewProviderWithData(NewResourceStore())
+func NewProvider(t *testing.T) *MockProvider {
+	provider := NewProviderWithData(t, NewResourceStore())
+	return provider
 }
 
 // NewProviderWithData returns a new MockProvider with the given data store.
-func NewProviderWithData(store *ResourceStore) *MockProvider {
+func NewProviderWithData(t *testing.T, store *ResourceStore) *MockProvider {
 	if store == nil {
 		store = NewResourceStore()
 	}
 
-	return &MockProvider{
+	// grab the current stack trace so we know where the provider was created
+	// in case it isn't being cleaned up properly
+	currentStackTrace := debug.Stack()
+
+	provider := &MockProvider{
 		MockProvider: &testing_provider.MockProvider{
 			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 				Provider: providers.Schema{
@@ -220,6 +227,16 @@ func NewProviderWithData(store *ResourceStore) *MockProvider {
 		},
 		ResourceStore: store,
 	}
+
+	t.Cleanup(func() {
+		// Fail the test if this provider is not closed.
+		if !provider.CloseCalled {
+			t.Log(string(currentStackTrace))
+			t.Fatalf("provider.Close was not called")
+		}
+	})
+
+	return provider
 }
 
 // mustGenerateUUID is a helper to generate a UUID and panic if it fails.

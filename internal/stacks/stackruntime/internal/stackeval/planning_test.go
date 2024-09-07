@@ -940,7 +940,7 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 	cfg := testStackConfig(t, "local_value", "custom_provider")
 	providerFactories := map[addrs.Provider]providers.Factory{
 		addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-			provider := stacks_testing_provider.NewProvider()
+			provider := stacks_testing_provider.NewProvider(t)
 			return provider, nil
 		},
 	}
@@ -952,13 +952,6 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
-	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
-		PlanningMode:      plans.NormalMode,
-		ProviderFactories: providerFactories,
-		DependencyLocks:   *lock,
-		PlanTimestamp:     time.Now().UTC(),
-	})
-
 	comp2Addr := stackaddrs.AbsComponentInstance{
 		Stack: stackaddrs.RootStackInstance,
 		Item: stackaddrs.ComponentInstance{
@@ -968,7 +961,14 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 
 	rawPlan, err := promising.MainTask(ctx, func(ctx context.Context) ([]*anypb.Any, error) {
 		outp, outpTest := testPlanOutput(t)
+		main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
+			PlanningMode:      plans.NormalMode,
+			ProviderFactories: providerFactories,
+			DependencyLocks:   *lock,
+			PlanTimestamp:     time.Now().UTC(),
+		})
 		main.PlanAll(ctx, outp)
+		defer main.DoCleanup(ctx)
 		rawPlan := outpTest.RawChanges(t)
 		_, diags := outpTest.Close(t)
 		assertNoDiagnostics(t, diags)
@@ -986,10 +986,13 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 
 	_, err = promising.MainTask(ctx, func(ctx context.Context) (*stackstate.State, error) {
 		outp, outpTest := testApplyOutput(t, nil)
-		_, err := ApplyPlan(ctx, cfg, plan, ApplyOpts{
+		main, err := ApplyPlan(ctx, cfg, plan, ApplyOpts{
 			ProviderFactories: providerFactories,
 			DependencyLocks:   *lock,
 		}, outp)
+		if main != nil {
+			defer main.DoCleanup(ctx)
+		}
 		if err != nil {
 			t.Fatal(err)
 		}

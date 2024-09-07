@@ -119,7 +119,7 @@ func (p *ProviderInstance) CheckProviderArgs(ctx context.Context, phase EvalPhas
 				return cty.UnknownVal(hcldec.ImpliedType(spec)), diags
 			}
 
-			unconfClient, err := providerType.UnconfiguredClient(ctx)
+			unconfClient, err := providerType.UnconfiguredClient()
 			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
@@ -132,7 +132,6 @@ func (p *ProviderInstance) CheckProviderArgs(ctx context.Context, phase EvalPhas
 				})
 				return cty.DynamicVal, diags
 			}
-			defer unconfClient.Close()
 			// We unmark the config before making the RPC call, but will still
 			// return the original possibly-marked config if successful.
 			unmarkedConfigVal, _ := configVal.UnmarkDeep()
@@ -267,12 +266,7 @@ func (p *ProviderInstance) CheckClient(ctx context.Context, phase EvalPhase) (pr
 				return stubs.ErroredProvider(), diags
 			}
 
-			return providerClose{
-				close: func() error {
-					// We just totally ignore close for configured providers,
-					// because we'll deal with them in the cleanup phase instead.
-					return nil
-				},
+			return unconfigurableProvider{
 				Interface: client,
 			}, diags
 		},
@@ -288,7 +282,7 @@ func (p *ProviderInstance) ResolveExpressionReference(ctx context.Context, ref s
 }
 
 // ExternalFunctions implements ExpressionScope.
-func (p *ProviderInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, func(), tfdiags.Diagnostics) {
+func (p *ProviderInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
 	return p.main.ProviderFunctions(ctx, p.main.StackConfig(ctx, p.Addr().Stack.ConfigAddr()))
 }
 

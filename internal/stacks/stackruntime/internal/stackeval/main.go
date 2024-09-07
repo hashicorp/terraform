@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval/stubs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -372,28 +373,13 @@ func (m *Main) ProviderFactories() ProviderFactories {
 
 // ProviderFunctions returns the collection of externally defined provider
 // functions available to the current stack.
-func (m *Main) ProviderFunctions(ctx context.Context, config *StackConfig) (lang.ExternalFuncs, func(), tfdiags.Diagnostics) {
+func (m *Main) ProviderFunctions(ctx context.Context, config *StackConfig) (lang.ExternalFuncs, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	fns := make(map[string]map[string]function.Function, len(m.providerFactories))
 
-	var clients []providers.Interface
 	for addr := range m.providerFactories {
 		provider := m.ProviderType(ctx, addr)
-		client, err := provider.UnconfiguredClient(ctx)
-		if err != nil {
-			// We should have started these providers before we got here, so
-			// this error shouldn't ever occur.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Failed to create provider client",
-				Detail:   fmt.Sprintf("Failed to create client for provider %s while gathering provider functions: %s. This is a bug in Terraform, please report it!", addr, err),
-			})
-			continue // just skip this provider and keep going
-		}
-
-		// keep track of the client as we need to close it later
-		clients = append(clients, client)
 
 		local, ok := config.ProviderLocalName(ctx, addr)
 		if !ok {
@@ -405,26 +391,32 @@ func (m *Main) ProviderFunctions(ctx context.Context, config *StackConfig) (lang
 			local = addr.Type
 		}
 
-		// Now, we can initialise the functions.
-		schema := client.GetProviderSchema()
+		schema, err := provider.Schema(ctx)
+		if err != nil {
+			// We should have started these providers before we got here, so
+			// this error shouldn't ever occur.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Failed to retrieve provider schema",
+				Detail:   fmt.Sprintf("Failed to retrieve schema for provider %s while gathering provider functions: %s. This is a bug in Terraform, please report it!", addr, err),
+			})
+			continue // just skip this provider and keep going
+		}
+
+		// Now we can build the functions for this provider.
 		fns[local] = make(map[string]function.Function, len(schema.Functions))
 		for name, fn := range schema.Functions {
 			fns[local][name] = fn.BuildFunction(addr, name, m.providerFunctionResults, func() (providers.Interface, error) {
-				return client, nil
+				client, err := provider.UnconfiguredClient()
+				if err != nil {
+					return nil, err
+				}
+				return stubs.OfflineProvider(client), nil
 			})
 		}
 	}
 
-	return lang.ExternalFuncs{Provider: fns}, func() {
-		// Tidy up after the functions aren't being used any more.
-		for _, client := range clients {
-			// This shouldn't actually stop and start the underlying provider
-			// plugin. The UnconfiguredClient method actually borrows and shares
-			// the client that was already started by the provider type, so
-			// stopping it here should just release that borrowed client.
-			client.Stop()
-		}
-	}, diags
+	return lang.ExternalFuncs{Provider: fns}, diags
 
 }
 
