@@ -91,32 +91,73 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 						log.Printf("[TRACE] stackeval: %s preparing to apply", addr)
 
 						stack := main.Stack(ctx, addr.Stack, ApplyPhase)
-						component := stack.Component(ctx, addr.Item.Component)
+						component, removed := stack.ApplyableComponents(ctx, addr.Item.Component)
 
-						insts, unknown := component.Instances(ctx, ApplyPhase)
-						if unknown {
-							// an unknown instance should not have been applied
-							// during the apply phase, so we should not have
-							// reached this point.
-							log.Printf("[ERROR] stackeval: %s has planned changes, but was unknown so should not have been applied", addr)
-							span.SetStatus(codes.Error, "unknown component")
-							return nil, nil
+						// A component change can be sourced from a removed
+						// block or a component block. We'll try to find the
+						// instance that we need to use to apply these changes.
+
+						var inst ApplyableComponentInstance
+
+						if removed != nil {
+							if insts, unknown, _ := removed.Instances(ctx, ApplyPhase); unknown {
+								// It might be that either the removed block
+								// or component block was deferred but the
+								// other one had proper changes. We'll note
+								// this in the logs but just skip processing
+								// it.
+								log.Printf("[TRACE]: %s has planned changes, but was unknown. Check further messages to find out if this was an error.", addr)
+							} else {
+								i, ok := insts[addr.Item.Key]
+								if !ok {
+									// Again, this might be okay if the component
+									// block was deferred but the removed block had
+									// proper changes (or vice versa). We'll note
+									// this in the logs but just skip processing it.
+									log.Printf("[TRACE]: %s has planned changes, but does not seem to be declared. Check further messages to find out if this was an error.", addr)
+								} else {
+									inst = i
+								}
+							}
 						}
 
-						inst, ok := insts[addr.Item.Key]
-						if !ok {
-							// If we managed to plan a change for this instance
-							// during the plan phase but yet it doesn't exist
-							// during the apply phase then that suggests that
-							// something upstream has failed in a strange way
-							// during apply and so this component's for_each or
-							// count argument can't be properly evaluated anymore.
-							// This is an unlikely case but we'll tolerate it by
-							// returning a placeholder value and expect the cause
-							// to be reported by some object when we do the apply
-							// checking walk below.
-							log.Printf("[ERROR] stackeval: %s has planned changes, but does not seem to be declared", addr)
-							span.SetStatus(codes.Error, "missing component instance declaration")
+						if component != nil {
+							if insts, unknown := component.Instances(ctx, ApplyPhase); unknown {
+								// It might be that either the removed block
+								// or component block was deferred but the
+								// other one had proper changes. We'll note
+								// this in the logs but just skip processing
+								// it.
+								log.Printf("[TRACE]: %s has planned changes, but was unknown. Check further messages to find out if this was an error.", addr)
+							} else {
+								if i, ok := insts[addr.Item.Key]; !ok {
+									// Again, this might be okay if the component
+									// block was deferred but the removed block had
+									// proper changes (or vice versa). We'll note
+									// this in the logs but just skip processing it.
+									log.Printf("[TRACE]: %s has planned changes, but does not seem to be declared. Check further messages to find out if this was an error.", addr)
+								} else {
+									if inst != nil {
+										// Problem! We have both a removed block and
+										// a component instance that point to the same
+										// address. This should not happen. The plan
+										// should have caught this and resulted in an
+										// unapplyable plan.
+										log.Printf("[ERROR] stackeval: %s has both a component and a removed block that point to the same address", addr)
+										span.SetStatus(codes.Error, "both component and removed block present")
+										return nil, nil
+									}
+									inst = i
+								}
+							}
+						}
+
+						if inst == nil {
+							// Then we have a problem. We have a component
+							// that has planned changes but no instance to
+							// apply them to. This should not happen.
+							log.Printf("[ERROR] stackeval: %s has planned changes, but no instance to apply them to", addr)
+							span.SetStatus(codes.Error, "no instance to apply changes to")
 							return nil, nil
 						}
 
@@ -140,6 +181,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 						}
 
 						var waitForComponents collections.Set[stackaddrs.AbsComponent]
+						var waitForRemoveds collections.Set[stackaddrs.AbsComponent]
 						if action == plans.Delete {
 							// If the effect of this apply will be to destroy this
 							// component instance then we need to wait for all
@@ -152,10 +194,25 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 							// downstream component were referring to a
 							// component that's been removed from the config.)
 							waitForComponents = dependentAddrs
+
+							// If we're being destroyed, then we're waiting for
+							// everything that depended on us anyway.
+							waitForRemoveds = collections.NewSet[stackaddrs.AbsComponent]()
 						} else {
 							// For all other actions, we must wait for our
 							// dependencies to finish applying their changes.
 							waitForComponents = dependencyAddrs
+
+							// If we're not being destroyed we might have some
+							// depdendents that are being destroyed, and we need
+							// to wait for them to finish before we can start.
+							waitForRemoveds = collections.NewSet[stackaddrs.AbsComponent]()
+							for _, dependent := range dependentAddrs.Elems() {
+								dependentStack := main.Stack(ctx, dependent.Stack, ApplyPhase)
+								if dependentStack.Removed(ctx, dependent.Item) != nil {
+									waitForRemoveds.Add(dependent)
+								}
+							}
 						}
 						if depCount := waitForComponents.Len(); depCount != 0 {
 							log.Printf("[TRACE] stackeval: %s waiting for its predecessors (%d) to complete", addr, depCount)
@@ -167,6 +224,32 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 										attribute.String("component_addr", waitComponentAddr.String()),
 									))
 									success := component.ApplySuccessful(ctx)
+									if !success {
+										// If anything we're waiting on does not succeed then we can't proceed without
+										// violating the dependency invariants.
+										log.Printf("[TRACE] stackeval: %s cannot start because %s changes did not apply completely", addr, waitComponentAddr)
+										span.AddEvent("predecessor is incomplete", trace.WithAttributes(
+											attribute.String("component_addr", waitComponentAddr.String()),
+										))
+										span.SetStatus(codes.Error, "predecessors did not completely apply")
+
+										// We'll return a stub result that reports that nothing was changed, since
+										// we're not going to run our apply phase at all.
+										return inst.PlaceholderApplyResultForSkippedApply(ctx, modulesRuntimePlan), nil
+										// Since we're not calling inst.ApplyModuleTreePlan at all in this
+										// codepath, the stacks runtime will not emit any progress events for
+										// this component instance or any of the objects inside it.
+									}
+								}
+							}
+						}
+						for _, waitComponentAddr := range waitForRemoveds.Elems() {
+							if stack := main.Stack(ctx, waitComponentAddr.Stack, ApplyPhase); stack != nil {
+								if removed := stack.Removed(ctx, waitComponentAddr.Item); removed != nil {
+									span.AddEvent("awaiting predecessor", trace.WithAttributes(
+										attribute.String("component_addr", waitComponentAddr.String()),
+									))
+									success := removed.ApplySuccessful(ctx)
 									if !success {
 										// If anything we're waiting on does not succeed then we can't proceed without
 										// violating the dependency invariants.

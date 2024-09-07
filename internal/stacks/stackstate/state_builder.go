@@ -48,6 +48,7 @@ func (s *StateBuilder) AddResourceInstance(builder *ResourceInstanceBuilder) *St
 func (s *StateBuilder) AddComponentInstance(builder *ComponentInstanceBuilder) *StateBuilder {
 	component := s.state.ensureComponentInstanceState(builder.addr)
 	component.outputValues = builder.outputValues
+	component.inputVariables = builder.inputVariables
 
 	for _, dep := range builder.dependencies.Elems() {
 		component.dependencies.Add(dep)
@@ -84,18 +85,20 @@ func (b *ResourceInstanceBuilder) SetProviderAddr(addr addrs.AbsProviderConfig) 
 }
 
 type ComponentInstanceBuilder struct {
-	addr         stackaddrs.AbsComponentInstance
-	dependencies collections.Set[stackaddrs.AbsComponent]
-	dependents   collections.Set[stackaddrs.AbsComponent]
-	outputValues map[addrs.OutputValue]cty.Value
+	addr           stackaddrs.AbsComponentInstance
+	dependencies   collections.Set[stackaddrs.AbsComponent]
+	dependents     collections.Set[stackaddrs.AbsComponent]
+	outputValues   map[addrs.OutputValue]cty.Value
+	inputVariables map[addrs.InputVariable]cty.Value
 }
 
 func NewComponentInstanceBuilder(instance stackaddrs.AbsComponentInstance) *ComponentInstanceBuilder {
 	return &ComponentInstanceBuilder{
-		addr:         instance,
-		dependencies: collections.NewSet[stackaddrs.AbsComponent](),
-		dependents:   collections.NewSet[stackaddrs.AbsComponent](),
-		outputValues: make(map[addrs.OutputValue]cty.Value),
+		addr:           instance,
+		dependencies:   collections.NewSet[stackaddrs.AbsComponent](),
+		dependents:     collections.NewSet[stackaddrs.AbsComponent](),
+		outputValues:   make(map[addrs.OutputValue]cty.Value),
+		inputVariables: make(map[addrs.InputVariable]cty.Value),
 	}
 }
 
@@ -111,5 +114,10 @@ func (b *ComponentInstanceBuilder) AddDependent(addr stackaddrs.AbsComponent) *C
 
 func (b *ComponentInstanceBuilder) AddOutputValue(name string, value cty.Value) *ComponentInstanceBuilder {
 	b.outputValues[addrs.OutputValue{Name: name}] = value
+	return b
+}
+
+func (b *ComponentInstanceBuilder) AddInputVariable(name string, value cty.Value) *ComponentInstanceBuilder {
+	b.inputVariables[addrs.InputVariable{Name: name}] = value
 	return b
 }

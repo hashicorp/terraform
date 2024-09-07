@@ -57,9 +57,10 @@ func ResourceInstanceObjectStateToTFStackData1(objSrc *states.ResourceInstanceOb
 	return rawMsg
 }
 
-func ComponentInstanceResultsToTFStackData1(dependencies collections.Set[stackaddrs.AbsComponent], dependents collections.Set[stackaddrs.AbsComponent], outputValues map[addrs.OutputValue]cty.Value) (*StateComponentInstanceV1, error) {
+func ComponentInstanceResultsToTFStackData1(dependencies collections.Set[stackaddrs.AbsComponent], dependents collections.Set[stackaddrs.AbsComponent], outputValues map[addrs.OutputValue]cty.Value, variables map[addrs.InputVariable]cty.Value) (*StateComponentInstanceV1, error) {
 	state := StateComponentInstanceV1{
-		OutputValues: make(map[string]*DynamicValue, len(outputValues)),
+		OutputValues:   make(map[string]*DynamicValue, len(outputValues)),
+		InputVariables: make(map[string]*DynamicValue, len(variables)),
 	}
 	for _, addr := range dependencies.Elems() {
 		state.DependencyAddrs = append(state.DependencyAddrs, addr.String())
@@ -73,6 +74,13 @@ func ComponentInstanceResultsToTFStackData1(dependencies collections.Set[stackad
 			return nil, fmt.Errorf("encoding %s: %w", addr, err)
 		}
 		state.OutputValues[addr.Name] = protoVal
+	}
+	for addr, val := range variables {
+		protoVal, err := DynamicValueToTFStackData1(val, cty.DynamicPseudoType)
+		if err != nil {
+			return nil, fmt.Errorf("encoding %s: %w", addr, err)
+		}
+		state.InputVariables[addr.Name] = protoVal
 	}
 	return &state, nil
 }

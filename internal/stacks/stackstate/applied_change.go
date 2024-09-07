@@ -242,6 +242,12 @@ type AppliedChangeComponentInstance struct {
 	// If any output values are declared as sensitive then they should be
 	// marked as such here using the usual cty marking strategy.
 	OutputValues map[addrs.OutputValue]cty.Value
+
+	// InputVariables "remembers" the input values from the most recent
+	// apply of the component instance. We store this primarily for usage
+	// within the removed blocks in which the input values from the last
+	// applied state are required to destroy the existing resources.
+	InputVariables map[addrs.InputVariable]cty.Value
 }
 
 var _ AppliedChange = (*AppliedChangeComponentInstance)(nil)
@@ -256,7 +262,7 @@ func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*stacks.AppliedC
 		ComponentInstanceAddr: ac.ComponentInstanceAddr,
 	}
 
-	rawMsg, err := tfstackdata1.ComponentInstanceResultsToTFStackData1(ac.Dependencies, ac.Dependents, ac.OutputValues)
+	rawMsg, err := tfstackdata1.ComponentInstanceResultsToTFStackData1(ac.Dependencies, ac.Dependents, ac.OutputValues, ac.InputVariables)
 	if err != nil {
 		return nil, fmt.Errorf("encoding raw state for %s: %w", ac.ComponentInstanceAddr, err)
 	}

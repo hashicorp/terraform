@@ -104,6 +104,16 @@ func (s *State) ResultsForComponent(addr stackaddrs.AbsComponentInstance) map[ad
 	return cs.outputValues
 }
 
+// InputsForComponent returns the input values for the given component
+// instance, or nil if no such component instance is tracked in the state.
+func (s *State) InputsForComponent(addr stackaddrs.AbsComponentInstance) map[addrs.InputVariable]cty.Value {
+	cs := s.componentInstanceState(addr)
+	if cs == nil {
+		return nil
+	}
+	return cs.inputVariables
+}
+
 // ComponentInstanceResourceInstanceObjects returns a set of addresses for
 // all of the resource instance objects belonging to the component instance
 // with the given address.
@@ -238,6 +248,7 @@ func (s *State) ensureComponentInstanceState(addr stackaddrs.AbsComponentInstanc
 		dependencies:            collections.NewSet[stackaddrs.AbsComponent](),
 		dependents:              collections.NewSet[stackaddrs.AbsComponent](),
 		outputValues:            make(map[addrs.OutputValue]cty.Value),
+		inputVariables:          make(map[addrs.InputVariable]cty.Value),
 		resourceInstanceObjects: addrs.MakeMap[addrs.AbsResourceInstanceObject, *resourceInstanceObjectState](),
 	})
 	return s.componentInstances.Get(addr)
@@ -264,6 +275,10 @@ type componentInstanceState struct {
 	// outputValues is a map from output value addresses to their values at
 	// completion of the last apply operation.
 	outputValues map[addrs.OutputValue]cty.Value
+
+	// inputVariables is a map from input variable addresses to their values at
+	// completion of the last apply operation.
+	inputVariables map[addrs.InputVariable]cty.Value
 
 	// resourceInstanceObjects is a map from resource instance object addresses
 	// to their state.

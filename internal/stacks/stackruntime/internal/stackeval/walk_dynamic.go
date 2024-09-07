@@ -103,6 +103,23 @@ func walkDynamicObjectsInStack[Output any](
 			}
 		})
 	}
+	for _, removed := range stack.Removeds(ctx) {
+		removed := removed
+		visit(ctx, walk, removed)
+
+		walk.AsyncTask(ctx, func(ctx context.Context) {
+			insts, unknown, _ := removed.Instances(ctx, phase)
+			if unknown {
+				inst := removed.UnknownInstance(ctx, phase)
+				visit(ctx, walk, inst)
+				return
+			}
+
+			for _, inst := range insts {
+				visit(ctx, walk, inst)
+			}
+		})
+	}
 	for _, provider := range stack.Providers(ctx) {
 		provider := provider // separate symbol per loop iteration
 

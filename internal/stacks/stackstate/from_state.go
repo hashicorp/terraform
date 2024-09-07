@@ -42,6 +42,7 @@ func FromState(ctx context.Context, state *states.State, component *stackplan.Co
 		Dependents:            component.Dependents,
 		Dependencies:          component.Dependencies,
 		OutputValues:          make(map[addrs.OutputValue]cty.Value, len(state.RootOutputValues)),
+		InputVariables:        make(map[addrs.InputVariable]cty.Value, len(applyTimeInputs.Type().AttributeTypes())),
 	}
 	for name, os := range state.RootOutputValues {
 		val := os.Value
@@ -49,6 +50,9 @@ func FromState(ctx context.Context, state *states.State, component *stackplan.Co
 			val = val.Mark(marks.Sensitive)
 		}
 		ourChange.OutputValues[addrs.OutputValue{Name: name}] = val
+	}
+	for name, value := range applyTimeInputs.AsValueMap() {
+		ourChange.InputVariables[addrs.InputVariable{Name: name}] = value
 	}
 	changes = append(changes, ourChange)
 

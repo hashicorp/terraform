@@ -14,11 +14,9 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate/statekeys"
 	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
-	"github.com/hashicorp/terraform/internal/states"
 )
 
 // A helper for loading prior state snapshots in a streaming manner.
@@ -291,6 +289,14 @@ func handleComponentInstanceMsg(key statekeys.ComponentInstance, msg protoreflec
 		instance.outputValues[addrs.OutputValue{Name: name}] = value
 	}
 
+	for name, input := range componentState.InputVariables {
+		value, err := tfstackdata1.DynamicValueFromTFStackData1(input, cty.DynamicPseudoType)
+		if err != nil {
+			return fmt.Errorf("decoding input value %q for %s: %w", name, key.ComponentInstanceAddr, err)
+		}
+		instance.inputVariables[addrs.InputVariable{Name: name}] = value
+	}
+
 	return nil
 }
 
@@ -308,7 +314,7 @@ func handleResourceInstanceObjectMsg(key statekeys.ResourceInstanceObject, msg p
 		return fmt.Errorf("unsupported message type %T for state of %s", msg, fullAddr.String())
 	}
 
-	objSrc, err := DecodeProtoResourceInstanceObject(riMsg)
+	objSrc, err := tfstackdata1.DecodeProtoResourceInstanceObject(riMsg)
 	if err != nil {
 		return fmt.Errorf("invalid stored state object for %s: %w", fullAddr, err)
 	}
@@ -320,51 +326,4 @@ func handleResourceInstanceObjectMsg(key statekeys.ResourceInstanceObject, msg p
 
 	state.addResourceInstanceObject(fullAddr, objSrc, providerConfigAddr)
 	return nil
-}
-
-func DecodeProtoResourceInstanceObject(protoObj *tfstackdata1.StateResourceInstanceObjectV1) (*states.ResourceInstanceObjectSrc, error) {
-	objSrc := &states.ResourceInstanceObjectSrc{
-		SchemaVersion:       protoObj.SchemaVersion,
-		AttrsJSON:           protoObj.ValueJson,
-		CreateBeforeDestroy: protoObj.CreateBeforeDestroy,
-		Private:             protoObj.ProviderSpecificData,
-	}
-
-	switch protoObj.Status {
-	case tfstackdata1.StateResourceInstanceObjectV1_READY:
-		objSrc.Status = states.ObjectReady
-	case tfstackdata1.StateResourceInstanceObjectV1_DAMAGED:
-		objSrc.Status = states.ObjectTainted
-	default:
-		return nil, fmt.Errorf("unsupported status %s", protoObj.Status.String())
-	}
-
-	paths := make([]cty.Path, 0, len(protoObj.SensitivePaths))
-	for _, p := range protoObj.SensitivePaths {
-		path, err := planfile.PathFromProto(p)
-		if err != nil {
-			return nil, err
-		}
-		paths = append(paths, path)
-	}
-	objSrc.AttrSensitivePaths = paths
-
-	if len(protoObj.Dependencies) != 0 {
-		objSrc.Dependencies = make([]addrs.ConfigResource, len(protoObj.Dependencies))
-		for i, raw := range protoObj.Dependencies {
-			instAddr, diags := addrs.ParseAbsResourceInstanceStr(raw)
-			if diags.HasErrors() {
-				return nil, fmt.Errorf("invalid dependency %q", raw)
-			}
-			// We used the resource instance address parser here but we
-			// actually want the "config resource" subset of that syntax only.
-			configAddr := instAddr.ConfigResource()
-			if configAddr.String() != instAddr.String() {
-				return nil, fmt.Errorf("invalid dependency %q", raw)
-			}
-			objSrc.Dependencies[i] = configAddr
-		}
-	}
-
-	return objSrc, nil
 }
