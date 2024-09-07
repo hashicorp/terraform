@@ -4453,7 +4453,7 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 
 			providers := map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-					return stacks_testing_provider.NewProviderWithData(tc.store), nil
+					return stacks_testing_provider.NewProviderWithData(t, tc.store), nil
 				},
 			}
 
