@@ -654,6 +654,8 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 		return nil, nil
 	}
 
+	var diags tfdiags.Diagnostics
+
 	// For a root stack we'll return a PlannedChange for each of the output
 	// values, so the caller can see how these would change if this plan is
 	// applied.
@@ -662,6 +664,81 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 		// None of these situations should be possible if Stack.ResultValue is
 		// correctly implemented.
 		panic(fmt.Sprintf("invalid result from Stack.ResultValue: %#v", resultVal))
+	}
+
+	// We want to check that all of the components we have in state are
+	// targeted by something (either a component or a removed block) in
+	// the configuration.
+	//
+	// The root stack analysis is the best place to do this. We must do this
+	// during the plan (and not during the analysis) because we may have
+	// for-each attributes that need to be expanded before we can determine
+	// if a component is targeted.
+
+	for _, inst := range s.main.PlanPrevState().AllComponentInstances().Elems() {
+
+		if s.main.PlanPrevState().ComponentInstanceResourceInstanceObjects(inst).Len() == 0 {
+			// Then this component instance doesn't have any resource instances
+			// associated with it, so it doesn't matter if it is or isn't
+			// targeted by anything in the configuration.
+			//
+			// Perhaps we should modify the applied state to remove empty
+			// components instead of keeping them around?
+			continue
+		}
+
+		stack := s.main.Stack(ctx, inst.Stack, PlanPhase)
+		if stack == nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unclaimed component instance",
+				fmt.Sprintf("The component instance %s is not claimed by any component or removed block in the configuration. Make sure it is instantiated by a component block, or targeted for removal by a removed block.", inst.String()),
+			))
+			continue
+		}
+
+		component, removed := stack.ApplyableComponents(ctx, inst.Item.Component)
+		if component != nil {
+			insts, unknown := component.Instances(ctx, PlanPhase)
+			if unknown {
+				// We can't determine if the component is targeted or not. This
+				// is okay, as any changes to this component will be deferred
+				// anyway and a follow up plan will then detect the missing
+				// component if it exists.
+				continue
+			}
+
+			if _, exists := insts[inst.Item.Key]; exists {
+				// This component is targeted by a component block, so we won't
+				// add an error.
+				continue
+			}
+		}
+
+		if removed != nil {
+			insts, unknown, _ := removed.Instances(ctx, PlanPhase)
+			if unknown {
+				// We can't determine if the component is targeted or not. This
+				// is okay, as any changes to this component will be deferred
+				// anyway and a follow up plan will then detect the missing
+				// component if it exists.
+				continue
+			}
+
+			if _, exists := insts[inst.Item.Key]; exists {
+				// This component is targeted by a removed block, so we won't
+				// add an error.
+				continue
+			}
+		}
+
+		// Otherwise, we have a component that is not targeted by anything in
+		// the configuration. We should add an error.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unclaimed component instance",
+			fmt.Sprintf("The component instance %s is not claimed by any component or removed block in the configuration. Make sure it is instantiated by a component block, or targeted for removal by a removed block.", inst.String()),
+		))
 	}
 
 	var changes []stackplan.PlannedChange
@@ -681,7 +758,6 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 			// Any other marks should've been dealt with by our caller before
 			// getting here, since we only know how to preserve the sensitive
 			// marking.
-			var diags tfdiags.Diagnostics
 			diags = diags.Append(fmt.Errorf(
 				"%s%s: unhandled value marks %#v (this is a bug in Terraform)",
 				outputAddr,
@@ -714,7 +790,7 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 			NewValueSensitivePaths: sensitivePaths,
 		})
 	}
-	return changes, nil
+	return changes, diags
 }
 
 // CheckApply implements Applyable.
