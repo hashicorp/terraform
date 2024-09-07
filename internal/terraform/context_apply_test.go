@@ -12273,7 +12273,6 @@ output "out" {
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
-
 	got := state.RootOutputValues["out"].Value
 	want := cty.ObjectVal(map[string]cty.Value{
 		"required": cty.StringVal("boop"),

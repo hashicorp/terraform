@@ -27,6 +27,10 @@ func (s *LockDisabled) GetRootOutputValues(ctx context.Context) (map[string]*sta
 	return s.Inner.GetRootOutputValues(ctx)
 }
 
+func (s *LockDisabled) GetEphemeralRootOutputValues(ctx context.Context) (map[string]*states.OutputValue, error) {
+	return s.Inner.GetEphemeralRootOutputValues(ctx)
+}
+
 func (s *LockDisabled) WriteState(v *states.State) error {
 	return s.Inner.WriteState(v)
 }

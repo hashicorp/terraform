@@ -225,7 +225,7 @@ func TestApplyWithMovedResource(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(stacks_testing_provider.NewResourceStoreBuilder().
+				return stacks_testing_provider.NewProviderWithData(t, stacks_testing_provider.NewResourceStoreBuilder().
 					AddResource("moved", cty.ObjectVal(map[string]cty.Value{
 						"id":    cty.StringVal("moved"),
 						"value": cty.StringVal("moved"),
@@ -319,7 +319,7 @@ func TestApplyWithMovedResource(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(stacks_testing_provider.NewResourceStoreBuilder().
+				return stacks_testing_provider.NewProviderWithData(t, stacks_testing_provider.NewResourceStoreBuilder().
 					AddResource("moved", cty.ObjectVal(map[string]cty.Value{
 						"id":    cty.StringVal("moved"),
 						"value": cty.StringVal("moved"),
@@ -402,7 +402,7 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -450,7 +450,7 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -543,7 +543,7 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(store), nil
+				return stacks_testing_provider.NewProviderWithData(t, store), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -604,7 +604,7 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(store), nil
+				return stacks_testing_provider.NewProviderWithData(t, store), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -690,7 +690,7 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(store), nil
+				return stacks_testing_provider.NewProviderWithData(t, store), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -744,7 +744,7 @@ func TestApplyWithCheckableObjects(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(store), nil
+				return stacks_testing_provider.NewProviderWithData(t, store), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -806,7 +806,7 @@ func TestApplyWithForcePlanTimestamp(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		ForcePlanTimestamp: &fakePlanTimestamp,
@@ -856,7 +856,7 @@ func TestApplyWithForcePlanTimestamp(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 	}
@@ -929,7 +929,7 @@ func TestApplyWithDefaultPlanTimestamp(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 	}
@@ -983,7 +983,7 @@ func TestApplyWithDefaultPlanTimestamp(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 	}
@@ -1053,7 +1053,7 @@ func TestApplyWithFailedComponent(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks:    *lock,
@@ -1093,7 +1093,7 @@ func TestApplyWithFailedComponent(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -1172,7 +1172,7 @@ func TestApplyWithFailedProviderLinkedComponent(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks:    *lock,
@@ -1212,7 +1212,7 @@ func TestApplyWithFailedProviderLinkedComponent(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -1682,7 +1682,7 @@ func TestApplyWithStateManipulation(t *testing.T) {
 
 			providers := map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-					return stacks_testing_provider.NewProviderWithData(tc.store), nil
+					return stacks_testing_provider.NewProviderWithData(t, tc.store), nil
 				},
 			}
 
@@ -1808,7 +1808,7 @@ func TestApplyWithChangedInputValues(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -1856,7 +1856,7 @@ func TestApplyWithChangedInputValues(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -1934,7 +1934,7 @@ func TestApplyAutomaticInputConversion(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -1989,7 +1989,7 @@ func TestApplyAutomaticInputConversion(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -2098,7 +2098,7 @@ func TestApplyEphemeralInput(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -2150,7 +2150,7 @@ func TestApplyEphemeralInput(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -2235,7 +2235,7 @@ func TestApplyMissingEphemeralInput(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -2287,7 +2287,7 @@ func TestApplyMissingEphemeralInput(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -2382,7 +2382,7 @@ func TestApplyEphemeralInputWithDefault(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -2431,7 +2431,7 @@ func TestApplyEphemeralInputWithDefault(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -2513,7 +2513,7 @@ func TestApply_DependsOnComponentWithNoInstances(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks:    *lock,
@@ -2562,7 +2562,7 @@ func TestApply_DependsOnComponentWithNoInstances(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -2611,7 +2611,7 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks:    *lock,
@@ -2754,7 +2754,7 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -2842,7 +2842,7 @@ func TestApplyFailedDependencyWithResourceInState(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(store), nil
+				return stacks_testing_provider.NewProviderWithData(t, store), nil
 			},
 		},
 		DependencyLocks:    *lock,
@@ -2908,7 +2908,7 @@ func TestApplyFailedDependencyWithResourceInState(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProviderWithData(store), nil
+				return stacks_testing_provider.NewProviderWithData(t, store), nil
 			},
 		},
 		DependencyLocks: *lock,
@@ -2997,7 +2997,7 @@ func TestApplyManuallyRemovedResource(t *testing.T) {
 		Config: cfg,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks:    *lock,
@@ -3069,7 +3069,7 @@ func TestApplyManuallyRemovedResource(t *testing.T) {
 		Plan:   plan,
 		ProviderFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(), nil
+				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 		DependencyLocks: *lock,

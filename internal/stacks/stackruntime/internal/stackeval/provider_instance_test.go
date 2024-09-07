@@ -368,7 +368,7 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 		assertNoDiags(t, diags)
 
 		switch c := client.(type) {
-		case providerClose:
+		case unconfigurableProvider:
 			break
 		default:
 			t.Errorf("unexpected client type %#T", c)
@@ -410,7 +410,7 @@ func TestProviderInstanceCheckClient(t *testing.T) {
 		assertNoDiags(t, diags)
 
 		switch c := client.(type) {
-		case providerClose:
+		case unconfigurableProvider:
 			break
 		default:
 			t.Errorf("unexpected client type %#T", c)

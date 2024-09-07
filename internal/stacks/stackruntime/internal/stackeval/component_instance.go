@@ -186,8 +186,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				return nil, diags
 			}
 
-			providerClients, closer := configuredProviderClients(ctx, c.main, known, unknown, PlanPhase)
-			defer closer()
+			providerClients := configuredProviderClients(ctx, c.main, known, unknown, PlanPhase)
 
 			// If any of our upstream components have incomplete plans then
 			// we need to force treating everything in this component as
@@ -605,7 +604,7 @@ func (c *ComponentInstance) ResolveExpressionReference(ctx context.Context, ref 
 }
 
 // ExternalFunctions implements ExpressionScope.
-func (c *ComponentInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, func(), tfdiags.Diagnostics) {
+func (c *ComponentInstance) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
 	return c.main.ProviderFunctions(ctx, c.call.Config(ctx).StackConfig(ctx))
 }
 

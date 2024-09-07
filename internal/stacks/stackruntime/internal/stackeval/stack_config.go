@@ -615,7 +615,7 @@ func (s *StackConfig) resolveExpressionReference(
 }
 
 // ExternalFunctions implements ExpressionScope.
-func (s *StackConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, func(), tfdiags.Diagnostics) {
+func (s *StackConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs, tfdiags.Diagnostics) {
 	return s.main.ProviderFunctions(ctx, s)
 }
 
