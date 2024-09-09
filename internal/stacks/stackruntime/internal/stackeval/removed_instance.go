@@ -36,8 +36,9 @@ var (
 )
 
 type RemovedInstance struct {
-	call *Removed
-	key  addrs.InstanceKey
+	call     *Removed
+	key      addrs.InstanceKey
+	deferred bool
 
 	main *Main
 
@@ -46,10 +47,11 @@ type RemovedInstance struct {
 	moduleTreePlan promising.Once[withDiagnostics[*plans.Plan]]
 }
 
-func newRemovedInstance(call *Removed, key addrs.InstanceKey, repetition instances.RepetitionData) *RemovedInstance {
+func newRemovedInstance(call *Removed, key addrs.InstanceKey, repetition instances.RepetitionData, deferred bool) *RemovedInstance {
 	return &RemovedInstance{
 		call:       call,
 		key:        key,
+		deferred:   deferred,
 		main:       call.main,
 		repetition: repetition,
 	}
@@ -91,7 +93,7 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 
 		providerClients := configuredProviderClients(ctx, r.main, known, unknown, PlanPhase)
 
-		deferred := false
+		deferred := r.deferred
 		for _, depAddr := range r.PlanPrevDependents(ctx).Elems() {
 			depStack := r.main.Stack(ctx, depAddr.Stack, PlanPhase)
 			if depStack == nil {

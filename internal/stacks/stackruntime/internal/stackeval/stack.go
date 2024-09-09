@@ -13,6 +13,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
@@ -350,6 +351,27 @@ func (s *Stack) Removed(ctx context.Context, addr stackaddrs.Component) *Removed
 // components for a given component address.
 func (s *Stack) ApplyableComponents(ctx context.Context, addr stackaddrs.Component) (*Component, *Removed) {
 	return s.Component(ctx, addr), s.Removed(ctx, addr)
+}
+
+// KnownComponentInstances returns a set of the component instances that belong
+// to the given component from the current state or plan.
+func (s *Stack) KnownComponentInstances(component stackaddrs.Component, phase EvalPhase) collections.Set[stackaddrs.ComponentInstance] {
+	switch phase {
+	case PlanPhase:
+		return s.main.PlanPrevState().ComponentInstances(stackaddrs.AbsComponent{
+			Stack: s.Addr(),
+			Item:  component,
+		})
+	case ApplyPhase:
+		return s.main.PlanBeingApplied().ComponentInstances(stackaddrs.AbsComponent{
+			Stack: s.Addr(),
+			Item:  component,
+		})
+	default:
+		// We're not executing with an existing state in the other phases, so
+		// we have no known instances.
+		return collections.NewSet[stackaddrs.ComponentInstance]()
+	}
 }
 
 func (s *Stack) ProviderByLocalAddr(ctx context.Context, localAddr stackaddrs.ProviderConfigRef) *Provider {
