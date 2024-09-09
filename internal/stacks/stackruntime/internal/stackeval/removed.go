@@ -116,13 +116,13 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 		knownAddrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))
 		knownInstances := make(map[addrs.InstanceKey]*RemovedInstance, len(result.insts))
 		for key, ci := range result.insts {
-			if r.main.PlanPrevState().HasComponentInstance(ci.Addr()) {
-				knownInstances[key] = ci
-				knownAddrs = append(knownAddrs, ci.Addr())
-				continue
-			}
-
-			if phase == PlanPhase {
+			switch phase {
+			case PlanPhase:
+				if r.main.PlanPrevState().HasComponentInstance(ci.Addr()) {
+					knownInstances[key] = ci
+					knownAddrs = append(knownAddrs, ci.Addr())
+					continue
+				}
 				// Otherwise, during the planning phase we'll add a warning to
 				// let the user know this removed block isn't doing anything.
 				diags = diags.Append(&hcl.Diagnostic{
@@ -131,6 +131,20 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 					Detail:   fmt.Sprintf("This removed block targets %s, which does not exist.", ci.Addr()),
 					Subject:  ci.DeclRange(ctx),
 				})
+			case ApplyPhase:
+				if _, ok := r.main.PlanBeingApplied().Components.GetOk(ci.Addr()); ok {
+					knownInstances[key] = ci
+					knownAddrs = append(knownAddrs, ci.Addr())
+					continue
+				}
+				// We won't add a warning here, as we already added a
+				// warning during planning so instead we'll just ignore
+				// the instance.
+			default:
+				// Otherwise, we're running in a stage that doesn't evaluate
+				// a state or the plan so we'll just include everything.
+				knownInstances[key] = ci
+				knownAddrs = append(knownAddrs, ci.Addr())
 
 			}
 		}
