@@ -5,7 +5,9 @@ package stackeval
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -108,15 +110,36 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 			return newRemovedInstance(r, ik, rd)
 		})
 
-		addrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))
-		for _, ci := range result.insts {
-			addrs = append(addrs, ci.Addr())
+		// Filter out any instances that are not known to the previous state.
+		// This means the user has targeted a component that (a) never existed
+		// or (b) was removed in a previous operation.
+		knownAddrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))
+		knownInstances := make(map[addrs.InstanceKey]*RemovedInstance, len(result.insts))
+		for key, ci := range result.insts {
+			if r.main.PlanPrevState().HasComponentInstance(ci.Addr()) {
+				knownInstances[key] = ci
+				knownAddrs = append(knownAddrs, ci.Addr())
+				continue
+			}
+
+			if phase == PlanPhase {
+				// Otherwise, during the planning phase we'll add a warning to
+				// let the user know this removed block isn't doing anything.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Redundant removed block",
+					Detail:   fmt.Sprintf("This removed block targets %s, which does not exist.", ci.Addr()),
+					Subject:  ci.DeclRange(ctx),
+				})
+
+			}
 		}
+		result.insts = knownInstances
 
 		h := hooksFromContext(ctx)
 		hookSingle(ctx, h.ComponentExpanded, &hooks.ComponentInstances{
 			ComponentAddr: r.Addr(),
-			InstanceAddrs: addrs,
+			InstanceAddrs: knownAddrs,
 		})
 
 		return result, diags

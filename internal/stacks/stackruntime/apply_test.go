@@ -3150,8 +3150,6 @@ func TestApply_RemovedBlocks(t *testing.T) {
 	//   - Removed and component blocks that target the same instance.
 	//   - Validate what happens when a removed block foreach evaluates to
 	//     unknown.
-	//   - Add a test for a removed block targeting state that has already been
-	//     removed.
 	//   - Add a test for a removed block that forgets instead of destroys.
 
 	tcs := map[string]struct {
