@@ -71,7 +71,7 @@ func TestContext2Apply_createBeforeDestroy_deposedKeyPreApply(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	} else {
-		t.Logf(legacyDiffComparisonString(plan.Changes))
+		t.Log(legacyDiffComparisonString(plan.Changes))
 	}
 
 	_, diags = ctx.Apply(plan, m, nil)

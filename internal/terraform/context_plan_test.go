@@ -1393,7 +1393,7 @@ func TestContext2Plan_preventDestroy_bad(t *testing.T) {
 	expectedErr := "aws_instance.foo has lifecycle.prevent_destroy"
 	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
 		if plan != nil {
-			t.Logf(legacyDiffComparisonString(plan.Changes))
+			t.Log(legacyDiffComparisonString(plan.Changes))
 		}
 		t.Fatalf("expected err would contain %q\nerr: %s", expectedErr, err)
 	}
@@ -1494,7 +1494,7 @@ func TestContext2Plan_preventDestroy_countBad(t *testing.T) {
 	expectedErr := "aws_instance.foo[1] has lifecycle.prevent_destroy"
 	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
 		if plan != nil {
-			t.Logf(legacyDiffComparisonString(plan.Changes))
+			t.Log(legacyDiffComparisonString(plan.Changes))
 		}
 		t.Fatalf("expected err would contain %q\nerr: %s", expectedErr, err)
 	}
@@ -1620,7 +1620,7 @@ func TestContext2Plan_preventDestroy_destroyPlan(t *testing.T) {
 	expectedErr := "aws_instance.foo has lifecycle.prevent_destroy"
 	if !strings.Contains(fmt.Sprintf("%s", diags.Err()), expectedErr) {
 		if plan != nil {
-			t.Logf(legacyDiffComparisonString(plan.Changes))
+			t.Log(legacyDiffComparisonString(plan.Changes))
 		}
 		t.Fatalf("expected diagnostics would contain %q\nactual diags: %s", expectedErr, diags.Err())
 	}
