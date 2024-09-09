@@ -4,8 +4,8 @@ go 1.22.5
 
 require (
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
-	github.com/hashicorp/terraform/internal/legacy v0.0.0-00010101000000-000000000000
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/zclconf/go-cty v1.15.0
 	k8s.io/api v0.25.5
 	k8s.io/apimachinery v0.25.5
 	k8s.io/client-go v0.25.5
@@ -49,10 +49,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
-	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
@@ -60,7 +57,6 @@ require (
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
-	github.com/zclconf/go-cty v1.15.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/mod v0.16.0 // indirect
 	golang.org/x/net v0.23.0 // indirect
@@ -98,7 +94,5 @@ replace github.com/hashicorp/terraform/internal/backend/remote-state/oss => ../o
 replace github.com/hashicorp/terraform/internal/backend/remote-state/pg => ../pg
 
 replace github.com/hashicorp/terraform/internal/backend/remote-state/s3 => ../s3
-
-replace github.com/hashicorp/terraform/internal/legacy => ../../../legacy
 
 replace github.com/hashicorp/terraform => ../../../..
