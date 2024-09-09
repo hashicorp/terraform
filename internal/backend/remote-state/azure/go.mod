@@ -73,6 +73,4 @@ replace github.com/hashicorp/terraform/internal/backend/remote-state/pg => ../pg
 
 replace github.com/hashicorp/terraform/internal/backend/remote-state/s3 => ../s3
 
-replace github.com/hashicorp/terraform/internal/legacy => ../../../legacy
-
 replace github.com/hashicorp/terraform => ../../../..
