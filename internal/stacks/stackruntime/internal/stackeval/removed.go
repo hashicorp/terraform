@@ -5,9 +5,7 @@ package stackeval
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -106,13 +104,18 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 			return instancesResult[*RemovedInstance]{}, diags
 		}
 
+		// First, evaluate the for_each value to get the set of instances the
+		// user has asked to be removed.
 		result := instancesMap(forEachValue, func(ik addrs.InstanceKey, rd instances.RepetitionData) *RemovedInstance {
 			return newRemovedInstance(r, ik, rd, false)
 		})
 
-		// Filter out any instances that are not known to the previous state.
-		// This means the user has targeted a component that (a) never existed
-		// or (b) was removed in a previous operation.
+		// Now, filter out any instances that are not known to the previous
+		// state. This means the user has targeted a component that (a) never
+		// existed or (b) was removed in a previous operation.
+		//
+		// This stops us emitting planned and applied changes for instances that
+		// do not exist.
 		knownAddrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))
 		knownInstances := make(map[addrs.InstanceKey]*RemovedInstance, len(result.insts))
 		for key, ci := range result.insts {
@@ -123,23 +126,12 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 					knownAddrs = append(knownAddrs, ci.Addr())
 					continue
 				}
-				// Otherwise, during the planning phase we'll add a warning to
-				// let the user know this removed block isn't doing anything.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagWarning,
-					Summary:  "Redundant removed block",
-					Detail:   fmt.Sprintf("This removed block targets %s, which does not exist.", ci.Addr()),
-					Subject:  ci.DeclRange(ctx),
-				})
 			case ApplyPhase:
 				if _, ok := r.main.PlanBeingApplied().Components.GetOk(ci.Addr()); ok {
 					knownInstances[key] = ci
 					knownAddrs = append(knownAddrs, ci.Addr())
 					continue
 				}
-				// We won't add a warning here, as we already added a
-				// warning during planning so instead we'll just ignore
-				// the instance.
 			default:
 				// Otherwise, we're running in a stage that doesn't evaluate
 				// a state or the plan so we'll just include everything.

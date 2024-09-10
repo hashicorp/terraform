@@ -4737,13 +4737,6 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 			},
-			wantPlanDiags: []expectedDiagnostic{
-				{
-					severity: tfdiags.Warning,
-					summary:  "Redundant removed block",
-					detail:   "This removed block targets component.self, which does not exist.",
-				},
-			},
 		},
 		"absent component instance": {
 			source: filepath.Join("with-single-input", "removed-component-instance"),
@@ -4844,13 +4837,6 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 					Value: cty.SetVal([]cty.Value{
 						cty.StringVal("b"),
 					}),
-				},
-			},
-			wantPlanDiags: []expectedDiagnostic{
-				{
-					severity: tfdiags.Warning,
-					summary:  "Redundant removed block",
-					detail:   "This removed block targets component.self[\"b\"], which does not exist.",
 				},
 			},
 		},
