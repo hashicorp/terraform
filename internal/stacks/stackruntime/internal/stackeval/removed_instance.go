@@ -36,8 +36,9 @@ var (
 )
 
 type RemovedInstance struct {
-	call *Removed
-	key  addrs.InstanceKey
+	call     *Removed
+	key      addrs.InstanceKey
+	deferred bool
 
 	main *Main
 
@@ -46,10 +47,11 @@ type RemovedInstance struct {
 	moduleTreePlan promising.Once[withDiagnostics[*plans.Plan]]
 }
 
-func newRemovedInstance(call *Removed, key addrs.InstanceKey, repetition instances.RepetitionData) *RemovedInstance {
+func newRemovedInstance(call *Removed, key addrs.InstanceKey, repetition instances.RepetitionData, deferred bool) *RemovedInstance {
 	return &RemovedInstance{
 		call:       call,
 		key:        key,
+		deferred:   deferred,
 		main:       call.main,
 		repetition: repetition,
 	}
@@ -76,6 +78,24 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 	return doOnceWithDiags(ctx, &r.moduleTreePlan, r.main, func(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
 		var diags tfdiags.Diagnostics
 
+		component := r.main.Stack(ctx, r.Addr().Stack, PlanPhase).Component(ctx, r.Addr().Item.Component)
+		if component != nil {
+			insts, unknown := component.Instances(ctx, PlanPhase)
+			if !unknown {
+				if _, exists := insts[r.key]; exists {
+					// The instance we're planning to remove is also targeted
+					// by a component block. We won't remove it, and we'll
+					// report a diagnostic to that effect.
+					return nil, diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Cannot remove component instance",
+						Detail:   fmt.Sprintf("The component instance %s is targeted by a component block and cannot be removed. The relevant component is defined at %s.", r.Addr(), component.Declaration(ctx).DeclRange.ToHCL()),
+						Subject:  r.DeclRange(ctx),
+					})
+				}
+			}
+		}
+
 		known, unknown, moreDiags := EvalProviderValues(ctx, r.main, r.call.Config(ctx).config.ProviderConfigs, PlanPhase, r)
 		if moreDiags.HasErrors() {
 			// We won't actually add the diagnostics here, they should be
@@ -91,7 +111,7 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 
 		providerClients := configuredProviderClients(ctx, r.main, known, unknown, PlanPhase)
 
-		deferred := false
+		deferred := r.deferred
 		for _, depAddr := range r.PlanPrevDependents(ctx).Elems() {
 			depStack := r.main.Stack(ctx, depAddr.Stack, PlanPhase)
 			if depStack == nil {

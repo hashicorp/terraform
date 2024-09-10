@@ -4272,6 +4272,458 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 		wantPlanChanges []stackplan.PlannedChange
 		wantPlanDiags   []expectedDiagnostic
 	}{
+		"unknown removed block with nothing to remove": {
+			source: filepath.Join("with-single-input", "removed-component-instance"),
+			initialState: stackstate.NewStateBuilder().
+				// we have a single component instance in state
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.self[\"a\"]")).
+					AddInputVariable("id", cty.StringVal("a")).
+					AddInputVariable("input", cty.StringVal("a"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self[\"a\"].testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "a",
+							"value": "a",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("a", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("a"),
+					"value": cty.StringVal("a"),
+				})).
+				Build(),
+			inputs: map[string]cty.Value{
+				"input": cty.SetVal([]cty.Value{
+					cty.StringVal("a"),
+				}),
+				"removed": cty.UnknownVal(cty.Set(cty.String)),
+			},
+			wantPlanChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeApplyable{
+					Applyable: true,
+				},
+				&stackplan.PlannedChangeComponentInstance{
+					Addr:          mustAbsComponentInstance("component.self[\"a\"]"),
+					PlanComplete:  true,
+					PlanApplyable: false, // all changes are no-ops
+					Action:        plans.Update,
+					PlannedInputValues: map[string]plans.DynamicValue{
+						"id":    mustPlanDynamicValueDynamicType(cty.StringVal("a")),
+						"input": mustPlanDynamicValueDynamicType(cty.StringVal("a")),
+					},
+					PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+						"input": nil,
+						"id":    nil,
+					},
+					PlannedOutputValues: make(map[string]cty.Value),
+					PlannedCheckResults: &states.CheckResults{},
+					PlanTimestamp:       fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeResourceInstancePlanned{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"a\"].testing_resource.data"),
+					ChangeSrc: &plans.ResourceInstanceChangeSrc{
+						Addr:        mustAbsResourceInstance("testing_resource.data"),
+						PrevRunAddr: mustAbsResourceInstance("testing_resource.data"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.NoOp,
+							Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+								"id":    cty.StringVal("a"),
+								"value": cty.StringVal("a"),
+							})),
+							After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+								"id":    cty.StringVal("a"),
+								"value": cty.StringVal("a"),
+							})),
+						},
+						ProviderAddr: mustDefaultRootProvider("testing"),
+					},
+					PriorStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "a",
+							"value": "a",
+						}),
+						Status:       states.ObjectReady,
+						Dependencies: make([]addrs.ConfigResource, 0),
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+				&stackplan.PlannedChangeHeader{
+					TerraformVersion: version.SemVer,
+				},
+				&stackplan.PlannedChangePlannedTimestamp{
+					PlannedTimestamp: fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeRootInputValue{
+					Addr: stackaddrs.InputVariable{Name: "input"},
+					Value: cty.SetVal([]cty.Value{
+						cty.StringVal("a"),
+					}),
+				},
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:  stackaddrs.InputVariable{Name: "removed"},
+					Value: cty.UnknownVal(cty.Set(cty.String)),
+				},
+			},
+		},
+		"unknown removed block with elements in state": {
+			source: filepath.Join("with-single-input", "removed-component-instance"),
+			initialState: stackstate.NewStateBuilder().
+				// we have a single component instance in state
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.self[\"a\"]")).
+					AddInputVariable("id", cty.StringVal("a")).
+					AddInputVariable("input", cty.StringVal("a"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self[\"a\"].testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "a",
+							"value": "a",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("a", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("a"),
+					"value": cty.StringVal("a"),
+				})).
+				Build(),
+			inputs: map[string]cty.Value{
+				"input":   cty.SetValEmpty(cty.String),
+				"removed": cty.UnknownVal(cty.Set(cty.String)),
+			},
+			wantPlanChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeApplyable{
+					Applyable: true,
+				},
+				&stackplan.PlannedChangeComponentInstance{
+					Addr:          mustAbsComponentInstance("component.self[\"a\"]"),
+					PlanComplete:  false, // has deferred changes
+					PlanApplyable: false, // only deferred changes
+					Action:        plans.Delete,
+					Mode:          plans.DestroyMode,
+					PlannedInputValues: map[string]plans.DynamicValue{
+						"id":    mustPlanDynamicValueDynamicType(cty.StringVal("a")),
+						"input": mustPlanDynamicValueDynamicType(cty.StringVal("a")),
+					},
+					PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+						"input": nil,
+						"id":    nil,
+					},
+					PlannedOutputValues: make(map[string]cty.Value),
+					PlannedCheckResults: &states.CheckResults{},
+					PlanTimestamp:       fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeDeferredResourceInstancePlanned{
+					ResourceInstancePlanned: stackplan.PlannedChangeResourceInstancePlanned{
+						ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"a\"].testing_resource.data"),
+						ChangeSrc: &plans.ResourceInstanceChangeSrc{
+							Addr:        mustAbsResourceInstance("testing_resource.data"),
+							PrevRunAddr: mustAbsResourceInstance("testing_resource.data"),
+							ChangeSrc: plans.ChangeSrc{
+								Action: plans.Delete,
+								Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+									"id":    cty.StringVal("a"),
+									"value": cty.StringVal("a"),
+								})),
+								After: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+									"id":    cty.String,
+									"value": cty.String,
+								}))),
+							},
+							ProviderAddr: mustDefaultRootProvider("testing"),
+						},
+						PriorStateSrc: &states.ResourceInstanceObjectSrc{
+							AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+								"id":    "a",
+								"value": "a",
+							}),
+							Status:       states.ObjectReady,
+							Dependencies: make([]addrs.ConfigResource, 0),
+						},
+						ProviderConfigAddr: mustDefaultRootProvider("testing"),
+						Schema:             stacks_testing_provider.TestingResourceSchema,
+					},
+					DeferredReason: providers.DeferredReasonDeferredPrereq,
+				},
+				&stackplan.PlannedChangeHeader{
+					TerraformVersion: version.SemVer,
+				},
+				&stackplan.PlannedChangePlannedTimestamp{
+					PlannedTimestamp: fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:  stackaddrs.InputVariable{Name: "input"},
+					Value: cty.SetValEmpty(cty.String),
+				},
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:  stackaddrs.InputVariable{Name: "removed"},
+					Value: cty.UnknownVal(cty.Set(cty.String)),
+				},
+			},
+		},
+		"unknown component block with element to remove": {
+			source: filepath.Join("with-single-input", "removed-component-instance"),
+			initialState: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.self[\"a\"]")).
+					AddInputVariable("id", cty.StringVal("a")).
+					AddInputVariable("input", cty.StringVal("a"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self[\"a\"].testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "a",
+							"value": "a",
+						}),
+					})).
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.self[\"b\"]")).
+					AddInputVariable("id", cty.StringVal("b")).
+					AddInputVariable("input", cty.StringVal("b"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self[\"b\"].testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "b",
+							"value": "b",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("a", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("a"),
+					"value": cty.StringVal("a"),
+				})).
+				AddResource("b", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("b"),
+					"value": cty.StringVal("b"),
+				})).
+				Build(),
+			inputs: map[string]cty.Value{
+				"input":   cty.UnknownVal(cty.Set(cty.String)),
+				"removed": cty.SetVal([]cty.Value{cty.StringVal("b")}),
+			},
+			wantPlanChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeApplyable{
+					Applyable: true,
+				},
+				&stackplan.PlannedChangeComponentInstance{
+					Addr:          mustAbsComponentInstance("component.self[\"a\"]"),
+					PlanComplete:  false, // has deferred changes
+					PlanApplyable: false, // only deferred changes
+					Action:        plans.Update,
+					PlannedInputValues: map[string]plans.DynamicValue{
+						"id":    mustPlanDynamicValueDynamicType(cty.StringVal("a")),
+						"input": mustPlanDynamicValueDynamicType(cty.StringVal("a")),
+					},
+					PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+						"input": nil,
+						"id":    nil,
+					},
+					PlannedOutputValues: make(map[string]cty.Value),
+					PlannedCheckResults: &states.CheckResults{},
+					PlanTimestamp:       fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeDeferredResourceInstancePlanned{
+					ResourceInstancePlanned: stackplan.PlannedChangeResourceInstancePlanned{
+						ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"a\"].testing_resource.data"),
+						ChangeSrc: &plans.ResourceInstanceChangeSrc{
+							Addr:        mustAbsResourceInstance("testing_resource.data"),
+							PrevRunAddr: mustAbsResourceInstance("testing_resource.data"),
+							ChangeSrc: plans.ChangeSrc{
+								Action: plans.NoOp,
+								Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+									"id":    cty.StringVal("a"),
+									"value": cty.StringVal("a"),
+								})),
+								After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+									"id":    cty.StringVal("a"),
+									"value": cty.StringVal("a"),
+								})),
+							},
+							ProviderAddr: mustDefaultRootProvider("testing"),
+						},
+						PriorStateSrc: &states.ResourceInstanceObjectSrc{
+							AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+								"id":    "a",
+								"value": "a",
+							}),
+							Status:       states.ObjectReady,
+							Dependencies: make([]addrs.ConfigResource, 0),
+						},
+						ProviderConfigAddr: mustDefaultRootProvider("testing"),
+						Schema:             stacks_testing_provider.TestingResourceSchema,
+					},
+					DeferredReason: providers.DeferredReasonDeferredPrereq,
+				},
+				&stackplan.PlannedChangeComponentInstance{
+					Addr:          mustAbsComponentInstance("component.self[\"b\"]"),
+					PlanComplete:  true,
+					PlanApplyable: true,
+					Action:        plans.Delete,
+					Mode:          plans.DestroyMode,
+					PlannedInputValues: map[string]plans.DynamicValue{
+						"id":    mustPlanDynamicValueDynamicType(cty.StringVal("b")),
+						"input": mustPlanDynamicValueDynamicType(cty.StringVal("b")),
+					},
+					PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+						"input": nil,
+						"id":    nil,
+					},
+					PlannedOutputValues: make(map[string]cty.Value),
+					PlannedCheckResults: &states.CheckResults{},
+					PlanTimestamp:       fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeResourceInstancePlanned{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"b\"].testing_resource.data"),
+					ChangeSrc: &plans.ResourceInstanceChangeSrc{
+						Addr:        mustAbsResourceInstance("testing_resource.data"),
+						PrevRunAddr: mustAbsResourceInstance("testing_resource.data"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.Delete,
+							Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+								"id":    cty.StringVal("b"),
+								"value": cty.StringVal("b"),
+							})),
+							After: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+								"id":    cty.String,
+								"value": cty.String,
+							}))),
+						},
+						ProviderAddr: mustDefaultRootProvider("testing"),
+					},
+					PriorStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "b",
+							"value": "b",
+						}),
+						Status:       states.ObjectReady,
+						Dependencies: make([]addrs.ConfigResource, 0),
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+				&stackplan.PlannedChangeHeader{
+					TerraformVersion: version.SemVer,
+				},
+				&stackplan.PlannedChangePlannedTimestamp{
+					PlannedTimestamp: fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:  stackaddrs.InputVariable{Name: "input"},
+					Value: cty.UnknownVal(cty.Set(cty.String)),
+				},
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:  stackaddrs.InputVariable{Name: "removed"},
+					Value: cty.SetVal([]cty.Value{cty.StringVal("b")}),
+				},
+			},
+		},
+		"unknown component and removed block with element in state": {
+			source: filepath.Join("with-single-input", "removed-component-instance"),
+			initialState: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.self[\"a\"]")).
+					AddInputVariable("id", cty.StringVal("a")).
+					AddInputVariable("input", cty.StringVal("a"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self[\"a\"].testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "a",
+							"value": "a",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("a", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("a"),
+					"value": cty.StringVal("a"),
+				})).
+				Build(),
+			inputs: map[string]cty.Value{
+				"input":   cty.UnknownVal(cty.Set(cty.String)),
+				"removed": cty.UnknownVal(cty.Set(cty.String)),
+			},
+			wantPlanChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeApplyable{
+					Applyable: true,
+				},
+				&stackplan.PlannedChangeComponentInstance{
+					Addr:          mustAbsComponentInstance("component.self[\"a\"]"),
+					PlanComplete:  false, // has deferred changes
+					PlanApplyable: false, // only deferred changes
+					Action:        plans.Update,
+					PlannedInputValues: map[string]plans.DynamicValue{
+						"id":    mustPlanDynamicValueDynamicType(cty.StringVal("a")),
+						"input": mustPlanDynamicValueDynamicType(cty.StringVal("a")),
+					},
+					PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+						"input": nil,
+						"id":    nil,
+					},
+					PlannedOutputValues: make(map[string]cty.Value),
+					PlannedCheckResults: &states.CheckResults{},
+					PlanTimestamp:       fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeDeferredResourceInstancePlanned{
+					ResourceInstancePlanned: stackplan.PlannedChangeResourceInstancePlanned{
+						ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"a\"].testing_resource.data"),
+						ChangeSrc: &plans.ResourceInstanceChangeSrc{
+							Addr:        mustAbsResourceInstance("testing_resource.data"),
+							PrevRunAddr: mustAbsResourceInstance("testing_resource.data"),
+							ChangeSrc: plans.ChangeSrc{
+								Action: plans.NoOp,
+								Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+									"id":    cty.StringVal("a"),
+									"value": cty.StringVal("a"),
+								})),
+								After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+									"id":    cty.StringVal("a"),
+									"value": cty.StringVal("a"),
+								})),
+							},
+							ProviderAddr: mustDefaultRootProvider("testing"),
+						},
+						PriorStateSrc: &states.ResourceInstanceObjectSrc{
+							AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+								"id":    "a",
+								"value": "a",
+							}),
+							Status:       states.ObjectReady,
+							Dependencies: make([]addrs.ConfigResource, 0),
+						},
+						ProviderConfigAddr: mustDefaultRootProvider("testing"),
+						Schema:             stacks_testing_provider.TestingResourceSchema,
+					},
+					DeferredReason: providers.DeferredReasonDeferredPrereq,
+				},
+				&stackplan.PlannedChangeHeader{
+					TerraformVersion: version.SemVer,
+				},
+				&stackplan.PlannedChangePlannedTimestamp{
+					PlannedTimestamp: fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:  stackaddrs.InputVariable{Name: "input"},
+					Value: cty.UnknownVal(cty.Set(cty.String)),
+				},
+				&stackplan.PlannedChangeRootInputValue{
+					Addr:  stackaddrs.InputVariable{Name: "removed"},
+					Value: cty.UnknownVal(cty.Set(cty.String)),
+				},
+			},
+		},
 		"absent component": {
 			source: filepath.Join("with-single-input", "removed-component"),
 			wantPlanChanges: []stackplan.PlannedChange{
@@ -4564,6 +5016,114 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 					severity: tfdiags.Error,
 					summary:  "Unclaimed component instance",
 					detail:   "The component instance component.self[\"orphaned\"] is not claimed by any component or removed block in the configuration. Make sure it is instantiated by a component block, or targeted for removal by a removed block.",
+				},
+			},
+		},
+		"duplicate component": {
+			source: filepath.Join("with-single-input", "removed-component-instance"),
+			initialState: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.self[\"a\"]")).
+					AddInputVariable("id", cty.StringVal("a")).
+					AddInputVariable("input", cty.StringVal("a"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self[\"a\"].testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "a",
+							"value": "a",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("a", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("a"),
+					"value": cty.StringVal("a"),
+				})).
+				Build(),
+			inputs: map[string]cty.Value{
+				"input": cty.SetVal([]cty.Value{
+					cty.StringVal("a"),
+				}),
+				"removed": cty.SetVal([]cty.Value{
+					cty.StringVal("a"),
+				}),
+			},
+			wantPlanChanges: []stackplan.PlannedChange{
+				&stackplan.PlannedChangeApplyable{
+					Applyable: false, // No! The removed block is a duplicate of the component!
+				},
+				&stackplan.PlannedChangeComponentInstance{
+					Addr:          mustAbsComponentInstance("component.self[\"a\"]"),
+					PlanComplete:  true,
+					PlanApplyable: false, // no changes
+					Action:        plans.Update,
+					PlannedInputValues: map[string]plans.DynamicValue{
+						"id":    mustPlanDynamicValueDynamicType(cty.StringVal("a")),
+						"input": mustPlanDynamicValueDynamicType(cty.StringVal("a")),
+					},
+					PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+						"input": nil,
+						"id":    nil,
+					},
+					PlannedOutputValues: make(map[string]cty.Value),
+					PlannedCheckResults: &states.CheckResults{},
+					PlanTimestamp:       fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeResourceInstancePlanned{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self[\"a\"].testing_resource.data"),
+					ChangeSrc: &plans.ResourceInstanceChangeSrc{
+						Addr:        mustAbsResourceInstance("testing_resource.data"),
+						PrevRunAddr: mustAbsResourceInstance("testing_resource.data"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.NoOp,
+							Before: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+								"id":    cty.StringVal("a"),
+								"value": cty.StringVal("a"),
+							})),
+							After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+								"id":    cty.StringVal("a"),
+								"value": cty.StringVal("a"),
+							})),
+						},
+						ProviderAddr: mustDefaultRootProvider("testing"),
+					},
+					PriorStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "a",
+							"value": "a",
+						}),
+						Dependencies: make([]addrs.ConfigResource, 0),
+						Status:       states.ObjectReady,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+				&stackplan.PlannedChangeHeader{
+					TerraformVersion: version.SemVer,
+				},
+				&stackplan.PlannedChangePlannedTimestamp{
+					PlannedTimestamp: fakePlanTimestamp,
+				},
+				&stackplan.PlannedChangeRootInputValue{
+					Addr: stackaddrs.InputVariable{Name: "input"},
+					Value: cty.SetVal([]cty.Value{
+						cty.StringVal("a"),
+					}),
+				},
+				&stackplan.PlannedChangeRootInputValue{
+					Addr: stackaddrs.InputVariable{Name: "removed"},
+					Value: cty.SetVal([]cty.Value{
+						cty.StringVal("a"),
+					}),
+				},
+			},
+			wantPlanDiags: []expectedDiagnostic{
+				{
+					severity: tfdiags.Error,
+					summary:  "Cannot remove component instance",
+					detail:   "The component instance component.self[\"a\"] is targeted by a component block and cannot be removed. The relevant component is defined at git::https://example.com/test.git//with-single-input/removed-component-instance/removed-component-instance.tfstack.hcl:18,1-17.",
 				},
 			},
 		},

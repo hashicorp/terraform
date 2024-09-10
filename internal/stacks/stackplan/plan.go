@@ -63,6 +63,23 @@ type Plan struct {
 	PlanTimestamp time.Time
 }
 
+// ComponentInstances returns a set of the component instances that belong to
+// the given component.
+func (p *Plan) ComponentInstances(addr stackaddrs.AbsComponent) collections.Set[stackaddrs.ComponentInstance] {
+	ret := collections.NewSet[stackaddrs.ComponentInstance]()
+	for _, elem := range p.Components.Elems() {
+		if elem.K.Stack.String() != addr.Stack.String() {
+			// Then
+			continue
+		}
+		if elem.K.Item.Component.Name != addr.Item.Name {
+			continue
+		}
+		ret.Add(elem.K.Item)
+	}
+	return ret
+}
+
 // RequiredProviderInstances returns a description of all of the provider
 // instance slots that are required to satisfy the resource instances
 // belonging to the given component instance.

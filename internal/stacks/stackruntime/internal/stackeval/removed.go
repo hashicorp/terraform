@@ -107,7 +107,7 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 		}
 
 		result := instancesMap(forEachValue, func(ik addrs.InstanceKey, rd instances.RepetitionData) *RemovedInstance {
-			return newRemovedInstance(r, ik, rd)
+			return newRemovedInstance(r, ik, rd, false)
 		})
 
 		// Filter out any instances that are not known to the previous state.
@@ -164,7 +164,7 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 func (r *Removed) UnknownInstance(ctx context.Context, phase EvalPhase) *RemovedInstance {
 	inst, err := r.unknownInstance.For(phase).Do(ctx, func(ctx context.Context) (*RemovedInstance, error) {
 		forEachValue, _ := r.ForEachValue(ctx, phase)
-		return newRemovedInstance(r, addrs.WildcardKey, instances.UnknownForEachRepetitionData(forEachValue.Type())), nil
+		return newRemovedInstance(r, addrs.WildcardKey, instances.UnknownForEachRepetitionData(forEachValue.Type()), true), nil
 	})
 	if err != nil {
 		panic(err)

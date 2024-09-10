@@ -68,6 +68,26 @@ func (s *State) AllComponentInstances() collections.Set[stackaddrs.AbsComponentI
 	return ret
 }
 
+// ComponentInstances returns the set of component instances that belong to the
+// given component, or an empty set if no such component is tracked in the
+// state.
+//
+// This will always be a subset of AllComponentInstances.
+func (s *State) ComponentInstances(addr stackaddrs.AbsComponent) collections.Set[stackaddrs.ComponentInstance] {
+	ret := collections.NewSet[stackaddrs.ComponentInstance]()
+	for _, elem := range s.componentInstances.Elems() {
+		if elem.K.Stack.String() != addr.Stack.String() {
+			// Then
+			continue
+		}
+		if elem.K.Item.Component.Name != addr.Item.Name {
+			continue
+		}
+		ret.Add(elem.K.Item)
+	}
+	return ret
+}
+
 func (s *State) componentInstanceState(addr stackaddrs.AbsComponentInstance) *componentInstanceState {
 	return s.componentInstances.Get(addr)
 }
