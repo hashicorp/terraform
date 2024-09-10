@@ -177,6 +177,7 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 		EmbeddedStacks: make(map[string]*stacks.FindStackConfigurationComponents_EmbeddedStack),
 		InputVariables: make(map[string]*stacks.FindStackConfigurationComponents_InputVariable),
 		OutputValues:   make(map[string]*stacks.FindStackConfigurationComponents_OutputValue),
+		Removed:        make(map[string]*stacks.FindStackConfigurationComponents_Removed),
 	}
 
 	for name, cc := range cfgNode.Stack.Components {
@@ -223,6 +224,21 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 			Ephemeral: oc.Ephemeral,
 		}
 		ret.OutputValues[name] = oProto
+	}
+
+	// Currently Components are the only thing that can be removed
+	for name, rc := range cfgNode.Stack.Removed {
+		cProto := &stacks.FindStackConfigurationComponents_Removed{
+			SourceAddr:    rc.FinalSourceAddr.String(),
+			ComponentAddr: stackaddrs.Config(stackAddr, stackaddrs.Component{Name: rc.FromComponent.Name}).String(),
+		}
+		switch {
+		case rc.ForEach != nil:
+			cProto.Instances = stacks.FindStackConfigurationComponents_FOR_EACH
+		default:
+			cProto.Instances = stacks.FindStackConfigurationComponents_SINGLE
+		}
+		ret.Removed[name] = cProto
 	}
 
 	return ret
