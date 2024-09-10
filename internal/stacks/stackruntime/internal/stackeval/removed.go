@@ -104,19 +104,48 @@ func (r *Removed) Instances(ctx context.Context, phase EvalPhase) (map[addrs.Ins
 			return instancesResult[*RemovedInstance]{}, diags
 		}
 
+		// First, evaluate the for_each value to get the set of instances the
+		// user has asked to be removed.
 		result := instancesMap(forEachValue, func(ik addrs.InstanceKey, rd instances.RepetitionData) *RemovedInstance {
 			return newRemovedInstance(r, ik, rd, false)
 		})
 
-		addrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))
-		for _, ci := range result.insts {
-			addrs = append(addrs, ci.Addr())
+		// Now, filter out any instances that are not known to the previous
+		// state. This means the user has targeted a component that (a) never
+		// existed or (b) was removed in a previous operation.
+		//
+		// This stops us emitting planned and applied changes for instances that
+		// do not exist.
+		knownAddrs := make([]stackaddrs.AbsComponentInstance, 0, len(result.insts))
+		knownInstances := make(map[addrs.InstanceKey]*RemovedInstance, len(result.insts))
+		for key, ci := range result.insts {
+			switch phase {
+			case PlanPhase:
+				if r.main.PlanPrevState().HasComponentInstance(ci.Addr()) {
+					knownInstances[key] = ci
+					knownAddrs = append(knownAddrs, ci.Addr())
+					continue
+				}
+			case ApplyPhase:
+				if _, ok := r.main.PlanBeingApplied().Components.GetOk(ci.Addr()); ok {
+					knownInstances[key] = ci
+					knownAddrs = append(knownAddrs, ci.Addr())
+					continue
+				}
+			default:
+				// Otherwise, we're running in a stage that doesn't evaluate
+				// a state or the plan so we'll just include everything.
+				knownInstances[key] = ci
+				knownAddrs = append(knownAddrs, ci.Addr())
+
+			}
 		}
+		result.insts = knownInstances
 
 		h := hooksFromContext(ctx)
 		hookSingle(ctx, h.ComponentExpanded, &hooks.ComponentInstances{
 			ComponentAddr: r.Addr(),
-			InstanceAddrs: addrs,
+			InstanceAddrs: knownAddrs,
 		})
 
 		return result, diags
