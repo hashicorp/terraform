@@ -818,12 +818,11 @@ func TestBackendConfig_EC2MetadataEndpoint(t *testing.T) {
 func TestBackendConfig_AssumeRole(t *testing.T) {
 	testACC(t)
 
-	testCases := []struct {
+	testCases := map[string]struct {
 		Config           map[string]interface{}
-		Description      string
 		MockStsEndpoints []*servicemocks.MockEndpoint
 	}{
-		{
+		"role_arn": {
 			Config: map[string]interface{}{
 				"bucket":       "tf-test",
 				"key":          "state",
@@ -831,7 +830,6 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				"role_arn":     servicemocks.MockStsAssumeRoleArn,
 				"session_name": servicemocks.MockStsAssumeRoleSessionName,
 			},
-			Description: "role_arn",
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
 					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
@@ -849,7 +847,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				},
 			},
 		},
-		{
+		"assume_role_duration_seconds": {
 			Config: map[string]interface{}{
 				"assume_role_duration_seconds": 3600,
 				"bucket":                       "tf-test",
@@ -858,7 +856,6 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				"role_arn":                     servicemocks.MockStsAssumeRoleArn,
 				"session_name":                 servicemocks.MockStsAssumeRoleSessionName,
 			},
-			Description: "assume_role_duration_seconds",
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
 					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
@@ -876,7 +873,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				},
 			},
 		},
-		{
+		"external_id": {
 			Config: map[string]interface{}{
 				"bucket":       "tf-test",
 				"external_id":  servicemocks.MockStsAssumeRoleExternalId,
@@ -885,7 +882,6 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				"role_arn":     servicemocks.MockStsAssumeRoleArn,
 				"session_name": servicemocks.MockStsAssumeRoleSessionName,
 			},
-			Description: "external_id",
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
 					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
@@ -904,7 +900,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				},
 			},
 		},
-		{
+		"assume_role_policy": {
 			Config: map[string]interface{}{
 				"assume_role_policy": servicemocks.MockStsAssumeRolePolicy,
 				"bucket":             "tf-test",
@@ -913,7 +909,6 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				"role_arn":           servicemocks.MockStsAssumeRoleArn,
 				"session_name":       servicemocks.MockStsAssumeRoleSessionName,
 			},
-			Description: "assume_role_policy",
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
 					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
@@ -932,7 +927,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				},
 			},
 		},
-		{
+		"assume_role_policy_arns": {
 			Config: map[string]interface{}{
 				"assume_role_policy_arns": []interface{}{servicemocks.MockStsAssumeRolePolicyArn},
 				"bucket":                  "tf-test",
@@ -941,7 +936,6 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				"role_arn":                servicemocks.MockStsAssumeRoleArn,
 				"session_name":            servicemocks.MockStsAssumeRoleSessionName,
 			},
-			Description: "assume_role_policy_arns",
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
 					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
@@ -960,7 +954,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				},
 			},
 		},
-		{
+		"assume_role_tags": {
 			Config: map[string]interface{}{
 				"assume_role_tags": map[string]interface{}{
 					servicemocks.MockStsAssumeRoleTagKey: servicemocks.MockStsAssumeRoleTagValue,
@@ -971,7 +965,6 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				"role_arn":     servicemocks.MockStsAssumeRoleArn,
 				"session_name": servicemocks.MockStsAssumeRoleSessionName,
 			},
-			Description: "assume_role_tags",
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
 					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
@@ -991,7 +984,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				},
 			},
 		},
-		{
+		"assume_role_transitive_tag_keys": {
 			Config: map[string]interface{}{
 				"assume_role_tags": map[string]interface{}{
 					servicemocks.MockStsAssumeRoleTagKey: servicemocks.MockStsAssumeRoleTagValue,
@@ -1003,7 +996,6 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				"role_arn":                        servicemocks.MockStsAssumeRoleArn,
 				"session_name":                    servicemocks.MockStsAssumeRoleSessionName,
 			},
-			Description: "assume_role_transitive_tag_keys",
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
 					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
@@ -1026,10 +1018,10 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 		},
 	}
 
-	for _, testCase := range testCases {
+	for testName, testCase := range testCases {
 		testCase := testCase
 
-		t.Run(testCase.Description, func(t *testing.T) {
+		t.Run(testName, func(t *testing.T) {
 			closeSts, _, stsEndpoint := mockdata.GetMockedAwsApiSession("STS", testCase.MockStsEndpoints)
 			defer closeSts()
 
