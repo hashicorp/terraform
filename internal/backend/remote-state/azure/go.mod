@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform/internal/backend/remote-state/azure
 
-go 1.22.5
+go 1.22.7
 
 require (
 	github.com/Azure/azure-sdk-for-go v59.2.0+incompatible

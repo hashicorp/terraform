@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform/internal/backend/remote-state/consul
 
-go 1.22.5
+go 1.22.7
 
 require (
 	github.com/hashicorp/consul/api v1.13.0
