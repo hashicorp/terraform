@@ -3147,8 +3147,6 @@ func TestApply_RemovedBlocks(t *testing.T) {
 	)
 
 	// TODO: Add tests for and implement the following cases:
-	//   - Validate what happens when a removed block foreach evaluates to
-	//     unknown.
 	//   - Add a test for a removed block targeting state that has already been
 	//     removed.
 	//   - Add a test for a removed block that forgets instead of destroys.

@@ -29,8 +29,9 @@ import (
 )
 
 type ComponentInstance struct {
-	call *Component
-	key  addrs.InstanceKey
+	call     *Component
+	key      addrs.InstanceKey
+	deferred bool
 
 	main *Main
 
@@ -44,10 +45,11 @@ var _ Plannable = (*ComponentInstance)(nil)
 var _ ExpressionScope = (*ComponentInstance)(nil)
 var _ ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance] = (*ComponentInstance)(nil)
 
-func newComponentInstance(call *Component, key addrs.InstanceKey, repetition instances.RepetitionData) *ComponentInstance {
+func newComponentInstance(call *Component, key addrs.InstanceKey, repetition instances.RepetitionData, deferred bool) *ComponentInstance {
 	return &ComponentInstance{
 		call:       call,
 		key:        key,
+		deferred:   deferred,
 		main:       call.main,
 		repetition: repetition,
 	}
@@ -191,7 +193,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			// If any of our upstream components have incomplete plans then
 			// we need to force treating everything in this component as
 			// deferred so we can preserve the correct dependency ordering.
-			deferred := false
+			deferred := c.deferred
 			if stackPlanOpts.PlanningMode == plans.DestroyMode {
 				// If we're destroying this instance, then the dependencies
 				// should be reversed. Unfortunately, we can't compute that
