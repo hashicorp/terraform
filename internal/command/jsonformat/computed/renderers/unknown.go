@@ -26,7 +26,12 @@ type unknownRenderer struct {
 }
 
 func (renderer unknownRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
-	if diff.Action == plans.Create {
+
+	// the before renderer can be nil and not a create action when the provider
+	// previously returned a null value for the computed attribute and is now
+	// declaring they will recompute it as part of the next update.
+
+	if diff.Action == plans.Create || renderer.before.Renderer == nil {
 		return fmt.Sprintf("(known after apply)%s", forcesReplacement(diff.Replace, opts))
 	}
 
