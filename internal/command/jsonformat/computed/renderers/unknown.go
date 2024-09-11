@@ -30,7 +30,13 @@ func (renderer unknownRenderer) RenderHuman(diff computed.Diff, indent int, opts
 		return fmt.Sprintf("(known after apply)%s", forcesReplacement(diff.Replace, opts))
 	}
 
+	beforeOpts := opts.Clone()
 	// Never render null suffix for children of unknown changes.
-	opts.OverrideNullSuffix = true
-	return fmt.Sprintf("%s -> (known after apply)%s", renderer.before.RenderHuman(indent, opts), forcesReplacement(diff.Replace, opts))
+	beforeOpts.OverrideNullSuffix = true
+	if diff.Replace {
+		// If we're displaying forces replacement for the overall unknown
+		// change, then do not display it for the before specifically.
+		beforeOpts.ForbidForcesReplacement = true
+	}
+	return fmt.Sprintf("%s -> (known after apply)%s", renderer.before.RenderHuman(indent, beforeOpts), forcesReplacement(diff.Replace, opts))
 }
