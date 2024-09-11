@@ -1,5 +1,11 @@
 ## 1.9.6 (Unreleased)
 
+BUG FIXES:
+
+* plan renderer: Render complete changes within unknown nested blocks. ([#35644](https://github.com/hashicorp/terraform/issues/35644))
+* plan renderer: Fix crash when attempting to render unknown nested blocks that contain attributes forcing resource replacement. ([#35644](https://github.com/hashicorp/terraform/issues/35644))
+* plan renderer: Fix crash when rendering a plan that contains null attributes being update to unknown values. ([#35709](https://github.com/hashicorp/terraform/issues/35709))
+
 ## 1.9.5 (August 20, 2024)
 
 ENHANCEMENTS:
