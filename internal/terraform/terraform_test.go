@@ -226,6 +226,14 @@ func mustAbsResourceAddr(s string) addrs.AbsResource {
 	return addr
 }
 
+func mustAbsOutputValue(s string) addrs.AbsOutputValue {
+	p, diags := addrs.ParseAbsOutputValueStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return p
+}
+
 func mustProviderConfig(s string) addrs.AbsProviderConfig {
 	p, diags := addrs.ParseAbsProviderConfigStr(s)
 	if diags.HasErrors() {

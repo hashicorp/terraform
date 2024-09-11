@@ -37,5 +37,15 @@ func (t *OrphanOutputTransformer) Transform(g *Graph) error {
 		})
 	}
 
+	for name := range t.State.EphemeralRootOutputValues {
+		if _, exists := cfgs[name]; exists {
+			continue
+		}
+		g.Add(&NodeDestroyableOutput{
+			Addr:     addrs.OutputValue{Name: name}.Absolute(addrs.RootModuleInstance),
+			Planning: t.Planning,
+		})
+	}
+
 	return nil
 }
