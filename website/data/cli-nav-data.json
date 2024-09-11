@@ -231,8 +231,14 @@
   {
     "title": "Using HCP Terraform",
     "routes": [
-      { "title": "Overview", "path": "cloud" },
-      { "title": "Connect to HCP Terraform", "path": "cloud/settings" },
+      {
+        "title": "Overview",
+        "path": "cloud"
+      },
+      {
+        "title": "Connect to HCP Terraform",
+        "path": "cloud/settings"
+      },
       {
         "title": "Command Line Arguments",
         "path": "cloud/command-line-arguments"
