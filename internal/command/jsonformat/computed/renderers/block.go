@@ -158,7 +158,7 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 			sort.Strings(keys)
 
 			if renderer.blocks.UnknownBlocks[key] {
-				renderBlock(computed.NewDiff(Unknown(computed.Diff{}), plans.Create, false), "", opts)
+				renderBlock(computed.NewDiff(Unknown(computed.Diff{}), diff.Action, false), "", opts)
 			}
 
 			for _, innerKey := range keys {
@@ -170,7 +170,7 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 			setOpts.ForceForcesReplacement = diff.Replace
 
 			if renderer.blocks.UnknownBlocks[key] {
-				renderBlock(computed.NewDiff(Unknown(computed.Diff{}), plans.Create, false), "", opts)
+				renderBlock(computed.NewDiff(Unknown(computed.Diff{}), diff.Action, false), "", opts)
 			}
 
 			for _, block := range renderer.blocks.SetBlocks[key] {
@@ -179,7 +179,7 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 		case renderer.blocks.IsListBlock(key):
 
 			if renderer.blocks.UnknownBlocks[key] {
-				renderBlock(computed.NewDiff(Unknown(computed.Diff{}), plans.Create, false), "", opts)
+				renderBlock(computed.NewDiff(Unknown(computed.Diff{}), diff.Action, false), "", opts)
 			}
 
 			for _, block := range renderer.blocks.ListBlocks[key] {
