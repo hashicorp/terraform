@@ -2814,6 +2814,68 @@ removed {
 	checkStateString(t, state, `<no state>`)
 }
 
+// TestContext2Apply_destroy_and_forget tests that a destroy plan with the forget flag set to true.
+// The expectation is that all resources should be forgotten and not destroyed.
+func TestContext2Apply_destroy_and_forget(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+	addrB := mustResourceInstanceAddr("test_object.b")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+	test_string = "foo"
+}
+
+resource "test_object" "b" {
+	test_string = "foo"
+}
+`})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		s.SetResourceInstanceCurrent(addrB, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode:   plans.DestroyMode,
+		Forget: true,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	// We expect all actions to be forget
+	for i, change := range plan.Changes.Resources {
+		if change.Action != plans.Forget {
+			t.Fatalf("Expected all actions to be forget, but got %s at plan.Changes.Resources[%d]", change.Action, i)
+		}
+	}
+
+	state, diags = ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	// check that the provider was not asked to destroy the resource
+	if p.ApplyResourceChangeCalled {
+		t.Fatalf("Expected ApplyResourceChange not to be called, but it was called")
+	}
+
+	checkStateString(t, state, `<no state>`)
+}
+
 func TestContext2Apply_sensitiveInputVariableValue(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `

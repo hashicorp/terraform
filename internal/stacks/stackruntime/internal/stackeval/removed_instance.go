@@ -136,12 +136,14 @@ func (r *RemovedInstance) ModuleTreePlan(ctx context.Context) (*plans.Plan, tfdi
 		}
 
 		plantimestamp := r.main.PlanTimestamp()
+		forget := !r.call.Config(ctx).config.Destroy
 		opts := &terraform.PlanOpts{
 			Mode:                       plans.DestroyMode,
 			SetVariables:               r.PlanPrevInputs(ctx),
 			ExternalProviders:          providerClients,
 			DeferralAllowed:            true,
 			ExternalDependencyDeferred: deferred,
+			Forget:                     forget,
 
 			// We want the same plantimestamp between all components and the stacks language
 			ForcePlanTimestamp: &plantimestamp,
@@ -256,7 +258,13 @@ func (r *RemovedInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedC
 
 	var changes []stackplan.PlannedChange
 	if plan != nil {
-		changes, moreDiags = stackplan.FromPlan(ctx, r.ModuleTree(ctx), plan, plans.Delete, r)
+		var action plans.Action
+		if r.call.Config(ctx).config.Destroy {
+			action = plans.Delete
+		} else {
+			action = plans.Forget
+		}
+		changes, moreDiags = stackplan.FromPlan(ctx, r.ModuleTree(ctx), plan, action, r)
 		diags = diags.Append(moreDiags)
 	}
 	return changes, diags
