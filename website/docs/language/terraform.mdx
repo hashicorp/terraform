@@ -10,10 +10,10 @@ This topic provides reference information about the `terraform` block. The `terr
 
 ## Configuration model
 
-The following list outlines attribute hierarchy, data types, and requirements in the `terraform` block.
+The following list outlines attribute hierarchy, data types, and requirements in the `terraform` block. Click on an attribute for details.
 
 - [`terraform`](#terraform)
-  - [`required_version`](#terraform-required_version): string | defaults to the latest version
+  - [`required_version`](#terraform-required_version): string 
   - [`required_providers`](#terraform-required_providers): map
   - [`provider_meta "<LABEL>"`](#terraform-provider_meta): map
   - [`backend "<BACKEND_TYPE>"`](#terraform-backend): map
@@ -24,7 +24,7 @@ The following list outlines attribute hierarchy, data types, and requirements in
       - [`name`](#terraform-cloud-workspaces): string
       - [`project`](#terraform-cloud-workspaces): string
     - [`hostname`](#terraform-cloud-workspaces): string | `app.terraform.io`
-    - [`token`](#terraform-cloud-token):
+    - [`token`](#terraform-cloud-token): string
   - [`experiments`](#terraform-experiments): list of strings
 
 ## Specification
@@ -35,7 +35,7 @@ This section provides details about the fields you can configure in the `terrafo
 
 Parent block that contains configurations that define Terraform behavior. You can only use constant values in the `terraform` block. Arguments in the `terraform` block cannot refer to named objects, such as resources and input variables. Additionally, you cannot use built-in Terraform language functions in the block.
 
-### `terraform{}. required_version`
+### `terraform{}.required_version`
 
 Specifies which version of the Terraform CLI is allowed to run the configuration. Refer to [Version constraints](/terraform/language/expressions/version-constraints) for details about the supported syntax for specifying version constraints.
 
@@ -43,7 +43,7 @@ Use Terraform version constraints in a collaborative environment to ensure that 
 
 Terraform prints an error and exits without taking actions when you use a version of Terraform that does not meet the version constraints to run the configuration.
 
-Modules associated with a configuration may also specify version constraints. You must use a  Terraform version that satisfies all version constraints associated with the configuration, including constraints defined in modules, to perform operations. Refer to [Modules](/terraform/language/modules) for additional information about Terraform modules.
+Modules associated with a configuration may also specify version constraints. You must use a Terraform version that satisfies all version constraints associated with the configuration, including constraints defined in modules, to perform operations. Refer to [Modules](/terraform/language/modules) for additional information about Terraform modules.
 
 The `required_version` configuration applies only to the version of Terraform CLI and not versions of provider plugins. Refer to [Provider Requirements](/terraform/language/providers/requirements) for additional information.
 
@@ -72,11 +72,11 @@ You cannot configure a `backend` block when the configuration also contains a [`
 
 ### `terraform{}.cloud`
 
-Specifies a set of configurations that allow the Terraform configuration to connect to either HCP Terraform or a Terraform Enterprise installation.
+Specifies a set of attributes that allow the Terraform configuration to connect to either HCP Terraform or a Terraform Enterprise installation. HCP Terraform and Terraform Enterprise provide state storage, remote execution, and other benefits. Refer to the [HCP Terraform](/terraform/cloud-docs) and [Terraform Enterprise](/terraform/enterprise) documentation for additional information.
 
 You can only provide one `cloud` block per configuration.
 
-You cannot configure a `cloud` block when the configuration also contains a [`backend` configuration](#terraform-backend-backend_type) for storing state data.
+You cannot configure a `cloud` block when the configuration also contains a [`backend` configuration](#terraform-backend) for storing state data.
 
 The `cloud` block cannot refer to named values, such as input variables, locals, or data source attributes.
 
@@ -95,7 +95,7 @@ Specifies metadata for matching workspaces in HCP Terraform. Terraform associate
 
 | Attribute | Description | Data type |
 | --- | --- | --- |
-| `tags` | Specifies a list of flat single-value tags. Terraform associates the configuration with workspace that have all matching flat single-value tags. New workspaces created from the working directory inherit the tags. This attribute does not support key-value tags. You cannot set this attribute and the `name` attribute in the same configuration.  | Array of strings |
+| `tags` | Specifies a list of flat single-value tags. Terraform associates the configuration with workspaces that have all matching flat single-value tags. New workspaces created from the working directory inherit the tags. This attribute does not support key-value tags. You cannot set this attribute and the `name` attribute in the same configuration.  | Array of strings |
 | `name` | Specifies an HCP Terraform workspace name to associate the Terraform configuration with. You can only use the working directory with the workspace named in the configuration. You cannot manage the workspace from the Terraform CLI. You cannot set this attribute and the `tags` attribute in the same configuration. <p>Instead of hardcoding a single workspace as a string, you can alternatively use the [`TF_WORKSPACE`](#tf_workspace) environment variable. </p> | String |
 | `project` | Specifies the name of an HCP Terraform project. Terraform creates all workspaces that use this configuration in the project. Using the [`terraform workspace list` command](/terraform/cli/commands/workspace/list) in the working directory returns only workspaces in the specified project. <p>Instead of hardcoding the project as a string, you can alternatively use the [`TF_CLOUD_PROJECT`](#tf_cloud_project) environment variable.</p>| String |
 
@@ -134,7 +134,7 @@ You can use environment variables to configure one or more `cloud` block attribu
 
 <Warning>
 
-Remote execution with non-interactive workflows requires auto-approved deployments. Minimize risk of unpredictable infrastructure changes and configuration drift by making sure that no one can change your infrastructure outside of your automated build pipeline.  Refer to [Non-Interactive Workflows](/terraform/cloud-docs/run/cli#non-interactive-workflows) for details.
+You can use environment variables to automate Terraform operations, which has specific security considerations. Refer to [Non-Interactive Workflows](/terraform/cloud-docs/run/cli#non-interactive-workflows) for details.
 
 </Warning>
 
@@ -165,8 +165,8 @@ terraform {
     }
   }
 }
-
 ```
+
 ### Connect to HCP Terraform
 
 In the following example, the configuration links the working directory to workspaces in the `example_corp` organization that contain the `app` tag:
@@ -180,8 +180,6 @@ terraform {
     }
   }
 }
-
-```
 
 ### Connect to Terraform Enterprise
 
@@ -197,12 +195,11 @@ terraform {
     }
   }
 }
-
 ```
 
 ### Connect to Terraform Enterprise using environment variables
 
-In the following example, local values stored in the `TF_CLOUD_ORGANIZATION` and `TF_CLOUD_HOSTNAME` environment variables automatically populate the configuration. During initialization, the local Terraform CLI connects the working directory to Terraform Enterprise using local values that would otherwise be hard-coded using the `organization` and `hostname` arguments. This allows the configuration to link to ephemeral hostnames and allows teams to  reuse the configuration in different continuous integration pipelines:
+In the following example, Terraform checks the `TF_CLOUD_ORGANIZATION` and `TF_CLOUD_HOSTNAME` environment variables and automatically populates the `organization` and `hostname` arguments. During initialization, the local Terraform CLI connects the working directory to Terraform Enterprise using those values. As a result, Terraform links the configuration to either HCP Terraform or Terraform Enterprise and allows teams to  reuse the configuration in different continuous integration pipelines:
 
 ```hcl
 terraform {
@@ -212,5 +209,4 @@ terraform {
     }
   }
 }
-
 ```

@@ -66,22 +66,22 @@ This command also accepts the following options:
   returning an error. The duration syntax is a number followed by a time
   unit letter, such as "3s" for three seconds.
 
-For configurations using the [HCP Terraform CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/settings/backends/remote)
+For configurations using the [HCP Terraform CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/backend/remote)
 only, `terraform state mv`
 also accepts the option
 [`-ignore-remote-version`](/terraform/cli/cloud/command-line-arguments#ignore-remote-version).
 
-The legacy options [`-backup` and `-backup-out`](/terraform/language/settings/backends/local#command-line-arguments)
+The legacy options [`-backup` and `-backup-out`](/terraform/language/backend/local#command-line-arguments)
 operate on a local state file only. Configurations using
-[the `remote` backend](/terraform/language/settings/backends/remote)
-must specify a local state file with the [`-state`](/terraform/language/settings/backends/local#command-line-arguments)
-option in order to use the [`-backup` and `-backup-out`](/terraform/language/settings/backends/local#command-line-arguments)
+[the `remote` backend](/terraform/language/backend/remote)
+must specify a local state file with the [`-state`](/terraform/language/backend/local#command-line-arguments)
+option in order to use the [`-backup` and `-backup-out`](/terraform/language/backend/local#command-line-arguments)
 options.
 
 For configurations using
-[the `local` state mv](/terraform/language/settings/backends/local) only,
+[the `local` state mv](/terraform/language/backend/local) only,
 `terraform state mv` also accepts the legacy options
-[`-state`, `-state-out`, `-backup`, and `-backup-out`](/terraform/language/settings/backends/local#command-line-arguments).
+[`-state`, `-state-out`, `-backup`, and `-backup-out`](/terraform/language/backend/local#command-line-arguments).
 
 ## Example: Rename a Resource
 

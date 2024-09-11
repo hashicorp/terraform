@@ -221,6 +221,63 @@
     "title": "Moved block",
     "path": "moved"
   },
+  {
+    "title": "Terraform block",
+    "path": "terraform"
+  },
+  {
+    "title": "Backend block",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "backend"
+      },
+      {
+        "title": "local",
+        "path": "backend/local"
+      },
+      {
+        "title": "remote",
+        "path": "backend/remote"
+      },
+      {
+        "title": "azurerm",
+        "path": "backend/azurerm"
+      },
+      {
+        "title": "consul",
+        "path": "backend/consul"
+      },
+      {
+        "title": "cos",
+        "path": "backend/cos"
+      },
+      {
+        "title": "gcs",
+        "path": "backend/gcs"
+      },
+      {
+        "title": "http",
+        "path": "backend/http"
+      },
+      {
+        "title": "Kubernetes",
+        "path": "backend/kubernetes"
+      },
+      {
+        "title": "oss",
+        "path": "backend/oss"
+      },
+      {
+        "title": "pg",
+        "path": "backend/pg"
+      },
+      {
+        "title": "s3",
+        "path": "backend/s3"
+      }
+    ]
+  },
   { "title": "Checks", "path": "checks" },
   {
       "title": "Import",
