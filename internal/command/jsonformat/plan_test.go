@@ -3548,7 +3548,7 @@ func TestResourceChange_nestedList(t *testing.T) {
         id    = "i-02ae66f368e8518a9"
         # (1 unchanged attribute hidden)
 
-      + root_block_device (known after apply)
+      ~ root_block_device (known after apply)
       - root_block_device {
           - new_field   = "new_value" -> null
           - volume_type = "gp1" -> null
@@ -3607,7 +3607,7 @@ func TestResourceChange_nestedList(t *testing.T) {
         id    = "i-02ae66f368e8518a9"
         # (1 unchanged attribute hidden)
 
-      + root_block_device (known after apply)
+      ~ root_block_device (known after apply)
       - root_block_device {
           - new_field   = "new_value" -> null
           - volume_type = "gp1" -> null # forces replacement
@@ -4275,7 +4275,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
         id    = "i-02ae66f368e8518a9"
         # (1 unchanged attribute hidden)
 
-      + root_block_device (known after apply)
+      ~ root_block_device (known after apply)
       - root_block_device {
           - new_field   = "new_value" -> null
           - volume_type = "gp1" -> null
@@ -4334,7 +4334,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
         id    = "i-02ae66f368e8518a9"
         # (1 unchanged attribute hidden)
 
-      + root_block_device (known after apply)
+      ~ root_block_device (known after apply)
       - root_block_device {
           - new_field   = "new_value" -> null
           - volume_type = "gp1" -> null # forces replacement
@@ -4805,7 +4805,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
         id    = "i-02ae66f368e8518a9"
         # (1 unchanged attribute hidden)
 
-      + root_block_device (known after apply)
+      ~ root_block_device (known after apply)
       - root_block_device "gp1" {
           - new_field   = "new_value" -> null
           - volume_type = "gp1" -> null
@@ -4864,7 +4864,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
         id    = "i-02ae66f368e8518a9"
         # (1 unchanged attribute hidden)
 
-      + root_block_device (known after apply)
+      ~ root_block_device (known after apply)
       - root_block_device "gp1" {
           - new_field   = "new_value" -> null
           - volume_type = "gp1" -> null # forces replacement
