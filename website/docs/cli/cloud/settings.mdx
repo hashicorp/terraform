@@ -12,7 +12,7 @@ This topic describes how to connect the Terraform CLI to HCP Terraform. Integrat
 
 ## Overview
 
-Connecting the Terraform CLI to HCP Terraform links the working directory that contains your Terraform configurations to one or more HCP Terraform workspaces. This allows team members with access to the worksapce to provision and manage infrastructure using HCP Terraform. Additionally, HCP Terraform manages state data so that you do not have to maintain remote state objects. Refer to the following topics for additional information:
+Connecting the Terraform CLI to HCP Terraform links the working directory that contains your Terraform configurations to one or more HCP Terraform workspaces. This allows team members with access to the workspace to provision and manage infrastructure using HCP Terraform. Additionally, HCP Terraform manages state data so that you do not have to maintain remote state objects. Refer to the following topics for additional information:
 
 - [State overview](/terraform/language/state) in the Terraform configuration language reference.
 - [Terraform State in HCP Terraform](/terraform/cloud-docs/workspaces/state) in the HCP Terraform documentation.
@@ -43,7 +43,7 @@ Specify the following settings in the `cloud` block:
 - `organization`:  Specifies the name of an HCP Terraform organization to connect to.
 - `workspaces.tags`: Specifies a list of single-value string tags. Terraform links the working directory to existing workspaces in the organization that have matching tags. If there are no existing workspaces with matching tags, the Terraform CLI prompts you to create a new workspace that inherits the tags you specify in this field when you initialize the configuration.
 - `workspaces.name`: You can specify the name of an existing workspace to associate with the Terraform configuration instead of using tags. If you configure the `name`, you cannot use the `tags` configuration.
-- `workspaces.project`: You can specify the name of an existing project to limit associating the configuration with workspaces in the specific project.
+- `workspaces.project`: You can specify the name of an existing project. Terraform associates the configuration with workspaces in the project that match the `name` or `tags`. 
 
 Refer to the [`cloud` block reference](/terraform/language/terraform#terraform-cloud) for details about configuring the `cloud` block.
 
@@ -94,7 +94,7 @@ As a result, Terraform prompts you to rename workspaces according to a pattern r
 
 In the `terraform` block or `terraform.tf` file, replace `backend "remote"` with `cloud`. Terraform will continue to use the same ste of HCP Terraform workspaces.
 
-The following example migrates the state data for a single workspace:
+The following example migrates the state data for a single workspace named `my-app-prod` to an HCP Terraform organization named `my-org`.
 
 ```hcl
 terraform {
@@ -110,7 +110,7 @@ terraform {
 }
 ```
 
-If the `terraform` block or `terraform.tf` file uses the `prefix` argument to connect to multiple workspaces, you can specify a list of single-value string tags in the `tags` argument instead. During `terraform plan` or `terraform apply` operations, Terraform associates the configuration with workspaces that match the specified tags.
+If the `terraform` block or `terraform.tf` file uses the `prefix` argument to connect to multiple workspaces, you can specify a list of single-value string tags in the `tags` argument instead of using the `name` argument. During `terraform plan` or `terraform apply` operations, Terraform associates the configuration with workspaces that match the specified tags.
 
 The following example replaces the `my-app-` prefix with the `app:mine` tag:
 
@@ -129,7 +129,7 @@ terraform {
 
 ```
 
-Note that because the `cloud` block does not support the `prefix` argument, you must refer to workspaces by their full name when using the Terraform CLI after migration. For example, instead of running the `terraform workspace select prod` command, you would run `terraform workspace select my-app-prod` instead.
+Note that because the `cloud` block does not support the `prefix` argument, after you migrate your workspaces to HCP Terraform, you must refer to them by their full name when you use the Terraform CLI. For example, instead of running the `terraform workspace select prod` command, you would run `terraform workspace select my-app-prod` instead.
 
 ## Exclude files
 
