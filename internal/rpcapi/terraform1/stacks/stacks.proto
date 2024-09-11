@@ -101,6 +101,7 @@ message FindStackConfigurationComponents {
     map<string, EmbeddedStack> embedded_stacks = 2;
     map<string, InputVariable> input_variables = 3;
     map<string, OutputValue> output_values = 4;
+    map<string, Removed> removed = 5;
   }
   message EmbeddedStack {
     string source_addr = 1;
@@ -108,6 +109,11 @@ message FindStackConfigurationComponents {
     StackConfig config = 3;
   }
   message Component {
+    string source_addr = 1;
+    Instances instances = 2;
+    string component_addr = 3;
+  }
+  message Removed {
     string source_addr = 1;
     Instances instances = 2;
     string component_addr = 3;
