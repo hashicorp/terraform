@@ -657,13 +657,6 @@ module.child:
       aws_instance.foo
 `
 
-const testTerraformApplyOutputOrphanStr = `
-<no state>
-Outputs:
-
-foo = bar
-`
-
 const testTerraformApplyOutputOrphanModuleStr = `
 <no state>
 `
