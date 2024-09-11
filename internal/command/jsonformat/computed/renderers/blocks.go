@@ -27,6 +27,7 @@ type Blocks struct {
 	ReplaceBlocks         map[string]bool
 	BeforeSensitiveBlocks map[string]bool
 	AfterSensitiveBlocks  map[string]bool
+	UnknownBlocks         map[string]bool
 }
 
 func (blocks *Blocks) GetAllKeys() []string {
@@ -67,30 +68,34 @@ func (blocks *Blocks) IsSetBlock(key string) bool {
 	return ok
 }
 
-func (blocks *Blocks) AddSingleBlock(key string, diff computed.Diff, replace, beforeSensitive, afterSensitive bool) {
+func (blocks *Blocks) AddSingleBlock(key string, diff computed.Diff, replace, beforeSensitive, afterSensitive, unknown bool) {
 	blocks.SingleBlocks[key] = diff
 	blocks.ReplaceBlocks[key] = replace
 	blocks.BeforeSensitiveBlocks[key] = beforeSensitive
 	blocks.AfterSensitiveBlocks[key] = afterSensitive
+	blocks.UnknownBlocks[key] = unknown
 }
 
-func (blocks *Blocks) AddAllListBlock(key string, diffs []computed.Diff, replace, beforeSensitive, afterSensitive bool) {
+func (blocks *Blocks) AddAllListBlock(key string, diffs []computed.Diff, replace, beforeSensitive, afterSensitive, unknown bool) {
 	blocks.ListBlocks[key] = diffs
 	blocks.ReplaceBlocks[key] = replace
 	blocks.BeforeSensitiveBlocks[key] = beforeSensitive
 	blocks.AfterSensitiveBlocks[key] = afterSensitive
+	blocks.UnknownBlocks[key] = unknown
 }
 
-func (blocks *Blocks) AddAllSetBlock(key string, diffs []computed.Diff, replace, beforeSensitive, afterSensitive bool) {
+func (blocks *Blocks) AddAllSetBlock(key string, diffs []computed.Diff, replace, beforeSensitive, afterSensitive, unknown bool) {
 	blocks.SetBlocks[key] = diffs
 	blocks.ReplaceBlocks[key] = replace
 	blocks.BeforeSensitiveBlocks[key] = beforeSensitive
 	blocks.AfterSensitiveBlocks[key] = afterSensitive
+	blocks.UnknownBlocks[key] = unknown
 }
 
-func (blocks *Blocks) AddAllMapBlocks(key string, diffs map[string]computed.Diff, replace, beforeSensitive, afterSensitive bool) {
+func (blocks *Blocks) AddAllMapBlocks(key string, diffs map[string]computed.Diff, replace, beforeSensitive, afterSensitive, unknown bool) {
 	blocks.MapBlocks[key] = diffs
 	blocks.ReplaceBlocks[key] = replace
 	blocks.BeforeSensitiveBlocks[key] = beforeSensitive
 	blocks.AfterSensitiveBlocks[key] = afterSensitive
+	blocks.UnknownBlocks[key] = unknown
 }
