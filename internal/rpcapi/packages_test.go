@@ -99,7 +99,7 @@ func TestPackagesServer_ProviderPackageVersions(t *testing.T) {
 					if diag.Severity == terraform1.Diagnostic_WARNING && diag.Summary == "Additional provider information from registry" {
 						expected := fmt.Sprintf("The remote registry returned warnings for %s:\n%s", tc.source, strings.Join(tc.expectedWarnings, "\n"))
 						if diff := cmp.Diff(expected, diag.Detail); len(diff) > 0 {
-							t.Errorf(diff)
+							t.Error(diff)
 						}
 					}
 				}
@@ -122,7 +122,7 @@ func TestPackagesServer_ProviderPackageVersions(t *testing.T) {
 			}
 
 			if diff := cmp.Diff(tc.expectedVersions, response.Versions); len(diff) > 0 {
-				t.Errorf(diff)
+				t.Error(diff)
 			}
 		})
 	}
@@ -277,7 +277,7 @@ func TestPackagesServer_FetchProviderPackage(t *testing.T) {
 				}
 
 				if diff := cmp.Diff(providerHashes[tc.platformLocations[platform]], result.Provider.Hashes); len(diff) > 0 {
-					t.Errorf(diff)
+					t.Error(diff)
 				}
 			}
 		})
