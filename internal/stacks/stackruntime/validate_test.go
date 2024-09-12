@@ -6,11 +6,8 @@ package stackruntime
 import (
 	"context"
 	"path/filepath"
-	"sort"
 	"testing"
-	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
@@ -338,9 +335,8 @@ func TestValidate_valid(t *testing.T) {
 				// We've added this test before the implementation was ready.
 				t.SkipNow()
 			}
-
 			ctx := context.Background()
-			cfg := loadMainBundleConfigForTest(t, name)
+
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
@@ -355,9 +351,9 @@ func TestValidate_valid(t *testing.T) {
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 
-			diags := Validate(ctx, &ValidateRequest{
-				Config: cfg,
-				ProviderFactories: map[addrs.Provider]providers.Factory{
+			testContext := TestContext{
+				config: loadMainBundleConfigForTest(t, name),
+				providers: map[addrs.Provider]providers.Factory{
 					// We support both hashicorp/testing and
 					// terraform.io/builtin/testing as providers. This lets us
 					// test the provider aliasing feature. Both providers
@@ -374,20 +370,11 @@ func TestValidate_valid(t *testing.T) {
 						return stacks_testing_provider.NewProvider(t), nil
 					},
 				},
-				DependencyLocks: *lock,
-			})
-
-			// The following will fail the test if there are any error
-			// diagnostics.
-			reportDiagnosticsForTest(t, diags)
-
-			// We also want to fail if there are just warnings, since the
-			// configurations here are supposed to be totally problem-free.
-			if len(diags) != 0 {
-				// reportDiagnosticsForTest already showed the diagnostics in
-				// the log
-				t.FailNow()
+				dependencyLocks: *lock,
 			}
+
+			cycle := TestCycle{} // empty, as we expect no diagnostics
+			testContext.Validate(t, ctx, cycle)
 		})
 	}
 }
@@ -399,9 +386,7 @@ func TestValidate_invalid(t *testing.T) {
 				// We've added this test before the implementation was ready.
 				t.SkipNow()
 			}
-
 			ctx := context.Background()
-			cfg := loadMainBundleConfigForTest(t, name)
 
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
@@ -410,10 +395,16 @@ func TestValidate_invalid(t *testing.T) {
 				providerreqs.MustParseVersionConstraints("=0.0.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
+			lock.SetProvider(
+				addrs.NewDefaultProvider("other"),
+				providerreqs.MustParseVersion("0.0.0"),
+				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
 
-			gotDiags := Validate(ctx, &ValidateRequest{
-				Config: cfg,
-				ProviderFactories: map[addrs.Provider]providers.Factory{
+			testContext := TestContext{
+				config: loadMainBundleConfigForTest(t, name),
+				providers: map[addrs.Provider]providers.Factory{
 					// We support both hashicorp/testing and
 					// terraform.io/builtin/testing as providers. This lets us
 					// test the provider aliasing feature. Both providers
@@ -424,128 +415,81 @@ func TestValidate_invalid(t *testing.T) {
 					addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
 						return stacks_testing_provider.NewProvider(t), nil
 					},
+					// We also support an "other" provider out of the box to
+					// test the provider aliasing feature.
+					addrs.NewDefaultProvider("other"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProvider(t), nil
+					},
 				},
-				DependencyLocks: *lock,
-			}).ForRPC()
-
-			// Let's make the returned diagnostics stable so that we can
-			// compare them easily.
-			sort.SliceStable(gotDiags, diagnosticSortFunc(gotDiags))
-
-			wantDiags := tc.diags().ForRPC()
-
-			if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
-				t.Errorf("wrong diagnostics\n%s", diff)
+				dependencyLocks: *lock,
 			}
+			testContext.Validate(t, ctx, TestCycle{
+				wantValidateDiags: tc.diags(),
+			})
 		})
 	}
 }
 
-func TestValidate_embeddedStackSelfRef(t *testing.T) {
-	ctx := context.Background()
-
-	// One possible failure mode for this test is to deadlock itself if
-	// our deadlock detection is incorrect, so we'll try to make it bail
-	// if it runs too long.
-	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
-	defer cancel()
-
-	ctx, span := tracer.Start(ctx, "TestValidate_embeddedStackSelfRef")
-	defer span.End()
-
-	cfg := loadMainBundleConfigForTest(t, "validate-embedded-stack-selfref")
-
-	gotDiags := Validate(ctx, &ValidateRequest{
-		Config: cfg,
-	})
-
-	// We'll normalize the diagnostics to be of consistent underlying type
-	// using ForRPC, so that we can easily diff them; we don't actually care
-	// about which underlying implementation is in use.
-	gotDiags = gotDiags.ForRPC()
-	var wantDiags tfdiags.Diagnostics
-	wantDiags = wantDiags.Append(tfdiags.Sourceless(
-		tfdiags.Error,
-		"Self-dependent items in configuration",
-		`The following items in your configuration form a circular dependency chain through their references:
+func TestValidate(t *testing.T) {
+	tcs := map[string]struct {
+		path      string
+		providers map[addrs.Provider]providers.Factory
+		locks     *depsfile.Locks
+		wantDiags tfdiags.Diagnostics
+	}{
+		"embedded-stack-selfref": {
+			path: "validate-embedded-stack-selfref",
+			wantDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+				return diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Self-dependent items in configuration",
+					`The following items in your configuration form a circular dependency chain through their references:
   - stack.a collected outputs
   - stack.a.output.a value
   - stack.a inputs
 
 Terraform uses references to decide a suitable order for performing operations, so configuration items may not refer to their own results either directly or indirectly.`,
-	))
-	wantDiags = wantDiags.ForRPC()
-
-	if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
-		t.Errorf("wrong diagnostics\n%s", diff)
-	}
-}
-
-func TestValidate_missing_provider_from_lockfile(t *testing.T) {
-	ctx := context.Background()
-	cfg := loadMainBundleConfigForTest(t, filepath.Join("with-single-input", "input-from-component"))
-	lock := depsfile.NewLocks()
-
-	diags := Validate(ctx, &ValidateRequest{
-		Config: cfg,
-		ProviderFactories: map[addrs.Provider]providers.Factory{
-			// We support both hashicorp/testing and
-			// terraform.io/builtin/testing as providers. This lets us
-			// test the provider aliasing feature. Both providers
-			// support the same set of resources and data sources.
-			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(t), nil
-			},
-			addrs.NewBuiltInProvider("testing"): func() (providers.Interface, error) {
-				return stacks_testing_provider.NewProvider(t), nil
-			},
+				))
+			}),
 		},
-		DependencyLocks: *lock,
-	})
-
-	if len(diags) != 1 {
-		t.Fatalf("expected exactly one diagnostic, got %d", len(diags))
-	}
-
-	diag := diags[0]
-	if diag.Severity() != tfdiags.Error {
-		t.Fatalf("expected error diagnostic, got %s", diag.Severity())
-	}
-
-	if diag.Description().Summary != "Provider missing from lockfile" {
-		t.Fatalf("expected diagnostic summary 'Provider missing from lockfile', got %q", diag.Description().Summary)
-	}
-
-	if diag.Description().Detail != "Provider \"registry.terraform.io/hashicorp/testing\" is not in the lockfile. This provider must be in the lockfile to be used in the configuration. Please run `tfstacks providers lock` to update the lockfile and run this operation again with an updated configuration." {
-		t.Fatalf("expected diagnostic detail to be a specific message, got %q", diag.Description().Detail)
-	}
-}
-
-func TestValidate_impliedProviderTypes(t *testing.T) {
-
-	tcs := []struct {
-		directory string
-		providers map[addrs.Provider]providers.Factory
-		wantDiags func() tfdiags.Diagnostics
-	}{
-		{
-			directory: "with-hashicorp-provider",
+		"missing-provider-from-lockfile": {
+			path: filepath.Join("with-single-input", "input-from-component"),
+			providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+					return stacks_testing_provider.NewProvider(t), nil
+				},
+			},
+			locks: depsfile.NewLocks(), // deliberately empty
+			wantDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+				return diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Provider missing from lockfile",
+					Detail:   "Provider \"registry.terraform.io/hashicorp/testing\" is not in the lockfile. This provider must be in the lockfile to be used in the configuration. Please run `tfstacks providers lock` to update the lockfile and run this operation again with an updated configuration.",
+					Subject: &hcl.Range{
+						Filename: "git::https://example.com/test.git//with-single-input/input-from-component/input-from-component.tfstack.hcl",
+						Start:    hcl.Pos{Line: 8, Column: 1, Byte: 98},
+						End:      hcl.Pos{Line: 8, Column: 29, Byte: 126},
+					},
+				})
+			}),
+		},
+		"implied-provider-type-with-hashicorp-provider": {
+			path: filepath.Join("legacy-module", "with-hashicorp-provider"),
 			providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
 					return stacks_testing_provider.NewProvider(t), nil
 				},
 			},
 		},
-		{
-			directory: "with-non-hashicorp-provider",
+		"implied-provider-type-with-non-hashicorp-provider": {
+			path: filepath.Join("legacy-module", "with-non-hashicorp-provider"),
 			providers: map[addrs.Provider]providers.Factory{
 				addrs.NewProvider(addrs.DefaultProviderRegistryHost, "other", "testing"): func() (providers.Interface, error) {
 					return stacks_testing_provider.NewProvider(t), nil
 				},
 			},
-			wantDiags: func() tfdiags.Diagnostics {
-				var diags tfdiags.Diagnostics
-				diags = diags.Append(&hcl.Diagnostic{
+			wantDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid provider configuration",
 					Detail: "The provider configuration slot \"testing\" requires a configuration for provider \"registry.terraform.io/hashicorp/testing\", not for provider \"registry.terraform.io/other/testing\"." +
@@ -556,40 +500,37 @@ func TestValidate_impliedProviderTypes(t *testing.T) {
 						End:      hcl.Pos{Line: 21, Column: 39, Byte: 471},
 					},
 				})
-				return diags
-			},
+			}),
 		},
 	}
 
-	for _, tc := range tcs {
-		t.Run(tc.directory, func(t *testing.T) {
-
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
 			ctx := context.Background()
-			lock := depsfile.NewLocks()
-			for addr := range tc.providers {
-				lock.SetProvider(
-					addr,
-					providerreqs.MustParseVersion("0.0.0"),
-					providerreqs.MustParseVersionConstraints("=0.0.0"),
-					providerreqs.PreferredHashes([]providerreqs.Hash{}),
-				)
+			ctx, span := tracer.Start(ctx, name)
+			defer span.End()
+
+			locks := tc.locks
+			if locks == nil {
+				locks = depsfile.NewLocks()
+				for addr := range tc.providers {
+					locks.SetProvider(
+						addr,
+						providerreqs.MustParseVersion("0.0.0"),
+						providerreqs.MustParseVersionConstraints("=0.0.0"),
+						providerreqs.PreferredHashes([]providerreqs.Hash{}),
+					)
+				}
 			}
 
-			cfg := loadMainBundleConfigForTest(t, filepath.Join("legacy-module", tc.directory))
-			gotDiags := Validate(ctx, &ValidateRequest{
-				Config:            cfg,
-				ProviderFactories: tc.providers,
-				DependencyLocks:   *lock,
-			}).ForRPC()
-
-			wantDiags := tfdiags.Diagnostics{}.ForRPC()
-			if tc.wantDiags != nil {
-				wantDiags = tc.wantDiags().ForRPC()
+			testContext := TestContext{
+				config:          loadMainBundleConfigForTest(t, tc.path),
+				providers:       tc.providers,
+				dependencyLocks: *locks,
 			}
-
-			if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
-				t.Errorf("wrong diagnostics\n%s", diff)
-			}
+			testContext.Validate(t, ctx, TestCycle{
+				wantValidateDiags: tc.wantDiags,
+			})
 		})
 	}
 }
