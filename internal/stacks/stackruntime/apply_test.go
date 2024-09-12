@@ -3146,9 +3146,6 @@ func TestApply_RemovedBlocks(t *testing.T) {
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
-	// TODO: Add tests for and implement the following cases:
-	//   - Add a test for a removed block that forgets instead of destroys.
-
 	tcs := map[string]struct {
 		source           string
 		initialState     *stackstate.State
