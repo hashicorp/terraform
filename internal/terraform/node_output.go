@@ -10,8 +10,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
-	"maps"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -124,8 +122,9 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 			switch {
 			case module.IsRoot() && n.Destroying:
 				node = &NodeDestroyableOutput{
-					Addr:     absAddr,
-					Planning: n.Planning,
+					Addr:        absAddr,
+					Planning:    n.Planning,
+					IsEphemeral: n.Config.Ephemeral,
 				}
 
 			default:
@@ -591,8 +590,9 @@ func (n *nodeOutputInPartialModule) Execute(ctx EvalContext, op walkOperation) t
 // NodeDestroyableOutput represents an output that is "destroyable":
 // its application will remove the output from the state.
 type NodeDestroyableOutput struct {
-	Addr     addrs.AbsOutputValue
-	Planning bool
+	Addr        addrs.AbsOutputValue
+	Planning    bool
+	IsEphemeral bool
 }
 
 var (
@@ -628,9 +628,10 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 	mod := state.Module(n.Addr.Module)
 	if n.Addr.Module.IsRoot() && mod != nil {
 		s := state.Lock()
-		rootOutputs := s.RootOutputValues
-		maps.Copy(rootOutputs, s.EphemeralRootOutputValues)
-		if o, ok := rootOutputs[n.Addr.OutputValue.Name]; ok {
+		if o, ok := s.RootOutputValues[n.Addr.OutputValue.Name]; ok {
+			sensitiveBefore = o.Sensitive
+			before = o.Value
+		} else if o, ok := s.EphemeralRootOutputValues[n.Addr.OutputValue.Name]; ok {
 			sensitiveBefore = o.Sensitive
 			before = o.Value
 		} else {
@@ -658,7 +659,11 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 		changes.AppendOutputChange(change) // add the new planned change
 	}
 
-	state.RemoveOutputValue(n.Addr)
+	if n.IsEphemeral {
+		state.RemoveEphemeralOutputValue(n.Addr)
+	} else {
+		state.RemoveOutputValue(n.Addr)
+	}
 	return nil
 }
 

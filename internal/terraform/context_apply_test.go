@@ -4069,7 +4069,11 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 	)
 	state.SetOutputValue(
 		addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
-		cty.StringVal("baz"), false,
+		cty.StringVal("bar-val"), false,
+	)
+	state.SetEphemeralOutputValue(
+		addrs.OutputValue{Name: "eph"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("eph-val"), false,
 	)
 
 	ctx := testContext2(t, &ContextOpts{
@@ -4086,10 +4090,15 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	actual := strings.TrimSpace(state.String())
-	expected := strings.TrimSpace(testTerraformApplyOutputOrphanStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	expectedState := states.NewState()
+	expectedState.SetOutputValue(
+		addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("bar"), false,
+	)
+	expectedState.CheckResults = &states.CheckResults{}
+
+	if diff := cmp.Diff(expectedState, state); diff != "" {
+		t.Fatalf("unexpected state: %s", diff)
 	}
 }
 
