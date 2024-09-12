@@ -2819,68 +2819,90 @@ removed {
 func TestContext2Apply_destroy_and_forget(t *testing.T) {
 	addrA := mustResourceInstanceAddr("test_object.a")
 	addrB := mustResourceInstanceAddr("test_object.b")
-	m := testModuleInline(t, map[string]string{
-		"main.tf": `
-resource "test_object" "a" {
+
+	testCases := []struct {
+		name       string
+		config     string
+		buildState func(*states.SyncState)
+
+		expectedChangeAddresses []string
+	}{
+		{
+			name: "standard",
+			config: `
+            resource "test_object" "a" {
 	test_string = "foo"
-}
-
-resource "test_object" "b" {
+            }
+            
+            resource "test_object" "b" {
 	test_string = "foo"
-}
-`})
+            }
+            `,
+			buildState: func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"foo":"bar"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				s.SetResourceInstanceCurrent(addrB, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"foo":"bar"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
 
-	state := states.BuildState(func(s *states.SyncState) {
-		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
-			AttrsJSON: []byte(`{"foo":"bar"}`),
-			Status:    states.ObjectReady,
-		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
-		s.SetResourceInstanceCurrent(addrB, &states.ResourceInstanceObjectSrc{
-			AttrsJSON: []byte(`{"foo":"bar"}`),
-			Status:    states.ObjectReady,
-		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
-	})
-
-	p := simpleMockProvider()
-	ctx := testContext2(t, &ContextOpts{
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			expectedChangeAddresses: []string{addrA.String(), addrB.String()},
 		},
-	})
-
-	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:   plans.DestroyMode,
-		Forget: true,
-	})
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	expectedChangeAddresses := []string{"test_object.a", "test_object.b"}
-	actualChangeAddresses := make([]string, len(plan.Changes.Resources))
-	// We expect a forget action for each resource
-	for i, change := range plan.Changes.Resources {
-		actualChangeAddresses[i] = change.Addr.String()
-		if change.Action != plans.Forget {
-			t.Fatalf("Expected all actions to be forget, but got %s at plan.Changes.Resources[%d]", change.Action, i)
-		}
-	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
 
-	if diff := cmp.Diff(actualChangeAddresses, expectedChangeAddresses); len(diff) > 0 {
-		t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expectedChangeAddresses, actualChangeAddresses, diff)
-	}
+			m := testModuleInline(t, map[string]string{
+				"main.tf": testCase.config,
+			})
 
-	state, diags = ctx.Apply(plan, m, nil)
-	if diags.HasErrors() {
-		t.Fatalf("diags: %s", diags.Err())
-	}
+			state := states.BuildState(testCase.buildState)
 
-	// check that the provider was not asked to destroy the resource
-	if p.ApplyResourceChangeCalled {
-		t.Fatalf("Expected ApplyResourceChange not to be called, but it was called")
-	}
+			p := simpleMockProvider()
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
 
-	checkStateString(t, state, `<no state>`)
+			plan, diags := ctx.Plan(m, state, &PlanOpts{
+				Mode:   plans.DestroyMode,
+				Forget: true,
+			})
+			if diags.HasErrors() {
+				t.Fatalf("diags: %s", diags.Err())
+			}
+
+			actualChangeAddresses := make([]string, len(plan.Changes.Resources))
+			// We expect a forget action for each resource
+			for i, change := range plan.Changes.Resources {
+				actualChangeAddresses[i] = change.Addr.String()
+				if change.Action != plans.Forget {
+					t.Fatalf("Expected all actions to be forget, but got %s at plan.Changes.Resources[%d]", change.Action, i)
+				}
+			}
+
+			if diff := cmp.Diff(actualChangeAddresses, testCase.expectedChangeAddresses); len(diff) > 0 {
+				t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", testCase.expectedChangeAddresses, actualChangeAddresses, diff)
+			}
+
+			state, diags = ctx.Apply(plan, m, nil)
+			if diags.HasErrors() {
+				t.Fatalf("diags: %s", diags.Err())
+			}
+
+			// check that the provider was not asked to destroy the resource
+			if p.ApplyResourceChangeCalled {
+				t.Fatalf("Expected ApplyResourceChange not to be called, but it was called")
+			}
+
+			checkStateString(t, state, `<no state>`)
+		})
+	}
 }
 
 func TestContext2Apply_sensitiveInputVariableValue(t *testing.T) {
