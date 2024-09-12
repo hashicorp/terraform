@@ -2856,11 +2856,18 @@ resource "test_object" "b" {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	// We expect all actions to be forget
+	expectedChangeAddresses := []string{"test_object.a", "test_object.b"}
+	actualChangeAddresses := make([]string, len(plan.Changes.Resources))
+	// We expect a forget action for each resource
 	for i, change := range plan.Changes.Resources {
+		actualChangeAddresses[i] = change.Addr.String()
 		if change.Action != plans.Forget {
 			t.Fatalf("Expected all actions to be forget, but got %s at plan.Changes.Resources[%d]", change.Action, i)
 		}
+	}
+
+	if diff := cmp.Diff(actualChangeAddresses, expectedChangeAddresses); len(diff) > 0 {
+		t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expectedChangeAddresses, actualChangeAddresses, diff)
 	}
 
 	state, diags = ctx.Apply(plan, m, nil)
