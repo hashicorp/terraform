@@ -58,17 +58,8 @@ func TestPlan_valid(t *testing.T) {
 				// We've added this test before the implementation was ready.
 				t.SkipNow()
 			}
-
 			ctx := context.Background()
-			cfg := loadMainBundleConfigForTest(t, name)
 
-			fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			changesCh := make(chan stackplan.PlannedChange, 8)
-			diagsCh := make(chan tfdiags.Diagnostic, 2)
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
@@ -82,9 +73,15 @@ func TestPlan_valid(t *testing.T) {
 				providerreqs.MustParseVersionConstraints("=0.0.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
-			req := PlanRequest{
-				Config: cfg,
-				ProviderFactories: map[addrs.Provider]providers.Factory{
+
+			fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			testContext := TestContext{
+				config: loadMainBundleConfigForTest(t, name),
+				providers: map[addrs.Provider]providers.Factory{
 					// We support both hashicorp/testing and
 					// terraform.io/builtin/testing as providers. This lets us
 					// test the provider aliasing feature. Both providers
@@ -101,40 +98,16 @@ func TestPlan_valid(t *testing.T) {
 						return stacks_testing_provider.NewProvider(t), nil
 					},
 				},
-				DependencyLocks: *lock,
-				InputValues: func() map[stackaddrs.InputVariable]ExternalInputValue {
-					inputs := map[stackaddrs.InputVariable]ExternalInputValue{}
-					for k, v := range tc.planInputVars {
-						inputs[stackaddrs.InputVariable{Name: k}] = ExternalInputValue{
-							Value: v,
-						}
-					}
-					return inputs
-				}(),
-				ForcePlanTimestamp: &fakePlanTimestamp,
-			}
-			resp := PlanResponse{
-				PlannedChanges: changesCh,
-				Diagnostics:    diagsCh,
+				dependencyLocks: *lock,
+				timestamp:       &fakePlanTimestamp,
 			}
 
-			go Plan(ctx, &req, &resp)
-			_, diags := collectPlanOutput(changesCh, diagsCh)
-
-			// We don't care about the planned changes here, just the
-			// diagnostics.
-
-			// The following will fail the test if there are any error
-			// diagnostics.
-			reportDiagnosticsForTest(t, diags)
-
-			// We also want to fail if there are just warnings, since the
-			// configurations here are supposed to be totally problem-free.
-			if len(diags) != 0 {
-				// reportDiagnosticsForTest already showed the diagnostics in
-				// the log
-				t.FailNow()
+			cycle := TestCycle{
+				planInputs:         tc.planInputVars,
+				wantPlannedChanges: nil, // don't care about the planned changes in this test.
+				wantPlannedDiags:   nil, // should return no diagnostics.
 			}
+			testContext.Plan(t, ctx, nil, cycle)
 		})
 	}
 }
@@ -158,17 +131,8 @@ func TestPlan_invalid(t *testing.T) {
 				// We've added this test before the implementation was ready.
 				t.SkipNow()
 			}
-
 			ctx := context.Background()
-			cfg := loadMainBundleConfigForTest(t, name)
 
-			fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			changesCh := make(chan stackplan.PlannedChange, 8)
-			diagsCh := make(chan tfdiags.Diagnostic, 2)
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
@@ -176,9 +140,15 @@ func TestPlan_invalid(t *testing.T) {
 				providerreqs.MustParseVersionConstraints("=0.0.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
-			req := PlanRequest{
-				Config: cfg,
-				ProviderFactories: map[addrs.Provider]providers.Factory{
+
+			fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			testContext := TestContext{
+				config: loadMainBundleConfigForTest(t, name),
+				providers: map[addrs.Provider]providers.Factory{
 					// We support both hashicorp/testing and
 					// terraform.io/builtin/testing as providers. This lets us
 					// test the provider aliasing feature. Both providers
@@ -190,31 +160,16 @@ func TestPlan_invalid(t *testing.T) {
 						return stacks_testing_provider.NewProvider(t), nil
 					},
 				},
-				DependencyLocks: *lock,
-				InputValues: func() map[stackaddrs.InputVariable]ExternalInputValue {
-					inputs := map[stackaddrs.InputVariable]ExternalInputValue{}
-					for k, v := range tc.planInputVars {
-						inputs[stackaddrs.InputVariable{Name: k}] = ExternalInputValue{
-							Value: v,
-						}
-					}
-					return inputs
-				}(),
-				ForcePlanTimestamp: &fakePlanTimestamp,
-			}
-			resp := PlanResponse{
-				PlannedChanges: changesCh,
-				Diagnostics:    diagsCh,
+				dependencyLocks: *lock,
+				timestamp:       &fakePlanTimestamp,
 			}
 
-			go Plan(ctx, &req, &resp)
-			_, gotDiags := collectPlanOutput(changesCh, diagsCh)
-			wantDiags := tc.diags()
-			sort.SliceStable(gotDiags, diagnosticSortFunc(gotDiags))
-
-			if diff := cmp.Diff(wantDiags.ForRPC(), gotDiags.ForRPC()); diff != "" {
-				t.Errorf("wrong diagnostics\n%s", diff)
+			cycle := TestCycle{
+				planInputs:         tc.planInputVars,
+				wantPlannedChanges: nil, // don't care about the planned changes in this test.
+				wantPlannedDiags:   tc.diags(),
 			}
+			testContext.Plan(t, ctx, nil, cycle)
 		})
 	}
 }

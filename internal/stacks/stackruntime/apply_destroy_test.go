@@ -6,11 +6,11 @@ package stackruntime
 import (
 	"context"
 	"path"
-	"sort"
+	"strconv"
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -35,21 +35,12 @@ func TestApplyDestroy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	type cycle struct {
-		mode               plans.Mode
-		inputs             map[string]cty.Value
-		wantPlannedChanges []stackplan.PlannedChange
-		wantPlannedDiags   []expectedDiagnostic
-		wantAppliedChanges []stackstate.AppliedChange
-		wantAppliedDiags   []expectedDiagnostic
-	}
-
 	tcs := map[string]struct {
 		path        string
 		description string
 		state       *stackstate.State
 		store       *stacks_testing_provider.ResourceStore
-		cycles      []cycle
+		cycles      []TestCycle
 	}{
 		"missing-resource": {
 			path:        path.Join("with-single-input", "valid"),
@@ -70,10 +61,10 @@ func TestApplyDestroy(t *testing.T) {
 						Status: states.ObjectReady,
 					})).
 				Build(),
-			cycles: []cycle{
+			cycles: []TestCycle{
 				{
-					mode: plans.DestroyMode,
-					inputs: map[string]cty.Value{
+					planMode: plans.DestroyMode,
+					planInputs: map[string]cty.Value{
 						"input": cty.StringVal("hello"),
 					},
 					wantAppliedChanges: []stackstate.AppliedChange{
@@ -119,10 +110,10 @@ func TestApplyDestroy(t *testing.T) {
 						Status: states.ObjectReady,
 					})).
 				Build(),
-			cycles: []cycle{
+			cycles: []TestCycle{
 				{
-					mode: plans.DestroyMode,
-					inputs: map[string]cty.Value{
+					planMode: plans.DestroyMode,
+					planInputs: map[string]cty.Value{
 						"id":       cty.StringVal("foo"),
 						"resource": cty.StringVal("bar"),
 					},
@@ -183,10 +174,10 @@ func TestApplyDestroy(t *testing.T) {
 						Status: states.ObjectReady,
 					})).
 				Build(),
-			cycles: []cycle{
+			cycles: []TestCycle{
 				{
-					mode: plans.NormalMode,
-					inputs: map[string]cty.Value{
+					planMode: plans.NormalMode,
+					planInputs: map[string]cty.Value{
 						"id":       cty.StringVal("foo"),
 						"resource": cty.StringVal("bar"),
 					},
@@ -239,8 +230,8 @@ func TestApplyDestroy(t *testing.T) {
 					},
 				},
 				{
-					mode: plans.DestroyMode,
-					inputs: map[string]cty.Value{
+					planMode: plans.DestroyMode,
+					planInputs: map[string]cty.Value{
 						"id":       cty.StringVal("foo"),
 						"resource": cty.StringVal("bar"),
 					},
@@ -273,9 +264,9 @@ func TestApplyDestroy(t *testing.T) {
 		"dependent-resources": {
 			path:        "dependent-component",
 			description: "test the order of operations during create and destroy",
-			cycles: []cycle{
+			cycles: []TestCycle{
 				{
-					mode: plans.NormalMode,
+					planMode: plans.NormalMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
 						&stackstate.AppliedChangeComponentInstance{
 							ComponentAddr:         mustAbsComponent("component.self"),
@@ -329,7 +320,7 @@ func TestApplyDestroy(t *testing.T) {
 					},
 				},
 				{
-					mode: plans.DestroyMode,
+					planMode: plans.DestroyMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
 						&stackstate.AppliedChangeComponentInstance{
 							ComponentAddr:         mustAbsComponent("component.self"),
@@ -391,9 +382,9 @@ func TestApplyDestroy(t *testing.T) {
 					"fail_apply": cty.True,
 				})).
 				Build(),
-			cycles: []cycle{
+			cycles: []TestCycle{
 				{
-					mode: plans.DestroyMode,
+					planMode: plans.DestroyMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
 						&stackstate.AppliedChangeComponentInstance{
 							ComponentAddr:         mustAbsComponent("component.self"),
@@ -422,18 +413,22 @@ func TestApplyDestroy(t *testing.T) {
 							Schema: stacks_testing_provider.FailedResourceSchema,
 						},
 					},
-					wantAppliedDiags: []expectedDiagnostic{
-						expectDiagnostic(tfdiags.Error, "failedResource error", "failed during apply"),
-					},
+					wantAppliedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+						return diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "failedResource error",
+							Detail:   "failed during apply",
+						})
+					}),
 				},
 			},
 		},
 		"destroy-after-failed-apply": {
 			path:        path.Join("with-single-input", "failed-child"),
 			description: "tests destroying when state is only partially applied",
-			cycles: []cycle{
+			cycles: []TestCycle{
 				{
-					mode: plans.NormalMode,
+					planMode: plans.NormalMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
 						&stackstate.AppliedChangeComponentInstance{
 							ComponentAddr:         mustAbsComponent("component.child"),
@@ -475,12 +470,16 @@ func TestApplyDestroy(t *testing.T) {
 							Schema: stacks_testing_provider.TestingResourceSchema,
 						},
 					},
-					wantAppliedDiags: []expectedDiagnostic{
-						expectDiagnostic(tfdiags.Error, "failedResource error", "failed during apply"),
-					},
+					wantAppliedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+						return diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "failedResource error",
+							Detail:   "failed during apply",
+						})
+					}),
 				},
 				{
-					mode: plans.DestroyMode,
+					planMode: plans.DestroyMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
 						&stackstate.AppliedChangeComponentInstance{
 							ComponentAddr:         mustAbsComponent("component.child"),
@@ -515,9 +514,9 @@ func TestApplyDestroy(t *testing.T) {
 		"destroy-after-deferred-apply": {
 			path:        "deferred-dependent",
 			description: "tests what happens when a destroy plan is applied after components have been deferred",
-			cycles: []cycle{
+			cycles: []TestCycle{
 				{
-					mode: plans.NormalMode,
+					planMode: plans.NormalMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
 						&stackstate.AppliedChangeComponentInstance{
 							ComponentAddr:         mustAbsComponent("component.deferred"),
@@ -555,7 +554,7 @@ func TestApplyDestroy(t *testing.T) {
 					},
 				},
 				{
-					mode: plans.DestroyMode,
+					planMode: plans.DestroyMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
 						&stackstate.AppliedChangeComponentInstance{
 							ComponentAddr:         mustAbsComponent("component.deferred"),
@@ -626,9 +625,9 @@ func TestApplyDestroy(t *testing.T) {
 					"deferred": cty.True,
 				})).
 				Build(),
-			cycles: []cycle{
+			cycles: []TestCycle{
 				{
-					mode: plans.DestroyMode,
+					planMode: plans.DestroyMode,
 					wantPlannedChanges: []stackplan.PlannedChange{
 						&stackplan.PlannedChangeApplyable{
 							Applyable: true,
@@ -762,13 +761,13 @@ func TestApplyDestroy(t *testing.T) {
 		"destroy-with-input-dependency": {
 			path:        path.Join("with-single-input-and-output", "input-dependency"),
 			description: "tests destroy operations with input dependencies",
-			cycles: []cycle{
+			cycles: []TestCycle{
 				{
 					// Just create everything normally, and don't validate it.
-					mode: plans.NormalMode,
+					planMode: plans.NormalMode,
 				},
 				{
-					mode: plans.DestroyMode,
+					planMode: plans.DestroyMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
 						&stackstate.AppliedChangeComponentInstance{
 							ComponentAddr:         mustAbsComponent("component.child"),
@@ -805,13 +804,13 @@ func TestApplyDestroy(t *testing.T) {
 		"destroy-with-provider-dependency": {
 			path:        path.Join("with-single-input-and-output", "provider-dependency"),
 			description: "tests destroy operations with provider dependencies",
-			cycles: []cycle{
+			cycles: []TestCycle{
 				{
 					// Just create everything normally, and don't validate it.
-					mode: plans.NormalMode,
+					planMode: plans.NormalMode,
 				},
 				{
-					mode: plans.DestroyMode,
+					planMode: plans.DestroyMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
 						&stackstate.AppliedChangeComponentInstance{
 							ComponentAddr:         mustAbsComponent("component.child"),
@@ -848,13 +847,13 @@ func TestApplyDestroy(t *testing.T) {
 		"destroy-with-for-each-dependency": {
 			path:        path.Join("with-single-input-and-output", "for-each-dependency"),
 			description: "tests destroy operations with for-each dependencies",
-			cycles: []cycle{
+			cycles: []TestCycle{
 				{
 					// Just create everything normally, and don't validate it.
-					mode: plans.NormalMode,
+					planMode: plans.NormalMode,
 				},
 				{
-					mode: plans.DestroyMode,
+					planMode: plans.DestroyMode,
 					wantAppliedChanges: []stackstate.AppliedChange{
 						&stackstate.AppliedChangeComponentInstance{
 							ComponentAddr:         mustAbsComponent("component.child"),
@@ -891,9 +890,7 @@ func TestApplyDestroy(t *testing.T) {
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
-
 			ctx := context.Background()
-			cfg := loadMainBundleConfigForTest(t, tc.path)
 
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
@@ -908,123 +905,28 @@ func TestApplyDestroy(t *testing.T) {
 				store = stacks_testing_provider.NewResourceStore()
 			}
 
+			testContext := TestContext{
+				timestamp: &fakePlanTimestamp,
+				config:    loadMainBundleConfigForTest(t, tc.path),
+				providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProviderWithData(t, store), nil
+					},
+				},
+				dependencyLocks: *lock,
+			}
+
 			state := tc.state
 			for ix, cycle := range tc.cycles {
-
-				planReq := PlanRequest{
-					PlanMode: cycle.mode,
-
-					Config: cfg,
-					ProviderFactories: map[addrs.Provider]providers.Factory{
-						addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-							return stacks_testing_provider.NewProviderWithData(t, store), nil
-						},
-					},
-					DependencyLocks:    *lock,
-					ForcePlanTimestamp: &fakePlanTimestamp,
-					InputValues: func() map[stackaddrs.InputVariable]ExternalInputValue {
-						inputs := make(map[stackaddrs.InputVariable]ExternalInputValue, len(cycle.inputs))
-						for k, v := range cycle.inputs {
-							inputs[stackaddrs.InputVariable{Name: k}] = ExternalInputValue{Value: v}
-						}
-						return inputs
-					}(),
-
-					PrevState: state,
-				}
-
-				planChangesCh := make(chan stackplan.PlannedChange)
-				planDiagsCh := make(chan tfdiags.Diagnostic)
-				planResp := PlanResponse{
-					PlannedChanges: planChangesCh,
-					Diagnostics:    planDiagsCh,
-				}
-
-				go Plan(ctx, &planReq, &planResp)
-				planChanges, planDiags := collectPlanOutput(planChangesCh, planDiagsCh)
-				expectDiagnosticsForTest(t, planDiags, cycle.wantPlannedDiags...)
-
-				if cycle.wantPlannedChanges != nil {
-					// nil indicates skip this check, empty slice indicates no changes expected.
-					sort.SliceStable(planChanges, func(i, j int) bool {
-						return plannedChangeSortKey(planChanges[i]) < plannedChangeSortKey(planChanges[j])
+				t.Run(strconv.FormatInt(int64(ix), 10), func(t *testing.T) {
+					var plan *stackplan.Plan
+					t.Run("plan", func(t *testing.T) {
+						plan = testContext.Plan(t, ctx, state, cycle)
 					})
-					if diff := cmp.Diff(cycle.wantPlannedChanges, planChanges, changesCmpOpts); diff != "" {
-						t.Fatalf("wrong planned changes %d\n%s", ix, diff)
-					}
-				}
-
-				planLoader := stackplan.NewLoader()
-				for _, change := range planChanges {
-					proto, err := change.PlannedChangeProto()
-					if err != nil {
-						t.Fatal(err)
-					}
-
-					for _, rawMsg := range proto.Raw {
-						err = planLoader.AddRaw(rawMsg)
-						if err != nil {
-							t.Fatal(err)
-						}
-					}
-				}
-				plan, err := planLoader.Plan()
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				applyReq := ApplyRequest{
-					Config: cfg,
-					Plan:   plan,
-					ProviderFactories: map[addrs.Provider]providers.Factory{
-						addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-							return stacks_testing_provider.NewProviderWithData(t, store), nil
-						},
-					},
-					DependencyLocks: *lock,
-				}
-
-				applyChangesCh := make(chan stackstate.AppliedChange)
-				applyDiagsCh := make(chan tfdiags.Diagnostic)
-				applyResp := ApplyResponse{
-					AppliedChanges: applyChangesCh,
-					Diagnostics:    applyDiagsCh,
-				}
-
-				go Apply(ctx, &applyReq, &applyResp)
-				applyChanges, applyDiags := collectApplyOutput(applyChangesCh, applyDiagsCh)
-				expectDiagnosticsForTest(t, applyDiags, cycle.wantAppliedDiags...)
-
-				if cycle.wantAppliedChanges != nil {
-					// nil indicates skip this check, empty slice indicates no changes expected.
-					sort.SliceStable(applyChanges, func(i, j int) bool {
-						return appliedChangeSortKey(applyChanges[i]) < appliedChangeSortKey(applyChanges[j])
+					t.Run("apply", func(t *testing.T) {
+						state = testContext.Apply(t, ctx, plan, cycle)
 					})
-					if diff := cmp.Diff(cycle.wantAppliedChanges, applyChanges, changesCmpOpts); diff != "" {
-						t.Fatalf("wrong applied changes %d\n%s", ix, diff)
-					}
-				}
-
-				stateLoader := stackstate.NewLoader()
-				for _, change := range applyChanges {
-					proto, err := change.AppliedChangeProto()
-					if err != nil {
-						t.Fatal(err)
-					}
-
-					for _, rawMsg := range proto.Raw {
-						if rawMsg.Value == nil {
-							// This is a removal notice, so we don't need to add it to the
-							// state.
-							continue
-						}
-						err = stateLoader.AddRaw(rawMsg.Key, rawMsg.Value)
-						if err != nil {
-							t.Fatal(err)
-						}
-					}
-				}
-				state = stateLoader.State()
+				})
 			}
 
 		})
