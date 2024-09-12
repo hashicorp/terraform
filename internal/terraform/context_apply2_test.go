@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -2819,6 +2820,9 @@ removed {
 func TestContext2Apply_destroy_and_forget(t *testing.T) {
 	addrA := mustResourceInstanceAddr("test_object.a")
 	addrB := mustResourceInstanceAddr("test_object.b")
+	addrAFirst := mustResourceInstanceAddr(`test_object.a["first"]`)
+	addrASecond := mustResourceInstanceAddr(`test_object.a["second"]`)
+	addrAThird := mustResourceInstanceAddr(`test_object.a["third"]`)
 
 	testCases := []struct {
 		name       string
@@ -2831,11 +2835,11 @@ func TestContext2Apply_destroy_and_forget(t *testing.T) {
 			name: "standard",
 			config: `
             resource "test_object" "a" {
-	test_string = "foo"
+                test_string = "foo"
             }
             
             resource "test_object" "b" {
-	test_string = "foo"
+                test_string = "foo"
             }
             `,
 			buildState: func(s *states.SyncState) {
@@ -2850,6 +2854,75 @@ func TestContext2Apply_destroy_and_forget(t *testing.T) {
 			},
 
 			expectedChangeAddresses: []string{addrA.String(), addrB.String()},
+		},
+		{
+			name: "in state but not in config",
+			config: `
+		    resource "test_object" "a" {
+				test_string = "foo"
+            }
+            `,
+			buildState: func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"foo":"bar"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				s.SetResourceInstanceCurrent(addrB, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"foo":"bar"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
+
+			expectedChangeAddresses: []string{addrA.String(), addrB.String()},
+		},
+		{
+			name: "orphaned expanded resource",
+			config: `
+    		locals {
+    		  items = toset(["first", "third"])
+    		}
+    		resource "test_object" "a" {
+              for_each = local.items
+      
+    		  test_string = each.value
+            }
+            `,
+			buildState: func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(addrAFirst, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"foo":"bar"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				s.SetResourceInstanceCurrent(addrASecond, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"foo":"bar"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				s.SetResourceInstanceCurrent(addrAThird, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"foo":"bar"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
+
+			expectedChangeAddresses: []string{addrAFirst.String(), addrASecond.String(), addrAThird.String()},
+		},
+		{
+			name: "deposed resource",
+			config: `
+	        resource "test_object" "a" {
+				test_string = "foo"
+            }
+            `,
+			buildState: func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"foo":"bar"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				s.SetResourceInstanceDeposed(addrA, states.DeposedKey("uhoh"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"foo":"bar"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
+
+			expectedChangeAddresses: []string{addrA.String(), addrA.String()},
 		},
 	}
 
@@ -2885,6 +2958,10 @@ func TestContext2Apply_destroy_and_forget(t *testing.T) {
 					t.Fatalf("Expected all actions to be forget, but got %s at plan.Changes.Resources[%d]", change.Action, i)
 				}
 			}
+
+			// Sort ahead of comparison to avoid order issues
+			sort.Strings(actualChangeAddresses)
+			sort.Strings(testCase.expectedChangeAddresses)
 
 			if diff := cmp.Diff(actualChangeAddresses, testCase.expectedChangeAddresses); len(diff) > 0 {
 				t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", testCase.expectedChangeAddresses, actualChangeAddresses, diff)
