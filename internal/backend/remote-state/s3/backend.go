@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
@@ -212,59 +211,6 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Optional:    true,
 				Description: "The base64-encoded encryption key to use for server-side encryption with customer-provided keys (SSE-C).",
 				Sensitive:   true,
-			},
-			"role_arn": {
-				Type:        cty.String,
-				Optional:    true,
-				Description: "The role to be assumed",
-				Deprecated:  true,
-			},
-			"session_name": {
-				Type:        cty.String,
-				Optional:    true,
-				Description: "The session name to use when assuming the role.",
-				Deprecated:  true,
-			},
-			"external_id": {
-				Type:        cty.String,
-				Optional:    true,
-				Description: "The external ID to use when assuming the role",
-				Deprecated:  true,
-			},
-
-			"assume_role_duration_seconds": {
-				Type:        cty.Number,
-				Optional:    true,
-				Description: "Seconds to restrict the assume role session duration.",
-				Deprecated:  true,
-			},
-
-			"assume_role_policy": {
-				Type:        cty.String,
-				Optional:    true,
-				Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
-				Deprecated:  true,
-			},
-
-			"assume_role_policy_arns": {
-				Type:        cty.Set(cty.String),
-				Optional:    true,
-				Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
-				Deprecated:  true,
-			},
-
-			"assume_role_tags": {
-				Type:        cty.Map(cty.String),
-				Optional:    true,
-				Description: "Assume role session tags.",
-				Deprecated:  true,
-			},
-
-			"assume_role_transitive_tag_keys": {
-				Type:        cty.Set(cty.String),
-				Optional:    true,
-				Description: "Assume role session tag keys to pass to any subsequent sessions.",
-				Deprecated:  true,
 			},
 
 			"workspace_key_prefix": {
@@ -715,36 +661,8 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		keyPrefixValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
-	var assumeRoleDeprecatedFields = map[string]string{
-		"role_arn":                        "assume_role.role_arn",
-		"session_name":                    "assume_role.session_name",
-		"external_id":                     "assume_role.external_id",
-		"assume_role_duration_seconds":    "assume_role.duration",
-		"assume_role_policy":              "assume_role.policy",
-		"assume_role_policy_arns":         "assume_role.policy_arns",
-		"assume_role_tags":                "assume_role.tags",
-		"assume_role_transitive_tag_keys": "assume_role.transitive_tag_keys",
-	}
-
 	if val := obj.GetAttr("assume_role"); !val.IsNull() {
 		validateNestedAttribute(assumeRoleSchema, val, cty.GetAttrPath("assume_role"), &diags)
-
-		if defined := findDeprecatedFields(obj, assumeRoleDeprecatedFields); len(defined) != 0 {
-			diags = diags.Append(tfdiags.WholeContainingBody(
-				tfdiags.Error,
-				"Conflicting Parameters",
-				`The following deprecated parameters conflict with the parameter "assume_role". Replace them as follows:`+"\n"+
-					formatDeprecations(defined),
-			))
-		}
-	} else {
-		if defined := findDeprecatedFields(obj, assumeRoleDeprecatedFields); len(defined) != 0 {
-			diags = diags.Append(wholeBodyWarningDiag(
-				"Deprecated Parameters",
-				`The following parameters have been deprecated. Replace them as follows:`+"\n"+
-					formatDeprecations(defined),
-			))
-		}
 	}
 
 	if val := obj.GetAttr("assume_role_with_web_identity"); !val.IsNull() {
@@ -852,36 +770,6 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	)(obj, cty.Path{}, &diags)
 
 	return obj, diags
-}
-
-func findDeprecatedFields(obj cty.Value, attrs map[string]string) map[string]string {
-	defined := make(map[string]string)
-	for attr, v := range attrs {
-		if val := obj.GetAttr(attr); !val.IsNull() {
-			defined[attr] = v
-		}
-	}
-	return defined
-}
-
-func formatDeprecations(attrs map[string]string) string {
-	names := make([]string, 0, len(attrs))
-	var maxLen int
-	for attr := range attrs {
-		names = append(names, attr)
-		if l := len(attr); l > maxLen {
-			maxLen = l
-		}
-	}
-	sort.Strings(names)
-
-	var buf strings.Builder
-
-	for _, attr := range names {
-		replacement := attrs[attr]
-		fmt.Fprintf(&buf, "  * %-[1]*[2]s -> %[3]s\n", maxLen, attr, replacement)
-	}
-	return buf.String()
 }
 
 // Configure uses the provided configuration to set configuration fields
@@ -1109,27 +997,6 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 			ar.Tags = val
 		}
 		if val, ok := stringSetAttrOk(assumeRole, "transitive_tag_keys"); ok {
-			ar.TransitiveTagKeys = val
-		}
-		cfg.AssumeRole = ar
-	} else if arn, ok := stringAttrOk(obj, "role_arn"); ok {
-		ar := &awsbase.AssumeRole{}
-		ar.RoleARN = arn
-		ar.SessionName = stringAttr(obj, "session_name")
-		ar.Duration = time.Duration(intAttr(obj, "assume_role_duration_seconds")) * time.Second
-		ar.ExternalID = stringAttr(obj, "external_id")
-		if val, ok := stringAttrOk(obj, "assume_role_policy"); ok {
-			ar.Policy = strings.TrimSpace(val)
-		}
-		if val, ok := stringSetAttrOk(obj, "assume_role_policy_arns"); ok {
-			ar.PolicyARNs = val
-		}
-
-		if val, ok := stringMapAttrOk(obj, "assume_role_tags"); ok {
-			ar.Tags = val
-		}
-
-		if val, ok := stringSetAttrOk(obj, "assume_role_transitive_tag_keys"); ok {
 			ar.TransitiveTagKeys = val
 		}
 		cfg.AssumeRole = ar
