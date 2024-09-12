@@ -10,8 +10,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
-	"maps"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -630,9 +628,10 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 	mod := state.Module(n.Addr.Module)
 	if n.Addr.Module.IsRoot() && mod != nil {
 		s := state.Lock()
-		rootOutputs := s.RootOutputValues
-		maps.Copy(rootOutputs, s.EphemeralRootOutputValues)
-		if o, ok := rootOutputs[n.Addr.OutputValue.Name]; ok {
+		if o, ok := s.RootOutputValues[n.Addr.OutputValue.Name]; ok {
+			sensitiveBefore = o.Sensitive
+			before = o.Value
+		} else if o, ok := s.EphemeralRootOutputValues[n.Addr.OutputValue.Name]; ok {
 			sensitiveBefore = o.Sensitive
 			before = o.Value
 		} else {
