@@ -131,7 +131,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	if rb, isRemoteBackend := be.(BackendWithRemoteTerraformVersion); !isRemoteBackend || rb.IsLocalOperations() {
 		view.ResourceCount(args.State.StateOutPath)
 		if !c.Destroy && op.State != nil {
-			view.Outputs(op.State.RootOutputValues)
+			view.Outputs(op.State.CombinedOutputValues())
 		}
 	}
 

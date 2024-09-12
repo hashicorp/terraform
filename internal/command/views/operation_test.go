@@ -1234,18 +1234,22 @@ func TestOperationJSON_planOutputChanges(t *testing.T) {
 				"boop": map[string]interface{}{
 					"action":    "noop",
 					"sensitive": false,
+					"ephemeral": false,
 				},
 				"beep": map[string]interface{}{
 					"action":    "create",
 					"sensitive": false,
+					"ephemeral": false,
 				},
 				"bonk": map[string]interface{}{
 					"action":    "delete",
 					"sensitive": false,
+					"ephemeral": false,
 				},
 				"honk": map[string]interface{}{
 					"action":    "update",
 					"sensitive": true,
+					"ephemeral": false,
 				},
 			},
 		},

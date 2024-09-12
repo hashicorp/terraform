@@ -256,11 +256,13 @@ func TestApplyJSON_outputs(t *testing.T) {
 			"outputs": map[string]interface{}{
 				"boop_count": map[string]interface{}{
 					"sensitive": false,
+					"ephemeral": false,
 					"value":     float64(92),
 					"type":      "number",
 				},
 				"password": map[string]interface{}{
 					"sensitive": true,
+					"ephemeral": false,
 					"type":      "string",
 				},
 			},

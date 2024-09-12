@@ -16,6 +16,7 @@ import (
 
 type Output struct {
 	Sensitive bool            `json:"sensitive"`
+	Ephemeral bool            `json:"ephemeral"`
 	Type      json.RawMessage `json:"type,omitempty"`
 	Value     json.RawMessage `json:"value,omitempty"`
 	Action    ChangeAction    `json:"action,omitempty"`

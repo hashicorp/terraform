@@ -63,6 +63,10 @@ func (v *OutputHuman) Output(name string, outputs map[string]*states.OutputValue
 			diags = diags.Append(missingOutputError(name))
 			return diags
 		}
+		if output.Ephemeral {
+			diags = diags.Append(ephemeralOutputError(name))
+			return diags
+		}
 		result := repl.FormatValue(output.Value, 0)
 		v.view.streams.Println(result)
 		return nil
@@ -83,6 +87,14 @@ func (v *OutputHuman) Output(name string, outputs map[string]*states.OutputValue
 
 		for _, k := range ks {
 			v := outputs[k]
+			if v.Ephemeral && v.Sensitive {
+				outputBuf.WriteString(fmt.Sprintf("%s = <ephemeral, sensitive>\n", k))
+				continue
+			}
+			if v.Ephemeral {
+				outputBuf.WriteString(fmt.Sprintf("%s = <ephemeral>\n", k))
+				continue
+			}
 			if v.Sensitive {
 				outputBuf.WriteString(fmt.Sprintf("%s = <sensitive>\n", k))
 				continue
@@ -128,6 +140,11 @@ func (v *OutputRaw) Output(name string, outputs map[string]*states.OutputValue) 
 	output, ok := outputs[name]
 	if !ok {
 		diags = diags.Append(missingOutputError(name))
+		return diags
+	}
+
+	if output.Ephemeral {
+		diags = diags.Append(ephemeralOutputError(name))
 		return diags
 	}
 
@@ -196,6 +213,10 @@ func (v *OutputJSON) Output(name string, outputs map[string]*states.OutputValue)
 		output, ok := outputs[name]
 		if !ok {
 			diags = diags.Append(missingOutputError(name))
+			return diags
+		}
+		if output.Ephemeral {
+			diags = diags.Append(ephemeralOutputError(name))
 			return diags
 		}
 		value := output.Value
@@ -289,5 +310,14 @@ func missingOutputError(name string) tfdiags.Diagnostic {
 			"file. If you recently added this to your configuration, be "+
 			"sure to run `terraform apply`, since the state won't be updated "+
 			"with new output variables until that command is run.",
+	)
+}
+
+func ephemeralOutputError(name string) tfdiags.Diagnostic {
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		fmt.Sprintf("Output %q is ephemeral", name),
+		"The output requested is not available. It is marked as ephemeral "+
+			"and therefore not persisted to state.",
 	)
 }

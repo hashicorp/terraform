@@ -5,6 +5,7 @@ package states
 
 import (
 	"fmt"
+	"maps"
 	"sort"
 
 	"github.com/zclconf/go-cty/cty"
@@ -341,6 +342,12 @@ func (s *State) EphemeralOutputValue(addr addrs.AbsOutputValue) *OutputValue {
 		return nil
 	}
 	return s.EphemeralRootOutputValues[addr.OutputValue.Name]
+}
+
+func (s *State) CombinedOutputValues() map[string]*OutputValue {
+	combined := maps.Clone(s.RootOutputValues)
+	maps.Copy(combined, s.EphemeralRootOutputValues)
+	return combined
 }
 
 // SetEphemeralOutputValue updates the value stored for the given ephemeral
