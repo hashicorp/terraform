@@ -36,6 +36,7 @@ type Loader struct {
 func NewLoader() *Loader {
 	ret := &Plan{
 		RootInputValues:         make(map[stackaddrs.InputVariable]cty.Value),
+		DeletedOutputValues:     collections.NewSet[stackaddrs.OutputValue](),
 		ApplyTimeInputVariables: collections.NewSetCmp[stackaddrs.InputVariable](),
 		Components:              collections.NewMap[stackaddrs.AbsComponentInstance, *Component](),
 		PrevRunStateRaw:         make(map[string]*anypb.Any),
@@ -96,6 +97,9 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 		if err != nil {
 			return fmt.Errorf("invalid plan timestamp %q", msg.PlanTimestamp)
 		}
+
+	case *tfstackdata1.DeletedRootOutputValue:
+		l.ret.DeletedOutputValues.Add(stackaddrs.OutputValue{Name: msg.Name})
 
 	case *tfstackdata1.PlanRootInputValue:
 		addr := stackaddrs.InputVariable{

@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -44,6 +45,201 @@ var changesCmpOpts = cmp.Options{
 	cmpCollectionsSet,
 	cmpopts.IgnoreUnexported(addrs.InputVariable{}),
 	cmpopts.IgnoreUnexported(states.ResourceInstanceObjectSrc{}),
+}
+
+// TestApply uses a generic framework for running apply integration tests
+// against Stacks. Generally, new tests should be added into this function
+// rather than copying the large amount of duplicate code from the other
+// tests in this file.
+//
+// If you are editing other tests in this file, please consider moving them
+// into this test function so they can reuse the shared setup and boilerplate
+// code managing the boring parts of the test.
+func TestApply(t *testing.T) {
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "2021-01-01T00:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tcs := map[string]struct {
+		path   string
+		state  *stackstate.State
+		store  *stacks_testing_provider.ResourceStore
+		cycles []TestCycle
+	}{
+		"creating outputs": {
+			path: "component-input-output",
+			cycles: []TestCycle{
+				{
+					planInputs: map[string]cty.Value{
+						"value": cty.StringVal("foo"),
+					},
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangeOutputValue{
+							Addr:   mustStackOutputValue("value"),
+							Action: plans.Create,
+							Before: cty.NullVal(cty.DynamicPseudoType),
+							After:  cty.StringVal("foo"),
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeRootInputValue{
+							Addr:  mustStackInputVariable("value"),
+							Value: cty.StringVal("foo"),
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeOutputValue{
+							Addr:  mustStackOutputValue("value"),
+							Value: cty.StringVal("foo"),
+						},
+					},
+				},
+			},
+		},
+		"updating outputs": {
+			path: "component-input-output",
+			cycles: []TestCycle{
+				{
+					planInputs: map[string]cty.Value{
+						"value": cty.StringVal("foo"),
+					},
+				},
+				{
+					planInputs: map[string]cty.Value{
+						"value": cty.StringVal("bar"),
+					},
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangeOutputValue{
+							Addr:   mustStackOutputValue("value"),
+							Action: plans.Update,
+							Before: cty.StringVal("foo"),
+							After:  cty.StringVal("bar"),
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeRootInputValue{
+							Addr:  mustStackInputVariable("value"),
+							Value: cty.StringVal("bar"),
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeOutputValue{
+							Addr:  mustStackOutputValue("value"),
+							Value: cty.StringVal("bar"),
+						},
+					},
+				},
+			},
+		},
+		"deleting outputs": {
+			path: "component-input-output",
+			state: stackstate.NewStateBuilder().
+				AddOutput("removed", cty.StringVal("bar")).
+				Build(),
+			cycles: []TestCycle{
+				{
+					planInputs: map[string]cty.Value{
+						"value": cty.StringVal("foo"),
+					},
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangeOutputValue{
+							Addr:   mustStackOutputValue("removed"),
+							Action: plans.Delete,
+							Before: cty.StringVal("bar"),
+							After:  cty.NullVal(cty.DynamicPseudoType),
+						},
+						&stackplan.PlannedChangeOutputValue{
+							Addr:   mustStackOutputValue("value"),
+							Action: plans.Create,
+							Before: cty.NullVal(cty.DynamicPseudoType),
+							After:  cty.StringVal("foo"),
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeRootInputValue{
+							Addr:  mustStackInputVariable("value"),
+							Value: cty.StringVal("foo"),
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeOutputValue{
+							Addr: mustStackOutputValue("removed"),
+						},
+						&stackstate.AppliedChangeOutputValue{
+							Addr:  mustStackOutputValue("value"),
+							Value: cty.StringVal("foo"),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+
+			lock := depsfile.NewLocks()
+			lock.SetProvider(
+				addrs.NewDefaultProvider("testing"),
+				providerreqs.MustParseVersion("0.0.0"),
+				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
+
+			store := tc.store
+			if store == nil {
+				store = stacks_testing_provider.NewResourceStore()
+			}
+
+			testContext := TestContext{
+				timestamp: &fakePlanTimestamp,
+				config:    loadMainBundleConfigForTest(t, tc.path),
+				providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProviderWithData(t, store), nil
+					},
+				},
+				dependencyLocks: *lock,
+			}
+
+			state := tc.state
+			for ix, cycle := range tc.cycles {
+				t.Run(strconv.FormatInt(int64(ix), 10), func(t *testing.T) {
+					var plan *stackplan.Plan
+					t.Run("plan", func(t *testing.T) {
+						plan = testContext.Plan(t, ctx, state, cycle)
+					})
+					t.Run("apply", func(t *testing.T) {
+						state = testContext.Apply(t, ctx, plan, cycle)
+					})
+				})
+			}
+		})
+	}
 }
 
 func TestApplyWithRemovedResource(t *testing.T) {
@@ -823,10 +1019,7 @@ func TestApplyWithForcePlanTimestamp(t *testing.T) {
 	}
 	// Sanity check that the plan timestamp was set correctly
 	output := expectOutput(t, "plantimestamp", planChanges)
-	plantimestampValue, err := output.NewValue.Decode(cty.String)
-	if err != nil {
-		t.Fatal(err)
-	}
+	plantimestampValue := output.After
 
 	if plantimestampValue.AsString() != forcedPlanTimestamp {
 		t.Errorf("expected plantimestamp to be %q, got %q", forcedPlanTimestamp, plantimestampValue.AsString())
@@ -902,6 +1095,10 @@ func TestApplyWithForcePlanTimestamp(t *testing.T) {
 				mustInputVariable("value"): cty.StringVal(forcedPlanTimestamp),
 			},
 		},
+		&stackstate.AppliedChangeOutputValue{
+			Addr:  stackaddrs.OutputValue{Name: "plantimestamp"},
+			Value: cty.StringVal(forcedPlanTimestamp),
+		},
 	}
 
 	sort.SliceStable(applyChanges, func(i, j int) bool {
@@ -945,10 +1142,7 @@ func TestApplyWithDefaultPlanTimestamp(t *testing.T) {
 	}
 	// Sanity check that the plan timestamp was set correctly
 	output := expectOutput(t, "plantimestamp", planChanges)
-	plantimestampValue, err := output.NewValue.Decode(cty.String)
-	if err != nil {
-		t.Fatal(err)
-	}
+	plantimestampValue := output.After
 
 	plantimestamp, err := time.Parse(time.RFC3339, plantimestampValue.AsString())
 	if err != nil {
@@ -2702,10 +2896,10 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 			TerraformVersion: version.SemVer,
 		},
 		&stackplan.PlannedChangeOutputValue{
-			Addr:     stackaddrs.OutputValue{Name: "value"},
-			Action:   plans.Create,
-			OldValue: mustPlanDynamicValue(cty.NullVal(cty.String)),
-			NewValue: mustPlanDynamicValue(cty.StringVal("hello, world!")),
+			Addr:   stackaddrs.OutputValue{Name: "value"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.StringVal("hello, world!"),
 		},
 		&stackplan.PlannedChangePlannedTimestamp{
 			PlannedTimestamp: fakePlanTimestamp,
@@ -2803,6 +2997,10 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 			},
 			ProviderConfigAddr: mustDefaultRootProvider("testing"),
 			Schema:             stacks_testing_provider.TestingResourceSchema,
+		},
+		&stackstate.AppliedChangeOutputValue{
+			Addr:  stackaddrs.OutputValue{Name: "value"},
+			Value: cty.StringVal("hello, world!"),
 		},
 	}
 

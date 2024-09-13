@@ -22,6 +22,7 @@ import (
 // changes are represented in other ways inside the stacks language runtime.
 type State struct {
 	componentInstances collections.Map[stackaddrs.AbsComponentInstance, *componentInstanceState]
+	outputs            map[stackaddrs.OutputValue]cty.Value
 
 	// discardUnsupportedKeys is the set of state keys that we encountered
 	// during decoding which are of types that are not supported by this
@@ -38,9 +39,18 @@ type State struct {
 func NewState() *State {
 	return &State{
 		componentInstances:     collections.NewMap[stackaddrs.AbsComponentInstance, *componentInstanceState](),
+		outputs:                make(map[stackaddrs.OutputValue]cty.Value),
 		discardUnsupportedKeys: statekeys.NewKeySet(),
 		inputRaw:               nil,
 	}
+}
+
+func (s *State) RootOutputValues() map[stackaddrs.OutputValue]cty.Value {
+	return s.outputs
+}
+
+func (s *State) RootOutputValue(addr stackaddrs.OutputValue) cty.Value {
+	return s.outputs[addr]
 }
 
 func (s *State) HasComponentInstance(addr stackaddrs.AbsComponentInstance) bool {
@@ -258,6 +268,10 @@ func (s *State) RawKeysToDiscard() collections.Set[statekeys.Key] {
 // the map or anything reachable through it.
 func (s *State) InputRaw() map[string]*anypb.Any {
 	return s.inputRaw
+}
+
+func (s *State) addOutputValue(addr stackaddrs.OutputValue, value cty.Value) {
+	s.outputs[addr] = value
 }
 
 func (s *State) ensureComponentInstanceState(addr stackaddrs.AbsComponentInstance) *componentInstanceState {

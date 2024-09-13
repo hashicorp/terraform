@@ -115,13 +115,27 @@ func (tc TestContext) Plan(t *testing.T, ctx context.Context, state *stackstate.
 	validateDiags(t, cycle.wantPlannedDiags, diags)
 
 	if cycle.wantPlannedChanges != nil {
+
+		var filteredChanges []stackplan.PlannedChange
+		for _, change := range changes {
+			if _, ok := change.(*stackplan.PlannedChangePriorStateElement); ok {
+				// Remove the prior state elements from the analysis for tests
+				// using this framework. They're really difficult to properly
+				// compare as they use the raw state and raw key, and they're
+				// actually ignored by most of the stacks runtime and so aren't
+				// useful to be included in these kind of tests.
+				continue
+			}
+			filteredChanges = append(filteredChanges, change)
+		}
+
 		// if this is nil (as opposed to empty) then we don't validate the
 		// returned changes.
 
-		sort.SliceStable(changes, func(i, j int) bool {
-			return plannedChangeSortKey(changes[i]) < plannedChangeSortKey(changes[j])
+		sort.SliceStable(filteredChanges, func(i, j int) bool {
+			return plannedChangeSortKey(filteredChanges[i]) < plannedChangeSortKey(filteredChanges[j])
 		})
-		if diff := cmp.Diff(cycle.wantPlannedChanges, changes, changesCmpOpts); len(diff) > 0 {
+		if diff := cmp.Diff(cycle.wantPlannedChanges, filteredChanges, changesCmpOpts); len(diff) > 0 {
 			t.Errorf("wrong planned changes\n%s", diff)
 		}
 	}
@@ -369,6 +383,8 @@ func appliedChangeSortKey(change stackstate.AppliedChange) string {
 		return change.ResourceInstanceObjectAddr.String()
 	case *stackstate.AppliedChangeComponentInstance:
 		return change.ComponentInstanceAddr.String()
+	case *stackstate.AppliedChangeOutputValue:
+		return change.Addr.String()
 	case *stackstate.AppliedChangeDiscardKeys:
 		// There should only be a single discard keys in a plan, so we can just
 		// return a static string here.
@@ -537,6 +553,14 @@ func mustPlanDynamicValueSchema(v cty.Value, block *configschema.Block) plans.Dy
 
 func mustInputVariable(name string) addrs.InputVariable {
 	return addrs.InputVariable{Name: name}
+}
+
+func mustStackInputVariable(name string) stackaddrs.InputVariable {
+	return stackaddrs.InputVariable{Name: name}
+}
+
+func mustStackOutputValue(name string) stackaddrs.OutputValue {
+	return stackaddrs.OutputValue{Name: name}
 }
 
 func mustMarshalJSONAttrs(attrs map[string]interface{}) []byte {
