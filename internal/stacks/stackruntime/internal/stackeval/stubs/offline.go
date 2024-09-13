@@ -172,6 +172,34 @@ func (o *offlineProvider) ReadDataSource(request providers.ReadDataSourceRequest
 	}
 }
 
+// OpenEphemeral implements providers.Interface.
+func (u *offlineProvider) OpenEphemeral(providers.OpenEphemeralRequest) providers.OpenEphemeralResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called OpenEphemeral on an unconfigured provider",
+		"Cannot open this resource instance because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.OpenEphemeralResponse{
+		Diagnostics: diags,
+	}
+}
+
+// RenewEphemeral implements providers.Interface.
+func (u *offlineProvider) RenewEphemeral(providers.RenewEphemeralRequest) providers.RenewEphemeralResponse {
+	// We don't have anything to do here because OpenEphemeral didn't really
+	// actually "open" anything.
+	return providers.RenewEphemeralResponse{}
+}
+
+// CloseEphemeral implements providers.Interface.
+func (u *offlineProvider) CloseEphemeral(providers.CloseEphemeralRequest) providers.CloseEphemeralResponse {
+	// We don't have anything to do here because OpenEphemeral didn't really
+	// actually "open" anything.
+	return providers.CloseEphemeralResponse{}
+}
+
 func (o *offlineProvider) CallFunction(request providers.CallFunctionRequest) providers.CallFunctionResponse {
 	return o.unconfiguredClient.CallFunction(request)
 }
