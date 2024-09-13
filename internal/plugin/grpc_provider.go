@@ -767,6 +767,21 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 	return resp
 }
 
+func (p *GRPCProvider) OpenEphemeral(r providers.OpenEphemeralRequest) (resp providers.OpenEphemeralResponse) {
+	logger.Trace("GRPCProvider: OpenEphemeral")
+	panic("ephemeral resources not supported")
+}
+
+func (p *GRPCProvider) RenewEphemeral(r providers.RenewEphemeralRequest) (resp providers.RenewEphemeralResponse) {
+	logger.Trace("GRPCProvider: RenewEphemeral")
+	panic("ephemeral resources not supported")
+}
+
+func (p *GRPCProvider) CloseEphemeral(r providers.CloseEphemeralRequest) (resp providers.CloseEphemeralResponse) {
+	logger.Trace("GRPCProvider: CloseEphemeral")
+	panic("ephemeral resources not supported")
+}
+
 func (p *GRPCProvider) CallFunction(r providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
 	logger.Trace("GRPCProvider", "CallFunction", r.FunctionName)
 
