@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
@@ -278,6 +279,85 @@ func (ac *AppliedChangeComponentInstance) AppliedChangeProto() (*stacks.AppliedC
 		},
 	})
 	return ret, nil
+}
+
+type AppliedChangeInputVariable struct {
+	Addr  stackaddrs.InputVariable
+	Value cty.Value
+
+	// A Value field of cty.NilValue indicates the input variable is ephemeral
+	// rather than being deleted. We have a dedicated field to indicate
+	// deletion to make up for this.
+	Removed bool
+}
+
+var _ AppliedChange = (*AppliedChangeInputVariable)(nil)
+
+func (ac *AppliedChangeInputVariable) AppliedChangeProto() (*stacks.AppliedChange, error) {
+	key := statekeys.String(statekeys.Variable{
+		VariableAddr: ac.Addr,
+	})
+
+	if ac.Removed {
+		// Then we're deleting this input variable from the state.
+		return &stacks.AppliedChange{
+			Raw: []*stacks.AppliedChange_RawChange{
+				{
+					Key:   key,
+					Value: nil,
+				},
+			},
+			Descriptions: []*stacks.AppliedChange_ChangeDescription{
+				{
+					Key: key,
+					Description: &stacks.AppliedChange_ChangeDescription_Deleted{
+						Deleted: &stacks.AppliedChange_Nothing{},
+					},
+				},
+			},
+		}, nil
+	}
+
+	var raw anypb.Any
+	description := &stacks.AppliedChange_InputVariable{
+		Name: ac.Addr.Name,
+	}
+
+	if ac.Value == cty.NilVal {
+		if err := anypb.MarshalFrom(&raw, new(emptypb.Empty), proto.MarshalOptions{}); err != nil {
+			return nil, fmt.Errorf("encoding raw state for %s: %w", ac.Addr, err)
+		}
+	} else {
+		value, err := tfstackdata1.DynamicValueToTFStackData1(ac.Value, cty.DynamicPseudoType)
+		if err != nil {
+			return nil, fmt.Errorf("encoding raw state for %s: %w", ac.Addr, err)
+		}
+		if err := anypb.MarshalFrom(&raw, value, proto.MarshalOptions{}); err != nil {
+			return nil, fmt.Errorf("encoding raw state for %s: %w", ac.Addr, err)
+		}
+
+		description.NewValue, err = stacks.ToDynamicValue(ac.Value, cty.DynamicPseudoType)
+		if err != nil {
+			return nil, fmt.Errorf("encoding new state for %s in preparation for saving it: %w", ac.Addr, err)
+		}
+	}
+
+	return &stacks.AppliedChange{
+		Raw: []*stacks.AppliedChange_RawChange{
+			{
+				Key:   key,
+				Value: &raw,
+			},
+		},
+		Descriptions: []*stacks.AppliedChange_ChangeDescription{
+			{
+				Key: key,
+				Description: &stacks.AppliedChange_ChangeDescription_InputVariable{
+					InputVariable: description,
+				},
+			},
+		},
+	}, nil
 }
 
 type AppliedChangeOutputValue struct {

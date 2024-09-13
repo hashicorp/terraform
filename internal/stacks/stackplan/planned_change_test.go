@@ -791,10 +791,12 @@ func TestPlannedChangeAsProto(t *testing.T) {
 				},
 			},
 		},
-		"sensitive root input variable": {
+		"create sensitive root input variable": {
 			Receiver: &PlannedChangeRootInputValue{
-				Addr:  stackaddrs.InputVariable{Name: "thingy_id"},
-				Value: cty.StringVal("boop").Mark(marks.Sensitive),
+				Addr:   stackaddrs.InputVariable{Name: "thingy_id"},
+				Action: plans.Create,
+				Before: cty.NullVal(cty.String),
+				After:  cty.StringVal("boop").Mark(marks.Sensitive),
 			},
 			Want: &stacks.PlannedChange{
 				Raw: []*anypb.Any{
@@ -812,19 +814,46 @@ func TestPlannedChangeAsProto(t *testing.T) {
 						},
 					}),
 				},
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
+					{
+						Description: &stacks.PlannedChange_ChangeDescription_InputVariablePlanned{
+							InputVariablePlanned: &stacks.PlannedChange_InputVariable{
+								Name:    "thingy_id",
+								Actions: []stacks.ChangeType{stacks.ChangeType_CREATE},
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.NullVal(cty.String)),
+									},
+									New: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.StringVal("boop")),
+										Sensitive: []*stacks.AttributePath{
+											{
+												Steps: make([]*stacks.AttributePath_Step, 0), // no steps as it is the root value
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 		"ephemeral root input variable": {
 			Receiver: &PlannedChangeRootInputValue{
-				Addr:  stackaddrs.InputVariable{Name: "thingy_id"},
-				Value: cty.StringVal("boop").Mark(marks.Ephemeral),
+				Addr:   stackaddrs.InputVariable{Name: "thingy_id"},
+				Action: plans.Create,
+				Before: cty.NullVal(cty.String),
+				After:  cty.StringVal("boop").Mark(marks.Ephemeral),
 			},
-			WantErr: "unexpected marks found on path: Ephemeral", // Ephemeral values should never make it this far.
+			WantErr: "failed to encode raw state for var.thingy_id: can't serialize value marked with cty.NewValueMarks(marks.Ephemeral) (this is a bug in Terraform)", // Ephemeral values should never make it this far.
 		},
-		"root input variable": {
+		"update root input variable": {
 			Receiver: &PlannedChangeRootInputValue{
-				Addr:  stackaddrs.InputVariable{Name: "thingy_id"},
-				Value: cty.StringVal("boop"),
+				Addr:   stackaddrs.InputVariable{Name: "thingy_id"},
+				Action: plans.Update,
+				Before: cty.StringVal("beep"),
+				After:  cty.StringVal("boop"),
 			},
 			Want: &stacks.PlannedChange{
 				Raw: []*anypb.Any{
@@ -837,14 +866,34 @@ func TestPlannedChangeAsProto(t *testing.T) {
 						},
 					}),
 				},
+				Descriptions: []*stacks.PlannedChange_ChangeDescription{
+					{
+						Description: &stacks.PlannedChange_ChangeDescription_InputVariablePlanned{
+							InputVariablePlanned: &stacks.PlannedChange_InputVariable{
+								Name:    "thingy_id",
+								Actions: []stacks.ChangeType{stacks.ChangeType_UPDATE},
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.StringVal("beep")),
+									},
+									New: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.StringVal("boop")),
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 		"root input variable that must be re-supplied during apply": {
 			Receiver: &PlannedChangeRootInputValue{
-				Addr:            stackaddrs.InputVariable{Name: "thingy_id"},
-				RequiredOnApply: true,
-				// No value in this case: the value must be re-supplied during
+				Addr:   stackaddrs.InputVariable{Name: "thingy_id"},
+				Action: plans.Create,
+				Before: cty.NullVal(cty.String),
+				// No after in this case: the value must be re-supplied during
 				// apply specifically so that we can avoid the need to store it.
+				RequiredOnApply: true,
 			},
 			Want: &stacks.PlannedChange{
 				Raw: []*anypb.Any{
@@ -854,10 +903,18 @@ func TestPlannedChangeAsProto(t *testing.T) {
 					}),
 				},
 				Descriptions: []*stacks.PlannedChange_ChangeDescription{
-					&stacks.PlannedChange_ChangeDescription{
-						Description: &stacks.PlannedChange_ChangeDescription_ApplyTimeInputVariable{
-							ApplyTimeInputVariable: &stacks.PlannedChange_InputVariableDuringApply{
-								Name: "thingy_id",
+					{
+						Description: &stacks.PlannedChange_ChangeDescription_InputVariablePlanned{
+							InputVariablePlanned: &stacks.PlannedChange_InputVariable{
+								Name:    "thingy_id",
+								Actions: []stacks.ChangeType{stacks.ChangeType_CREATE},
+								Values: &stacks.DynamicValueChange{
+									Old: &stacks.DynamicValue{
+										Msgpack: mustMsgPack(t, cty.NullVal(cty.String)),
+									},
+									// New is empty because it is ephemeral.
+								},
+								RequiredDuringApply: true,
 							},
 						},
 					},

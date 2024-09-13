@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -245,10 +246,30 @@ func handleProtoMsg(key statekeys.Key, msg protoreflect.ProtoMessage, state *Sta
 	case statekeys.Output:
 		return handleOutputMsg(key, msg, state)
 
+	case statekeys.Variable:
+		return handleVariableMsg(key, msg, state)
+
 	default:
 		// Should not get here: the above should be exhaustive for all
 		// possible key types.
 		panic(fmt.Sprintf("unsupported state key type %T", key))
+	}
+}
+
+func handleVariableMsg(key statekeys.Variable, msg protoreflect.ProtoMessage, state *State) error {
+	switch msg := msg.(type) {
+	case *emptypb.Empty:
+		state.addInputVariable(key.VariableAddr, cty.NilVal)
+		return nil
+	case *tfstackdata1.DynamicValue:
+		value, err := tfstackdata1.DynamicValueFromTFStackData1(msg, cty.DynamicPseudoType)
+		if err != nil {
+			return fmt.Errorf("failed to decode %s: %w", key.VariableAddr, err)
+		}
+		state.addInputVariable(key.VariableAddr, value)
+		return nil
+	default:
+		return fmt.Errorf("unsupported message type %T for %s state", msg, key.VariableAddr)
 	}
 }
 

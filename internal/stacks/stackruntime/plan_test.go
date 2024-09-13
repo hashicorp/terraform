@@ -356,7 +356,9 @@ func TestPlanWithVariableDefaults(t *testing.T) {
 					Addr: stackaddrs.InputVariable{
 						Name: "beep",
 					},
-					Value: cty.StringVal("BEEP"),
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.StringVal("BEEP"),
 				},
 			}
 			sort.SliceStable(gotChanges, func(i, j int) bool {
@@ -631,22 +633,28 @@ func TestPlanWithComplexVariableDefaults(t *testing.T) {
 			Schema: stacks_testing_provider.TestingResourceSchema,
 		},
 		&stackplan.PlannedChangeRootInputValue{
-			Addr: stackaddrs.InputVariable{Name: "default"},
-			Value: cty.ObjectVal(map[string]cty.Value{
+			Addr:   stackaddrs.InputVariable{Name: "default"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After: cty.ObjectVal(map[string]cty.Value{
 				"id":    cty.StringVal("cec9bc39"),
 				"value": cty.StringVal("hello, mercury!"),
 			}),
 		},
 		&stackplan.PlannedChangeRootInputValue{
-			Addr: stackaddrs.InputVariable{Name: "optional"},
-			Value: cty.ObjectVal(map[string]cty.Value{
+			Addr:   stackaddrs.InputVariable{Name: "optional"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After: cty.ObjectVal(map[string]cty.Value{
 				"id":    cty.NullVal(cty.String),
 				"value": cty.StringVal("hello, earth!"),
 			}),
 		},
 		&stackplan.PlannedChangeRootInputValue{
-			Addr: stackaddrs.InputVariable{Name: "optional_default"},
-			Value: cty.ObjectVal(map[string]cty.Value{
+			Addr:   stackaddrs.InputVariable{Name: "optional_default"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After: cty.ObjectVal(map[string]cty.Value{
 				"id":    cty.StringVal("78d8b3d7"),
 				"value": cty.StringVal("hello, venus!"),
 			}),
@@ -866,13 +874,18 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 				Addr: stackaddrs.InputVariable{
 					Name: "eph",
 				},
+				Action:          plans.Create,
+				Before:          cty.NullVal(cty.DynamicPseudoType),
+				After:           cty.NilVal, // ephemeral
 				RequiredOnApply: true,
 			},
 			&stackplan.PlannedChangeRootInputValue{
 				Addr: stackaddrs.InputVariable{
 					Name: "noneph",
 				},
-				Value: cty.StringVal("noneph value"),
+				Action: plans.Create,
+				Before: cty.NullVal(cty.DynamicPseudoType),
+				After:  cty.StringVal("noneph value"),
 			},
 		}
 		sort.SliceStable(gotChanges, func(i, j int) bool {
@@ -924,13 +937,18 @@ func TestPlanWithEphemeralInputVariables(t *testing.T) {
 				Addr: stackaddrs.InputVariable{
 					Name: "eph",
 				},
+				Action:          plans.Create,
+				Before:          cty.NullVal(cty.DynamicPseudoType),
+				After:           cty.NilVal, // ephemeral
 				RequiredOnApply: false,
 			},
 			&stackplan.PlannedChangeRootInputValue{
 				Addr: stackaddrs.InputVariable{
 					Name: "noneph",
 				},
-				Value: cty.NullVal(cty.String),
+				Action: plans.Create,
+				Before: cty.NullVal(cty.DynamicPseudoType),
+				After:  cty.NullVal(cty.String),
 			},
 		}
 		sort.SliceStable(gotChanges, func(i, j int) bool {
@@ -989,7 +1007,9 @@ func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 			Addr: stackaddrs.InputVariable{
 				Name: "msg",
 			},
-			Value: cty.StringVal("default"),
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.StringVal("default"),
 		},
 	}
 	sort.SliceStable(gotChanges, func(i, j int) bool {
@@ -1586,8 +1606,10 @@ func TestPlanWithSensitivePropagation(t *testing.T) {
 			PlannedTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeRootInputValue{
-			Addr:  stackaddrs.InputVariable{Name: "id"},
-			Value: cty.NullVal(cty.String),
+			Addr:   stackaddrs.InputVariable{Name: "id"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.NullVal(cty.String),
 		},
 	}
 
@@ -1747,8 +1769,10 @@ func TestPlanWithSensitivePropagationNested(t *testing.T) {
 			PlanTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeRootInputValue{
-			Addr:  stackaddrs.InputVariable{Name: "id"},
-			Value: cty.NullVal(cty.String),
+			Addr:   stackaddrs.InputVariable{Name: "id"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.NullVal(cty.String),
 		},
 	}
 
@@ -2180,12 +2204,16 @@ func TestPlanWithDeferredResource(t *testing.T) {
 			PlannedTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeRootInputValue{
-			Addr:  stackaddrs.InputVariable{Name: "defer"},
-			Value: cty.BoolVal(true),
+			Addr:   stackaddrs.InputVariable{Name: "defer"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.BoolVal(true),
 		},
 		&stackplan.PlannedChangeRootInputValue{
-			Addr:  stackaddrs.InputVariable{Name: "id"},
-			Value: cty.StringVal("62594ae3"),
+			Addr:   stackaddrs.InputVariable{Name: "id"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.StringVal("62594ae3"),
 		},
 	}
 
@@ -2421,8 +2449,10 @@ func TestPlanWithDeferredComponentForEach(t *testing.T) {
 			PlannedTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeRootInputValue{
-			Addr:  stackaddrs.InputVariable{Name: "components"},
-			Value: cty.UnknownVal(cty.Set(cty.String)),
+			Addr:   stackaddrs.InputVariable{Name: "components"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.UnknownVal(cty.Set(cty.String)),
 		},
 	}
 
@@ -2671,12 +2701,16 @@ func TestPlanWithDeferredComponentReferences(t *testing.T) {
 			PlannedTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeRootInputValue{
-			Addr:  stackaddrs.InputVariable{Name: "known_components"},
-			Value: cty.SetVal([]cty.Value{cty.StringVal("known")}),
+			Addr:   stackaddrs.InputVariable{Name: "known_components"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.SetVal([]cty.Value{cty.StringVal("known")}),
 		},
 		&stackplan.PlannedChangeRootInputValue{
-			Addr:  stackaddrs.InputVariable{Name: "unknown_components"},
-			Value: cty.UnknownVal(cty.Set(cty.String)),
+			Addr:   stackaddrs.InputVariable{Name: "unknown_components"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.UnknownVal(cty.Set(cty.String)),
 		},
 	}
 
@@ -2821,8 +2855,10 @@ func TestPlanWithDeferredEmbeddedStackForEach(t *testing.T) {
 			},
 		},
 		&stackplan.PlannedChangeRootInputValue{
-			Addr:  stackaddrs.InputVariable{Name: "stacks"},
-			Value: cty.UnknownVal(cty.Set(cty.String)),
+			Addr:   stackaddrs.InputVariable{Name: "stacks"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.UnknownVal(cty.Set(cty.String)),
 		},
 	}
 
@@ -2969,8 +3005,10 @@ func TestPlanWithDeferredEmbeddedStackAndComponentForEach(t *testing.T) {
 			},
 		},
 		&stackplan.PlannedChangeRootInputValue{
-			Addr:  stackaddrs.InputVariable{Name: "stacks"},
-			Value: cty.UnknownVal(cty.Map(cty.Set(cty.String))),
+			Addr:   stackaddrs.InputVariable{Name: "stacks"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.UnknownVal(cty.Map(cty.Set(cty.String))),
 		},
 	}
 
@@ -3244,8 +3282,10 @@ func TestPlanWithDeferredProviderForEach(t *testing.T) {
 			PlannedTimestamp: fakePlanTimestamp,
 		},
 		&stackplan.PlannedChangeRootInputValue{
-			Addr:  stackaddrs.InputVariable{Name: "providers"},
-			Value: cty.UnknownVal(cty.Set(cty.String)),
+			Addr:   stackaddrs.InputVariable{Name: "providers"},
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.UnknownVal(cty.Set(cty.String)),
 		},
 	}
 
@@ -3584,7 +3624,9 @@ func TestPlanWithStateManipulation(t *testing.T) {
 					Addr: stackaddrs.InputVariable{
 						Name: "id",
 					},
-					Value:           cty.StringVal("imported"),
+					Action:          plans.Create,
+					Before:          cty.NullVal(cty.DynamicPseudoType),
+					After:           cty.StringVal("imported"),
 					RequiredOnApply: false,
 				},
 			},
@@ -4177,13 +4219,17 @@ func TestPlan_DependsOnUpdatesRequirements(t *testing.T) {
 			Addr: stackaddrs.InputVariable{
 				Name: "empty",
 			},
-			Value: cty.SetValEmpty(cty.String),
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.SetValEmpty(cty.String),
 		},
 		&stackplan.PlannedChangeRootInputValue{
 			Addr: stackaddrs.InputVariable{
 				Name: "input",
 			},
-			Value: cty.StringVal("hello, world!"),
+			Action: plans.Create,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.StringVal("hello, world!"),
 		},
 	}
 
@@ -4301,14 +4347,18 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 				&stackplan.PlannedChangeRootInputValue{
-					Addr: stackaddrs.InputVariable{Name: "input"},
-					Value: cty.SetVal([]cty.Value{
+					Addr:   stackaddrs.InputVariable{Name: "input"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After: cty.SetVal([]cty.Value{
 						cty.StringVal("a"),
 					}),
 				},
 				&stackplan.PlannedChangeRootInputValue{
-					Addr:  stackaddrs.InputVariable{Name: "removed"},
-					Value: cty.UnknownVal(cty.Set(cty.String)),
+					Addr:   stackaddrs.InputVariable{Name: "removed"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.UnknownVal(cty.Set(cty.String)),
 				},
 			},
 		},
@@ -4401,12 +4451,16 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 				&stackplan.PlannedChangeRootInputValue{
-					Addr:  stackaddrs.InputVariable{Name: "input"},
-					Value: cty.SetValEmpty(cty.String),
+					Addr:   stackaddrs.InputVariable{Name: "input"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.SetValEmpty(cty.String),
 				},
 				&stackplan.PlannedChangeRootInputValue{
-					Addr:  stackaddrs.InputVariable{Name: "removed"},
-					Value: cty.UnknownVal(cty.Set(cty.String)),
+					Addr:   stackaddrs.InputVariable{Name: "removed"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.UnknownVal(cty.Set(cty.String)),
 				},
 			},
 		},
@@ -4561,12 +4615,16 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 				&stackplan.PlannedChangeRootInputValue{
-					Addr:  stackaddrs.InputVariable{Name: "input"},
-					Value: cty.UnknownVal(cty.Set(cty.String)),
+					Addr:   stackaddrs.InputVariable{Name: "input"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.UnknownVal(cty.Set(cty.String)),
 				},
 				&stackplan.PlannedChangeRootInputValue{
-					Addr:  stackaddrs.InputVariable{Name: "removed"},
-					Value: cty.SetVal([]cty.Value{cty.StringVal("b")}),
+					Addr:   stackaddrs.InputVariable{Name: "removed"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.SetVal([]cty.Value{cty.StringVal("b")}),
 				},
 			},
 		},
@@ -4657,12 +4715,16 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 				&stackplan.PlannedChangeRootInputValue{
-					Addr:  stackaddrs.InputVariable{Name: "input"},
-					Value: cty.UnknownVal(cty.Set(cty.String)),
+					Addr:   stackaddrs.InputVariable{Name: "input"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.UnknownVal(cty.Set(cty.String)),
 				},
 				&stackplan.PlannedChangeRootInputValue{
-					Addr:  stackaddrs.InputVariable{Name: "removed"},
-					Value: cty.UnknownVal(cty.Set(cty.String)),
+					Addr:   stackaddrs.InputVariable{Name: "removed"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.UnknownVal(cty.Set(cty.String)),
 				},
 			},
 		},
@@ -4769,14 +4831,18 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 				&stackplan.PlannedChangeRootInputValue{
-					Addr: stackaddrs.InputVariable{Name: "input"},
-					Value: cty.SetVal([]cty.Value{
+					Addr:   stackaddrs.InputVariable{Name: "input"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After: cty.SetVal([]cty.Value{
 						cty.StringVal("a"),
 					}),
 				},
 				&stackplan.PlannedChangeRootInputValue{
-					Addr: stackaddrs.InputVariable{Name: "removed"},
-					Value: cty.SetVal([]cty.Value{
+					Addr:   stackaddrs.InputVariable{Name: "removed"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After: cty.SetVal([]cty.Value{
 						cty.StringVal("b"),
 					}),
 				},
@@ -4927,14 +4993,18 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 				&stackplan.PlannedChangeRootInputValue{
-					Addr: stackaddrs.InputVariable{Name: "input"},
-					Value: cty.SetVal([]cty.Value{
+					Addr:   stackaddrs.InputVariable{Name: "input"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After: cty.SetVal([]cty.Value{
 						cty.StringVal("added"),
 					}),
 				},
 				&stackplan.PlannedChangeRootInputValue{
-					Addr: stackaddrs.InputVariable{Name: "removed"},
-					Value: cty.SetVal([]cty.Value{
+					Addr:   stackaddrs.InputVariable{Name: "removed"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After: cty.SetVal([]cty.Value{
 						cty.StringVal("removed"),
 					}),
 				},
@@ -5035,14 +5105,18 @@ func TestPlan_RemovedBlocks(t *testing.T) {
 					PlannedTimestamp: fakePlanTimestamp,
 				},
 				&stackplan.PlannedChangeRootInputValue{
-					Addr: stackaddrs.InputVariable{Name: "input"},
-					Value: cty.SetVal([]cty.Value{
+					Addr:   stackaddrs.InputVariable{Name: "input"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After: cty.SetVal([]cty.Value{
 						cty.StringVal("a"),
 					}),
 				},
 				&stackplan.PlannedChangeRootInputValue{
-					Addr: stackaddrs.InputVariable{Name: "removed"},
-					Value: cty.SetVal([]cty.Value{
+					Addr:   stackaddrs.InputVariable{Name: "removed"},
+					Action: plans.Create,
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After: cty.SetVal([]cty.Value{
 						cty.StringVal("a"),
 					}),
 				},

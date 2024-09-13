@@ -385,6 +385,8 @@ func appliedChangeSortKey(change stackstate.AppliedChange) string {
 		return change.ComponentInstanceAddr.String()
 	case *stackstate.AppliedChangeOutputValue:
 		return change.Addr.String()
+	case *stackstate.AppliedChangeInputVariable:
+		return change.Addr.String()
 	case *stackstate.AppliedChangeDiscardKeys:
 		// There should only be a single discard keys in a plan, so we can just
 		// return a static string here.
