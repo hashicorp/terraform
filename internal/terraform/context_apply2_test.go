@@ -2982,6 +2982,77 @@ func TestContext2Apply_destroy_and_forget(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_destroy_and_forget_single_resource(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+            removed {
+              from = test_object.a
+            
+              lifecycle {
+                destroy = false
+              }
+            }
+            `,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		s.SetResourceInstanceDeposed(addrA, states.DeposedKey("uhoh"), &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"foo":"bar"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	actualChangeAddresses := make([]string, len(plan.Changes.Resources))
+	// We expect a forget action for each resource
+	for i, change := range plan.Changes.Resources {
+		actualChangeAddresses[i] = change.Addr.String()
+		if change.Action != plans.Forget {
+			t.Fatalf("Expected all actions to be forget, but got %s at plan.Changes.Resources[%d]", change.Action, i)
+		}
+	}
+
+	// Sort ahead of comparison to avoid order issues
+	sort.Strings(actualChangeAddresses)
+	expectedAddresses := []string{addrA.String(), addrA.String()}
+
+	if diff := cmp.Diff(actualChangeAddresses, expectedAddresses); len(diff) > 0 {
+		t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expectedAddresses, actualChangeAddresses, diff)
+	}
+
+	state, diags = ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	// check that the provider was not asked to destroy the resource
+	if p.ApplyResourceChangeCalled {
+		t.Fatalf("Expected ApplyResourceChange not to be called, but it was called")
+	}
+
+	checkStateString(t, state, `<no state>`)
+
+}
+
 func TestContext2Apply_sensitiveInputVariableValue(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
