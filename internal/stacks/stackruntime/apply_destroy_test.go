@@ -42,6 +42,55 @@ func TestApplyDestroy(t *testing.T) {
 		store       *stacks_testing_provider.ResourceStore
 		cycles      []TestCycle
 	}{
+		"inputs-and-outputs": {
+			path: "component-input-output",
+			state: stackstate.NewStateBuilder().
+				AddInput("value", cty.StringVal("foo")).
+				AddOutput("value", cty.StringVal("foo")).
+				Build(),
+			cycles: []TestCycle{
+				{
+					planMode: plans.DestroyMode,
+					planInputs: map[string]cty.Value{
+						"value": cty.StringVal("foo"),
+					},
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangeOutputValue{
+							Addr:   mustStackOutputValue("value"),
+							Action: plans.Delete,
+							Before: cty.StringVal("foo"),
+							After:  cty.NullVal(cty.String),
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeRootInputValue{
+							Addr:          mustStackInputVariable("value"),
+							Action:        plans.NoOp,
+							Before:        cty.StringVal("foo"),
+							After:         cty.StringVal("foo"),
+							DeleteOnApply: true,
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeOutputValue{
+							Addr:  mustStackOutputValue("value"),
+							Value: cty.NilVal, // destroyed
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:    mustStackInputVariable("value"),
+							Removed: true, // destroyed
+						},
+					},
+				},
+			},
+		},
 		"missing-resource": {
 			path:        path.Join("with-single-input", "valid"),
 			description: "tests what happens when a resource is in state but not in the provider",
@@ -86,14 +135,12 @@ func TestApplyDestroy(t *testing.T) {
 							Schema:                     nil,
 						},
 						&stackstate.AppliedChangeInputVariable{
-							Addr:  mustStackInputVariable("id"),
-							Value: cty.NullVal(cty.String),
-							// Removed: true, TODO: Enable this in a follow up PR.
+							Addr:    mustStackInputVariable("id"),
+							Removed: true,
 						},
 						&stackstate.AppliedChangeInputVariable{
-							Addr:  mustStackInputVariable("input"),
-							Value: cty.StringVal("hello"),
-							// Removed: true, TODO: Enable this in a follow up PR.
+							Addr:    mustStackInputVariable("input"),
+							Removed: true,
 						},
 					},
 				},
@@ -159,14 +206,12 @@ func TestApplyDestroy(t *testing.T) {
 							NewStateSrc:                nil,
 						},
 						&stackstate.AppliedChangeInputVariable{
-							Addr:  mustStackInputVariable("id"),
-							Value: cty.StringVal("foo"),
-							// Removed: true, TODO: Enable this in a follow up PR.
+							Addr:    mustStackInputVariable("id"),
+							Removed: true,
 						},
 						&stackstate.AppliedChangeInputVariable{
-							Addr:  mustStackInputVariable("resource"),
-							Value: cty.StringVal("bar"),
-							// Removed: true, TODO: Enable this in a follow up PR.
+							Addr:    mustStackInputVariable("resource"),
+							Removed: true,
 						},
 					},
 				},
@@ -249,12 +294,10 @@ func TestApplyDestroy(t *testing.T) {
 						&stackstate.AppliedChangeInputVariable{
 							Addr:  mustStackInputVariable("id"),
 							Value: cty.StringVal("foo"),
-							// Removed: true, TODO: Enable this in a follow up PR.
 						},
 						&stackstate.AppliedChangeInputVariable{
 							Addr:  mustStackInputVariable("resource"),
 							Value: cty.StringVal("bar"),
-							// Removed: true, TODO: Enable this in a follow up PR.
 						},
 					},
 				},
@@ -287,14 +330,12 @@ func TestApplyDestroy(t *testing.T) {
 							NewStateSrc:                nil, // deleted
 						},
 						&stackstate.AppliedChangeInputVariable{
-							Addr:  mustStackInputVariable("id"),
-							Value: cty.StringVal("foo"),
-							// Removed: true, TODO: Enable this in a follow up PR.
+							Addr:    mustStackInputVariable("id"),
+							Removed: true,
 						},
 						&stackstate.AppliedChangeInputVariable{
-							Addr:  mustStackInputVariable("resource"),
-							Value: cty.StringVal("bar"),
-							// Removed: true, TODO: Enable this in a follow up PR.
+							Addr:    mustStackInputVariable("resource"),
+							Removed: true,
 						},
 					},
 				},
@@ -452,14 +493,12 @@ func TestApplyDestroy(t *testing.T) {
 							Schema: stacks_testing_provider.FailedResourceSchema,
 						},
 						&stackstate.AppliedChangeInputVariable{
-							Addr:  mustStackInputVariable("fail_apply"),
-							Value: cty.False,
-							// Removed: true, TODO: Enable this in a follow up PR.
+							Addr:    mustStackInputVariable("fail_apply"),
+							Removed: true,
 						},
 						&stackstate.AppliedChangeInputVariable{
-							Addr:  mustStackInputVariable("fail_plan"),
-							Value: cty.False,
-							// Removed: true, TODO: Enable this in a follow up PR.
+							Addr:    mustStackInputVariable("fail_plan"),
+							Removed: true,
 						},
 					},
 					wantAppliedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
