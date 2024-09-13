@@ -9,6 +9,9 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/zclconf/go-cty/cty"
+
+	// set the correct global logger for tests
+	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
 func TestFunctionCache(t *testing.T) {
@@ -179,7 +182,6 @@ func TestFunctionCache(t *testing.T) {
 			if originalErr != reloadedErr {
 				t.Fatalf("original check returned err:%t, reloaded check returned err:%t", originalErr, reloadedErr)
 			}
-
 		})
 	}
 }
