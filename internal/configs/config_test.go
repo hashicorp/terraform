@@ -18,6 +18,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
+
+	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
 func TestConfigProviderTypes(t *testing.T) {

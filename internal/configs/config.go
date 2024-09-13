@@ -458,7 +458,17 @@ func (c *Config) addProviderRequirements(reqs providerreqs.Requirements, recurse
 		}
 		reqs[fqn] = nil
 	}
+
 	for _, rc := range c.Module.DataResources {
+		fqn := rc.Provider
+		if _, exists := reqs[fqn]; exists {
+			// Explicit dependency already present
+			continue
+		}
+		reqs[fqn] = nil
+	}
+
+	for _, rc := range c.Module.EphemeralResources {
 		fqn := rc.Provider
 		if _, exists := reqs[fqn]; exists {
 			// Explicit dependency already present
