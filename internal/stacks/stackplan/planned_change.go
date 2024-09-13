@@ -102,25 +102,6 @@ func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*stacks.PlannedChan
 		raws = append(raws, &raw)
 	}
 
-	if pc.Action != plans.Delete {
-		var ppdv *tfstackdata1.DynamicValue
-		if pc.After != cty.NilVal {
-			ppdv, err = tfstackdata1.DynamicValueToTFStackData1(pc.After, cty.DynamicPseudoType)
-			if err != nil {
-				return nil, fmt.Errorf("failed to encode raw state for %s: %w", pc.Addr, err)
-			}
-		}
-		var raw anypb.Any
-		if err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanRootInputValue{
-			Name:            pc.Addr.Name,
-			Value:           ppdv,
-			RequiredOnApply: pc.RequiredOnApply,
-		}, proto.MarshalOptions{}); err != nil {
-			return nil, err
-		}
-		raws = append(raws, &raw)
-	}
-
 	var before, after *stacks.DynamicValue
 	if pc.Before != cty.NilVal {
 		before, err = stacks.ToDynamicValue(pc.Before, cty.DynamicPseudoType)
@@ -133,6 +114,22 @@ func (pc *PlannedChangeRootInputValue) PlannedChangeProto() (*stacks.PlannedChan
 		if err != nil {
 			return nil, fmt.Errorf("failed to encode after planned input variable %s: %w", pc.Addr, err)
 		}
+	}
+
+	if pc.Action != plans.Delete {
+		var ppdv *tfstackdata1.DynamicValue
+		if after != nil {
+			ppdv = tfstackdata1.Terraform1ToStackDataDynamicValue(after)
+		}
+		var raw anypb.Any
+		if err := anypb.MarshalFrom(&raw, &tfstackdata1.PlanRootInputValue{
+			Name:            pc.Addr.Name,
+			Value:           ppdv,
+			RequiredOnApply: pc.RequiredOnApply,
+		}, proto.MarshalOptions{}); err != nil {
+			return nil, err
+		}
+		raws = append(raws, &raw)
 	}
 
 	return &stacks.PlannedChange{
@@ -257,11 +254,11 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*stacks.PlannedC
 
 	plannedOutputValues := make(map[string]*tfstackdata1.DynamicValue)
 	for k, v := range pc.PlannedOutputValues {
-		dv, err := tfstackdata1.DynamicValueToTFStackData1(v, cty.DynamicPseudoType)
+		dv, err := stacks.ToDynamicValue(v, cty.DynamicPseudoType)
 		if err != nil {
 			return nil, fmt.Errorf("encoding output value %q: %w", k, err)
 		}
-		plannedOutputValues[k] = dv
+		plannedOutputValues[k] = tfstackdata1.Terraform1ToStackDataDynamicValue(dv)
 	}
 
 	plannedCheckResults, err := planfile.CheckResultsToPlanProto(pc.PlannedCheckResults)
