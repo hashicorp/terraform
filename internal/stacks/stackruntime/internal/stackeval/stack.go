@@ -773,8 +773,13 @@ func (s *Stack) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfd
 		action := plans.Create
 
 		if actualBefore, exists := beforeVal[addr]; exists {
-			action = plans.Update
 			before = actualBefore
+
+			if result := before.Equals(after); result.IsKnown() && result.True() {
+				action = plans.NoOp
+			} else {
+				action = plans.Update
+			}
 		}
 
 		changes = append(changes, &stackplan.PlannedChangeOutputValue{

@@ -245,13 +245,6 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 
 	before, beforeEphemeral := v.main.PlanPrevState().RootInputVariable(v.Addr().Item)
 
-	action := plans.Create
-	if beforeEphemeral || before != cty.NilVal {
-		action = plans.Update
-	} else {
-		before = cty.NullVal(cty.DynamicPseudoType)
-	}
-
 	decl := v.Declaration(ctx)
 	after := v.Value(ctx, PlanPhase)
 	requiredOnApply := false
@@ -261,6 +254,35 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 		requiredOnApply = !after.IsNull()
 		after = cty.NilVal
 	}
+
+	var action plans.Action
+	if beforeEphemeral {
+		// We can't tell the difference between an Update and NoOp change for
+		// an ephemeral input so we just always mark it as updated.
+		action = plans.Update
+	} else if before != cty.NilVal {
+		if decl.Ephemeral {
+			// if the new value is ephemeral, and the old value wasn't, then
+			// we'll set the operation to an update even if the actual hasn't
+			// changed
+			action = plans.Update
+		} else if result := before.Equals(after); result.IsKnown() && result.True() {
+			// The values are definitely equal, so NoOp change.
+			action = plans.NoOp
+		} else {
+			// If we don't know for sure that the values are equal, then we'll
+			// call this an update.
+			action = plans.Update
+		}
+	} else {
+		action = plans.Create
+
+		// We think this is a brand new input variable so we'll also mark the
+		// before as being a null value (as opposed to NilVal which means it
+		// existed before but was ephemeral).
+		before = cty.NullVal(cty.DynamicPseudoType)
+	}
+
 	return []stackplan.PlannedChange{
 		&stackplan.PlannedChangeRootInputValue{
 			Addr:            v.Addr().Item,

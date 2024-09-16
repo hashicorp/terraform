@@ -159,6 +159,54 @@ func TestApply(t *testing.T) {
 				},
 			},
 		},
+		"updating inputs and outputs (noop)": {
+			path: "component-input-output",
+			cycles: []TestCycle{
+				{
+					planInputs: map[string]cty.Value{
+						"value": cty.StringVal("foo"),
+					},
+				},
+				{
+					planInputs: map[string]cty.Value{
+						"value": cty.StringVal("foo"),
+					},
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangeOutputValue{
+							Addr:   mustStackOutputValue("value"),
+							Action: plans.NoOp,
+							Before: cty.StringVal("foo"),
+							After:  cty.StringVal("foo"),
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeRootInputValue{
+							Addr:   mustStackInputVariable("value"),
+							Action: plans.NoOp,
+							Before: cty.StringVal("foo"),
+							After:  cty.StringVal("foo"),
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeOutputValue{
+							Addr:  mustStackOutputValue("value"),
+							Value: cty.StringVal("foo"),
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("value"),
+							Value: cty.StringVal("foo"),
+						},
+					},
+				},
+			},
+		},
 		"deleting inputs and outputs": {
 			path: "component-input-output",
 			state: stackstate.NewStateBuilder().
